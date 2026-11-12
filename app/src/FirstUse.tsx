@@ -120,10 +120,11 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     finally { finish(); }
   };
 
-  // Another Chirality App holds this App data: nothing was started or changed
-  // here and setup cannot run, so the host's reason is the whole surface.
-  if (view.launch?.state === "already-running") return <section className="first-use" aria-label="Welcome">
-    <h1>Chirality is already running</h1>
+  // Another process holds this App data (which one is not known): nothing
+  // operational started and setup cannot run, so the host's reason is the
+  // whole surface.
+  if (view.launch?.state === "data-held") return <section className="first-use" aria-label="Welcome">
+    <h1>This App's data is in use</h1>
     <p className="first-use-lead" role="alert">{view.launch.reason}</p>
   </section>;
   return <section className="first-use" aria-label="Welcome" aria-busy={busy}>

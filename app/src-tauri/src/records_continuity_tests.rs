@@ -2,7 +2,9 @@
 use super::*;
 use crate::recovery::{AppProjectSource, ExplicitAppProjectContext};
 use std::{fs, os::unix::fs::PermissionsExt, path::Path, time::Instant};
-struct Fixture(PathBuf);
+/// The second field: the fixture's App data (`app/`) held as the App holds it
+/// before it opens a ledger, so that a later Host on it models a relaunch.
+struct Fixture(PathBuf, #[allow(dead_code)] crate::AppDataCustody);
 impl Fixture {
     fn new() -> Self {
         let root = std::env::temp_dir()
@@ -28,7 +30,8 @@ impl Fixture {
             None,
         );
         fs::write(log, format!("{entry}\n")).unwrap();
-        Self(root)
+        let custody = crate::hold_app_data_for_test(&root.join("app")).unwrap();
+        Self(root, custody)
     }
     fn context(&self) -> ExplicitAppProjectContext {
         ExplicitAppProjectContext::known(

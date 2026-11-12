@@ -739,6 +739,9 @@ fn host_status(state: State<'_, AppState>) -> Value {
     if let Err(e) = &home.host_config {
         s["configurationProblem"] = json!(e);
     }
+    // The home this status is for, as `lastStartRefusal.home` names one: a
+    // refusal is shown only for the home being shown.
+    s["codexHome"] = home.host_config.as_ref().map_or(Value::Null, |cfg| json!(hosting::home_identity(&cfg.codex_home)));
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
@@ -2715,6 +2718,23 @@ pub(crate) fn admitted_startup(
     let inputs = desktop.admit_root(launch, data);
     (desktop, inputs)
 }
+/// This process's exclusive hold on an App data directory, taken through the
+/// App's own lease and its registration (as both launch routes take it).
+#[doc(hidden)]
+pub struct AppDataCustody(#[allow(dead_code)] desktop_startup::DesktopSetup);
+/// Test fixtures that model an App relaunch on a ledger take App data custody
+/// of their fixture root as the App does, so that a session is started only
+/// under it. The root is created if missing and named by its canonical path
+/// (the lease refuses a path through a link). Not a bypass: the same lease and
+/// registration the App takes at launch.
+#[doc(hidden)]
+pub fn hold_app_data_for_test(data: &std::path::Path) -> Result<AppDataCustody, String> {
+    std::fs::create_dir_all(data).map_err(|e| e.to_string())?;
+    let data = data.canonicalize().map_err(|e| e.to_string())?;
+    let mut setup = desktop_startup::DesktopSetup::new(Ok(data.clone()), Err("no resources for an App data hold".into()));
+    setup.hold_environment_data(&data)?;
+    Ok(AppDataCustody(setup))
+}
 /// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`.
 fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Option<Result<PathBuf,String>> {
     let value = input(APP_DATA_ENV).filter(|v| !v.is_empty())?;
@@ -2753,6 +2773,18 @@ fn explicit_environment_launch(
     Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
 }
 
+/// The launch's automatic start of Codex (HOSTING §4.6, actor `app-startup`),
+/// as `run` performs it on either route: the App ledger is configured, then
+/// this App's custody is rechecked, then the Host starts.
+pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, cfg: &HostConfig, desktop: &Mutex<desktop_startup::DesktopSetup>) -> Result<Value, String> {
+    runtime_session::start_with_recovery(host, recovery, data, Some(&cfg.codex_home), || {
+        // A refusal before Host::start is kept as the host status's last
+        // start refusal too (Host::start keeps its own home refusals).
+        let admitted = desktop.lock().map_err(|_|"Desktop custody unavailable".to_string()).and_then(|desktop|desktop.recheck_active());
+        if let Err(reason) = admitted { host.note_start_refusal("app-startup", &cfg.codex_home, &reason); return Err(reason); }
+        host.start(cfg, "app-startup")
+    })
+}
 fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
     let desktop_startup::Launch { workspace, host_config, key_path, shared_paths, bootstrap, namespaces, source } = launch;
     let source = if source == "explicit environment (exclusive)" { "explicit Root native environment path inputs" } else { source };
@@ -2981,19 +3013,7 @@ pub fn run() {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
                 std::thread::spawn(move || {
-                    let _ = runtime_session::start_with_recovery(
-                        &h,
-                        &recovery,
-                        data.as_deref().map_err(String::as_str),
-                        Some(&cfg.codex_home),
-                        || {
-                            // A refusal before Host::start is kept as the host
-                            // status's last start refusal too (Host::start keeps its own).
-                            let admitted = desktop.lock().map_err(|_|"Desktop custody unavailable".to_string()).and_then(|desktop|desktop.recheck_active());
-                            if let Err(reason) = admitted { h.note_start_refusal("app-startup", &reason); return Err(reason); }
-                            h.start(&cfg, "app-startup")
-                        },
-                    );
+                    let _ = automatic_start(&h, &recovery, data.as_deref().map_err(String::as_str), &cfg, &desktop);
                 });
             }
             Ok(())

@@ -55,6 +55,8 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
     crate::records_store::attach(&project, true).unwrap();
     let ledger = root.join("app/runtime/recovery.ledger.jsonl");
     std::fs::create_dir_all(ledger.parent().unwrap()).unwrap();
+    // The App data held as the App holds it: the later Host models a relaunch.
+    let _custody = crate::hold_app_data_for_test(&root.join("app")).unwrap();
     let host = Arc::new(Host::new());
     host.inner.0.lock().unwrap().app_session = "conversation-session".into();
     host.configure_recovery(ledger.clone()).unwrap();

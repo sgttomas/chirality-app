@@ -142,7 +142,7 @@ for line in sys.stdin:
             inner.start_attempt = 1;
             inner.start_admission = Some(super::super::StartAdmission::NotSpawned(1));
         }
-        let (_, label, _) = host.verify(1, &f.cfg);
+        let (_, label, _) = host.verify(1, &super::super::AdmittedHome::current(&f.cfg.codex_home), &f.cfg);
         assert_eq!(label.as_deref(), Some("codex-cli 0.167.0"));
         assert!(host.probe_processes.lock().unwrap().is_empty());
     }

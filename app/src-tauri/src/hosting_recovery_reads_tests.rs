@@ -71,12 +71,15 @@ for line in sys.stdin:
  emit({'id':f['id'],'result':result})
 "#;
 
-struct Fixture { root: PathBuf, cfg: HostConfig, home: Arc<HomeSession>, first: Value }
+/// `_custody`: the root held as the App holds its App data before it opens a
+/// ledger, so that a later App session on it models a relaunch.
+struct Fixture { root: PathBuf, cfg: HostConfig, home: Arc<HomeSession>, first: Value, _custody: crate::AppDataCustody }
 impl Fixture {
     fn new() -> Self {
         use std::os::unix::fs::PermissionsExt;
         let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("recovery-reads-").unwrap());
         for name in ["account", "probe"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
+        let _custody = crate::hold_app_data_for_test(&root).unwrap();
         let peer = root.join("peer.py");
         std::fs::write(&peer, PEER).unwrap();
         std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -87,7 +90,7 @@ impl Fixture {
         let first = home.host.snapshot()["generation"].clone();
         home.host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         home.host.observe_conversation_project(&first, "thread", Some("H-acct"), &ExplicitAppProjectContext::known("P", AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();
-        Self { root, cfg, home, first }
+        Self { root, cfg, home, first, _custody }
     }
     /// A started Host with the App ledger (a new App session each time).
     fn session(root: &std::path::Path, cfg: &HostConfig) -> Arc<HomeSession> {
@@ -860,7 +863,7 @@ fn a_live_session_is_given_no_endings_restart_facts_adoption_or_run_limit_by_ano
     let copied = crate::session_liveness::lock_path(&f.root.join("before-locks.ledger.jsonl"), &first_session);
     std::fs::create_dir_all(copied.parent().unwrap()).unwrap();
     std::fs::copy(crate::session_liveness::lock_path(&path, &first_session), &copied).unwrap();
-    assert_eq!(crate::session_liveness::probe(&path, &first_session, true), crate::session_liveness::Liveness::Free);
+    assert!(matches!(crate::session_liveness::probe(&path, &first_session, true), crate::session_liveness::Liveness::Silent(_)));
     let started = |ledger: PathBuf| {
         let mut ledger = crate::recovery::RecoveryLedger::open(ledger).unwrap();
         ledger.start_session("app-session:relaunch", "chirality-app-v4-unqualified").unwrap();
@@ -878,7 +881,7 @@ fn a_live_session_is_given_no_endings_restart_facts_adoption_or_run_limit_by_ano
     };
     let today = started(f.root.join("before-locks.ledger.jsonl"));
     let now = started(path.clone());
-    assert_eq!(now, today, "the same entries on both ledgers: the ended session is read from its free lock file");
+    assert_eq!(now, today, "the same entries on both ledgers: the ended session is read as ended under this App's custody of its data");
     assert_eq!(now[0]["previousSessionEnd"], "ended-without-record");
     assert_eq!(now[0]["previousSession"], first_session.as_str());
     assert!(now.iter().any(|e| e["transition"] == "RQ-06"), "the listed request's ending: {now:?}");
@@ -895,7 +898,7 @@ fn a_second_host_on_one_home_in_one_process_is_refused_until_the_first_is_gone()
     first.start(&cfg, "first").unwrap();
     let second = Arc::new(Host::new());
     let refused = second.start(&cfg, "second").unwrap_err();
-    assert!(refused.contains("already started on this home"), "{refused}");
+    assert_eq!(refused, crate::home_hold::IN_USE_HERE);
     assert_eq!(second.snapshot()["state"], "absent", "nothing spawned or recorded");
     assert_eq!(initializes(&root), 1, "one Codex on the home");
     // The same home under another spelling is the same home.
@@ -1054,7 +1057,8 @@ fn a_dropped_host_keeps_its_home_until_its_process_group_settles() {
     let second = Arc::new(Host::new());
     for _ in 0..10 {
         let refused = second.start(&cfg, "second").unwrap_err();
-        assert!(refused.contains("already started on this home"), "{refused}");
+        assert_eq!(refused, crate::home_hold::KEPT, "the kept home says why");
+        assert_eq!(second.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::KEPT);
         std::thread::sleep(Duration::from_millis(20));
     }
     assert_eq!(initializes(&root), 1);
@@ -1088,6 +1092,117 @@ fn a_host_on_a_home_another_process_holds_is_refused_until_that_process_is_kille
     child.wait().unwrap();
     let ready = host.start(&cfg, "after the first App was killed").unwrap();
     assert_eq!(ready["state"], "ready");
+    let _ = host.stop("fixture", "test ended");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The reviewer's stand-in (round 2): the label probe can be paused
+/// (`probe-pause` → `probe-entered`, until `probe-continue`) and can answer a
+/// wrong label (`wrong-version`); each app-server start appends its pid and
+/// `CODEX_HOME` to `server-home`.
+const PAUSING_PEER: &str = "#!/usr/bin/python3\nimport sys,json,os,time\nr=os.getcwd()\nif '--version' in sys.argv:\n r=os.path.dirname(r)\n if os.path.exists(r+'/probe-pause'):\n  open(r+'/probe-entered','w').close()\n  while not os.path.exists(r+'/probe-continue'):time.sleep(0.002)\n print('wrong' if os.path.exists(r+'/wrong-version') else 'codex-cli 0.167.0');sys.exit(0)\nopen('server-home','a').write(str(os.getpid())+' '+os.environ.get('CODEX_HOME','')+'\\n')\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'review-stand-in'}}),flush=True)\n";
+fn pausing_root() -> PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("start-attempt-").unwrap());
+    for name in ["account", "other", "probe"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
+    std::fs::write(root.join("peer.py"), PAUSING_PEER).unwrap();
+    std::fs::set_permissions(root.join("peer.py"), std::fs::Permissions::from_mode(0o700)).unwrap();
+    root
+}
+fn pausing_cfg(root: &std::path::Path, home: &str) -> HostConfig {
+    let mut cfg = HostConfig::new(root.join("peer.py"), root.join(home), root.join("probe"), root.to_owned());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(2);
+    cfg
+}
+fn wait_for(path: &std::path::Path) {
+    let deadline = Instant::now() + Duration::from_secs(8);
+    while !path.exists() { assert!(Instant::now() < deadline, "{} never appeared", path.display()); std::thread::sleep(Duration::from_millis(2)); }
+}
+
+/// The reviewer's reproduction (round 2, finding 2), as a maintained test.
+/// While an admitted start is paused in its label probe on one home, a
+/// second start on the same Host naming another home is refused; it changes
+/// nothing of the admitted attempt and keeps no claim on the other home. The
+/// first home is then replaced at its path; the admitted attempt checks its
+/// own held home, finds it replaced, and starts no app-server on the
+/// replacement.
+#[test]
+fn a_refused_concurrent_start_changes_nothing_of_the_admitted_attempts_home() {
+    let root = pausing_root();
+    std::fs::write(root.join("probe-pause"), b"").unwrap();
+    let first = Arc::new(Host::new());
+    let active = { let h = Arc::clone(&first); let cfg = pausing_cfg(&root, "account"); std::thread::spawn(move || h.start(&cfg, "active attempt")) };
+    wait_for(&root.join("probe-entered"));
+    let before = first.snapshot();
+    assert!(first.start(&pausing_cfg(&root, "other"), "concurrent refused attempt").is_err());
+    let after = first.snapshot();
+    assert_eq!(after["lifecycle"], before["lifecycle"], "the refused call is no lifecycle record");
+    assert_eq!(after["state"], "verifying");
+    // The refused call keeps no claim on the other home: another Host here takes it.
+    let other_host = Arc::new(Host::new());
+    let owner: std::sync::Weak<dyn crate::home_hold::HoldOwner> = Arc::downgrade(&other_host) as std::sync::Weak<dyn crate::home_hold::HoldOwner>;
+    let claimed = crate::home_hold::claim_host(&root.join("other"), crate::home_hold::next_id(), owner, &Arc::new(std::sync::atomic::AtomicUsize::new(0)));
+    assert!(claimed.is_ok(), "no claim was kept on the other home");
+    drop(claimed);
+    // The admitted attempt's home is replaced at its path.
+    std::fs::rename(root.join("account"), root.join("original-account")).unwrap();
+    std::fs::create_dir(root.join("account")).unwrap();
+    std::fs::remove_file(root.join("probe-pause")).unwrap();
+    std::fs::write(root.join("probe-continue"), b"").unwrap();
+    let result = active.join().unwrap();
+    assert_eq!(result.unwrap_err(), crate::home_hold::REPLACED, "the attempt checked its own held home");
+    assert!(!root.join("server-home").exists(), "no app-server was started on the replacement");
+    assert_eq!(first.snapshot()["state"], "refused");
+    assert_eq!(first.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::REPLACED);
+    assert_eq!(first.snapshot()["lastStartRefusal"]["home"], crate::hosting::home_identity(&root.join("account")));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The reviewer's reproduction (round 2, finding 4), as a maintained test. A
+/// refusal carries its home and attempt; it is cleared as soon as a later
+/// attempt is admitted (so no snapshot of that attempt carries it, whether it
+/// is under way, refused for another reason or ready) and replaced by a later
+/// refusal.
+#[test]
+fn a_start_refusal_is_bound_to_its_home_and_cleared_when_a_later_attempt_is_admitted() {
+    let root = pausing_root();
+    let host = Arc::new(Host::new());
+    let missing = pausing_cfg(&root, "missing");
+    assert_eq!(host.start(&missing, "missing").unwrap_err(), crate::home_hold::MISSING);
+    let refusal = host.snapshot()["lastStartRefusal"].clone();
+    assert_eq!(refusal["reason"], crate::home_hold::MISSING);
+    assert_eq!(refusal["home"], crate::hosting::home_identity(&root.join("missing")));
+    assert_eq!(refusal["attempt"], Value::Null, "refused before it was admitted as an attempt");
+    // A later attempt on the now existing home: under way, then refused for another reason.
+    std::fs::create_dir(root.join("missing")).unwrap();
+    std::fs::write(root.join("wrong-version"), b"").unwrap();
+    std::fs::write(root.join("probe-pause"), b"").unwrap();
+    let retry = { let h = Arc::clone(&host); let cfg = missing.clone(); std::thread::spawn(move || h.start(&cfg, "version mismatch")) };
+    wait_for(&root.join("probe-entered"));
+    let under_way = host.snapshot();
+    assert_eq!(under_way["state"], "verifying");
+    assert_eq!(under_way["lastStartRefusal"], Value::Null, "cleared once the later attempt was admitted");
+    std::fs::remove_file(root.join("probe-pause")).unwrap();
+    std::fs::write(root.join("probe-continue"), b"").unwrap();
+    assert!(retry.join().unwrap().unwrap_err().contains("mismatch"));
+    let status = host.snapshot();
+    assert_eq!(status["state"], "refused");
+    assert_eq!(status["lastStartRefusal"], Value::Null, "the old reason does not stand beside a later attempt's failure");
+    // A later refusal replaces it; a successful start's own snapshot carries none.
+    std::fs::remove_file(root.join("wrong-version")).unwrap();
+    assert_eq!(host.start(&pausing_cfg(&root, "absent-home"), "missing again").unwrap_err(), crate::home_hold::MISSING);
+    assert_eq!(host.snapshot()["lastStartRefusal"]["home"], crate::hosting::home_identity(&root.join("absent-home")));
+    // The earlier probe's settlement may still be being established.
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let ready = loop {
+        match host.start(&missing, "ready") {
+            Ok(ready) => break ready,
+            Err(e) => { assert!(e.contains("prior label probe") && Instant::now() < deadline, "{e}"); std::thread::sleep(Duration::from_millis(20)); }
+        }
+    };
+    assert_eq!(ready["state"], "ready");
+    assert_eq!(ready["lastStartRefusal"], Value::Null, "the returned snapshot carries no earlier refusal");
     let _ = host.stop("fixture", "test ended");
     let _ = std::fs::remove_dir_all(root);
 }

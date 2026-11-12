@@ -1,12 +1,15 @@
 use super::*;
 
-struct Scratch(PathBuf);
+/// A fixture root under this process's App data custody, as the App holds its
+/// App data before it opens a ledger: a session started here models a relaunch.
+struct Scratch(PathBuf, #[allow(dead_code)] crate::AppDataCustody);
 impl Scratch {
     fn new() -> Self {
         let path = std::env::temp_dir().canonicalize().unwrap()
             .join(crate::util::opaque_id("request-restart-").unwrap());
         std::fs::create_dir(&path).unwrap();
-        Self(path)
+        let custody = crate::hold_app_data_for_test(&path).unwrap();
+        Self(path, custody)
     }
     fn ledger(&self) -> RecoveryLedger {
         RecoveryLedger::open(self.0.join("ledger.jsonl")).unwrap()

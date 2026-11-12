@@ -226,7 +226,10 @@ impl HostConfig {
 
 #[derive(Default)]
 struct Inner {
-    /// The last start refusal and its reason (host status `lastStartRefusal`).
+    /// The last start of Codex refused before its app-server was spawned: its
+    /// reason, actor, time, home (`app-home:` identity) and attempt (null when
+    /// it was refused before it was admitted as an attempt). Host status
+    /// `lastStartRefusal`; see [`Host::start`].
     last_start_refusal: Option<Value>,
     cce_offer: Option<call_custody::Offer>,
     /// RS §13.9: the records capability offered in the App's current project,
@@ -750,10 +753,6 @@ pub struct Host {
     hold_id: usize,
     home_holds: Mutex<Vec<crate::home_hold::HomeHold>>,
     home_starting: Arc<std::sync::atomic::AtomicUsize>,
-    /// The home of the current start and the identity (device, inode) of the
-    /// directory this Host holds there: each process it is handed to is
-    /// admitted only while the path still names that directory.
-    start_home: Mutex<Option<(PathBuf, crate::home_hold::Identity)>>,
     #[cfg(test)]
     before_quit_stop: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
@@ -811,6 +810,31 @@ pub struct Host {
     before_s1_lt09_publish: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
+/// The opaque identity of a Codex home in a generation (`app-home:` and the
+/// SHA-256 of its path), as host status and generations name it.
+pub(crate) fn home_identity(home: &std::path::Path) -> String {
+    format!("app-home:{}", sha256_hex(home.as_os_str().as_encoded_bytes()))
+}
+/// DEL-01-01/05: the home one start call holds, and the identity (device,
+/// inode) of the held directory. Owned by that call alone and never changed:
+/// each process the attempt is handed to is admitted only while the path
+/// still names that directory.
+struct AdmittedHome {
+    path: PathBuf,
+    identity: crate::home_hold::Identity,
+}
+impl AdmittedHome {
+    fn check(&self) -> Result<(), String> {
+        crate::home_hold::still_names(&self.path, self.identity)
+    }
+    /// Tests that call a start step directly: the directory `path` names now.
+    #[cfg(test)]
+    fn current(path: &std::path::Path) -> Self {
+        use std::os::unix::fs::MetadataExt;
+        let meta = std::fs::metadata(path).unwrap();
+        Self { path: path.to_owned(), identity: (meta.dev(), meta.ino()) }
+    }
+}
 impl crate::home_hold::HoldOwner for Host {
     fn may_have_child(&self) -> bool { self.may_have_child_now() }
 }
@@ -868,7 +892,6 @@ impl Host {
             hold_id: crate::home_hold::next_id(),
             home_holds: Mutex::new(Vec::new()),
             home_starting: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-            start_home: Mutex::new(None),
             #[cfg(test)]
             before_quit_stop: Mutex::new(None),
             records_activity: Mutex::new(None),
@@ -1119,10 +1142,7 @@ impl Host {
     /// releases when a process dies. Its session liveness lock and its home
     /// holds are released (the liveness file stays, free), and it writes
     /// nothing after; facts it had queued and not yet written are lost, as a
-    /// killed process's are. The Host object stays. A test that wants queued
-    /// facts written first calls [`Self::write_queued_recovery_for_test`]
-    /// before this, and then covers an orderly end, not a crash with
-    /// unwritten facts.
+    /// killed process's are. The Host object stays.
     #[cfg(test)]
     pub(crate) fn end_process_for_test(&self) {
         {
@@ -1131,16 +1151,6 @@ impl Host {
         }
         if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
         self.home_holds.lock().unwrap().clear();
-    }
-    /// Test step, separate from a process end: what this Host has queued for
-    /// its ledger is written now, as a process that lived long enough would
-    /// have written it. No current test needs it: every relaunch test passes
-    /// with its facts already written before the process ends.
-    #[cfg(test)]
-    #[allow(dead_code)]
-    pub(crate) fn write_queued_recovery_for_test(&self) {
-        let _writer = self.recovery_writer.lock().unwrap();
-        self.drain_recovery_owned();
     }
     /// Whether this Host may still have a Codex child on a home it holds:
     /// `true` unless it is certainly idle; state that cannot be read at once
@@ -1519,13 +1529,13 @@ impl Host {
         self.quit_fence.store(false, std::sync::atomic::Ordering::SeqCst);
     }
 
-    fn run_label_probe(&self, attempt: u64, command: &mut Command, wait: Duration) -> Result<String, String> {
+    fn run_label_probe(&self, attempt: u64, home: &AdmittedHome, command: &mut Command, wait: Duration) -> Result<String, String> {
         let process = {
             let _gate = self.attachment_gate.lock().unwrap();
             self.check_quit_fence()?;
             Self::check_start_admission(&self.inner.0.lock().unwrap(), attempt)?;
-            // Child admission: the held home is still the one its path names.
-            self.check_home_admission()?;
+            // Child admission: this attempt's held home is still the one its path names.
+            home.check()?;
             let process = process_group_custody::OwnedProcess::spawn(command)?;
             self.probe_processes.lock().unwrap().push((attempt, Arc::clone(&process)));
             process
@@ -1598,7 +1608,7 @@ impl Host {
 
     /// HOSTING §7.1/§7.2: label probe in the probe home, content identity of the binary,
     /// generated-output identity naming the pin.
-    fn verify(&self, attempt: u64, cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
+    fn verify(&self, attempt: u64, home: &AdmittedHome, cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
         let assessment = match assessment_preflight(cfg) {
             Ok(value) => value,
             Err(reason) => return (json!({"result":"mismatch","element":"canonical .167 distribution preflight","reason":reason}),None,vec![]),
@@ -1608,7 +1618,7 @@ impl Host {
         probe.arg("--version").env("CODEX_HOME", &cfg.probe_home)
             .current_dir(&cfg.probe_home).stdin(Stdio::null())
             .stdout(Stdio::piped()).stderr(Stdio::piped());
-        let label = match self.run_label_probe(attempt, &mut probe, cfg.probe_wait_limit) {
+        let label = match self.run_label_probe(attempt, home, &mut probe, cfg.probe_wait_limit) {
             Ok(label) => label.trim().to_owned(),
             Err(error) => return (json!({"result":"unverifiable","reason":error}), None, vec![]),
         };
@@ -1646,46 +1656,47 @@ impl Host {
     }
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
-    /// The refusals of a Codex home (it does not exist, another App holds it,
-    /// this App has Codex on it, it was replaced at child admission) and a
-    /// failed custody recheck before the automatic start are kept as the host
-    /// status's `lastStartRefusal` (reason, actor, time) until a later start
-    /// reaches `ready`, so a refused start at launch is shown without another
-    /// press. No other refusal changes it: those that leave the state as it
-    /// was keep doing so, and the rest are the attempt's lifecycle record.
+    ///
+    /// Host status `lastStartRefusal` says why a start of Codex was refused on
+    /// account of its home, for which home and which attempt: the home does
+    /// not exist, could not be checked or is held (by another process, by
+    /// another start in this App, or kept for a process group not confirmed
+    /// ended), all before the call is admitted as an attempt (attempt null);
+    /// or the home was replaced at child admission (that attempt's own LT-05);
+    /// or, kept by its caller ([`Self::note_start_refusal`]), the automatic
+    /// start's custody recheck. It is cleared when a later attempt is
+    /// admitted, before that attempt's first lifecycle record, and replaced by
+    /// each later refusal of these kinds. No other refusal changes it: those
+    /// that leave the state as it was keep doing so, and the rest are the
+    /// attempt's lifecycle record.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
-        let result = self.start_sequence(cfg, actor);
-        if result.is_ok() {
-            self.inner.0.lock().unwrap().last_start_refusal = None;
-        }
-        result
+        self.start_sequence(cfg, actor)
     }
-    /// Keeps `reason` as the last start refusal (a start refused before
-    /// [`Self::start`] was reached, such as a failed custody recheck, is noted
-    /// here by its caller). Not a lifecycle transition.
-    pub(crate) fn note_start_refusal(&self, actor: &str, reason: &str) {
-        self.inner.0.lock().unwrap().last_start_refusal = Some(json!({"reason":reason,"actor":actor,"at":now_rfc3339()}));
+    fn start_refusal(actor: &str, home: &std::path::Path, attempt: Option<u64>, reason: &str) -> Value {
+        json!({"reason":reason,"actor":actor,"at":now_rfc3339(),"home":home_identity(home),"attempt":attempt})
     }
-    /// DEL-01-01/05: `Ok` only while the path of the current start's home
-    /// still names the directory this Host holds (by device and inode).
-    fn check_home_admission(&self) -> Result<(), String> {
-        let held = self.start_home.lock().unwrap().clone();
-        let (path, identity) = held.ok_or("no Codex home is held for this start, so nothing was started")?;
-        crate::home_hold::still_names(&path, identity)
+    /// Keeps `reason` as the last start refusal, for `home`, of a start refused
+    /// before [`Self::start`] was reached (such as a failed custody recheck).
+    /// Not a lifecycle transition.
+    pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
+        self.inner.0.lock().unwrap().last_start_refusal = Some(Self::start_refusal(actor, home, None, reason));
     }
     fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
         // DEL-01-01/05: one App at a time on a Codex home, held while this
         // Host lives; the claim keeps the home from being taken over while
         // this start is under way. Refused before anything is spawned, and
         // refused when the home does not exist: the hold is always on the
-        // actual existing directory.
+        // actual existing directory. The held directory's identity belongs to
+        // this call alone ([`AdmittedHome`]): a concurrent call naming another
+        // home cannot change what this attempt checks. A new hold is kept by
+        // this Host only once this call is admitted as an attempt; a call
+        // refused before that drops it and keeps no claim on the home.
         let owner: std::sync::Weak<dyn crate::home_hold::HoldOwner> = Arc::downgrade(self) as std::sync::Weak<dyn crate::home_hold::HoldOwner>;
         let (hold, _start_claim, identity) = match crate::home_hold::claim_host(&cfg.codex_home, self.hold_id, owner, &self.home_starting) {
             Ok(claimed) => claimed,
-            Err(reason) => { self.note_start_refusal(actor, &reason); return Err(reason); }
+            Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
         };
-        if let Some(hold) = hold { self.home_holds.lock().unwrap().push(hold); }
-        *self.start_home.lock().unwrap() = Some((cfg.codex_home.clone(), identity));
+        let home = AdmittedHome { path: cfg.codex_home.clone(), identity };
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
         let attempt = {
@@ -1715,9 +1726,14 @@ impl Host {
                 "stopped" => "LT-02",
                 _ => "LT-03",
             };
+            // A later attempt is admitted: an earlier refusal no longer describes the start.
+            i.last_start_refusal = None;
             self.lt(&mut i, id, "start-requested", "verifying", json!({"actor": actor}));
             i.start_attempt
         };
+        // Admitted: this Host keeps the hold (one per home; a second of the
+        // same home is dropped, the first still holding it).
+        { let mut holds = self.home_holds.lock().unwrap(); if !holds.iter().any(|kept| kept.same_as(&hold)) { holds.push(hold); } }
         // Successor preparation is outside the shared App writer: scanning and
         // the bounded probe must not stall other homes or App-session ending.
         let prospective = if cfg.distribution.is_some() {
@@ -1740,7 +1756,7 @@ impl Host {
             _ => successor::Reference::None,
         };
         let prepared = if let Some(distribution) = &cfg.distribution {
-            match successor::prepare_with_probe(distribution, cfg, prospective.as_ref().unwrap(), reference, |command, wait| self.run_label_probe(attempt, command, wait)) {
+            match successor::prepare_with_probe(distribution, cfg, prospective.as_ref().unwrap(), reference, |command, wait| self.run_label_probe(attempt, &home, command, wait)) {
                 Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
             }
         } else { None };
@@ -1757,7 +1773,7 @@ impl Host {
         } else { None };
         let (result, label, dist) = match &prepared {
             Some(p) => (p.verification.clone(), Some(p.label.clone()), p.legacy_inventory()),
-            None => self.verify(attempt, cfg),
+            None => self.verify(attempt, &home, cfg),
         };
         if let Some(p) = &prepared {
             if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, e); }
@@ -1800,18 +1816,21 @@ impl Host {
         let verified = result["result"] == "verified";
         let dev_ok = !verified && cfg.allow_unverified_dev && result["result"] == "unverifiable" && label.is_some();
         // Child admission for the app-server, after every wait of this start
-        // (probe, revalidation, writer and source gates): the held home is
-        // still the one its path names. A replacement is refused (LT-05,
-        // nothing spawned); only argument assembly lies between here and
-        // the spawn.
-        let home_admission = self.check_home_admission();
+        // (probe, revalidation, writer and source gates): this attempt's held
+        // home is still the one its path names. A replacement is refused
+        // (LT-05, nothing spawned). Between this check and the spawn come the
+        // lifecycle and version updates under Inner, the command's assembly,
+        // the runtime custody and spawn counter checks, and process creation;
+        // the child is handed the home by path, so a replacement after this
+        // check and before the child's exec is not detected (app/README.md).
+        let home_admission = home.check();
         {
             let mut i = self.inner.0.lock().unwrap();
             if let Err(reason) = home_admission {
                 let refused = json!({"result":"unverifiable","reason":reason});
                 i.verification = Some(refused.clone());
                 i.supplier_standing = None;
-                i.last_start_refusal = Some(json!({"reason":reason,"actor":actor,"at":now_rfc3339()}));
+                i.last_start_refusal = Some(Self::start_refusal(actor, &cfg.codex_home, Some(attempt), &reason));
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": refused}));
                 return Err(reason);
             }
@@ -1863,7 +1882,7 @@ impl Host {
             cmd.env_remove(v);
         }
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
-        let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+        let home_identity=home_identity(&cfg.codex_home);
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
         let child = match process_group_custody::OwnedProcess::spawn(&mut cmd) {
             Ok(c) => c,
@@ -5100,6 +5119,8 @@ mod conversation_transport_tests {
             }
             assert!(crate::runtime_session::assess_native_home_work(&home,&g()).is_err(),"closed or superseded source cannot become new live work");
             let after={let i=host.inner.0.lock().unwrap();small(&i.server_requests.entries()[0])};host.flush_recovery_observations();let ledger=host.inner.0.lock().unwrap().recovery.take().unwrap();let (hot,transitions)={let ledger=ledger.lock().unwrap();let transitions=ledger.recorded_entries().as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").map(|e|e["transition"].as_str().unwrap().to_owned()).collect::<Vec<_>>();(last_request(&ledger),transitions)};drop(ledger);
+            // The cold reopens model a new App: this one's process has ended and the next holds its App data.
+            host.end_process_for_test();let _custody=crate::hold_app_data_for_test(&root).unwrap();
             std::fs::copy(path.with_extension("sqlite"),root.join("without-record.sqlite")).unwrap();let mut no_end=RecoveryLedger::open(root.join("without-record.jsonl")).unwrap();no_end.start_session("new-session-without-record","invented-reopen").unwrap();let cold_no_end=last_request(&no_end);drop(no_end);
             let mut known=RecoveryLedger::open(path.clone()).unwrap();known.append(RecoveryLedger::session_end_entry("conversation-session","system-terminated",&[]).unwrap()).unwrap();drop(known);let mut known=RecoveryLedger::open(path).unwrap();known.start_session("new-session-with-known-end","invented-reopen").unwrap();let cold_known_end=last_request(&known);drop(known);
             let expected=if mode.starts_with("queued") {"RQ-04"} else {"RQ-05"};
@@ -6241,6 +6262,8 @@ mod conversation_transport_tests {
         let(host,g,root,owner,selections)=context_fixture();let p=Context::known("P",AppProjectSource::ConfiguredDirectory).unwrap();
         host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();
         host.end_process_for_test();
+        // The successor holds its App data before it opens the ledger, as the App does.
+        let _custody=crate::hold_app_data_for_test(owner.root()).unwrap();
         let successor=Arc::new(Host::new());successor.configure_recovery(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap();
         let next={let mut i=successor.inner.0.lock().unwrap();let next=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=next.clone();i.state="ready".into();i.threads.push(json!({"generation":next,"threadId":"thread"}));next};
         successor.observe_conversation_project(&next,"thread",Some("H-acct"),&p).unwrap();

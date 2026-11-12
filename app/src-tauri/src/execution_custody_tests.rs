@@ -1,13 +1,16 @@
 //! Synthetic native-source controls; no supplier/process/model execution.
 use super::*;
 use crate::recovery::{ExplicitAppProjectContext, AppProjectSource};
-struct Fixture {host:Host, root:PathBuf, g:Value}
+/// `_custody`: the fixture root is held as the App holds its App data before it
+/// opens a ledger, so that a later session start on it models a relaunch.
+struct Fixture {host:Host, root:PathBuf, g:Value, _custody:crate::AppDataCustody}
 impl Fixture {
     fn new()->Self {
         let root=std::env::temp_dir().join(opaque_id("rec-custody-").unwrap());std::fs::create_dir(&root).unwrap();
+        let _custody=crate::hold_app_data_for_test(&root).unwrap();
         let host=Host::new();host.configure_recovery(root.join("ledger.jsonl")).unwrap();
         let g={let mut i=host.inner.0.lock().unwrap();let g=json!({"appSession":i.app_session,"home":"owned-physical-home","spawnCounter":1});i.generation=g.clone();i.home="owned-physical-home".into();i.spawn_counter=1;i.state="ready".into();i.threads.push(json!({"generation":g,"threadId":"t"}));g};
-        Self{host,root,g}
+        Self{host,root,g,_custody}
     }
     fn index(&self){self.host.observe_conversation_project(&self.g,"t",Some("H-acct"),&ExplicitAppProjectContext::known("P",AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();}
     fn frame(&self,method:&str,params:Value){self.host.on_line(&serde_json::to_vec(&json!({"method":method,"params":params})).unwrap(),&self.g);}

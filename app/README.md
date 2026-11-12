@@ -1222,17 +1222,54 @@ requests. A compiled production successor continues to refuse without its
 installed-custody issuer, regardless of a desktop development selection.
 
 One App at a time holds an App data directory and each Codex home it starts
-Codex on, on this route as on the saved one. A second App on the same App data
-starts nothing (no Codex, no recovery ledger, no record) and shows "Chirality is
-already running with this data"; a second Host on a home another App holds is
-refused, and so is a home that does not exist. If App data cannot be resolved
-or held (an invalid `CHIRALITY_APP_DATA`, an unavailable platform path),
-nothing operational starts and the reason is shown. Every committed
-configuration uses the identifier `dev.chirality.app-v4.skeleton`, so
-development runs that do not name their App data share one directory and only
-the first of them starts. To run in parallel, give each run its own
-`CHIRALITY_APP_DATA` (an absolute path; it is created if missing, and setting
-it alone selects this route) and its own existing `CHIRALITY_CODEX_HOME`.
+Codex on, on this route as on the saved one. Each hold is an exclusive `flock`
+on the directory itself; a conflicting lock shows that some process holds it,
+not which one, so the refusals say what was observed and name no owner. An App
+whose App data is held by another process starts nothing operational (no Codex,
+no recovery ledger, no record) and shows "Chirality did not start here: its
+data is held by another process on this computer"; a start of Codex on a home
+held by another process is refused, and so is a home that does not exist. A
+home this App still holds because a Codex process it started has not been
+confirmed ended refuses a later start in the same App and says so; quitting
+Chirality releases it. If App data cannot be resolved or held (an invalid
+`CHIRALITY_APP_DATA`, an unavailable platform path), nothing operational starts
+and the reason is shown. Every committed configuration uses the identifier
+`dev.chirality.app-v4.skeleton`, so development runs that do not name their
+App data share one directory and only the first of them starts. To run in
+parallel, give each run its own `CHIRALITY_APP_DATA` (an absolute path; it is
+created if missing, and setting it alone selects this route) and its own
+existing `CHIRALITY_CODEX_HOME`.
+
+When the App data hold is taken. On the environment route, at launch, after
+the App data directory is created if missing. On the saved route, at launch
+only if the App data directory already exists; with no directory the App sits
+at setup with no hold and takes it when setup is first saved, which creates
+the directory. Two Apps on a never-used machine can therefore both show setup;
+the second to save is refused.
+
+How an earlier App session is read. A later session start reads an earlier
+session without a recorded end as ended only when this process holds the App
+data directory that contains the ledger (established by device and inode, not
+by path text) and that session is not alive in this process. A session's
+liveness lock file can only ever say that it is still running (a held lock
+refuses the start); a free, missing or replaced lock file says nothing, and a
+crashed session's lock file is never what its ending rests on: it is removed
+only after that session's end is recorded. Otherwise the start is refused,
+nothing is written, and it is shown as a recovery limit. Limit: an App of a
+build before this hold, started on the environment route, takes no lock of any
+kind and cannot be excluded or detected; while it runs on the same App data, a
+later App can hold that App data and read its session as ended.
+
+The home check before Codex starts compares the home's path with the held
+directory by device and inode immediately before the label probe and again
+before the app-server is spawned. A window remains between the last check and
+the child's exec, because the child is handed the home by path (`CODEX_HOME`):
+a directory put in place of the home inside that window is not detected.
+
+Relaunch. The holds have no wait and no retry, and process exit is the
+reliable final release. A deliberate relaunch by the App itself would have to
+start its successor after the predecessor has exited, or after an explicit,
+proven release of each hold; a successor started first is refused at once.
 Tests construct their state in their own scratch folders and need neither.
 `CHIRALITY_APP_DATA` is read only by a development run (`tauri dev`), as
 `CHIRALITY_RECORDS_STORE` is; a built App does not read it, so it cannot point

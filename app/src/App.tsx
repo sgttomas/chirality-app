@@ -2424,8 +2424,8 @@ export function App() {
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
-  // Another App holding this data shows the same focused surface, with its reason.
-  const setupRequired = host?.desktopSetup?.launch?.state === "setup-required" || host?.desktopSetup?.launch?.state === "already-running";
+  // App data held by another process shows the same focused surface, with its reason.
+  const setupRequired = host?.desktopSetup?.launch?.state === "setup-required" || host?.desktopSetup?.launch?.state === "data-held";
   return (<DailyWorkspace>
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         <div hidden={setupRequired}>
@@ -2434,7 +2434,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal?.reason}/>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome}/>
         </div>
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {

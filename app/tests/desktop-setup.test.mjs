@@ -503,14 +503,14 @@ test('first use: a later project edit or no-project supersedes an in-flight Brow
     });
   }
 });
-test('a second App on data another App holds says so in plain words and offers no setup',async()=>{
-  const view=packet.alreadyRunning;
-  assert.equal(view.launch.state,'already-running');
-  await mountedWelcome(view,()=>assert.fail('no IPC while another App holds this data'),async(c,calls)=>{
+test('a second App on data another process holds says what was observed, names no owner and offers no setup',async()=>{
+  const view=packet.dataHeld;
+  assert.equal(view.launch.state,'data-held');
+  await mountedWelcome(view,()=>assert.fail('no IPC while another process holds this data'),async(c,calls)=>{
     const welcome=region(c,'Welcome');
-    assert.match(welcome.textContent,/Chirality is already running/);
-    assert.match(welcome.textContent,/Nothing was started or changed here/);
-    assert.match(welcome.textContent,/Use the Chirality window that is already open, or quit that App first/);
+    assert.match(welcome.textContent,/This App's data is in use/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,'Chirality did not start here: its data is held by another process on this computer. Nothing operational was started. If a Chirality window is already open, use it; otherwise quit the App that is using this data, then open Chirality again.');
+    assert.doesNotMatch(welcome.textContent,/already running|another Chirality App|nothing was started or changed/i,'no owner, window or unchanged state is asserted');
     assert.equal(nodes(c,'button').length,0,'no setup action is offered');
     assert.deepEqual(calls,[]);
   });
@@ -537,9 +537,9 @@ test('the mounted App shows only the welcome while setup is required and keeps c
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 });
-test('a refused start at launch is shown in the connection status with its reason, without pressing Start',async()=>{
-  const reason='Chirality is already running with this Codex home: another Chirality App is using it. Codex was not started on this home.';
-  const host={state:'absent',generation:null,threads:[],desktopSetup:{...packet.retained.initial},lastStartRefusal:{reason,actor:'app-startup',at:'invented'},roleLimits:{account:{roles:[]}}};
+test('a refused start at launch is shown in the connection status with its reason, without pressing Start, only for its home and only while no start is under way',async()=>{
+  const reason='Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.';
+  const host={state:'absent',generation:null,threads:[],desktopSetup:{...packet.retained.initial},codexHome:'app-home:invented-shown',lastStartRefusal:{reason,actor:'app-startup',at:'invented',home:'app-home:invented-shown',attempt:null},roleLimits:{account:{roles:[]}}};
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
   const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
   globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
@@ -553,10 +553,22 @@ test('a refused start at launch is shown in the connection status with its reaso
     await React.act(()=>root.render(React.createElement(App)));
     const status=region(c,'Workspace connection status');
     assert.match(status.textContent,/Codex is not connected/);
-    assert.equal(region(c,'Why Codex was not started').textContent,`Codex was not started: ${reason}`);
+    assert.equal(region(c,'Why Codex was not started').textContent,reason);
     assert.ok(!calls.includes('host_start'),'shown without a start being pressed');
+    const poll=async()=>React.act(async()=>{for(const t of timers.values())await t.fn();});
+    // A start under way: an earlier refusal is not shown beside it, even if a host still carried one.
+    for(const state of ['verifying','spawning','handshaking','ready','stopping']){
+      host.state=state;await poll();
+      assert.equal(region(c,'Why Codex was not started'),undefined,state);
+    }
+    // A refusal for another home is not shown for this one.
+    host.state='refused';host.lastStartRefusal={...host.lastStartRefusal,home:'app-home:invented-other'};await poll();
+    assert.equal(region(c,'Why Codex was not started'),undefined,'another home');
+    // A reason that does not say so itself is introduced as a refusal to start.
+    host.lastStartRefusal={reason:'The Codex home does not exist, so Codex was not started on it.',home:'app-home:invented-shown',attempt:null};await poll();
+    assert.equal(region(c,'Why Codex was not started').textContent,'Codex was not started: The Codex home does not exist, so Codex was not started on it.');
     host.state='ready';host.lastStartRefusal=null;host.generation={appSession:'s',home:'h',spawnCounter:1};
-    await React.act(async()=>{for(const t of timers.values())await t.fn();});
+    await poll();
     assert.equal(region(c,'Why Codex was not started'),undefined,'gone once Codex is connected');
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 });

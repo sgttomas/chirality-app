@@ -8,30 +8,36 @@
 //! named by the SHA-256 of the full session identity, and holds that identity
 //! as text. The kernel releases the lock when the process ends, however it
 //! ends; the file stays. Its `session_started` entry says so: it carries
-//! [`FIELD`] (`"livenessLock": true`).
+//! [`FIELD`] (`"livenessLock": true`), the declaration that a lock was taken.
 //!
-//! A later session's startup reads each earlier session that has no recorded
-//! end (no `session_ended` entry and no later `session_started` naming it as
-//! its previous session):
-//! - [`Liveness::Held`]: the session is alive. Nothing is inferred about it.
-//! - [`Liveness::Unknown`]: the check could not be made, or what was found
-//!   does not show that the session ended. Read as not ended.
-//! - [`Liveness::Free`]: a lock file that names the session and whose holder
-//!   has gone. Ended without a record.
-//! - [`Liveness::Absent`]: no lock file, for a session whose `session_started`
-//!   does not carry [`FIELD`] (recorded by a build that took no lock). Keeps
-//!   the reading that build had: ended without a record.
+//! A lock file can only ever say that its session is alive. A later session's
+//! startup [`probe`]s each earlier session that has no recorded end (no
+//! `session_ended` entry and no later `session_started` naming it as its
+//! previous session), with or without [`FIELD`]:
+//! - [`Liveness::Held`]: the session is alive. The session start is refused
+//!   and nothing is inferred about it.
+//! - [`Liveness::Silent`]: anything else (a free file, whether or not it names
+//!   the session; no file; a file that is not a regular file or is another
+//!   user's; a file that could not be opened or checked; no lock ever
+//!   declared). It says nothing at all: not that the session ended. A free
+//!   file may be a copy put in place of a live session's lock, and a missing
+//!   one may have been removed from under a live session.
 //!
-//! For a session that carries [`FIELD`], a missing file, one that is not a
-//! regular file, one owned by another user, one that could not be opened,
-//! read or checked, and one whose text is not that session's identity read as
-//! [`Liveness::Unknown`], never as ended. [`resolve_not_known`] states the only
-//! evidence that settles such a session as ended without a record.
+//! One rule then decides every such session ([`establish_ended`]): it is read
+//! as ended without a record only when this process holds exclusively the App
+//! data directory that contains this ledger (established by identity) and the
+//! session is not alive in this process. Otherwise the session start is
+//! refused, nothing is written, and it is shown as a limit.
 //!
-//! A lock file is removed only by a later session start ([`sweep`]), only
-//! after the ledger records that session's end, and only while it is free and
-//! still names that session; so the reading of a session whose end is not
-//! recorded never rests on its file having been kept or swept.
+//! Limit: an App of a build before the App data hold, started on the
+//! environment route, takes no lock of any kind (no App data hold and no
+//! session lock). It cannot be excluded or detected: while it runs, a later
+//! App can hold the same App data and read its session as ended.
+//!
+//! A crashed session's lock file is never what its ending rests on. It is
+//! removed only by a later session start ([`sweep`]), only after the ledger
+//! records that session's end, and only while it is free and still names
+//! that session.
 use std::{
     collections::{BTreeSet, HashMap},
     ffi::CString,
@@ -191,23 +197,20 @@ impl Drop for Hold {
     }
 }
 
+/// What a probe of a session's lock observed.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) enum Liveness {
-    Absent,
-    Free,
+    /// The lock is held: the session is alive.
     Held,
-    Unknown(String),
-}
-impl Liveness {
-    /// Whether the session may be treated as ended without a record.
-    pub(crate) fn ended(&self) -> bool {
-        matches!(self, Self::Absent | Self::Free)
-    }
+    /// Anything else, described. It says nothing about whether the session
+    /// ended.
+    Silent(String),
 }
 
-/// Reads whether `session` holds its lock. Never creates anything.
-/// `declared`: the session's `session_started` carries [`FIELD`], so it took
-/// a lock here, and only a file that names it and is free shows it ended.
+/// Reads whether `session` holds its lock. Never creates anything. Only a held
+/// lock is a reading ([`Liveness::Held`]); every other outcome is described
+/// and says nothing. `declared`: the session's `session_started` carries
+/// [`FIELD`]; it changes only the description.
 pub(crate) fn probe(ledger: &Path, session: &str, declared: bool) -> Liveness {
     let path = lock_path(ledger, session);
     let file = match OpenOptions::new()
@@ -217,48 +220,35 @@ pub(crate) fn probe(ledger: &Path, session: &str, declared: bool) -> Liveness {
     {
         Ok(file) => file,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return if declared {
-                Liveness::Unknown(format!("{} is missing, though that session took its lock there", path.display()))
+            return Liveness::Silent(if declared {
+                format!("{} is missing, though that session took its lock there", path.display())
             } else {
-                Liveness::Absent
-            };
+                "that session declared no liveness lock".to_string()
+            });
         }
-        Err(e) => return Liveness::Unknown(format!("{} could not be opened: {e}", path.display())),
+        Err(e) => return Liveness::Silent(format!("{} could not be opened: {e}", path.display())),
     };
     match file.metadata() {
-        Ok(meta) if !meta.is_file() => return Liveness::Unknown(format!("{} is not a regular file", path.display())),
-        Ok(meta) if declared && meta.uid() != euid() => {
-            return Liveness::Unknown(format!("{} belongs to another user", path.display()))
-        }
+        Ok(meta) if !meta.is_file() => return Liveness::Silent(format!("{} is not a regular file", path.display())),
         Ok(_) => {}
-        Err(e) => return Liveness::Unknown(format!("{} could not be read: {e}", path.display())),
+        Err(e) => return Liveness::Silent(format!("{} could not be read: {e}", path.display())),
     }
     if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_SH | libc::LOCK_NB) } != 0 {
         let error = std::io::Error::last_os_error();
         return if would_block(&error) {
             Liveness::Held
         } else {
-            Liveness::Unknown(format!("{} could not be checked: {error}", path.display()))
+            Liveness::Silent(format!("{} could not be checked: {error}", path.display()))
         };
     }
-    // Free. For a session that took its lock here, the file must name it.
-    let named = if declared {
-        let mut text = Vec::new();
-        match (&file).take(session.len() as u64 + 1).read_to_end(&mut text) {
-            Ok(_) if text == session.as_bytes() => Ok(()),
-            Ok(_) => Err(format!("{} does not name this session", path.display())),
-            Err(e) => Err(format!("{} could not be read: {e}", path.display())),
-        }
-    } else {
-        Ok(())
-    };
     unsafe {
         libc::flock(file.as_raw_fd(), libc::LOCK_UN);
     }
-    match named {
-        Ok(()) => Liveness::Free,
-        Err(reason) => Liveness::Unknown(reason),
-    }
+    let owner = match file.metadata() {
+        Ok(meta) if meta.uid() != euid() => " (it belongs to another user)",
+        _ => "",
+    };
+    Liveness::Silent(format!("{} is free{owner}, which does not show that the session ended", path.display()))
 }
 
 /// Removes the lock files of the sessions in `ended`, whose end the ledger
@@ -336,23 +326,29 @@ fn open_directory_at(parent: Option<&File>, name: &str, path: &Path) -> Result<F
     Ok(unsafe { File::from_raw_fd(fd) })
 }
 
-/// The positive evidence that settles an earlier session of this build whose
-/// liveness is [`Liveness::Unknown`] as ended without a record. Both must hold:
+/// The one rule by which an earlier session without an end record, whose
+/// lock is not held ([`probe`] did not read [`Liveness::Held`]), is read as
+/// ended without a record. All three must hold:
 ///
-/// 1. This process holds the exclusive lock on an App data directory: a
-///    descriptor registered by [`note_app_data_held`] after its `flock`
-///    (`LOCK_EX`) succeeded, and not yet released.
-/// 2. That held directory contains this ledger, established by identity: the
-///    directory that contains the ledger is opened, and it and each directory
-///    above it (reached through `..` from the opened descriptor, never by path
-///    text) is compared by device and inode with the held descriptor, until
-///    one matches or the root is reached.
+/// 1. This process holds exclusively the App data directory that contains
+///    this ledger. Held: a descriptor registered by [`note_app_data_held`]
+///    after its `flock` (`LOCK_EX`) succeeded, and not yet released. Contains:
+///    established by identity, never by path text: the directory that
+///    contains the ledger is opened, and it and each directory above it
+///    (reached through `..` from the opened descriptor) is compared by device
+///    and inode with the held descriptor, until one matches or the root is
+///    reached.
+/// 2. The session is not alive in this process: no [`Hold`] of it lives here.
+/// 3. Its lock, where it declared one and the file is there, is not held (the
+///    caller's [`probe`]; a held lock refuses before this is asked).
 ///
-/// With both, no other participating App can be alive on this ledger: every
-/// App takes that lock before it opens the ledger. A session whose hold is
-/// still alive in this process is never settled this way. Without both, the
-/// reason is returned and the caller refuses the session start.
-pub(crate) fn resolve_not_known(ledger: &Path, session: &str) -> Result<(), String> {
+/// With all three, no App that takes these holds can be alive on this ledger:
+/// every such App holds its App data before it opens the ledger, and only one
+/// process holds it at a time. Without them the reason is returned and the
+/// caller refuses the session start; nothing is written. Nothing about the
+/// lock file other than a held lock enters this: a free, missing, replaced,
+/// mismatched, uninspectable or never-taken lock says nothing.
+pub(crate) fn establish_ended(ledger: &Path, session: &str) -> Result<(), String> {
     if live_here().lock().unwrap_or_else(|e| e.into_inner()).contains_key(session) {
         return Err("that session's lock is held in this process".into());
     }

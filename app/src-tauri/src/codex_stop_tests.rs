@@ -387,6 +387,9 @@ for line in sys.stdin:
         cfg: HostConfig,
         home: Arc<HomeSession>,
         generation: Value,
+        /// The root held as the App holds its App data before it opens a
+        /// ledger, so that a later App on it models a relaunch.
+        _custody: crate::AppDataCustody,
     }
     impl Fixture {
         fn new() -> Self {
@@ -400,7 +403,7 @@ for line in sys.stdin:
             self.root.join("recovery.ledger.jsonl")
         }
         fn started(ledger: bool) -> Self {
-            let (root, cfg) = Self::prepare();
+            let (root, cfg, _custody) = Self::prepare();
             let host = Arc::new(Host::new());
             if ledger {
                 host.configure_recovery(root.join("recovery.ledger.jsonl")).unwrap();
@@ -409,20 +412,20 @@ for line in sys.stdin:
             let generation = host.snapshot()["generation"].clone();
             host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
             let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
-            Self { root, cfg, home, generation }
+            Self { root, cfg, home, generation, _custody }
         }
         /// A Host whose handshake is refused: `halted-after-repeated-failure`.
         fn halted() -> Self {
-            let (root, cfg) = Self::prepare();
+            let (root, cfg, _custody) = Self::prepare();
             std::fs::write(root.join("fail-initialize"), "").unwrap();
             let host = Arc::new(Host::new());
             assert!(host.start(&cfg, "stop fixture").is_err());
             assert_eq!(host.snapshot()["state"], "halted-after-repeated-failure");
             let generation = host.snapshot()["generation"].clone();
             let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
-            Self { root, cfg, home, generation }
+            Self { root, cfg, home, generation, _custody }
         }
-        fn prepare() -> (PathBuf, HostConfig) {
+        fn prepare() -> (PathBuf, HostConfig, crate::AppDataCustody) {
             use std::os::unix::fs::PermissionsExt;
             let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("codex-stop-").unwrap());
             for name in ["account", "probe"] {
@@ -434,7 +437,8 @@ for line in sys.stdin:
             let mut cfg = HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
             cfg.allow_unverified_dev = true;
             cfg.wait_limit = Duration::from_secs(2);
-            (root, cfg)
+            let custody = crate::hold_app_data_for_test(&root).unwrap();
+            (root, cfg, custody)
         }
         /// The child ends with no stop record: `exited-unexpectedly`, its
         /// generation closed (HOSTING LT-12).

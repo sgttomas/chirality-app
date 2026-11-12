@@ -71,6 +71,8 @@ fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     let root = scratch.0.join("app-data");
     let path = reviewed_ledger_path(&root);
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    // The App holds its App data before it opens the ledger: a later session here models a relaunch.
+    let _custody = chirality_app_v4_lib::hold_app_data_for_test(&root).unwrap();
     let complete = json!({"kind":"session_started","session":"old-session","at":"synthetic","previousSessionEnd":"none","candidate":"synthetic"});
     let mut legacy = serde_json::to_vec(&complete).unwrap();
     legacy.push(b'\n');
@@ -202,6 +204,8 @@ fn unwritable_existing_ledger_reports_actual_permission_error_without_byte_chang
     let root = scratch.0.join("app-data");
     let path = reviewed_ledger_path(&root);
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    // The App holds its App data before it opens the ledger: a later session here models a relaunch.
+    let _custody = chirality_app_v4_lib::hold_app_data_for_test(&root).unwrap();
     let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
     ledger.start_session("previous", "synthetic").unwrap();
     drop(ledger);
@@ -231,6 +235,8 @@ fn existing_historical_pointer_entries_stay_nonanswerable_and_never_copy_native_
     let root = scratch.0.join("app-data");
     let path = reviewed_ledger_path(&root);
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    // The App holds its App data before it opens the ledger: a later session here models a relaunch.
+    let _custody = chirality_app_v4_lib::hold_app_data_for_test(&root).unwrap();
     let generation = json!({"appSession":"old","home":"synthetic-home","spawnCounter":1});
     let mut register = RequestRegister::default();
     register.receive(&generation,1,&json!({"id":"old-request","method":"item/tool/requestUserInput","params":{"threadId":"t","questions":[{"id":"secret","text":"synthetic-must-not-copy","isSecret":true}]}}),&json!({})).unwrap();

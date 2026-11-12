@@ -37,12 +37,13 @@ fn one_host_at_a_time_in_a_process_and_a_home_passes_only_from_an_idle_one() {
     let starting_a = Arc::new(AtomicUsize::new(0));
     let starting_b = Arc::new(AtomicUsize::new(0));
     let (hold_a, claim, _) = claim_host(&home, a, weak(&first), &starting_a).unwrap();
-    assert!(hold_a.is_some());
-    // The same Host starting again keeps its hold.
+    // The same Host starting again gets a hold of its own; letting that one
+    // go (a start call refused later) keeps the home held by the first.
     drop(claim);
     let (again, claim, _) = claim_host(&home, a, weak(&first), &starting_a).unwrap();
-    assert!(again.is_none());
+    drop(again);
     drop(claim);
+    assert!(peer(&home).contains("REFUSED"), "still held by the first hold");
     // A start under way, or a child that may be alive, keeps the home.
     first.0.store(false, Ordering::SeqCst);
     let claim = claim_host(&home, a, weak(&first), &starting_a).unwrap().1;
@@ -63,8 +64,7 @@ fn one_host_at_a_time_in_a_process_and_a_home_passes_only_from_an_idle_one() {
     assert!(claim_host(&home, a, weak(&first), &starting_a).is_err(), "the home stays with its taker");
     // A dropped Host's home is free.
     drop(hold_b);
-    let (hold, _claim, _) = claim_host(&home, a, weak(&first), &starting_a).unwrap();
-    assert!(hold.is_some());
+    let (_hold, _claim, _) = claim_host(&home, a, weak(&first), &starting_a).unwrap();
     assert!(contents(&home).is_empty(), "nothing is created inside a home");
     std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
 }
@@ -153,8 +153,7 @@ fn a_home_held_by_another_process_is_refused_until_that_process_is_killed() {
     assert!(hold_receiving(&File::open(&home).unwrap()).is_err());
     assert_eq!(unsafe { libc::kill(child.id() as i32, libc::SIGKILL) }, 0);
     child.wait().unwrap();
-    let (hold, _claim, _) = claim_host(&home, next_id(), weak(&here), &starting).expect("a killed holder strands no one");
-    assert!(hold.is_some());
+    let (_hold, _claim, _) = claim_host(&home, next_id(), weak(&here), &starting).expect("a killed holder strands no one");
     assert!(contents(&home).is_empty());
     std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
 }
@@ -173,7 +172,8 @@ fn a_missing_home_is_refused_and_nothing_is_created() {
     std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
 }
 
-/// A holder that is gone while its hold is kept is busy, never idle.
+/// A holder that is gone while its slot is still registered is busy, never
+/// idle, and the refusal says this App holds the home (not who else might).
 #[test]
 fn a_holder_that_is_gone_while_its_hold_is_kept_is_busy() {
     let home = home();
@@ -184,7 +184,7 @@ fn a_holder_that_is_gone_while_its_hold_is_kept_is_busy() {
     drop(gone);
     let other = owner(false);
     let refused = claim_host(&home, next_id(), weak(&other), &Arc::new(AtomicUsize::new(0))).err().unwrap();
-    assert!(refused.contains("already started on this home"), "{refused}");
+    assert_eq!(refused, IN_USE_HERE);
     drop(hold);
     assert!(claim_host(&home, next_id(), weak(&other), &Arc::new(AtomicUsize::new(0))).is_ok(), "free once the hold is released");
     std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
@@ -213,5 +213,59 @@ fn a_home_path_is_admitted_only_while_it_names_the_held_directory() {
     assert_eq!(still_names(&home, identity).err().as_deref(), Some(REPLACED), "replaced by a file");
     still_names(&moved, identity).unwrap();
     drop(hold);
+    std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
+}
+
+/// A Host's home kept for a process group it started that has not settled,
+/// when neither the group's retirement monitor nor the keeper thread could be
+/// started: a later start is refused and told why ([`KEPT`]); each later
+/// attempt retries the monitor, so once the group has ended and its
+/// settlement is established the home passes, and custody was never released
+/// before that.
+#[test]
+fn a_kept_home_says_why_and_a_later_attempt_retries_the_settlement_monitor() {
+    use crate::hosting::process_group_custody::OwnedProcess;
+    use std::os::unix::process::CommandExt;
+    let home = home();
+    let gone = owner(false);
+    let starting = Arc::new(AtomicUsize::new(0));
+    let (hold, claim, _) = claim_host(&home, next_id(), weak(&gone), &starting).unwrap();
+    drop(claim);
+    let release = home.parent().unwrap().join("release");
+    let process = OwnedProcess::spawn(
+        std::process::Command::new("/bin/sh")
+            .arg("-c")
+            .arg(format!("while [ ! -e '{}' ]; do sleep 0.01; done", release.display()))
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .process_group(0),
+    )
+    .unwrap();
+    drop(gone);
+    keep_with_no_monitor_or_keeper_for_test(vec![hold], vec![Arc::clone(&process)]);
+    let other = owner(false);
+    let starting = Arc::new(AtomicUsize::new(0));
+    // While the group lives: refused, and the home stays locked across processes.
+    for _ in 0..3 {
+        assert_eq!(claim_host(&home, next_id(), weak(&other), &starting).err().as_deref(), Some(KEPT));
+    }
+    assert!(peer(&home).contains("REFUSED"), "custody is kept");
+    std::fs::write(&release, b"").unwrap();
+    // The first refusal above started the monitor that establishes settlement.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+    let taken = loop {
+        match claim_host(&home, next_id(), weak(&other), &starting) {
+            Ok(taken) => break taken,
+            Err(reason) => {
+                assert_eq!(reason, KEPT);
+                assert!(std::time::Instant::now() < deadline, "settlement was never established");
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        }
+    };
+    assert!(process.settled());
+    drop(taken);
+    assert!(peer(&home).contains("HELD"), "released once the taker lets go");
     std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
 }

@@ -13,10 +13,11 @@ mod startup_request_tests;
 #[path = "recovery_store.rs"]
 pub(crate) mod store;
 
-/// Startup refused because an earlier session without an end record still holds its liveness lock.
-pub(crate) const STILL_RUNNING: &str = "Another App session is still running with this App data. This session did not start on its history: nothing was written to it and nothing is inferred about the running session";
-/// Startup refused because an earlier session's liveness could not be checked.
-pub(crate) const NOT_CHECKED: &str = "Whether an earlier App session is still running could not be checked, so it is not treated as ended. This session did not start on its history: nothing was written to it and nothing is inferred about that session";
+/// Startup refused because the liveness lock of an earlier session without an
+/// end record is held. A held lock shows that a process holds it, not which.
+pub(crate) const STILL_RUNNING: &str = "An earlier App session's lock is held by a process on this computer, so that session is treated as still running. This session did not start on its history: nothing was written to it and nothing is inferred about that session";
+/// Startup refused because whether an earlier session ended could not be established.
+pub(crate) const NOT_CHECKED: &str = "Whether an earlier App session is still running could not be established, so it is not treated as ended. This session did not start on its history: nothing was written to it and nothing is inferred about that session";
 
 /// The sessions whose end the ledger records: a `session_ended` entry, or a
 /// later `session_started` naming it as its `previousSession` (that start
@@ -431,9 +432,12 @@ impl RecoveryLedger {
         validator()?.validate(&entry).map_err(|_|"App session end pointer metadata shape invalid; no end append".to_string())?;Ok(entry)
     }
     /// A session start by a caller that holds no liveness lock: its
-    /// `session_started` carries no [`crate::session_liveness::FIELD`], so a
-    /// later startup reads it as a build that took no lock was read. The App
-    /// starts its sessions with [`Self::start_session_held`].
+    /// `session_started` carries no [`crate::session_liveness::FIELD`]. A
+    /// later startup reads it by the same rule as every other earlier
+    /// session ([`Self::earlier_sessions_ended`]), and this start is itself
+    /// refused over an earlier session without an end record unless this
+    /// process holds the App data that contains the ledger. The App starts its
+    /// sessions with [`Self::start_session_held`].
     pub fn start_session(&mut self, session: &str, candidate: &str) -> Result<(), String> {
         self.start_session_declared(session, candidate, false)
     }
@@ -455,17 +459,18 @@ impl RecoveryLedger {
     /// listed requests' endings, its stop requests' closing, the previous
     /// session's end, and from them the restart facts, the adoption of its
     /// unsettled conversations and the run limits) reads "no end record" as
-    /// "ended". That holds only for a session whose liveness shows it ended
-    /// ([`crate::session_liveness::probe`]): a free lock file that names it,
-    /// or, for a session recorded by a build that took no lock, a free or
-    /// absent one. A session of this build whose liveness is not known is
-    /// settled as ended only by the positive evidence stated at
-    /// [`crate::session_liveness::resolve_not_known`]. When any earlier
-    /// session without a recorded end is still running, or is not known to
-    /// have ended, this session does not start on the ledger: nothing is
-    /// written and nothing is inferred.
+    /// "ended". One rule decides that for every earlier session without an
+    /// end record, whether or not its `session_started` carries
+    /// [`crate::session_liveness::FIELD`]: a held lock
+    /// ([`crate::session_liveness::probe`]) means it is still running and
+    /// refuses this start; any other probe outcome says nothing, and the
+    /// session is read as ended only under the rule stated at
+    /// [`crate::session_liveness::establish_ended`] (this process holds the App
+    /// data directory that contains this ledger, by identity, and the session
+    /// is not alive in this process). When it is not, this session does not
+    /// start on the ledger: nothing is written and nothing is inferred.
     fn earlier_sessions_ended(&self, session: &str) -> Result<(), String> {
-        use crate::session_liveness::{probe, resolve_not_known, Liveness, FIELD};
+        use crate::session_liveness::{establish_ended, probe, Liveness, FIELD};
         let ended = recorded_ends(&self.current);
         let mut earlier: Vec<(&str, bool)> = Vec::new();
         for entry in self.current.iter().filter(|e| e["kind"] == "session_started") {
@@ -479,14 +484,12 @@ impl RecoveryLedger {
         }
         for (id, declared) in earlier {
             match probe(&self.path, id, declared) {
-                Liveness::Absent | Liveness::Free => {}
                 Liveness::Held => return Err(STILL_RUNNING.into()),
-                Liveness::Unknown(reason) if declared => {
-                    if let Err(why) = resolve_not_known(&self.path, id) {
-                        return Err(format!("{NOT_CHECKED} ({reason}; {why})"));
+                Liveness::Silent(observed) => {
+                    if let Err(why) = establish_ended(&self.path, id) {
+                        return Err(format!("{NOT_CHECKED} ({observed}; {why})"));
                     }
                 }
-                Liveness::Unknown(reason) => return Err(format!("{NOT_CHECKED} ({reason})")),
             }
         }
         Ok(())
@@ -894,9 +897,16 @@ mod tests {
             crate::util::opaque_id("test").unwrap()
         ))
     }
+    /// A ledger in its own fixture root, under this process's App data custody
+    /// (as the App holds its App data before it opens a ledger), so that a
+    /// later session start on it models a relaunch.
+    pub(super) fn held_path() -> (crate::AppDataCustody, PathBuf) {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("recovery-relaunch-").unwrap());
+        (crate::hold_app_data_for_test(&root).unwrap(), root.join("recovery.jsonl"))
+    }
     #[test]
     fn relaunch_keeps_full_generation_and_never_payload_or_answer() {
-        let path = path();
+        let (custody, path) = held_path();
         let generation = json!({"appSession":"old","home":"h","spawnCounter":1});
         let request = json!({"generation":generation,"requestId":9,"method":"item/tool/requestUserInput","state":"outstanding",
             "replyWriteResult":"not-attempted","acknowledgment":"not-observed","nativeParameters":{"threadId":"t","questions":[{"text":"must-not-persist"}]}});
@@ -921,6 +931,8 @@ mod tests {
             generation
         );
         remove_test_ledger(&path);
+        drop(custody);
+        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
     /// A payload-bearing entry is refused before anything is created; a JSON
     /// Lines ledger whose only line is a complete malformed one imports nothing
@@ -1001,10 +1013,7 @@ mod framing_repair_tests {
     use super::*;
     #[test]
     fn complete_unclosed_and_torn_tail_are_rejected_without_modifying_bytes() {
-        let path = std::env::temp_dir().join(format!(
-            "recovery-tail-{}",
-            crate::util::opaque_id("test").unwrap()
-        ));
+        let (custody, path) = super::tests::held_path();
         let complete=serde_json::to_vec(&json!({"kind":"session_started","session":"s","at":"now","previousSessionEnd":"none","candidate":"c"})).unwrap();
         // An unclosed final line of a JSON Lines ledger is never imported as an
         // entry: it is reported as the import's limit, and the file is unchanged.
@@ -1053,6 +1062,8 @@ mod framing_repair_tests {
         );
         assert_eq!(std::fs::read(&path).unwrap(), closed, "the JSON Lines file is never written");
         remove_test_ledger(&path);
+        drop(custody);
+        std::fs::remove_dir_all(path.parent().unwrap()).unwrap();
     }
 }
 

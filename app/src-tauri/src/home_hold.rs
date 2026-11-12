@@ -17,9 +17,14 @@
 //! group it started has not settled ([`keep_until_settled`]). Inside one
 //! process a later Host may take the home over only from a Host that is
 //! certainly idle: no child that may still be alive and no start under way.
-//! A holder whose state cannot be read, or that is gone while its hold is
-//! kept, is busy. The kernel releases the lock when the process ends, however
-//! it ends.
+//! A holder whose state cannot be read is busy. A gone holder's kept hold
+//! passes only once every process group it started is established settled;
+//! each later start attempt on the home retries the settlement monitor of a
+//! group whose monitor could not be started, and custody is never released to
+//! do so. The kernel releases the lock when the process ends, however it ends.
+//!
+//! A conflicting lock shows that some process holds the home, not which one:
+//! the refusals say what was observed and name no owner.
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
@@ -34,8 +39,14 @@ use std::{
     },
 };
 
-/// What a person is told when another App holds the home.
-pub(crate) const IN_USE: &str = "Chirality is already running with this Codex home: another Chirality App is using it. Codex was not started on this home. Use the Chirality window that is already open, or quit that App first and then start again.";
+/// What a person is told when another process holds the home.
+pub(crate) const IN_USE: &str = "Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.";
+/// What a person is told when this App still holds the home because a process
+/// group an earlier Host of this App started is not established settled.
+pub(crate) const KEPT: &str = "Codex was not started on this home: this App is still holding it because a Codex process it started has not been confirmed ended. Quitting Chirality releases it.";
+/// What a person is told when a live Host of this App holds the home and may
+/// still have a start or a Codex process on it.
+pub(crate) const IN_USE_HERE: &str = "Codex was not started on this home: this App is already using it for another start of Codex, or for a Codex process not yet confirmed ended.";
 /// What a person is told when the home's path no longer names the directory
 /// this App holds.
 pub(crate) const REPLACED: &str = "The Codex home was replaced after this App took it, so Codex was not started on it. Start again to use the home that is there now.";
@@ -66,8 +77,14 @@ enum Key {
 
 struct HostSlot {
     id: usize,
+    /// The holds this Host has of the home: one per start call that claimed
+    /// it. The slot goes when the last is released.
+    count: usize,
     owner: Weak<dyn HoldOwner>,
     starting: Arc<AtomicUsize>,
+    /// Set when the owner went while a process group it started had not
+    /// settled: what it left, kept until that is established.
+    kept: Option<Arc<Kept>>,
 }
 struct Entry {
     /// The one locked descriptor of this home in this process.
@@ -97,6 +114,12 @@ pub(crate) struct HomeHold {
     role: Role,
     id: usize,
 }
+impl HomeHold {
+    /// Whether `other` is a hold of the same role on the same home by the same holder.
+    pub(crate) fn same_as(&self, other: &HomeHold) -> bool {
+        self.key == other.key && self.role == other.role && self.id == other.id
+    }
+}
 impl std::fmt::Debug for HomeHold {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("HomeHold").field("role", &self.role).finish()
@@ -104,6 +127,9 @@ impl std::fmt::Debug for HomeHold {
 }
 impl Drop for HomeHold {
     fn drop(&mut self) {
+        // What is taken out of the registry is dropped after its lock is
+        // released: a kept slot may own holds whose own drop takes it.
+        let (_slot, _entry);
         let mut registry = registry().lock().unwrap_or_else(|e| e.into_inner());
         let Some(entry) = registry.get_mut(&self.key) else {
             return;
@@ -112,13 +138,16 @@ impl Drop for HomeHold {
             Role::Receiving => entry.receiving = false,
             // A home taken over by a later Host is no longer this one's to release.
             Role::Host => {
-                if entry.host.as_ref().is_some_and(|slot| slot.id == self.id) {
-                    entry.host = None;
+                if let Some(slot) = entry.host.as_mut().filter(|slot| slot.id == self.id) {
+                    slot.count -= 1;
+                    if slot.count == 0 {
+                        _slot = entry.host.take();
+                    }
                 }
             }
         }
         if !entry.receiving && entry.host.is_none() {
-            registry.remove(&self.key);
+            _entry = registry.remove(&self.key);
         }
     }
 }
@@ -168,7 +197,11 @@ pub(crate) fn hold_receiving(home: &File) -> Result<HomeHold, String> {
         Some(entry) => entry.receiving = true,
         None => {
             let file = os_lock(home).map_err(|e| {
-                format!("account home already has a participating owner or custody is unavailable (no wait): {e}")
+                if would_block(&e) {
+                    IN_USE.to_string()
+                } else {
+                    format!("Codex home hold could not be taken, so Codex was not started: {e}")
+                }
             })?;
             registry.insert(
                 key.clone(),
@@ -188,15 +221,17 @@ pub(crate) fn hold_receiving(home: &File) -> Result<HomeHold, String> {
 }
 
 /// The Host role on `home` for the Host `id`, a claim for its start, and the
-/// identity of the held directory. Returns a new hold when the Host did not
-/// already hold the home. A home that does not exist, or that could not be
+/// identity of the held directory. Each call that succeeds has its own hold
+/// (a Host that already holds the home gets another, counted), so a call that
+/// is later refused can drop its hold without releasing one another call of
+/// the same Host relies on. A home that does not exist, or that could not be
 /// checked, is refused.
 pub(crate) fn claim_host(
     home: &Path,
     id: usize,
     owner: Weak<dyn HoldOwner>,
     starting: &Arc<AtomicUsize>,
-) -> Result<(Option<HomeHold>, StartClaim, Identity), String> {
+) -> Result<(HomeHold, StartClaim, Identity), String> {
     let opened = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_DIRECTORY | libc::O_NONBLOCK | libc::O_CLOEXEC)
@@ -208,28 +243,42 @@ pub(crate) fn claim_host(
     };
     let key = inode_key(&file)?;
     let Key::Inode(dev, ino) = key;
+    // A slot replaced here is dropped, and what a gone holder left released,
+    // after the registry's lock is released.
+    let mut replaced: Option<HostSlot> = None;
     let mut registry = registry().lock().unwrap_or_else(|e| e.into_inner());
     let claim = |starting: &Arc<AtomicUsize>| {
         starting.fetch_add(1, Ordering::SeqCst);
         StartClaim(Arc::clone(starting))
     };
     if let Some(entry) = registry.get_mut(&key) {
-        if let Some(slot) = &entry.host {
+        if let Some(slot) = entry.host.as_mut() {
             if slot.id == id {
-                return Ok((None, claim(starting), (dev, ino)));
+                slot.count += 1;
+                return Ok((HomeHold { key, role: Role::Host, id }, claim(starting), (dev, ino)));
             }
-            // A holder that is gone while its hold is kept (its processes
-            // have not settled), or whose state cannot be read, is busy.
-            let busy = slot.starting.load(Ordering::SeqCst) > 0
-                || slot.owner.upgrade().map_or(true, |owner| owner.may_have_child());
-            if busy {
-                return Err("Codex is already started on this home by this App; a second Codex was not started on it".into());
+            if slot.starting.load(Ordering::SeqCst) > 0 {
+                return Err(IN_USE_HERE.into());
+            }
+            match (slot.owner.upgrade(), &slot.kept) {
+                // A live holder whose state cannot be read is busy.
+                (Some(owner), _) if owner.may_have_child() => return Err(IN_USE_HERE.into()),
+                (Some(_), _) => {}
+                // A gone holder's hold passes only once what it started is
+                // established settled; asking retries a monitor that could
+                // not be started.
+                (None, Some(kept)) if !kept.settled_now() => return Err(KEPT.into()),
+                (None, Some(_)) => {}
+                // Gone while its own release is under way.
+                (None, None) => return Err(IN_USE_HERE.into()),
             }
         }
-        entry.host = Some(HostSlot {
+        replaced = entry.host.replace(HostSlot {
             id,
+            count: 1,
             owner,
             starting: Arc::clone(starting),
+            kept: None,
         });
     } else {
         let locked = os_lock(&file).map_err(|e| {
@@ -246,19 +295,26 @@ pub(crate) fn claim_host(
                 receiving: false,
                 host: Some(HostSlot {
                     id,
+                    count: 1,
                     owner,
                     starting: Arc::clone(starting),
+                    kept: None,
                 }),
             },
         );
     }
+    let claimed = claim(starting);
+    drop(registry);
+    if let Some(kept) = replaced.and_then(|slot| slot.kept) {
+        kept.release_if_settled();
+    }
     Ok((
-        Some(HomeHold {
+        HomeHold {
             key,
             role: Role::Host,
             id,
-        }),
-        claim(starting),
+        },
+        claimed,
         (dev, ino),
     ))
 }
@@ -275,43 +331,119 @@ pub(crate) fn still_names(home: &Path, held: Identity) -> Result<(), String> {
     }
 }
 
+/// What a gone Host left: its unsettled process groups, and its home holds and
+/// session liveness lock, kept until every group is established settled.
+pub(crate) struct Kept {
+    pending: Vec<Arc<crate::hosting::process_group_custody::OwnedProcess>>,
+    holds: Mutex<Option<(Vec<HomeHold>, Option<Arc<crate::session_liveness::Hold>>)>>,
+}
+impl Kept {
+    /// Whether every group is established settled. Each unsettled group is
+    /// given its retirement monitor (again, if it could not be started
+    /// before), which is what establishes settlement.
+    fn settled_now(&self) -> bool {
+        let mut settled = true;
+        for process in &self.pending {
+            if !process.settled() {
+                process.maintain();
+                settled = false;
+            }
+        }
+        settled
+    }
+    /// Releases the holds, only once every group is established settled.
+    /// Never called under the registry's lock (a hold's release takes it).
+    fn release_if_settled(&self) -> bool {
+        if !self.settled_now() {
+            return false;
+        }
+        let left = self.holds.lock().unwrap_or_else(|e| e.into_inner()).take();
+        drop(left);
+        true
+    }
+    /// A group whose reservation was released without a known-empty
+    /// observation: its settlement can no longer be established.
+    fn stranded(&self) -> bool {
+        self.pending.iter().any(|p| p.released() && !p.settled())
+    }
+}
+
 /// What a Host leaves when it goes: its home holds and its session's
 /// liveness lock stay held until every process group it started has
 /// settled ([`crate::hosting::process_group_custody::OwnedProcess::settled`]: its
 /// leader's exit observed and its group known empty). Each unsettled group is
-/// given its retirement monitor, which establishes settlement. A group whose
-/// settlement can no longer be established (its reservation was released
-/// without a known-empty observation), or a keeper that cannot be started,
-/// keeps the holds for the life of the process; the kernel releases them when
-/// the process ends.
+/// given its retirement monitor, which establishes settlement, and each home
+/// it held names what it left, so that a later start on the home is told why
+/// it is refused ([`KEPT`]) and retries a monitor that could not be started.
+/// A keeper thread polls and releases the holds once every group is settled.
+/// A group whose settlement can no longer be established (its reservation was
+/// released without a known-empty observation) keeps the holds for the life
+/// of the process; so does a keeper that cannot be started, until a later
+/// start attempt on the home finds the groups settled. The kernel releases
+/// them when the process ends.
 pub(crate) fn keep_until_settled(
     holds: Vec<HomeHold>,
     liveness: Option<Arc<crate::session_liveness::Hold>>,
     processes: Vec<Arc<crate::hosting::process_group_custody::OwnedProcess>>,
 ) {
+    keep(holds, liveness, processes, true)
+}
+/// [`keep_until_settled`] as it is when neither the groups' retirement
+/// monitors nor the keeper thread could be started.
+#[cfg(test)]
+pub(crate) fn keep_with_no_monitor_or_keeper_for_test(
+    holds: Vec<HomeHold>,
+    processes: Vec<Arc<crate::hosting::process_group_custody::OwnedProcess>>,
+) {
+    keep(holds, None, processes, false)
+}
+fn keep(
+    holds: Vec<HomeHold>,
+    liveness: Option<Arc<crate::session_liveness::Hold>>,
+    processes: Vec<Arc<crate::hosting::process_group_custody::OwnedProcess>>,
+    start: bool,
+) {
     let pending: Vec<_> = processes.into_iter().filter(|p| !p.settled()).collect();
     if pending.is_empty() || (holds.is_empty() && liveness.is_none()) {
         return;
     }
-    for process in &pending {
+    let ids: Vec<(Key, usize)> = holds.iter().filter(|h| h.role == Role::Host).map(|h| (h.key.clone(), h.id)).collect();
+    let kept = Arc::new(Kept { pending, holds: Mutex::new(Some((holds, liveness))) });
+    let mut named = false;
+    {
+        let mut registry = registry().lock().unwrap_or_else(|e| e.into_inner());
+        for (key, id) in ids {
+            if let Some(slot) = registry.get_mut(&key).and_then(|entry| entry.host.as_mut()).filter(|slot| slot.id == id) {
+                slot.kept = Some(Arc::clone(&kept));
+                named = true;
+            }
+        }
+    }
+    if !start {
+        return;
+    }
+    for process in &kept.pending {
         process.maintain();
     }
-    let kept = Arc::new(Mutex::new(Some((holds, liveness))));
     let keeper = Arc::clone(&kept);
     let started = std::thread::Builder::new().name("home-hold-settlement".into()).spawn(move || loop {
-        if pending.iter().all(|p| p.settled()) {
-            drop(keeper.lock().unwrap_or_else(|e| e.into_inner()).take());
+        if keeper.release_if_settled() {
             return;
         }
-        if pending.iter().any(|p| p.released() && !p.settled()) {
-            std::mem::forget(keeper.lock().unwrap_or_else(|e| e.into_inner()).take());
+        if keeper.stranded() {
+            // Settlement can no longer be established: kept for the life of the process.
+            std::mem::forget(keeper);
             return;
         }
         std::thread::sleep(std::time::Duration::from_millis(25));
     });
-    if started.is_err() {
-        std::mem::forget(kept.lock().unwrap_or_else(|e| e.into_inner()).take());
+    if started.is_err() && !named {
+        // No keeper and no home names what was left: nothing could release
+        // it once settled, so it is kept for the life of the process.
+        std::mem::forget(kept);
     }
+    // Otherwise, without a keeper, each home's slot keeps what was left until
+    // a later start attempt on the home finds the groups settled.
 }
 
 /// A fresh identity for a Host's role.

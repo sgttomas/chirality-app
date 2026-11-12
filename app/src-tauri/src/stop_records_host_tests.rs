@@ -74,6 +74,8 @@ fn exchange<T>(host: &Arc<Host>, g: &Value, response: Option<Value>, at_send: im
 #[test]
 fn person_interrupt_writes_sr01_before_the_send_and_settles_from_the_observed_end() {
     let root = scratch();
+    // Held as the App holds its App data: the relaunch below models a new App.
+    let _custody = crate::hold_app_data_for_test(&root).unwrap();
     let (host, g, path) = ledger_host(&root);
     event(&host, &g, "turn", "inProgress");
     let ledger = path.clone();
@@ -353,6 +355,8 @@ fn readings(host: &Host, path: &Path, session: &str) -> Value {
 #[test]
 fn entries_repeated_by_a_retried_drain_read_as_one_copy() {
     let root = scratch();
+    // Held as the App holds its App data: the relaunch below models a new App.
+    let _custody = crate::hold_app_data_for_test(&root).unwrap();
     let (host, g, path) = ledger_host(&root);
     host.observe_conversation_project(&g, "thread", Some("H-acct"), &crate::recovery::ExplicitAppProjectContext::known("P", crate::recovery::AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();
     event(&host, &g, "turn", "inProgress");
