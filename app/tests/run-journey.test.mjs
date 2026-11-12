@@ -167,12 +167,11 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
   await ui.press('Look for other workflows in this library');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
   const guide = region(ui.c, 'Run a workflow');
-  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly; you can inspect it in the workflow studio\./);
-  const why = all(guide, 'details').find(d => d.textContent.startsWith('Why'));
-  assert.match(why.textContent, /production bundle candidate; not a published release/, 'the host reason stays available under Why');
+  const included = region(guide, 'Included workflow coordinated-knowledge-work');
+  assert.match(included.textContent, /Can't be used in this App: production bundle candidate; not a published release\./, 'the host reason is said beside the workflow');
   assert.equal(all(guide, 'button').some(b => b.textContent.includes('coordinated-knowledge-work')), false);
   await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
-  await ui.press('Use coordinated-knowledge-work (included with the App)');
+  await ui.press('Use coordinated-knowledge-work');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_production_bundle', args:{name:'coordinated-knowledge-work'}}, 'a host-runnable bundled entry uses the existing bundled selection');
   await ui.rerender({data:data()});
   await ui.rerender({data:data({selections:selected(false)})});
@@ -484,6 +483,10 @@ test('a refused press is said in plain words under Next, a start that did not go
     newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
   await ui.rerender({data:data({selections:bundled}), outcome:null});
   assert.doesNotMatch(section.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, revision 3730d84debb5…\. Ready to run\./, 'source and revision of an included workflow, with no library named');
+  await ui.rerender({data:data({selections:bundled, productionCatalog:{source:{tag:'library-v9.9.9'}, entries:[]}})});
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, from Chirality Library 9\.9\.9, revision 3730d84debb5…\./);
+  await ui.rerender({data:data({selections:bundled})});
   await ui.rerender({data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}}}]})});
   assert.match(section.textContent, /Newer revisions of resolve-spacing can't be checked/, 'a library workflow still says when newer revisions could not be read');
   await ui.close();
