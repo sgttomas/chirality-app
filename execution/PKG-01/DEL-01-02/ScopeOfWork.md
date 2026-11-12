@@ -66,6 +66,7 @@ Boundary:
 - **REQ-007** — The restart and request-answering behaviour above holds on the stock supplier boundary, without the v3 Runtime service, whether or not v3 client logic is reused.
 - **REQ-008** — Each failure transition of this lifecycle is exercised on the identified candidate, and each result is reported as passed, failed, blocked, not run or inconclusive, as observed.
 - **REQ-009** — This deliverable performs no act that CLM-002 and CLM-003 give elsewhere: no pin selection or protocol generation, no card or view, no run-record format or writer, no policy, no run end.
+- **REQ-010** — On one machine, before operational startup or saving setup, the App holds its App data directory exclusively; before starting Codex on a home, it holds that existing home exclusively. A custody conflict or unavailable custody refuses the affected operation and shows what is known. An earlier App session is not treated as ended while it is running or its end cannot be established.
 
 - **AC-001** — With a turn running and an approval outstanding, closing, hiding and reloading the window leave the turn running and the approval pending under the main process, and nothing is written to Codex because of the window. Verify by VER-001. [REQ-001]
 - **AC-002** — An interrupt the person makes is reported with its request, transmission and observed result; it is distinguishable from an observer loss and from a run end; the run it belongs to is still open; a descendant still active is shown as active; and a second press from another window is refused. Verify by VER-002. [REQ-002]
@@ -76,6 +77,7 @@ Boundary:
 - **AC-007** — What receivers are handed contains only observed events and stated unknowns; an answer the person actually gave is handed over with the person as actor and the recorder distinct; no handed-over fact asserts a human act from execution success, a transport reply, a lost acknowledgment or a recovered conversation; an evidenced act is handed over whether or not any other act is evidenced; and the ledger holds no conversation content. Verify by VER-007. [REQ-006]
 - **AC-008** — Window loss, interruption, known and unknown requests, denial, timeout, re-attachment, restart and missing acknowledgment each have a result on the identified candidate with one of the five outcomes. Verify by VER-008. [REQ-008]
 - **AC-009** — The candidate meets AC-001 through AC-007 with Codex hosted directly by the App and no separate runtime service, and none of the acts in REQ-009 is produced by this deliverable's code. Verify by VER-009. [REQ-007, REQ-009]
+- **AC-010** — A second App on held App data starts nothing operational on either launch route; a second App cannot start Codex on a held home. Missing, replaced or uninspectable custody and session evidence produces a refusal or an explicitly unknown reading, never an inferred end. Verify by VER-010. [REQ-010]
 
 ## Production and Verification Method — Praxeology
 
@@ -90,6 +92,7 @@ Seam behaviour is driven by stand-in supplier peers and by exchanges recorded fr
 - **VER-007** — Comparison with an act the examiner watched: hand over one actually given answer and cases with no human evidence, transport-only success, a lost acknowledgment and a recovered conversation; inspect the handed-over facts and the ledger's contents.
 - **VER-008** — Judgment by an independent reviewer: read the candidate's results against the transitions AC-008 names and trace each to its observation.
 - **VER-009** — Judgment by an independent reviewer: confirm the process topology on the candidate and trace each act of REQ-009 to its owner's code.
+- **VER-010** — Executable checks using separate processes exercise both launch routes, separate data with a shared home, first setup saves, killed holders, replaced directories and missing or replaced session evidence; compare spawned processes and ledger changes with the refusal and recovery readings.
 
 ## Governing Values and Decisions — Axiology
 
@@ -111,3 +114,4 @@ Seam behaviour is driven by stand-in supplier peers and by exchanges recorded fr
 | OUT-004 | OBJ-001, OBJ-005 | REQ-006, CLM-004 | AC-007 | VER-007 | Outside source: the answer the examiner watched the person give. PRD V4-EXE-03 and V4-AUT-03 state what may not be asserted. |
 | OUT-003 | OBJ-001, OBJ-002, OBJ-005 | REQ-008 | AC-008 | VER-008 | An independent reviewer's reading of the candidate's results against the transitions named by the accepted decomposition's `DEL-01-02` row and EXAMINATION V4-EXM-11 and the outcome labels of EXAMINATION §1, tracing each result to an observation the product did not write. A result with no such observation establishes nothing about its transition. |
 | OUT-004 | OBJ-001, OBJ-002, OBJ-005 | REQ-007, REQ-009, CLM-003, CLM-005 | AC-009 | VER-009 | An independent reviewer's inspection of the candidate's process topology against ARCHITECTURE V4-ARC-03, and trace of each act of REQ-009 to its owner's code, compared with the allocation in the accepted decomposition's Deliverables rows. |
+| OUT-004 | OBJ-001, OBJ-002, OBJ-005 | REQ-010 | AC-010 | VER-010 | Outside source: the processes actually spawned and the ledger's entries before and after each second start, observed from separate processes, compared with the refusal shown and the recovery reading. |
