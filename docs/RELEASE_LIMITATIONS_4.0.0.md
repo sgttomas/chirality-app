@@ -186,7 +186,12 @@ An entry is added in the same pull request that makes the limitation standing.
   home, a change to the local model settings cannot be used until the App is
   quit and reopened; the local connection is unavailable meanwhile. Changing
   an existing server address requires the local connection to be prepared
-  first so Codex can sign out, even if no key was saved. If an otherwise
+  first so Codex can sign out, even if no key was saved. After a key has been
+  entered in a Codex session, the address cannot be changed until Codex is
+  restarted for the local model home. After the App has ended unexpectedly,
+  the local connection is refused while the earlier Codex process for the
+  local model home is still running; it normally ends by itself within a
+  minute, and quitting and reopening the App does not end it. If an otherwise
   valid local-home configuration is changed outside the App to name an
   address different from the one recorded for its saved key, preparation is
   refused and the App offers to restore the recorded address. A local-home
@@ -203,12 +208,19 @@ An entry is added in the same pull request that makes the limitation standing.
   a system or managed Codex configuration because the App cannot establish
   what such a layer would do to that home's settings, and requires a prepared local
   connection to confirm removal of the saved key before an address change so
-  that key cannot be sent to another server.
+  that key cannot be sent to another server. For the same reason it starts
+  Codex for the local model home only when no earlier Codex process for that
+  home is running, and does not move the address under a key entry that Codex
+  may still be saving.
 - **What the person does instead:** set the local server's address and model
   name in the App's local model settings and run the model server on the
   same machine with a key. To change the address, prepare the local
   connection, save the new address, quit and reopen the App, prepare the
   connection again and enter the key again. To use a different model name,
-  save it, quit and reopen the App, and start a new conversation.
+  save it, quit and reopen the App, and start a new conversation. If the
+  refusal about an earlier Codex process continues for more than a few
+  minutes, that Codex process (named `codex`) or a program it started is
+  still running: end it in Activity Monitor, or log out of the Mac and back
+  in.
 - **Basis:** DEL-01-05 (REQ-003, REQ-010, AC-003, AC-005, AC-008, AC-011);
   PRD V4-APP-02.

@@ -1310,7 +1310,10 @@ fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, 
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     let plan=bootstrap.local_plan()?;
     let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
-    if let Some(home)=&home { state.validate_home_source(home)?; }
+    if let Some(home)=&home {
+        state.validate_home_source(home)?;
+        native_local_provider::check_no_key_entry_before_address_change(plan,&proposed,&home.host.snapshot()["generation"],&state.local_credentials)?;
+    }
     // A first save creates the home directory: the same namespace preflight as preparation.
     if native_local_provider::stored(plan)?.is_none() { local_home_preflight(&state,&bootstrap)?; }
     let saved=native_local_provider::save(plan,proposed,home.as_deref(),

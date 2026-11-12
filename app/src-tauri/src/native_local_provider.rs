@@ -53,7 +53,8 @@ const KEY_ADDRESS: &str = "key-address";
 /// started there (the child inherits the locked descriptor). Not auth.lock, not Codex's.
 pub(crate) const PROCESS_LOCK: &str = "app-codex-process.lock";
 /// The refusal while that lock is held. Says only what is known; no path, no process detail.
-pub(crate) const EARLIER_PROCESS: &str = "An earlier Codex process for the local model home has not ended, so Codex was not started there. It ends by itself; start Codex again once it has.";
+pub(crate) const KEY_ENTRY_BEGUN: &str = "Key entry was used in this Codex session, and Codex may still be saving that key. Restart Codex for the local model home, then change the address. The local model settings were not changed.";
+pub(crate) const EARLIER_PROCESS: &str = "An earlier Codex process for the local model home has not ended, so Codex was not started there. It normally ends by itself within a minute; start Codex again once it has. Quitting and reopening the App does not end it.";
 /// The refusal when the App cannot open or lock its lock file at all.
 pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
 pub(crate) const PREPARE_FIRST: &str = "Prepare the local connection first, so that Codex can remove the saved key; the local model settings were not changed.";
@@ -212,6 +213,13 @@ impl CredentialEntry {
         }
         attempts.push(generation.clone());
         Ok(())
+    }
+    /// Whether a key entry was begun in this Codex session. A state that cannot be read counts
+    /// as begun.
+    pub(crate) fn begun(&self, generation: &Value) -> bool {
+        self.attempted
+            .try_lock()
+            .map_or(true, |attempts| attempts.contains(generation))
     }
     /// Whether an attempt for this generation can still begin (and begins it).
     #[cfg(test)]
@@ -1022,6 +1030,22 @@ fn effects(
 /// Validated settings, one native confirmation, then the change. Cancel changes nothing. A change
 /// of address first has Codex remove a saved key in the bound home and report no account; without
 /// that, nothing is changed. A model-only change keeps the key. auth.json is never opened by the App.
+/// An address change waits for a Codex session in which no key entry was begun. A key entry
+/// that was handed to Codex may still write its key after the App has stopped waiting for the
+/// reply, and the address record must not move under it. Restarting Codex ends that process
+/// before the next one starts in this home.
+pub(crate) fn check_no_key_entry_before_address_change(
+    plan: &OwnedHomePlan,
+    proposed: &LocalSettings,
+    generation: &Value,
+    entry: &CredentialEntry,
+) -> Result<(), String> {
+    let address_changes = stored(plan)?.is_some_and(|saved| saved.endpoint != proposed.endpoint);
+    if address_changes && entry.begun(generation) {
+        return Err(KEY_ENTRY_BEGUN.into());
+    }
+    Ok(())
+}
 pub(crate) fn save(
     plan: &OwnedHomePlan,
     proposed: LocalSettings,
@@ -1624,6 +1648,36 @@ mod tests {
     }
     fn base(root: &std::path::Path) -> HostConfig {
         HostConfig::new(root.join("not-run"), root.join("account"), root.join("probe"), root.to_path_buf())
+    }
+    /// A key entry handed to Codex may still write its key after the App stopped waiting. An
+    /// address change in the same Codex session is refused; a model-only change, an unchanged
+    /// address and another Codex session are not.
+    #[test]
+    fn native_local_settings_address_change_waits_for_a_codex_session_without_key_entry() {
+        let (root, plan) = fixture();
+        let a = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+        let b = LocalSettings::new("http://127.0.0.1:9200/v1", "org/m").unwrap();
+        let model_only = LocalSettings::new("http://127.0.0.1:9100/v1", "org/other").unwrap();
+        let (first, second) = (json!({"home":"h","spawnCounter":1}), json!({"home":"h","spawnCounter":2}));
+        let entry = CredentialEntry::default();
+        // Nothing saved yet: a first save changes no address.
+        assert!(check_no_key_entry_before_address_change(&plan, &b, &first, &entry).is_ok());
+        prepare_for_test(&plan, &a);
+        assert!(!entry.begun(&first));
+        assert!(check_no_key_entry_before_address_change(&plan, &b, &first, &entry).is_ok());
+        assert!(entry.begin_for_test(&first));
+        assert!(entry.begun(&first) && !entry.begun(&second));
+        assert_eq!(check_no_key_entry_before_address_change(&plan, &b, &first, &entry).unwrap_err(), KEY_ENTRY_BEGUN);
+        assert!(check_no_key_entry_before_address_change(&plan, &model_only, &first, &entry).is_ok());
+        assert!(check_no_key_entry_before_address_change(&plan, &a, &first, &entry).is_ok());
+        assert!(check_no_key_entry_before_address_change(&plan, &b, &second, &entry).is_ok(), "a new Codex session");
+        // A state that cannot be read counts as begun.
+        let held = entry.attempted.lock().unwrap();
+        assert!(entry.begun(&second));
+        assert_eq!(check_no_key_entry_before_address_change(&plan, &b, &second, &entry).unwrap_err(), KEY_ENTRY_BEGUN);
+        drop(held);
+        assert!(!KEY_ENTRY_BEGUN.contains("9100") && !KEY_ENTRY_BEGUN.contains('/'));
+        std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn native_local_settings_key_address_refuses_a_hand_edited_address_while_a_key_is_saved() {
