@@ -1486,7 +1486,7 @@ fn role_set_metadata() -> Value {
         // the set; only those that may start a conversation are offered as one.
         Ok(set) => json!({"available":true,"roles":set.roles,"defaultRole":set.default_role(),
             "conversationRoles":role_supply::Role::ALL.into_iter().filter(|r|r.primary_entry()).collect::<Vec<_>>(),
-            "identity":identity,"standing":"candidate; U-R6/U-R11 open"}),
+            "identity":identity,"standing":"candidate; U-R6 open"}),
         Err(reason) => json!({"available":false,"reason":reason,"identity":identity}),
     }
 }

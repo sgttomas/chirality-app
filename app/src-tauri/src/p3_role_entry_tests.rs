@@ -58,7 +58,8 @@ fn p3_entry_host_metadata_uses_the_exact_four_role_asset() {
     let metadata = role_set_metadata();
     assert_eq!(metadata["available"], true);
     assert_eq!(metadata["roles"].as_array().unwrap().len(), 4);
-    assert!(metadata["defaultRole"].is_null());
+    // DEL-02-04 TBD-004: for 4.0.0 a new conversation preselects HELP_HUMAN, as data.
+    assert_eq!(metadata["defaultRole"], "HELP_HUMAN");
     // ROLE SL-1: TASK stays a standing role but is not offered as a conversation role.
     assert_eq!(
         metadata["conversationRoles"],
