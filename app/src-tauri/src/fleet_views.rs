@@ -200,6 +200,7 @@ fn read_decisions(census: &mut Census, root: &Path) -> Result<DecisionRead, Stri
     }
     census.read(&store.join("roots.jsonl"))?;
     census.read(&root.join(crate::records_store::PROJECT_LINK))?;
+    decision_hook("after-identity");
     let home = crate::records_store::home(root)?;
     if let Some(refusal) = &home.attachment.refusal {
         return Err(format!("the project's records home is unresolved: {refusal}"));
@@ -399,7 +400,9 @@ fn decision_need(
             "{corrected}several decisions on {request} whose order the records do not establish, or an act whose origin is not established ({}){noted}",
             array(&row["currentCandidates"]).iter().map(text).collect::<Vec<_>>().join(", ")
         )),
-        s if s.starts_with("pending") => json!({"state":"outstanding","why":format!(
+        s if s == crate::decision_view::DECIDED_INCOMPLETE || s == crate::decision_view::PENDING_INCOMPLETE => unknown(format!(
+            "{corrected}{request} reads as {s}{noted}")),
+        s if s == crate::decision_view::PENDING => json!({"state":"outstanding","why":format!(
             "{corrected}no recorded act of the person of kind {} in this installation's records store cites {request} and chooses an alternative the package names{noted}",
             text(&row["actRequested"])
         )}),

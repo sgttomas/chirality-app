@@ -286,3 +286,28 @@ fn decision_view_work_does_not_grow_with_unrelated_history() {
     assert_eq!(scope["entriesRead"], 402);
     assert_eq!(scope["decisionRecords"], 2);
 }
+
+#[test]
+fn decision_view_row_with_an_unread_act_line_is_not_plainly_decided() {
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    f.in_store("10-act", &[act("rec:a1", "rec:r1", "ALT-2", PACKAGE)]);
+    // Another log holds a line that cannot be read: it may be a correction of
+    // the act or a later opposing decision.
+    std::fs::write(f.store().join("acts/20-unreadable.jsonl"), b"{\"kind\":\"human_act\",\n").unwrap();
+    let row = f.row("rec:r1");
+    assert_eq!(row["state"], DECIDED_INCOMPLETE, "{row}");
+    assert_eq!(row["decision"]["act"], "rec:a1", "the act is still shown");
+    assert!(row["limits"].to_string().contains("act records not fully read: records-store:acts/20-unreadable.jsonl"), "{row}");
+}
+
+#[test]
+fn decision_view_row_with_a_torn_act_log_is_not_plainly_pending() {
+    let f = Fixture::new();
+    f.in_store("00-request", &[request("rec:r1", "decisions/PKG-1.json", PACKAGE)]);
+    // A torn final line, which may be the decision being written.
+    std::fs::write(f.store().join("acts/10-torn.jsonl"), b"{\"format\":\"chirality.rs.record\"").unwrap();
+    let row = f.row("rec:r1");
+    assert_eq!(row["state"], PENDING_INCOMPLETE, "{row}");
+    assert!(row["limits"].to_string().contains("10-torn.jsonl"), "{row}");
+}

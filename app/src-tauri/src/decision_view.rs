@@ -16,6 +16,11 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 const PERSON_WORDING: &str = "identity not verified";
+/// Row states. The two incomplete states are never a decision or a pending
+/// request: an act log that could bear on the row was not fully read.
+pub(crate) const PENDING: &str = "pending — awaiting the person's decision";
+pub(crate) const DECIDED_INCOMPLETE: &str = "decided as far as read; act records incomplete";
+pub(crate) const PENDING_INCOMPLETE: &str = "pending as far as read; act records incomplete";
 
 pub fn person_label(p: &Value) -> String {
     let names: Vec<&str> = ["displayName", "osAccount", "codexAccount", "hostActor"]
@@ -462,6 +467,9 @@ pub(crate) fn derive_from(
         mut limits,
     } = set;
     let mut record_set_complete = limits.is_empty();
+    // Sources not fully read: an unreadable or nonconformant line, a torn tail,
+    // a log that could not be opened, or a set that could not be discovered.
+    let mut unread_sources: Vec<String> = limits.clone();
     let copies = match &imports {
         Ok(Some(bytes)) => legacy_copies(bytes),
         Ok(None) => Ok(HashMap::new()),
@@ -481,6 +489,7 @@ pub(crate) fn derive_from(
         let bytes = match log.bytes {
             Ok(bytes) => bytes,
             Err(e) => {
+                unread_sources.push(format!("{label}: {e}"));
                 limits.push(e);
                 record_set_complete = false;
                 continue;
@@ -491,6 +500,7 @@ pub(crate) fn derive_from(
             complete_logs.insert(label.clone());
         } else {
             record_set_complete = false;
+            unread_sources.push(format!("{label}: {}", found_limits.join("; ")));
         }
         let classify = classifier(store_dir.as_deref(), &log.path, &bytes, &copies);
         for (e, start, end) in read {
@@ -997,7 +1007,7 @@ pub(crate) fn derive_from(
                 "id": a["id"], "statement": a["statement"],
                 "consequences": cons.iter().filter(|c| c["alternative"] == a["id"]).map(|c| c["statement"].clone()).collect::<Vec<_>>()
             })).collect::<Vec<_>>(),
-            "state": "pending — awaiting the person's decision",
+            "state": PENDING,
             "decision": Value::Null,
             "requestResolution": if request_ids.iter().any(|id| duplicates.contains(*id)) { "conflicting identity" } else if request_ids.iter().any(|id| sources.get(*id).is_some_and(|v|v.len()>1)) { "unique claim (identical copies)" } else { "unique claim" },
             "requestSources": sources.get(pid),
@@ -1334,6 +1344,18 @@ pub(crate) fn derive_from(
                 json!({"act":aid,"relation":relation,"alternativeChosen":a["body"]["relations"]["alternativeChosen"]})
             }).collect::<Vec<_>>());
             row["decision"] = projection;
+        }
+        // An unread line may be a correction of the act or a later opposing
+        // decision; it is used for nothing (DEL-04-03 REQ-012), and the row draws
+        // no conclusion it could overturn.
+        if !record_set_complete {
+            let plain = row["state"].as_str().unwrap_or("").to_owned();
+            if plain == "decided" {
+                row["state"] = json!(DECIDED_INCOMPLETE);
+            } else if plain == PENDING {
+                row["state"] = json!(PENDING_INCOMPLETE);
+            }
+            row_limits.push(format!("act records not fully read: {}", unread_sources.join(" | ")));
         }
         if request_ids.iter().any(|id| duplicates.contains(*id)) || conflicting_requests {
             row["state"] = json!("unresolvable request identity");
