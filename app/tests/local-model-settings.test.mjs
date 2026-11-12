@@ -41,9 +41,9 @@ test('only a complete reply is a settings reading; anything else shows nothing a
 });
 
 test('the early checks accept only a same-machine address and a plain model name', () => {
-  for (const ok of ['http://127.0.0.1:8000/v1', 'http://[::1]:9000/v1', 'https://127.0.0.1/v1', 'http://127.0.0.1:1']) assert.equal(localEndpointValid(ok), true, ok);
+  for (const ok of ['http://127.0.0.1:8000/v1', 'http://[::1]:9000/v1', 'https://127.0.0.1/v1', 'http://127.0.0.1:1', 'http://127.0.0.1:65535/v1']) assert.equal(localEndpointValid(ok), true, ok);
   for (const bad of ['', 'http://localhost:8000/v1', 'http://192.168.1.5:8000/v1', 'http://127.0.0.1.example.invalid/v1', 'http://user@127.0.0.1:8000/v1', 'http://127.0.0.1:8000/v1?x=1',
-    'http://127.0.0.1:8000/v1#f', 'ftp://127.0.0.1/v1', 'http://127.0.0.1:08000/v1', ' http://127.0.0.1:8000/v1', 'http://127.0.0.1:8000/v1 ']) assert.equal(localEndpointValid(bad), false, bad);
+    'http://127.0.0.1:8000/v1#f', 'ftp://127.0.0.1/v1', 'http://127.0.0.1:08000/v1', 'http://127.0.0.1:65536/v1', 'http://127.0.0.1:99999/v1', ' http://127.0.0.1:8000/v1', 'http://127.0.0.1:8000/v1 ']) assert.equal(localEndpointValid(bad), false, bad);
   for (const ok of ['mlx-community/Model-8bit', 'a', 'name:tag@1+x_y.z']) assert.equal(localModelValid(ok), true, ok);
   for (const bad of ['', 'two words', 'quote"d', 'back\\slash', 'line\nbreak', 'x'.repeat(129)]) assert.equal(localModelValid(bad), false, bad);
 });
@@ -90,8 +90,12 @@ test('Save sends exactly the two typed values, and each outcome is said as what 
     replies.push(() => { throw 'Prepare the local connection first, so that Codex can remove the saved key; the local model settings were not changed.'; });
     await ui.press('Save local model settings…');
     assert.match(ui.c.textContent, /Prepare the local connection first/);
-    assert.match(ui.c.textContent, /Saved: server http:\/\/127\.0\.0\.1:8000\/v1 · model first-model\./, 'the earlier saved reading still stands');
-    assert.equal(notified, 0);
+    assert.match(ui.c.textContent, /Whether anything changed is not established here/);
+    assert.doesNotMatch(ui.c.textContent, /Saved: server/, 'after a save with no reading, nothing is shown as saved');
+    assert.equal(ui.save(), undefined, 'and nothing can be saved again until the settings are read again');
+    assert.equal(notified, 1, 'the route and key state beside it are withdrawn');
+    await ui.press('Show local model settings');
+    await ui.change('Server address ', 'http://[::1]:9000/v1');
     // Saved with the key removed, in a session that was using the old settings.
     replies.push(args => set(args.endpoint, args.model, {outcome:'saved', keyRemoved:true, inForce:{endpoint:'http://127.0.0.1:8000/v1', model:'first-model'}, relaunchRequired:true}));
     await ui.press('Save local model settings…');
@@ -99,13 +103,14 @@ test('Save sends exactly the two typed values, and each outcome is said as what 
     assert.match(ui.c.textContent, /Saved: server http:\/\/\[::1\]:9000\/v1 · model first-model\./);
     assert.match(ui.c.textContent, /In use in this session: server http:\/\/127\.0\.0\.1:8000\/v1/);
     assert.match(ui.c.textContent, /Quit and reopen the App to use the saved ones/);
-    assert.equal(notified, 1);
+    assert.equal(notified, 2);
     // A reply that is not a settings reading shows nothing new as set.
     await ui.change('Model name on the server ', 'second-model');
     replies.push(() => ({state:'set'}));
     await ui.press('Save local model settings…');
     assert.match(ui.c.textContent, /The reply was not a local model settings reading; nothing is shown as set\./);
-    assert.equal(notified, 1);
+    assert.doesNotMatch(ui.c.textContent, /Saved: server/);
+    assert.equal(notified, 3);
   }, () => { notified++; });
 });
 
@@ -117,7 +122,7 @@ test('settings that cannot be read are shown as unavailable, with no form and no
   });
   await mounted(async () => { throw Error('INVENTED_PRIVATE_DIAGNOSTIC'); }, async ui => {
     await ui.press('Show local model settings');
-    assert.match(ui.c.textContent, /Local model settings are unavailable; nothing was changed\./);
+    assert.match(ui.c.textContent, /Local model settings are unavailable\. Nothing was changed\./);
     assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_DIAGNOSTIC/);
     assert.equal(ui.save(), undefined);
   });

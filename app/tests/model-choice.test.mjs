@@ -196,7 +196,7 @@ const localView = (credentialState, generation = lg, over = {}) => ({modeHomeCla
 const routed = (active, local = null) => ({...snapshotFor(active, active === 'local-provider' ? local : g),
   homeRouting:{activeModeHomeClass:active, entries:[{modeHomeClass:'account', generation:g, state:'ready'}, ...(local ? [{modeHomeClass:'local-provider', generation:local, state:'ready'}] : [])]}});
 let ui;
-const localAllowed = ['prepare_local_provider', 'submit_local_provider_key', 'select_home', 'thread_start', 'read_account_status', 'read_home_access'];
+const localAllowed = ['prepare_local_provider', 'submit_local_provider_key', 'select_home', 'thread_start', 'read_account_status', 'read_home_access', 'local_model_settings_read', 'local_model_settings_save'];
 const assertNoSecretTraffic = ui => {
   for (const call of ui.issued()) {
     assert.ok(localAllowed.includes(call.command), call.command);
@@ -242,6 +242,49 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'api-key'));
     assertNoSecretTraffic(ui);
   });
+});
+
+test('a settings save withdraws the key and route shown before, whether it succeeded or its outcome is not established', async () => {
+  // Custody review: after a save the page said the key was removed and, beside it, "Key saved by Codex — not verified".
+  const settings = (endpoint, over = {}) => ({state:'set', settings:{endpoint, model:LOCAL.model}, offered:{endpoint:'http://127.0.0.1:8000/v1'},
+    inForce:{endpoint:LOCAL.endpoint, model:LOCAL.model}, relaunchRequired:false, ...over});
+  for (const outcome of ['saved', 'rejected-after-sign-out', 'malformed']) {
+    await mounted(async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+      if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); return {state:'selected'}; }
+      if (command === 'local_model_settings_read') return settings(LOCAL.endpoint);
+      if (command === 'local_model_settings_save') {
+        assert.deepEqual(args, {endpoint:'http://[::1]:9000/v1', model:LOCAL.model});
+        if (outcome === 'saved') return settings(args.endpoint, {outcome:'saved', keyRemoved:true, relaunchRequired:true});
+        if (outcome === 'malformed') return {state:'set'};
+        throw 'Codex removed the saved key; the local model settings could not be written.';
+      }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      const panel = () => region(ui.c, 'Keyed oMLX connection').textContent;
+      assert.match(panel(), /Key saved by Codex — not verified/);
+      await ui.press('Use local oMLX home');
+      await ui.press(`Use oMLX model ${LOCAL.model}`);
+      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
+      await ui.press('Show local model settings');
+      const address = nodes(ui.c, 'input').find(node => node.parentNode.textContent.startsWith('Server address '));
+      await React.act(async () => { props(address).onChange({target:{value:'http://[::1]:9000/v1'}}); });
+      await ui.press('Save local model settings…');
+      assert.doesNotMatch(panel(), /Key saved by Codex — not verified/, outcome);
+      assert.equal(region(ui.c, 'oMLX destination'), undefined, `${outcome}: the earlier destination is no longer shown as prepared`);
+      assert.match(panel(), /The connection and key state shown before are withdrawn; prepare the oMLX connection again/, outcome);
+      assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, `${outcome}: the old route is not offered`);
+      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, `${outcome}: a route chosen before the save cannot start`);
+      if (outcome === 'saved') assert.match(panel(), /Saved\. Codex removed the saved key for the earlier address/);
+      else {
+        assert.doesNotMatch(panel(), /Saved: server/, `${outcome}: nothing is shown as saved`);
+        assert.match(panel(), /Whether anything changed is not established here/);
+      }
+      if (outcome === 'rejected-after-sign-out') assert.match(panel(), /Codex removed the saved key; the local model settings could not be written\./);
+    });
+  }
 });
 
 test('keyed oMLX key entry is offered once per Codex session, including cancel and refusal', async () => {

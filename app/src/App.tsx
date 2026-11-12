@@ -1236,7 +1236,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   </section>;
 }
 
-export type LocalAccess = { view: LocalView | null; attempted: string[]; pending: boolean; message: { kind: "status" | "alert"; text: string } | null; prepare: () => void; enterKey: (generation: Json) => void };
+export type LocalAccess = { view: LocalView | null; attempted: string[]; pending: boolean; message: { kind: "status" | "alert"; text: string } | null; prepare: () => void; enterKey: (generation: Json) => void; settingsTouched?: () => void };
 export function HomeAccessPanel({ host, resources, navigating = false, act, readAccount, local }: { host: Json; resources: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void>; readAccount: ReadAccountStatus; local?: LocalAccess }) {
   const routing = host?.homeRouting, access = host?.homeAccess, oauth = host?.homeOAuth, generation = host?.generation;
   const [busy, setBusy] = useState(false);
@@ -1263,7 +1263,7 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
       <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
-        prepare={local.prepare} enterKey={local.enterKey} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
+        prepare={local.prepare} enterKey={local.enterKey} settingsChanged={local.settingsTouched} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
     </section>
     <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
     {error && <p role="alert">{error}</p>}
@@ -2137,7 +2137,11 @@ export function App() {
     }
   };
   const localAccess: LocalAccess = { view: localView, attempted: localAttempted, pending: localPending, message: localMessage,
-    prepare: () => { void localCommand("prepare_local_provider"); }, enterKey: generation => { void localCommand("submit_local_provider_key", generation); } };
+    prepare: () => { void localCommand("prepare_local_provider"); }, enterKey: generation => { void localCommand("submit_local_provider_key", generation); },
+    // A settings save, or one whose outcome is not established, can change the route and the key
+    // state: what was shown is withdrawn (and any chosen local route with it) until it is read again.
+    settingsTouched: () => { localSequence.current++; setLocalView(null);
+      setLocalMessage({ kind: "status", text: "The local model settings were saved or their save did not complete. The connection and key state shown before are withdrawn; prepare the oMLX connection again to read them." }); } };
   const homeAction = async (command: string, args: Record<string, unknown>) => {
     const navigating = command === "select_home" || command === "open_waiting_requests";
     if (navigating) {

@@ -65,8 +65,10 @@ export function localRoute(view: LocalView | null, host: Json): LocalView | null
 // Local model settings (DEL-01-05): the server address and the model name, both
 // nonsecret. The host validates and is the authority; these two checks only
 // say early what it will refuse. A key is never entered or shown here.
-export const localEndpointValid = (value: string) => value.length <= 2048
-  && /^https?:\/\/(127\.0\.0\.1|\[::1\])(:[1-9][0-9]{0,4})?(\/[A-Za-z0-9._~\/-]*)?$/.test(value);
+export const localEndpointValid = (value: string) => {
+  const match = value.length <= 2048 ? /^https?:\/\/(?:127\.0\.0\.1|\[::1\])(?::([1-9][0-9]{0,4}))?(?:\/[A-Za-z0-9._~\/-]*)?$/.exec(value) : null;
+  return !!match && (match[1] === undefined || Number(match[1]) <= 65535);
+};
 export const localModelValid = (value: string) => /^[A-Za-z0-9._:\/@+-]{1,128}$/.test(value);
 type LocalSettingsView = { state: "unset" | "set" | "unavailable"; settings: { endpoint: string; model: string } | null; offered: { endpoint: string };
   inForce: { endpoint: string; model: string } | null; relaunchRequired: boolean; outcome?: "saved" | "unchanged" | "cancelled"; keyRemoved?: boolean };
@@ -91,6 +93,7 @@ export function LocalModelSettings({ disabled, changed }: { disabled: boolean; c
   const run = async (command: "local_model_settings_read" | "local_model_settings_save", args?: Record<string, unknown>) => {
     if (pending.current) return;
     pending.current = true; setBusy(true); setNote(null);
+    const saving = command === "local_model_settings_save";
     try {
       const next = localSettingsFrom(await invoke(command, args));
       if (!next) throw "The reply was not a local model settings reading; nothing is shown as set.";
@@ -102,7 +105,15 @@ export function LocalModelSettings({ disabled, changed }: { disabled: boolean; c
       } else if (next.outcome === "cancelled") setNote({ kind: "status", text: "Not saved: you cancelled. Nothing was changed." });
       else if (next.outcome === "unchanged") setNote({ kind: "status", text: "These are already the saved settings. Nothing was changed." });
     } catch (error) {
-      setNote({ kind: "alert", text: typeof error === "string" ? error : "Local model settings are unavailable; nothing was changed." });
+      const text = typeof error === "string" ? error : "Local model settings are unavailable.";
+      if (saving) {
+        // A save that did not return a reading may or may not have changed something (Codex may
+        // have removed the key before a later step failed): nothing is shown as saved, and the
+        // route and key state shown beside this are withdrawn until they are read again.
+        setView(null); setDraft(null);
+        setNote({ kind: "alert", text: `${text} Whether anything changed is not established here: read the local model settings again, and prepare the connection again to read the key state.` });
+        changed?.();
+      } else setNote({ kind: "alert", text: `${text} Nothing was changed.` });
     } finally { pending.current = false; setBusy(false); }
   };
   const endpointOk = !!draft && localEndpointValid(draft.endpoint), modelOk = !!draft && localModelValid(draft.model);
