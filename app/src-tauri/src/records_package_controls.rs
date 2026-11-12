@@ -626,6 +626,25 @@ pub(crate) fn prepare(
         deferred,
     })
 }
+/// What each package whose payload this recovery finishes publishing states
+/// about its logs' own integrity, by import.
+fn resumed_integrity(plan: &ControlPlan) -> Vec<(String, Value)> {
+    plan.work.iter().filter_map(|work| match &work.kind {
+        WorkKind::Resume(source) => Some((work.entry.intent.id.clone(), source.snapshot.log_integrity().clone())),
+        WorkKind::Controls => None,
+    }).collect()
+}
+/// The recovery's result with those statements: its `state` and `standing`
+/// read alone never pass a limited log as clean.
+fn with_integrity(mut out: Value, resumed: Vec<(String, Value)>) -> Value {
+    let limits: Vec<String> = resumed.iter().filter_map(|(id, found)| crate::records_export::integrity_statement(found).map(|limit| format!("Import {id}: {limit}"))).collect();
+    out["logIntegrity"] = json!(resumed.into_iter().map(|(id, found)| json!({"importId":id,"logIntegrity":found})).collect::<Vec<_>>());
+    if !limits.is_empty() {
+        out["state"] = json!(format!("{}; log integrity limited", out["state"].as_str().unwrap_or("package controls recovered")));
+        out["standing"] = json!(format!("{STANDING} {}", limits.join(" ")));
+    }
+    out
+}
 pub(crate) fn statement(
     plan: &ControlPlan,
 ) -> Result<crate::act_control::native_statement::NativeStatement, String> {
@@ -633,9 +652,16 @@ pub(crate) fn statement(
         "packageIdentity":work.entry.intent.package_identity,"missingJournalReference":work.entry.missing_entry,
         "missingReceipt":work.entry.missing_receipt,"missingCompletion":work.entry.done.is_none(),
         "finishOriginalPayload":matches!(work.kind,WorkKind::Resume(_)),"originalActor":work.entry.intent.actor,
+        "logIntegrity":match &work.kind { WorkKind::Resume(source) => source.snapshot.log_integrity().clone(), WorkKind::Controls => Value::Null },
         "review":work.context})).collect();
+    // A payload this recovery finishes publishing may carry a log whose
+    // integrity is limited: said here as its own statement, per package.
+    let limited = resumed_integrity(plan);
+    let integrity: Vec<String> = limited.iter().filter_map(|(id, found)| crate::records_export::integrity_statement(found).map(|limit| format!("Import {id}: {limit}"))).collect();
+    let summary: Vec<String> = limited.iter().filter_map(|(id, found)| crate::records_export::integrity_summary(found).map(|limit| format!("Import {id}: {limit}"))).collect();
     let full = format!("Recover the derived controls of {} original package import(s)?\n\nProject folder: {}\n\nEach surviving original native intent remains unchanged. This repairs its missing derived controls or finishes only its original frozen payload publications. It performs no new import act, restores no actor or native custody, preserves later local append-only records and valid newer retention history, and replaces no unequal file.\n\nDeferred original operations (still fenced; finish separately): {}\n\n{}\n\nActor for this recovery (identity not verified): {}",
         plan.work.len(),plan.root.display(),if plan.deferred.is_empty(){"none".into()}else{plan.deferred.join(", ")},STANDING,crate::act_control::native_statement::actor_line(&plan.actor));
+    let full = if integrity.is_empty() { full } else { format!("{full}\n\n{}", integrity.join("\n\n")) };
     let detail = json!({"imports":imports,"deferredImports":plan.deferred,"controls":plan.controls,"actor":plan.actor,"observed":plan.observed});
     crate::act_control::native_statement::whole_or_in_app(
         "package control recovery",
@@ -643,7 +669,8 @@ pub(crate) fn statement(
         full,
         &detail,
         |digest| {
-            format!("Recover original package controls?\n\nThe complete original intents, exact package identities, missing controls, local histories and recovery actor are shown in the App. sha-256: {digest}\nDeferred original operations (still fenced): {}\nThis performs no new import act and restores no native custody. Changed evidence refuses publication.",if plan.deferred.is_empty(){"none".into()}else{plan.deferred.join(", ")})
+            format!("Recover original package controls?\n\nThe complete original intents, exact package identities, missing controls, local histories and recovery actor are shown in the App. sha-256: {digest}\nDeferred original operations (still fenced): {}\nThis performs no new import act and restores no native custody. Changed evidence refuses publication.{}",if plan.deferred.is_empty(){"none".into()}else{plan.deferred.join(", ")},
+                if summary.is_empty() { String::new() } else { format!("\n{}", summary.join("\n")) })
         },
     )
 }
@@ -748,10 +775,11 @@ pub(crate) fn apply(plan: ControlPlan, actor: &Value, observed: &Value) -> Resul
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .insert(plan.dir.clone(), plan.deferred[0].clone());
-        return Ok(
+        return Ok(with_integrity(
             json!({"state":"package controls partly recovered","recoveredImports":repaired,
             "deferredImports":plan.deferred,"limit":"An original package operation remains fenced; finish that same operation after these independent controls are restored.","standing":STANDING}),
-        );
+            resumed_integrity(&plan),
+        ));
     }
     if final_rows.iter().any(|row| row.repair_needed) {
         return Err(
@@ -763,10 +791,11 @@ pub(crate) fn apply(plan: ControlPlan, actor: &Value, observed: &Value) -> Resul
         .unwrap_or_else(|p| p.into_inner())
         .remove(&plan.dir);
     remember(&plan.dir, &plan.root);
-    Ok(
+    Ok(with_integrity(
         json!({"state":"package controls recovered","recoveredImports":repaired,
         "retention":retention::view(&plan.dir),"standing":STANDING}),
-    )
+        resumed_integrity(&plan),
+    ))
 }
 pub(crate) fn status(root: &Path) -> Value {
     let result = (|| -> Result<Value, String> {

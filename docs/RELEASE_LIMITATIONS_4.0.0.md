@@ -126,7 +126,10 @@ An entry is added in the same pull request that makes the limitation standing.
   reordered line only where later lines still carry their original links: a
   change to the content of a log's last line that keeps its link, lines
   removed from its end, and an edit by someone who recomputes the links after
-  it can go unshown.
+  it can go unshown. The verifier carried in a package reads each record only
+  as far as its outer form, so it can fail a faithfully exported package whose
+  log holds a line the App itself set aside as invalid; verifying or importing
+  that package through the App is what settles it.
 - **Why:** no key is chosen to sign log checkpoints and export manifests.
 - **What the person does instead:** verify a package with the verifier it
   carries, and establish where it came from by other means.

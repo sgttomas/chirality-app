@@ -59,7 +59,7 @@ class VerifyBagTest(unittest.TestCase):
         return subprocess.run([sys.executable, str(self.root / "verify.py"), str(self.root)], capture_output=True, text=True)
 
     def test_valid_package_and_legacy_history_limit(self):
-        self.assertEqual(verifier.verify(self.root), (1, False, {"profile": "0.2", "logs": 0, "limited": [], "notes": []}))
+        self.assertEqual(verifier.verify(self.root), (1, False, {"profile": "0.2", "logs": 0, "recomputed": 0, "limited": [], "limitedLogs": 0, "notes": []}))
         whole = self.run_verifier()
         self.assertEqual(whole.returncode, 0, whole.stderr)
         self.assertTrue(whole.stdout.startswith("Package bytes: consistent."), whole.stdout)
@@ -71,25 +71,80 @@ class VerifyBagTest(unittest.TestCase):
         self.assertNotIn("LIMITED", whole.stdout)
         self.assertIn("A package whose records, manifests and chain heads were replaced together still verifies.", whole.stdout)
 
+    def test_the_top_level_of_the_record_format_carried_here_is_the_schemas(self):
+        # The verifier carries no schema; what it does carry must equal it.
+        schema = json.loads((SOURCE.parent.parent / "src-tauri/schemas/RS_RECORD.schema.json").read_text(encoding="utf-8"))["$defs"]
+        entry, group, link = schema["entry"], schema["groupLine"], schema["chainLink"]
+        self.assertEqual(list(verifier.ENTRY_REQUIRED), entry["required"])
+        self.assertEqual(verifier.ENTRY_MEMBERS, set(entry["properties"]))
+        self.assertIs(entry["additionalProperties"], False)
+        self.assertEqual(entry["properties"]["format"], {"const": verifier.ENTRY_FORMAT})
+        self.assertEqual(entry["properties"]["formatVersion"], {"type": "string", "pattern": "^[0-9]+\\.[0-9]+$"})
+        self.assertEqual(verifier.KINDS, set(entry["properties"]["kind"]["enum"]))
+        self.assertEqual(entry["properties"]["recorder"], {"type": "object", "required": ["role", "identity"], "additionalProperties": False,
+                         "properties": {"role": {"enum": sorted(verifier.RECORDER_ROLES, key=entry["properties"]["recorder"]["properties"]["role"]["enum"].index)},
+                                        "identity": {"type": "string", "minLength": 1}}})
+        self.assertEqual(entry["properties"]["context"], {"type": "object", "required": ["surface"], "additionalProperties": False,
+                         "properties": {"surface": {"enum": ["App", "host"]}, "hostIdentity": {"type": "string"}}})
+        self.assertEqual(verifier.SURFACES, {"App", "host"})
+        self.assertEqual(entry["properties"]["seq"], {"type": "integer", "minimum": 1})
+        self.assertEqual(entry["properties"]["writtenAt"], {"type": "string", "minLength": 1})
+        self.assertEqual(entry["properties"]["observedAt"], {"type": "string"})
+        self.assertEqual(entry["properties"]["correctionReason"], {"type": "string", "minLength": 1})
+        self.assertEqual(entry["properties"]["body"], {"type": "object"})
+        self.assertEqual(entry["anyOf"], [{"not": {"required": ["corrects"]}}, {"required": ["corrects", "correctionReason"]}])
+        self.assertEqual(schema["recordId"], {"type": "string", "pattern": "^" + verifier.RECORD_ID.pattern[:-2] + "$"})
+        self.assertEqual(schema["runId"], {"type": "string", "pattern": "^" + verifier.RUN_ID.pattern[:-2] + "$"})
+        self.assertEqual({k: v for k, v in link.items() if k != "description"}, {"type": "object", "required": ["method", "value"], "additionalProperties": False,
+                         "properties": {"method": {"const": verifier.METHOD}, "value": {"oneOf": [{"type": "string", "pattern": "^" + verifier.HEX64.pattern[:-2] + "$"}, {"type": "null"}]}}})
+        self.assertEqual(list(verifier.GROUP_REQUIRED), group["required"])
+        self.assertEqual(verifier.GROUP_MEMBERS, set(group["properties"]))
+        self.assertIs(group["additionalProperties"], False)
+        self.assertEqual(group["properties"]["format"], {"const": verifier.GROUP_FORMAT})
+        self.assertEqual(group["properties"]["formatVersion"], {"const": "0.1"})
+        self.assertEqual(group["properties"]["groupId"], {"type": "string", "pattern": "^grp:"})
+        self.assertEqual(group["properties"]["entries"], {"type": "array", "minItems": 2, "items": {"allOf": [{"$ref": "#/$defs/entry"}, {"not": {"required": ["prevLine"]}}]}})
+
     def test_role_log_chain_is_recomputed_in_profile_0_2_and_left_as_a_limit_in_0_1(self):
         lines = linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 2, "observationId": "obs:two"}])
-        self.write_log("role-supply/observations.jsonl", lines)
-        self.write_heads(**{"role-supply/observations.jsonl": head(lines)})
-        self.assertEqual(verifier.verify(self.root)[2]["logs"], 1)
+        self.write_log(ROLE, lines)
+        self.write_heads(**{ROLE: head(lines, "role supply observations")})
+        self.assertEqual(verifier.verify(self.root)[2]["recomputed"], 1)
+        # A fault the App's reader refuses the whole log for disagrees with a recorded whole chain.
+        for fault, says in ((linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 2, "observationId": "obs:one"}]), "occurs twice"),
+                            (linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 3, "observationId": "obs:two"}]), "sequence differs"),
+                            (lines + b"not json\n", "not readable JSON"), (lines + b'{"seq": 3', "a torn final line")):
+            self.write_log(ROLE, fault)
+            self.write_heads(**{ROLE: head(lines, "role supply observations")})
+            with self.assertRaisesRegex(verifier.ChainDisagreement, says):
+                verifier.verify(self.root)
+        self.write_log(ROLE, lines)
         self.write_heads()
         with self.assertRaisesRegex(ValueError, "observations.jsonl: payload log has no recorded chain head"):
             verifier.verify(self.root)
-        # A role log the App could not read at export is carried as a limit,
-        # as the App's own verification accepts it; never refused.
-        self.write_heads(**{"role-supply/observations.jsonl": {"state": "unreadable or invalid role supply chain", "error": "invented"}})
+        # A role log the App could not read at export is carried as a limit, as
+        # the App's own verification accepts it; the recorded state alone is
+        # not evidence, so the lines are read here too.
+        unreadable = {"state": "unreadable or invalid role supply chain", "error": "invented"}
+        self.write_heads(**{ROLE: unreadable})
         report = verifier.verify(self.root)[2]
-        self.assertEqual(len(report["limited"]), 1)
+        self.assertEqual((len(report["limited"]), report["limitedLogs"], report["recomputed"], report["logs"]), (1, 1, 0, 1))
         self.assertIn("could not read this log's chain when it was exported", report["limited"][0])
+        self.assertIn("this verifier finds no fault in what it can check, and cannot check each observation's format", report["limited"][0])
         unread = self.run_verifier()
         self.assertEqual(unread.returncode, 2, unread.stderr)
-        self.assertIn("\nLog integrity: LIMITED in 1 log.", unread.stdout)
+        self.assertIn("and 0 of 1 log chains recomputed", unread.stdout)
+        self.assertIn("\nLog integrity: LIMITED. 1 fault in 1 log.", unread.stdout)
+        self.write_log(ROLE, lines + b"not json\n")
+        self.write_heads(**{ROLE: unreadable})
+        self.assertIn("this verifier finds a fault at line 3: it is not readable JSON", verifier.verify(self.root)[2]["limited"][0])
+        # An empty log is one the App reads: a recorded "could not read" disagrees.
+        self.write_log(ROLE, b"")
+        self.write_heads(**{ROLE: unreadable})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "the log is empty, which the App reads"):
+            verifier.verify(self.root)
         # The legacy profile recorded RS heads only and never this log's.
-        self.write_log("role-supply/observations.jsonl", b"retained source bytes; schema deliberately unexamined\n")
+        self.write_log(ROLE, b"retained source bytes; schema deliberately unexamined\n")
         self.write_heads(version="0.1")
         report = verifier.verify(self.root)[2]
         # Not checked is not clean: an integrity limit and its own exit
@@ -104,126 +159,232 @@ class VerifyBagTest(unittest.TestCase):
             verifier.verify(self.root)
 
     def test_unaltered_chained_log_verifies_and_a_changed_line_with_rehashed_manifests_fails_at_the_next_line(self):
-        log = "runs/run-one/app-writer.jsonl"
-        lines = linked([{"seq": 1, "body": "first"}, {"seq": 2, "body": "second"}, {"seq": 3, "body": "third"}])
-        self.write_log(log, lines)
-        self.write_heads(**{log: head(lines)})
-        self.assertEqual(verifier.verify(self.root)[2], {"profile": "0.2", "logs": 1, "limited": [], "notes": []})
+        lines = linked([entry(1, "first"), entry(2, "second"), entry(3, "third")])
+        self.write_log(LOG, lines)
+        self.write_heads(**{LOG: head(lines)})
+        self.assertEqual(verifier.verify(self.root)[2], {"profile": "0.2", "logs": 1, "recomputed": 1, "limited": [], "limitedLogs": 0, "notes": []})
         clean = self.run_verifier()
         self.assertEqual(clean.returncode, 0, clean.stderr)
-        self.assertIn("\nLog integrity: no chain is broken. Every line that carries a link names the line before it.\n", clean.stdout)
-        self.assertIn("\nResult: package bytes consistent; no log integrity limit (exit status 0).", clean.stdout)
-        # Same length, still JSON, every checksum recomputed; the chain is not.
-        self.write_log(log, lines.replace(b'"first"', b'"FIRST"'))
+        self.assertIn("\nLog integrity: no chain is broken. Every link this verifier examined names the line before it.\n", clean.stdout)
+        self.assertIn("\nResult: package bytes consistent; no chain is broken (exit status 0).", clean.stdout)
+        # Same length, still a record, every checksum recomputed; the chain is not.
+        self.write_log(LOG, lines.replace(b'"first"', b'"FIRST"'))
         self.seal()
-        with self.assertRaisesRegex(ValueError, r"runs/run-one/app-writer.jsonl: chain broken at line 2: it links to"):
+        with self.assertRaisesRegex(verifier.ChainDisagreement, r"runs/run-one/app-writer.jsonl: chain broken at line 2: it links to"):
             verifier.verify(self.root)
 
     def test_changed_last_line_fails_on_the_recorded_head(self):
         log = "acts/person.jsonl"
-        lines = linked([{"seq": 1, "body": "first"}, {"seq": 2, "body": "last"}])
+        lines = linked([entry(1, "first"), entry(2, "last")])
         self.write_log(log, lines)
-        self.write_heads(**{log: head(lines)})
+        self.write_heads(**{log: head(lines, "person.jsonl")})
         self.write_log(log, lines.replace(b'"last"', b'"LAST"'))
         self.seal()
-        with self.assertRaisesRegex(ValueError, r"acts/person.jsonl: recomputed chain head .* differs from the recorded head"):
+        with self.assertRaisesRegex(verifier.ChainDisagreement, r"acts/person.jsonl: recomputed chain head .* differs from the recorded head"):
             verifier.verify(self.root)
 
     def test_removed_reordered_unlinked_and_restarted_lines_break_the_chain(self):
-        log = "runs/run-one/app-writer.jsonl"
-        rows = [{"seq": n, "body": f"line {n}"} for n in (1, 2, 3)]
-        lines = linked(rows)
+        lines = linked([entry(n, f"line {n}") for n in (1, 2, 3)])
         parts = lines.split(b"\n")[:-1]
         cases = {
-            "removed": (b"\n".join([parts[0], parts[2]]) + b"\n", 2),
-            "reordered": (b"\n".join([parts[1], parts[0], parts[2]]) + b"\n", 1),
-            "unlinked": (lines + json.dumps({"seq": 4}).encode() + b"\n", 4),
-            "restarted": (lines + linked([{"seq": 4}]), 4),
+            "removed": (b"\n".join([parts[0], parts[2]]) + b"\n", 2, "it links to"),
+            "reordered": (b"\n".join([parts[1], parts[0], parts[2]]) + b"\n", 1, "it links to .*, but it is the first line of its log"),
+            "unlinked": (lines + json.dumps(entry(4, "unlinked")).encode() + b"\n", 4, "no chain link after linked lines"),
+            "restarted": (lines + linked([entry(4, "restarted")]), 4, "it starts a new chain after earlier lines"),
         }
-        for case, (data, line) in cases.items():
+        for case, (data, line, why) in cases.items():
             with self.subTest(case=case):
-                self.write_log(log, data)
-                self.write_heads(**{log: head(data)})
-                with self.assertRaisesRegex(ValueError, f"chain broken at line {line}:"):
+                self.write_log(LOG, data)
+                self.write_heads(**{LOG: head(data)})
+                with self.assertRaisesRegex(verifier.ChainDisagreement, f"chain broken at line {line}: {why}"):
                     verifier.verify(self.root)
 
     def test_a_chain_broken_in_the_store_at_export_verifies_only_with_exactly_the_recorded_breaks(self):
-        log = "runs/run-one/app-writer.jsonl"
-        lines = linked([{"seq": 1}, {"seq": 2}, {"seq": 3}]).replace(b'"seq": 1', b'"seq": 9')
-        self.write_log(log, lines)
-        chain = head(lines)
-        # As the App records it (record_lines.rs): the faithful package of a
-        # store whose log was already broken. It verifies, the break a limit.
-        chain["broken"] = ["app-writer.jsonl: chain broken at line 2: it links to \"x\", but the preceding line's identity is y; never repaired"]
-        self.write_heads(**{log: chain})
+        whole = linked([entry(1, "first"), entry(2, "second"), entry(3, "third")])
+        first = whole.split(b"\n")[0]
+        lines = whole.replace(b'"first"', b'"FIRST"')
+        self.write_log(LOG, lines)
+        # As the App records it (record_lines.rs, Chain::step): the faithful
+        # package of a store whose log was already broken.
+        def recorded(now):
+            return [f"app-writer.jsonl: chain broken at line 2: it links to \"{sha(first)}\", but the preceding line's identity is {sha(now.split(b'\n')[0])}; never repaired"]
+        self.write_heads(**{LOG: head(lines, broken=recorded(lines))})
         report = verifier.verify(self.root)[2]
-        self.assertEqual((report["logs"], len(report["limited"]), report["notes"]), (1, 1, []))
+        self.assertEqual((report["logs"], len(report["limited"]), report["limitedLogs"], report["notes"]), (1, 1, 1, []))
         self.assertRegex(report["limited"][0], r"app-writer.jsonl: chain broken at line 2: it links to .* records it broken there when exported")
         # Two statements, never one pass: the bytes are consistent, and this
         # log's integrity is limited at this line. Its own exit status.
         limited = self.run_verifier()
         self.assertEqual(limited.returncode, 2, limited.stderr)
-        first, second = limited.stdout.split("\n")[:2]
-        self.assertTrue(first.startswith("Package bytes: consistent."), limited.stdout)
-        self.assertTrue(second.startswith("Log integrity: LIMITED in 1 log."), limited.stdout)
+        one, two = limited.stdout.split("\n")[:2]
+        self.assertTrue(one.startswith("Package bytes: consistent."), limited.stdout)
+        self.assertTrue(two.startswith("Log integrity: LIMITED. 1 fault in 1 log."), limited.stdout)
         self.assertIn("\n  Integrity limit: runs/run-one/app-writer.jsonl: chain broken at line 2:", limited.stdout)
         self.assertIn("\nResult: package bytes consistent; log integrity limited (exit status 2).", limited.stdout)
-        for phrase in ("no chain is broken", "each link names the line before it", "Result: verified", "exit status 0"):
+        for phrase in ("no chain is broken", "names the line before it", "Result: verified", "exit status 0"):
             self.assertNotIn(phrase, limited.stdout)
-        # A further line changed after export is a break the package does not record.
-        self.write_log(log, lines.replace(b'"seq": 2', b'"seq": 8'))
+        # The line before the recorded break changed again after export: the
+        # break is at the same line, and it is no longer the break recorded.
+        again = whole.replace(b'"first"', b'"OTHER"')
+        self.write_log(LOG, again)
         self.seal()
-        with self.assertRaisesRegex(ValueError, r"chain broken at line 3: .*the package records no break there"):
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "the break the package records at line 2 is not the break its lines give"):
+            verifier.verify(self.root)
+        # A further line changed after export is a break the package does not record.
+        self.write_log(LOG, lines.replace(b'"second"', b'"SECOND"'))
+        self.seal()
+        with self.assertRaisesRegex(verifier.ChainDisagreement, r"chain broken at line 3: .*the package records no break there"):
             verifier.verify(self.root)
         failed = self.run_verifier()
         self.assertEqual(failed.returncode, 1)
         self.assertEqual(failed.stdout, "")
         self.assertTrue(failed.stderr.startswith("Result: failed (exit status 1). Verification failed: runs/run-one/app-writer.jsonl: chain broken at line 3:"), failed.stderr)
-        # A recorded break the lines do not have, and one the verifier cannot place.
-        whole = linked([{"seq": 1}, {"seq": 2}, {"seq": 3}])
-        self.write_log(log, whole)
-        self.write_heads(**{log: dict(head(whole), broken=chain["broken"])})
-        with self.assertRaisesRegex(ValueError, "records a chain broken at line 2, but the recomputed chain is not broken there"):
+        self.assertIn("this verifier cannot tell that from an altered line, and the App can. Verify or import the package through the App", failed.stderr)
+        # A recorded break the lines do not have, one the verifier cannot place, and none stated.
+        self.write_log(LOG, whole)
+        self.write_heads(**{LOG: head(whole, broken=recorded(lines))})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "records a chain broken at line 2, but the recomputed chain is not broken there"):
             verifier.verify(self.root)
-        self.write_heads(**{log: dict(head(whole), broken=["broken somewhere"])})
-        with self.assertRaisesRegex(ValueError, "cannot compare"):
+        self.write_heads(**{LOG: head(whole, broken=["broken somewhere"])})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "cannot compare"):
             verifier.verify(self.root)
-        self.write_heads(**{log: {k: v for k, v in head(whole).items() if k != "broken"}})
-        with self.assertRaisesRegex(ValueError, "does not say whether the chain was broken at export"):
+        self.write_heads(**{LOG: {k: v for k, v in head(whole).items() if k != "broken"}})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "does not say whether the chain was broken at export"):
+            verifier.verify(self.root)
+
+    def test_every_recorded_fact_of_a_head_is_compared_with_the_lines(self):
+        lines = linked([entry(1, "first"), entry(2, "second")])
+        self.write_log(LOG, lines)
+        for fact, value in (("linked", False), ("unchained", 3), ("unchainedLimit", "app-writer.jsonl: unchained (legacy): no line carries a chain link (2 lines)"),
+                            ("lines", 3), ("lines", 2.0), ("head", None), ("method", "another method"), ("linked", 1)):
+            with self.subTest(fact=fact, value=value):
+                self.write_heads(**{LOG: dict(head(lines), **{fact: value})})
+                with self.assertRaises(verifier.ChainDisagreement):
+                    verifier.verify(self.root)
+        self.write_heads(**{LOG: {k: v for k, v in head(lines).items() if k != "unchained"}})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "records unchained as null"):
             verifier.verify(self.root)
 
     def test_legacy_unchained_lines_torn_lines_blank_lines_and_partial_tail_follow_the_app(self):
         log = "legacy/coordination.rs.jsonl"
-        legacy = b'{"seq": 1, "legacy": true}\n'
+        legacy = json.dumps(entry(1, "legacy")).encode() + b"\n"
         torn = b'{"seq": 2, "torn'
-        limit = {"kind": "evidence_limit", "seq": 2, "body": {"label": verifier.PARTIAL,
-                 "subjectRef": f"line 2; {len(torn)} bytes; sha256 {hashlib.sha256(torn).hexdigest()}"}}
-        first = json.dumps(dict(limit, prevLine={"method": verifier.METHOD, "value": hashlib.sha256(legacy[:-1]).hexdigest()})).encode()
-        after = json.dumps({"seq": 3, "prevLine": {"method": verifier.METHOD, "value": hashlib.sha256(first).hexdigest()}}).encode()
+        limit = entry(2, f"line 2; {len(torn)} bytes; sha256 {sha(torn)}", label=verifier.PARTIAL)
+        first = json.dumps(dict(limit, prevLine={"method": verifier.METHOD, "value": sha(legacy[:-1])})).encode()
+        after = json.dumps(dict(entry(3, "after"), prevLine={"method": verifier.METHOD, "value": sha(first)})).encode()
         data = legacy + torn + b"\n" + first + b"\n \t\r\n" + after + b"\n" + b'{"seq": 4, "unclosed'
         self.write_log(log, data)
-        chain = {"method": verifier.METHOD, "head": hashlib.sha256(after).hexdigest(), "lines": 3, "broken": []}
+        chain = {"method": verifier.METHOD, "head": sha(after), "lines": 3, "linked": True, "unchained": 1, "broken": [],
+                 "unchainedLimit": "coordination.rs.jsonl: unchained (legacy): lines before the first linked line (1) carry no chain link; the chain starts after them"}
         self.write_heads(**{log: chain})
         notes = verifier.verify(self.root)[2]["notes"]
         self.assertEqual(len(notes), 2)
-        self.assertIn("line 2 is a torn line W-0 terminated", notes[0])
+        self.assertIn("line 2 is a torn line the App closed and set aside", notes[0])
         self.assertIn("unchained (legacy): 1 lines", notes[1])
-        # Lines with no link are said to be outside what the chain shows.
+        # Lines with no link are said to be outside what the result covers.
         legacy_run = self.run_verifier()
         self.assertEqual(legacy_run.returncode, 0, legacy_run.stderr)
-        self.assertIn("1 log has lines with no link, written before chaining began: the chain shows nothing about those lines.", legacy_run.stdout)
+        self.assertIn("Every link this verifier examined names the line before it. 2 notes below name what that does not cover.", legacy_run.stdout)
+        self.assertIn("\nResult: package bytes consistent; no chain is broken; see the notes (exit status 0).", legacy_run.stdout)
+        # A limit that names the line before it with other bytes sets nothing
+        # aside: the torn line is then a counted line, and the head differs.
+        wrong = json.dumps(dict(entry(2, f"line 2; {len(torn)} bytes; sha256 {sha(b'other')}", label=verifier.PARTIAL),
+                                prevLine={"method": verifier.METHOD, "value": sha(legacy[:-1])})).encode()
+        self.write_log(log, legacy + torn + b"\n" + wrong + b"\n")
+        self.write_heads(**{log: dict(chain, head=sha(wrong), lines=2)})
+        with self.assertRaises(verifier.ChainDisagreement):
+            verifier.verify(self.root)
+
+    def test_lines_the_app_sets_aside_are_counted_and_their_links_not_examined(self):
+        # Each of these the App's reader refuses (record_lines.rs decode_line,
+        # serde_json) and counts without examining a link; a faithful package
+        # of a store that holds them must not fail here. Every one carries a
+        # link that names nothing, which only a line that is read would break on.
+        nothing = {"method": verifier.METHOD, "value": "0" * 64}
+        # The record, its body and "detail" are three levels; 125 more make 128,
+        # one past what the App's JSON reader takes (127).
+        deep = "[" * 125 + "]" * 125
+        refused = [
+            b"{}",
+            b"not json at all",
+            json.dumps(dict(entry(9, "no kind"), prevLine=nothing, kind="not a kind")).encode(),
+            json.dumps({k: v for k, v in dict(entry(9, "no body"), prevLine=nothing).items() if k != "body"}).encode(),
+            json.dumps(dict(entry(9, "extra member"), prevLine=nothing, extra=True)).encode(),
+            json.dumps(dict(entry(9, "bad link"), prevLine={"method": verifier.METHOD, "value": "short"})).encode(),
+            json.dumps(dict(entry(9, "number"), prevLine=nothing)).encode().replace(b'"seq": 9', b'"seq": 1e400'),
+            json.dumps(dict(entry(9, "surrogate"), prevLine=nothing)).encode().replace(b'"surrogate"', b'"\\ud800"'),
+            json.dumps(dict(entry(9, "deep"), prevLine=nothing)).encode().replace(b'"deep"}', b'"deep", "detail": {"a": ' + deep.encode() + b'}}'),
+            json.dumps({"format": verifier.GROUP_FORMAT, "formatVersion": "0.1", "groupId": "grp:invented", "prevLine": nothing,
+                        "entries": [entry(5, "group a"), entry(7, "group b")]}).encode(),
+            json.dumps({"format": verifier.GROUP_FORMAT, "formatVersion": "0.1", "groupId": "grp:invented", "prevLine": nothing,
+                        "entries": [dict(entry(5, "group a"), recordId="rec:same"), dict(entry(6, "group b"), recordId="rec:same")]}).encode(),
+        ]
+        data, previous = b"", None
+        rows = [json.dumps(dict(entry(1, "first"), prevLine={"method": verifier.METHOD, "value": None})).encode()] + refused
+        for raw in rows:
+            data, previous = data + raw + b"\n", sha(raw)
+        last = json.dumps(dict(entry(2, "last"), prevLine={"method": verifier.METHOD, "value": previous})).encode()
+        data += last + b"\n"
+        self.write_log(LOG, data)
+        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(last), "lines": len(rows) + 1, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual(report["limited"], [])
+        self.assertEqual(len(report["notes"]), 1)
+        self.assertIn(f"{len(refused)} lines (line 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 and 1 more) are not records this verifier or the App reads", report["notes"][0])
+        self.assertIn("the link of such a line is not examined", report["notes"][0])
+        # One level fewer is JSON the App reads, so that line's link is examined.
+        within = json.dumps(dict(entry(9, "deep"), prevLine=nothing)).encode().replace(b'"deep"}', b'"deep", "detail": {"a": ' + b"[" * 124 + b"]" * 124 + b'}}')
+        self.write_log(LOG, rows[0] + b"\n" + within + b"\n")
+        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(within), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "chain broken at line 2: it links to"):
+            verifier.verify(self.root)
+        # A whole, well-formed group is read: its link is examined.
+        group = json.dumps({"format": verifier.GROUP_FORMAT, "formatVersion": "0.1", "groupId": "grp:invented", "prevLine": nothing,
+                            "entries": [entry(5, "group a"), entry(6, "group b")]}).encode()
+        self.write_log(LOG, rows[0] + b"\n" + group + b"\n")
+        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(group), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "chain broken at line 2: it links to"):
+            verifier.verify(self.root)
+        # A torn line the next line names is set aside even when it is JSON,
+        # unless it is a whole record (which is read as written).
+        named = b"{}"
+        limit = json.dumps(dict(entry(2, f"line 2; {len(named)} bytes; sha256 {sha(named)}", label=verifier.PARTIAL),
+                                prevLine={"method": verifier.METHOD, "value": sha(rows[0])})).encode()
+        self.write_log(LOG, rows[0] + b"\n" + named + b"\n" + limit + b"\n")
+        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(limit), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        self.assertIn("line 2 is a torn line the App closed and set aside", verifier.verify(self.root)[2]["notes"][0])
+
+    def test_a_record_invalid_deeper_than_its_top_level_is_the_stated_case_this_verifier_cannot_tell(self):
+        # Every top-level member present, and a body the record schema refuses
+        # for its kind: the App sets the line aside and examines no link; this
+        # verifier, which carries no schema, examines it. The stated limit.
+        deeper = json.dumps(dict(entry(2, "deeper"), body={"unknown": "member"}, prevLine={"method": verifier.METHOD, "value": "0" * 64})).encode()
+        first = linked([entry(1, "first")])
+        self.write_log(LOG, first + deeper + b"\n")
+        # The head the App records for it: counted, no break.
+        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(deeper), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "chain broken at line 2"):
+            verifier.verify(self.root)
+        failed = self.run_verifier()
+        self.assertEqual(failed.returncode, 1)
+        self.assertIn("\nThis verifier reads each record only as far as the top level of the record format.", failed.stderr)
+        self.assertIn("this package may be a faithful export: this verifier cannot tell that from an altered line, and the App can.", failed.stderr)
+        # A failure that is not about a chain carries no such sentence.
+        (self.root / "data/evidence.bin").write_bytes(b"changed")
+        other = self.run_verifier()
+        self.assertEqual(other.returncode, 1)
+        self.assertNotIn("cannot tell", other.stderr)
 
     def test_recorded_heads_must_cover_exactly_the_payload_logs(self):
-        log = "runs/run-one/app-writer.jsonl"
-        lines = linked([{"seq": 1}])
-        self.write_log(log, lines)
-        self.write_heads(**{log: head(lines), "runs/absent.jsonl": head(lines)})
+        lines = linked([entry(1, "only")])
+        self.write_log(LOG, lines)
+        self.write_heads(**{LOG: head(lines), "runs/absent.jsonl": head(lines)})
         with self.assertRaisesRegex(ValueError, "runs/absent.jsonl: recorded chain head names no payload log"):
             verifier.verify(self.root)
-        self.write_heads(**{log: head(lines), "evidence.bin": head(lines)})
+        self.write_heads(**{LOG: head(lines), "evidence.bin": head(lines)})
         with self.assertRaisesRegex(ValueError, "not a chained log"):
             verifier.verify(self.root)
-        self.write_heads(**{log: {"state": "unreadable", "error": "invented"}})
+        self.write_heads(**{LOG: {"state": "unreadable", "error": "invented"}})
         with self.assertRaisesRegex(ValueError, "recorded at export as unreadable"):
             verifier.verify(self.root)
 
@@ -274,22 +435,39 @@ class VerifyBagTest(unittest.TestCase):
                 verifier.verify(self.root)
 
 
+LOG = "runs/run-one/app-writer.jsonl"
+ROLE = "role-supply/observations.jsonl"
+
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def entry(seq, subject, label="unresolvable reference"):
+    """An invented record with the top level the record format requires."""
+    return {"format": "chirality.rs.record", "formatVersion": "0.1", "recordId": f"rec:invented-{seq}-{abs(hash(subject)) % 10 ** 6}",
+            "kind": "evidence_limit", "recorder": {"role": "App writer", "identity": "app-writer:invented"},
+            "context": {"surface": "App"}, "seq": seq, "writtenAt": "2026-01-01T00:00:00Z",
+            "body": {"label": label, "subjectRef": subject}}
+
+
 def linked(rows):
     """Invented lines, each linked to the one before as the App writes them; the
     first line of the rows given starts a chain."""
     out, previous = b"", None
     for row in rows:
         raw = json.dumps(dict(row, prevLine={"method": verifier.METHOD, "value": previous})).encode()
-        previous = hashlib.sha256(raw).hexdigest()
+        previous = sha(raw)
         out += raw + b"\n"
     return out
 
 
-def head(data):
-    """The head the export records for a whole chain of complete lines."""
+def head(data, name="app-writer.jsonl", broken=()):
+    """The head the export records for a chain of complete, linked lines
+    (record_lines.rs, chain_head)."""
     lines = data.split(b"\n")[:-1]
-    return {"method": verifier.METHOD, "head": hashlib.sha256(lines[-1]).hexdigest(), "lines": len(lines),
-            "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}
+    return {"method": verifier.METHOD, "head": sha(lines[-1]), "lines": len(lines),
+            "linked": True, "unchained": 0, "unchainedLimit": None, "broken": list(broken)}
 
 
 if __name__ == "__main__":

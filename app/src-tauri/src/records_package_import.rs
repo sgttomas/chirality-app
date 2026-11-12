@@ -13,6 +13,16 @@ use std::os::unix::fs::MetadataExt;
 
 const FORMAT: &str = "chirality.records-package-import";
 const STANDING: &str = "Verified exact package bytes, unsigned. Source actors, human acts, installation and native relationships are not authenticated. Imported observations remain quoted evidence; capture and capability authority is not restored.";
+/// The standing sentence for a result or question about one package. It
+/// speaks of bytes; what the package states of its logs' own integrity is
+/// said with it, so the sentence read alone is never a clean pass for a
+/// package that carries a limited log.
+fn standing(integrity: &Value) -> String {
+    match crate::records_export::integrity_statement(integrity) {
+        Some(limit) => format!("{STANDING} {limit}"),
+        None => STANDING.to_owned(),
+    }
+}
 thread_local! { static OWNER: RefCell<Vec<PathBuf>> = const { RefCell::new(Vec::new()) }; }
 #[path = "records_package_controls.rs"]
 pub(crate) mod control_recovery;
@@ -1023,7 +1033,7 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         let integrity = plan.snapshot.log_integrity();
         return Ok(
             json!({"state":if integrity["state"] == crate::records_export::LIMITED {"package already present; log integrity limited"} else {"package already present"},"logIntegrity":integrity,"projectId":i.project,"packageIdentity":i.package_identity,"copied":0,
-            "alreadyPresent":i.payload.len(),"duplicateIdentities":i.duplicates,"retention":retention::view(&dir),"standing":STANDING}),
+            "alreadyPresent":i.payload.len(),"duplicateIdentities":i.duplicates,"retention":retention::view(&dir),"standing":standing(integrity)}),
         );
     }
     if !plan.resuming {
@@ -1065,7 +1075,7 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     let mut out =
         json!({"state":"package imported","importId":i.id,"projectId":i.project,"packageIdentity":i.package_identity,
         "copied":i.copied.len(),"alreadyPresent":i.payload.len()-i.copied.len(),"duplicateIdentities":i.duplicates,
-        "retention":retention::view(&dir),"standing":STANDING});
+        "retention":retention::view(&dir),"standing":standing(plan.snapshot.log_integrity())});
     out["logIntegrity"] = plan.snapshot.log_integrity().clone();
     if out["logIntegrity"]["state"] == crate::records_export::LIMITED {
         out["state"] = json!("package imported; log integrity limited");

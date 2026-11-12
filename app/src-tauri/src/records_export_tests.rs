@@ -114,7 +114,7 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     assert_eq!(unaltered.status.code(), Some(0), "{}", String::from_utf8_lossy(&unaltered.stderr));
     let stdout = String::from_utf8_lossy(&unaltered.stdout);
     assert!(stdout.starts_with("Package bytes: consistent."), "{stdout}");
-    assert!(stdout.contains("\nLog integrity: no chain is broken. Every line that carries a link names the line before it.\n"), "{stdout}");
+    assert!(stdout.contains("\nLog integrity: no chain is broken. Every link this verifier examined names the line before it.\n"), "{stdout}");
     assert!(stdout.contains("A package whose records, manifests and chain heads were replaced together still verifies."), "{stdout}");
     // Change the first line (same length, still JSON), then recompute both
     // manifests as an alterer would. Only the chain shows the change.
@@ -147,7 +147,7 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     let rewritten = standalone(&f.bag());
     assert_eq!(rewritten.status.code(), Some(2), "{}", String::from_utf8_lossy(&rewritten.stderr));
     let stdout = String::from_utf8_lossy(&rewritten.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED in 1 log."), "{stdout}");
+    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 fault in 1 log."), "{stdout}");
     assert!(stdout.contains(&format!("Integrity limit: {rel}: chain broken at line 2: it links to")), "{stdout}");
     assert!(!stdout.contains("no chain is broken") && !stdout.contains("exit status 0"), "{stdout}");
 }
@@ -236,4 +236,116 @@ fn records_export_log_integrity_never_reads_a_missing_or_unreadable_statement_as
     assert!(integrity_statement(&json!({"state":"not stated"})).unwrap().starts_with("Log integrity: NOT STATED."));
     assert!(integrity_summary(&json!({"state":"not stated"})).unwrap().starts_with("Log integrity: NOT STATED."));
     assert!(integrity_statement(&json!({"state":"no chain recorded broken"})).is_none());
+}
+
+#[test]
+fn records_export_integrity_summary_keeps_every_line_number_whole_for_ordinary_run_paths() {
+    // An ordinary run log's path is 140 characters. The summary a native
+    // confirmation falls back to must still name each log and its whole line.
+    let log = |c: &str| format!("runs/{}/{}.jsonl", c.repeat(64), "f".repeat(64));
+    let limit = |c: &str, line: u64| format!("{}: chain broken at line {line}: it links to \"{}\", but the preceding line's identity is {}; never repaired", log(c), "0".repeat(64), "1".repeat(64));
+    let one = integrity_summary(&json!({"state":"limited","limits":[limit("a", 2)]})).unwrap();
+    assert!(one.contains("1 log chain fault(s)") && one.contains(&format!("…{}.jsonl is broken at line 2.", "f".repeat(34))), "{one}");
+    let limits: Vec<String> = vec![limit("a", 2), limit("b", 1048576), limit("c", 7), limit("d", 9),
+        "role-supply/observations.jsonl: chain not read at export (unreadable or invalid role supply chain: invented)".into()];
+    let several = integrity_summary(&json!({"state":"limited","limits":limits})).unwrap();
+    assert!(several.contains("5 log chain fault(s)"), "{several}");
+    for line in ["is broken at line 2;", "is broken at line 1048576;", "is broken at line 7; and 2 more."] { assert!(several.contains(line), "{line}: {several}"); }
+    assert!(!several.contains("line 9"), "only the first three are named in the summary: {several}");
+    // A fault that is not a broken link keeps its log and what it is.
+    let unread = integrity_summary(&json!({"state":"limited","limits":["role-supply/observations.jsonl: chain not read at export (unreadable or invalid role supply chain: invented)"]})).unwrap();
+    assert!(unread.contains("role-supply/observations.jsonl: chain not read at export"), "{unread}");
+    // Bounded however many logs are named, and it fits a native confirmation.
+    let many: Vec<String> = (0..5000).map(|n| limit("e", n)).collect();
+    let bounded = integrity_summary(&json!({"state":"limited","limits":many})).unwrap();
+    assert!(bounded.chars().count() < 700 && bounded.contains("5000 log chain fault(s)") && bounded.contains("and 4997 more"), "{bounded}");
+    assert!(crate::act_control::native_statement::bounded("records", bounded).is_ok());
+    assert!(integrity_summary(&json!({"state":"no chain recorded broken"})).is_none());
+}
+
+#[test]
+fn records_export_standalone_agrees_with_the_reader_on_every_line_the_reader_sets_aside() {
+    use crate::record_lines::{fixture::next_link, is_valid_line, line_identity, link};
+    let f = Fixture::new();
+    let log = f.record();
+    let template: Value = serde_json::from_slice(std::fs::read(&log).unwrap().split(|b| *b == b'\n').next().unwrap()).unwrap();
+    // A link that names no line: only a line the reader examines breaks on it.
+    let nothing = link(Some(&"0".repeat(64)));
+    let entry = |n: usize, change: &dyn Fn(&mut Value)| -> Vec<u8> {
+        let mut v = template.clone();
+        v["recordId"] = json!(format!("rec:app:invented-{n}"));
+        v["prevLine"] = nothing.clone();
+        change(&mut v);
+        serde_json::to_vec(&v).unwrap()
+    };
+    let replaced = |raw: Vec<u8>, from: &str, to: &str| String::from_utf8(raw).unwrap().replace(from, to).into_bytes();
+    let push = |raw: &[u8]| { let mut bytes = std::fs::read(&log).unwrap(); bytes.extend(raw); bytes.push(b'\n'); std::fs::write(&log, bytes).unwrap(); };
+    let lines = || std::fs::read(&log).unwrap().iter().filter(|b| **b == b'\n').count();
+    // The App's JSON reader takes 127 levels of nesting and refuses 128; the
+    // standalone verifier carries that bound (MAX_DEPTH).
+    let brackets = |levels: usize| format!("{}{}", "[".repeat(levels), "]".repeat(levels));
+    assert!(serde_json::from_str::<Value>(&brackets(127)).is_ok() && serde_json::from_str::<Value>(&brackets(128)).is_err());
+    let mut group = template.clone();
+    group.as_object_mut().unwrap().remove("prevLine");
+    let member = |n: u64, id: &str| { let mut m = group.clone(); m["seq"] = json!(n); m["recordId"] = json!(id); m };
+    let set_aside: Vec<Vec<u8>> = vec![
+        b"{}".to_vec(),
+        b"not json at all".to_vec(),
+        entry(1, &|v| v["kind"] = json!("not a kind")),
+        entry(2, &|v| { v.as_object_mut().unwrap().remove("body"); }),
+        entry(3, &|v| v["extra"] = json!(true)),
+        replaced(entry(5, &|v| v["seq"] = json!(987654321)), "987654321", "1e400"),
+        replaced(entry(6, &|v| v["writtenAt"] = json!("SURROGATE")), "SURROGATE", "\\ud800"),
+        serde_json::to_vec(&json!({"format":"chirality.rs.group","formatVersion":"0.1","groupId":"grp:app:invented-a","prevLine":nothing,"entries":[member(5, "rec:app:g1"), member(7, "rec:app:g2")]})).unwrap(),
+        serde_json::to_vec(&json!({"format":"chirality.rs.group","formatVersion":"0.1","groupId":"grp:app:invented-b","prevLine":nothing,"entries":[member(5, "rec:app:same"), member(6, "rec:app:same")]})).unwrap(),
+        // The record, its body and "detail" are three levels; 125 more make
+        // 128, one past what the App's JSON reader takes.
+        replaced(entry(7, &|v| v["body"]["detail"] = json!("DEEP")), "\"DEEP\"", &format!("{{\"a\":{}}}", brackets(125))),
+    ];
+    for raw in &set_aside {
+        assert!(!is_valid_line(raw), "the reader must set this aside: {}", String::from_utf8_lossy(raw));
+        push(raw);
+    }
+    // A whole record the reader takes, carrying that same link: its link is
+    // examined, and the chain is broken there, in the store, before any export.
+    let within = entry(8, &|_| {});
+    assert!(is_valid_line(&within));
+    push(&within);
+    let broken_at = lines();
+    // The App appends nothing more to a log it reads as incomplete, so the
+    // lines after these are written by hand, linked as the App links them.
+    let good = |n: usize| entry(n, &|v| v["prevLine"] = next_link(&log));
+    push(&good(20));
+    // A torn line the App closed: the next line names it exactly, and links
+    // to the line before it.
+    let before = next_link(&log);
+    push(b"{}");
+    let torn_at = lines();
+    let mut limit = template.clone();
+    limit["recordId"] = json!("rec:app:invented-limit");
+    limit["body"] = json!({"label":crate::records::PARTIAL_NOT_RECOVERED,"subjectRef":format!("line {torn_at}; 2 bytes; sha256 {}", line_identity(b"{}"))});
+    limit["prevLine"] = before;
+    let limit = serde_json::to_vec(&limit).unwrap();
+    assert!(is_valid_line(&limit));
+    push(&limit);
+    let last = good(21);
+    assert!(is_valid_line(&last));
+    push(&last);
+    // The App exports the store as it stands and records what its reader found.
+    export(&f.project, &f.bag()).unwrap();
+    let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
+    let rel = log.strip_prefix(&dir).unwrap().to_str().unwrap().to_owned();
+    let app = verify(&f.bag()).unwrap();
+    let limits = app["logIntegrity"]["limits"].as_array().unwrap();
+    assert_eq!(limits.len(), 1, "{app}");
+    assert!(limits[0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line {broken_at}: it links to")), "{app}");
+    // The standalone verifier reads the same lines the same way: the same one
+    // break, nothing else, and the lines set aside named as not examined.
+    let alone = standalone(&f.bag());
+    let (stdout, stderr) = (String::from_utf8_lossy(&alone.stdout), String::from_utf8_lossy(&alone.stderr));
+    assert_eq!(alone.status.code(), Some(2), "{stdout}{stderr}");
+    assert!(stdout.contains("\nLog integrity: LIMITED. 1 fault in 1 log."), "{stdout}");
+    assert!(stdout.contains(&format!("Integrity limit: {rel}: chain broken at line {broken_at}: it links to")), "{stdout}");
+    assert!(stdout.contains(&format!("{rel}: {} lines (line 2, 3, 4, 5, 6, 7, 8, 9, 10, 11) are not records this verifier or the App reads", set_aside.len())), "{stdout}");
+    assert!(stdout.contains(&format!("{rel}: line {torn_at} is a torn line the App closed and set aside")), "{stdout}");
 }

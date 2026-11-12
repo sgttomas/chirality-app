@@ -272,9 +272,34 @@ pub(crate) fn integrity_summary(integrity: &Value) -> Option<String> {
     if integrity["state"] == "not stated" {
         return integrity_statement(integrity);
     }
+    if integrity["state"] != LIMITED { return None; }
     let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
-    let first: String = limits.first()?.chars().take(160).collect();
-    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} log chain fault(s) were already in the store when it was exported. First: {first}. Every one is named in the App under this confirmation; consistent bytes do not make these logs whole.", limits.len()))
+    // Built from the parts of each limit, never by cutting its text: a long
+    // log name is shortened, and the line number is always whole.
+    const NAMED: usize = 3;
+    let named: Vec<String> = limits.iter().take(NAMED).map(|limit| summary_item(limit)).collect();
+    let more = limits.len().saturating_sub(NAMED);
+    Some(format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} log chain fault(s) were already in the store when it was exported: {}{}. Every one is named in full in the App under this confirmation; consistent bytes do not make these logs whole.",
+        limits.len(), named.join("; "), if more > 0 { format!("; and {more} more") } else { String::new() }))
+}
+/// One limit for a bounded summary: the log (its name shortened from the
+/// front when long) and, for a broken chain, the whole line number.
+fn summary_item(limit: &str) -> String {
+    const MARK: &str = ": chain broken at line ";
+    let short = |log: &str| -> String {
+        let count = log.chars().count();
+        if count <= 44 { log.to_owned() } else { format!("…{}", log.chars().skip(count - 40).collect::<String>()) }
+    };
+    match limit.find(MARK) {
+        Some(at) => {
+            let line: String = limit[at + MARK.len()..].chars().take_while(char::is_ascii_digit).collect();
+            format!("{} is broken at line {line}", short(&limit[..at]))
+        }
+        None => {
+            let (log, what) = limit.split_once(": ").unwrap_or(("a log", limit));
+            format!("{}: {}", short(log), what.chars().take(80).collect::<String>())
+        }
+    }
 }
 /// The log integrity recorded by the chain-head tag of a package this module
 /// has verified (`verify`).
@@ -331,6 +356,9 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     let mut out=json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"chainHeadProfile":verified["chainHeadProfile"],"verification":"complete package bytes, prior administration and declared chain-head profile verified; matches current store payload"});
     #[cfg(test)]
     if BEFORE_LOG_INTEGRITY.with(|b|b.get()) {return Ok(out);}
+    // Read alone, this sentence speaks of bytes and says what it does not cover.
+    out["verification"]=json!(format!("package bytes, prior administration and recorded chain heads agree with the manifests and match the current store payload; separately, log integrity: {}",
+        match integrity["limits"].as_array() { Some(limits) => format!("limited ({} fault(s), each named in logIntegrity)", limits.len()), None => WHOLE.to_owned() }));
     out["logIntegrity"]=integrity;
     Ok(out)
 }

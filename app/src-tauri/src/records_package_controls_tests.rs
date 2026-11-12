@@ -157,6 +157,47 @@ fn control_repair_preserves_later_local_appends_and_newer_legal_hold() {
 }
 
 #[test]
+fn finishing_an_interrupted_import_of_a_package_with_a_broken_chain_states_the_limit_in_the_question_and_the_result() {
+    let f = Fixture::new(false);
+    // The source store's log is altered in place after a second line was
+    // written, then exported: a faithful package that carries a broken chain.
+    Fixture::choose(&f.source);
+    crate::records::append_project(&f.root,Some("run:control-fixture"),"app-writer:local",
+        "evidence_limit",&crate::records::APP_WRITER,
+        json!({"label":"unresolvable reference","subjectRef":"invented second line"})).unwrap();
+    let log = crate::storage::project_log(&f.root, Some("run:control-fixture"), "app-writer:local").unwrap();
+    let mut changed = std::fs::read(&log).unwrap();
+    let at = changed.windows(8).position(|w| w == b"invented").unwrap();
+    changed[at] = b'I';
+    std::fs::write(&log, changed).unwrap();
+    let broken = f.base.join("broken-package");
+    crate::records_export::export(&f.root, &broken).unwrap();
+    Fixture::choose(&f.destination);
+    let plan = super::super::prepare(&f.root, &broken, &actor(), &observed()).unwrap();
+    STOP.with(|flag| *flag.borrow_mut() = Some("payload"));
+    assert!(super::super::apply(plan, &actor(), &observed()).is_err());
+    f.cold();
+    // The repair route finishes that payload's publication: it says, as its
+    // own statement, that the package carries a log whose integrity is limited.
+    let plan = prepare(&f.root, None, &actor(), &observed()).unwrap();
+    let asked = statement(&plan).unwrap();
+    assert!(asked.text.contains("Log integrity: LIMITED."), "{}", asked.text);
+    match &asked.in_app {
+        None => assert!(asked.text.contains(": chain broken at line 2"), "{}", asked.text),
+        Some(shown) => {
+            assert!(asked.text.contains("is broken at line 2."), "{}", asked.text);
+            assert_eq!(shown.content["imports"][0]["logIntegrity"]["state"], "limited");
+        }
+    }
+    let result = apply(plan, &actor(), &observed()).unwrap();
+    assert_eq!(result["state"], "package controls recovered; log integrity limited");
+    assert_eq!(result["logIntegrity"][0]["logIntegrity"]["state"], "limited");
+    assert!(result["logIntegrity"][0]["logIntegrity"]["limits"][0].as_str().unwrap().contains(": chain broken at line 2"), "{result}");
+    assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "{result}");
+    assert!(require_complete(&f.dir()).is_ok());
+}
+
+#[test]
 fn incomplete_original_import_finishes_from_retained_or_reselected_exact_package() {
     for reselect in [false, true] {
         let f = Fixture::new(false);
@@ -173,7 +214,11 @@ fn incomplete_original_import_finishes_from_retained_or_reselected_exact_package
         if reselect {
             assert!(prepare(&f.root, None, &actor(), &observed()).is_err());
         }
-        f.recover(reselect.then_some(f.bag.as_path()));
+        let recovered = f.recover(reselect.then_some(f.bag.as_path()));
+        // A package with no chain recorded broken says so, and nothing more.
+        assert_eq!(recovered["state"], "package controls recovered");
+        assert_eq!(recovered["logIntegrity"][0]["logIntegrity"], json!({"state":"no chain recorded broken"}));
+        assert!(!recovered["standing"].as_str().unwrap().contains("Log integrity"));
         assert_eq!(f.row().bytes, original);
         assert_eq!(status(&f.root)["canRepair"], false);
         assert!(require_complete(&f.dir()).is_ok());

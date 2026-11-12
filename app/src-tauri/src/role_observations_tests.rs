@@ -356,7 +356,7 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
         String::from_utf8_lossy(&standalone.stderr)
     );
     let stdout = String::from_utf8_lossy(&standalone.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED in 1 log."), "{stdout}");
+    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 fault in 1 log."), "{stdout}");
     assert!(stdout.contains("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head for this log, so its chain was not checked"), "{stdout}");
     assert!(stdout.contains("It does not show who produced the package, and it shows no human act."));
     let current =

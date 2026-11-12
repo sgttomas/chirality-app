@@ -1343,9 +1343,19 @@ and 1 when anything disagrees; its output leads with "Package bytes:" and "Log
 integrity:". What was not checked or not stated is never counted as unbroken:
 a log a legacy package records no head for is an integrity limit, a package
 with no chained log says there was nothing to check, and lines written before
-chaining began are named as outside what the chain shows. It validates no record schema, so for a line that is a JSON
-object which the App's reader refuses as nonconformant it may report a broken
-chain where the App reports an invalid line. Disposal may rely on an export
+chaining began are named as outside what the chain shows. It reads each line as the App's reader does: the same JSON, the top level
+of the record format (kept equal to `schemas/RS_RECORD.schema.json` by its
+test), the group rules, and a line the App sets aside as unreadable or
+invalid is counted without its link being examined. It then compares every
+recorded fact of a head with the lines, including the detail of each recorded
+break. It carries no record schema, so one case remains: for a line that has
+the whole top level of a record and is invalid deeper (in its body), it
+examines a link the App does not, and can fail a faithfully exported package
+there. It cannot tell that case from an altered line and says so when it
+fails on a chain; **Verify an exported package** or importing through the App
+settles it (LIM-007). The role supply log's observations are likewise checked
+only for what needs no schema: whole lines, JSON, distinct identities,
+sequence and links. Disposal may rely on an export
 that carries a limited log: the native disposal question says so as its own
 statement, and the disposal act records it in its `export` member as
 `logIntegrity` (state "no chain recorded broken" or "limited", with each log

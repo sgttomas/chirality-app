@@ -754,9 +754,15 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .remove(&plan.dir);
-        return Ok(
-            json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view()}),
-        );
+        // The resumed check's own finding about the export is returned here
+        // too; the original act is not rewritten.
+        let relied = crate::records_export::stored_log_integrity(&current["export"]);
+        let mut out = json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view(),
+            "export":current["export"],"exportLogIntegrity":relied});
+        if let Some(limit) = crate::records_export::integrity_statement(&relied) {
+            out["standing"] = json!(format!("The export's bytes were verified against what remained of the store. {limit}"));
+        }
+        return Ok(out);
     }
     if plan.action != "resume-disposal" {
         event(&plan.dir, &s, &plan.action, Some(actor), &current)?;

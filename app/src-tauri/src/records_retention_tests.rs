@@ -354,11 +354,19 @@ fn records_retention_disposal_relying_on_an_export_with_a_broken_chain_is_not_re
     assert_eq!(p.context["export"]["logIntegrity"]["state"], "limited");
     // Its own statement in the native question, with the log and the line.
     let asked = statement(&p).unwrap();
-    assert!(asked.text.contains("Log integrity: LIMITED.") && asked.text.contains(&format!("{rel}: chain broken at line 2")), "{}", asked.text);
+    assert!(asked.text.contains("Log integrity: LIMITED."), "{}", asked.text);
     assert!(asked.text.contains("This is the export you are relying on, and this is recorded with the disposal."), "{}", asked.text);
-    if let Some(shown) = &asked.in_app {
-        assert!(shown.content["export"]["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")));
+    match &asked.in_app {
+        None => assert!(asked.text.contains(&format!("{rel}: chain broken at line 2")), "{}", asked.text),
+        // The bounded summary names the line whole; the App shows every limit.
+        Some(shown) => {
+            assert!(asked.text.contains("is broken at line 2."), "{}", asked.text);
+            assert!(shown.content["export"]["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")));
+        }
     }
+    let summary = crate::records_export::integrity_summary(&p.context["export"]["logIntegrity"]).unwrap();
+    assert!(summary.contains(".jsonl is broken at line 2."), "{summary}");
+    assert!(p.context["export"]["verification"].as_str().unwrap().contains("separately, log integrity: limited (1 fault(s)"), "the verification sentence read alone is not a clean pass");
     // Not refused, and recorded with the act.
     let result = apply(p, &f.actor, &f.observed).unwrap();
     assert_eq!(result["state"], "disposed");
@@ -730,6 +738,34 @@ fn records_retention_visible_but_uncertain_completion_has_a_resync_path_without_
         "reconciliation records no second person's disposal or second completion event"
     );
     assert_eq!(view(&dir)["disposition"], "disposed");
+}
+#[test]
+fn records_retention_completion_resync_returns_the_resumed_checks_finding_about_the_export() {
+    // An older disposal act (no logIntegrity member) whose completion was
+    // visible but not confirmed durable, relying on an export with a broken
+    // chain. The resync performs no new act, and still says what the resumed
+    // check found about the export.
+    let f = Fixture::new();
+    let rel = break_chain(&f);
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    crate::records_export::BEFORE_LOG_INTEGRITY.with(|b| b.set(true));
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(true));
+    let e = f.act("dispose", Some(&bag)).unwrap_err();
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(false));
+    crate::records_export::BEFORE_LOG_INTEGRITY.with(|b| b.set(false));
+    storage::fail_directory_for_test(None);
+    assert!(e.contains("completion publication durability uncertain"), "{e}");
+    assert_eq!(view(&dir)["disposition"], "completion durability uncertain");
+    let sequence = state(&dir).unwrap().sequence;
+    let result = f.act("resume-disposal", None).unwrap();
+    assert_eq!(result["state"], "disposed");
+    assert_eq!(result["exportLogIntegrity"]["state"], "limited");
+    assert!(result["exportLogIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")), "{result}");
+    assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "{result}");
+    assert_eq!(state(&dir).unwrap().sequence, sequence, "no second act");
+    assert_eq!(view(&dir)["disposalExportLogIntegrity"], json!({"state":"not stated"}), "the original act is not rewritten");
 }
 #[test]
 fn records_retention_disposed_unlinked_project_never_falls_back_when_store_becomes_unavailable() {
