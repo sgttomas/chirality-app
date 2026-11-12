@@ -7,7 +7,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {RoleHeader,RoleChoice,RoleLimits,ROLE_PLAIN_MEANING,limitWords,ContinueAsPanel,SupplyStatus,NativeChildRoles,ChildAssociations,RoleLimitObservations,ModelProviderFields,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
+const {RoleHeader,RoleChoice,RoleLimits,CurrentFileLimits,SuppliedLimits,limitSubjectWords,ROLE_PLAIN_MEANING,limitWords,ContinueAsPanel,SupplyStatus,NativeChildRoles,ChildAssociations,RoleLimitObservations,ModelProviderFields,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const noop=()=>{};
 
@@ -20,7 +20,9 @@ const all={limitId:'L-ALL-1',statement:"Work within the brief's write targets",s
 const task={limitId:'L-TASK-1',statement:'A task agent does not delegate',standing:'stated-not-enforced',presentedAs:'Stated, not enforced',basis:'b',notEnforcement:['approval-policy','sandbox','user-configuration','depth-limit']};
 const limits={available:true,standing:'Stated in the role\'s guidance; Codex does not enforce it.',notRead:[],account:{roles:roles.map(r=>({role:r.name,meaning:r.meaning,delegation:r.delegation,guidanceState:'default',limits:r.name==='TASK'?[task,all]:[all]}))}};
 const g={appSession:'s',home:'h',spawnCounter:1};
-const thread=(over={})=>({generation:g,threadId:'thread',appRole:{standing:'app-observed',role:'HELP_HUMAN',supply_ref:'sup:1'},roleRelation:{kind:'start'},futureGuidanceNotices:[],...over});
+// The account conversation_roles::frozen_limit_account makes from one start's composition, as the role binding hands it.
+const supplied=(over={},account={})=>({subject:{kind:'original-supply',suppliedTo:'thread',supplyRef:'sup:1',thisConversation:true,...over},standing:'established',account:{role:'HELP_HUMAN',limits:[all],...account}});
+const thread=(over={})=>({generation:g,threadId:'thread',appRole:{standing:'app-observed',role:'HELP_HUMAN',supply_ref:'sup:1'},roleRelation:{kind:'start'},suppliedLimitAccount:supplied(),futureGuidanceNotices:[],...over});
 const header=(t,calls={})=>h(RoleHeader,{thread:t,limits,busy:false,ready:true,continueAs:calls.continueAs??noop,fork:calls.fork??noop});
 
 test('the header shows the fixed role, its limits as handed and the two ways on',()=>{
@@ -40,19 +42,28 @@ test('the guidance-changed flag fires only on an actual change',()=>{
   assert.ok(changed.includes('<b>Guidance changed since this conversation started</b>: agents/AGENT_HELP_HUMAN.md (edited)'));
   assert.ok(changed.includes('Nothing was sent to this conversation; it keeps the guidance it started with.'));
   assert.equal((changed.match(/Continue as HELP_HUMAN…/g)??[]).length,2,'the flag offers Continue as the same role');
-  // Review round 2: the limit account is read from the current files. After a change it is not this conversation's.
-  const same=header(thread());
-  assert.ok(same.includes('aria-label="Limits of HELP_HUMAN"')&&same.includes('<b>Stated, not enforced</b>')&&!same.includes('does not show this conversation'),'unchanged guidance: the current account is the conversation\'s');
-  assert.ok(changed.includes('The current guidance differs from it, so the App does not show this conversation&#x27;s limits from the current guidance.'));
-  const own=changed.slice(0,changed.indexOf('Continue as <select'));
-  assert.ok(!own.includes('Stated, not enforced')&&!own.includes('It is stated in the role&#x27;s guidance'),'nothing above the Continue-as choice says what this conversation\'s guidance states');
-  assert.ok(changed.includes('A conversation continued as HELP_HUMAN gets the current guidance:')&&changed.slice(changed.indexOf('gets the current guidance:')).includes('aria-label="Limits of HELP_HUMAN"'),'the current guidance\'s limits are shown as what a continued conversation gets');
+  // Review round 3: the comparison selects no account. This conversation's limits are the ones of the guidance it
+  // was supplied, whatever the current files are; the current files' limits appear only under Continue as.
+  const ownPart=html=>html.slice(0,html.indexOf('Continue as <select'));
+  const own='Limits in the HELP_HUMAN guidance the App supplied when this conversation started:';
+  const modifiedSupply=supplied({},{limits:[{...all,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]});
+  for (const notices of [[],[{path:'agents/AGENT_HELP_HUMAN.md',kind:'changed'}],[{path:'AGENTS.md',kind:'not-read'}]]) {
+    const defaultSupply=ownPart(header(thread({futureGuidanceNotices:notices})));
+    assert.ok(defaultSupply.includes(own)&&defaultSupply.includes('<b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it.'),`supplied the shipped guidance, files ${notices[0]?.kind??'unchanged'}: its own account is shown`);
+    const edited=ownPart(header(thread({suppliedLimitAccount:modifiedSupply,futureGuidanceNotices:notices})));
+    assert.ok(edited.includes(own)&&edited.includes('<b>Not known whether the supplied guidance states this</b>')&&!edited.includes('Stated, not enforced')&&!edited.includes('It is stated in'),`supplied modified guidance, files ${notices[0]?.kind??'unchanged'}: never the current files' standing`);
+  }
+  assert.ok(!changed.includes('does not show this conversation')&&!changed.includes('could not be compared with it'),'no sentence joins the comparison to an account');
+  const after=changed.slice(changed.indexOf('Continue as <select'));
+  assert.ok(after.includes('A conversation continued as HELP_HUMAN is given the guidance files as they stand when it starts.')&&after.includes('Limits of HELP_HUMAN in its guidance file as the App last read it:')&&!after.includes('supplied when this conversation started'),'the current files\' limits are shown as the files\', for a continued conversation');
+  // No account kept (the binding is held only by the App process that made it): not known, and nothing borrowed.
+  const none=ownPart(header(thread({suppliedLimitAccount:undefined})));
+  assert.ok(none.includes('Limits in the guidance this conversation was given: not known. This App process holds no account of what was supplied at its start.')&&!none.includes('Stated, not enforced'));
   const missing=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'missing',reason:'missing'}]}));
   assert.ok(missing.includes('AGENTS.md (missing now)'));
   const unread=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'not-read',reason:'unreadable: store unavailable'}]}));
   assert.ok(!unread.includes('Guidance changed since'),'a comparison not made is not a change');
   assert.ok(unread.includes('could not be read (AGENTS.md), so it was not compared'));
-  assert.ok(unread.includes('The current guidance could not be compared with it, so the App does not show this conversation&#x27;s limits from the current guidance.'),'a comparison not made is not sameness either');
   assert.deepEqual(guidanceChange([{kind:'changed'},{kind:'not-read'},{kind:'missing'}]).changed.length,2);
   assert.deepEqual(guidanceChange(undefined),{changed:[],notRead:[]});
 });
@@ -103,12 +114,12 @@ test('the start display is readable: preselection, no role, TASK not offered, li
   const noDefault={available:true,roles:roles.map(r=>({...r,default_for_new_chat:false})),defaultRole:null};
   const none=h(RoleChoice,{group:"start-thread-role",roleSet:noDefault,limits,role:noDefault.defaultRole??'',setRole:noop,preselected:false});
   assert.ok(!none.includes('(preselected')&&/<input[^>]*checked=""[^>]*value=""\/>/.test(none),'with no default in the set, No role is the start');
-  const taskLimits=h(RoleLimits,{limits,role:'TASK'});
-  assert.ok(taskLimits.includes('A task agent does not delegate: <b>Stated, not enforced</b>. It is stated in the role&#x27;s guidance; Codex does not enforce it. None of these enforces it either: your approval setting, your sandbox setting, your Codex configuration or your delegation depth limit.'));
+  const taskLimits=h(CurrentFileLimits,{limits,role:'TASK'});
+  assert.ok(taskLimits.includes('A task agent does not delegate: <b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it. None of these enforces it either: your approval setting, your sandbox setting, your Codex configuration or your delegation depth limit.'));
   assert.ok(!/Not this limit|approval-policy|depth-limit|U-R6|U-R11/.test(html+taskLimits),'no engineering codes where a person meets the limits');
-  const modified=h(RoleLimits,{limits:{...limits,account:{roles:[{role:'TASK',limits:[{...task,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}},role:'TASK'});
+  const modified=h(CurrentFileLimits,{limits:{...limits,account:{roles:[{role:'TASK',limits:[{...task,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}},role:'TASK'});
   assert.ok(modified.includes('Not known whether the supplied guidance states this')&&!modified.includes('Stated, not enforced'));
-  assert.ok(h(RoleLimits,{limits:{...limits,account:{roles:[]},notRead:[{role:'TASK',reason:'r',reading:'Limits not known'}]},role:'TASK'}).includes('Limits not known (r)'));
+  assert.ok(h(CurrentFileLimits,{limits:{...limits,account:{roles:[]},notRead:[{role:'TASK',reason:'r',reading:'Limits not known'}]},role:'TASK'}).includes('Limits of TASK in its guidance file as the App last read it: Limits not known (r).'));
   const supply=h(SupplyStatus,{supply:{state:'response-observed',selection:'HELP_HUMAN',carried:{developerInstructions:{parts:[{source:{path:'AGENTS.md',state:'default'},length:10},{source:{path:'agents/AGENT_HELP_HUMAN.md',state:'modified'},length:5}]}}}});
   assert.ok(supply.includes('AGENTS.md (default, 10 bytes) + agents/AGENT_HELP_HUMAN.md (modified, 5 bytes)')&&supply.includes('Whether the model takes it up is unknown.'));
 });
@@ -121,9 +132,9 @@ test('each conversation role is offered with a plain meaning from its shipped gu
     const html=h(RoleChoice,{group:'g',roleSet,limits,role:name,setRole:noop,preselected:false});
     assert.ok(html.includes(ROLE_PLAIN_MEANING[name].replaceAll("'",'&#x27;')),`${name} shows its plain meaning`);
     // AC-003/AC-004 and V4-ROLE-03: the chosen role's limit is shown as stated, not enforced, with no enforcement implied.
-    assert.ok(html.includes("Work within the brief&#x27;s write targets: <b>Stated, not enforced</b>. It is stated in the role&#x27;s guidance; Codex does not enforce it. None of these enforces it either: the brief itself, working in a separate worktree, your sandbox setting or your approval setting."),`${name}'s limit in plain words`);
+    assert.ok(html.includes("Work within the brief&#x27;s write targets: <b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it. None of these enforces it either: the brief itself, working in a separate worktree, your sandbox setting or your approval setting."),`${name}'s limit in plain words`);
     assert.ok(!/Enforced by Codex|Not this limit|brief-text|approval-policy/.test(html));
-    assert.ok(html.includes('Where a limit is shown as “Stated, not enforced”, it is written in that role&#x27;s guidance for the agent to follow. Codex does not enforce it, and your approval and sandbox settings are a separate matter that does not enforce it either.'));
+    assert.ok(html.includes('A limit shown as “Stated, not enforced” is an instruction to the agent. Codex does not enforce it, and your approval and sandbox settings are a separate matter that does not enforce it either.'));
   }
   assert.equal(ROLE_PLAIN_MEANING.TASK,undefined,'TASK is not offered, so it has no start line');
   // A limit whose standing is unknown keeps its unknown label and claims no enforcement.
@@ -132,22 +143,18 @@ test('each conversation role is offered with a plain meaning from its shipped gu
   const enforced={...limits,account:{roles:[{role:'HELP_HUMAN',limits:[{...all,standing:'enforced-by-supplier',presentedAs:'Enforced by Codex',mechanism:'a named control'}]}]}};
   const withEnforced=h(RoleChoice,{group:'g',roleSet,limits:enforced,role:'HELP_HUMAN',setRole:noop,preselected:false});
   assert.ok(withEnforced.includes('<b>Enforced by Codex</b>. Codex enforces it through a named control.')&&!withEnforced.includes('Codex does not enforce'));
-  // Review rounds 1 and 2: the note speaks only of limits shown as stated, never of guidance in general,
-  // and says so when the App could not establish what some guidance states.
-  const general='A role&#x27;s limits are written in its guidance';
-  const conditional='Where a limit is shown as “Stated, not enforced”, it is written in that role&#x27;s guidance';
-  const cannot='The App could not establish what some role guidance states.';
+  // Review rounds 1 to 3: the note says what the label means and nothing of what any guidance states;
+  // that is said with each limit, by the one renderer, under the guidance its account describes.
+  const note='A limit shown as “Stated, not enforced” is an instruction to the agent.';
   const allKnown=h(RoleChoice,{group:'g',roleSet,limits,role:'HELP_HUMAN',setRole:noop,preselected:false});
-  assert.ok(allKnown.includes(conditional)&&!allKnown.includes(general)&&!allKnown.includes(cannot));
-  const someUnknown={...limits,account:{roles:[{role:'HELP_HUMAN',limits:[all]},{role:'WORKING_ITEMS',limits:[{...all,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}};
-  const withUnknown=h(RoleChoice,{group:'g',roleSet,limits:someUnknown,role:'WORKING_ITEMS',setRole:noop,preselected:false});
-  assert.ok(withUnknown.includes(cannot)&&!withUnknown.includes(general),'changed guidance: the App says it could not establish it');
-  assert.ok(withUnknown.includes('<b>Not known whether the supplied guidance states this</b>')&&!withUnknown.includes('It is stated in the role&#x27;s guidance'),'the changed role\'s own limit claims nothing about what its guidance states');
-  // Round 2: guidance that could not be read has no limit rows at all; it is listed under notRead.
+  assert.ok(allKnown.includes(note)&&!/written in|A role&#x27;s limits are/.test(allKnown));
+  const onlyUnknown={...limits,account:{roles:[{role:'WORKING_ITEMS',limits:[{...all,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}};
+  const withUnknown=h(RoleChoice,{group:'g',roleSet,limits:onlyUnknown,role:'WORKING_ITEMS',setRole:noop,preselected:false});
+  assert.ok(withUnknown.includes('<b>Not known whether the supplied guidance states this</b>')&&!withUnknown.includes('It is stated in')&&!withUnknown.includes(note),'a changed role\'s limit claims nothing about what its guidance states, and no label is explained that is not shown');
+  // Guidance that could not be read has no limit rows at all; it is listed under notRead.
   const unreadable={...limits,notRead:[{role:'WORKING_ITEMS',reading:'Limits not known',reason:'guidance could not be read'}],account:{roles:limits.account.roles.filter(r=>r.role!=='WORKING_ITEMS')}};
   const withUnread=h(RoleChoice,{group:'g',roleSet,limits:unreadable,role:'WORKING_ITEMS',setRole:noop,preselected:false});
-  assert.ok(withUnread.includes('Limits of WORKING_ITEMS: Limits not known (guidance could not be read)'));
-  assert.ok(withUnread.includes(cannot)&&!withUnread.includes(general),'unreadable guidance with no unknown row still qualifies the note');
+  assert.ok(withUnread.includes('Limits of WORKING_ITEMS in its guidance file as the App last read it: Limits not known (guidance could not be read).'));
   // The start display carries no engineering status line for the role set.
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
   assert.ok(!app.includes('Role set: {host?.roleSet?.standing'));
@@ -158,12 +165,16 @@ test('Continue as offers the roles with their meanings and shows the chosen role
   const html=header(thread());
   assert.ok(html.includes('<option value="HELPS_HUMANS">HELPS_HUMANS: Design</option>')&&html.includes('<option value="WORKING_ITEMS">WORKING_ITEMS: Managed execution</option>'));
   assert.ok(html.includes('<option value="">No role: product guidance only</option>')&&!/<option[^>]*value="TASK"/.test(html));
-  // The current role's limits show once; another target is shown only when chosen (state is the select's).
-  assert.equal((html.match(/aria-label="Limits of HELP_HUMAN"/g)??[]).length,1);
-  const fromWorking=header(thread({appRole:{standing:'app-observed',role:'WORKING_ITEMS',supply_ref:'sup:2'}}));
-  assert.equal((fromWorking.match(/aria-label="Limits of WORKING_ITEMS"/g)??[]).length,1);
+  // Two accounts, each once and each under its own subject: what this conversation was supplied, and the
+  // current file of the Continue-as target (which starts at the conversation's own role; state is the select's).
+  const count=(text,label)=>text.split(`aria-label="${label}"`).length-1;
+  assert.equal(count(html,'Limits in the HELP_HUMAN guidance the App supplied when this conversation started'),1);
+  assert.equal(count(html,'Limits of HELP_HUMAN in its guidance file as the App last read it'),1);
+  const fromWorking=header(thread({appRole:{standing:'app-observed',role:'WORKING_ITEMS',supply_ref:'sup:2'},suppliedLimitAccount:supplied({},{role:'WORKING_ITEMS'})}));
+  assert.equal(count(fromWorking,'Limits in the WORKING_ITEMS guidance the App supplied when this conversation started'),1);
+  assert.equal(count(fromWorking,'Limits of WORKING_ITEMS in its guidance file as the App last read it'),1);
   const unknownRole=header(thread({appRole:{standing:'unknown',reason:'r'}}));
-  assert.ok(unknownRole.includes('HELP_HUMAN: '+ROLE_PLAIN_MEANING.HELP_HUMAN.replaceAll("'",'&#x27;'))&&unknownRole.includes('aria-label="Limits of HELP_HUMAN"'),'a target other than the own role shows its meaning and limits');
+  assert.ok(unknownRole.includes('HELP_HUMAN: '+ROLE_PLAIN_MEANING.HELP_HUMAN.replaceAll("'",'&#x27;'))&&unknownRole.includes('aria-label="Limits of HELP_HUMAN in its guidance file as the App last read it"'),'the target shows its meaning and its current file\'s limits');
 });
 
 test('Continue as: an editable unsent draft, no model chosen, nothing sent until the person sends',()=>{
@@ -402,4 +413,54 @@ test('quoted history exposes exact child composition, sources, envelope and orig
   assert.ok(html.includes('Recorded child configuration file bytes')&&html.includes('developer_instructions = &quot;quoted\\r\\n&quot;\n'));
   assert.ok(html.includes('Recorded child limit account')&&html.includes('L-TASK-1'));
   assert.ok(html.includes('Quoted child bytes do not restore child associations')&&!html.includes('Original App child guidance'));
+});
+
+test('every limit standing reads the same under each guidance an account can describe, and only under that one',()=>{
+  // The rule (review round 3): an account names the guidance it describes; the view shows it only under that
+  // subject, through one renderer that makes a limit's sentence from that limit's standing and nothing else.
+  const subjects=[
+    [{of:'current-files'},'Limits of TASK in its guidance file as the App last read it'],
+    [{of:'conversation-supply',thread:'thread',own:true},'Limits in the TASK guidance the App supplied when this conversation started'],
+    [{of:'conversation-supply',thread:'thread-a',own:false},'This fork was sent no guidance of its own. Limits in the TASK guidance the App supplied when conversation thread-a started'],
+    [{of:'child-supply'},'Limits in the TASK guidance the App supplied for this child'],
+  ];
+  const standings=[
+    [{...task},'<b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it. None of these enforces it either:',/Enforced by Codex|Not known/],
+    [{...task,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'},'<b>Not known whether the supplied guidance states this</b>. None of these enforces it:',/It is stated in|Stated, not enforced|Enforced by Codex|Codex does not enforce/],
+    [{...task,standing:'enforced-by-supplier',presentedAs:'Enforced by Codex',mechanism:'a named control',notEnforcement:[]},'<b>Enforced by Codex</b>. Codex enforces it through a named control.',/It is stated in|Stated, not enforced|does not enforce|Not known/],
+  ];
+  for (const [subject,lead] of subjects) {
+    assert.equal(limitSubjectWords(subject,'TASK'),lead);
+    for (const [limit,words,never] of standings) {
+      const html=h(RoleLimits,{subject,role:'TASK',entry:{role:'TASK',limits:[limit]}});
+      assert.ok(html.includes(`${lead}:`)&&html.includes(`A task agent does not delegate: ${words}`),`${lead} / ${limit.standing}`);
+      assert.doesNotMatch(html,never,`${lead} / ${limit.standing}: nothing of another standing`);
+    }
+    // No account, or an account for another role, is not known under that same subject; nothing is borrowed.
+    for (const entry of [undefined,null,{role:'HELP_HUMAN',limits:[all]}]) {
+      const html=h(RoleLimits,{subject,role:'TASK',entry,notKnown:'not known (invented reason)'});
+      assert.ok(html.includes(`${lead}: not known (invented reason).`)&&!/Stated, not enforced|It is stated in|Enforced by Codex/.test(html),`${lead}: no account`);
+    }
+  }
+  // The header takes its subject from the account the host hands, never from the role line or the current files.
+  const forked=h(SuppliedLimits,{supplied:supplied({suppliedTo:'thread-a',thisConversation:false})});
+  assert.ok(forked.includes('This fork was sent no guidance of its own. Limits in the HELP_HUMAN guidance the App supplied when conversation thread-a started:')&&forked.includes('<b>Stated, not enforced</b>'));
+  const failed=h(SuppliedLimits,{supplied:{subject:{kind:'original-supply',suppliedTo:'thread',thisConversation:true},standing:'not-known',reason:'original role comparison unestablished'}});
+  assert.ok(failed.includes('Limits in the guidance the App supplied when this conversation started: not known (original role comparison unestablished).')&&!failed.includes('Stated, not enforced'));
+  const noRole=h(SuppliedLimits,{supplied:supplied({},{role:'none',limits:[]})});
+  assert.ok(noRole.includes('Started with no role: the App supplied the product guidance only, and no role&#x27;s limits.'));
+  for (const absent of [undefined,null,{},{subject:{kind:'current-files'},standing:'established',account:{role:'HELP_HUMAN',limits:[all]}}])
+    assert.ok(h(SuppliedLimits,{supplied:absent}).includes('Limits in the guidance this conversation was given: not known.')&&!h(SuppliedLimits,{supplied:absent}).includes('Stated, not enforced'),'an account of another subject is never shown as the conversation\'s');
+  // The current files' account is shown only as the files'.
+  assert.ok(h(CurrentFileLimits,{limits,role:'HELP_HUMAN'}).includes('Limits of HELP_HUMAN in its guidance file as the App last read it:'));
+  assert.ok(h(CurrentFileLimits,{limits,role:null}).includes('No role: the conversation gets the product guidance only. No role limits are stated.'));
+  const source=readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
+  // The shipped default has no account of its own. Two fixed sentences name the shipped TASK document
+  // (the native child roles note, and a delegation whose standing is unknown); the document carries what they say.
+  const shippedTask=readFileSync(new URL('../src-tauri/resources/instructions/agents/AGENT_TASK.md',import.meta.url),'utf8').replace(/\s+/g,' ');
+  assert.ok(shippedTask.includes('Do not delegate or create another execution layer. This role limit is stated, not enforced by the App'));
+  assert.equal(source.split('The shipped TASK guidance says a task agent does not delegate').length-1,2);
+  // One place makes the sentence: the source has a single "It is stated in", in limitWords.
+  assert.equal(source.split('It is stated in').length-1,1);
+  assert.ok(!source.includes('sameGuidance'),'no account is selected by comparing guidance');
 });
