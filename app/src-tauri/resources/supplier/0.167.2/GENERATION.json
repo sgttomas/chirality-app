@@ -18,7 +18,7 @@
    "TMPDIR"
   ],
   "homes": "fresh private HOME, CODEX_HOME and TMPDIR; plugins and analytics off",
-  "network": "the generator's sockets were sampled and none was seen"
+  "network": "the generator's sockets were sampled every 0.1 s and no sample showed one; a sample is not isolation"
  },
  "variants": {
   "experimental": {
@@ -35,7 +35,8 @@
    "files": 470,
    "bytes": 4654630,
    "manifest_sha256": "a15d8ad8a1372e783f0e47b34aa297b1b4977b686d55b8c1abd7f32d0429c607",
-   "socket_samples": 13,
+   "socket_samples": 3,
+   "failed_samples": 0,
    "sockets_seen": 0
   },
   "stable": {
@@ -51,7 +52,8 @@
    "files": 322,
    "bytes": 3751081,
    "manifest_sha256": "f3d1632c22b3a5f051f014e32f52100a259c8423911611b384ccb0a9e29b4c64",
-   "socket_samples": 1,
+   "socket_samples": 2,
+   "failed_samples": 0,
    "sockets_seen": 0
   }
  },

@@ -70,17 +70,17 @@
    {
     "path": "app/supplier_checks/recordings/0.167.2/nv04.recording.json",
     "role": "recording nv04 at 0.167.2",
-    "sha256": "c69a710325d6dd12b845f548d28efcffb93bfa4dfa646323dade68f35a035759"
+    "sha256": "5ba2ff4713a1fe75ce46f7ae8405eee51502eb7d50393243fd8c8a5b13546d84"
    },
    {
     "path": "app/supplier_checks/recordings/0.167.2/st5-race.recording.json",
     "role": "recording st5-race at 0.167.2",
-    "sha256": "d3634123f5010042a181caf0aa132dea44fc333ad96b260c0c07ac957524afce"
+    "sha256": "8a4a7b00786fa69e5f047537fdbe7982fea3f3341d0d3dc9415d023cbb302e90"
    },
    {
     "path": "app/supplier_checks/recordings/0.167.2/st5.recording.json",
     "role": "recording st5 at 0.167.2",
-    "sha256": "5e8af1465afc84d4f86e5fb25eac544b0ecefb4b6c349da693ec542dc5448f81"
+    "sha256": "6803c16910911c0f9c2ef38bf7b84e83049efafa3b639add28a1c2ed824ce01e"
    },
    {
     "path": "app/supplier_checks/version_advance/0.167.0-to-0.167.2.dispositions.json",
@@ -228,12 +228,12 @@
      "g1 codex->app notification thread/tokenUsage/updated",
      "g1 codex->app notification account/rateLimits/updated",
      "g1 codex->app notification item/started",
-     "g1 codex->app notification item/started",
      "g1 codex->app notification item/agentMessage/delta",
      "g1 codex->app notification item/completed",
-     "g1 codex->app notification item/completed",
+     "g1 codex->app notification item/started",
      "g1 codex->app notification thread/tokenUsage/updated",
      "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification item/completed",
      "g1 codex->app notification thread/readState/changed",
      "g1 codex->app notification thread/status/changed",
      "g1 codex->app notification turn/completed",
@@ -295,16 +295,8 @@
      ]
     },
     {
-     "from": [],
-     "op": "insert",
-     "to": [
-      "g1 codex->app notification item/completed"
-     ]
-    },
-    {
      "from": [
-      "g1 codex->app notification item/started",
-      "g1 codex->app notification item/completed"
+      "g1 codex->app notification item/started"
      ],
      "op": "delete",
      "to": []
@@ -448,12 +440,12 @@
     "0.167.2": [
      "g1 app->codex request initialize",
      "g1 codex->app reply initialize",
-     "g1 codex->app notification remoteControl/status/changed",
      "g1 app->codex notification initialized",
      "g1 app->codex request thread/start",
+     "g1 codex->app notification remoteControl/status/changed",
      "g1 codex->app reply thread/start",
-     "g1 codex->app notification thread/started",
      "g1 app->codex request turn/start",
+     "g1 codex->app notification thread/started",
      "g1 codex->app notification warning",
      "g1 codex->app reply turn/start",
      "g1 codex->app notification thread/status/changed",
@@ -483,7 +475,36 @@
      "g2 codex->app notification thread/goal/cleared"
     ]
    },
-   "sequence_differences": [],
+   "sequence_differences": [
+    {
+     "from": [
+      "g1 codex->app notification remoteControl/status/changed"
+     ],
+     "op": "delete",
+     "to": []
+    },
+    {
+     "from": [],
+     "op": "insert",
+     "to": [
+      "g1 codex->app notification remoteControl/status/changed"
+     ]
+    },
+    {
+     "from": [],
+     "op": "insert",
+     "to": [
+      "g1 app->codex request turn/start"
+     ]
+    },
+    {
+     "from": [
+      "g1 app->codex request turn/start"
+     ],
+     "op": "delete",
+     "to": []
+    }
+   ],
    "shape_differences": {},
    "shape_groups_compared": [
     "notification deprecationNotice",

@@ -119,7 +119,7 @@ const ASSESSMENT_DISTRIBUTION: &[u8] = include_bytes!("../resources/supplier/0.1
 const ASSESSMENT_DISTRIBUTION_SHA256: &str = "d040fab157ebd1fa76867cca35150a340192c5101456d394008f287c2745b031";
 /// The declared pin's generation record and the generated outputs compiled into this App (HOSTING §7.0).
 const GENERATION_RECORD: &[u8] = include_bytes!("../resources/supplier/0.167.2/GENERATION.json");
-const GENERATION_RECORD_SHA256: &str = "4b3f5cc88972c3626344e00d2071406c4c87e4215ba971a1955111b0433c8a68";
+const GENERATION_RECORD_SHA256: &str = "5220d3bd8acd1d8dad89563eb16546ff5c941adaf25a155816459f5bb6297dc9";
 const GENERATED_MANIFEST: &[u8] = include_bytes!("../resources/supplier/0.167.2/MANIFEST.sha256");
 /// The declared pin's experimental generated protocol schema (root bundle).
 pub(crate) const GENERATED_SCHEMA: &str = include_str!("../resources/supplier/0.167.2/codex_app_server_protocol.schemas.json");

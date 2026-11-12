@@ -85,15 +85,15 @@
  },
  "socket_watch": {
   "method": "lsof of the supplier process group every 0.25 s; a sample, not isolation",
-  "samples": 10,
+  "samples": 15,
+  "failed_samples": 0,
   "loopback_peers": [],
   "non_loopback_peers": []
  },
  "redaction_record": {
   "categories_replaced": {
-   "personal path": 23,
-   "host name": 4,
    "userAgent client identity": 2,
+   "personal path": 23,
    "serverName": 2,
    "installation identifier": 2
   },
@@ -116,30 +116,30 @@
  "events": [
   {
    "event": "begin",
-   "t_ms": 32.8,
+   "t_ms": 261.6,
    "scenario": "st5",
    "pin": "0.167.2"
   },
   {
    "event": "spawn",
-   "t_ms": 41.5,
+   "t_ms": 389.1,
    "generation": 1
   },
   {
    "event": "server-request-received",
-   "t_ms": 188.2,
+   "t_ms": 2235.1,
    "generation": 1,
    "method": "item/commandExecution/requestApproval"
   },
   {
    "event": "process-group-frozen",
-   "t_ms": 397.1,
+   "t_ms": 2443.3,
    "generation": 1,
    "signal": "SIGSTOP"
   },
   {
    "event": "answer-written",
-   "t_ms": 397.2,
+   "t_ms": 2443.4,
    "generation": 1,
    "request_position": 0,
    "decision": "accept",
@@ -147,20 +147,20 @@
   },
   {
    "event": "client-request-written",
-   "t_ms": 397.3,
+   "t_ms": 2443.4,
    "generation": 1,
    "method": "thread/turns/list",
    "note": "left un-responded by the process end"
   },
   {
    "event": "process-group-killed-while-frozen",
-   "t_ms": 397.3,
+   "t_ms": 2443.5,
    "generation": 1,
    "signal": "SIGKILL"
   },
   {
    "event": "exit",
-   "t_ms": 745.5,
+   "t_ms": 2806.5,
    "generation": 1,
    "how": "SIGKILL",
    "returncode": -9,
@@ -168,30 +168,30 @@
   },
   {
    "event": "acknowledgment-reading",
-   "t_ms": 745.6,
+   "t_ms": 2806.6,
    "generation": 1,
    "serverRequest_resolved_observed": false,
    "turn_completed_observed": false
   },
   {
    "event": "workspace-reading",
-   "t_ms": 745.7,
+   "t_ms": 2806.7,
    "marker_folder_exists": false
   },
   {
    "event": "spawn",
-   "t_ms": 752.7,
+   "t_ms": 2927.9,
    "generation": 2
   },
   {
    "event": "re-raised-request-reading",
-   "t_ms": 3830.3,
+   "t_ms": 6031.4,
    "generation": 2,
    "server_requests_after_resume": 0
   },
   {
    "event": "exit",
-   "t_ms": 4174.8,
+   "t_ms": 6422.4,
    "generation": 2,
    "how": "stdin",
    "returncode": 0,
@@ -199,7 +199,7 @@
   },
   {
    "event": "workspace-reading-end",
-   "t_ms": 4183.6,
+   "t_ms": 6725.2,
    "marker_folder_exists": false
   }
  ],
@@ -212,7 +212,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 41.9,
+   "t_ms": 389.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -235,7 +235,7 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 114.9,
+   "t_ms": 1971.6,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -249,26 +249,9 @@
   },
   {
    "generation": 1,
-   "direction": "codex->app",
-   "position": 2,
-   "t_ms": 115.0,
-   "redacted": true,
-   "frame": {
-    "method": "remoteControl/status/changed",
-    "params": {
-     "status": "disabled",
-     "serverName": "<REDACTED-HOST>",
-     "installationId": "<REDACTED-INSTALLATION-ID>",
-     "environmentId": null
-    },
-    "emittedAtMs": 1794469788804
-   }
-  },
-  {
-   "generation": 1,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 115.1,
+   "t_ms": 1971.9,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -279,7 +262,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 115.1,
+   "t_ms": 1971.9,
    "redacted": true,
    "frame": {
     "jsonrpc": "2.0",
@@ -295,14 +278,31 @@
   {
    "generation": 1,
    "direction": "codex->app",
+   "position": 2,
+   "t_ms": 1971.9,
+   "redacted": true,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-HOST>",
+     "installationId": "<REDACTED-INSTALLATION-ID>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794472417415
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
    "position": 3,
-   "t_ms": 129.1,
+   "t_ms": 2015.0,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "id": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "environments": [
        {
         "environmentId": "local",
@@ -313,7 +313,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "sessionId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -325,13 +325,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794469788,
-      "updatedAt": 1794469788,
-      "recencyAt": 1794469788,
+      "createdAt": 1794472417,
+      "updatedAt": 1794472417,
+      "recencyAt": 1794472417,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-48-01a1cebb-fc86-7960-88f5-702819063ca5.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-33-37-01a1cee4-188b-79d3-81b2-41aa557c0120.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -368,15 +368,36 @@
   },
   {
    "generation": 1,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 2015.1,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "turn/start",
+    "params": {
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
+     "input": [
+      {
+       "type": "text",
+       "text": "Create the marker folder for the invented pump-skid example."
+      }
+     ]
+    }
+   }
+  },
+  {
+   "generation": 1,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 129.2,
+   "t_ms": 2015.1,
    "redacted": true,
    "frame": {
     "method": "thread/started",
     "params": {
      "thread": {
-      "id": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "id": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "environments": [
        {
         "environmentId": "local",
@@ -387,7 +408,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "sessionId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "",
@@ -399,13 +420,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794469788,
-      "updatedAt": 1794469788,
-      "recencyAt": 1794469788,
+      "createdAt": 1794472417,
+      "updatedAt": 1794472417,
+      "recencyAt": 1794472417,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-48-01a1cebb-fc86-7960-88f5-702819063ca5.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-33-37-01a1cee4-188b-79d3-81b2-41aa557c0120.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -420,57 +441,36 @@
       "turns": []
      }
     },
-    "emittedAtMs": 1794469788819
-   }
-  },
-  {
-   "generation": 1,
-   "direction": "app->codex",
-   "position": 4,
-   "t_ms": 129.3,
-   "redacted": false,
-   "frame": {
-    "jsonrpc": "2.0",
-    "id": 3,
-    "method": "turn/start",
-    "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
-     "input": [
-      {
-       "type": "text",
-       "text": "Create the marker folder for the invented pump-skid example."
-      }
-     ]
-    }
+    "emittedAtMs": 1794472417458
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 132.6,
+   "t_ms": 2025.1,
    "redacted": false,
    "frame": {
     "method": "warning",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
     },
-    "emittedAtMs": 1794469788822
+    "emittedAtMs": 1794472417469
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 133.8,
+   "t_ms": 2026.4,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "turn": {
-      "id": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-      "rootTurnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
+      "id": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+      "rootTurnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
@@ -486,57 +486,57 @@
    "generation": 1,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 141.9,
+   "t_ms": 2158.2,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "status": {
       "type": "active",
       "activeFlags": []
      }
     },
-    "emittedAtMs": 1794469788831
+    "emittedAtMs": 1794472417602
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 142.0,
+   "t_ms": 2158.6,
    "redacted": false,
    "frame": {
     "method": "turn/started",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "turn": {
-      "id": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-      "rootTurnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
+      "id": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+      "rootTurnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
       "items": [],
       "itemsView": "notLoaded",
       "status": "inProgress",
       "error": null,
-      "startedAt": 1794469788,
+      "startedAt": 1794472417,
       "completedAt": null,
       "durationMs": null
      }
     },
-    "emittedAtMs": 1794469788832
+    "emittedAtMs": 1794472417602
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 9,
-   "t_ms": 153.0,
+   "t_ms": 2191.4,
    "redacted": false,
    "frame": {
     "method": "item/started",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cebb-fca4-7a82-81d7-ca0fb791648d",
+      "id": "01a1cee4-195e-7d60-a776-dcd8dfc68490",
       "clientId": null,
       "content": [
        {
@@ -545,28 +545,28 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794469788843,
+      "startedAtMs": 1794472417635,
       "completedAtMs": null
      },
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
-     "turnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-     "startedAtMs": 1794469788843
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
+     "turnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+     "startedAtMs": 1794472417635
     },
-    "emittedAtMs": 1794469788843
+    "emittedAtMs": 1794472417635
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 10,
-   "t_ms": 160.6,
+   "t_ms": 2203.7,
    "redacted": false,
    "frame": {
     "method": "item/completed",
     "params": {
      "item": {
       "type": "userMessage",
-      "id": "01a1cebb-fca4-7a82-81d7-ca0fb791648d",
+      "id": "01a1cee4-195e-7d60-a776-dcd8dfc68490",
       "clientId": null,
       "content": [
        {
@@ -575,26 +575,26 @@
         "text_elements": []
        }
       ],
-      "startedAtMs": 1794469788843,
-      "completedAtMs": 1794469788843
+      "startedAtMs": 1794472417635,
+      "completedAtMs": 1794472417635
      },
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
-     "turnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-     "completedAtMs": 1794469788843
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
+     "turnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+     "completedAtMs": 1794472417635
     },
-    "emittedAtMs": 1794469788850
+    "emittedAtMs": 1794472417648
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 11,
-   "t_ms": 188.2,
+   "t_ms": 2235.0,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "status": {
       "type": "active",
       "activeFlags": [
@@ -602,14 +602,14 @@
       ]
      }
     },
-    "emittedAtMs": 1794469788876
+    "emittedAtMs": 1794472417678
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 12,
-   "t_ms": 188.2,
+   "t_ms": 2235.0,
    "redacted": true,
    "frame": {
     "method": "item/started",
@@ -633,31 +633,31 @@
       "aggregatedOutput": null,
       "exitCode": null,
       "durationMs": null,
-      "startedAtMs": 1794469788876,
+      "startedAtMs": 1794472417678,
       "completedAtMs": null
      },
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
-     "turnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-     "startedAtMs": 1794469788876
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
+     "turnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+     "startedAtMs": 1794472417678
     },
-    "emittedAtMs": 1794469788878
+    "emittedAtMs": 1794472417679
    }
   },
   {
    "generation": 1,
    "direction": "codex->app",
    "position": 13,
-   "t_ms": 188.2,
+   "t_ms": 2235.1,
    "redacted": true,
    "frame": {
     "method": "item/commandExecution/requestApproval",
     "id": 0,
     "params": {
      "kind": "command",
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
-     "turnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
+     "turnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
      "itemId": "call_st5_1",
-     "startedAtMs": 1794469788876,
+     "startedAtMs": 1794472417678,
      "environmentId": "local",
      "reason": "Create the invented marker folder.",
      "command": "/bin/zsh -lc 'mkdir st5-marker-pump-skid'",
@@ -691,7 +691,7 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 397.2,
+   "t_ms": 2443.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -705,14 +705,14 @@
    "generation": 1,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 397.3,
+   "t_ms": 2443.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 4,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "limit": 1
     }
    }
@@ -721,7 +721,7 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 1,
-   "t_ms": 753.1,
+   "t_ms": 2928.2,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -744,7 +744,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 1,
-   "t_ms": 789.5,
+   "t_ms": 2978.4,
    "redacted": true,
    "frame": {
     "id": 1,
@@ -760,7 +760,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 2,
-   "t_ms": 789.5,
+   "t_ms": 2978.5,
    "redacted": true,
    "frame": {
     "method": "remoteControl/status/changed",
@@ -770,14 +770,14 @@
      "installationId": "<REDACTED-INSTALLATION-ID>",
      "environmentId": null
     },
-    "emittedAtMs": 1794469789479
+    "emittedAtMs": 1794472418422
    }
   },
   {
    "generation": 2,
    "direction": "app->codex",
    "position": 2,
-   "t_ms": 789.6,
+   "t_ms": 2978.6,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -788,14 +788,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 3,
-   "t_ms": 789.7,
+   "t_ms": 2978.6,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 2,
     "method": "thread/read",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "includeTurns": true
     }
    }
@@ -804,7 +804,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 3,
-   "t_ms": 794.3,
+   "t_ms": 2988.8,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -812,23 +812,23 @@
      "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794469789484
+    "emittedAtMs": 1794472418433
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 4,
-   "t_ms": 794.4,
+   "t_ms": 2988.9,
    "redacted": true,
    "frame": {
     "id": 2,
     "result": {
      "thread": {
-      "id": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "id": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "environments": null,
       "extra": null,
-      "sessionId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "sessionId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Create the marker folder for the invented pump-skid example.",
@@ -840,13 +840,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794469788,
-      "updatedAt": 1794469788,
-      "recencyAt": 1794469788,
+      "createdAt": 1794472417,
+      "updatedAt": 1794472417,
+      "recencyAt": 1794472417,
       "status": {
        "type": "notLoaded"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-48-01a1cebb-fc86-7960-88f5-702819063ca5.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-33-37-01a1cee4-188b-79d3-81b2-41aa557c0120.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -860,12 +860,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-        "rootTurnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
+        "id": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+        "rootTurnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cebb-fca4-7a82-81d7-ca0fb791648d",
+          "id": "01a1cee4-195e-7d60-a776-dcd8dfc68490",
           "clientId": null,
           "content": [
            {
@@ -874,14 +874,14 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794469788843,
-          "completedAtMs": 1794469788843
+          "startedAtMs": 1794472417635,
+          "completedAtMs": 1794472417635
          }
         ],
         "itemsView": "full",
         "status": "interrupted",
         "error": null,
-        "startedAt": 1794469788,
+        "startedAt": 1794472417,
         "completedAt": null,
         "durationMs": null
        }
@@ -889,7 +889,7 @@
      },
      "readState": {
       "firstUnread": null,
-      "revision": "initial:01a1cebb-fc86-7960-88f5-702819063ca5"
+      "revision": "initial:01a1cee4-188b-79d3-81b2-41aa557c0120"
      }
     }
    }
@@ -898,14 +898,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 4,
-   "t_ms": 794.4,
+   "t_ms": 2988.9,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 3,
     "method": "thread/turns/list",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "itemsView": "full"
     }
    }
@@ -914,19 +914,19 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 5,
-   "t_ms": 795.6,
+   "t_ms": 2991.3,
    "redacted": false,
    "frame": {
     "id": 3,
     "result": {
      "data": [
       {
-       "id": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-       "rootTurnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
+       "id": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+       "rootTurnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
        "items": [
         {
          "type": "userMessage",
-         "id": "01a1cebb-fca4-7a82-81d7-ca0fb791648d",
+         "id": "01a1cee4-195e-7d60-a776-dcd8dfc68490",
          "clientId": null,
          "content": [
           {
@@ -935,20 +935,20 @@
            "text_elements": []
           }
          ],
-         "startedAtMs": 1794469788843,
-         "completedAtMs": 1794469788843
+         "startedAtMs": 1794472417635,
+         "completedAtMs": 1794472417635
         }
        ],
        "itemsView": "full",
        "status": "interrupted",
        "error": null,
-       "startedAt": 1794469788,
+       "startedAt": 1794472417,
        "completedAt": null,
        "durationMs": null
       }
      ],
      "nextCursor": null,
-     "backwardsCursor": "{\"requestedThreadId\":\"01a1cebb-fc86-7960-88f5-702819063ca5\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1cee4-188b-79d3-81b2-41aa557c0120\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
     }
    }
   },
@@ -956,7 +956,7 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 5,
-   "t_ms": 795.7,
+   "t_ms": 2991.4,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
@@ -969,7 +969,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 6,
-   "t_ms": 795.8,
+   "t_ms": 2992.2,
    "redacted": false,
    "frame": {
     "id": 4,
@@ -983,14 +983,14 @@
    "generation": 2,
    "direction": "app->codex",
    "position": 6,
-   "t_ms": 795.8,
+   "t_ms": 2992.3,
    "redacted": false,
    "frame": {
     "jsonrpc": "2.0",
     "id": 5,
     "method": "thread/resume",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5"
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120"
     }
    }
   },
@@ -998,7 +998,7 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 7,
-   "t_ms": 797.3,
+   "t_ms": 2995.2,
    "redacted": false,
    "frame": {
     "method": "deprecationNotice",
@@ -1006,37 +1006,37 @@
      "summary": "Full-history hydration is deprecated for paginated threads; use `excludeTurns: true`, then page with `thread/turns/list` and `thread/items/list`.",
      "details": null
     },
-    "emittedAtMs": 1794469789487
+    "emittedAtMs": 1794472418439
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 8,
-   "t_ms": 821.1,
+   "t_ms": 3020.8,
    "redacted": false,
    "frame": {
     "method": "thread/status/changed",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
      "status": {
       "type": "idle"
      }
     },
-    "emittedAtMs": 1794469789511
+    "emittedAtMs": 1794472418464
    }
   },
   {
    "generation": 2,
    "direction": "codex->app",
    "position": 9,
-   "t_ms": 821.9,
+   "t_ms": 3021.9,
    "redacted": true,
    "frame": {
     "id": 5,
     "result": {
      "thread": {
-      "id": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "id": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "environments": [
        {
         "environmentId": "local",
@@ -1047,7 +1047,7 @@
        }
       ],
       "extra": null,
-      "sessionId": "01a1cebb-fc86-7960-88f5-702819063ca5",
+      "sessionId": "01a1cee4-188b-79d3-81b2-41aa557c0120",
       "forkedFromId": null,
       "parentThreadId": null,
       "preview": "Create the marker folder for the invented pump-skid example.",
@@ -1059,13 +1059,13 @@
       "modelProvider": "st5_stub",
       "model": "st5-stub-model",
       "reasoningEffort": null,
-      "createdAt": 1794469788,
-      "updatedAt": 1794469788,
-      "recencyAt": 1794469788,
+      "createdAt": 1794472417,
+      "updatedAt": 1794472417,
+      "recencyAt": 1794472417,
       "status": {
        "type": "idle"
       },
-      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-49-48-01a1cebb-fc86-7960-88f5-702819063ca5.jsonl",
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T02-33-37-01a1cee4-188b-79d3-81b2-41aa557c0120.jsonl",
       "cwd": "<WORKSPACE>",
       "cliVersion": "0.167.2",
       "originator": "chirality-st5-harness",
@@ -1079,12 +1079,12 @@
       "daybreakEnabled": null,
       "turns": [
        {
-        "id": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
-        "rootTurnId": "01a1cebb-fc95-7390-ac07-cba8952ff6c2",
+        "id": "01a1cee4-18ba-7543-912c-01e18fd93d00",
+        "rootTurnId": "01a1cee4-18ba-7543-912c-01e18fd93d00",
         "items": [
          {
           "type": "userMessage",
-          "id": "01a1cebb-fca4-7a82-81d7-ca0fb791648d",
+          "id": "01a1cee4-195e-7d60-a776-dcd8dfc68490",
           "clientId": null,
           "content": [
            {
@@ -1093,14 +1093,14 @@
             "text_elements": []
            }
           ],
-          "startedAtMs": 1794469788843,
-          "completedAtMs": 1794469788843
+          "startedAtMs": 1794472417635,
+          "completedAtMs": 1794472417635
          }
         ],
         "itemsView": "full",
         "status": "interrupted",
         "error": null,
-        "startedAt": 1794469788,
+        "startedAt": 1794472417,
         "completedAt": null,
         "durationMs": null
        }
@@ -1133,8 +1133,8 @@
      },
      "multiAgentMode": "explicitRequestOnly",
      "initialTurnsPage": null,
-     "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a1cebb-fc86-7960-88f5-702819063ca5\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
-     "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a1cebb-fc86-7960-88f5-702819063ca5\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+     "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a1cee4-188b-79d3-81b2-41aa557c0120\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+     "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a1cee4-188b-79d3-81b2-41aa557c0120\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
     }
    }
   },
@@ -1142,14 +1142,14 @@
    "generation": 2,
    "direction": "codex->app",
    "position": 10,
-   "t_ms": 821.9,
+   "t_ms": 3022.1,
    "redacted": false,
    "frame": {
     "method": "thread/goal/cleared",
     "params": {
-     "threadId": "01a1cebb-fc86-7960-88f5-702819063ca5"
+     "threadId": "01a1cee4-188b-79d3-81b2-41aa557c0120"
     },
-    "emittedAtMs": 1794469789512
+    "emittedAtMs": 1794472418466
    }
   }
  ]
