@@ -75,6 +75,8 @@ checks:
 - app/tests/local-model-settings.test.mjs
 - app/tests/trial-continue-model-choice.test.mjs
 - app/src-tauri/src/access_provider_tests.rs
+- app/src-tauri/src/access_settings.rs
+- app/src-tauri/src/native_secure_entry.rs
 - app/src-tauri/tests/access_integration.rs
 - app/src-tauri/tests/oauth_control.rs
 - app/src-tauri/tests/home_resources.rs

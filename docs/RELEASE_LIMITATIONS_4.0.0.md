@@ -168,10 +168,11 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Exit criteria:** 6
 - **What is unavailable:** a conversation on a local provider defined in the
   person's own Codex settings; a conversation with a model server on another
-  machine; and a local model server that requires no key. The local model
-  server is also unavailable while either system Codex configuration file
-  (`/etc/codex/managed_config.toml`, `/etc/codex/requirements.toml`) exists
-  or a managed Codex preference is set, whatever they contain. In the home that
+  machine; and a local model server that requires no key. Preparing or
+  starting the local connection, and entering its key, are refused while
+  either system Codex configuration file (`/etc/codex/managed_config.toml`,
+  `/etc/codex/requirements.toml`) exists or a managed Codex preference is
+  set, whatever they contain. In the home that
   uses the ChatGPT account, the App's Codex runs on the built-in OpenAI
   provider whatever default provider the person's Codex settings name; a
   conversation saved earlier on another provider can be opened there and
@@ -186,9 +187,10 @@ An entry is added in the same pull request that makes the limitation standing.
   home, a change to the local model settings cannot be used until the App is
   quit and reopened; the local connection is unavailable meanwhile. Changing
   an existing server address requires the local connection to be prepared
-  first so Codex can sign out, even if no key was saved. After a key has been
-  entered in a Codex session, the address cannot be changed until Codex is
-  restarted for the local model home. After the App has ended unexpectedly,
+  first so Codex can sign out, even if no key was saved. After key entry has
+  been begun in a Codex session, including an entry that was cancelled or
+  failed, the address cannot be changed until Codex is restarted for the
+  local model home. After the App has ended unexpectedly,
   the local connection is refused while the earlier Codex process for the
   local model home is still running; it normally ends by itself within a
   minute, and quitting and reopening the App does not end it. If an otherwise
@@ -197,8 +199,9 @@ An entry is added in the same pull request that makes the limitation standing.
   refused and the App offers to restore the recorded address. A local-home
   configuration that is no longer in the App's own form cannot be read or
   repaired from the App. If the App's record of the address a saved key was
-  entered for is removed outside the App, the key is not used at any address
-  and the App offers no repair. The protection of a saved key rests on the
+  entered for is removed outside the App, the App refuses preparation and
+  further requests and replies that could send the key in that home, and
+  offers no repair; this does not stop work already running in Codex. The protection of a saved key rests on the
   files of the local model home being changed only by the App and its Codex:
   it does not survive their removal or replacement from outside while an
   earlier Codex process of that home is still running.
@@ -207,9 +210,9 @@ An entry is added in the same pull request that makes the limitation standing.
   separate homes; the App does not reconfigure a prepared local connection in
   place. The release requires a local credential, limits the server to this
   machine to keep the key and conversation content from travelling off it
-  without the protections that requires, does not use the local home under
-  a system or managed Codex configuration because the App cannot establish
-  what such a layer would do to that home's settings, and requires a prepared local
+  without the protections that requires, does not prepare or start the local
+  home under a system or managed Codex configuration because the App cannot
+  establish what such a layer would do to that home's settings, and requires a prepared local
   connection to confirm removal of the saved key before an address change so
   that key cannot be sent to another server. For the same reason it starts
   Codex for the local model home only when no earlier Codex process for that
@@ -218,8 +221,11 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** set the local server's address and model
   name in the App's local model settings and run the model server on the
   same machine with a key. To change the address, prepare the local
-  connection, save the new address, quit and reopen the App, prepare the
-  connection again and enter the key again. To use a different model name,
+  connection (and if key entry was begun in this Codex session, restart Codex
+  for the local model home first), save the new address, quit and reopen the
+  App, prepare the connection again and enter the key again. Where the App
+  offers to restore the address a saved key was entered for, use that; it
+  keeps the key. To use a different model name,
   save it, quit and reopen the App, and start a new conversation. If the
   refusal about an earlier Codex process continues for more than a few
   minutes, that Codex process (named `codex`) or a program it started is
