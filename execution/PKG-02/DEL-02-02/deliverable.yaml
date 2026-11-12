@@ -44,6 +44,13 @@ needs:
     end; the requirement check reports each declared requirement's outcome for the current host;
     and each checkpoint's arrival and disposition in a run is recorded.
   gating: false
+- from: DEL-02-04
+  condition: For the conversation chosen for a run, in its own home, the role the App supplied at
+    its start is reported as App-observed, a start with no role is reported as that and not as
+    unknown, and where this App process holds no record of the supply the role is reported as
+    not established.
+  gating: false
+  when: Showing the conversation's role beside the roles the Library lists for a chosen workflow
 - from: DEL-04-01
   condition: Registering a workflow revision is a distinct act kind reserved to the person, with
     its own name and wording, and it does not say that the revision was examined, checked or
