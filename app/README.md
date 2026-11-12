@@ -1317,7 +1317,24 @@ the originals left unchanged and no longer read. A copy carries only the
 trust of the folder it came from. A library's own act log in the project is
 library evidence, never part of the project's record set. The override
 `CHIRALITY_RECORDS_STORE` is read only by development and test builds, and a
-store inside the project or a Codex home is refused. The host status (`recordsStore`)
+store inside the project or a Codex home is refused.
+
+The store is created (its folder and `store.json`) when the App starts, and
+otherwise only by the acts that write for the person: attaching a project with
+a newly minted identity, the imports and the identity acts. A read creates,
+locks and repairs nothing: with no store, or a folder at the store's path that
+holds no identity, every reader says the store is not created yet and nothing
+is written there, elsewhere or in a temporary folder. Once opened, a process
+stays bound to the store's physical folder and identity file (their device and
+inode): a redirected alias is not followed, and a folder put at the store's
+path in its place, even holding a copy of `store.json`, is refused by readers
+and writers alike. Readers take only an admission control that already exists;
+records with no control beside them read as unavailable with that reason. A
+store whose state cannot be read (for example an unreadable import record)
+reads as unavailable, never as empty or as "no records yet". A read writes
+only two things below an existing store: the records read log that the
+agents' records capability writes for each call (`reads/records-reads.jsonl`),
+and the derived query cache described below. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
 The records-store panel offers **Export project records**, choosing a parent
@@ -1450,8 +1467,14 @@ The derived records index keeps identities, positions and membership counts in
 process-owned SQLite files under the store's `indexes/`; record bodies stay in
 their logs. Cold use rebuilds from authoritative sources, and returned entries
 are reread and revalidated, including their exact line hash. Changed or unusable
-caches rebuild or use source scans. A private temporary cache can serve a process
-when the store cannot host derived metadata; records themselves have no fallback.
+caches rebuild or use source scans. The cache is the one stated exception to a
+read writing nothing: a read may write it under `indexes/` of a store that
+already exists and that the process has bound, never into a folder put in the
+store's place, and never in a temporary folder (SQLite's own temporary
+structures stay in memory). The decision view does not use it. Where the cache
+cannot be written the sources are read directly and the chain report says so.
+The cache is dispensable: deleting `indexes/` at any time changes no answer,
+only how fast it comes.
 Index metadata for ordinary valid entries is per log and directory; diagnostics
 grow with reported limits. Full act projections retain their
 separate result-sized memory cost (RS §13.8, §14.3).
