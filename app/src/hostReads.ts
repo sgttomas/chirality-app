@@ -7,41 +7,47 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const STATUS = "host_status";
 
 /**
- * The commands the web view issues that only read: closed, and tested as
- * closed. A command not listed here is taken to be able to change what the
- * host would report, so a command added later marks until someone lists it.
- * Listing a command that changes host state would let a view from before it
- * be shown as current; leaving a read off the list only withholds the guides
- * until the next status read.
+ * What this module establishes about a command, stated as far as it holds:
+ *
+ * After a command whose own effect could change what the guides show settles,
+ * both guides are withheld until a status read started after it has been
+ * applied. What the host learns by itself is not a command's effect: a
+ * notification from Codex, a turn ending, or a reply write that finished and
+ * that the host reconciles the next time anything observes it, the status
+ * read included. The view follows those at the next status read, as it always
+ * has; the App reads its status every POLL_MS.
+ *
+ * So every command marks when it settles, except the ones below. They are the
+ * commands the web view issues by itself (on a timer, or from an effect that
+ * re-runs with nothing pressed), where marking would withhold the guides with
+ * nobody having done anything. Each is recorded with its host function's own
+ * effect, read from the host's code. A command a person presses is never
+ * listed, whatever it does: it marks, which costs one status read. A command
+ * added later marks until someone reads its host function and lists it.
  */
-export const READ_COMMANDS: readonly string[] = [
-  "collaboration_modes_read",
-  "decision_view",
-  "native_confirmation_content",
-  "read_available_models",
-  "read_configured_providers",
-  "read_connector_routes",
-  "read_effective_access_settings",
-  "read_fleet_records",
-  "read_home_access",
-  "read_recovery_custody",
-  "read_recovery_request_history",
-  "role_supply_history",
-  "workflow_review_digest",
-];
+export const POLL_MS = 1000;
+export const SELF_ISSUED_QUIET: Readonly<Record<string, string>> = {
+  checkpoint_native_waiting_ui: "the waiting-navigation registry only, which neither guide shows",
+  claim_native_waiting_intent: "claim ownership in the waiting-navigation registry; reconciliation only",
+  decision_view: "none",
+  finish_native_waiting_intent: "the waiting-navigation registry only, which neither guide shows",
+  host_observe: "queues an observer reconstruction kept apart from live activity; reconciliation only",
+  native_confirmation_content: "none",
+  workflow_review_digest: "none",
+};
 
 const settleListeners = new Set<() => void>();
 
 /**
  * The web view's command function: the platform's, and when a command other
- * than the status read or a listed read settles, either way, every mounted
+ * than the status read or one listed above settles, either way, every mounted
  * status holder is told. The telling is attached before the caller's own
  * continuation, so a status read the caller starts afterwards is numbered
  * after the mark.
  */
 export function invoke<T = Json>(command: string, args?: InvokeArgs, options?: InvokeOptions): Promise<T> {
   const pending = platformInvoke<T>(command, args, options);
-  if (command !== STATUS && !READ_COMMANDS.includes(command)) {
+  if (command !== STATUS && !Object.hasOwn(SELF_ISSUED_QUIET, command)) {
     const settled = () => { for (const tell of [...settleListeners]) tell(); };
     pending.then(settled, settled);
   }

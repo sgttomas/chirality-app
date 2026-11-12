@@ -376,7 +376,7 @@ test('the panel shows its guides only when the App says the view follows the las
     selections:[{sourceRef:'src',threadId:'T1',selection:{state:'selected',reference:'sel',runnable:true,identity:{name:'invented-flow',origin:'project',revision:'rev-1-0123456789'}}}],runs:[prepared]};
   const host={state:'ready',generation:g,workflowRoot:data,threads:[{generation:g,threadId:'T1',model:'invented-model',status:{type:'idle'}}],serverRequests:[]};
   const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
-  const WITHHELD=/Next: What this view showed may be from before your last press\./,CACHED=/Ready to start|has not been sent|Nothing has been sent yet|Ready to run/;
+  const WITHHELD=/Next: What this view showed may be from before the App's last operation finished\./,CACHED=/Ready to start|has not been sent|Nothing has been sent yet|Ready to run/;
   for(const [view,label,offerComposer] of [['run','Run a workflow',undefined],['make','Make a workflow from your work',()=>{}]]){
     const c=document.createElement('div');const root=createRoot(c);const calls=[];
     const show=over=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host,view,offerComposer,act:async(command,args)=>{calls.push([command,args]);return {};},...over})));

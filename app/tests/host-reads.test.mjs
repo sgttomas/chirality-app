@@ -5,10 +5,11 @@ import {loadSrc} from './support/load-src.mjs';
 
 // The order of the web view's host status reads. Controlled replies only: an
 // invented host_status that the test resolves in the order it chooses.
-installMiniDom();
+// Run alone it installs the test DOM; imported by a listed test file it uses that file's, so one document serves both.
+if (!globalThis.document) installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {useOrderedHost, shownBeforePress, invoke, READ_COMMANDS} = loadSrc('hostReads');
+const {useOrderedHost, shownBeforePress, invoke, SELF_ISSUED_QUIET, POLL_MS} = loadSrc('hostReads');
 const {readFileSync, readdirSync} = await import('node:fs');
 
 function controlledHost() {
@@ -59,7 +60,7 @@ function heldHost() {
 }
 const statusRead = api => api.readHost(invoke('host_status'));
 
-test('after any command that is not a listed read settles, the view is from before it until a read started afterwards is applied', async () => {
+test('after a command settles, the view is from before it until a read started afterwards is applied; only the self-issued commands listed mark nothing', async () => {
   const host = heldHost(); const ui = await mount();
   const stale = () => shownBeforePress(ui.api.hostReads);
   try {
@@ -93,39 +94,44 @@ test('after any command that is not a listed read settles, the view is from befo
       during.push(ui.text());
     }
     assert.deepEqual(during, ['{"view":"resolved: read after the command"}', '{"view":"rejected: read after the command"}']);
-    // The status read and every listed read mark nothing, resolved or rejected.
-    for (const command of ['host_status', ...READ_COMMANDS]) for (const settle of ['resolve', 'reject']) {
+    // The status read and every listed self-issued command mark nothing, resolved or rejected.
+    for (const command of ['host_status', ...Object.keys(SELF_ISSUED_QUIET)]) for (const settle of ['resolve', 'reject']) {
       const issued = invoke(command, {});
       await React.act(async () => { host.of(command).at(-1)[settle](settle === 'reject' ? new Error('x') : {}); await issued.catch(() => undefined); });
-      assert.equal(stale(), false, `${command} ${settle}: a read marks nothing`);
+      assert.equal(stale(), false, `${command} ${settle}: marks nothing`);
     }
   } finally { await ui.close(); host.restore(); }
 });
 
-test('the list of read commands is closed, and every command the web view issues goes through the marking function or is a named exception', () => {
-  // Closed: a command is added here only after its host function has been read and found to change nothing.
-  assert.deepEqual([...READ_COMMANDS], ['collaboration_modes_read', 'decision_view', 'native_confirmation_content', 'read_available_models', 'read_configured_providers', 'read_connector_routes',
-    'read_effective_access_settings', 'read_fleet_records', 'read_home_access', 'read_recovery_custody', 'read_recovery_request_history', 'role_supply_history', 'workflow_review_digest']);
+test('the commands that mark nothing are a closed table of self-issued commands, and every command goes through the one function', () => {
+  // Closed. A command is added only when the web view issues it by itself (a timer, or an effect that re-runs with
+  // nothing pressed) and its host function has been read: the value is that function's own effect. A command a
+  // person presses is never listed, whatever it does. Review of the first list found ten pressed commands on it and
+  // five that change other reported state; none of them is here.
+  assert.deepEqual(SELF_ISSUED_QUIET, {
+    checkpoint_native_waiting_ui:'the waiting-navigation registry only, which neither guide shows',
+    claim_native_waiting_intent:'claim ownership in the waiting-navigation registry; reconciliation only',
+    decision_view:'none',
+    finish_native_waiting_intent:'the waiting-navigation registry only, which neither guide shows',
+    host_observe:'queues an observer reconstruction kept apart from live activity; reconciliation only',
+    native_confirmation_content:'none',
+    workflow_review_digest:'none',
+  });
+  for (const pressed of ['collaboration_modes_read', 'read_available_models', 'read_configured_providers', 'read_connector_routes', 'read_effective_access_settings', 'read_fleet_records',
+    'read_home_access', 'read_recovery_custody', 'read_recovery_request_history', 'role_supply_history'])
+    assert.equal(Object.hasOwn(SELF_ISSUED_QUIET, pressed), false, `${pressed} is pressed (read_home_access also follows a sign-in): it marks`);
+  assert.equal(POLL_MS, 1000, 'the stated bound on how far the view is behind what the host learns by itself');
+  // One route: no module but hostReads.ts takes the platform's command function, in any import form.
   const src = new URL('../src/', import.meta.url);
-  const platform = /from "@tauri-apps\/api\/core"/;
-  const direct = {};
+  const takesPlatform = [];
   for (const name of readdirSync(src).filter(name => /\.tsx?$/.test(name))) {
     const text = readFileSync(new URL(name, src), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-    if (!platform.test(text) || !/\binvoke\b/.test(text.split('\n').find(line => platform.test(line)))) continue;
-    direct[name] = [...new Set([...text.matchAll(/invoke(?:<[^(]*>)?\(\s*"([a-z_]+)"/g)].map(match => match[1]))].sort();
+    if (/@tauri-apps\/api\/core/.test(text) || /__TAURI_INTERNALS__/.test(text)) takesPlatform.push(name);
   }
-  // The modules that call the platform directly, with exactly the commands they issue there. hostReads.ts is the
-  // marking function itself. The other three issue no press: the waiting bridge is pumped by a timer and an event,
-  // the observer attachment by the host's own retention, and the model choice issues one listed read.
-  assert.deepEqual(direct, {
-    'ModelChoice.tsx':['read_available_models'],
-    'NativeWaitingBridge.tsx':['checkpoint_native_waiting_ui', 'claim_native_waiting_intent', 'finish_native_waiting_intent'],
-    'ObserverAttachment.tsx':['host_observe'],
-    'hostReads.ts':[],
-  });
-  assert.ok(READ_COMMANDS.includes('read_available_models'));
+  assert.deepEqual(takesPlatform, ['hostReads.ts']);
   const shell = readFileSync(new URL('App.tsx', src), 'utf8');
-  assert.match(shell, /import \{ invoke, useOrderedHost, shownBeforePress \} from "\.\/hostReads";/, 'the shell issues every command through the marking function');
+  assert.match(shell, /import \{ invoke, useOrderedHost, shownBeforePress, POLL_MS \} from "\.\/hostReads";/, 'the shell issues every command through the marking function');
+  assert.match(shell, /readHost\(invoke<Json>\("host_status"\)\)\.then\(applyHost\)[^\n]*, POLL_MS\);/, 'the poll runs at the stated interval');
   assert.doesNotMatch(shell, /setHost\(/);
 });
 
@@ -144,7 +150,9 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
   const previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
   const timers = []; globalThis.setInterval = fn => { timers.push(fn); return timers.length; }; globalThis.clearInterval = () => {};
   let runs = [run(OPEN)], hold = null, failStatus = false;
+  const issued = new Set();
   const idle = installIdleNativeWaiting(async command => {
+    issued.add(command);
     if (command === 'host_status') { if (failStatus) throw new Error('invented status failure'); const snapshot = structuredClone(view(runs)); if (hold) await hold; return snapshot; }
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
@@ -160,19 +168,24 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     const guideSelect = nodes('select').find(n => n.parentNode.textContent.startsWith('Conversation to run it in'));
     await React.act(async () => props(guideSelect).onChange({target:{value:'T2'}}));
     assert.ok(nodes('button').some(b => b.textContent === 'End this run' && !props(b).disabled), 'the open run offers End this run');
+    // With nothing pressed (mount, a choice in the guide that issues no command, every timer fired once), the App
+    // issues only the status read and listed self-issued commands, and the guide is shown, not withheld.
+    await React.act(async () => { for (const fire of timers) fire(); await new Promise(resolve => setTimeout(resolve, 0)); });
+    assert.deepEqual([...issued].filter(command => command !== 'host_status' && !Object.hasOwn(SELF_ISSUED_QUIET, command)), [], 'a self-issued command that is not classified');
+    assert.doesNotMatch(guide().textContent, /may be from before the App's last operation finished/);
     // The shell's command function, as the conversation's own End run uses it; the status read that follows is held.
     let release; hold = new Promise(resolve => { release = resolve; });
     await React.act(async () => { await invoke('workflow_end_run', {runRef:'run-1', finishedReport:null}); poll(); });
-    assert.match(guide().textContent, /^Run a workflowNext: What this view showed may be from before your last press\./);
+    assert.match(guide().textContent, /^Run a workflowNext: What this view showed may be from before the App's last operation finished\./);
     assert.ok(!nodes('button').some(b => b.textContent === 'End this run'), 'nothing from before the command is offered');
     // A status read that fails leaves it withheld, with the failure said in the guide.
     hold = null; failStatus = true;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
-    assert.match(guide().textContent, /What this view showed may be from before your last press\..*The last read failed: Error: invented status failure/);
+    assert.match(guide().textContent, /What this view showed may be from before the App's last operation finished\..*The last read failed: Error: invented status failure/);
     // The held reply, from a read started after the command, arrives: the guide returns with the state after it.
     failStatus = false;
     await React.act(async () => { release(); await new Promise(resolve => setTimeout(resolve, 0)); });
-    assert.doesNotMatch(guide().textContent, /may be from before your last press|The last read failed/);
+    assert.doesNotMatch(guide().textContent, /may be from before the App's last operation finished|The last read failed/);
     assert.ok(!nodes('button').some(b => b.textContent === 'End this run'), 'the ended run no longer offers End this run');
     idle.assertClean(c);
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, previous); }

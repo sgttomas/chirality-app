@@ -13,12 +13,23 @@ const ACTION_WORDS: Record<string, [string, string]> = {
   workflow_select_production_bundle: ["Chose the included workflow for this conversation", "choose the included workflow"],
   workflow_follow_newer_revision: ["Moved this conversation to the newer revision", "move to the newer revision"],
   workflow_prepare_run: ["Prepared the run; nothing has been sent", "prepare the run"],
-  workflow_send_run: ["Start requested; see Progress for what happened", "start the run"],
-  workflow_end_run: ["Ending requested; see Progress", "end the run"],
+  workflow_send_run: ["Start requested", "start the run"],
+  workflow_end_run: ["Ending requested", "end the run"],
   workflow_observe_drafts: ["Looked for drafts in this library", "look for drafts"],
   workflow_review_draft: ["Opened the review", "open the review"],
-  workflow_trial_prepare: ["Asked for the trial message; it is listed below when it is ready to read and send. Nothing has been sent", "prepare the trial"],
-  workflow_trial_bring_back: ["Asked for the trial's results as a message; it is listed below when it is ready to read and send. Nothing has been sent", "bring the trial back"],
+  workflow_trial_prepare: ["Asked for the trial message. Nothing has been sent", "prepare the trial"],
+  workflow_trial_bring_back: ["Asked for the trial's results as a message. Nothing has been sent", "bring the trial back"],
+};
+/**
+ * Where a result sends the person to look, kept apart from the result itself:
+ * it is said only while the guide's steps are shown. A result is also shown
+ * while the steps are withheld, and must not point at what is not there.
+ */
+const RESULT_POINTERS: Record<string, string> = {
+  workflow_send_run: "See Progress for what happened.",
+  workflow_end_run: "See Progress.",
+  workflow_trial_prepare: "It is listed below when it is ready to read and send.",
+  workflow_trial_bring_back: "It is listed below when it is ready to read and send.",
 };
 /**
  * Refusals a person can meet from a guide's button, in their words. Each is
@@ -47,7 +58,7 @@ const NOT_SENT: Record<string, string> = {
 };
 export type GuideOutcome = { command: string; message: string; failed?: boolean; settled?: boolean };
 /** The last guide action's result without raw host JSON; the exact reply stays under details. */
-export function guideResultWords(outcome: GuideOutcome): { words: string; detail: string; failed: boolean } | null {
+export function guideResultWords(outcome: GuideOutcome, stepsShown = true): { words: string; detail: string; failed: boolean } | null {
   // Only a settled result of a command the guides name: an unknown command's reply is never called done.
   if (!outcome?.settled || !Object.hasOwn(ACTION_WORDS, outcome.command)) return null;
   const [done, verb] = ACTION_WORDS[outcome.command];
@@ -64,14 +75,15 @@ export function guideResultWords(outcome: GuideOutcome): { words: string; detail
     let chat: Json;
     try { chat = JSON.parse(outcome.message)?.choiceChat; } catch { chat = undefined; }
     if (chat === null) return { words: "Opened the included workflow to read. Nothing was chosen for a conversation.", detail: outcome.message, failed: false };
-    if (!chat || typeof chat !== "object") return { words: "The App accepted this. The Workflow step shows what is chosen for the conversation.", detail: outcome.message, failed: false };
+    if (!chat || typeof chat !== "object") return { words: `The App accepted this.${stepsShown ? " The Workflow step shows what is chosen for the conversation." : ""}`, detail: outcome.message, failed: false };
   }
-  return { words: `${done}.`, detail: outcome.message, failed: false };
+  const pointer = stepsShown ? RESULT_POINTERS[outcome.command] : undefined;
+  return { words: `${done}.${pointer ? ` ${pointer}` : ""}`, detail: outcome.message, failed: false };
 }
 /** The last press's result, shown under a guide's Next line where the person is looking. */
-export function GuideResult({ label, outcome, only }: { label: string; outcome?: GuideOutcome | null; only?: string[] }) {
+export function GuideResult({ label, outcome, only, stepsShown = true }: { label: string; outcome?: GuideOutcome | null; only?: string[]; stepsShown?: boolean }) {
   // A guide that names its own commands stays silent about another view's press.
-  const result = outcome && (!only || only.includes(outcome.command)) ? guideResultWords(outcome) : null;
+  const result = outcome && (!only || only.includes(outcome.command)) ? guideResultWords(outcome, stepsShown) : null;
   if (!result) return null;
   return <div role={result.failed ? "alert" : "status"} aria-label={label} className={`run-journey-state${result.failed ? " run-journey-failed" : ""}`}><p>{result.words}</p>
     {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>;
@@ -170,7 +182,7 @@ function RunResult({ run, host, loaded, showConversation }: { run: Json; host: J
 }
 
 /** Said in a guide while no status read started after the last command that may change the host has been applied. */
-export const VIEW_NOT_REFRESHED = "What this view showed may be from before your last press. The App is not showing its steps until it has read its state again after that press; it reads again by itself.";
+export const VIEW_NOT_REFRESHED = "What this view showed may be from before the App's last operation finished. The App is not showing its steps until it has read its state again after that; it reads again by itself.";
 /**
  * A guide while what it holds may be from before the last press: its heading,
  * that statement and the press's own result, and none of its steps. Nothing
@@ -181,7 +193,7 @@ export function GuideWithheld({ id, label, title, outcome, resultLabel, only, re
     <h2>{title}</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {VIEW_NOT_REFRESHED}</p>
     {readFailure && <p role="alert">The last read failed: {readFailure}</p>}
-    <GuideResult label={resultLabel} outcome={outcome} only={only}/>
+    <GuideResult label={resultLabel} outcome={outcome} only={only} stepsShown={false}/>
     {children}
   </section>;
 }

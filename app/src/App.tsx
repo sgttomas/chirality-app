@@ -31,7 +31,7 @@ import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealW
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
-import { invoke, useOrderedHost, shownBeforePress } from "./hostReads";
+import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -2033,7 +2033,7 @@ export function App() {
 
   useEffect(() => {
     refresh();
-    const t = setInterval(() => readHost(invoke<Json>("host_status")).then(applyHost).catch(e => setMessage(String(e))), 1000);
+    const t = setInterval(() => readHost(invoke<Json>("host_status")).then(applyHost).catch(e => setMessage(String(e))), POLL_MS);
     // RECOVERY SQ-W W-4, W-5: when the window is shown again after it was
     // closed (hidden; DEF-1), the view replaces what it rendered with the
     // host's current snapshot at once. Nothing is sent to Codex.

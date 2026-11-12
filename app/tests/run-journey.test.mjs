@@ -554,9 +554,10 @@ test('while its view may be from before the last press, the guide shows none of 
   assert.match(region(c, 'Run a workflow').textContent, /Ready to run\./);
   await render(true);
   const section = region(c, 'Run a workflow');
-  assert.match(section.textContent, /^Run a workflowNext: What this view showed may be from before your last press\. The App is not showing its steps until it has read its state again after that press; it reads again by itself\./);
+  assert.match(section.textContent, /^Run a workflowNext: What this view showed may be from before the App's last operation finished\. The App is not showing its steps until it has read its state again after that; it reads again by itself\./);
   assert.doesNotMatch(section.textContent, /The last read failed/, 'no failure is said when no read failed');
-  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested; see Progress for what happened\./, 'the press\'s own result stays');
+  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested\.(?! See Progress)/, 'the press\'s own result stays');
+  assert.doesNotMatch(region(c, 'Run a workflow — last result').textContent.split('What the App reported')[0], /Progress|below/, 'without its pointer to Progress, which is withheld');
   assert.deepEqual(all(section, 'button').map(node => node.textContent), ['Show the conversation'], 'no start, prepare, end or choice is offered');
   assert.equal(all(section, 'li').length, 0, 'none of the steps is shown');
   assert.doesNotMatch(section.textContent, /Ready to start|Ready to run|has not been sent|Nothing has been sent yet|Prepared resolve-spacing|Open —|Working/, 'nothing cached is shown as current, earlier runs included');
