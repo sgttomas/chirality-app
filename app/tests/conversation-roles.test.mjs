@@ -7,12 +7,12 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {RoleHeader,RoleChoice,RoleLimits,ContinueAsPanel,SupplyStatus,NativeChildRoles,ChildAssociations,RoleLimitObservations,ModelProviderFields,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
+const {RoleHeader,RoleChoice,RoleLimits,CurrentFileLimits,SuppliedLimits,limitSubjectWords,ROLE_PLAIN_MEANING,limitWords,ContinueAsPanel,SupplyStatus,NativeChildRoles,ChildAssociations,RoleLimitObservations,ModelProviderFields,guidanceChange,roleName,attemptSend,SendOutcome}=load('ConversationRoles.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const noop=()=>{};
 
 const roles=JSON.parse(readFileSync(new URL('../src-tauri/resources/instructions/roles.json',import.meta.url),'utf8')).roles;
-// The bundled set marks no default today (U-R11 is a release decision); a default is exercised with an invented copy.
+// DEL-02-04 TBD-004: for 4.0.0 the bundled set preselects HELP_HUMAN. A set with no default is exercised with an invented copy.
 const roleSet={available:true,roles:roles.map(r=>({...r,default_for_new_chat:r.name==='HELP_HUMAN'})),defaultRole:'HELP_HUMAN'};
 const bundled={available:true,roles,defaultRole:roles.find(r=>r.default_for_new_chat)?.name??null};
 // The limit account as conversation_roles::limit_account hands it.
@@ -20,7 +20,9 @@ const all={limitId:'L-ALL-1',statement:"Work within the brief's write targets",s
 const task={limitId:'L-TASK-1',statement:'A task agent does not delegate',standing:'stated-not-enforced',presentedAs:'Stated, not enforced',basis:'b',notEnforcement:['approval-policy','sandbox','user-configuration','depth-limit']};
 const limits={available:true,standing:'Stated in the role\'s guidance; Codex does not enforce it.',notRead:[],account:{roles:roles.map(r=>({role:r.name,meaning:r.meaning,delegation:r.delegation,guidanceState:'default',limits:r.name==='TASK'?[task,all]:[all]}))}};
 const g={appSession:'s',home:'h',spawnCounter:1};
-const thread=(over={})=>({generation:g,threadId:'thread',appRole:{standing:'app-observed',role:'HELP_HUMAN',supply_ref:'sup:1'},roleRelation:{kind:'start'},futureGuidanceNotices:[],...over});
+// The account conversation_roles::frozen_limit_account makes from one start's composition, as the role binding hands it.
+const supplied=(over={},account={})=>({subject:{kind:'original-supply',suppliedTo:'thread',supplyRef:'sup:1',thisConversation:true,...over},standing:'established',account:{role:'HELP_HUMAN',limits:[all],...account}});
+const thread=(over={})=>({generation:g,threadId:'thread',appRole:{standing:'app-observed',role:'HELP_HUMAN',supply_ref:'sup:1'},roleRelation:{kind:'start'},suppliedLimitAccount:supplied(),futureGuidanceNotices:[],...over});
 const header=(t,calls={})=>h(RoleHeader,{thread:t,limits,busy:false,ready:true,continueAs:calls.continueAs??noop,fork:calls.fork??noop});
 
 test('the header shows the fixed role, its limits as handed and the two ways on',()=>{
@@ -40,6 +42,23 @@ test('the guidance-changed flag fires only on an actual change',()=>{
   assert.ok(changed.includes('<b>Guidance changed since this conversation started</b>: agents/AGENT_HELP_HUMAN.md (edited)'));
   assert.ok(changed.includes('Nothing was sent to this conversation; it keeps the guidance it started with.'));
   assert.equal((changed.match(/Continue as HELP_HUMAN…/g)??[]).length,2,'the flag offers Continue as the same role');
+  // Review round 3: the comparison selects no account. This conversation's limits are the ones of the guidance it
+  // was supplied, whatever the current files are; the current files' limits appear only under Continue as.
+  const ownPart=html=>html.slice(0,html.indexOf('Continue as <select'));
+  const own='Limits in the HELP_HUMAN guidance the App supplied when this conversation started:';
+  const modifiedSupply=supplied({},{limits:[{...all,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]});
+  for (const notices of [[],[{path:'agents/AGENT_HELP_HUMAN.md',kind:'changed'}],[{path:'AGENTS.md',kind:'not-read'}]]) {
+    const defaultSupply=ownPart(header(thread({futureGuidanceNotices:notices})));
+    assert.ok(defaultSupply.includes(own)&&defaultSupply.includes('<b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it.'),`supplied the shipped guidance, files ${notices[0]?.kind??'unchanged'}: its own account is shown`);
+    const edited=ownPart(header(thread({suppliedLimitAccount:modifiedSupply,futureGuidanceNotices:notices})));
+    assert.ok(edited.includes(own)&&edited.includes('<b>Not known whether the supplied guidance states this</b>')&&!edited.includes('Stated, not enforced')&&!edited.includes('It is stated in'),`supplied modified guidance, files ${notices[0]?.kind??'unchanged'}: never the current files' standing`);
+  }
+  assert.ok(!changed.includes('does not show this conversation')&&!changed.includes('could not be compared with it'),'no sentence joins the comparison to an account');
+  const after=changed.slice(changed.indexOf('Continue as <select'));
+  assert.ok(after.includes('A conversation continued as HELP_HUMAN is given the guidance files as they stand when it starts.')&&after.includes('Limits of HELP_HUMAN in its guidance file as the App last read it:')&&!after.includes('supplied when this conversation started'),'the current files\' limits are shown as the files\', for a continued conversation');
+  // No account kept (the binding is held only by the App process that made it): not known, and nothing borrowed.
+  const none=ownPart(header(thread({suppliedLimitAccount:undefined})));
+  assert.ok(none.includes('Limits in the guidance this conversation was given: not known. This App process holds no account of guidance it supplied to this conversation.')&&!none.includes('Stated, not enforced'));
   const missing=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'missing',reason:'missing'}]}));
   assert.ok(missing.includes('AGENTS.md (missing now)'));
   const unread=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'not-read',reason:'unreadable: store unavailable'}]}));
@@ -84,15 +103,78 @@ test('the start display is readable: preselection, no role, TASK not offered, li
   assert.ok(!html.includes('"standing"'),'no JSON in the start display');
   const changed=h(RoleChoice,{group:"start-thread-role",roleSet,limits,role:'',setRole:noop,preselected:false});
   assert.ok(!changed.includes('(preselected'),'a cleared choice is no longer a preselection');
-  const shipped=h(RoleChoice,{group:"start-thread-role",roleSet:bundled,limits,role:bundled.defaultRole??'',setRole:noop,preselected:false});
-  assert.ok(!shipped.includes('(preselected')&&/<input[^>]*checked=""[^>]*value=""\/>/.test(shipped),'with no default in the set, No role is the start');
-  const taskLimits=h(RoleLimits,{limits,role:'TASK'});
-  assert.ok(taskLimits.includes('A task agent does not delegate: <b>Stated, not enforced</b>. Not this limit&#x27;s enforcement: approval-policy, sandbox, user-configuration, depth-limit.'));
-  const modified=h(RoleLimits,{limits:{...limits,account:{roles:[{role:'TASK',limits:[{...task,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}},role:'TASK'});
+  // DEL-02-04 TBD-004 and exit criterion 3: the shipped set preselects HELP_HUMAN, as data.
+  assert.equal(bundled.defaultRole,'HELP_HUMAN');
+  assert.deepEqual(roles.filter(r=>r.default_for_new_chat).map(r=>r.name),['HELP_HUMAN']);
+  const shipped=h(RoleChoice,{group:"start-thread-role",roleSet:bundled,limits,role:bundled.defaultRole,setRole:noop,preselected:true});
+  assert.ok(/<input[^>]*checked=""[^>]*value="HELP_HUMAN"\/> <b>HELP_HUMAN<\/b>: Alignment with the human \(preselected; change or clear it before starting\)/.test(shipped),'the shipped default is shown preselected');
+  assert.ok(shipped.includes('value=""')&&!/<input[^>]*checked=""[^>]*value=""\/>/.test(shipped),'No role is offered, to clear the preselection');
+  const cleared=h(RoleChoice,{group:"start-thread-role",roleSet:bundled,limits,role:'',setRole:noop,preselected:false});
+  assert.ok(!cleared.includes('(preselected')&&/<input[^>]*checked=""[^>]*value=""\/>/.test(cleared)&&cleared.includes('(the default for a new conversation)'),'cleared to No role, the default is only labelled');
+  const noDefault={available:true,roles:roles.map(r=>({...r,default_for_new_chat:false})),defaultRole:null};
+  const none=h(RoleChoice,{group:"start-thread-role",roleSet:noDefault,limits,role:noDefault.defaultRole??'',setRole:noop,preselected:false});
+  assert.ok(!none.includes('(preselected')&&/<input[^>]*checked=""[^>]*value=""\/>/.test(none),'with no default in the set, No role is the start');
+  const taskLimits=h(CurrentFileLimits,{limits,role:'TASK'});
+  assert.ok(taskLimits.includes('A task agent does not delegate: <b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it. None of these enforces it either: your approval setting, your sandbox setting, your Codex configuration or your delegation depth limit.'));
+  assert.ok(!/Not this limit|approval-policy|depth-limit|U-R6|U-R11/.test(html+taskLimits),'no engineering codes where a person meets the limits');
+  const modified=h(CurrentFileLimits,{limits:{...limits,account:{roles:[{role:'TASK',limits:[{...task,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}},role:'TASK'});
   assert.ok(modified.includes('Not known whether the supplied guidance states this')&&!modified.includes('Stated, not enforced'));
-  assert.ok(h(RoleLimits,{limits:{...limits,account:{roles:[]},notRead:[{role:'TASK',reason:'r',reading:'Limits not known'}]},role:'TASK'}).includes('Limits not known (r)'));
+  assert.ok(h(CurrentFileLimits,{limits:{...limits,account:{roles:[]},notRead:[{role:'TASK',reason:'r',reading:'Limits not known'}]},role:'TASK'}).includes('Limits of TASK in its guidance file as the App last read it: Limits not known (r).'));
   const supply=h(SupplyStatus,{supply:{state:'response-observed',selection:'HELP_HUMAN',carried:{developerInstructions:{parts:[{source:{path:'AGENTS.md',state:'default'},length:10},{source:{path:'agents/AGENT_HELP_HUMAN.md',state:'modified'},length:5}]}}}});
   assert.ok(supply.includes('AGENTS.md (default, 10 bytes) + agents/AGENT_HELP_HUMAN.md (modified, 5 bytes)')&&supply.includes('Whether the model takes it up is unknown.'));
+});
+
+test('each conversation role is offered with a plain meaning from its shipped guidance, and its limits in plain words',()=>{
+  // AC-001 "with their meanings": the line beside each role comes from its own shipped document.
+  const doc=name=>readFileSync(new URL(`../src-tauri/resources/instructions/agents/AGENT_${name}.md`,import.meta.url),'utf8').replace(/\s+/g,' ');
+  for (const [name,phrase] of [['HELP_HUMAN',"the person's intended outcome, commitments and work already in progress"],['HELPS_HUMANS','conceive and design workflows, tools and projects'],['WORKING_ITEMS','a bounded undertaking through implementation']]) {
+    assert.ok(doc(name).includes(phrase),`${name}'s document carries the phrase its line is taken from`);
+    const html=h(RoleChoice,{group:'g',roleSet,limits,role:name,setRole:noop,preselected:false});
+    assert.ok(html.includes(ROLE_PLAIN_MEANING[name].replaceAll("'",'&#x27;')),`${name} shows its plain meaning`);
+    // AC-003/AC-004 and V4-ROLE-03: the chosen role's limit is shown as stated, not enforced, with no enforcement implied.
+    assert.ok(html.includes("Work within the brief&#x27;s write targets: <b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it. None of these enforces it either: the brief itself, working in a separate worktree, your sandbox setting or your approval setting."),`${name}'s limit in plain words`);
+    assert.ok(!/Enforced by Codex|Not this limit|brief-text|approval-policy/.test(html));
+    assert.ok(html.includes('A limit shown as “Stated, not enforced” is an instruction to the agent. Codex does not enforce it, and your approval and sandbox settings are a separate matter that does not enforce it either.'));
+  }
+  assert.equal(ROLE_PLAIN_MEANING.TASK,undefined,'TASK is not offered, so it has no start line');
+  // A limit whose standing is unknown keeps its unknown label and claims no enforcement.
+  assert.equal(limitWords({...task,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}),'None of these enforces it: your approval setting, your sandbox setting, your Codex configuration or your delegation depth limit.');
+  // The general note is never shown over a limit Codex enforces.
+  const enforced={...limits,account:{roles:[{role:'HELP_HUMAN',limits:[{...all,standing:'enforced-by-supplier',presentedAs:'Enforced by Codex',mechanism:'a named control'}]}]}};
+  const withEnforced=h(RoleChoice,{group:'g',roleSet,limits:enforced,role:'HELP_HUMAN',setRole:noop,preselected:false});
+  assert.ok(withEnforced.includes('<b>Enforced by Codex</b>. Codex enforces it through a named control.')&&!withEnforced.includes('Codex does not enforce'));
+  // Review rounds 1 to 3: the note says what the label means and nothing of what any guidance states;
+  // that is said with each limit, by the one renderer, under the guidance its account describes.
+  const note='A limit shown as “Stated, not enforced” is an instruction to the agent.';
+  const allKnown=h(RoleChoice,{group:'g',roleSet,limits,role:'HELP_HUMAN',setRole:noop,preselected:false});
+  assert.ok(allKnown.includes(note)&&!/written in|A role&#x27;s limits are/.test(allKnown));
+  const onlyUnknown={...limits,account:{roles:[{role:'WORKING_ITEMS',limits:[{...all,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}};
+  const withUnknown=h(RoleChoice,{group:'g',roleSet,limits:onlyUnknown,role:'WORKING_ITEMS',setRole:noop,preselected:false});
+  assert.ok(withUnknown.includes('<b>Not known whether the supplied guidance states this</b>')&&!withUnknown.includes('It is stated in')&&!withUnknown.includes(note),'a changed role\'s limit claims nothing about what its guidance states, and no label is explained that is not shown');
+  // Guidance that could not be read has no limit rows at all; it is listed under notRead.
+  const unreadable={...limits,notRead:[{role:'WORKING_ITEMS',reading:'Limits not known',reason:'guidance could not be read'}],account:{roles:limits.account.roles.filter(r=>r.role!=='WORKING_ITEMS')}};
+  const withUnread=h(RoleChoice,{group:'g',roleSet,limits:unreadable,role:'WORKING_ITEMS',setRole:noop,preselected:false});
+  assert.ok(withUnread.includes('Limits of WORKING_ITEMS in its guidance file as the App last read it: Limits not known (guidance could not be read).'));
+  // The start display carries no engineering status line for the role set.
+  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
+  assert.ok(!app.includes('Role set: {host?.roleSet?.standing'));
+  assert.ok(app.includes('preselected: !roleTouched && !!role && role === source?.roleSet?.defaultRole'),'the start records preselected against chosen');
+});
+
+test('Continue as offers the roles with their meanings and shows the chosen role\'s limits',()=>{
+  const html=header(thread());
+  assert.ok(html.includes('<option value="HELPS_HUMANS">HELPS_HUMANS: Design</option>')&&html.includes('<option value="WORKING_ITEMS">WORKING_ITEMS: Managed execution</option>'));
+  assert.ok(html.includes('<option value="">No role: product guidance only</option>')&&!/<option[^>]*value="TASK"/.test(html));
+  // Two accounts, each once and each under its own subject: what this conversation was supplied, and the
+  // current file of the Continue-as target (which starts at the conversation's own role; state is the select's).
+  const count=(text,label)=>text.split(`aria-label="${label}"`).length-1;
+  assert.equal(count(html,'Limits in the HELP_HUMAN guidance the App supplied when this conversation started'),1);
+  assert.equal(count(html,'Limits of HELP_HUMAN in its guidance file as the App last read it'),1);
+  const fromWorking=header(thread({appRole:{standing:'app-observed',role:'WORKING_ITEMS',supply_ref:'sup:2'},suppliedLimitAccount:supplied({},{role:'WORKING_ITEMS'})}));
+  assert.equal(count(fromWorking,'Limits in the WORKING_ITEMS guidance the App supplied when this conversation started'),1);
+  assert.equal(count(fromWorking,'Limits of WORKING_ITEMS in its guidance file as the App last read it'),1);
+  const unknownRole=header(thread({appRole:{standing:'unknown',reason:'r'}}));
+  assert.ok(unknownRole.includes('HELP_HUMAN: '+ROLE_PLAIN_MEANING.HELP_HUMAN.replaceAll("'",'&#x27;'))&&unknownRole.includes('aria-label="Limits of HELP_HUMAN in its guidance file as the App last read it"'),'the target shows its meaning and its current file\'s limits');
 });
 
 test('Continue as: an editable unsent draft, no model chosen, nothing sent until the person sends',()=>{
@@ -225,7 +307,7 @@ test('child catalog presents the host matrix without adding TASK to primary role
     assert.equal((html.match(/Not supplied\. Not offered by this conversation&#x27;s role\./g)??[]).length,4-count);
     assert.ok(html.includes('PERSON_ROLE')&&html.includes('Sources observed: 4')&&html.includes(identity('e').value));
     assert.ok(html.includes('not a lock on later changes'));
-    assert.ok(html.includes('TASK&#x27;s default nondelegation limit is stated, not enforced'));
+    assert.ok(html.includes('The TASK guidance document shipped with the App says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. That describes the shipped document, not what any child was given: each child&#x27;s own limits are shown with it.'),'the note names the shipped document as its subject, never a child\'s guidance');
     assert.ok(!/<(input|option|button)/.test(html),'catalog is evidence, with no role-changing or delegation control');
     assert.ok(h(SupplyStatus,{supply}).includes('aria-label="Native child role supply"'),'the ordinary supply display consumes the catalog');
   }
@@ -252,7 +334,7 @@ test('withheld child roles explain collisions, unreadable sources, unestablished
   for (const reading of ['A person-defined role with this name was preserved.','Configuration origins or source currency could not be established.','Child-role carrier support is not established for this acting supplier.','Child guidance could not be read or composed.','The App child guidance file could not be published or verified.','future-withholding-reason']) assert.ok(html.includes(reading),reading);
   assert.equal((html.match(/Not supplied\./g)??[]).length,reasons.length);
   assert.ok(!html.includes('Supplied in the original parent start.')&&!html.includes('Sources observed:'));
-  assert.ok(html.includes('The App preserves the person&#x27;s roles, features, depth and permissions'));
+  assert.ok(html.includes('The App leaves your own roles, features, delegation depth and permissions as they are.'));
 });
 
 test('unknown or different acting supplier identity withholds support without claiming version incompatibility',()=>{
@@ -271,7 +353,9 @@ const childEvent={generation:g,parentThreadId:'parent',threadId:'child',turnId:'
 const associatedChild={standing:'app-observed-child-supply',role:'TASK',parentSupplyRef:'sup:parent',composition:identity('c'),file:identity('d'),native:childEvent,metadataRequestRef:'req:metadata',agentRole:'TASK',parentThreadId:'parent',limitAccount:{role:'TASK',limits:[task,all]},providerAdoption:'unknown',currentRoleAuthorityRestored:false,basis:'original parent + native event + metadata',roleSupplyRecord:{state:'written'}};
 
 test('selected child evidence remains historical and separate from the primary conversation role',()=>{
-  const html=header(thread({threadId:'child',appRole:{standing:'unknown',reason:'no primary App binding'},childGuidance:associatedChild}));
+  // As the host hands an observed child: no primary binding, so no role relation and no supplied account of its own.
+  const html=header(thread({threadId:'child',appRole:{standing:'unknown',reason:'no primary App binding'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:associatedChild}));
+  assert.ok(!/holds no account|was given: not known/.test(html),'the child\'s held account is not denied');
   assert.ok(html.includes('Role not established in this App process (no primary App binding)'));
   assert.ok(html.includes('Original App child guidance: <b>TASK</b> (observed). Parent conversation: parent. Provider uptake remains unknown.'));
   assert.ok(!html.includes('Role: <b>TASK</b>')&&!/<option[^>]*value="TASK"/.test(html));
@@ -279,7 +363,7 @@ test('selected child evidence remains historical and separate from the primary c
   assert.ok(html.includes('It does not set the primary conversation role or restore current role authority'));
   assert.ok(html.includes('Resume, fork and later generations do not authorize new child associations from this catalog'));
   assert.ok(html.includes('req:metadata')&&html.includes('native-item:1')&&html.includes(identity('d').value),'original identity remains inspectable');
-  const later=header(thread({generation:{...g,spawnCounter:2},threadId:'child',childGuidance:associatedChild}));
+  const later=header(thread({generation:{...g,spawnCounter:2},threadId:'child',appRole:{standing:'unknown',reason:'no primary App binding'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:associatedChild}));
   assert.ok(later.includes('Original App child guidance')&&later.includes('&quot;spawnCounter&quot;: 1'),'later generations preserve the original evidence');
   const unknown=h(ChildAssociations,{associations:[{native:childEvent,guidance:{standing:'unknown',reason:'native child metadata pending'}}]});
   assert.ok(unknown.includes('Child child · parent parent · guidance unknown')&&unknown.includes('Child guidance unknown: native child metadata pending'));
@@ -290,15 +374,20 @@ test('selected child evidence remains historical and separate from the primary c
 test('TASK delegation shows the observed event, original standing and root provenance without enforcement claims',()=>{
   const observed={...childEvent,parentThreadId:'child',threadId:'grandchild',itemId:'native-item:2',receiptPosition:21,root:childEvent,parentSupplyRef:'sup:parent',standing:'stated-not-enforced',originalRole:'TASK',basis:'comparison-with-original-child-guidance',actionGeneration:g,originalAssociation:{associationId:'sup:child:1',generation:g,parentSupplyRef:'sup:parent',role:'TASK'}};
   const html=h(RoleLimitObservations,{observations:[observed]});
-  assert.ok(html.includes('Child child started child grandchild. Original TASK limit standing: <b>Stated, not enforced</b>'));
-  assert.ok(html.includes('Native delegation compared with original TASK guidance'));
-  assert.ok(html.includes('The App did not prevent this delegation.'));
+  const unknownDelegation=()=>h(RoleLimitObservations,{observations:[{...observed,standing:'unknown'}]});
+  assert.ok(html.includes('Child child started child grandchild. The TASK guidance it was given says a task agent does not delegate: <b>Stated, not enforced</b>.'));
+  assert.ok(html.includes('Delegations by an agent given TASK guidance'));
+  assert.ok(html.includes('Codex does not enforce this limit. The App recorded this delegation and did not prevent it.'));
+  assert.ok(!unknownDelegation().includes('Codex does not enforce this limit')&&unknownDelegation().includes('The App recorded this delegation and did not prevent it.'),'an unknown standing claims nothing about enforcement');
   assert.ok(html.includes('native-item:2')&&html.includes('receipt position 21')&&html.includes('Original root parent: parent · original parent supply: sup:parent'));
   assert.ok(html.includes('original TASK association: sup:child:1')&&!html.includes('Original guidance generation:'),'same-generation comparison keeps generation detail in raw evidence');
   const unknown=h(RoleLimitObservations,{observations:[{...observed,standing:'unknown',presentedAs:'TASK prohibition stated, not enforced'}]});
-  assert.ok(unknown.includes('Original TASK limit standing: <b>unknown</b>')&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
+  assert.ok(unknown.includes('Whether the TASK guidance this child was given says a task agent does not delegate: <b>Not known whether the supplied guidance states this</b>. The App could not establish what that guidance states.')&&!/was changed|could not be read/.test(unknown)&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
+  // Review round 1: an unknown standing was preceded by "The TASK guidance it was given says…".
+  assert.ok(!unknown.includes('guidance it was given says')&&!/shipped/.test(unknown),'with an unknown standing nothing is asserted of any guidance, the shipped document included');
+  assert.ok(!unknown.includes('Codex does not enforce')&&!unknown.includes('Enforced by Codex'));
   assert.ok(header(thread({roleLimitObservations:[observed]})).includes('aria-label="Observed TASK delegations"'),'shown in the source conversation');
-  assert.ok(h(SupplyStatus,{supply:{roleLimitObservations:[observed]}}).includes('Native delegation compared with original TASK guidance'),'shown in the home supply display');
+  assert.ok(h(SupplyStatus,{supply:{roleLimitObservations:[observed]}}).includes('Delegations by an agent given TASK guidance'),'shown in the home supply display');
 });
 
 test('later native action compares with original TASK guidance without renewed supply or a new child association',()=>{
@@ -308,8 +397,8 @@ test('later native action compares with original TASK guidance without renewed s
   const html=h(SupplyStatus,{supply:{childAssociations:[{native:childEvent,guidance:associatedChild},{native:event,guidance:{standing:'unknown',reason:'no supported original App parent carrier'}}],roleLimitObservations:[observed]}});
   assert.ok(html.includes(`Original guidance generation: ${JSON.stringify(g).replaceAll('"','&quot;')}. Native action generation: ${JSON.stringify(later).replaceAll('"','&quot;')}.`));
   assert.ok(html.includes('original TASK association: sup:child:1')&&html.includes('original parent supply: sup:parent'));
-  assert.ok(html.includes('Original TASK limit standing: <b>unknown</b>'),'edited original guidance keeps its unknown assessment');
-  assert.ok(html.includes('Comparison with original guidance only; no renewed supply, provider uptake or current role authority is established.'));
+  assert.ok(html.includes('<b>Not known whether the supplied guidance states this</b>'),'edited original guidance keeps its unknown assessment');
+  assert.ok(html.includes('It does not show that guidance was sent again, that the model took it up, or that the role still applies.'));
   assert.ok(html.includes('Child grandchild · parent child · guidance unknown'));
   assert.ok(html.includes('Child guidance unknown: no supported original App parent carrier.'));
   assert.equal((html.match(/Original App child guidance:/g)??[]).length,1,'only the original child has an association');
@@ -326,4 +415,75 @@ test('quoted history exposes exact child composition, sources, envelope and orig
   assert.ok(html.includes('Recorded child configuration file bytes')&&html.includes('developer_instructions = &quot;quoted\\r\\n&quot;\n'));
   assert.ok(html.includes('Recorded child limit account')&&html.includes('L-TASK-1'));
   assert.ok(html.includes('Quoted child bytes do not restore child associations')&&!html.includes('Original App child guidance'));
+});
+
+test('every limit standing reads the same under each guidance an account can describe, and only under that one',()=>{
+  // The rule (review round 3): an account names the guidance it describes; the view shows it only under that
+  // subject, through one renderer that makes a limit's sentence from that limit's standing and nothing else.
+  const subjects=[
+    [{of:'current-files'},'Limits of TASK in its guidance file as the App last read it'],
+    [{of:'conversation-supply',thread:'thread',own:true},'Limits in the TASK guidance the App supplied when this conversation started'],
+    [{of:'conversation-supply',thread:'thread-a',own:false},'This fork was sent no guidance of its own. Limits in the TASK guidance the App supplied when conversation thread-a started'],
+    [{of:'child-supply'},'Limits in the TASK guidance the App supplied for this child'],
+  ];
+  const standings=[
+    [{...task},'<b>Stated, not enforced</b>. It is stated in that guidance; Codex does not enforce it. None of these enforces it either:',/Enforced by Codex|Not known/],
+    [{...task,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'},'<b>Not known whether the supplied guidance states this</b>. None of these enforces it:',/It is stated in|Stated, not enforced|Enforced by Codex|Codex does not enforce/],
+    [{...task,standing:'enforced-by-supplier',presentedAs:'Enforced by Codex',mechanism:'a named control',notEnforcement:[]},'<b>Enforced by Codex</b>. Codex enforces it through a named control.',/It is stated in|Stated, not enforced|does not enforce|Not known/],
+  ];
+  for (const [subject,lead] of subjects) {
+    assert.equal(limitSubjectWords(subject,'TASK'),lead);
+    for (const [limit,words,never] of standings) {
+      const html=h(RoleLimits,{subject,role:'TASK',entry:{role:'TASK',limits:[limit]}});
+      assert.ok(html.includes(`${lead}:`)&&html.includes(`A task agent does not delegate: ${words}`),`${lead} / ${limit.standing}`);
+      assert.doesNotMatch(html,never,`${lead} / ${limit.standing}: nothing of another standing`);
+    }
+    // No account, or an account for another role, is not known under that same subject; nothing is borrowed.
+    for (const entry of [undefined,null,{role:'HELP_HUMAN',limits:[all]}]) {
+      const html=h(RoleLimits,{subject,role:'TASK',entry,notKnown:'not known (invented reason)'});
+      assert.ok(html.includes(`${lead}: not known (invented reason).`)&&!/Stated, not enforced|It is stated in|Enforced by Codex/.test(html),`${lead}: no account`);
+    }
+  }
+  // The header takes its subject from the account the host hands, never from the role line or the current files.
+  const forked=h(SuppliedLimits,{supplied:supplied({suppliedTo:'thread-a',thisConversation:false})});
+  assert.ok(forked.includes('This fork was sent no guidance of its own. Limits in the HELP_HUMAN guidance the App supplied when conversation thread-a started:')&&forked.includes('<b>Stated, not enforced</b>'));
+  const failed=h(SuppliedLimits,{supplied:{subject:{kind:'original-supply',suppliedTo:'thread',thisConversation:true},standing:'not-known',reason:'original role comparison unestablished'}});
+  assert.ok(failed.includes('Limits in the guidance the App supplied when this conversation started: not known (original role comparison unestablished).')&&!failed.includes('Stated, not enforced'));
+  const noRole=h(SuppliedLimits,{supplied:supplied({},{role:'none',limits:[]})});
+  assert.ok(noRole.includes('Started with no role: the App supplied the product guidance only, and no role&#x27;s limits.'));
+  for (const absent of [undefined,null,{},{subject:{kind:'current-files'},standing:'established',account:{role:'HELP_HUMAN',limits:[all]}}])
+    assert.ok(h(SuppliedLimits,{supplied:absent}).includes('Limits in the guidance this conversation was given: not known.')&&!h(SuppliedLimits,{supplied:absent}).includes('Stated, not enforced'),'an account of another subject is never shown as the conversation\'s');
+  // The current files' account is shown only as the files'.
+  assert.ok(h(CurrentFileLimits,{limits,role:'HELP_HUMAN'}).includes('Limits of HELP_HUMAN in its guidance file as the App last read it:'));
+  assert.ok(h(CurrentFileLimits,{limits,role:null}).includes('No role: the conversation gets the product guidance only. No role limits are stated.'));
+  // Review round 4, finding 1: an observed native child has no conversation-start binding, so the host hands no
+  // supplied account for it, but the App does hold the child's own account. Nothing denies that account.
+  const childLimits={role:'TASK',limits:[task,all]};
+  const childOnly=thread({threadId:'child',appRole:{standing:'unknown',reason:'original App supply binding not established'},roleRelation:null,suppliedLimitAccount:undefined,
+    childGuidance:{standing:'app-observed-child-supply',role:'TASK',limitAccount:childLimits,native:{parentThreadId:'parent'}}});
+  const childHeader=header(childOnly).slice(0,header(childOnly).indexOf('Continue as <select'));
+  assert.ok(childHeader.includes('Limits in the TASK guidance the App supplied for this child:')&&childHeader.includes('<b>Stated, not enforced</b>'));
+  assert.ok(!/holds no account|was given: not known/.test(childHeader),'a held child account is not followed by a denial');
+  const neither=header(thread({appRole:{standing:'unknown',reason:'r'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:null}));
+  assert.ok(neither.includes('Limits in the guidance this conversation was given: not known. This App process holds no account of guidance it supplied to this conversation.'));
+  const unknownChild=header(thread({appRole:{standing:'unknown',reason:'r'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:{standing:'unknown',reason:'native child metadata pending'}}));
+  assert.ok(unknownChild.includes('holds no account of guidance it supplied to this conversation'),'child guidance that is not established is not an account held');
+  // The rule's closed list (round 4, finding 2). Every place in the role view that says what guidance says, states,
+  // is stated or written in, or prohibits is one of: the shared renderer (limitWords), or one of the two exceptions
+  // Agent 0 settled, which render no account: the record of an observed TASK delegation, which states the standing
+  // the host copied from that child's account when it observed the delegation, and the note under native child
+  // roles, which states what the shipped TASK document says. A new composer anywhere else fails here.
+  const source=readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
+  const code=source.replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'');
+  const composers={};let inside=null;
+  for (const line of code.split('\n')) {
+    inside=/^(?:export )?(?:function|const) (\w+)/.exec(line)?.[1]??inside;
+    for (const _ of line.matchAll(/(?<![.\w?])(says|states|is stated|stated in|written in|prohibits?)\b/g)) composers[inside]=(composers[inside]??0)+1;
+  }
+  assert.deepEqual(composers,{limitWords:1,NativeChildRoles:2,RoleLimitObservations:5});
+  // The note's ground: the shipped TASK document carries what the note says of it.
+  const shippedTask=readFileSync(new URL('../src-tauri/resources/instructions/agents/AGENT_TASK.md',import.meta.url),'utf8').replace(/\s+/g,' ');
+  assert.ok(shippedTask.includes('Do not delegate or create another execution layer. This role limit is stated, not enforced by the App'));
+  assert.ok(source.includes('The TASK guidance document shipped with the App says a task agent does not delegate'));
+  assert.ok(!source.includes('sameGuidance'),'no account is selected by comparing guidance');
 });
