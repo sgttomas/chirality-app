@@ -33,6 +33,38 @@ export function guidanceChange(notices: Json): { changed: Json[]; notRead: Json[
   };
 }
 
+/** What each conversation role does, in one line, taken from the opening of
+ * its shipped guidance document (resources/instructions/agents/AGENT_<ROLE>.md).
+ * The role set's own meaning stays beside the name; this says it plainly. */
+export const ROLE_PLAIN_MEANING: Record<string, string> = {
+  HELP_HUMAN: "Understands the outcome you intend, your commitments and the work already in progress, and keeps that understanding current.",
+  HELPS_HUMANS: "Helps you conceive and design workflows, tools and projects.",
+  WORKING_ITEMS: "Carries a bounded undertaking through implementation.",
+};
+
+/** The limit account's `notEnforcement` codes in plain words: things that may
+ * restrict the agent but are not this limit's enforcement (AC-004). */
+const NOT_ENFORCED_BY: Record<string, string> = {
+  "approval-policy": "your approval setting",
+  "sandbox": "your sandbox setting",
+  "user-configuration": "your Codex configuration",
+  "depth-limit": "your delegation depth limit",
+  "worktree": "working in a separate worktree",
+  "brief-text": "the brief itself",
+};
+const inWords = (items: string[]): string => items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`;
+
+/** One limit as the account hands it, in plain words. "Stated, not enforced"
+ * is the scope's own label and stays; the codes beside it are explained. */
+export function limitWords(l: Json): string {
+  const standing = text(l?.standing);
+  const others = list(l?.notEnforcement).map(c => NOT_ENFORCED_BY[text(c)] ?? text(c));
+  const separate = (either: string) => others.length ? `None of these enforces it${either}: ${inWords(others)}.` : "";
+  if (standing === "stated-not-enforced") return `It is stated in the role's guidance; Codex does not enforce it. ${separate(" either")}`.trim();
+  if (standing === "enforced-by-supplier") return l?.mechanism ? `Codex enforces it through ${text(l.mechanism)}.` : "";
+  return separate("");
+}
+
 /** LA-4: the limits as handed by the limit account, per role. */
 export function RoleLimits({ limits, role }: { limits: Json; role: string | null }) {
   if (!role) return <p><small>No role: the conversation gets the product guidance only. No role limits are stated.</small></p>;
@@ -40,8 +72,16 @@ export function RoleLimits({ limits, role }: { limits: Json; role: string | null
   const unread = list(limits?.notRead).find((r: Json) => r?.role === role);
   if (!entry) return <p><small>Limits of {role}: {unread ? `${text(unread.reading)} (${text(unread.reason)})` : "not available"}.</small></p>;
   return <ul aria-label={`Limits of ${role}`}>
-    {list(entry.limits).map((l: Json) => <li key={text(l.limitId)}><small>{text(l.statement)}: <b>{text(l.presentedAs)}</b>. Not this limit's enforcement: {list(l.notEnforcement).map(text).join(", ")}.</small></li>)}
+    {list(entry.limits).map((l: Json) => <li key={text(l.limitId)}><small>{text(l.statement)}: <b>{text(l.presentedAs)}</b>. {limitWords(l)}</small></li>)}
   </ul>;
+}
+
+/** The note under a role choice, in plain words: only when no limit the
+ * account hands is enforced by Codex, so it never contradicts an enforced one. */
+function LimitsNote({ limits }: { limits: Json }) {
+  const all = list(limits?.account?.roles).flatMap((r: Json) => list(r?.limits));
+  if (!limits?.available || all.length === 0 || !all.every((l: Json) => l?.standing === "stated-not-enforced" || l?.standing === "unknown")) return null;
+  return <p><small>A role's limits are written in its guidance for the agent to follow. Codex does not enforce them, and your approval and sandbox settings are a separate matter that does not enforce them either.</small></p>;
 }
 
 /** ST-5: the start display's role choice, readable. The default is shown as a
@@ -58,11 +98,12 @@ export function RoleChoice({ roleSet, limits, role, setRole, preselected, group 
       const name = text(r.name);
       return <div key={name}>
         <label><input type="radio" name={group} value={name} checked={role === name} onChange={() => setRole(name)} /> <b>{name}</b>: {text(r.meaning)}{r.default_for_new_chat ? (role === name && preselected ? " (preselected; change or clear it before starting)" : " (the default for a new conversation)") : ""}</label>
+        {ROLE_PLAIN_MEANING[name] && <p><small>{ROLE_PLAIN_MEANING[name]}</small></p>}
         {role === name && <RoleLimits limits={limits} role={name} />}
       </div>;
     })}
     <label><input type="radio" name={group} value="" checked={role === ""} onChange={() => setRole("")} /> <b>No role</b>: product guidance only.</label>
-    <p><small>{text(limits?.standing)}</small></p>
+    <LimitsNote limits={limits} />
     <p><small>TASK is not a conversation role: a manager assigns bounded work to it, and its guidance is supplied for that delegation.</small></p>
   </fieldset>;
 }
@@ -109,7 +150,7 @@ export function NativeChildRoles({ supply }: { supply: Json }) {
       {Array.isArray(namespace.candidateNames) && <p>Observed role names: {namespace.candidateNames.length ? namespace.candidateNames.map(text).join(", ") : "none"}. Sources observed: {text(namespace.sourceCount)}.</p>}
       {namespace.config && <p>Configuration identity: {text(namespace.config.method)} · {text(namespace.config.value)}</p>}
     </details>}
-    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App preserves the person's roles, features, depth and permissions. TASK's default nondelegation limit is stated, not enforced.</small></p>
+    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App leaves your own roles, features, delegation depth and permissions as they are. TASK's guidance says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it.</small></p>
   </section>;
 }
 
@@ -146,16 +187,16 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
   const rows = list(observations);
   if (rows.length === 0) return null;
   return <section aria-label="Observed TASK delegations">
-    <p><b>Native delegation compared with original TASK guidance</b></p>
+    <p><b>Delegations by an agent given TASK guidance</b></p>
     {rows.map((row, i) => {
       const original = row.originalAssociation;
       const originalGeneration = original?.generation ?? row.root?.generation;
       const actionGeneration = row.actionGeneration ?? row.generation;
       return <div key={i}>
-        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. Original TASK limit standing: <b>{row.standing === "stated-not-enforced" ? "Stated, not enforced" : text(row.standing) || "unknown"}</b>. The App did not prevent this delegation.</p>
+        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. The TASK guidance it was given says a task agent does not delegate: <b>{row.standing === "stated-not-enforced" ? "Stated, not enforced" : row.standing === "enforced-by-supplier" ? "Enforced by Codex" : "Not known whether the supplied guidance states this"}</b>.{row.standing === "stated-not-enforced" ? " Codex does not enforce this limit." : ""} The App recorded this delegation and did not prevent it.</p>
         <p><small>Native event: {text(row.itemId)} · {text(row.source)} · receipt position {text(row.receiptPosition)}. Original root parent: {text(row.root?.parentThreadId)} · original parent supply: {text(original?.parentSupplyRef ?? row.parentSupplyRef)}{original?.associationId ? ` · original TASK association: ${text(original.associationId)}` : ""}.</small></p>
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
-        <p><small>Comparison with original guidance only; no renewed supply, provider uptake or current role authority is established.</small></p>
+        <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>
         {row.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">TASK delegation history was not confirmed: {text(row.roleSupplyRecord.limit)}.</p>}
         <details><summary>TASK delegation evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row, null, 2)}</pre></details>
       </div>;
@@ -241,6 +282,8 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
   const [target, setTarget] = useState<string>(own === undefined ? CONVERSATION_ROLES[0] : (own ?? ""));
   const relation = thread?.roleRelation;
   const { changed, notRead } = guidanceChange(thread?.futureGuidanceNotices);
+  // The role set's short meaning, as the limit account hands it with each role.
+  const meaningOf = (name: string) => text(list(limits?.account?.roles).find((r: Json) => r?.role === name)?.meaning);
   return <div aria-label="Conversation role">
     <p>Role: <b>{roleName(appRole)}</b>. It is fixed for this conversation's life; native role hints do not set it.</p>
     <ChildGuidance guidance={thread?.childGuidance} />
@@ -255,11 +298,12 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
     {notRead.length > 0 && <p><small>Current guidance could not be read ({notRead.map((n: Json) => text(n.path)).join(", ")}), so it was not compared.</small></p>}
     <p>
       <label>Continue as <select value={target} disabled={busy} onChange={e => setTarget(e.target.value)}>
-        {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{r}</option>)}<option value="">No role</option>
+        {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{meaningOf(r) ? `${r}: ${meaningOf(r)}` : r}</option>)}<option value="">No role: product guidance only</option>
       </select></label>{" "}
       <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target || "no role"}…</button>{" "}
       <button disabled={busy || !ready || !!forkUnavailable} onClick={fork}>Fork (same role)</button>
     </p>
+    {target !== (own ?? "") && <>{ROLE_PLAIN_MEANING[target] && <p><small>{target}: {ROLE_PLAIN_MEANING[target]}</small></p>}<RoleLimits limits={limits} role={target || null} /></>}
     {forkUnavailable && <p role="status">{forkUnavailable}</p>}
     <p><small>Continue as starts a new conversation with that role; this conversation keeps its role. The App first asks this conversation's agent for a handoff summary in a visible turn here, and you edit it before anything is sent. Fork copies this conversation with the same role and guidance.</small></p>
   </div>;
