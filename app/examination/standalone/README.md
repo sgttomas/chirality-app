@@ -9,10 +9,20 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'group_b_stan
 ```
 
 The output is a machine-readable **preparation**, not an SQ dossier or EXP
-result. It preserves the accepted map's 23 ordered steps (21 counted),
+result. It preserves the accepted map's 36 ordered steps (34 counted),
 file-qualified supplier cases, five stimuli, action/observation text, native
 route requirements, preconditions and run insertion points. RUN-A contains
-V4-EXM-10 and V4-EXM-11; RUN-B has the same still-unfilled candidate slot.
+V4-EXM-10 and V4-EXM-11; RUN-B, RUN-J1 and RUN-J2 have the same still-unfilled
+candidate slot. The journey steps J1-1…J1-6 and J2-1…J2-7 cite their governing
+acceptance criteria instead of supplier cases, mark the J2 sessions and the
+steps performed at the act control, and the preparation's
+`journey_record_requirements` states what each attempted journey step and
+journey must say: who operated it and by what means, what was done outside the
+App's controls, what the App's window did not give, what the examination could
+not perceive or operate, and any intervention. J1-4 and J2-7 carry planned
+parts that each keep their own outcome and need native evidence; J1-4, J1-5 and
+J2-7 name the observations their outcome rests on (the changed file, and the
+two byte comparisons for each run-start turn), each with its expected result.
 The invented inventory rows are input material for future substantive tool
 work and new-input reuse; no workflow is authored or registered by this tool.
 

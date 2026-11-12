@@ -4,7 +4,7 @@
   "standing": "Production candidate; exact instruction bytes and source binding independently reviewed; no release, supplier adoption or shared allocation claim",
   "roleSet": {
     "path": "roles.json",
-    "sha256": "15fa4ca9d30f391a0b4c606b374b6255ab31bc994cf4a0a298907f786844f7d4"
+    "sha256": "e4dd8fe201337e10e3113dc0077472dd4e0ba0cf8c868122303a477260df23c0"
   },
   "guidance": [
     {
@@ -44,7 +44,7 @@
       "id": "U-R11",
       "owner": "App role-guidance owner",
       "pointOfNeed": "Before release",
-      "disposition": "All four defaults false in this bounded candidate per parent-relayed HELP_HUMAN disposition; no final release decision"
+      "disposition": "Decided for 4.0.0 by DEL-02-04 TBD-004: a new conversation preselects HELP_HUMAN; the other three defaults false"
     }
   ],
   "prototype": "Not used as authority or copied"

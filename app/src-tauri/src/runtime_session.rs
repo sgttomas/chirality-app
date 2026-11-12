@@ -1593,7 +1593,9 @@ impl HistorySession {
                 current.insert(path.clone(), read(&path, role_default(role)));
             }
         }
-        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"futureGuidanceNotices":binding.changes(&current)})
+        // The limit account comes from the binding alone. The comparison with the
+        // current files above is its own statement and selects nothing in it.
+        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"suppliedLimitAccount":binding.supplied_limit_account(),"futureGuidanceNotices":binding.changes(&current)})
     }
     /// ROLE §3.3 F-1: bind a same-role fork from the actual `thread/fork`
     /// request and its correlated response. The fork inherits the source's

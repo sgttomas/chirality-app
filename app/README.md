@@ -690,11 +690,13 @@ implemented behavior and qualification limits.
     including the person's `run_ended`, are written in order. I/O failures still
     hold strict order.
 24. **Conversation roles** (NIR §5.4, §5.8; ROLE §3.2, §3.3, §4.4, §6.2). The
-    start display lists the role set readably, with the `default_for_new_chat`
-    role labelled as a preselection (the bundled set marks none today, U-R11),
-    "No role", and each role's limits as the limit account hands them (TASK
-    "A task agent does not delegate: Stated, not enforced"; a modified copy
-    reads not known). The start display and Continue as offer HELP_HUMAN,
+    start display lists the role set readably, each role with a plain line
+    from its shipped guidance, with the `default_for_new_chat` role shown
+    preselected and clearable (HELP_HUMAN in the bundled set, DEL-02-04
+    TBD-004), "No role", and each role's limits as the limit account hands
+    them, in plain words (TASK "A task agent does not delegate: Stated, not
+    enforced", then that Codex does not enforce it and that approval, sandbox,
+    configuration and depth do not either; a modified copy reads not known). The start display and Continue as offer HELP_HUMAN,
     HELPS_HUMANS and WORKING_ITEMS (the host's `roleSet.conversationRoles`)
     and No role. TASK is not listed as a choice: it is the role a manager
     assigns bounded work to, and its guidance is supplied for that delegation

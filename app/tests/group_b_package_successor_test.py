@@ -296,4 +296,53 @@ class PackageSuccessorReceivingTests(unittest.TestCase):
             self.assertFalse(report[key])
 
 
+    def jstep(self, step):
+        return next(st for s in self.f.dossier['scenarios'] for st in s['steps'] if st['step'] == step)
+
+    def test_gap_with_one_part_blocked_is_received_as_blocked(self):
+        # The reviewer's round 3 case on J1-4: an interface gap, one part passed and one blocked.
+        st = self.jstep('J1-4')
+        st['operation']['interface_gaps'] = ['INVENTED the App did not say the changed file would be held']
+        st['operation']['observations'] = [{'id': 'file-changed-after-selection', 'status': 'not_made'}]
+        part = self.f.records['result-J1-4']['parts'][0]
+        part.pop('blocked_by')
+        part.update(outcome='pass', evidence=[{'ref': 'INVENTED supplied as selected', 'provenance': 'test_definition',
+                                               'route': 'native_development'}])
+        self.f.save()
+        report = self.check()
+        self.assertTrue(report['selection_consistent'], report)
+        self.assertEqual(report['reported_outcomes']['result-J1-4'], 'blocked')
+
+    def earlier_error(self):
+        self.f.records['result-J1-1']['configuration']['route']['native_route'].pop('tool_definition_check')
+
+    def test_forbidden_pass_on_replay_evidence_is_not_reported_after_an_earlier_error(self):
+        st = self.jstep('J2-7')
+        st.update(outcome='pass', operation={
+            'operator': {'kind': 'person', 'identity': 'INVENTED person operating'}, 'means': 'app_controls_by_hand',
+            'observations': [{'id': p + '/' + c, 'status': 'made', 'result': 'equal', 'evidence': 'INVENTED'}
+                             for p in ('allow-disk-records', 'require-verified-approval')
+                             for c in ('run-turn-matches-run-text', 'workflow-body-matches-stored-file')],
+            'outside_controls': [], 'interface_gaps': [], 'examination_limits': [], 'interventions': []})
+        next(s for s in self.f.dossier['scenarios'] if s['scenario'] == 'J2')['basis'] = 'person_observed'
+        result = self.f.records['result-J2-7']
+        result.pop('not_run_because')
+        result['outcome'] = 'pass'
+        for part in result['parts']:
+            part.pop('not_run_because'); part.pop('needs_native')
+            part.update(outcome='pass', evidence=[{'ref': 'INVENTED replay', 'provenance': 'test_definition', 'route': 'seam_replay'}])
+        self.earlier_error(); self.f.save()
+        report = self.check()
+        self.assertFalse(report['selection_consistent'], report)
+        self.assertNotIn('reported_outcomes', report); self.assertNotIn('reported_journey_basis', report)
+        self.assertNotIn('"result-J2-7": "pass"', json.dumps(report))
+
+    def test_forged_person_basis_is_not_reported_after_an_earlier_error(self):
+        next(s for s in self.f.dossier['scenarios'] if s['scenario'] == 'J1')['basis'] = 'person_observed'
+        self.earlier_error(); self.f.save()
+        report = self.check()
+        self.assertFalse(report['selection_consistent'], report)
+        self.assertNotIn('reported_outcomes', report); self.assertNotIn('reported_journey_basis', report)
+        self.assertNotIn('person_observed', json.dumps(report))
+
 if __name__ == '__main__': unittest.main()
