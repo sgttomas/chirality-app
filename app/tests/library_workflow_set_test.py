@@ -87,8 +87,9 @@ class LibrarySet(unittest.TestCase):
         # The source manifest's recorded revision is the App's own computation over its files.
         source = ROOT / 'app/src-tauri/resources/production_workflows'
         manifest = json.loads((source / 'MANIFEST.json').read_bytes())
+        fd = tool.open_dir(source); self.addCleanup(os.close, fd)
         for package in manifest['packages']:
-            self.assertEqual(tool.revision(tool.read_package(source / package['name'])), package['revision'])
+            self.assertEqual(tool.revision(tool.read_package(fd, package['name'], package['name'])), package['revision'])
 
     def test_index_resources_differing_from_folder_are_reported(self):
         (self.library / 'workflows/beta/unlisted.md').write_text('x')
@@ -118,6 +119,44 @@ class LibrarySet(unittest.TestCase):
         os.unlink(self.shipped / 'alpha/escape')
         os.symlink(self.shipped, self.base / 'alias'); self.shipped = self.base / 'alias'
         self.assertRefused()
+
+    # Review probe library-linked-workflows: a linked workflows/ beneath a clean root once compared equal.
+    def test_linked_library_workflows_directory_is_refused(self):
+        os.replace(self.library / 'workflows', self.base / 'elsewhere')
+        os.symlink(self.base / 'elsewhere', self.library / 'workflows')
+        self.assertRefused()
+
+    def test_linked_directory_inside_a_package_is_refused(self):
+        (self.base / 'outside').mkdir(); (self.base / 'outside/x.md').write_text('x')
+        os.symlink(self.base / 'outside', self.shipped / 'beta/resources/linked')
+        self.assertRefused()
+
+    # Review probe library-unreadable-package: an untraversable Library package against an empty
+    # shipped package with an accurate empty manifest once compared equal.
+    @unittest.skipIf(os.geteuid() == 0, 'root reads everything')
+    def test_untraversable_library_package_is_refused_not_skipped(self):
+        self.shipped = self.base / 'shipped-empty'
+        self.shipped.mkdir(); (self.shipped / 'alpha').mkdir(); (self.shipped / 'beta').mkdir()
+        self.write_manifest({'schema_version': 1, 'packages': [
+            {'name': n, 'source_path': 'workflows/' + n, 'files': []} for n in ('alpha', 'beta')]})
+        for name in ('alpha', 'beta'):
+            folder = self.library / 'workflows' / name
+            folder.chmod(0o000); self.addCleanup(folder.chmod, 0o755)
+        self.assertRefused()
+
+    @unittest.skipIf(os.geteuid() == 0, 'root reads everything')
+    def test_unreadable_entry_on_either_side_is_refused(self):
+        for target in (self.library / 'workflows/beta/resources', self.shipped / 'beta/resources',
+                       self.library / 'workflows/alpha/WORKFLOW.md', self.shipped / 'alpha/WORKFLOW.md',
+                       self.library / 'workflows/index.json', self.shipped / 'MANIFEST.json'):
+            original = target.stat().st_mode
+            target.chmod(0o000)
+            try:
+                with self.subTest(target=str(target.relative_to(self.base))):
+                    self.assertRefused()
+            finally:
+                target.chmod(original)
+        self.assertTrue(self.run_compare()['equal'])
 
     def test_index_and_folders_disagreeing_is_refused(self):
         (self.library / 'workflows/unindexed').mkdir()
