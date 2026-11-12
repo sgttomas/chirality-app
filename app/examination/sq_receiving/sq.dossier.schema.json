@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-09-02:standalone-dossier:0.2",
   "title": "Standalone qualification dossier (DEL-09-02 SQ-v0.2 §5; OUT-002; PROPOSED)",
-  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R10 in prototype/check_sq.py.",
+  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R14 in sq_dossier_rules.py.",
   "type": "object",
   "required": ["record_kind", "format", "record_id", "support_revision", "case_definition", "candidate", "integration_owner", "examiner", "scenarios", "handoff", "currency", "date"],
   "additionalProperties": false,
@@ -93,7 +93,7 @@
       "required": ["scenario", "run_ref", "steps"],
       "additionalProperties": false,
       "properties": {
-        "scenario": { "enum": ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12"] },
+        "scenario": { "enum": ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12", "J1", "J2"] },
         "run_ref": { "type": "string", "minLength": 1, "description": "The joined run. V4-EXM-11's must equal V4-EXM-10's (SQ-R2)." },
         "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
         "access_modes": {
@@ -109,17 +109,85 @@
             }
           }
         },
-        "outcome": { "$ref": "#/$defs/outcome", "description": "Only once every counted step is recorded (SQ-R4)." }
+        "outcome": { "$ref": "#/$defs/outcome", "description": "Only once every counted step is recorded (SQ-R4)." },
+        "basis": {
+          "enum": ["person_observed", "agent_operated", "not_established"],
+          "description": "J1 and J2 only: the basis that follows from the operation facts recorded on the journey's steps (SQ-R13); a summary of those observations, not a separate declaration. person_observed: at least one step recorded and every recorded step operated by a person by their own hand through the App's shipped controls. agent_operated: any recorded step operated by an agent or through computer use. not_established: otherwise (nothing recorded yet, or a person's step done not through the App's controls)."
+        }
       },
-      "if": { "properties": { "scenario": { "const": "V4-EXM-12" } } },
-      "then": { "required": ["access_modes"] }
+      "allOf": [
+        { "if": { "properties": { "scenario": { "const": "V4-EXM-12" } } }, "then": { "required": ["access_modes"] } },
+        { "if": { "properties": { "scenario": { "enum": ["J1", "J2"] } } }, "then": { "required": ["basis"] }, "else": { "not": { "required": ["basis"] } } }
+      ]
+    },
+    "operation": {
+      "type": "object",
+      "description": "Who operated a J1 or J2 step and by what means, kept apart from what was done outside the App's controls and from where the interface did not suffice. Required on every recorded J1 or J2 step (SQ-R12). These are the examiner's observations of the step as it was carried out, not a plan; only the operator's identity is a declaration, as the operator or the session that ran the agent states it.",
+      "required": ["operator", "means", "outside_controls", "interface_gaps", "interventions"],
+      "additionalProperties": false,
+      "properties": {
+        "operator": {
+          "type": "object",
+          "required": ["kind", "identity"],
+          "additionalProperties": false,
+          "properties": {
+            "kind": { "enum": ["person", "agent"] },
+            "identity": { "type": "string", "minLength": 1 },
+            "provider": { "type": "string", "minLength": 1 },
+            "model": { "type": "string", "minLength": 1 },
+            "session": { "type": "string", "minLength": 1, "description": "The session or thread the agent ran in." }
+          },
+          "if": { "properties": { "kind": { "const": "agent" } } },
+          "then": { "required": ["provider", "model", "session"] }
+        },
+        "means": {
+          "enum": ["app_controls_by_hand", "app_controls_by_computer_use", "not_through_app_controls"],
+          "description": "The App's shipped controls by the person's own hand; the App's shipped controls through harness computer use; or not through the App's controls, which cannot pass (SQ-R14)."
+        },
+        "outside_controls": {
+          "type": "array",
+          "description": "What was done outside the App's controls for this step, apart from the journey action; allowed for any operator.",
+          "items": {
+            "type": "object",
+            "required": ["kind", "what"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["preparation", "independent_observation"] },
+              "what": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "interface_gaps": {
+          "type": "array",
+          "description": "Where completing the step needed knowledge the interface did not give; empty when none.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "interventions": {
+          "type": "array",
+          "description": "Every intervention by an examiner or another agent, or another person, in the step (VER-009, VER-010).",
+          "items": {
+            "type": "object",
+            "required": ["by", "kind", "what"],
+            "additionalProperties": false,
+            "properties": {
+              "by": { "enum": ["examiner", "agent", "other_person"] },
+              "kind": { "enum": ["operated_control", "explained_control", "other"] },
+              "what": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "operator": { "properties": { "kind": { "const": "person" } } } } }, "then": { "properties": { "means": { "not": { "const": "app_controls_by_computer_use" } } } } },
+        { "if": { "properties": { "operator": { "properties": { "kind": { "const": "agent" } } } } }, "then": { "properties": { "means": { "not": { "const": "app_controls_by_hand" } } } } }
+      ]
     },
     "step": {
       "type": "object",
       "required": ["step", "state", "counts", "supplier_cases"],
       "additionalProperties": false,
       "properties": {
-        "step": { "type": "string", "pattern": "^(J-[1-9]R?|S11-[1-6]|M12-[1-6])$" },
+        "step": { "type": "string", "pattern": "^(J-[1-9]R?|S11-[1-6]|M12-[1-6]|J1-[1-6]|J2-[1-7])$" },
         "state": {
           "enum": ["designed", "planned", "awaiting_input", "held", "run", "recorded", "reopened"],
           "description": "EXP §6.1 case states. 'held' only for an input held by an unresolved owner matter, never for a held DAG arc."
@@ -161,6 +229,7 @@
             }
           }
         },
+        "operation": { "$ref": "#/$defs/operation" },
         "core_loop_element": { "type": "string", "minLength": 1, "description": "DEL-11-03 REQ-001 element this step bears on." },
         "v3_reference": { "type": "string", "minLength": 1, "description": "App v3 JOURNEY_RESULTS reference for DEL-11-03's comparison; evidence only." }
       },

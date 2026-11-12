@@ -19,13 +19,29 @@ class NativeForms(unittest.TestCase):
         self.plan = forms.consumer().prepare()
 
     def test_all_cases_order_and_blank_rows(self):
-        for scenario in self.plan['scenarios']:
+        for scenario in self.plan['scenarios'][:3]:
             text = forms.generate(self.plan, scenario['scenario'])
             rows = [line for line in text.splitlines() if line.startswith('| ')][1:]
             self.assertEqual(rows, ['| ' + s['step'] + ' | | | | | |' for s in scenario['steps']])
             for field in ['Person operating', 'Examiner recording', 'Date', 'Time zone', 'Candidate revision', 'Build identity']:
                 self.assertIn(field + ': __________', text)
             self.assertIn('not reconstructed: __________', text)
+
+    def test_journey_forms_have_per_step_operation_places(self):
+        self.assertEqual([s['scenario'] for s in self.plan['scenarios'][3:]], ['J1', 'J2'])
+        for scenario in self.plan['scenarios'][3:]:
+            text = forms.generate(self.plan, scenario['scenario'])
+            table = [line for line in text.splitlines() if line.startswith('| ')]
+            self.assertEqual(table[0], '| ' + ' | '.join(forms.JOURNEY_COLUMNS) + ' |')
+            for column in ('Operator', 'Means', 'Outside the controls', 'Knowledge the interface did not give'):
+                self.assertTrue(any(c.startswith(column) for c in forms.JOURNEY_COLUMNS), column)
+            self.assertEqual(table[1:], ['| ' + s['step'] + ' |' + ' |' * (len(forms.JOURNEY_COLUMNS) - 1) for s in scenario['steps']])
+            self.assertIn('Journey basis (person_observed, agent_operated, not_established): __________', text)
+            self.assertNotIn('Person operating', text)
+            self.assertNotIn('Supplier cases:', text)
+            for step in scenario['steps']:
+                self.assertIn('### ' + step['step'], text)
+        self.assertIn('At the act control: always', forms.generate(self.plan, 'J2'))
 
     def test_wrong_source(self):
         self.plan['sources'][0]['sha256'] = 'sha256:' + '0'*64
@@ -66,6 +82,13 @@ class NativeForms(unittest.TestCase):
                 self.assertEqual(subprocess.run(command,capture_output=True).returncode,1)
             form.write_text(forms.generate(self.plan,'V4-EXM-10'))
             self.assertEqual(subprocess.run(command,capture_output=True).returncode,1)
+            journey = ['--plan', str(plan), '--case', 'J2']
+            result = subprocess.run(base+['generate']+journey, capture_output=True, text=True, check=True)
+            form.write_text(result.stdout)
+            command = base+['check-blank']+journey+['--form', str(form)]
+            self.assertEqual(subprocess.run(command, capture_output=True).returncode, 0)
+            form.write_text(result.stdout.replace('| J2-5 | | |', '| J2-5 | | agent |', 1))
+            self.assertEqual(subprocess.run(command, capture_output=True).returncode, 1)
 
 
 if __name__ == '__main__': unittest.main()

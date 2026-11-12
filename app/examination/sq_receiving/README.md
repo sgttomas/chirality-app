@@ -33,6 +33,10 @@ pass an incomplete role set to canonical.py's six-role `check` API. The small
 worker separates source execution from caller files; it is not hostile-process
 isolation or authenticated filesystem custody.
 
+A J1 or J2 step's result names its step and no scenario, since the result
+format admits only V4-EXM scenarios. Its native route method must agree with
+the step's recorded operation: person_operated only for a person's own hand.
+
 In a selection, `review.results` is an object
 mapping direct result slots to their full subject/configuration/criterion basis;
 `changes[].pairs` is an array of closed before/after/nullable-rerun selections.

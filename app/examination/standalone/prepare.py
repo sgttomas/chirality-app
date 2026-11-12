@@ -10,6 +10,32 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
+RUN_LABELS = {'V4-EXM-12': 'RUN-B', 'J1': 'RUN-J1', 'J2': 'RUN-J2'}
+JOURNEYS = ('J1', 'J2')
+# What every recorded J1 or J2 step and journey states (sq.dossier.schema.json, SQ-R11 to SQ-R14).
+JOURNEY_RECORD_REQUIREMENTS = {
+    'journeys': list(JOURNEYS),
+    'limits': 'No time or step limit applies to either journey.',
+    'journey_actions': "Each journey action goes through the App's shipped controls.",
+    'outside_the_controls': 'Preparing fixtures and independent observation (reading the supplier\'s events, '
+                            'inspecting records on disk, verifying an export without the App) are done outside the '
+                            'controls, listed for the step as preparation or independent_observation, apart from the '
+                            'journey action; any operator may do them.',
+    'step_operation': {
+        'operator': {'kind': ['person', 'agent'], 'identity': 'required',
+                     'agent_requires': ['provider', 'model', 'session']},
+        'means': ['app_controls_by_hand', 'app_controls_by_computer_use', 'not_through_app_controls'],
+        'outside_controls': ['preparation', 'independent_observation'],
+        'interface_gaps': 'Where completing the step needed knowledge the interface did not give; empty when none.',
+        'interventions': {'by': ['examiner', 'agent', 'other_person'],
+                          'kind': ['operated_control', 'explained_control', 'other']},
+    },
+    'not_through_app_controls_can_pass': False,
+    'basis': ['person_observed', 'agent_operated', 'not_established'],
+    'person_observed_only_when': "every recorded step was operated by a person by their own hand through the "
+                                 "App's shipped controls",
+    'agent_operated_when': 'any recorded step was operated by an agent or through computer use',
+}
 
 
 def read_json(path):
@@ -57,15 +83,17 @@ def prepare(root=ROOT):
         for original in steps:
             step = copy.deepcopy(original)
             step.update(state='awaiting_input', missing_input='candidate_and_configuration',
-                        required_native_route='N-1',
+                        # A journey step is operated through the App's shipped controls by a person or an
+                        # agent, so it names no person-operated form route; its record states the operation.
+                        required_native_route='native_app_controls' if name in JOURNEYS else 'N-1',
                         native_evidence_kinds=['native_development', 'native_packaged'],
                         source_action_observation=operations[step['step']])
             prepared.append(step)
-        scenarios.append({'scenario': name, 'run_label': 'RUN-B' if name == 'V4-EXM-12' else 'RUN-A',
+        scenarios.append({'scenario': name, 'run_label': RUN_LABELS.get(name, 'RUN-A'),
                           'candidate_slot': 'one_same_candidate', 'steps': prepared})
     return {
         'artifact_kind': 'standalone_case_preparation',
-        'preparation_version': 3,
+        'preparation_version': 4,
         'standing': 'test_definition_only',
         'sources': lock['sources'],
         'candidate_slot': {'id': 'one_same_candidate', 'revision': None,
@@ -77,6 +105,7 @@ def prepare(root=ROOT):
             'homes': {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'},
             'distinct_conversations': 2, 'configured_together': True,
             'substitute_mode_satisfies': False},
+        'journey_record_requirements': JOURNEY_RECORD_REQUIREMENTS,
         'missing_inputs': parse_json(captured['missing-inputs.json']),
         'invented_material': parse_json(captured['invented-inputs.json']),
         'boundary': 'No candidate named, examination opened, run attempted, result recorded, '

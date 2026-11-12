@@ -35,6 +35,8 @@ def generate(plan, case, root=ROOT):
         raise ValueError('unknown standalone case')
     scenario = matches[0]
     fingerprint = hashlib.sha256(json.dumps(plan, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()).hexdigest()
+    if case in JOURNEYS:
+        return journey_form(plan, case, scenario, fingerprint)
     lines = ['# N-1 blank native-step form — ' + case, '',
              'PREPARATION ONLY. No examination opened, record assigned, run attempted or observation recorded.',
              'Blank fields are unobserved/unsupplied, not assertions of absence or not-applicability.', '',
@@ -66,6 +68,59 @@ def generate(plan, case, root=ROOT):
         lines.append('')
     lines += ['Full stimuli, prerequisites and missing inputs remain in the source-bound preparation.',
               'This blank-form check cannot validate a completed form or establish N-1 execution, admission, qualification or acceptance.', '']
+    return '\n'.join(lines)
+
+
+JOURNEYS = ('J1', 'J2')
+JOURNEY_COLUMNS = ['Step', 'Time (local, with offset)',
+                   'Operator (person, or agent: provider, model, session)',
+                   'Means (app_controls_by_hand, app_controls_by_computer_use, not_through_app_controls)',
+                   'Journey action done', 'Observed',
+                   'Outside the controls (preparation or independent_observation: what)',
+                   'Knowledge the interface did not give; interventions (by whom, operated or explained)',
+                   'Captures (path, sha256)', 'Deviation or limit']
+
+
+def journey_form(plan, case, scenario, fingerprint):
+    """A blank J1 or J2 form: each step states its own operator and means."""
+    lines = ['# Blank journey step form — ' + case, '',
+             'PREPARATION ONLY. No examination opened, record assigned, run attempted or observation recorded.',
+             'Blank fields are unobserved/unsupplied, not assertions of absence or not-applicability.', '',
+             'Preparation SHA-256 (canonical JSON): ' + fingerprint,
+             'Case: ' + case, 'Planned run label: ' + scenario['run_label'],
+             'Candidate slot: one_same_candidate (unassigned)', '',
+             '## Header', '']
+    for field in ['Record id', 'Candidate revision', 'Build identity', 'Package record if any', 'Codex pin',
+                  'WKWebView / WebKit version', 'OS version', 'Examiner recording', 'Date', 'Time zone',
+                  'Work declared unfinished before the run (J2-6)' if case == 'J2' else None,
+                  'Journey basis (person_observed, agent_operated, not_established)']:
+        if field:
+            lines.append('- ' + field + ': __________')
+    lines += ['', '## Step table', '', '| ' + ' | '.join(JOURNEY_COLUMNS) + ' |',
+              '|' + '---|' * len(JOURNEY_COLUMNS)]
+    lines += ['| ' + s['step'] + ' |' + ' |' * (len(JOURNEY_COLUMNS) - 1) for s in scenario['steps']]
+    lines += ['', '## Close', '', '- Steps not reached and why: __________',
+              '- Examiner statement that rows were written during the run, not reconstructed: __________', '',
+              'The statement above is blank; generation does not attest contemporaneous recording.',
+              "Every row names who operated the step and by what means. A journey action goes through the App's shipped",
+              'controls; one done not through them is at most blocked, failed, not run or inconclusive. Preparation and',
+              'independent observation are listed apart from the journey action. One step operated by an agent, or',
+              'through computer use, makes the journey agent_operated; person_observed needs every recorded step operated',
+              "by a person by their own hand through the App's shipped controls. Cite acts by their own records (EXP-R5).",
+              'When a real record is assigned, place its completed form at forms/<record_id>-journey.md beside records,',
+              'cite native_route.form_ref and digest the actual completed bytes in the record evidence.', '',
+              '## Case-definition guidance — expected, not observed', '']
+    for step in scenario['steps']:
+        lines += ['### ' + step['step'], '', 'Counts in scenario: ' + str(step['counts']).lower(),
+                  'Governing criteria: ' + ', '.join(c['deliverable'] + ' ' + c['criterion'] for c in step['governing_criteria'])]
+        if 'session' in step:
+            lines.append('Session: ' + step['session'])
+        if 'act_control' in step:
+            lines.append('At the act control: ' + step['act_control'])
+        lines += ['- ' + text for text in step['source_action_observation']]
+        lines.append('')
+    lines += ['Full prerequisites, record requirements and missing inputs remain in the source-bound preparation.',
+              'This blank-form check cannot validate a completed form or establish execution, admission, qualification or acceptance.', '']
     return '\n'.join(lines)
 
 

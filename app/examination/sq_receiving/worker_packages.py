@@ -189,7 +189,18 @@ def check(selection_path, expected, configuration, configuration_sha256):
         st = expected_steps[key]
         require(value['record_id'] == st['result_record'], 'step result ID mismatch')
         require(value['outcome'] == st['outcome'], 'step outcome mismatch')
-        require(value['case'] == {'owner_deliverable': 'DEL-09-02', 'case_id': key[1], 'scenario': key[0]}, 'unsupported direct case mapping')
+        # A journey step's result names its step; the result format admits only V4-EXM scenarios.
+        case = {'owner_deliverable': 'DEL-09-02', 'case_id': key[1]}
+        if key[0] not in sq.JOURNEYS:
+            case['scenario'] = key[0]
+        require(value['case'] == case, 'unsupported direct case mapping')
+        operation = st.get('operation')
+        if operation:
+            # A result must not read as person-operated when an agent or computer use operated the step.
+            by_person_hand = operation['operator']['kind'] == 'person' and operation['means'] == 'app_controls_by_hand'
+            method = value['configuration']['route'].get('native_route', {}).get('method')
+            if operation['means'] != 'not_through_app_controls':
+                require((method == 'person_operated') == by_person_hand, 'journey operation disagrees with result native route')
         require(value['run_basis'] == 'candidate', 'direct result is not candidate basis')
         app = value['subject'].get('app_candidate', {})
         require(all(app.get(k) == candidate[k] for k in ('revision', 'build_identity')) and

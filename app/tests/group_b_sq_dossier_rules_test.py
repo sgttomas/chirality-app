@@ -32,7 +32,9 @@ class SQDossierRules(unittest.TestCase):
         Draft202012Validator.check_schema(schema)
         cls.validator = Draft202012Validator(schema)
         cls.step_map = read(SQ / 'sq.step-map.json')
-        cls.steps = [step for steps in cls.step_map['scenarios'].values() for step in steps]
+        cls.steps = [step for name, steps in cls.step_map['scenarios'].items() for step in steps
+                     if name not in cls.rules.JOURNEYS]
+        cls.journey_steps = [step for name in cls.rules.JOURNEYS for step in cls.step_map['scenarios'][name]]
         cls.valid = read(EXAMPLES / 'sq.dossier.valid.examples.json')
         cls.invalid = read(EXAMPLES / 'sq.dossier.invalid.examples.json')
         cls.rule_violations = read(EXAMPLES / 'sq.dossier.rule-violations.examples.json')
@@ -41,7 +43,7 @@ class SQDossierRules(unittest.TestCase):
         return self.rules.violations(dossier, self.step_map)
 
     def test_step_map_covers_the_core_loop_and_declares_its_stimuli(self):
-        self.assertEqual(sorted(self.step_map['scenarios']), self.rules.SCENARIOS)
+        self.assertEqual(list(self.step_map['scenarios']), self.rules.SCENARIOS + self.rules.JOURNEYS)
         self.assertLessEqual(CORE_LOOP, {step['core_loop_element'] for step in self.steps})
         self.assertTrue(all(step.get('v3_reference') for step in self.steps))
         declared = {stimulus['id'] for stimulus in self.step_map['stimuli']}
@@ -60,12 +62,61 @@ class SQDossierRules(unittest.TestCase):
         self.assertEqual({step['step'] for step in self.steps if 'ST-4' in step['stimuli']},
                          {'J-2', 'S11-1', 'S11-6'})
 
+    def test_journey_steps_cite_governing_criteria_not_supplier_cases(self):
+        self.assertEqual([s['step'] for s in self.journey_steps],
+                         ['J1-%d' % n for n in range(1, 7)] + ['J2-%d' % n for n in range(1, 8)])
+        for step in self.journey_steps:
+            with self.subTest(step=step['step']):
+                self.assertEqual(step['supplier_cases'], [])
+                self.assertEqual(step['stimuli'], [])
+                self.assertTrue(step['counts'])
+                self.assertTrue(all(set(c) == {'deliverable', 'criterion'} for c in step['governing_criteria']))
+                self.assertNotIn('core_loop_element', step)
+        cited = {(c['deliverable'], c['criterion']) for s in self.journey_steps for c in s['governing_criteria']}
+        self.assertLessEqual({('DEL-09-02', 'AC-009'), ('DEL-09-02', 'AC-010'), ('DEL-02-02', 'AC-010'),
+                              ('DEL-02-02', 'AC-011'), ('DEL-02-02', 'AC-005'), ('DEL-01-04', 'AC-011'),
+                              ('DEL-01-04', 'AC-003'), ('DEL-02-03', 'AC-001')}, cited)
+
     def test_valid_dossiers_pass_schema_and_every_rule(self):
-        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-0%d' % n for n in range(1, 6)])
+        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-0%d' % n for n in range(1, 7)])
         for dossier in self.valid:
             with self.subTest(record=dossier['record_id']):
+                self.assertEqual([s['scenario'] for s in dossier['scenarios']],
+                                 self.rules.SCENARIOS + self.rules.JOURNEYS)
                 self.assertEqual([e.message for e in self.validator.iter_errors(dossier)], [])
                 self.assertEqual(self.violations(dossier), [])
+
+    def test_an_agent_operated_journey_is_recorded_as_such(self):
+        dossier = next(d for d in self.valid if d['record_id'] == 'SQ-EX-06')
+        for journey in (s for s in dossier['scenarios'] if s['scenario'] in self.rules.JOURNEYS):
+            self.assertEqual(journey['basis'], 'agent_operated')
+            for step in journey['steps']:
+                self.assertEqual(step['operation']['operator']['kind'], 'agent')
+                self.assertEqual(step['operation']['means'], 'app_controls_by_computer_use')
+        # The same journey stated as a person observed is refused, and so is one agent step in a person's journey.
+        probe = copy.deepcopy(dossier)
+        next(s for s in probe['scenarios'] if s['scenario'] == 'J1')['basis'] = 'person_observed'
+        self.assertEqual(self.violations(probe), ['SQ-R13'])
+        person = next(d for d in self.valid if d['record_id'] == 'SQ-EX-03')
+        self.assertEqual({s['basis'] for s in person['scenarios'] if s['scenario'] in self.rules.JOURNEYS}, {'person_observed'})
+        probe = copy.deepcopy(person)
+        step = next(s for s in probe['scenarios'] if s['scenario'] == 'J2')['steps'][0]
+        step['operation']['means'] = 'not_through_app_controls'
+        self.assertEqual(self.violations(probe), ['SQ-R13', 'SQ-R14'])
+        step['outcome'] = 'blocked'
+        next(s for s in probe['scenarios'] if s['scenario'] == 'J2').update(basis='not_established', outcome='blocked')
+        self.assertEqual(self.violations(probe), [])
+
+    def test_operator_and_means_must_agree_in_the_schema(self):
+        dossier = copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-03'))
+        operation = next(s for s in dossier['scenarios'] if s['scenario'] == 'J1')['steps'][0]['operation']
+        operation['means'] = 'app_controls_by_computer_use'
+        self.assertTrue(list(self.validator.iter_errors(dossier)))
+        operation.update(means='app_controls_by_hand', operator={'kind': 'agent', 'identity': 'ILLUSTRATIVE agent'})
+        self.assertTrue(list(self.validator.iter_errors(dossier)))
+        dossier = copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-01'))
+        next(s for s in dossier['scenarios'] if s['scenario'] == 'J1').pop('basis')
+        self.assertTrue(list(self.validator.iter_errors(dossier)))
 
     def test_invalid_dossiers_are_refused_by_the_schema(self):
         self.assertEqual(len(self.invalid), 9)
@@ -74,11 +125,16 @@ class SQDossierRules(unittest.TestCase):
                 self.assertTrue(list(self.validator.iter_errors(item['record'])))
 
     def test_schema_valid_rule_violations_are_detected(self):
-        self.assertEqual({item['rule'] for item in self.rule_violations}, {'SQ-R%d' % n for n in range(1, 10)})
+        self.assertEqual({item['rule'] for item in self.rule_violations},
+                         {'SQ-R%d' % n for n in range(1, 15)} - {'SQ-R10'})
         for item in self.rule_violations:
             with self.subTest(record=item['record']['record_id'], rule=item['rule']):
                 self.assertEqual([e.message for e in self.validator.iter_errors(item['record'])], [])
                 self.assertIn(item['rule'], self.violations(item['record']))
+        # Each journey refusal shows its own rule alone.
+        for item in self.rule_violations:
+            if item['rule'] in ('SQ-R11', 'SQ-R12', 'SQ-R13', 'SQ-R14'):
+                self.assertEqual(self.violations(item['record']), [item['rule']], item['why'])
 
     def test_paired_st4_probes_at_j2_are_not_masked(self):
         # Paired probes prevent another stimulus or rule failure from masking omission.

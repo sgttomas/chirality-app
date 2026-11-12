@@ -116,6 +116,34 @@ class SQReceivingTests(unittest.TestCase):
         self.add('package','package',pkg);self.selected['packages']=[{'ref':pkg['record_id'],'slot':'package','result_slots':[slot]}]
         return pkg
 
+    def test_journey_results_join_without_a_scenario_and_keep_their_operation(self):
+        j1=next(s for s in self.dossier['scenarios'] if s['scenario']=='J1')
+        self.assertEqual((j1['basis'],j1['steps'][0]['operation']['means']),('agent_operated','app_controls_by_computer_use'))
+        self.assertEqual(self.value('result-J1-1')['case'],{'owner_deliverable':'DEL-09-02','case_id':'J1-1'})
+        self.assertEqual(self.value('result-J1-1')['configuration']['route']['native_route']['method'],'ui_automation')
+        self.assertEqual(self.check()['coverage'],'complete')
+
+    def test_agent_operated_journey_step_cannot_read_as_person_operated(self):
+        v=self.value('result-J1-2');v['configuration']['route']['native_route']={'method':'person_operated','form_ref':'INVENTED-FORM-J1-2'}
+        self.schema_valid(v);self.save('result-J1-2',v)
+        self.refused('journey operation disagrees with result native route')
+
+    def test_person_operated_journey_step_cannot_read_as_automation(self):
+        v=self.value('result-J2-1');v['configuration']['route']['native_route']={'method':'ui_automation','tool':'INVENTED tool','tool_definition_check':'INVENTED-DC-N2'}
+        self.schema_valid(v);self.save('result-J2-1',v)
+        self.refused('journey operation disagrees with result native route')
+
+    def test_dossier_without_a_journey_refused(self):
+        slots={'result-'+st['step'] for s in self.dossier['scenarios'] if s['scenario']=='J2' for st in s['steps']}
+        self.dossier['scenarios']=[s for s in self.dossier['scenarios'] if s['scenario']!='J2']
+        self.selected['steps']=[s for s in self.selected['steps'] if s['result_slot'] not in slots]
+        self.selected['artifacts']=[a for a in self.selected['artifacts'] if a['slot'] not in slots]
+        refs={'INVENTED-SQ-'+slot[len('result-'):] for slot in slots}
+        for slot in slots: self.selected['review']['results'].pop(slot)
+        self.selected['review']['evidence']=[e for e in self.selected['review']['evidence'] if e['ref'] not in refs]
+        v=self.value('review');v['evidence_set']=[e for e in v['evidence_set'] if e not in refs];self.save('review',v)
+        self.refused('SQ-R11')
+
     def test_ce07_package_citation_missing_bytes(self):
         self.packaged();(self.root/'package.json').unlink();self.incomplete('selected file missing')
 

@@ -8,7 +8,10 @@ python3 examination/native_forms/native_form.py generate --plan /tmp/sq-preparat
 python3 examination/native_forms/native_form.py check-blank --plan /tmp/sq-preparation.json --case V4-EXM-10 --form /tmp/SQ10-N1-blank.md
 ```
 
-Repeat for V4-EXM-11 and V4-EXM-12. All operations are offline file operations.
+Repeat for V4-EXM-11, V4-EXM-12, J1 and J2. A J1 or J2 form has a place on
+each step row for its operator, the means, what was done outside the App's
+controls and where the interface did not suffice; it names no single person
+operating. All operations are offline file operations.
 Generation writes only stdout; it creates no examination, record id or run.
 The B7 consumer and its local inputs are pinned here; B7 checks its own canonical
 source lock before this consumer accepts a preparation. Altered source lists,
