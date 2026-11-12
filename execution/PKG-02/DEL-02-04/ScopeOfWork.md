@@ -26,7 +26,7 @@ It serves OBJ-003 (the same four roles, supplied additively, with a bounded exec
 ## Deliverable Definition — Ontology
 
 - **OUT-001** — CODE: the shipped guidance documents and role set, conversation-role selection, TASK guidance for delegation, and additive composition and supply through the supplier's native inputs. Covers SOW-013, SOW-057, SOW-058 and SOW-126; supports OBJ-001, OBJ-002 and OBJ-003.
-- **OUT-002** — The supplied-guidance and enforcement-limit account the App keeps and shows: the supply record of each conversation start, the limit account shown where a role is chosen, and the observations of a stated limit not kept. Covers SOW-057, SOW-059 and SOW-126; supports OBJ-001, OBJ-002 and OBJ-003.
+- **OUT-002** — The supplied-guidance and enforcement-limit account the App keeps and shows: the supply record of each conversation start, the limit account shown where a role is chosen, the limit account of the guidance a conversation was supplied, shown with that conversation, and the observations of a stated limit not kept. Covers SOW-057, SOW-059 and SOW-126; supports OBJ-001, OBJ-002 and OBJ-003.
 - **OUT-003** — TEST: role-selection and supplied-basis checks, including unenforced limits and the treatment of reused code. Covers SOW-013, SOW-057, SOW-058, SOW-059 and SOW-126; supports OBJ-001, OBJ-002 and OBJ-003.
 
 Terms the product implements:
@@ -36,7 +36,7 @@ Terms the product implements:
 - **Guidance store.** The person's editable copy of the shipped guidance in the App's own data folder. Each file is in one state: default (equal to the shipped default), modified, missing or unreadable.
 - **Composition.** The text supplied at a conversation's start: the product guidance's bytes, then, when a role is chosen, a heading line naming the active role and the role document's bytes. Nothing is normalized. Each part's source, byte range and content identity are recorded, the identity designated `chirality.app.exact-bytes.sha256/v1`: the lowercase hexadecimal SHA-256 of the exact bytes.
 - **Supply record.** One record per conversation start, including a refused start, and per fork: the selection, the role set's identity, the composition's identity and length, each part with its source and state, the child-role entries, what the supplier reported, the outcome, and adoption recorded as unknown.
-- **Limit account.** For each role limit, its standing: stated and not enforced; enforced by the supplier through a named mechanism; or unknown. The limits are that a task agent does not delegate and that work stays within a brief's write targets.
+- **Limit account.** For each role limit, its standing: stated and not enforced; enforced by the supplier through a named mechanism; or unknown. The limits are that a task agent does not delegate and that work stays within a brief's write targets. An account describes one guidance and names it: the guidance documents as last read, or the guidance supplied at one conversation's start or for one child. An account of supplied guidance is made from that supply when the supply is made, and every account is shown only as that guidance's.
 - **Limit observation.** The App's record that a child started with TASK guidance delegated.
 - **The facts kept apart.** Selection, source resolution, supply, provider adoption and observed behaviour are separate facts about guidance; a consumer's adoption of guidance is a sixth, recorded by its own owner.
 
