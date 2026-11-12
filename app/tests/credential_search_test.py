@@ -254,7 +254,7 @@ class Terminal(unittest.TestCase):
         helper = threading.Thread(target=person, daemon=True)
         helper.start()
         try:
-            with mock.patch.object(tool.os, "open", lambda path, flags, *rest: os.dup(slave) if path == "/dev/tty" else real_open(path, flags, *rest)):
+            with mock.patch.object(tool.os, "open", lambda path, flags, *rest, **named: os.dup(slave) if path == "/dev/tty" else real_open(path, flags, *rest, **named)):
                 check()
         finally:
             os.close(slave)
