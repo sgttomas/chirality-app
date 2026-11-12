@@ -1088,7 +1088,8 @@ impl Host {
     pub(crate) fn bind_local_destination(&self, config: &HostConfig, plan: &crate::home_resources::OwnedHomePlan) -> Result<(), String> {
         crate::native_local_provider::check(plan)?;
         let expected = crate::native_local_provider::config(config,plan)?;
-        if config.codex_home != plan.native_path() || config.session_flags != expected.session_flags { return Err(unavailable()); }
+        if config.codex_home != plan.native_path() || config.session_flags != expected.session_flags
+            || config.process_lock.as_deref() != Some(plan.native_path().join(crate::native_local_provider::PROCESS_LOCK).as_path()) { return Err(unavailable()); }
         let mut i=self.inner.0.lock().map_err(|_| unavailable())?;
         if i.local_provider.is_some() || i.state!="absent" || !i.generation.is_null() { return Err(unavailable()); }
         i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into()}); Ok(())
