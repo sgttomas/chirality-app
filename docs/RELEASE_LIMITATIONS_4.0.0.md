@@ -131,3 +131,23 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** verify a package with the verifier it
   carries, and establish where it came from by other means.
 - **Basis:** DEL-04-03 (TBD-003; AC-009 and AC-011).
+
+### LIM-011: A local model server is set up in the App, on the same machine
+
+- **Id:** LIM-011
+- **Exit criteria:** 6
+- **What is unavailable:** a conversation on a local provider defined in the
+  person's own Codex settings, and a conversation with a model server on
+  another machine. In the home that uses the ChatGPT account, the App's Codex
+  runs on the built-in OpenAI provider whatever default provider the person's
+  Codex settings name.
+- **Why:** the supplier's Codex at the selected version runs a conversation
+  only on the provider its own process was started with, so the App runs one
+  Codex for the ChatGPT account and another for the local model server. The
+  server's address is limited to the same machine because a key and the
+  conversation's content would otherwise travel off it without the
+  protections that needs.
+- **What the person does instead:** set the local server's address, model
+  name and whether it requires a key in the App's local model settings, and
+  run the model server on the same machine.
+- **Basis:** DEL-01-05 (REQ-003, AC-003, AC-005, AC-008).

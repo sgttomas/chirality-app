@@ -18,8 +18,9 @@ needs:
     own account.
   when: Sign-in on the candidate
 - from: external:local model server
-  condition: A local model server serves the Responses interface at the configured endpoint and
-    accepts the key the person holds.
+  condition: A local model server on the same machine serves the Responses interface at the
+    address set in the local model settings, has the model named there and, where it requires
+    one, accepts the key the person holds.
   when: A local conversation and the substitution of a second server
 code_paths:
 - app/src-tauri/src/access.rs
