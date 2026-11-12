@@ -252,6 +252,53 @@ class PriorData(unittest.TestCase):
         (self.prior / 'bad\nname').write_text('x')
         self.assertRefused()
 
+    # Review round 2 probes inventory-empty-roots, -incomplete-present, -incomplete-file: each once
+    # compared with itself as unchanged. Now every record is validated and must be completed.
+    def assertRecordRefused(self, value, completed=True):
+        if completed and isinstance(value, dict) and 'format' in value and 'roots' in value:
+            value = tool.completed(value)
+        path = self.records / f'bad-{self.n}.json'; self.n += 1
+        path.write_text(value if isinstance(value, str) else json.dumps(value))
+        with self.assertRaises(tool.Refused):
+            tool.load(path)
+        self.assertEqual(tool.main(['compare', str(path), str(path)]), 2)
+
+    def test_incomplete_or_impossible_records_are_refused(self):
+        root = str(self.prior)
+        for completed in (False, True):
+            with self.subTest(completed=completed):
+                self.assertRecordRefused({'format': tool.FORMAT, 'roots': []}, completed)
+                self.assertRecordRefused({'format': tool.FORMAT, 'roots': [
+                    {'class': 'prior-data', 'path': root, 'state': 'present', 'entries': []}]}, completed)
+                self.assertRecordRefused({'format': tool.FORMAT, 'roots': [
+                    {'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'file', 'mode': '0o600', 'entries': []}]}, completed)
+        good, _ = self.write()
+        value = json.loads(good.read_bytes())
+        body = {'format': value['format'], 'roots': value['roots']}
+        def variant(change):
+            v = json.loads(json.dumps(body)); change(v); return v
+        cases = {
+            'entry without kind': lambda v: v['roots'][0]['entries'][0].pop('kind'),
+            'file entry without digest': lambda v: next(e for e in v['roots'][0]['entries'] if e['kind'] == 'file').pop('sha256'),
+            'entry with extra field': lambda v: v['roots'][0]['entries'][0].update(note='x'),
+            'entries out of order': lambda v: v['roots'][0]['entries'].reverse(),
+            'parent not recorded': lambda v: v['roots'][0]['entries'].append({'path': 'zz/orphan', 'kind': 'dir', 'mode': '0o755'}),
+            'escaping path': lambda v: v['roots'][0]['entries'].append({'path': '../x', 'kind': 'dir', 'mode': '0o755'}),
+            'unknown class': lambda v: v['roots'][0].update({'class': 'other'}),
+            'absent root with entries': lambda v: v['roots'][1].update(entries=[]),
+            'relative root path': lambda v: v['roots'][0].update(path='relative'),
+            'bad mode': lambda v: v['roots'][0].update(mode='755'),
+        }
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.assertRecordRefused(variant(change))
+        self.assertRecordRefused(body, completed=False)                    # no marker
+        edited = tool.completed(body); edited['roots'][0]['mode'] = '0o700'
+        self.assertRecordRefused(edited, completed=False)                  # edited after completion
+        self.assertRecordRefused(good.read_text()[:-40], completed=False)  # truncated
+        self.assertEqual(tool.main(['compare', str(good), str(good)]), 0)
+        self.assertEqual(list(value), ['format', 'roots', 'completion'])   # the marker is written last
+
     def test_records_naming_different_roots_are_refused(self):
         before, _ = self.write()
         self.roots = self.roots[:2]

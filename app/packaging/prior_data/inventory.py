@@ -26,7 +26,9 @@ Commands:
   record  --root PATH ... --out NEW-PRIVATE-FILE --summary NEW-FILE
   compare BEFORE AFTER [--report NEW-PRIVATE-FILE]
 
-compare prints the shareable per-root summary. Its status is `unchanged` only when nothing at all
+record writes the content, then a completion marker binding its digest; compare validates both
+records strictly and refuses an incomplete, edited or impossible record. compare prints the
+shareable per-root summary. Its status is `unchanged` only when nothing at all
 differs: any changed, removed or added entry in any root (the application bundle included), and
 any root that appeared or disappeared, gives `differences found` and exit 1; 2 is a refusal. The
 per-root and per-class breakdown says where; which differences are acceptable is not decided here.
@@ -38,12 +40,13 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 from pathlib import Path
 import stat
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
-FORMAT = 'chirality-prior-data-inventory/v1'
+FORMAT = 'chirality-prior-data-inventory/v2'
 SUMMARY_FORMAT = 'chirality-prior-data-inventory-summary/v1'
 COMPARISON_FORMAT = 'chirality-prior-data-comparison/v1'
 DIFFERENT = 'differences found'
@@ -237,11 +240,26 @@ def _check_output(path, roots):
     return path
 
 
-def _write_new(path, value):
+def _write_new(path, value, sort_keys=True):
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, 'wb') as output:
-        output.write((json.dumps(value, indent=2, sort_keys=True) + '\n').encode())
+        output.write((json.dumps(value, indent=2, sort_keys=sort_keys) + '\n').encode())
         output.flush(); os.fsync(output.fileno())
+
+
+COMPLETION_METHOD = 'sha256 over canonical JSON (sorted keys, no spaces) of {"format", "roots"}'
+
+
+def _content_digest(body):
+    return hashlib.sha256(json.dumps({'format': body['format'], 'roots': body['roots']},
+                                     sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+
+
+def completed(body):
+    """The record as written: its content, then a completion marker binding that content's digest,
+    serialised last. A record without a matching marker was not completed and is refused."""
+    return {'format': body['format'], 'roots': body['roots'],
+            'completion': {'method': COMPLETION_METHOD, 'content_sha256': _content_digest(body)}}
 
 
 def write_record(roots, out, summary_out):
@@ -249,9 +267,79 @@ def write_record(roots, out, summary_out):
     require(out != summary_out, 'record and summary must be different files')
     value = record(roots)
     shared = summary(value)
-    _write_new(out, value)
+    _write_new(out, completed(value), sort_keys=False)
     _write_new(summary_out, shared)
     return shared
+
+
+HEX64 = re.compile(r'[0-9a-f]{64}')
+MODE = re.compile(r'0o[0-7]{1,4}')
+ROOT_KINDS = ('dir', 'file', 'socket', 'fifo', 'char-device', 'block-device', 'other')
+ENTRY_KINDS = ROOT_KINDS + ('symlink',)
+
+
+def _valid_identity(item, where):
+    """kind, mode and, for files, size and digest; for links, the target text; nothing else."""
+    kind = item.get('kind')
+    require(kind in ENTRY_KINDS, f'{where}: unknown kind')
+    require(isinstance(item.get('mode'), str) and MODE.fullmatch(item['mode']), f'{where}: mode missing or malformed')
+    if kind == 'file':
+        require(type(item.get('size')) is int and item['size'] >= 0, f'{where}: file size missing')
+        require(isinstance(item.get('sha256'), str) and HEX64.fullmatch(item['sha256']), f'{where}: file digest missing')
+    if kind == 'symlink':
+        require(isinstance(item.get('target'), str) and item['target'], f'{where}: link target missing')
+    return kind
+
+
+def _valid_relative(path):
+    return (isinstance(path, str) and path and not path.startswith('/') and '\n' not in path and '\r' not in path
+            and all(p not in ('', '.', '..') for p in path.split('/')))
+
+
+def validate(value):
+    """Refuse a record that fails validation, was not completed, or that a successful observation
+    could not have produced."""
+    require(isinstance(value, dict) and set(value) == {'format', 'roots', 'completion'}, 'record incomplete or not a record')
+    require(value['format'] == FORMAT, 'unknown record format')
+    marker = value['completion']
+    require(isinstance(marker, dict) and set(marker) == {'method', 'content_sha256'} and marker['method'] == COMPLETION_METHOD,
+            'record was not completed')
+    require(isinstance(value['roots'], list) and value['roots'], 'record has no roots')
+    paths = set()
+    for i, root in enumerate(value['roots']):
+        where = f'root {i}'
+        require(isinstance(root, dict) and root.get('class') in CLASSES, f'{where}: unknown class')
+        require(isinstance(root.get('path'), str) and root['path'].startswith('/') and '\n' not in root['path'],
+                f'{where}: path missing or not absolute')
+        require(root['path'] not in paths, f'{where}: duplicate root'); paths.add(root['path'])
+        if root.get('state') == 'absent':
+            require(set(root) == {'class', 'path', 'state'}, f'{where}: an absent root holds nothing else')
+            continue
+        require(root.get('state') == 'present', f'{where}: unknown state')
+        kind = _valid_identity(root, where)
+        require(kind in ROOT_KINDS, f'{where}: a root cannot be a link')
+        expected = {'class', 'path', 'state', 'kind', 'mode', 'entries'} | ({'size', 'sha256'} if kind == 'file' else set())
+        require(set(root) == expected, f'{where}: fields do not match a {kind} root')
+        entries = root['entries']
+        require(isinstance(entries, list), f'{where}: entries missing')
+        require(kind == 'dir' or not entries, f'{where}: only a directory root holds entries')
+        seen, directories = [], set()
+        for j, entry in enumerate(entries):
+            here = f'{where} entry {j}'
+            require(isinstance(entry, dict) and _valid_relative(entry.get('path')), f'{here}: path missing or malformed')
+            ekind = _valid_identity(entry, here)
+            fields = {'path', 'kind', 'mode'} | ({'size', 'sha256'} if ekind == 'file' else {'target'} if ekind == 'symlink' else set())
+            require(set(entry) == fields, f'{here}: fields do not match a {ekind} entry')
+            parent = entry['path'].rpartition('/')[0]
+            require(not parent or parent in directories, f'{here}: parent directory not recorded')
+            if ekind == 'dir':
+                directories.add(entry['path'])
+            seen.append(entry['path'])
+        require(seen == sorted(seen, key=str.encode) and len(seen) == len(set(seen)),
+                f'{where}: entries out of order or duplicated')
+    require(isinstance(marker['content_sha256'], str) and marker['content_sha256'] == _content_digest(value),
+            'record content does not match its completion marker')
+    return value
 
 
 def load(path):
@@ -259,11 +347,7 @@ def load(path):
         value = json.loads(Path(path).read_bytes())
     except (OSError, ValueError) as error:
         raise Refused('record unreadable') from error
-    require(isinstance(value, dict) and value.get('format') == FORMAT and isinstance(value.get('roots'), list),
-            'unknown record format')
-    for root in value['roots']:
-        require(root.get('class') in CLASSES and root.get('state') in ('absent', 'present'), 'invalid root in record')
-    return value
+    return validate(value)
 
 
 def _key(entry):

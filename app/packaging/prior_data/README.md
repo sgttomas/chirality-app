@@ -43,6 +43,15 @@ when nothing at all differs. Any changed, removed or added entry in any root,
 the application bundle included, and any root that appeared or disappeared,
 gives `differences found` and exit 1. A refusal exits 2.
 
+`record` writes the record's content and then, last, a completion marker that binds
+the SHA-256 of that content. `compare` validates both records strictly before
+comparing: the format, a non-empty list of roots, each root's class and state,
+each entry's path, kind and mode, and each file's size and digest. Entries must
+be in order with their parent directories recorded, and the content must match
+its marker. A record that fails, was not completed, or that a successful
+observation could not have produced is refused (exit 2). Two records over
+different roots are refused too.
+
 The private record (mode 0600) keeps paths and link targets. The shareable
 summaries keep only counts, classes and digests, because names can carry
 content. No record holds file content. The tool never follows a link, never
