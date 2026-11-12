@@ -47,8 +47,8 @@ OS_ENTRIES = {
 }
 
 
-# What a workflow's steps cannot do without: the Library's tools, skills and
-# role files. Document paths are deliberately not recorded (see the README).
+# Library roots scanned for named tool, skill and role paths. Document paths
+# are deliberately not recorded (see the README).
 LIBRARY_ROOTS = ("tools/", ".agents/skills/", "agents/")
 PATH_TOKEN = re.compile(r"[A-Za-z0-9_.\-/]+")
 

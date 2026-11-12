@@ -84,8 +84,8 @@ recorded. A workflow can name a path that it means in the person's own
 project and that also exists in the release: two workflows name `docs/PRD.md`
 as the project's file to write. No mechanical rule separates the two, and
 telling a person that such a workflow depends on the Library's file would be
-false. The field therefore holds only what a workflow's steps cannot do
-without.
+false. The field records matching tool, skill and role paths named in package
+text; it does not establish that they are required.
 
 ## Checks
 
