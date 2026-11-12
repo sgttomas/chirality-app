@@ -1,27 +1,4545 @@
 {
-  "schema_version": 1,
-  "release_subject": "chirality-app-v4:APP-V4-BUNDLE-INPUTS-20261008",
+  "schema_version": 2,
+  "release_subject": "chirality-library:library-v3.4.0",
   "standing": "production bundle candidate; not a published release",
   "historical_shipped_revisions": [],
   "recognize_v3": false,
-  "source_revision": "f3c0a1df5eaa86df22111e9b0dac53cbfd1bbc64",
+  "source": {
+    "repository": "https://github.com/sgttomas/chirality-library",
+    "tag": "library-v3.4.0",
+    "commit": "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca",
+    "archive": {
+      "name": "chirality-library-3.4.0-source.tar",
+      "bytes": 9820160,
+      "sha256": "b4f0ec20b5e9a26125a16002e95895e5171ebeb6d4e44664e400f18dfe9eb7b5"
+    },
+    "index": {
+      "path": "workflows/index.json",
+      "schema": "chirality-method-index/v1",
+      "bytes": 92694,
+      "sha256": "c4cb040a62495b01028ecc5592bdce269055d575692152abfec2c2bf0ef8ff41"
+    },
+    "license": {
+      "path": "LICENSE.md",
+      "bytes": 1067,
+      "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da"
+    }
+  },
+  "index_entries_not_bundled": [
+    {
+      "kind": "skill",
+      "name": "deliverable-consistency"
+    },
+    {
+      "kind": "skill",
+      "name": "drawing-titleblock-page"
+    },
+    {
+      "kind": "skill",
+      "name": "preparation"
+    },
+    {
+      "kind": "skill",
+      "name": "proposal-format"
+    },
+    {
+      "kind": "skill",
+      "name": "researcher"
+    },
+    {
+      "kind": "skill",
+      "name": "software-code-review"
+    },
+    {
+      "kind": "skill",
+      "name": "software-defect-diagnosis"
+    }
+  ],
   "packages": [
     {
-      "name": "coordinated-knowledge-work",
+      "name": "analysis-binding",
+      "description": "Bind each computation a data application needs to a domain method and a versioned implementation with a typed interface, grounded parameter values, preconditions, explicit result semantics and known-answer tests, or specify the missing component as new work, with independent examination of numerical meaning.",
       "revision_method": "chirality.app.workflow-package.sha256/v1",
-      "revision": "3730d84debb5d77582a0c26211a5f380cdb1a44c7e26eeb537f334db43fdd881",
+      "revision": "fc9d0f54d66f83781c5b6185807638ed9a1de1f6526d7a1e3c518591aa5153de",
       "source_root": "chirality-root",
-      "source_path": "workflows/coordinated-knowledge-work",
+      "source_path": "workflows/analysis-binding",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 2,
+        "group": {
+          "key": "build-maintain-software",
+          "label": "Build & maintain software",
+          "order": 3
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "HELP_HUMAN",
+          "HELPS_HUMANS",
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [],
       "files": [
         {
-          "path": "REVIEW-NOTES.md",
-          "bytes": 16058,
-          "sha256": "0ae8867dc3010f99feb0251756f0008fb67dd57ff96a1af70125f688c91d055d"
+          "path": "WORKFLOW.md",
+          "bytes": 4121,
+          "sha256": "02ff109cf332395d7bbd15c6e2546750206d4abb96af8c52e32d6a9433436842"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 113,
+          "sha256": "355ed5f4d297a96f76bba8870cb421acf7e48a3c3f9bb6283756de19677e096c"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 1245,
+          "sha256": "a40c14d39fa0d1f5b73d32d46bf64e15af3e241b5f7ca845003cd1c986fc69ab"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 3629,
+          "sha256": "fe3d2c34f1078ce6c4702f422f6fc6617cc3b43f1e2c89c7f0bc5f05340af702"
+        },
+        {
+          "path": "resources/kat.md",
+          "bytes": 3408,
+          "sha256": "47aa88e01d8e734f427e5943abe6695664a351bf3148f3f80d5cc22d0de64924"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 4499,
+          "sha256": "ebe2bc520ba5fc134cb40ef854580b5e945cd8d977a37ee76cf6c446f839dc21"
+        }
+      ]
+    },
+    {
+      "name": "audit-decomp",
+      "description": "Reconcile accepted decomposition with materialized scope and current derivative evidence.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "e82f05c26f231afd1d04aee5443eeedb2e1df0e87d7c2d6185e5742c5ff7ea05",
+      "source_root": "chirality-root",
+      "source_path": "workflows/audit-decomp",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 6,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "report_coordination_notice",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/evaluation/audit_structure.py",
+        "tools/scaffolding/create_snapshot_folder.sh",
+        "tools/scaffolding/scaffold_tool_root.sh",
+        "tools/scaffolding/update_latest_pointer.sh",
+        "tools/validation/validate_domain_decomposition_integrity.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1521,
+          "sha256": "2b277e2469a14846c2a9108eae716e3ac158bddf4dc8ee7154d53d79708e4dec"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 216,
+          "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 14799,
+          "sha256": "4a0a840ab3ac1ef878061317e4e28ecac30e502054cb1fec18b56ec757bca552"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 19172,
+          "sha256": "75ef78ff1c92859b321928b1a1abd25b12a9d950baffd135496549908657e9a5"
+        }
+      ]
+    },
+    {
+      "name": "audit-dep-closure",
+      "description": "Inspect consumer-local deliverable.yaml needs and derive bounded dependency findings without changing declarations or evaluating readiness.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "d04e1535be8bd987ad2f3c5360d71882594bef13a50fa2468b1a8465a8847198",
+      "source_root": "chirality-root",
+      "source_path": "workflows/audit-dep-closure",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 2,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ]
+      },
+      "library_paths_named": [
+        "tools/deliverables/README.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 7626,
+          "sha256": "0908cf233751d6600e65daea740385edd0a2b230b3f2006bae3717a4bebbf019"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 66,
+          "sha256": "ed855e1f290f5cbf3bfb7253bd4169708bc93b82a9b396f23981feb499efef77"
+        }
+      ]
+    },
+    {
+      "name": "audit-epistemic",
+      "description": "Inspect what claims assert, what warrants them, and what uncertainty or conflict affects reliance.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "cb366edfe88b1b8a59df015af9950673d6e1a99c0485ef3d4341fd8e055ad0c7",
+      "source_root": "chirality-root",
+      "source_path": "workflows/audit-epistemic",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 7,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "report_coordination_notice",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1135,
+          "sha256": "32fad78a96fd6d0768bd209936c49636efe7588ac17284cdae2f0126d2c75553"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 216,
+          "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 10454,
+          "sha256": "2ed1a84c6607777ef86c9cc21096bdc23ad68c83c91ea47e0663d41de982409a"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 8730,
+          "sha256": "4373a3a4d766c32808d22a4b5035e78c4876f74d3f8a00ab8d99d9d01c634026"
+        }
+      ]
+    },
+    {
+      "name": "audit-governance",
+      "description": "Compare governance rules, references, terminology, and authority claims with their evidence.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "f40fce15f735f02f605e565bcaf80af01582552ae4766bac3a79b6eba5397568",
+      "source_root": "chirality-root",
+      "source_path": "workflows/audit-governance",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 3,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "report_coordination_notice",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "agents/registry.json",
+        "tools/REGISTRY.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1017,
+          "sha256": "59eb193e9cfd20ddecb34764dd4dd18c7d007f1caec65958e3ab04aced33fb8a"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 216,
+          "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 11589,
+          "sha256": "75fe10336f41762cfc9ba61e11f639c2c2cf0388405eb922ccfcd4ca18e09ec5"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 9539,
+          "sha256": "639ad84ffa34d52dd3add6523f41c4d26b8ba2225e0c31a232fd4cfefbc11d1c"
+        }
+      ]
+    },
+    {
+      "name": "audit-hypergraph-closure",
+      "description": "Assess whether a graph snapshot’s structure and coverage match its declared source basis.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "25ea948016e9583cba9f0d1483e642bddb75f4274833bf08f50df6281e5c2215",
+      "source_root": "chirality-root",
+      "source_path": "workflows/audit-hypergraph-closure",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 8,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "report_coordination_notice",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/query/count_workspace_state.sh",
+        "tools/scaffolding/create_snapshot_folder.sh",
+        "tools/scaffolding/scaffold_tool_root.sh",
+        "tools/scaffolding/update_latest_pointer.sh",
+        "tools/validation/validate_enum.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1121,
+          "sha256": "72801a3128695198f174ffa9cbb332f71f8ab9cf27fd68acafc05c71b98ea005"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 216,
+          "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 5336,
+          "sha256": "a1b373c4ba34fd5e46c831bdbae1a3ab8af9e06729c5d2a436586d4404a2431b"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 7826,
+          "sha256": "4f3381bc21ebab8c65daed3fd5c0b953b7236a063c3ea8c3dcbc4aa31ad11be6"
+        }
+      ]
+    },
+    {
+      "name": "audit-scope-closure",
+      "description": "Follow an accepted amendment through implementation, reruns, and remaining closure obligations.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "8a50eac5320c0c62f19087f32fa0193b504c81f936dcef29ced070bbe224c215",
+      "source_root": "chirality-root",
+      "source_path": "workflows/audit-scope-closure",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 9,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "report_coordination_notice",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/coordination/accumulate_supersession_map.py",
+        "tools/deliverables/README.md",
+        "tools/scope_of_work/validate_scope_of_work.py",
+        "tools/validation/check_min_viable_fileset.sh",
+        "tools/validation/validate_domain_decomposition_integrity.py",
+        "tools/validation/validate_kty_remediation_manifest.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1490,
+          "sha256": "54b6fd8d47d81d5258db847dffc98ddf7abdacca821bce473fec4b481cf2a86d"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 216,
+          "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 13623,
+          "sha256": "6d81d7e94ecd45af67842ab719b11e1639020e9f55e858a3e87b8ea4435d84c8"
+        },
+        {
+          "path": "resources/current-project.md",
+          "bytes": 4357,
+          "sha256": "3007edac3cf6c79b75190b2e52b429c6d9d24f0b371aacd321dc7e765644ae0c"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 25021,
+          "sha256": "f8582f2acedeed9f59911e4aaf3b9b47dc13599de001a94c151f53c5073b7519"
+        }
+      ]
+    },
+    {
+      "name": "bounded-reconciliation",
+      "description": "Compare affected deliverable commitments, design and dependency conditions with a concrete result and make warranted source edits.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "2529cb4316461476ad0619f9538c0fcff060520a75d0dbbf36229237e378f16f",
+      "source_root": "chirality-root",
+      "source_path": "workflows/bounded-reconciliation",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": null,
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 2628,
+          "sha256": "bbddf6ee32e8d9d172808741c8d48fc8703ad4ed97e412a4239f0652c681c2cc"
+        }
+      ]
+    },
+    {
+      "name": "compare-library-derivations",
+      "description": "Compare selected Library-derived project files with their actual sources and discuss which differences to retain, change or propose upstream.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "df6e58c5569064b9b1194e90ecd95c29a53a8bef4ba97598377e79fe36543ac8",
+      "source_root": "chirality-root",
+      "source_path": "workflows/compare-library-derivations",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 1,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": null,
+      "library_paths_named": [
+        "docs/document-metadata.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 3392,
+          "sha256": "64ca82ee5f6fc73499de6b5a53a48b8b0feb5e5a6560f710836e6110c5c1624a"
+        }
+      ]
+    },
+    {
+      "name": "construct-local-work-graph",
+      "description": "Derive the relevant dependency neighbourhood and plan a route from the user's intended result to usable work.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "32a25cf77243dceb4598fb5bd287867b6cbd7bf0baa28da7274cf308e75aec46",
+      "source_root": "chirality-root",
+      "source_path": "workflows/construct-local-work-graph",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 2,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": null,
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 2372,
+          "sha256": "15472a3ba34b503c42b0f98c6bc13d3a7c8cb126defaff6d19e58d9625ca428b"
+        },
+        {
+          "path": "resources/work-graph-template.md",
+          "bytes": 632,
+          "sha256": "1c974513db36641836cbc846ae26ba2f8311484e5218a57bba100cafa56d732f"
+        }
+      ]
+    },
+    {
+      "name": "content-digest",
+      "description": "Read one deliverable folder and produce a structured 7-section content digest summarizing identity, scope, document kit, dependencies, references, semantic framework, and quality observations.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "a24a1ee97fd313569303afd39dad92e47dd286a63c4c78bd71d11a9cbd2d5da7",
+      "source_root": "chirality-root",
+      "source_path": "workflows/content-digest",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 3,
+        "group": {
+          "key": "research-understand",
+          "label": "Research & understand",
+          "order": 1
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 3501,
+          "sha256": "dfa837aecc65759fdcc1715da6505fa8aae8c70d2d4c673d5ebc500a5a79f3f0"
         },
         {
           "path": "WORKFLOW.md",
-          "bytes": 6563,
-          "sha256": "0488a744eb163fc633e1ae356de1955a58e9ca1f6396ef6b028c2e8ffad75355"
+          "bytes": 10156,
+          "sha256": "8451c6fe2a20d8236d985fdce0d973616a3f91dd5826ffb8df39b71c6e1aa0cd"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "coordinated-knowledge-work",
+      "description": "Use when related contributions must become one usable knowledge-work result and the team needs sustained ownership, independent assurance, shared changes, and completion.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "39ad62746e20993e3be514180c2039a3ba6aeb1c843f1e6bab7a36616465230a",
+      "source_root": "chirality-root",
+      "source_path": "workflows/coordinated-knowledge-work",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 4,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": null,
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "REVIEW-NOTES.md",
+          "bytes": 17412,
+          "sha256": "c505862eb2382d07ede198a998a3ed9bfcc4796250ef99a9d08768202ff5598b"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8995,
+          "sha256": "0f31ded2cf5bf800973ab5e6752af9fc8f221646791e9207e8026b3a21fbde75"
+        }
+      ]
+    },
+    {
+      "name": "create-workflow",
+      "description": "Create or revise a reusable Chirality workflow through conversation, package it in the intended library, and verify discovery and readiness for reuse.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "0661688091930b4f0e491af98e241a749b52de8646d5ec851e46335ff5572111",
+      "source_root": "chirality-root",
+      "source_path": "workflows/create-workflow",
+      "central": true,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "core",
+        "tier": "primary",
+        "order": 0
+      },
+      "library_execution": null,
+      "library_paths_named": [
+        "tools/validation/build_workflow_index.py",
+        "tools/validation/test_workflow_catalog.py",
+        "tools/validation/validate_workflow_metadata.py",
+        "tools/workflow_runtime/README.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 9642,
+          "sha256": "18d3ddeece5d0e8864c71d1913bdeca31b913199ad5c20b350d7788698220391"
+        }
+      ]
+    },
+    {
+      "name": "data-app-build",
+      "description": "Build an interactive data application with an agent from an accepted specification closure only, decide conformance with a test suite generated from the specification before the build, examine the result independently, and present the built application for the owner's acceptance without deploying it.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "e5b465f3740cc555510401dbdcb8e4bf7d9afb1f7c2521c7a322a8cf1f7bf911",
+      "source_root": "chirality-root",
+      "source_path": "workflows/data-app-build",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 1,
+        "group": {
+          "key": "build-maintain-software",
+          "label": "Build & maintain software",
+          "order": 3
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "HELP_HUMAN",
+          "HELPS_HUMANS",
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 4656,
+          "sha256": "3d878b046dd8b857fabad7c2c54e3d7d714569b3681dd4972a676c9adef1b970"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 113,
+          "sha256": "355ed5f4d297a96f76bba8870cb421acf7e48a3c3f9bb6283756de19677e096c"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 2490,
+          "sha256": "25dbfa4a927f057ae732c2adacb3a6257341fb425ca45e54b7c204014e9df5de"
+        },
+        {
+          "path": "resources/builder-input-contract.md",
+          "bytes": 8703,
+          "sha256": "fd4b9fcd9e711c952086002aaaaf072a8c78d3e307d90a726786e326fea275b2"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 2202,
+          "sha256": "f3d2157691dbbf0ae42636103ec23692ad5a34bb1a211c3b8d57d5b24c795171"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 5785,
+          "sha256": "05548542c439b75181dc76411c6fafe6f4c8320ee1f43b4160c5853db5ae51ff"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 8281,
+          "sha256": "7c781c0903f65d9fd2ef825ee631f2a61625110108e81db291199ede6ad1557c"
+        }
+      ]
+    },
+    {
+      "name": "data-app-spec",
+      "description": "Develop a declarative specification for an interactive data application with the human, from new intent through a design record or from an existing app; bind its domain knowledge and analyses, validate and examine it, obtain acceptance of the identified specification closure, and hand it to an agent build or to software-decomp as its accepted basis.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "bb08f115ff89cbe2738f4959ec0efd1c123c1b175162cc6bb4ecbacfed87dcf7",
+      "source_root": "chirality-root",
+      "source_path": "workflows/data-app-spec",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "build-maintain-software",
+          "label": "Build & maintain software",
+          "order": 3
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "HELP_HUMAN",
+          "HELPS_HUMANS",
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "docs/thesis/06_professional_practice.md",
+        "docs/thesis/CHIRALITY_FRAMEWORK.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8043,
+          "sha256": "8e847e45521164bea5a9794d8927505e78007d9936fee78cecab31d1b683e0ba"
+        },
+        {
+          "path": "examples/gw-review.appspec.yaml",
+          "bytes": 34829,
+          "sha256": "38a9d955613d101ad9eb03e401d13a08b918c9d5a437c36874c9865e6e47fe7d"
+        },
+        {
+          "path": "examples/gw-review.design.yaml",
+          "bytes": 35572,
+          "sha256": "323b64a2684b34f8fb658dbbf5ec881dee2916d1b8646086e3aef58980c00114"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 113,
+          "sha256": "355ed5f4d297a96f76bba8870cb421acf7e48a3c3f9bb6283756de19677e096c"
+        },
+        {
+          "path": "formats/DESIGN_ONTOLOGY.md",
+          "bytes": 23651,
+          "sha256": "74a738b1eb5f79af2aa8fcfa5315e625c0a211834f9306cb66841005ab97bb69"
+        },
+        {
+          "path": "formats/ONTOLOGY.md",
+          "bytes": 21530,
+          "sha256": "be6ccde4b783b84a9c4cbecf7e297d6bf19daf25d84e3f9f576f1f5a453d9cc6"
+        },
+        {
+          "path": "formats/PROJECTION.md",
+          "bytes": 7186,
+          "sha256": "56a6fc5480369419db5a5db10117a05ce4ce6e0bd8b7ab0806ae73e08748e447"
+        },
+        {
+          "path": "formats/app-design.schema.json",
+          "bytes": 94491,
+          "sha256": "c8254d34dad443e9962fcd8fec83f0ad40fc46fa504a0c0461d84e581936d2b7"
+        },
+        {
+          "path": "formats/app-patterns.schema.json",
+          "bytes": 94511,
+          "sha256": "ccd1729d9688f7027fefde6992664f8ad700d5264c6acdd62ef15eb610ff854e"
+        },
+        {
+          "path": "formats/app-spec.schema.json",
+          "bytes": 280940,
+          "sha256": "5e4a2873c0166a92df974039fee9a927545e15cf52dd2c00a4e629160b1b3f99"
+        },
+        {
+          "path": "formats/app_design.linkml.yaml",
+          "bytes": 44385,
+          "sha256": "7fea8315ccc5acdde08bdeff8f8c2f9c5a87307632aa76d0b55be71cd99141e0"
+        },
+        {
+          "path": "formats/app_family.linkml.yaml",
+          "bytes": 83859,
+          "sha256": "c8284d468783346d7c8d1daeb96fb47c4614e17d41a5da48412128922100e93a"
+        },
+        {
+          "path": "formats/patterns.yaml",
+          "bytes": 49383,
+          "sha256": "c9ca946f4b96d59dc04a95aeedff066ed1dfd46f8153d3bd599cc2f2452d298b"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 1777,
+          "sha256": "bde0cedebdc6cb9cb2eef76db35f9d64fa63a67b5ed74202faaa49f097dcc5ee"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 4764,
+          "sha256": "836c2ae9c91ce4d7d92ee8f6bf883b19b333fed13c1f207f27d259c15ff2ac65"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 11873,
+          "sha256": "a1dffb2adaa70d3a2328660a700e4daad7ac717c1063a418beac64d624ed23e3"
+        },
+        {
+          "path": "resources/gates.md",
+          "bytes": 4007,
+          "sha256": "bd5f44f5cd31afe8d92398c437b73889d508ddc0480c8d6157a1b40d4dfbf17a"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 18664,
+          "sha256": "9e61667d86ba87afd10a3898a99da3d744b12c9a20431a08b4a07410452f120f"
+        },
+        {
+          "path": "tools/check_design.py",
+          "bytes": 41317,
+          "sha256": "1afc93183615b98b4b40bbdea109030a6d5e08b37cc194d7d9cc4b79b9ab2ad7"
+        },
+        {
+          "path": "tools/check_spec.py",
+          "bytes": 15316,
+          "sha256": "528978b1e0f353b8148bd4541b37c63b3e9ae9fe58e114abbfb365549ab20919"
+        },
+        {
+          "path": "tools/freeze_candidate.py",
+          "bytes": 7981,
+          "sha256": "54f80d9cb15a6a569db0f3be2b6c8b677ae70e2c929ac7396ad3c0e96ad6192b"
+        },
+        {
+          "path": "tools/project_schema.py",
+          "bytes": 14860,
+          "sha256": "7fda64c4561444abc1c2034481af46d719971f13b1b544f6fa21aa0edab31e7f"
+        },
+        {
+          "path": "tools/test_check_design.py",
+          "bytes": 14370,
+          "sha256": "46edde9da377391e783da024117cfb51a19cfe566885d13ae7c7cb70651cf8d4"
+        }
+      ]
+    },
+    {
+      "name": "dbm-concordance-seed",
+      "description": "Transform raw concordance evidence atoms and risk inventory rows into typed publication concordance candidates for register freeze review.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "c123400c062fef4b17d3f670464a881b1556030969d16846177727eb9716982e",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dbm-concordance-seed",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 2,
+        "group": {
+          "key": "author-publish",
+          "label": "Author & publish",
+          "order": 7
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 15511,
+          "sha256": "014881414f9da2074450b2cd903c6c4abd21e898df9ea217106c79cd3d0ba2c2"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 17496,
+          "sha256": "b45e8456ed9f0405cf7df5fdc4372f7bab51549dfc0282f7af75558003c4cac0"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "dbm-concordance-verify",
+      "description": "Review semantic consistency across an authored DBM's sections, using current text and available review evidence; supports publication packages and standalone drafts.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "169f39aefa54672d2d51df51c0fc5386d4fbabbe208be1d66ea692563f2d8978",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dbm-concordance-verify",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 16,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 9058,
+          "sha256": "baaa592f385d59e688e1e87f5b9a0132e6061fbbef193baaaafe2c383f4370a4"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 7400,
+          "sha256": "b6a7d41c9123914c533f1bc9e1b096dac680761d1ece59d0385ceb2639aab70d"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "dbm-draft-review",
+      "description": "Review a human-prepared draft DBM against the governed knowledge base — build review substrate, prepare candidate findings for human disposition.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "33b2ed59dfd97f0f1420975cae8761a70f0d5441b78ddcc3735b4f7cfbc42ee9",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dbm-draft-review",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 17,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/review/scan_section_coverage.py:*",
+            "python3 tools/review/extract_claims.py:*",
+            "python3 tools/review/scan_tbd_markers.py:*",
+            "python3 tools/review/check_body_thinness.py:*"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/review/check_body_thinness.py",
+        "tools/review/extract_claims.py",
+        "tools/review/scan_section_coverage.py",
+        "tools/review/scan_tbd_markers.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 13560,
+          "sha256": "c3c8db96cb6775146b5b6a5822de79896ff374436f9a66d462621e1b3023a5d0"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 10540,
+          "sha256": "d225046efae48b39fce4ff1cd67e716a946d4b61e3f189668758aa550e8a40b0"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 362,
+          "sha256": "bb58a5e1e7c70a55d75dba80a824b4cf162313f9b19b72949025f7637fb509b1"
+        }
+      ]
+    },
+    {
+      "name": "dbm-postauthor-concordance",
+      "description": "Post-authoring evidence bundle and review for pipeline-produced DBM sections — build review substrate, prepare candidate findings for human readiness judgment.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "ef0bac85a91c0c82e2b172223c4de8639fdefdc8ffafc88952db62dd69fbf275",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dbm-postauthor-concordance",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 18,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/review/scan_section_coverage.py:*",
+            "python3 tools/review/extract_claims.py:*",
+            "python3 tools/review/scan_tbd_markers.py:*",
+            "python3 tools/review/check_body_thinness.py:*"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/review/check_body_thinness.py",
+        "tools/review/extract_claims.py",
+        "tools/review/scan_section_coverage.py",
+        "tools/review/scan_tbd_markers.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 11551,
+          "sha256": "9b253d41b2587c79eeed02d786685a7e07f767715b4c881a3da9763697da8d1e"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8921,
+          "sha256": "36d648c2dc081db75b6ab2987e546cd347774bcf7b55695b134feea58b07d99c"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 362,
+          "sha256": "bb58a5e1e7c70a55d75dba80a824b4cf162313f9b19b72949025f7637fb509b1"
+        }
+      ]
+    },
+    {
+      "name": "dbm-publish",
+      "description": "Assemble the full rewritten DBM package from approved section outputs and produce package QA artifacts.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "0dc580c9f1868c2f0a0c854d08ba6f39245641d2b16279364979ebc657f549e2",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dbm-publish",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 3,
+        "group": {
+          "key": "author-publish",
+          "label": "Author & publish",
+          "order": 7
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/publication/assemble_publication.py:*",
+            "python3 tools/publication/validate_source_supersession.py:*"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/publication/assemble_publication.py",
+        "tools/publication/validate_source_supersession.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 15614,
+          "sha256": "3fd9ea1da84219767fcc430cc3569a9c8c1d832de9fe280371cec2b7490595dc"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 15066,
+          "sha256": "3148dd399f8ad27e2ac188063f9861f5f804161e1e4479ca1c803814013afd09"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 278,
+          "sha256": "3dcbf3c0284b0605487546e0ad2c708e8dd12c54f6638f6b5a1f9f8f3f793ada"
+        }
+      ]
+    },
+    {
+      "name": "dbm-publisher",
+      "description": "Develop and publish one engineering Design Basis Memorandum from accepted domain state, with frozen planning, section production, post-authoring review, and human acceptance.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "a7808c20e71de51a7c8e0a93ec07456bb79735e85595e27dc4ab80362b95f1a0",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dbm-publisher",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 1,
+        "group": {
+          "key": "author-publish",
+          "label": "Author & publish",
+          "order": 7
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/publication/build_section_context_packets.py",
+        "tools/publication/build_section_map.py",
+        "tools/publication/render_dispatch_briefs.py",
+        "tools/review/check_body_thinness.py",
+        "tools/review/extract_claims.py",
+        "tools/review/scan_section_coverage.py",
+        "tools/review/scan_tbd_markers.py"
+      ],
+      "files": [
+        {
+          "path": "ACCEPTANCE.md",
+          "bytes": 4070,
+          "sha256": "1d4b97e6085372f7d9f728fd3351e3a58b35d4e84991563e63316eaaff6b306e"
+        },
+        {
+          "path": "CONTRACT.md",
+          "bytes": 34596,
+          "sha256": "ab9d22ff3ba41a4d2cc4b41aa76ea276c6153cf774a75574ffab72c38db5b17a"
+        },
+        {
+          "path": "PROCEDURE.md",
+          "bytes": 18847,
+          "sha256": "b298feb4904d70ce344169d934b0f6a6fc86a2395f1c35561035ef698075db9b"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 3990,
+          "sha256": "610108412eaec1890f263ef6c0d4c9720ad0a02961d10faac005dd561c24a2ce"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 75,
+          "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+        }
+      ]
+    },
+    {
+      "name": "dbm-section-publish",
+      "description": "Publish exactly one rewritten DBM section from approved mapped DOMAIN inputs and emit fixed QA artifacts.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "dc19d015db4520b5e513c35cff815cd6198d2b1b03bc2fdf2b65ddccdc75e209",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dbm-section-publish",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 4,
+        "group": {
+          "key": "author-publish",
+          "label": "Author & publish",
+          "order": 7
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 14960,
+          "sha256": "3ee9779fd662fefdbc0619e027d723e945af6b4d0093a64c0c7c7bdadc6fde24"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 26402,
+          "sha256": "88ac3855bac1359f909a605ab26041d1f0b8235d616adc63d79685d17a80f7d4"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "decomposition-package-review",
+      "description": "Review one DOMAIN decomposition package as a closed system for derivative parity, active snapshot completeness, and handoff-state readiness. Use when a root-level remediation or scope-change run needs package-level closure evidence before downstream work or phase advancement.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "7e86cd35c78893813aac7cad79b18673e3018167bbca1ef9a439e485278b51d2",
+      "source_root": "chirality-root",
+      "source_path": "workflows/decomposition-package-review",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 4,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 10643,
+          "sha256": "13eb7bc1b4c528f9c44b123d5e47be107b8c2f477ef9c7365822c4187a4b01a2"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 3597,
+          "sha256": "c9b1431804a1eafe68677b8fb70de1846a63c5988dfe2ace2488964929e58ee3"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 1730,
+          "sha256": "db7e1e8ca49e82234e4a65f589fb0e1a5b1553f1f77e98eb7e389d7217816acb"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2005,
+          "sha256": "3ee9b9c5c149ecb4b27ceedafc3a9fe91ad96d5c9c0e8d1ac82be0df0a51e043"
+        }
+      ]
+    },
+    {
+      "name": "define-work",
+      "description": "Clarify or revise the work needed for an intended contribution so it can be assigned, carried out, coordinated or examined, using the smallest useful definition.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "94d98d7a4b5e97df4382898f545858b634950bf3b47dcb547e0e3f2f4038221f",
+      "source_root": "chirality-root",
+      "source_path": "workflows/define-work",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": null,
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 6201,
+          "sha256": "0b4fa7c4e12a8edffaba9ad80dc5923b337a6b99c945689dd17c8e600e22e4dc"
+        },
+        {
+          "path": "resources/walkthroughs.md",
+          "bytes": 8924,
+          "sha256": "7ecf52be63972e05900acacc00b4ebc3c039bbd8ff9ed87bf86313850bf00a55"
+        }
+      ]
+    },
+    {
+      "name": "dependency-extract",
+      "description": "Author or refresh a deliverable's consumer-local needs in deliverable.yaml from its scope, sources and intended use.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "1752711b054e11c1e3a7a89c48f75bc33a35c132b7f21177685f4b23ea3c0736",
+      "source_root": "chirality-root",
+      "source_path": "workflows/dependency-extract",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 4,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/deliverables/README.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8239,
+          "sha256": "2ebc530cf9650b50c9f551be23b2984b744d6912d769b810978789a8490f0c21"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 1789,
+          "sha256": "9143e10dbce5b1b77f2ff4f7da7db92a37fb55fa548f6237883aeb2f482408e6"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 2361,
+          "sha256": "9e36d4ed0f7e443d33b4b165e949f712b755d0a70181f5156d1bbe517d4d95d0"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2941,
+          "sha256": "188e68e2c2a0b2d6588a883bfc3c97cd5ced10e2c6b6a56f1224631fdf43794b"
+        }
+      ]
+    },
+    {
+      "name": "domain-decomp",
+      "description": "Develop a coherent domain ontology while preserving source meaning, identity, and disagreement.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "b26ecb0f5d1ac058cc8ca755fd0d92d22c81d46c0ec36429fcf5a7ac0ec31234",
+      "source_root": "chirality-root",
+      "source_path": "workflows/domain-decomp",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 5,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/decomp/build_atomization_brief.py",
+        "tools/decomp/build_prose_validate_brief.py",
+        "tools/decomp/build_source_skeleton.py",
+        "tools/decomp/build_toc_priors.py",
+        "tools/decomp/merge_source_atomizations.py",
+        "tools/decomp/merge_vocabulary_seeds.py",
+        "tools/decomp/render_source_html.py",
+        "tools/equation_audit/audit_equations.py",
+        "tools/retrieval/build_source_index.py",
+        "tools/source_audit",
+        "tools/source_audit/audit_figures.py",
+        "tools/source_audit/audit_folios.py",
+        "tools/source_audit/audit_images.py",
+        "tools/source_audit/audit_tables.py",
+        "tools/source_audit/run_prose_validation.py",
+        "tools/source_catalog/build_source_database.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1173,
+          "sha256": "6ad7cefb95fb69dac86402393f63dd20b54c837204a3b1a4fd273b32f1ff0327"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 25543,
+          "sha256": "1c710863f33b58492c908477151a282a2faf89355817e82ff98f07484410f269"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 41953,
+          "sha256": "5502d01a0c469c3dba1bd6ff80df435a645b6d332c08c6da97b754c1264de1da"
+        }
+      ]
+    },
+    {
+      "name": "domain-documents",
+      "description": "Draft knowledge-artifact document set for a DOMAIN Knowledge Type deliverable. Produces KA-* files per the variable artifact schema. DOMAIN pipeline only.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "162f6bf4073bb2adb06d8bc6f2533e840cb2afbb3b2a961911d01be2af1d1b84",
+      "source_root": "chirality-root",
+      "source_path": "workflows/domain-documents",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "author-publish",
+          "label": "Author & publish",
+          "order": 7
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        ".agents/skills/preparation/SKILL.md",
+        "tools/EXTERNAL_TOOLS.md",
+        "tools/diagnostics/ka_coverage_audit.py",
+        "tools/retrieval/query_source_index.py",
+        "tools/scaffolding/write_status.sh"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 36950,
+          "sha256": "161d825f243721ebd9355ad823df8e028f4286b49834f2a7e44da3cb7cf5cb5c"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 9321,
+          "sha256": "e1aa26e9a25734c23b95ecc8640832fdd9c4d244c0e088212c9a43542d83a658"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 15257,
+          "sha256": "5c4c044564672f633e3f6760109f6463f6519262c90d01dff63d17815c579ed8"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 4133,
+          "sha256": "8f7d4a342cf96b5ec709ddfbf9c748ecb3680cc66959ee1d94b5e68688b27111"
+        }
+      ]
+    },
+    {
+      "name": "domain-engine",
+      "description": "Integrate a deterministic domain engine with explicit computational coverage and human judgment.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "2d04a1fbbe7b09da0249d0f287c25af75339660e298b7959395566f6b835fb12",
+      "source_root": "chirality-root",
+      "source_path": "workflows/domain-engine",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 6,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1112,
+          "sha256": "1fc425daca21b1690475598080fc2fd2fcc16cd227fffc46c04acdddad8e7a61"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 34368,
+          "sha256": "110cd66c3658b71f6eb73e7cabc8538bcbadff73613c7b2cdc279b64f81828b4"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 7096,
+          "sha256": "e3bbb3e344c7c5eb69d5288b190287595b739333b09825541f58305e20926caf"
+        }
+      ]
+    },
+    {
+      "name": "domain-hypergraph",
+      "description": "Discover source-backed domain entities and build a traceable graph projection.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "a9a764aa3d10cdc040f256e9d5ffc1cc7bcc06a85c826e326a82d75ee990f12c",
+      "source_root": "chirality-root",
+      "source_path": "workflows/domain-hypergraph",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 7,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "report_coordination_notice",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/aggregation/build_hypergraph.py",
+        "tools/scaffolding/create_snapshot_folder.sh",
+        "tools/scaffolding/scaffold_tool_root.sh",
+        "tools/scaffolding/update_latest_pointer.sh"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1038,
+          "sha256": "65f3e0a2235c9fb6ee912894534306569c7b31863d9d245d4f7fafbcfee85cb9"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 216,
+          "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 7812,
+          "sha256": "e6664ab8dd1daf4a0d505bbf5f6479d67e3df5f1e7155a7ded06ebd686b5cf48"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 16558,
+          "sha256": "def4e20a0009b9b4b4702fb61785373e03a085e218010c6de59f950d7f80b27e"
+        }
+      ]
+    },
+    {
+      "name": "domain-knowledge-intake",
+      "description": "Turn domain sources and expert input into an identified, warranted domain knowledge pack (criteria, methods and their applicability, parameter tables, assumptions, definitions and caveats), reconciled, examined by a competent domain reviewer and accepted for a stated scope of use by data-application specifications.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "9ed17147f87b009762ee90ccc33ec64887fab81eb5a698a657e0400a89873205",
+      "source_root": "chirality-root",
+      "source_path": "workflows/domain-knowledge-intake",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 3,
+        "group": {
+          "key": "build-maintain-software",
+          "label": "Build & maintain software",
+          "order": 3
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "HELP_HUMAN",
+          "HELPS_HUMANS",
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "docs/thesis/03_philosophical_framework.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 4101,
+          "sha256": "1f47c5115532721d958b20da53209b7410b148ac4b3baaeb2c7e663a7fe71177"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 113,
+          "sha256": "355ed5f4d297a96f76bba8870cb421acf7e48a3c3f9bb6283756de19677e096c"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 876,
+          "sha256": "1783ec6f003f79c936390cc51b6b79b1becf0f633dbb0b8fcbaecff8e5bee9d4"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 846,
+          "sha256": "3e53d0e9e0d967c7a4a60c931d673bcb599a30382c10b123132133a973a4b1f8"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 3212,
+          "sha256": "4574cd31ad44e92c74b15f3086711e90710706b84b92bc08ad557f4f8bab342a"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 4737,
+          "sha256": "b0ee60b26b25213fb7a4848ea8c1a754cae8073896db704ecbdd32980abf9749"
+        }
+      ]
+    },
+    {
+      "name": "domain-prose-validate",
+      "description": "Independently re-extract one rasterized PDF page's prose, equations, and asset placeholders for downstream extraction-reproducibility comparison (Gate 1.5-P Stage 1).",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "6eb130d6467ff6d7bf6c918adade3e8168b0fa81e3892fda573f00ee32670523",
+      "source_root": "chirality-root",
+      "source_path": "workflows/domain-prose-validate",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 6,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/source_audit/compare_extracts.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 9641,
+          "sha256": "0da84c15faab0e27bc30dd3dae0f689f071ed37b12af2e4257860e5d94492720"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 4192,
+          "sha256": "161a00857488158b7057c9c8209477e782cd3de648184b369fb8d961673f3a53"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 4346,
+          "sha256": "be7415bd75b63141158bc6dac66c413c054d8cb9363a7cb7de549efc31d17dd8"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 3259,
+          "sha256": "6bb37462e357748e0df872564ad18a6b173386ddbe6c0d7a84fa50f9db890881"
+        }
+      ]
+    },
+    {
+      "name": "domain-source-atomize",
+      "description": "Per-dispatch-unit bounded atomization of one slice of one DOMAIN source markdown into IN/OUT/TBD atomic units with dual SourceRefs, content hashes, and vocabulary seeds. Invoked by the WORKING_ITEMS (workflow: domain-decomp) orchestrator for per-skeleton-dispatch-unit fanout in Phase 2.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "b3386e5c3fa24a93779e1ed4b2cb970314987fb3f1e82e28e488a198befbd7a9",
+      "source_root": "chirality-root",
+      "source_path": "workflows/domain-source-atomize",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 5,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "docs/PRD.md",
+        "tools/decomp",
+        "tools/decomp/build_atomization_brief.py",
+        "tools/decomp/build_source_skeleton.py",
+        "tools/decomp/merge_source_atomizations.py",
+        "tools/decomp/merge_vocabulary_seeds.py",
+        "tools/decomp/render_source_html.py",
+        "tools/retrieval",
+        "tools/retrieval/build_source_index.py",
+        "tools/source_catalog/build_source_database.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 16958,
+          "sha256": "9439e95ef7a99f884868ffc44d5d06d652443da3fcf818ec16cb18e0ba1081a5"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 6384,
+          "sha256": "638c690a6b0eae5feb3c9d426cf3f1d3cb2037f08db675b3968d35e3178a4f1c"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 5100,
+          "sha256": "e9fcc595f9fb28e6d205513fa350281d2f14a8ffe6fe217d719a240c5d014d5b"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 3616,
+          "sha256": "00e5f09e32af94fcabdb4c6462200620271201a15ddc0fda8d51024a46f61056"
+        }
+      ]
+    },
+    {
+      "name": "drawing-extract",
+      "description": "Extract target-specific evidence from engineering drawings through coverage design, bounded visual extraction, deterministic QA, assembly, and recovery.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "6e4917096100e9e7169c6f814bcd3839b0541aadd737036c73436f9589095e13",
+      "source_root": "chirality-root",
+      "source_path": "workflows/drawing-extract",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 7,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/drawing_extract/aggregate_valve_counts.py",
+        "tools/drawing_extract/assemble_equipment_csv.py",
+        "tools/drawing_extract/assemble_equipment_markdown.py",
+        "tools/drawing_extract/assemble_titleblock_index_csv.py",
+        "tools/drawing_extract/assemble_valve_candidates_csv.py",
+        "tools/drawing_extract/assign_valve_symbol_geometry_duplicates.py",
+        "tools/drawing_extract/backfill_stub_system_names.py",
+        "tools/drawing_extract/build_page_worker_brief.py",
+        "tools/drawing_extract/build_pandid_valve_tile_brief.py",
+        "tools/drawing_extract/build_titleblock_page_brief.py",
+        "tools/drawing_extract/dedupe_equipment_csv.py",
+        "tools/drawing_extract/extract_pdf_titleblock_text.py",
+        "tools/drawing_extract/flag_duplicate_equipment_csv.py",
+        "tools/drawing_extract/flag_duplicate_valve_candidates.py",
+        "tools/drawing_extract/flag_merge_conflicts.py",
+        "tools/drawing_extract/merge_equipment_detailed.py",
+        "tools/drawing_extract/normalize_equipment_stub_layout.py",
+        "tools/drawing_extract/prepare_header_crops.py",
+        "tools/drawing_extract/prepare_pandid_tiles.py",
+        "tools/drawing_extract/prepare_titleblock_crops.py",
+        "tools/drawing_extract/reconcile_basic_vs_detailed.py",
+        "tools/drawing_extract/report_stub_counts.py",
+        "tools/drawing_extract/sanitize_equipment_stubs.py",
+        "tools/drawing_extract/titleblock_stub_layout.py",
+        "tools/drawing_extract/validate_detailed_schema.py",
+        "tools/drawing_extract/validate_resume_stub_metadata.py",
+        "tools/drawing_extract/validate_stub_format.py",
+        "tools/drawing_extract/validate_tile_partition.py",
+        "tools/drawing_extract/validate_titleblock_resume_metadata.py",
+        "tools/drawing_extract/validate_valve_tile_resume_metadata.py",
+        "tools/drawing_extract/valve_stub_layout.py",
+        "tools/pdf2md/rasterize_pdf.py"
+      ],
+      "files": [
+        {
+          "path": "ACCEPTANCE.md",
+          "bytes": 2281,
+          "sha256": "57ccb11e3d42b896f7054b66b264d9b8443abebc2b9f57f94b1048e5f7622d75"
+        },
+        {
+          "path": "CONTRACT.md",
+          "bytes": 15290,
+          "sha256": "b42e9dc39522f34ae94b11b0b5011b6e22341c1f9bf4947c6fefb42e1338748b"
+        },
+        {
+          "path": "EXTENDING.md",
+          "bytes": 2875,
+          "sha256": "4b725c882b62b0e59ec402f73ae4f0a3f097b092456725b6ccbca49b5b150d18"
+        },
+        {
+          "path": "PROCEDURE.md",
+          "bytes": 24915,
+          "sha256": "dd9bcc7342c525ea3814c8d5f53a2ddd126d943bed67fffde1160e6b7ae28883"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 3189,
+          "sha256": "9bd5a7c12a93c65bd21beb48b5f6b66812fa30b0a27f18c391bc70fc1346302d"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 75,
+          "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+        }
+      ]
+    },
+    {
+      "name": "drawing-extract-page",
+      "description": "Per-page bounded extraction of structured data from a single engineering drawing page image, using crop-first multiblock VLM reasoning. Drawing-type-aware (PFD implemented; P_AND_ID, ISOMETRIC, GA stubbed). Invoked by the drawing-extract orchestrator for per-page fanout.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "e5ca06070025f3bdbed14e25f20af9b83ed78643ab540864c3bc0ab4a801588e",
+      "source_root": "chirality-root",
+      "source_path": "workflows/drawing-extract-page",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 8,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 25467,
+          "sha256": "ef67e224a1a5e70a769e4ddcffe4d10516bee89cdf2c49d9956b0986f862504b"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 27795,
+          "sha256": "46c41ed41922023265acd60defa71e2bc08c8787e9dee638a65b3a83f368f389"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "drawing-titleblock-page",
+      "description": "Per-page titleblock extraction from drawing sheets using four corner crops and a full-page thumbnail; emits a governed sheet-inventory stub.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "b3b1d24adaa13aacaf6fbc649dc811746ca5738d49bc3cdcd4b8ecfcf3ac729e",
+      "source_root": "chirality-root",
+      "source_path": "workflows/drawing-titleblock-page",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 9,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 3907,
+          "sha256": "9a0eb4227d4adc5d5dbc7d0621842bf189a7643c92ea4ecd999d8136de08e52a"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 4483,
+          "sha256": "6ab802a3cd7e33658d2007ddbad2da39c234d29448dc9a98ed3a0a5345813c04"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "equation-audit",
+      "description": "Review extracted display equations with the human, interpret correction notes, apply validated fixes, backcheck changes, and close an immutable audit snapshot.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "21e10b79f5198fe95598124a71441497ba35c5010c7fbe5ff082c23b79bb5c43",
+      "source_root": "chirality-root",
+      "source_path": "workflows/equation-audit",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 10,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/equation_audit/audit_equations.py",
+        "tools/equation_audit/build_equation_bbox_brief.py",
+        "tools/equation_audit/build_equation_interpret_brief.py",
+        "tools/equation_audit/crop_equation_regions.py",
+        "tools/equation_audit/migrate_audit_layout.py",
+        "tools/equation_audit/process_flagged.py",
+        "tools/equation_audit/prune_old_snapshots.py",
+        "tools/equation_audit/scan_equation_audit_state.py",
+        "tools/equation_audit/validate_flagged_schema.py",
+        "tools/pdf2md/assemble_markdown.py",
+        "tools/reporting/clean_pdf2md_output.py"
+      ],
+      "files": [
+        {
+          "path": "ACCEPTANCE.md",
+          "bytes": 2960,
+          "sha256": "b72b62b58b51cbf29c34fb2dac76aa19eb8ccedac36fe272935430f61935f978"
+        },
+        {
+          "path": "CONTRACT.md",
+          "bytes": 7526,
+          "sha256": "505ca78c98c0f503d203eee850783ac99c9748024c0031db648c5a6df5f18296"
+        },
+        {
+          "path": "PROCEDURE.md",
+          "bytes": 10892,
+          "sha256": "ac69b72242d6898bb5622c17d9db36de03782576dadf9a9ea26ff2d4c85647da"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 3010,
+          "sha256": "b62ffb0148e4989e7254c08e0a9ea61f1314745a98dc51a2459588229ef9f021"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 75,
+          "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+        }
+      ]
+    },
+    {
+      "name": "equation-bbox-detect",
+      "description": "Detect display-equation bounding boxes on one rasterized page PNG using multimodal vision and emit normalized coordinates for downstream cropping. Per-page bounded dispatch invoked by equation-audit during Phase 1 when per-equation crops are enabled.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "2a0ad4700a3ab647baea80c913ef14b32b2e65fa4552613cc71c29af01b355d7",
+      "source_root": "chirality-root",
+      "source_path": "workflows/equation-bbox-detect",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 11,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [
+        "tools/equation_audit/audit_equations.py",
+        "tools/equation_audit/build_equation_bbox_brief.py",
+        "tools/equation_audit/crop_equation_regions.py",
+        "tools/pdf2md/rasterize_pdf.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 13110,
+          "sha256": "995b4656e9ed8d245e06593abacbd0ee8ab638ff002a153cf8bdd31fff34ab58"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8693,
+          "sha256": "14f30f2f68a0316f455d108916fc23cb921cd6d8e5b1f75ff5fe4667304c13ec"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "equation-flag-interpret",
+      "description": "Convert one human-written natural-language correction note about one display equation into a corrected LaTeX expression. Per-flag bounded dispatch invoked by equation-audit during Phase 3a, one TASK per flagged entry whose `description` is prose rather than LaTeX.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "d6a7291eca94b26d094bcd8db8c284d8dfb3b028a729b461c2c541ed5f170985",
+      "source_root": "chirality-root",
+      "source_path": "workflows/equation-flag-interpret",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 12,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [
+        "tools/equation_audit/audit_equations.py",
+        "tools/equation_audit/build_equation_interpret_brief.py",
+        "tools/equation_audit/process_flagged.py",
+        "tools/equation_audit/validate_flagged_schema.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 11373,
+          "sha256": "80d8384b3eaf05527833c9ac1d234b277fad5507df8949207fb0faf5bd6e41a0"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8682,
+          "sha256": "ee7a9914b0a62c37b95a8cea9157c48bde249588a539ac86efdc2f5c1c66a7f5"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "equipment-costing-extract",
+      "description": "Extract costing-relevant design basis parameters for equipment matching a target module type list from KA files in a single KTY folder. Use when building equipment costing registers for cost estimation.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "d401e22ae4d130adb5d3b668ba9cc83aeb9a17c99f6408fa216fe6d447d94b2c",
+      "source_root": "chirality-root",
+      "source_path": "workflows/equipment-costing-extract",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 11,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [
+        "tools/reporting/merge_equipment_costing_csv.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 9106,
+          "sha256": "ffcd54f92c3e68594972257c88a5f597e9cf6a59b2f0e0034c17681584cc5b05"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 10318,
+          "sha256": "88f115fafb1523d3403cf78a8180302676fcf3d99ebab28b61c904e5430f3db4"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "equipment-extract",
+      "description": "Extract discrete physical equipment items from Knowledge Artifact files within a single DOMAIN Knowledge Type folder. Use when building per-KTY equipment registers from KA production documents.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "bd7f995284e4ccaec708659da5ce033031fc459e4b69f02338bee148b38855d7",
+      "source_root": "chirality-root",
+      "source_path": "workflows/equipment-extract",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 10,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 5693,
+          "sha256": "f233bd2f6916ca3f3c814f31f3ee6ee323c4a9026c8125ad413fea99a533bdf5"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 7307,
+          "sha256": "6258fa8a7f03c21b6a6c184cf6d759f16df4bf8df7e93cbfb1aaabd8ed64f417"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "estimate-prep",
+      "description": "Generates estimation input package (pricing library, LOE, project parameters, BOE) via two-phase run with PHASE=SCAFFOLD|BOE modes and a human gate between invocations.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "33972bde925c13d0d021859f3bb99e1c9b30b3a5fa0beb93aab2fa8325669440",
+      "source_root": "chirality-root",
+      "source_path": "workflows/estimate-prep",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "estimate-cost",
+          "label": "Estimate & cost",
+          "order": 4
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/deliverables/README.md",
+        "tools/reporting/generate_index_md.sh",
+        "tools/scaffolding/create_snapshot_folder.sh",
+        "tools/scaffolding/scaffold_tool_root.sh",
+        "tools/validation/validate_enum.py"
+      ],
+      "files": [
+        {
+          "path": "BOE_STRUCTURE.md",
+          "bytes": 3796,
+          "sha256": "04c217a69716b0ed1814bface0f8f0b5553f7c4da83139e828b47ffb40f6f06d"
+        },
+        {
+          "path": "INDEX_MD_CONTRACT.md",
+          "bytes": 2142,
+          "sha256": "7ff683ff568bf87e4c0f79f1b36d17883e2055a873c9da6eb6568e807f8fe0b1"
+        },
+        {
+          "path": "SCHEMA_ANNEX.md",
+          "bytes": 7079,
+          "sha256": "63c4f72e1c2bdd0d2ee0c6d5ef35458264ce24c00e5452769c76edccc8997c8e"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 16162,
+          "sha256": "5ca7ee3b04bb148e98195d6d067598eecbed2ce459fb16a893b4423be5e17e0c"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 7403,
+          "sha256": "f406cfa30793defd26a9c9b57e10a00c0bf1df14844e120d83c3e51458e1c4c4"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 8805,
+          "sha256": "7f4fc94ba2ed22987693d90d92ab7584ffdf78178b51c97e28a222442c42ca16"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2933,
+          "sha256": "77020bb3a8b5a52a985d56d7eabbad4c8ba5a09cd3c332fc7bd28e02ba2483cf"
+        }
+      ]
+    },
+    {
+      "name": "estimate-snapshot",
+      "description": "Generate an immutable, provenance-first estimate snapshot for a bounded scope of deliverables and/or packages, writing quarantined artifacts under the estimating tool root. Use for automated estimate runs driven by a validated BASIS_OF_ESTIMATE enum and local pricing sources.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "611325b10d98163ceb881616ad6b471efdbdf470755f29e5ce1117cd31bed9f0",
+      "source_root": "chirality-root",
+      "source_path": "workflows/estimate-snapshot",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 1,
+        "group": {
+          "key": "estimate-cost",
+          "label": "Estimate & cost",
+          "order": 4
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/validation/validate_enum.py:*",
+            "bash tools/scaffolding/create_snapshot_folder.sh:*",
+            "bash tools/scaffolding/update_latest_pointer.sh:*"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/deliverables/README.md",
+        "tools/scaffolding/create_snapshot_folder.sh",
+        "tools/scaffolding/update_latest_pointer.sh",
+        "tools/validation/validate_enum.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 15486,
+          "sha256": "693d96520ccbfe1847eb875b07c8bbfe616dc7b19f891e135bdc5c06e62494d3"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 320,
+          "sha256": "023fb77fedb94dee55a2c14a77d07e5f4ebc3df0817529a7cd026beb85c45912"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 4619,
+          "sha256": "423a8e4c128b1c3ae165b8ee5c8ae308ddf1ddb2d1a405ec4e26fafa917266a4"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 5434,
+          "sha256": "5aa04bc0d2501389b12e98a518fccf79f7a885fc523c2bdaa8ce07462b660d82"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2556,
+          "sha256": "83f61080de4fe845bc123a01bfa88ec078f4e9ba904ff5c5a080157c099b4c4b"
+        }
+      ]
+    },
+    {
+      "name": "evaluation-protocol",
+      "description": "Coordinate evidence-grounded evaluation, bounded audits, optional scoring, and remediation handoffs.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "19100ef16464b2318ebbc48f9097550d4d10a4167879d68062cf1ed779914164",
+      "source_root": "chirality-root",
+      "source_path": "workflows/evaluation-protocol",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 13,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/deliverables/README.md",
+        "tools/evaluation/README.md",
+        "tools/evaluation/audit_dependencies.py",
+        "tools/evaluation/audit_structure.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 13687,
+          "sha256": "6ff9e7f43c17a9708508491c2806c108cca1aaa514ec57b2d9a4ff269a7074ab"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 3245,
+          "sha256": "ce5c9f52aa25933286417dc525571dc69435288d79d035ec60f27ec4417fe21d"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 2524,
+          "sha256": "86828d0750fb0da07abc1182790f7a441df4b526e4f04c90856f66c8f51359cc"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 2916,
+          "sha256": "2a92fda93d4995944a31947769ad25deedf3b769741203ef9c26179eef312b08"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 1597,
+          "sha256": "5ca610ba2e236080758de61a9114299d5dfd03c4ea9158c3dc2b17233c8cbdcf"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2695,
+          "sha256": "be089ca92a94b128a739853a3cc7c241e32d04599c8c1818564838ba27c0ed5d"
+        }
+      ]
+    },
+    {
+      "name": "evaluation-report",
+      "description": "Evaluate one dimension against an accepted rubric and return a supported score.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "f333667f78188da198a7eecb1ab066422d5cb1d7eb34872461557cacab72563e",
+      "source_root": "chirality-root",
+      "source_path": "workflows/evaluation-report",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 14,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "report_coordination_notice",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/deliverables/README.md",
+        "tools/evaluation/README.md",
+        "tools/evaluation/count_deliverable_files.sh",
+        "tools/evaluation/extract_lifecycle_states.sh",
+        "tools/query/count_workspace_state.sh",
+        "tools/validation/validate_enum.py",
+        "tools/validation/validate_id_format.sh"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 992,
+          "sha256": "d12183c6c3196423ec8660b8dd3917e0d1889a666594b3f0a3dc04e81ff23577"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 216,
+          "sha256": "5183e34217c8d68e63456eb698531882b8c9aebdf083a2fc1a705e27f540d8d1"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 2364,
+          "sha256": "e213fc51a68670cc815f400dfc11c98b1d54e2a2e2c9282d424dd74c88b5a967"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 2614,
+          "sha256": "6cc24094e416fd7ca6fbf84b090ea65997762d5889d4a32eca042d87554f3fe8"
+        }
+      ]
+    },
+    {
+      "name": "integrated-engineering-estimate-schedule",
+      "description": "Construct or revise one coupled engineering effort/cost and resource-loaded schedule case from accepted work inputs, with distinct reconciled projections and consumer outputs.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "d0a1c4ec6f9f487f90293eb575695f255fe1deb1d55439d1abc83a613cf43f83",
+      "source_root": "chirality-root",
+      "source_path": "workflows/integrated-engineering-estimate-schedule",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 1,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": null,
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "METHODS.md",
+          "bytes": 18440,
+          "sha256": "0a9d0e20dc39e40fb78bffc71bd84f32e01d9e1563ddef9b6e1cccbd94b25d7c"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 16414,
+          "sha256": "bb6a579ffa31992b24eb25a9ffacbce68e42d826af3d4c773fd23e8d842c3048"
+        }
+      ]
+    },
+    {
+      "name": "kty-content-remediate",
+      "description": "Archive, tombstone, verify, and emit disposition evidence for DOMAIN KTY content after an approved scope change without rewriting active Knowledge Artifact content.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "1fb2b29bb92006705c7816deb6557ffe634da1a65c023053f30a76f9fbd23251",
+      "source_root": "chirality-root",
+      "source_path": "workflows/kty-content-remediate",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 1,
+        "group": {
+          "key": "manage-changes",
+          "label": "Manage changes",
+          "order": 6
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/scaffolding/write_status.sh"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 12528,
+          "sha256": "1a4217e7a32e543c01da57e99c39c784b8e4d5ff66052ebe416a163202c8ef5c"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 6061,
+          "sha256": "c21e9413006b97ead0ee914b00367c4ff099c11ae89d8ca4293af69948fd25cd"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 4968,
+          "sha256": "a27dfe2f146d6745939ddedc381328e55cc53480131b16badfc6c95de62f5d88"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2789,
+          "sha256": "72e88e2362e09716ca25a1b1e83d089db1d00b0f6b8ef89bb5f971a8fd4e8679"
+        }
+      ]
+    },
+    {
+      "name": "kty-metadata-align",
+      "description": "Review and optionally align one DOMAIN Knowledge Type folder's metadata surfaces to approved decomposition truth without rewriting Scoping.md or KA content. Use after regeneration or scope change when `_CONTEXT.md`, `_STATUS.md`, or `_REFERENCES.md` may have drifted.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "7d048f2c914bdf205b7662681180fbecc9548acde69752cb8296a0e59ad989c6",
+      "source_root": "chirality-root",
+      "source_path": "workflows/kty-metadata-align",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 2,
+        "group": {
+          "key": "manage-changes",
+          "label": "Manage changes",
+          "order": 6
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8983,
+          "sha256": "94d344fed708cd18775adc0b2c667db9f05a6f81ca638999bfff6048acb2bc14"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 3713,
+          "sha256": "1d84e483d429e01f35f6c65b553b1dbef4d62f231574632cac70dc74979f718e"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 2053,
+          "sha256": "f9e79c5e9155da5681aefadedc658f7b71796aadb9b87c13778d770128c20f89"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2187,
+          "sha256": "54360ed4a224e6b7d56b7c86522ab6fb8eb36bf774bf3f6d24c5474b933c207b"
+        }
+      ]
+    },
+    {
+      "name": "lens-register",
+      "description": "Generate a matrix-organized, coverage-complete semantic lensing register (_SEMANTIC_LENSING.md) from _SEMANTIC.md + production documents. Setup-pipeline companion to the interactive semantic-lensing workflow.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "c3fa66493d07be366e81b98a89a9ed2c7b137de974d3df8429fc7079bd0897ef",
+      "source_root": "chirality-root",
+      "source_path": "workflows/lens-register",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 9,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/validation/validate_lens_register.py",
+        "tools/validation/validate_semantic_pipeline_scope.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 14590,
+          "sha256": "7f3b5659c862c9bbff4dd2b0c83c560ad2d063f419f623352fb65a3eb18c332c"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 4759,
+          "sha256": "2066bae5694c2886f030a5781c3180698a0cad57ce93ab1d3584e8bf791ac8d0"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 7749,
+          "sha256": "25873178d33bcff267055202d16a254530ec0429b424b327c748a1640fe25576"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 3126,
+          "sha256": "ca20044c3464e347bc3d21dab81bd70b8ee8622f352fdefdb351b84a371a19c9"
+        }
+      ]
+    },
+    {
+      "name": "pdf2md",
+      "description": "Convert a bounded PDF to Markdown in one TASK assignment, using vision and deterministic cleanup and assembly tools.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "ac894f63275235fafa55acc9e4b274f35bfce439414219a2f4bfc2b052c56d61",
+      "source_root": "chirality-root",
+      "source_path": "workflows/pdf2md",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/pdf2md/rasterize_pdf.py:*",
+            "python3 tools/pdf2md/postprocess_page.py:*",
+            "python3 tools/pdf2md/assemble_markdown.py:*",
+            "python3 tools/reporting/clean_pdf2md_output.py:*"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/pdf2md/assemble_markdown.py",
+        "tools/pdf2md/postprocess_page.py",
+        "tools/pdf2md/rasterize_pdf.py",
+        "tools/reporting/clean_pdf2md_output.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 3114,
+          "sha256": "4c0f90da011909ea2ceeaa1c40712ddd56d6c473bda1edc4c8b7d35c9253d19c"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 9110,
+          "sha256": "98be9cc3dfed4e6181915f672598c0233802007bbbeecb7df1ccaa93772e0322"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 360,
+          "sha256": "f2ac2885282a30946b86eeb2bfc4a88cb3a678bbfb236f2d7717bc14bc7c118f"
+        }
+      ]
+    },
+    {
+      "name": "pdf2md-folio-extract",
+      "description": "Read one rasterized PDF page and emit the visible printed folio label (page number as it appears on the page itself — \"47\", \"xiv\", \"B-3\", or null when no folio is printed).",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "ce75b60108d59b9dd2769908aae575a91eec87a3383a13c4d52beaec07511204",
+      "source_root": "chirality-root",
+      "source_path": "workflows/pdf2md-folio-extract",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 3,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 9852,
+          "sha256": "4e4510ebfb02857f7f9c6610fbb7e2ec1cf498738c3e590da6e3da48b9f04a57"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 7530,
+          "sha256": "e2914c1f9ee8511591616d0c70d2f63b6e8ce302616d67e5a3160ba0a2792f8e"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "pdf2md-orchestration",
+      "description": "Coordinate recoverable PDF conversion through page-bounded vision, deterministic cleanup and asset materialization, assembly, and explicit degraded-output review.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "73bb892196bda0c97b7bbf422ea73bcb4ebf844333240c5ed66f104472d7031a",
+      "source_root": "chirality-root",
+      "source_path": "workflows/pdf2md-orchestration",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 1,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/pdf2md/aggregate_asset_manifest.py",
+        "tools/pdf2md/assemble_markdown.py",
+        "tools/pdf2md/build_folio_extract_brief.py",
+        "tools/pdf2md/build_page_assets_brief.py",
+        "tools/pdf2md/build_page_brief.py",
+        "tools/pdf2md/build_page_full_brief.py",
+        "tools/pdf2md/filter_logo_assets.py",
+        "tools/pdf2md/materialize_page_assets.py",
+        "tools/pdf2md/migrate_csv_assets_to_archive.py",
+        "tools/pdf2md/postprocess_page.py",
+        "tools/pdf2md/rasterize_pdf.py",
+        "tools/pdf2md/render_table_xlsx.py",
+        "tools/pdf2md/rewrite_inline_asset_refs.py",
+        "tools/pdf2md/run_folio_extraction.py",
+        "tools/pdf2md/validate_asset_resume.py",
+        "tools/pdf2md/validate_assets.py",
+        "tools/reporting/clean_pdf2md_output.py",
+        "tools/workflow_runtime/README.md"
+      ],
+      "files": [
+        {
+          "path": "ACCEPTANCE.md",
+          "bytes": 2296,
+          "sha256": "fa10d9ee87fccc5893dc34247397ab186149acaaa0299a064423cf6067ed84a6"
+        },
+        {
+          "path": "CONTRACT.md",
+          "bytes": 7600,
+          "sha256": "7b75054abe93adf08748b8dbfa327b8dbc4b48feea932bd9d29e418ea08ed013"
+        },
+        {
+          "path": "PROCEDURE.md",
+          "bytes": 14495,
+          "sha256": "04735a60cde12172394bdf956570cba82b670d2670db4cdcd49d578ae18c936f"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 3372,
+          "sha256": "7ba18340a3886c289a93a80aae40e7e5398edf1ed6fcf56e48638c5fe1c6cf9d"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 75,
+          "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+        }
+      ]
+    },
+    {
+      "name": "pdf2md-page",
+      "description": "LEGACY Markdown-only page transcription for explicitly selected historical PDF resume contracts; new conversion runs use pdf2md-page-full.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "3bb38ae074ea18d05bbd23dea3bb86559cd4381e0ccbc5f37a526362c66dba52",
+      "source_root": "chirality-root",
+      "source_path": "workflows/pdf2md-page",
+      "central": false,
+      "compatibility": "legacy",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "superseded",
+        "tier": "primary",
+        "order": 0,
+        "supersededBy": "pdf2md-page-full"
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [
+        "tools/pdf2md/rewrite_inline_asset_refs.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 7547,
+          "sha256": "5fbdfac85573811c8cba001dae4c680b6d63de7c652d655b92c2baaba47cc30e"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 10852,
+          "sha256": "01ebc0b23fd14b39dce69469d45a3232ed16206aa739ecc35875ce0320dd84c2"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "pdf2md-page-assets",
+      "description": "LEGACY separate asset discovery from a PDF page image and Markdown sidecar, retained for historical resume contracts; new conversion runs use pdf2md-page-full.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "9c92957e5f017f2f8ed183dae3a40a569ffe30df1ab202d05ca0f024d5af60d5",
+      "source_root": "chirality-root",
+      "source_path": "workflows/pdf2md-page-assets",
+      "central": false,
+      "compatibility": "legacy",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "superseded",
+        "tier": "primary",
+        "order": 1,
+        "supersededBy": "pdf2md-page-full"
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [
+        "tools/pdf2md/aggregate_asset_manifest.py",
+        "tools/pdf2md/build_page_assets_brief.py",
+        "tools/pdf2md/materialize_page_assets.py",
+        "tools/pdf2md/render_table_xlsx.py",
+        "tools/pdf2md/rewrite_inline_asset_refs.py",
+        "tools/pdf2md/validate_assets.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 11027,
+          "sha256": "6f5bc2cecb567cc7e5b3aad531345d4f3ba17f41458d879ca7dec8802a9efc84"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 12694,
+          "sha256": "7317cfb938aabbb75c07e3fd3469d584da084993063357bfe13c9fcfc49683a7"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "pdf2md-page-full",
+      "description": "Single-page merged VLM pass that produces BOTH the raw Markdown transcription and the bbox-normalized asset JSON from one vision read of the page image. Replaces the prior two-workflow split (pdf2md-page + pdf2md-page-assets) for new dispatches.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "75e8a76bb4235c5a52694f42676785e082354c7dec2f433938dee159d7621f6c",
+      "source_root": "chirality-root",
+      "source_path": "workflows/pdf2md-page-full",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 2,
+        "group": {
+          "key": "extract-documents",
+          "label": "Extract from documents",
+          "order": 2
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": []
+        }
+      },
+      "library_paths_named": [
+        "tools/pdf2md/aggregate_asset_manifest.py",
+        "tools/pdf2md/build_page_full_brief.py",
+        "tools/pdf2md/materialize_page_assets.py",
+        "tools/pdf2md/postprocess_page.py",
+        "tools/pdf2md/rewrite_inline_asset_refs.py",
+        "tools/pdf2md/validate_assets.py",
+        "tools/reporting/clean_pdf2md_output.py"
+      ],
+      "files": [
+        {
+          "path": "CONTRACT.md",
+          "bytes": 6640,
+          "sha256": "7a0ea9260a57e11e14704fbe555fbb0ce4c009e6fea38b7f3d079d12f50f27ad"
+        },
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 16713,
+          "sha256": "1cfcdad7f03d3d42424f95221712725f80f0ce3665d6b2afcc7c0bf3a7d79b66"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 144,
+          "sha256": "19f0f4774247871545cfe949f9f92f3eba6909f6befba284e82d8ec327400619"
+        }
+      ]
+    },
+    {
+      "name": "project-decomp",
+      "description": "Turn a project scope into cohesive Packages and bounded Deliverables with explicit objectives and boundaries.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "35c226388f6a7e952a2fe7dcfc588c3619f49c3856c643c1b4ff3c0497e582b3",
+      "source_root": "chirality-root",
+      "source_path": "workflows/project-decomp",
+      "central": true,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "core",
+        "tier": "primary",
+        "order": 2
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1450,
+          "sha256": "e24b1e524ef0168b4d9cf3439012a5552cde99e7b5521934a213342a5ac95cf2"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 75,
+          "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 14517,
+          "sha256": "127dae6869e519423e003e4e1a7a848c9e87031e21048e711a2295b79b576951"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 6648,
+          "sha256": "91a6046de65df8756abbf79270a151e9137db67c838fc34197ae37e6f198d66b"
+        }
+      ]
+    },
+    {
+      "name": "project-setup",
+      "description": "Materialize accepted project scope as current deliverable localities, author local contracts and needs, and reconcile affected work before integration. Retained domain and legacy setup is the separate project-setup-retained workflow.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "517d68ecd90ef7a71364a561f434b813388b16aad39e321de648469e1119256a",
+      "source_root": "chirality-root",
+      "source_path": "workflows/project-setup",
+      "central": true,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "core",
+        "tier": "primary",
+        "order": 1
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "README.md",
+        "agents/AGENT_HELP_HUMAN.md",
+        "docs/alignment-manual/README.md",
+        "docs/document-metadata.md",
+        "tools/scaffolding/scaffold_deliverable.sh",
+        "tools/scaffolding/scaffold_package.sh",
+        "tools/scope_of_work/validate_scope_of_work.py",
+        "tools/software_workflow/software_workflow_common.py",
+        "tools/validation/check_min_viable_fileset.sh"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 3615,
+          "sha256": "d5a2fe2479528e6ba369e1445a8cea7582370251bb808e27fcfd4410c7e2cf97"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 552,
+          "sha256": "e8f1a718ab3fada64054a2fc306221e3f29a53ff10926d930ce834cda2309ab9"
+        },
+        {
+          "path": "resources/current-project.md",
+          "bytes": 7900,
+          "sha256": "d99732d9f38291f4c9bb9db7be919057baa1e057461efb8a408cde653c4cca31"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 542,
+          "sha256": "c8f527c8e6bb76207a1efab5aa04445180a57af943d477b471d5a1ce5c9bf704"
+        },
+        {
+          "path": "resources/package-activation.md",
+          "bytes": 3536,
+          "sha256": "bcd829c7ac2c72cdaba1d1055f232cf922aa52fdcb28ab8489a0c32e60933ffd"
+        },
+        {
+          "path": "resources/project-entry.md",
+          "bytes": 26173,
+          "sha256": "d2f1a0425806d6d5f914a5de49139376e6d233622df669e8bab2e9d6a9bec7ab"
+        },
+        {
+          "path": "resources/software-activation.md",
+          "bytes": 1307,
+          "sha256": "4fd17bf2e5e2fbaf840da4690e00b16bd38e8a97cedc5cba9062614d1e550868"
+        }
+      ]
+    },
+    {
+      "name": "project-setup-retained",
+      "description": "Set up or incrementally update a project that explicitly retains the DOMAIN route or the legacy phase and control-file route. Current PROJECT/SOFTWARE setup uses project-setup.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "cb56c4d23dc86d3fed384ea799fcc8e030833f2dca50bb7d66f1ec2e4516fb6b",
+      "source_root": "chirality-root",
+      "source_path": "workflows/project-setup-retained",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 11,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/aggregation",
+        "tools/deliverables/cli.py",
+        "tools/query/count_workspace_state.sh",
+        "tools/scaffolding/scaffold_deliverable.sh",
+        "tools/scaffolding/scaffold_package.sh",
+        "tools/scaffolding/scaffold_tool_root.sh",
+        "tools/scaffolding/write_status.sh",
+        "tools/validation/check_amendment_reopen.py",
+        "tools/validation/check_min_viable_fileset.sh",
+        "tools/validation/validate_lens_register.py",
+        "tools/validation/validate_semantic_matrix.py",
+        "tools/validation/validate_semantic_pipeline_scope.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 2028,
+          "sha256": "0805b0aaf3f9caef629bb173156eac412539935b92ad2a252ac48cdcdccb9527"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 27002,
+          "sha256": "454367ef462d1ebd4da5a69eff4045b8899d6f26423654915ff0b011afe04518"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 46119,
+          "sha256": "4c6b1a4469f71f5bc13a47515411e41339ef2a93eca11adb242e3c5e0ce7baa2"
+        }
+      ]
+    },
+    {
+      "name": "reconciliation",
+      "description": "Reconcile claims, artifacts, implementation, evidence, lifecycle, and unfulfilled obligations (legacy Remaining only where pinned) with accepted project truth.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "3a969bae578deebaf9a99bc673c637f7992d3b936fd886c1d9109d3e0bbeaea3",
+      "source_root": "chirality-root",
+      "source_path": "workflows/reconciliation",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "core",
+        "tier": "primary",
+        "order": 6,
+        "displayName": "Run corpus concordance program"
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1889,
+          "sha256": "41d82274d3948d7fd6ff5af6278db9abdc95d6f36666fc0419915f726cf1ed58"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 11312,
+          "sha256": "257deaa03510b12586f12849ab6ce84fdedfdfc43c53b8c4bdae64165c1815a6"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 11205,
+          "sha256": "bccae482f366e4695e771150437065cd2240dc81e9312d977fa194386934d750"
+        },
+        {
+          "path": "resources/representation-migration.md",
+          "bytes": 4087,
+          "sha256": "473d0b7a5f9164c5383e27c6b8197235167cd6325712c0f1e215b9d88e71b050"
+        }
+      ]
+    },
+    {
+      "name": "reflect-on-work",
+      "description": "Examine with the human whether a concrete finding calls purpose, commitments, explanatory framing or chosen practice into question, and carry a warranted retain or change decision into the owning work.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "0f5f9b861af82b698c1d24425bc760eb85403e85e7f0913a857be7f57c5698d4",
+      "source_root": "chirality-root",
+      "source_path": "workflows/reflect-on-work",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 5,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "HELP_HUMAN",
+          "HELPS_HUMANS",
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 4481,
+          "sha256": "c58699cd15957c9ded02997a3ad934562267d2cc888a8292a1453f808513ec4a"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 113,
+          "sha256": "355ed5f4d297a96f76bba8870cb421acf7e48a3c3f9bb6283756de19677e096c"
+        }
+      ]
+    },
+    {
+      "name": "research-orchestration",
+      "description": "Coordinate bounded research streams, independent verification, recoverable evidence, and synthesis.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "91bde1601ca531a1c6ccd9efdf59d1b7bd2bd2fc94740183a24c09cb78e8a0dd",
+      "source_root": "chirality-root",
+      "source_path": "workflows/research-orchestration",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 2,
+        "group": {
+          "key": "research-understand",
+          "label": "Research & understand",
+          "order": 1
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/retrieval/build_source_index.py",
+        "tools/retrieval/query_source_index.py",
+        "tools/retrieval/scaffold_research_packet.py",
+        "tools/source_catalog/build_source_database.py",
+        "tools/source_catalog/check_snapshot_freshness.py",
+        "tools/source_catalog/validate_source_database.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 3748,
+          "sha256": "07f3fb3bda4e28385f82446e924a761423803f6219fe3c41c05665b42c43680e"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 2482,
+          "sha256": "7bd76cfb20975786ec849739a0f795d0fb0a93a791c2dd405499132402fccb87"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 5168,
+          "sha256": "8f314b6c105c6b2169d264a6da426bf06e3ed5da9f5b08fdd746bc2f1c5ca2bd"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 15605,
+          "sha256": "5d51df9e0bd0a118bc2429508b7d8ec3d559b1fdf53b723ebc5f65d37baf9ff4"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 5993,
+          "sha256": "a1373d1054eda1c1fa1e577f68fb229617c0e854fe4b5f666d0c1b38d39ba451"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2884,
+          "sha256": "55ddc2224a278a834fd27235ba716c4dd677c2dfd5050963ab425a3158b9d15c"
+        }
+      ]
+    },
+    {
+      "name": "reverse-engineer-software",
+      "description": "Examine an existing software project, recover useful exemplars and lessons from its implementation and records, and develop a successor PRD and supporting documents with the human. Also supports a bounded reference account when that is the requested outcome.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "f624c7a9b5ba73e9baaaf0dfe82c524f3a7afd7f629265cad64f6bac46e7644e",
+      "source_root": "chirality-root",
+      "source_path": "workflows/reverse-engineer-software",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS",
+        "TASK"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 1,
+        "group": {
+          "key": "research-understand",
+          "label": "Research & understand",
+          "order": 1
+        }
+      },
+      "library_execution": null,
+      "library_paths_named": [
+        "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v9.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 17737,
+          "sha256": "eac76233782adca0d6b518aa219850dca6053eefc4628dd6cad9cd74fb9a5b9b"
+        },
+        {
+          "path": "resources/successor-basis.md",
+          "bytes": 6262,
+          "sha256": "7fc969aa7ee61886576b1eb4dddcd1d45b9c6e47bf7625b89c472dff611e37a7"
+        },
+        {
+          "path": "resources/worked-example.md",
+          "bytes": 3909,
+          "sha256": "e337148a5c29918d2daa1b56f9a4ad4bcbea3bd63f4202b37654061bd6441d90"
+        }
+      ]
+    },
+    {
+      "name": "review",
+      "description": "Guide evidence review and human disposition for a deliverable lifecycle transition.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "59379b4c7cadee1a616f07cfd05d863e967acd417dba2e49287fd564a3ee06bb",
+      "source_root": "chirality-root",
+      "source_path": "workflows/review",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 15,
+        "group": {
+          "key": "review-check",
+          "label": "Review & check",
+          "order": 5
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/deliverables/README.md",
+        "tools/scaffolding/create_snapshot_folder.sh",
+        "tools/scaffolding/update_latest_pointer.sh",
+        "tools/scaffolding/write_status.sh",
+        "tools/scope_of_work/derive_review_checklist.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1975,
+          "sha256": "b6a01225351649ff0aef7ab5254b65fb5a54ce5eca1419db7916da29ed0be856"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 75,
+          "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 18495,
+          "sha256": "35d270097d19b7bd29b3c509d9d2da97977e45424dac6446c49a25ecee9f4221"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 22813,
+          "sha256": "9ee9ad713009eb6446be98a4664ba58eed03d1af497620bd21cd6872799c5146"
+        }
+      ]
+    },
+    {
+      "name": "scope-change",
+      "description": "Amend accepted decomposition and propagate the consequences through their owning workflows.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "0e5205c2f043315e5d9c3bf4f40d34881d2d0970f2215543cec7e0b745677cee",
+      "source_root": "chirality-root",
+      "source_path": "workflows/scope-change",
+      "central": true,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "core",
+        "tier": "primary",
+        "order": 5
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ],
+        "tools": {
+          "capabilities": [
+            "read",
+            "write",
+            "bash",
+            "delegate_agent",
+            "report_coordination_notice",
+            "send_agent_update",
+            "ack_agent_update"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/coordination/accumulate_supersession_map.py",
+        "tools/deliverables/README.md",
+        "tools/query/scan_next_amendment_id.sh",
+        "tools/reporting/synthesize_domain_coverage_json.py",
+        "tools/retrieval/build_source_index.py",
+        "tools/scaffolding/write_status.sh",
+        "tools/scope_of_work/validate_scope_of_work.py",
+        "tools/source_catalog/build_source_database.py",
+        "tools/validation/check_amendment_reopen.py",
+        "tools/validation/check_min_viable_fileset.sh",
+        "tools/validation/validate_decomposition_registers.py",
+        "tools/validation/validate_domain_decomposition_integrity.py",
+        "tools/validation/validate_kty_remediation_manifest.py",
+        "tools/validation/validate_scope_change_packet.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1984,
+          "sha256": "c7071487931da5831bd795c66be119fcd97f88a64615e7209852a4c8511d8602"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 276,
+          "sha256": "35e108bccac694cac738db03c61709e3db1886f84a3ee5545a1bbc5bdd4f3ab2"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 52461,
+          "sha256": "20b6ecf4d0110c15384990b44fbb0639c14be5d41408358807945735a83f5dbb"
+        },
+        {
+          "path": "resources/current-project.md",
+          "bytes": 8762,
+          "sha256": "4135c5cf76734aba983f10cba6bee17e25a1850555576eaeef55ba1df5c9d528"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 43010,
+          "sha256": "fe7686011ffeddca5bd7934d3ddd631615fc1dbc30305fc4d03c0f6203a2c232"
+        }
+      ]
+    },
+    {
+      "name": "scope-change-packet",
+      "description": "Produce a bounded PKG-00 Scope Change Consumable Packet for later human-initiated WORKING_ITEMS (workflow: scope-change) intake.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "d8d1c2a3798ac498d81248e3de852a5b970f4757c5407cdd2114a984cff2aa42",
+      "source_root": "chirality-root",
+      "source_path": "workflows/scope-change-packet",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "manage-changes",
+          "label": "Manage changes",
+          "order": 6
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "agents/AGENT_TASK.md",
+        "tools/validation/validate_scope_change_packet.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 6941,
+          "sha256": "97977a14b2cb815a02d80f5efa5795a7f79d5df241883a33c1a4fffbd121bb0f"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 1907,
+          "sha256": "9088066a87324928315f60f2ade0b9f1e7ee8b7afd1cb703bfa73734949657b6"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 1381,
+          "sha256": "7a4fbd29f7dded8fbfcc9369ee70f5273228b080d1bf9766b8e2c79c1662339e"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 583,
+          "sha256": "dc02176d479e471bdb255cbea1f61090f090b19bb704a62e02605242db2582da"
+        }
+      ]
+    },
+    {
+      "name": "scope-of-work",
+      "description": "Initialize, convert, revise under an accepted scope-change amendment, validate, and independently verify one objective-anchored PROJECT/SOFTWARE ScopeOfWork.md under the active SOW_V1 transition contract. Do not use for DOMAIN/KTY or independent schemas, lifecycle changes, or unauthorized corpus conversion.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "c2ac6e2939c592438f2bce86a06b01abb6ec04efad4e24ec9865c38119c489c3",
+      "source_root": "chirality-root",
+      "source_path": "workflows/scope-of-work",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 3,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/scope_of_work/check_boundary_owner_resolution.py:{scope_path}/**",
+            "python3 tools/scope_of_work/validate_scope_of_work.py:{scope_path}/**",
+            "python3 tools/scope_of_work/render_scope_of_work.py:{scope_path}/**",
+            "python3 tools/scope_of_work/convert_four_documents_to_scope_of_work.py:{scope_path}/**",
+            "python3 tools/scope_of_work/finalize_scope_of_work.py:{scope_path}/**",
+            "python3 tools/scope_of_work/map_scope_of_work_claims.py:{scope_path}/**",
+            "python3 tools/scope_of_work/report_scope_of_work_parity.py:{scope_path}/**",
+            "python3 tools/scope_of_work/derive_review_checklist.py:{scope_path}/**"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/scope_of_work/check_boundary_owner_resolution.py",
+        "tools/scope_of_work/convert_four_documents_to_scope_of_work.py",
+        "tools/scope_of_work/derive_review_checklist.py",
+        "tools/scope_of_work/finalize_scope_of_work.py",
+        "tools/scope_of_work/map_scope_of_work_claims.py",
+        "tools/scope_of_work/render_scope_of_work.py",
+        "tools/scope_of_work/report_scope_of_work_parity.py",
+        "tools/scope_of_work/validate_scope_of_work.py",
+        "tools/validation/validate_enum.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 19493,
+          "sha256": "78d57cf811d93b44c4bbd21afc66aba22b624f34b959e15aba1edad0f39adece"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 812,
+          "sha256": "4ad8b7eb42dba41f1609e6b3c61f14baa15ad82a1342f4ad12a095c4a570a26d"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 4682,
+          "sha256": "79125910eb83ed735863b5d8603ff971ebe93ee9c58debb785af9fcc79d53b2a"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 4687,
+          "sha256": "c9ac09fd7441c94977d31f72c40bf63796c60ead5d8ba8bd19cbf64e137859a9"
+        },
+        {
+          "path": "resources/representation-migration.md",
+          "bytes": 2813,
+          "sha256": "698957a5005bc0078322c2bd6f12d73ab20f130999b060fe149aa7d4cb33e3c3"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 4561,
+          "sha256": "3a2ea26e5b0f646b13dfcb00910737304f40a048db762f55bc773fb0288e64ee"
+        }
+      ]
+    },
+    {
+      "name": "semantic-lensing",
+      "description": "Apply semantic lensing analysis to deliverable documents using _SEMANTIC.md matrices. Treats lensing entries as a candidate worklist, tags proposals with matrix coordinates, and optionally updates lens artifacts.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "408062a3bcb181fe4eb9ac2bfb14ca18b19f94751f4b413a3e4049681351c6f9",
+      "source_root": "chirality-root",
+      "source_path": "workflows/semantic-lensing",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 10,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 7409,
+          "sha256": "138caeb7c0d9b80eb9d9afe239e4e59e5b1bd848ef7b9662769b8a672685d0a9"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 1875,
+          "sha256": "e6d3167ba82d3da9a9c5879160d0e449cde9ac15308c22621190ded85f806517"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 1359,
+          "sha256": "ed09bb8a2d9bad368174f5f13db6551fee5adbd4f8e8c08be0861ba02c368714"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 2330,
+          "sha256": "275e38e674c2d2f544cfa10a90d990402bce6332a99265927f54482eff102d85"
+        }
+      ]
+    },
+    {
+      "name": "semantic-matrix-build",
+      "description": "Generate one deliverable-local semantic lens (_SEMANTIC.md) by adopting canonical matrices A and B and deriving C, F, D, K, G, X, T, and E with explicit semantic-algebra working.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "3d98f29e42df784ce8e892c281d52cbdbb231b20366ededd649a16fd587a2f98",
+      "source_root": "chirality-root",
+      "source_path": "workflows/semantic-matrix-build",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "supporting",
+        "order": 8,
+        "group": {
+          "key": "plan-organize",
+          "label": "Plan & organize",
+          "order": 0
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ]
+      },
+      "library_paths_named": [
+        "agents/AGENT_TASK.md",
+        "tools/validation/validate_semantic_matrix.py",
+        "tools/validation/validate_semantic_pipeline_scope.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 16387,
+          "sha256": "9e387a2ff5dc4769629bf709512e456e34c13c018932423abe9e81011133841a"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 107,
+          "sha256": "565548ba64c99b5c126cbc7c0b05f38a2a094943c0a2c50aa218b7394c02a733"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 5510,
+          "sha256": "0c003bc6a4b56c5913b03076601d694f30955bb4ff39c630b2032a69d65427c7"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 7938,
+          "sha256": "afc4877b166d7b08d2508ebab801316f64a1a0d21da1a99eb3e9c75412a95476"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 3699,
+          "sha256": "c8866690925d99e23a68b20b921047d73506c7d85b7bb7ae467e1d8ce0368e3d"
+        }
+      ]
+    },
+    {
+      "name": "software-decomp",
+      "description": "Organize software intent into cohesive work domains and implementable bounded contexts.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "3b219fd4260b5dab4c08c2871d74a0dc83170bbae21f0ab7debbaa4be63d5a05",
+      "source_root": "chirality-root",
+      "source_path": "workflows/software-decomp",
+      "central": true,
+      "compatibility": "canonical",
+      "roles": [
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "core",
+        "tier": "primary",
+        "order": 4
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "tools/validation/validate_decomposition_registers.py",
+        "tools/validation/validate_id_format.sh"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 2357,
+          "sha256": "1e4403b1896a84eebb38a88d02427b8050732614a1f38736b3a189d71c05cb9d"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 75,
+          "sha256": "d1c668ae85f9f5a0edf2ecb312a449e21aa9101f99da9997fc4a7805677074df"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 22081,
+          "sha256": "43694b9d4fdb2b5f2a10be5b584892e8ce8a1878cf9992bc9d3c1ebda9bc4dbe"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 10113,
+          "sha256": "4c983c736e392a316ed04be8504090e0a10b5b2dd657e0447dfd5fc5608f0878"
+        }
+      ]
+    },
+    {
+      "name": "software-prd",
+      "description": "Develop a product requirements document for a new software product or a defined development undertaking with the human, examine the complete candidate independently, and hand the human-accepted PRD to software-decomp as its accepted basis. For a successor PRD formed by examining an existing project, use reverse-engineer-software. Not for maintenance, bug repair, issue-ticket execution, or stand-alone data repair or analysis.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "2318aca785edcd0fdfae35caeeaec007e9fabbcae8703841f27a144dee1f4a1c",
+      "source_root": "chirality-root",
+      "source_path": "workflows/software-prd",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "HELP_HUMAN",
+        "HELPS_HUMANS",
+        "WORKING_ITEMS"
+      ],
+      "navigation": {
+        "category": "core",
+        "tier": "primary",
+        "order": 3
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "HELP_HUMAN",
+          "HELPS_HUMANS",
+          "WORKING_ITEMS"
+        ]
+      },
+      "library_paths_named": [
+        "docs/PRD.md",
+        "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v9.md"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 8008,
+          "sha256": "af5ba71753e0d3efe275a89276f68f60b2ff2b0c023e0b3ef04760bfaeb464dc"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 113,
+          "sha256": "355ed5f4d297a96f76bba8870cb421acf7e48a3c3f9bb6283756de19677e096c"
+        },
+        {
+          "path": "resources/contract.md",
+          "bytes": 10212,
+          "sha256": "7d9c7fdb8d0cc6f1ecf540b8dde8502c9a87db439431662ecb6e14e09675d915"
+        },
+        {
+          "path": "resources/method.md",
+          "bytes": 14185,
+          "sha256": "d27ca1a0fd154fe217573f9ee80920026312315841d55c63a5156c9a3e728020"
+        },
+        {
+          "path": "resources/product-questions.md",
+          "bytes": 9850,
+          "sha256": "f267328a86b35c2bbea8efb134515ac4953a06ba84550925e68287f207c9f4f0"
+        },
+        {
+          "path": "resources/records-and-review.md",
+          "bytes": 8264,
+          "sha256": "98f7c3a38b51d0857613e9164b2aa33a05685ea21f6dbd2fd88009def08dec58"
+        }
+      ]
+    },
+    {
+      "name": "software-repository-reconnaissance",
+      "description": "Map a software repository's manifests, architecture, test surfaces, commands, ownership boundaries, and risks before planning or implementation. Use for unfamiliar repositories, novel stacks, package activation, or before sealing a software work brief.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "f70728e7b3ccdc016d1da1a287273e7e8e3ca5af8764c7bc207a15f092357ecc",
+      "source_root": "chirality-root",
+      "source_path": "workflows/software-repository-reconnaissance",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 0,
+        "group": {
+          "key": "research-understand",
+          "label": "Research & understand",
+          "order": 1
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/software_workflow/discover_repository.py:*",
+            "python3 tools/software_workflow/select_affected_checks.py:*"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/software_workflow/discover_repository.py",
+        "tools/software_workflow/select_affected_checks.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1325,
+          "sha256": "43fcc1956e4bae8f1b7a8545238fe7d28b4a2e201d0b6e32935e95ccd565ec81"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 283,
+          "sha256": "8abb9109acaf216bfdd3412fc4ae11dd7bb824fcdffc75661a036026e9156557"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 349,
+          "sha256": "72d69cc40b2a5d8f2577802aa4f7a8c8210eadc01095fb57893d20c09c8463ff"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 323,
+          "sha256": "ef77199047b212ec72002bda2fa268bcb54e46055a80426c4e9f9e7b1566bb27"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 329,
+          "sha256": "5287fdcfa5c1c67ce6c62f51303d9bc18bc4681e95ba52ca71e3102862140587"
+        }
+      ]
+    },
+    {
+      "name": "software-test-planning",
+      "description": "Derive a risk-based verification plan and affected registered checks for a bounded software change. Use before implementation, at fan-in, or after a defect when test selection, evidence sufficiency, negative cases, or acceptance gates must be made explicit.",
+      "revision_method": "chirality.app.workflow-package.sha256/v1",
+      "revision": "e61c5bde8d4cbe56ba10f923148c78884da005a811c10877059bfc2802beee0c",
+      "source_root": "chirality-root",
+      "source_path": "workflows/software-test-planning",
+      "central": false,
+      "compatibility": "canonical",
+      "roles": [
+        "TASK",
+        "WORKING_ITEMS",
+        "HELPS_HUMANS"
+      ],
+      "navigation": {
+        "category": "specialist",
+        "tier": "primary",
+        "order": 4,
+        "group": {
+          "key": "build-maintain-software",
+          "label": "Build & maintain software",
+          "order": 3
+        }
+      },
+      "library_execution": {
+        "schemaVersion": 1,
+        "compatibleRoles": [
+          "TASK",
+          "WORKING_ITEMS",
+          "HELPS_HUMANS"
+        ],
+        "tools": {
+          "commands": [
+            "python3 tools/software_workflow/discover_repository.py:*",
+            "python3 tools/software_workflow/select_affected_checks.py:*"
+          ]
+        }
+      },
+      "library_paths_named": [
+        "tools/software_workflow/discover_repository.py",
+        "tools/software_workflow/select_affected_checks.py"
+      ],
+      "files": [
+        {
+          "path": "WORKFLOW.md",
+          "bytes": 1565,
+          "sha256": "14f8f01994e0d92e3bc9b30d771057e6afd0a46f4824cffe83f3f9aacf12d9df"
+        },
+        {
+          "path": "execution.json",
+          "bytes": 283,
+          "sha256": "8abb9109acaf216bfdd3412fc4ae11dd7bb824fcdffc75661a036026e9156557"
+        },
+        {
+          "path": "resources/brief.md",
+          "bytes": 296,
+          "sha256": "a33484dcbe9ce6c0c43da586921e32efb54ce2034ab44026f91f7e8b78c63913"
+        },
+        {
+          "path": "resources/checks.md",
+          "bytes": 516,
+          "sha256": "c675e90a02b37bf58aab9b582db18523af306fafe5907539aeea7b88319e42cf"
+        },
+        {
+          "path": "resources/tools.md",
+          "bytes": 304,
+          "sha256": "09e0fe1f8d573f745ccbc835d2c3b102994ee245a9489678b616d881355d72b1"
         }
       ]
     }
