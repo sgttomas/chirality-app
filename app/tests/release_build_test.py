@@ -261,12 +261,33 @@ class ReleaseBuild(unittest.TestCase):
             for name in build.WRITABLE_ENVIRONMENT:
                 with self.subTest(name=name, argv=call['argv'][:2]):
                     self.assertTrue(Path(call['env'][name]).resolve().is_relative_to(out))
+                    # Containment by device and inode, not by spelling.
+                    common.require_inside(Path(call['env'][name]) / 'probe', self.candidate, name)
             self.assertTrue(call['cwd'] is None or Path(call['cwd']).resolve().is_relative_to(out))
             self.assertNotIn('RUSTUP_HOME', call['env'])
         self.assertEqual(set(description['build']['writable_environment']), set(build.WRITABLE_ENVIRONMENT))
         self.assertTrue((self.candidate / 'npm-cache/_logs/install-debug.log').is_file())
         self.assertTrue((self.candidate / 'cargo-home/registry/.package-cache').is_file())
         self.assertFalse((self.source / 'app/node_modules').exists())
+        # The caches were copied in, not linked: writing the run's copy cannot reach the input.
+        for copied, original in ((self.candidate / 'cargo-home/registry/cache/invented.crate', self.cargo_cache / 'registry/cache/invented.crate'),
+                                 (self.candidate / 'npm-cache/_cacache/index', self.npm_cache / '_cacache/index'),
+                                 (self.candidate / 'source/app/src-tauri/Cargo.toml', self.source / 'app/src-tauri/Cargo.toml')):
+            with self.subTest(copied=copied.name):
+                self.assertEqual(copied.read_bytes(), original.read_bytes())
+                self.assertFalse(copied.samefile(original))
+
+    def test_containment_is_by_identity_and_refuses_links_out_of_the_run_folder(self):
+        out = self.root / 'run'; out.mkdir()
+        outside = self.root / 'outside'; outside.mkdir()
+        (out / 'escape').symlink_to(outside)
+        for path in (out / 'escape/file', self.root / 'elsewhere/file', out / '../outside/file'):
+            with self.subTest(path=path), self.assertRaisesRegex(ValueError, 'not inside the output'):
+                common.require_inside(path, out, 'a written file')
+        common.require_inside(out / 'target/file', out, 'a written file')
+        (self.root / 'CaseProbe').mkdir()
+        if (self.root / 'caseprobe').exists():  # case-insensitive volume: a case alias is the same place
+            common.require_inside(self.root / 'RUN' / 'file', out, 'a written file')
 
     def test_a_failed_install_or_build_never_reads_as_a_finished_candidate(self):
         for stage in ('install', 'build'):
