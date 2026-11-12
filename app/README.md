@@ -1462,11 +1462,16 @@ makes, are written as one group line and read whole or not at all. Lines
 written before the chain, imported ones included, read as "unchained
 (legacy)", a limit that leaves the log complete; the chain starts after
 them. An edited, removed or unlinked line after the chain started, with the
-links of the lines after it left as written, is a broken chain: the log is
-incomplete and nothing repairs it. Until a chain head is
-kept elsewhere (signed checkpoints, export manifests), removing a log's last
-lines, or every link of a log this process has not read chained, is not
-detected. The host status
+links of the lines after it left as written, is a broken chain at the first
+line whose link no longer agrees with the line before it: the log is
+incomplete and nothing repairs it. The chain links alone do not show a change
+to the content of a log's last line that keeps its own backward link, lines
+removed from a log's end, an edit after which the later links were
+recomputed, or the removal of every link of a log this process has not read
+chained. Showing those needs comparison with a trusted head kept from before
+the alteration, which the App does not keep while log checkpoints are
+unsigned; the head an export package records shows such a change only against
+that package. The host status
 (`recordChain`) shows bounded counts of chained, legacy and broken logs;
 each log's chain head comes on demand (`records_chain_heads`).
 Signed checkpoints wait for App signing (OI-011).
