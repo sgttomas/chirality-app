@@ -179,24 +179,19 @@ fn read_package(
         }
     }
 }
-/// Reads only. The decision view opens the configured records store, and
-/// opening a store with no identity would create one, so an absent store or
-/// identity leaves the act records unread and nothing is created.
+/// Reads only, from the records store this process has opened, which a read
+/// never creates (`records_store::opened_existing`): with no store, the act
+/// records are unread and the need is unknown. The store's identity joins the
+/// census and must still be the one opened when the read ends.
 fn read_decisions(census: &mut Census, root: &Path) -> Result<DecisionRead, String> {
-    let configured = crate::records_store::current()?;
-    let store = configured
-        .root
-        .canonicalize()
-        .map_err(|_| "configured records store absent or unavailable; nothing created")?;
+    let (store, store_id) = crate::records_store::opened_existing()?;
     let identity = census
         .read(&store.join("store.json"))?
         .ok_or("records store identity absent; nothing created")?;
     let identity: Value =
         serde_json::from_slice(&identity).map_err(|_| "records store identity unreadable")?;
-    if identity["format"] != "chirality.records-store"
-        || identity["storeId"].as_str().is_none_or(str::is_empty)
-    {
-        return Err("records store identity invalid".into());
+    if identity["storeId"] != store_id.as_str() {
+        return Err("records store identity differs from the store this process opened".into());
     }
     census.read(&store.join("roots.jsonl"))?;
     census.read(&root.join(crate::records_store::PROJECT_LINK))?;
@@ -245,6 +240,9 @@ fn read_decisions(census: &mut Census, root: &Path) -> Result<DecisionRead, Stri
     decision_hook("after-derive");
     if store_dir.as_deref().map(crate::records_store::package::provenance_context) != provenance {
         return Err("package import accounting changed while reading".into());
+    }
+    if crate::records_store::opened_existing().ok() != Some((store, store_id)) {
+        return Err("the records store this process opened changed while reading".into());
     }
     Ok(DecisionRead { view, packages })
 }

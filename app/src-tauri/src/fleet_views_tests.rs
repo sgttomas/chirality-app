@@ -11,17 +11,31 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
+        Self::with_store(true)
+    }
+    /// The store is given but the App's start has not created it, so no
+    /// records store exists until a writer creates one.
+    fn not_started() -> Self {
+        Self::with_store(false)
+    }
+    fn with_store(started: bool) -> Self {
         let root = std::env::temp_dir()
             .canonicalize()
             .unwrap()
             .join(util::opaque_id("fleet-views-").unwrap());
         let project = root.join("project");
         std::fs::create_dir_all(&project).unwrap();
-        records_store::use_store_for_test(Some(Ok(records_store::Store {
+        let store = Some(Ok(records_store::Store {
             root: root.join("store"),
             placement: records_store::Placement::Test,
             limits: vec![],
-        })));
+        }));
+        if started {
+            records_store::use_store_for_test(store);
+        } else {
+            records_store::use_store_not_started_for_test(store);
+            records_store::restore_configured_for_test(records_store::configured_for_test());
+        }
         let graph = record(
             "work_graph",
             "fl:graph",
@@ -682,12 +696,13 @@ fn decision_need(w: &Value) -> (String, Value) {
 
 #[test]
 fn fleet_views_decision_need_unknown_when_act_records_cannot_be_read() {
-    let f = Fixture::new();
+    let f = Fixture::not_started();
     let (category, need) = decision_need(&f.read());
     assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "no records store: act records absent");
     assert!(need["why"].as_str().unwrap().contains("act records not read"), "{need}");
     assert!(!f.root.join("store").exists(), "reading creates no records store");
 
+    // A writer creates the store (attach with mint, as recording does).
     let dir = records_store::attach(&f.project, true).unwrap().dir.unwrap();
     let (category, need) = decision_need(&f.read());
     assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "no request record");
@@ -919,4 +934,111 @@ fn fleet_views_decision_matching_again_after_a_recorded_lapse_stays_outstanding(
     let (category, need) = decision_need(&f.read());
     assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")), "{need}");
     assert_eq!(need["decision"]["lapse"], "matches c0 again after observed lapse");
+}
+
+/// Every file and folder below `root`, for comparing before and after a read.
+fn listing(root: &Path) -> std::collections::BTreeMap<PathBuf, Value> {
+    super::super::tests::inventory(root)
+}
+fn decision_command(project: &Path) -> Value {
+    crate::runtime_session::read_decision_packages(project)
+}
+
+#[test]
+fn fleet_views_decision_reads_create_nothing_where_no_store_exists() {
+    let f = Fixture::not_started();
+    f.flush();
+    let before = listing(&f.root);
+    let packet = crate::read_fleet_records_for_workspace(Some(&f.project)).unwrap();
+    let (_, need) = decision_need(&packet["workspace"]);
+    assert_eq!(need["state"], "unknown", "{need}");
+    assert!(need["why"].as_str().unwrap().contains("not created yet"), "{need}");
+    let view = decision_command(&f.project);
+    assert_eq!(view["rows"], json!([]));
+    assert_eq!(listing(&f.root), before, "neither read creates a store, identity or lock");
+    assert!(!f.root.join("store").exists());
+}
+
+#[test]
+fn fleet_views_decision_reads_create_nothing_at_a_redirected_store_alias() {
+    let f = Fixture::new();
+    // The configured store is an alias of the real one.
+    let real = f.root.join("store-real");
+    std::fs::create_dir_all(&real).unwrap();
+    let alias = f.root.join("store-alias");
+    std::os::unix::fs::symlink(&real, &alias).unwrap();
+    records_store::use_store_for_test(Some(Ok(records_store::Store {
+        root: alias.clone(),
+        placement: records_store::Placement::Test,
+        limits: vec![],
+    })));
+    let d = decision_fixture(&f);
+    act_log(&d.dir, "10-act", &act(&d, "act", "ALT-2"));
+    assert_eq!(decision_need(&f.read()).1["state"], "satisfied");
+    f.flush();
+    // A cold process, and the alias redirected to an empty folder: once before
+    // the read, and once after the store's identity was inspected.
+    let empty = f.root.join("empty");
+    std::fs::create_dir_all(&empty).unwrap();
+    let redirect = {
+        let (alias, empty) = (alias.clone(), empty.clone());
+        move || {
+            std::fs::remove_file(&alias).unwrap();
+            std::os::unix::fs::symlink(&empty, &alias).unwrap();
+        }
+    };
+    let restore = |alias: &Path| {
+        std::fs::remove_file(alias).unwrap();
+        std::os::unix::fs::symlink(&real, alias).unwrap();
+    };
+    for during in [false, true] {
+        // A cold process: the store is given, not started, and none is opened.
+        records_store::use_store_not_started_for_test(Some(Ok(records_store::Store {
+            root: alias.clone(),
+            placement: records_store::Placement::Test,
+            limits: vec![],
+        })));
+        records_store::restore_configured_for_test(records_store::configured_for_test());
+        let subtrees = |root: &Path| ["project", "store-real", "empty"].map(|n| listing(&root.join(n)));
+        let before = subtrees(&f.root);
+        if during {
+            let mut redirect = Some(redirect.clone());
+            super::DECISION_READ.with(|h| {
+                *h.borrow_mut() = Some(Box::new(move |point| {
+                    if point == "after-identity" {
+                        if let Some(go) = redirect.take() {
+                            go()
+                        }
+                    }
+                }))
+            });
+        } else {
+            redirect();
+        }
+        let packet = crate::read_fleet_records_for_workspace(Some(&f.project)).unwrap();
+        super::DECISION_READ.with(|h| *h.borrow_mut() = None);
+        let w4 = view(&packet["workspace"])["waiting"].as_array().unwrap().iter().find(|r| r["item"] == "W4").cloned();
+        let command = decision_command(&f.project);
+        if during {
+            // The read opened the real store before the redirect and stays
+            // bound to it: what it reads comes from the store it inspected.
+            assert_eq!(records_store::opened_existing().unwrap().0, real.canonicalize().unwrap());
+        } else {
+            // Redirected before any open: no store there, so nothing is read.
+            let row = w4.expect("W4 is listed");
+            assert_eq!(row["needs"][0]["state"], "unknown", "{row}");
+            assert!(row["needs"][0]["why"].as_str().unwrap().contains("not created yet"), "{row}");
+            assert!(array(&command["rows"]).iter().all(|r| r["state"] != "decided"), "{command}");
+        }
+        // The test itself changes only the alias in the fixture's root, so the
+        // project, the real store and the empty folder are compared. The one
+        // known exception is the derived index under the real store's indexes/.
+        let mut after = subtrees(&f.root);
+        after[1].retain(|p, _| !p.starts_with("indexes"));
+        let mut expected = before.clone();
+        expected[1].retain(|p, _| !p.starts_with("indexes"));
+        assert_eq!(after, expected, "during={during}: nothing created in the project, the empty folder or the real store");
+        assert_eq!(std::fs::read_dir(&empty).unwrap().count(), 0);
+        restore(&alias);
+    }
 }
