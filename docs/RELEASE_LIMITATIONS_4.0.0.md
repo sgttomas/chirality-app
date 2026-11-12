@@ -124,8 +124,9 @@ An entry is added in the same pull request that makes the limitation standing.
   installation produced it, and a package whose records and manifests were
   replaced together still verifies. A records log shows a changed, removed or
   reordered line only where later lines still carry their original links: a
-  change to the last line of a log, lines removed from its end, and an edit
-  by someone who recomputes the links after it are not shown.
+  change to the content of a log's last line that keeps its link, lines
+  removed from its end, and an edit by someone who recomputes the links after
+  it can go unshown.
 - **Why:** no key is chosen to sign log checkpoints and export manifests.
 - **What the person does instead:** verify a package with the verifier it
   carries, and establish where it came from by other means.
