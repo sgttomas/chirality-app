@@ -114,10 +114,10 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     assert_eq!(unaltered.status.code(), Some(0), "{}", String::from_utf8_lossy(&unaltered.stderr));
     let stdout = String::from_utf8_lossy(&unaltered.stdout);
     assert!(stdout.starts_with("Package bytes: consistent."), "{stdout}");
-    assert!(stdout.contains("\nLog integrity: no chain is broken and no line was set aside. Every link this verifier examined names the line before it.\n"), "{stdout}");
+    assert!(stdout.contains("\nLog integrity: no chain is broken, and the package's account lists no line as set aside. Every link this verifier examined names the line before it.\n"), "{stdout}");
     assert!(stdout.contains("A package whose records, manifests and chain heads were replaced together still verifies."), "{stdout}");
     // Change the first line (same length, still JSON), then recompute both
-    // manifests as an alterer would. Only the chain shows the change.
+    // manifests as an alterer would. The tag, left as exported, shows the change.
     let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
     let rel = log.strip_prefix(&dir).unwrap().to_str().unwrap().to_owned();
     let path = f.bag().join("data").join(&rel);
@@ -132,7 +132,8 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     let altered = standalone(&f.bag());
     assert_eq!(altered.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&altered.stderr);
-    assert!(stderr.starts_with("Result: failed (exit status 1).") && stderr.contains(&format!("{rel}: chain broken at line 2: it links to")) && stderr.contains("the package records no break there"), "{stderr}");
+    // The tag pins the log's bytes, and that equality is compared first.
+    assert!(stderr.starts_with("Result: failed (exit status 1).") && stderr.contains(&format!("{rel}: its bytes")) && stderr.contains("are not the ones the package's chain-head tag records"), "{stderr}");
     // The App's own verification recomputes the heads and refuses it too.
     assert!(verify(&f.bag()).is_err_and(|e| e.contains("chain heads differ")));
     // With the chain-head tag recomputed as well, the package is the one a
@@ -357,7 +358,7 @@ fn records_export_standalone_agrees_with_the_reader_on_every_line_the_reader_set
     for line in 2..2 + set_aside.len() {
         assert!(stdout.contains(&format!("Integrity limit: {rel}: line {line} was set aside by the App as invalid: it is not read as a record, and its own link is not examined")), "{line}: {stdout}");
     }
-    assert!(stdout.contains(&format!("Note: {rel}: line {torn_at} is a torn line the App closed and set aside after an interrupted write. It is not a limit")), "{stdout}");
+    assert!(stdout.contains(&format!("Note: {rel}: the package's account lists line {torn_at} as a torn line the App closed and set aside after an interrupted write. It is not a limit")), "{stdout}");
     // The same store exported by a build of the earlier profile, which
     // recorded no account: the App still reports each line it sets aside,
     // and the standalone verifier, working the lines out for itself, agrees.
@@ -441,12 +442,97 @@ fn records_export_integrity_summary_takes_the_line_from_the_break_and_not_from_t
     let path = "runs/attacker: chain broken at line 987: /app-writer.jsonl";
     let limit = format!("{path}: chain broken at line 2: it links to \"{}\", but the preceding line's identity is {}; never repaired", "0".repeat(64), "1".repeat(64));
     let summary = integrity_summary(&json!({"state":"limited","limits":[limit]})).unwrap();
-    assert!(summary.contains("/app-writer.jsonl is broken at line 2."), "{summary}");
-    assert!(!summary.contains("is broken at line 987"), "{summary}");
+    // The sentence then holds a break's words twice, and nothing in it says
+    // which are the break's: no line is named, and the App names it in full.
+    assert!(summary.contains("one limit whose log and line this summary cannot name safely, named in full in the App."), "{summary}");
+    assert!(!summary.contains("987") && !summary.contains("is broken at line"), "{summary}");
     // A line set aside keeps its log and its line in the summary too.
     let aside = integrity_summary(&json!({"state":"limited","limits":[format!("runs/{}/{}.jsonl: line 12 was set aside by the App as invalid: it is not read as a record, and its own link is not examined", "a".repeat(64), "f".repeat(64))]})).unwrap();
     assert!(aside.contains(".jsonl: line 12 was set aside by the App as invalid"), "{aside}");
     // And there too the line is the limit's own, not one a path spells.
     let spelled = integrity_summary(&json!({"state":"limited","limits":["runs/a: line 987 was set aside/app-writer.jsonl: line 12 was set aside by the App as invalid: it is not read as a record, and its own link is not examined"]})).unwrap();
-    assert!(spelled.contains("/app-writer.jsonl: line 12 was set aside by the App as invalid;") || spelled.contains("/app-writer.jsonl: line 12 was set aside by the App as invalid."), "{spelled}");
+    assert!(spelled.contains("/app-writer.jsonl: line 12 was set aside by the App as invalid."), "{spelled}");
+    // A set-aside limit whose path holds a break's words: its own line, never the path's.
+    let both = integrity_summary(&json!({"state":"limited","limits":["runs/a: chain broken at line 987: /writer.jsonl: line 12 was set aside by the App as invalid: it is not read as a record, and its own link is not examined"]})).unwrap();
+    // (The path is the log's name and is shown as it is; what is said of it is line 12, set aside, and no break.)
+    assert!(both.contains("/writer.jsonl: line 12 was set aside by the App as invalid.") && !both.contains("is broken at line"), "{both}");
+    // Where a break's words stand more than once, no line is named: the sentence's beginning is shown.
+    let twice = integrity_summary(&json!({"state":"limited","limits":[format!("{path}: chain broken at line 2: unknown chain method \"x: chain broken at line 5: y\"")]})).unwrap();
+    assert!(!twice.contains("is broken at line") && !twice.contains("line 5") && twice.contains("cannot name safely"), "{twice}");
+    // An unclosed final part keeps its log and length.
+    let unclosed = integrity_summary(&json!({"state":"limited","limits":["runs/a/app-writer.jsonl: partial entry at end (not read): 12 bytes after the last complete line"]})).unwrap();
+    assert!(unclosed.contains("runs/a/app-writer.jsonl: partial entry at end (not read), 12 bytes."), "{unclosed}");
+}
+
+/// Regenerates both manifests over the package as it stands and leaves the
+/// chain-head tag byte for byte: what someone changing a log would do.
+fn reseal_leaving_the_tag(bag: &Path) {
+    let paths = files(&bag.join("data"), false).unwrap().into_keys().collect::<Vec<_>>();
+    std::fs::write(bag.join("manifest-sha256.txt"), manifest(bag, paths.iter().map(|p| format!("data/{p}"))).unwrap()).unwrap();
+    let tags: Vec<String> = TAGS.iter().filter(|p| bag.join(p).exists()).map(|p| p.to_string()).collect();
+    std::fs::write(bag.join("tagmanifest-sha256.txt"), manifest(bag, tags.into_iter()).unwrap()).unwrap();
+}
+
+#[test]
+fn records_export_a_changed_log_with_the_tag_unchanged_fails_in_both_checkers_even_before_a_set_aside_line() {
+    // Two linked records, then a line the reader sets aside. The reader does
+    // not examine that line's link, so the chain alone does not tie the lines
+    // before it to the recorded head; the tag's pin on the log's bytes does.
+    let f = Fixture::new();
+    let log = f.record();
+    f.record();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(b"{}\n");
+    std::fs::write(&log, &bytes).unwrap();
+    export(&f.project, &f.bag()).unwrap();
+    let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
+    let rel = log.strip_prefix(&dir).unwrap().to_str().unwrap().to_owned();
+    let tag: Value = serde_json::from_slice(&std::fs::read(f.bag().join(HEADS)).unwrap()).unwrap();
+    assert_eq!(tag["logs"][0]["chain"]["setAside"], json!([3]));
+    assert_eq!((tag["logs"][0]["chain"]["bytes"].as_u64(), tag["logs"][0]["chain"]["sha256"].as_str()), (Some(bytes.len() as u64), Some(crate::util::sha256_hex(&bytes).as_str())));
+    let verified = verify(&f.bag()).unwrap();
+    assert_eq!(verified["state"], "package bytes consistent; log integrity limited");
+    assert!(verified["exportedLogs"].as_str().unwrap().contains("not that its records are intact"));
+    assert_eq!(standalone(&f.bag()).status.code(), Some(2));
+    // Line 2 changed, still a whole record of the same length; both manifests
+    // regenerated; the tag left exactly as exported.
+    let before_tag = std::fs::read(f.bag().join(HEADS)).unwrap();
+    let copy = f.bag().join("data").join(&rel);
+    let lines: Vec<Vec<u8>> = std::fs::read(&copy).unwrap().split(|b| *b == b'\n').map(<[u8]>::to_vec).collect();
+    let mut second: Value = serde_json::from_slice(&lines[1]).unwrap();
+    second["writtenAt"] = json!("2001-01-01T00:00:00.000Z");
+    let changed = [lines[0].clone(), serde_json::to_vec(&second).unwrap(), lines[2].clone(), vec![]].join(&b'\n');
+    assert!(crate::record_lines::is_valid_line(&serde_json::to_vec(&second).unwrap()));
+    std::fs::write(&copy, &changed).unwrap();
+    reseal_leaving_the_tag(&f.bag());
+    assert_eq!(std::fs::read(f.bag().join(HEADS)).unwrap(), before_tag);
+    assert!(verify(&f.bag()).is_err_and(|e| e.contains("chain heads differ")));
+    let alone = standalone(&f.bag());
+    assert_eq!(alone.status.code(), Some(1), "{}", String::from_utf8_lossy(&alone.stdout));
+    assert!(String::from_utf8_lossy(&alone.stderr).contains("are not the ones the package's chain-head tag records"), "{}", String::from_utf8_lossy(&alone.stderr));
+}
+
+#[test]
+fn records_export_an_unclosed_final_part_is_a_limit_and_a_log_named_for_a_break_is_not_refused() {
+    let f = Fixture::new();
+    let log = f.record();
+    let mut bytes = std::fs::read(&log).unwrap();
+    bytes.extend(b"{\"unfinished");
+    std::fs::write(&log, &bytes).unwrap();
+    // A second log whose file name holds the words of a break, with one line the reader sets aside.
+    let named = log.with_file_name("chain broken.jsonl");
+    std::fs::write(&named, b"{}\n").unwrap();
+    export(&f.project, &f.bag()).unwrap();
+    let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
+    let rel = |p: &Path| p.strip_prefix(&dir).unwrap().to_str().unwrap().to_owned();
+    let verified = verify(&f.bag()).unwrap();
+    let limits: Vec<&str> = verified["logIntegrity"]["limits"].as_array().unwrap().iter().map(|l| l.as_str().unwrap()).collect();
+    assert!(limits.contains(&format!("{}: partial entry at end (not read): 12 bytes after the last complete line", rel(&log)).as_str()), "{verified}");
+    assert!(limits.contains(&format!("{}: line 1 was set aside by the App as invalid: it is not read as a record, and its own link is not examined", rel(&named)).as_str()), "{verified}");
+    assert_eq!(limits.len(), 2, "no break is recorded for a log because of its name: {verified}");
+    let alone = standalone(&f.bag());
+    let stdout = String::from_utf8_lossy(&alone.stdout);
+    assert_eq!(alone.status.code(), Some(2), "{stdout}{}", String::from_utf8_lossy(&alone.stderr));
+    assert!(stdout.contains("\nLog integrity: LIMITED. 2 limits in 2 logs."), "{stdout}");
+    assert!(stdout.contains(&format!("Integrity limit: {}: partial entry at end (not read): 12 bytes after the last complete line", rel(&log))), "{stdout}");
 }

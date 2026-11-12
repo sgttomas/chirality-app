@@ -504,6 +504,16 @@ fn a_logs_account_names_each_line_the_reader_set_aside_and_each_torn_line_it_clo
     for (name, value) in head.as_object().unwrap() {
         assert_eq!(&account[name], value, "{name}");
     }
-    assert_eq!(account.as_object().unwrap().len(), head.as_object().unwrap().len() + 2);
+    // and it pins the log's exact bytes, and states that it ends in a complete line.
+    let bytes = std::fs::read(&log).unwrap();
+    assert_eq!((account["bytes"].as_u64(), account["sha256"].as_str(), &account["unclosedEnd"]), (Some(bytes.len() as u64), Some(line_identity(&bytes).as_str()), &Value::Null));
+    assert_eq!(account.as_object().unwrap().len(), head.as_object().unwrap().len() + 5);
+    // An unclosed final part is stated with its length.
+    std::fs::write(&log, [bytes.as_slice(), b"{\"unfinished"].concat()).unwrap();
+    assert_eq!(chain_account(&log)["unclosedEnd"], 12);
+    // A log whose own file name holds the words of a break has no break for it.
+    let named = log.with_file_name("chain broken.jsonl");
+    std::fs::write(&named, b"{}\n").unwrap();
+    assert_eq!((&chain_head(&named)["broken"], &chain_account(&named)["broken"], &chain_account(&named)["setAside"]), (&json!([]), &json!([]), &json!([1])));
     let _ = std::fs::remove_dir_all(&root);
 }

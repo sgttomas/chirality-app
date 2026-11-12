@@ -245,13 +245,19 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     let integrity = log_integrity(&found, !role_heads && actual.contains(&format!("data/{}", crate::role_observations::RELATIVE_LOG)));
     let limited = integrity["state"] == LIMITED;
     Ok(json!({"state":if limited {"package bytes consistent; log integrity limited"} else {"package bytes consistent; no chain recorded broken"},
-        "packageBytes":"consistent with the manifests and the recorded chain heads","logIntegrity":integrity,
+        "packageBytes":"consistent with the manifests and the recorded chain heads",
+        // Its own statement: equal bytes say each log is the log that was
+        // exported, and nothing about whether its records are intact.
+        "exportedLogs":if profile==Profile::V03 {"each chained log is byte for byte the log the chain-head tag records; this says it is the log that was exported, not that its records are intact"} else {"not pinned: this package's chain-head profile does not record each log's bytes in its tag"},
+        "logIntegrity":integrity,
         "files":payload.len(),"administration":administration,"chainHeadProfile":profile.describes(),"signing":"unsigned; no origin or human act authenticated"}))
 }
 /// The two states a build that states log integrity writes.
 pub(crate) const LIMITED: &str = "limited";
 /// What is said of a line the reader set aside, after its log and line.
 const SET_ASIDE: &str = " was set aside by the App as invalid: it is not read as a record, and its own link is not examined";
+/// What is said of an unclosed final part, after its log and its length.
+const UNCLOSED: &str = " bytes after the last complete line";
 pub(crate) const WHOLE: &str = "no chain recorded broken";
 /// What a package's chain-head tag records about its logs' own integrity,
 /// apart from whether the package's bytes are consistent: each chain the
@@ -270,8 +276,11 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
                 limits.push(format!("{log}: chain not read at export ({state}: {}){}", chain["error"].as_str().unwrap_or("no cause recorded"),
                     match (chain["line"].as_u64(), chain["kind"].as_str()) { (Some(line), Some(kind)) => format!("; the fault is at line {line}: {kind}"), _ => String::new() }));
             } else if let Some(broken) = chain["broken"].as_array() {
+                // The reader names a log by its file name; what follows that
+                // name is the break. Taken by position, never by its words.
+                let name = format!("{}: ", if log == crate::role_observations::RELATIVE_LOG { "role supply observations" } else { log.rsplit('/').next().unwrap_or(log) });
                 limits.extend(broken.iter().map(|limit| match limit.as_str() {
-                    Some(limit) => { let at = limit.find("chain broken").unwrap_or(0); format!("{log}: {}", &limit[at..]) }
+                    Some(limit) => format!("{log}: {}", limit.strip_prefix(name.as_str()).unwrap_or(limit)),
                     None => format!("{log}: a recorded break that is not text"),
                 }));
             } else {
@@ -279,6 +288,8 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
             }
             // A line the reader set aside is a limit, never part of a clean result.
             limits.extend(chain["setAside"].as_array().into_iter().flatten().map(|line| format!("{log}: line {line}{SET_ASIDE}")));
+            // A partly present unit at the log's end is a limit too (AC-009).
+            if let Some(bytes) = chain["unclosedEnd"].as_u64() { limits.push(format!("{log}: partial entry at end (not read): {bytes}{UNCLOSED}")); }
         },
     }
     if role_log_without_head {
@@ -328,33 +339,43 @@ pub(crate) fn integrity_summary(integrity: &Value) -> Option<String> {
         limits.len(), named.join("; "), if more > 0 { format!("; and {more} more") } else { String::new() }))
 }
 /// One limit for a bounded summary: the log (its name shortened from the
-/// front when long) and, for a broken chain, the whole line number.
+/// front when long) and its line. A limit is a sentence, and this reads it:
+/// a kind whose sentence ends in fixed words is recognised by that ending
+/// and its number taken from just before it; a broken chain's line is taken
+/// only when the sentence has the break's words exactly once. Where a log's
+/// path or a line's own link value repeats those words, no line is named
+/// here: the sentence's beginning is shown, and the App names it in full.
 fn summary_item(limit: &str) -> String {
     const MARK: &str = ": chain broken at line ";
     let short = |log: &str| -> String {
         let count = log.chars().count();
         if count <= 44 { log.to_owned() } else { format!("…{}", log.chars().skip(count - 40).collect::<String>()) }
     };
-    // The break's own text follows the log's path, and a path may itself
-    // hold these words: the last occurrence is the break's (the App's break
-    // text never contains them).
-    match limit.rfind(MARK) {
-        Some(at) => {
-            let line: String = limit[at + MARK.len()..].chars().take_while(char::is_ascii_digit).collect();
-            format!("{} is broken at line {line}", short(&limit[..at]))
-        }
-        // A line set aside: its log and its whole line number, taken from the
-        // end of the limit for the same reason.
-        None if limit.ends_with(SET_ASIDE) && limit[..limit.len() - SET_ASIDE.len()].rfind(": line ").is_some() => {
-            let named = &limit[..limit.len() - SET_ASIDE.len()];
-            let at = named.rfind(": line ").unwrap_or(0);
-            format!("{}: line {} was set aside by the App as invalid", short(&named[..at]), &named[at + ": line ".len()..])
-        }
-        None => {
-            let (log, what) = limit.split_once(": ").unwrap_or(("a log", limit));
-            format!("{}: {}", short(log), what.chars().take(80).collect::<String>())
-        }
+    // The number that stands between `before` and the fixed ending `after`.
+    let ending = |before: &str, after: &str| -> Option<(String, String)> {
+        let named = limit.strip_suffix(after)?;
+        let at = named.rfind(before)?;
+        let number = &named[at + before.len()..];
+        (!number.is_empty() && number.bytes().all(|b| b.is_ascii_digit())).then(|| (short(&named[..at]), number.to_owned()))
+    };
+    if let Some((log, line)) = ending(": line ", SET_ASIDE) {
+        return format!("{log}: line {line} was set aside by the App as invalid");
     }
+    if let Some((log, bytes)) = ending(": partial entry at end (not read): ", UNCLOSED) {
+        return format!("{log}: partial entry at end (not read), {bytes} bytes");
+    }
+    if limit.matches(MARK).count() == 1 {
+        let at = limit.find(MARK).unwrap_or(0);
+        let line: String = limit[at + MARK.len()..].chars().take_while(char::is_ascii_digit).collect();
+        if !line.is_empty() { return format!("{} is broken at line {line}", short(&limit[..at])); }
+    }
+    if limit.contains(MARK) {
+        // The break's words stand more than once: quoting the sentence's
+        // beginning could itself name a wrong line, so none is named.
+        return "one limit whose log and line this summary cannot name safely, named in full in the App".into();
+    }
+    let (log, what) = limit.split_once(": ").unwrap_or(("a log", limit));
+    format!("{}: {}", short(log), what.chars().take(80).collect::<String>())
 }
 /// The log integrity recorded by the chain-head tag of a package this module
 /// has verified (`verify`).

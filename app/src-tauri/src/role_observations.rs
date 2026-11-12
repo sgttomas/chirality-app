@@ -915,7 +915,8 @@ thread_local! {
 /// (`setAside` and `torn` are empty); a log it refused records the line and
 /// kind of the fault that stopped it, when the refusal was of a line: "torn
 /// final line", "unreadable line", "invalid observation", "duplicate
-/// observation identity", "sequence" or "chain".
+/// observation identity", "sequence" or "chain". Either way it records the
+/// log's exact length and SHA-256 (`bytes`, `sha256`).
 pub(crate) fn copied_chain_account(path: &Path) -> Value {
     FAULT.with(|f| f.set(None));
     let mut head = copied_chain_head(path);
@@ -927,6 +928,13 @@ pub(crate) fn copied_chain_account(path: &Path) -> Value {
     } else {
         head["setAside"] = json!([]);
         head["torn"] = json!([]);
+        head["unclosedEnd"] = Value::Null;
+    }
+    // The exact bytes this account is of, for a log taken or refused: the
+    // tag commits to them, so a refused log cannot be replaced by another.
+    if let Ok(bytes) = std::fs::read(path) {
+        head["bytes"] = json!(bytes.len());
+        head["sha256"] = json!(crate::util::sha256_hex(&bytes));
     }
     head
 }

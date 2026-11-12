@@ -865,6 +865,8 @@ fn copied_chain_account_records_the_line_and_kind_of_a_refused_log() {
         assert_eq!(account["state"], "unreadable or invalid role supply chain", "{account}");
         assert_eq!((account["line"].as_u64(), account["kind"].as_str()), (Some(line), Some(kind)), "{account}");
         assert!(account.get("setAside").is_none(), "a refused log has no head and no account of lines");
+        // The tag pins a refused log's exact bytes, so it cannot be replaced by another.
+        assert_eq!((account["bytes"].as_u64(), account["sha256"].as_str()), (Some(bytes.len() as u64), Some(crate::util::sha256_hex(bytes).as_str())), "{account}");
         // The head an earlier profile records carries neither.
         let head = copied_chain_head(&log);
         assert!(head.get("line").is_none() && head.get("kind").is_none(), "{head}");
@@ -874,5 +876,6 @@ fn copied_chain_account_records_the_line_and_kind_of_a_refused_log() {
     let whole = copied_chain_account(&log);
     assert!(whole.get("state").is_none(), "{whole}");
     assert_eq!((whole["lines"].as_u64(), &whole["setAside"], &whole["torn"]), (Some(0), &json!([]), &json!([])));
+    assert_eq!((whole["bytes"].as_u64(), whole["sha256"].as_str(), &whole["unclosedEnd"]), (Some(0), Some(crate::util::sha256_hex(b"").as_str()), &Value::Null));
     let _ = std::fs::remove_dir_all(&folder);
 }
