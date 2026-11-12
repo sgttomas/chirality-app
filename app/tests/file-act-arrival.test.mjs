@@ -216,11 +216,14 @@ test('an unresolved arrival review disables other rows and standing selection an
   }
 });
 
+const FIXTURE = 'file_act_arrival_production_connecting_path_and_dto';
 test('actual Rust arrival previews and capture records pass through the mounted App for each file-act kind', async () => {
   let output;
   if (process.env.CHIRALITY_FILE_ACT_ARRIVAL_DTO_LOG) output = readFileSync(process.env.CHIRALITY_FILE_ACT_ARRIVAL_DTO_LOG,'utf8');
   else {
-    const result = spawnSync('cargo',['test','--offline','--locked','--lib','file_act_arrival','--','--nocapture','--test-threads=1'],{
+    // Only the one Rust test whose packet this test reads. The other file_act_arrival tests print nothing read
+    // here; they run with the Rust suite (the hosted `file_act` cohort and the full suite). The limit bounds this fixture.
+    const result = spawnSync('cargo',['test','--offline','--locked','--lib',FIXTURE,'--','--nocapture','--test-threads=1'],{
       cwd:fileURLToPath(new URL('../src-tauri/',import.meta.url)),encoding:'utf8',timeout:180000,maxBuffer:8*1024*1024,
       env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CARGO_NET_OFFLINE:'true'},
     });
@@ -229,7 +232,7 @@ test('actual Rust arrival previews and capture records pass through the mounted 
   }
   const summary = Array.from(output.matchAll(/^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed;/gm)).at(-1);
   assert.ok(summary?.[1] === 'ok' && Number(summary[2]) >= 1 && Number(summary[3]) === 0,'completed Rust test binary passed');
-  assert.match(output,/test .*file_act_arrival/);
+  assert.match(output,new RegExp(`test .*${FIXTURE}`));
   const marker = 'FILE_ACT_ARRIVAL_DTO:';
   const lines = output.split('\n').filter(line => line.includes(marker));
   assert.equal(lines.length,1,'one actual production-path DTO packet');
