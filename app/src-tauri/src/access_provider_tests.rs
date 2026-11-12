@@ -4249,8 +4249,8 @@ fn native_local_settings_a_reply_to_codex_is_refused_when_the_files_no_longer_ho
         assert_eq!(peer.host.error_server_request(&peer.g, &json!("ask-1"), &json!({"code":-32000,"message":"invented"}), "app-rule:invented").unwrap_err(), expected, "{case}: App rule error");
         // An automatic reply (the register's error for an unsupported tool call): refused at the write.
         peer.host.on_line(&serde_json::to_vec(&json!({"id":"tool-1","method":"item/tool/call","params":{"threadId":"t","turnId":"u","callId":"c","tool":"invented","arguments":{}}})).unwrap(), &peer.g);
-        // The register prepared it at receipt; refused at the write, it stays prepared and unwritten.
-        assert_eq!(request_state(&peer, "tool-1"), "settling", "{case}: the automatic reply was not written");
+        // The register prepared it at receipt; refused at the write, it is withdrawn and waits again.
+        assert_eq!(request_state(&peer, "tool-1"), "outstanding", "{case}: the automatic reply was not written");
         // The App's current-time reply: refused before it is prepared, the request stays waiting.
         peer.host.on_line(&serde_json::to_vec(&json!({"id":"time-1","method":"currentTime/read","params":{}})).unwrap(), &peer.g);
         assert_eq!(request_state(&peer, "time-1"), "outstanding", "{case}: current time not prepared");
@@ -4329,6 +4329,44 @@ fn native_local_settings_a_session_that_has_seen_a_key_requires_the_record_even_
             }
         }
         let _ = received_after_close(&mut peer);
+        peer.safe();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+#[test]
+fn native_local_settings_a_reply_held_across_an_address_save_is_refused_under_the_lock_that_marks_the_binding() {
+    use crate::native_local_provider::{self as route, LocalSettings, RELAUNCH};
+    use tauri_plugin_dialog::MessageDialogResult;
+    let set = LocalSettings::new("http://127.0.0.1:9100/v1", "org/m").unwrap();
+    for held in [true, false] {
+        let (root, plan, mut peer, home) = bound_local("local-reply-held-", &set);
+        let dir = plan.native_path().to_path_buf();
+        private_file(&dir.join("auth.json"), "invented key file; never opened");
+        private_file(&dir.join("key-address"), &format!("{}\n", set.endpoint()));
+        peer.host.inner.0.lock().unwrap().conversation_turns.push(json!({"generation":peer.g,"threadId":"t","turnId":"u","nativeTurn":{"status":"inProgress"}}));
+        peer.host.on_line(&approval("ask-1"), &peer.g);
+        let next = LocalSettings::new(set.endpoint(), "org/next").unwrap();
+        let save = move |plan: &crate::home_resources::OwnedHomePlan, home: &crate::runtime_session::HomeSession| {
+            assert_eq!(route::save_within(plan, next.clone(), Some(home), || Ok(()), |_, action: &str| Ok(MessageDialogResult::Custom(action.into())), Duration::from_millis(50)).unwrap()["outcome"], "saved");
+        };
+        if held {
+            // The reply has passed its file check; the save completes before its locked admission.
+            let (save_plan, save_home) = (plan.clone(), std::sync::Arc::new(home));
+            let in_hook = save_home.clone();
+            *peer.host.before_reply_admission.lock().unwrap() = Some(Box::new(move |_| save(&save_plan, &in_hook)));
+            let error = peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap_err();
+            assert_eq!(error, RELAUNCH);
+            assert!(peer.host.local_superseded());
+            assert_eq!(request_state(&peer, "ask-1"), "outstanding", "the refused reply is withdrawn: the request waits again");
+            assert!(received_after_close(&mut peer).is_empty(), "zero bytes reached Codex's input");
+            drop(save_home);
+        } else {
+            // Admitted before the mark: written as before, then the save.
+            assert_eq!(peer.host.answer_server_request(&peer.g, &json!("ask-1"), &json!({"decision":"decline"}), "person-via-interaction", Some(PERSON)).unwrap()["replyWriteResult"], "written");
+            assert_eq!(peer.frame()["id"], "ask-1");
+            save(&plan, &home);
+            assert!(peer.host.local_superseded());
+        }
         peer.safe();
         std::fs::remove_dir_all(root).unwrap();
     }

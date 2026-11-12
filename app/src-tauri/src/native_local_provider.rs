@@ -57,7 +57,7 @@ const KEY_ADDRESS: &str = "key-address";
 pub(crate) const PROCESS_LOCK: &str = "app-codex-process.lock";
 /// The refusal while that lock is held. Says only what is known; no path, no process detail.
 pub(crate) const KEY_ENTRY_BEGUN: &str = "Key entry was used in this Codex session, and Codex may still be saving that key. Restart Codex for the local model home, then change the address. The local model settings were not changed.";
-pub(crate) const EARLIER_PROCESS: &str = "An earlier Codex process for the local model home has not ended, so Codex was not started there. It normally ends by itself within a minute; start Codex again once it has. Quitting and reopening the App does not end it.";
+pub(crate) const EARLIER_PROCESS: &str = "A Codex process started earlier for the local model home, or a program it started, is still running, so Codex was not started there. It normally ends by itself within a minute; start Codex again once it has. Quitting and reopening the App does not end it.";
 /// The refusal when the App cannot open or lock its lock file at all.
 pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
 pub(crate) const PREPARE_FIRST: &str = "Prepare the local connection first, so that Codex can remove the saved key; the local model settings were not changed.";
@@ -723,10 +723,13 @@ pub(crate) fn take_process_lock(path: &Path) -> Result<std::fs::File, String> {
 pub(crate) fn take_process_lock(_: &Path) -> Result<std::fs::File, String> {
     Err(PROCESS_LOCK_UNAVAILABLE.into())
 }
-/// Codex 0.167 loads administrator configuration (legacy managed_config.toml, requirements.toml and
-/// macOS managed preferences) ABOVE session flags, so the fixed flags cannot hold the provider,
-/// catalogue or auth settings against it. Fail closed on presence; never parse or copy contents.
-const ADMIN_FILES: &[&str] = &["/etc/codex/managed_config.toml", "/etc/codex/requirements.toml"];
+/// Configuration from outside the dedicated local home, which is meant to share nothing. Codex 0.167
+/// applies requirements.toml and the legacy managed_config.toml (and macOS managed preferences)
+/// ABOVE session flags, so the fixed flags cannot hold the provider, catalogue or auth settings
+/// against them. The system config.toml ranks below session flags but can set what the flags do not
+/// pin, such as the sandbox, MCP servers, hooks and a notifier. Fail closed on presence, or where
+/// presence cannot be established; never parse or copy contents.
+const ADMIN_FILES: &[&str] = &["/etc/codex/managed_config.toml", "/etc/codex/requirements.toml", "/etc/codex/config.toml"];
 pub(crate) fn require_no_admin_layers() -> Result<(), String> {
     let files: Vec<&Path> = ADMIN_FILES.iter().map(Path::new).collect();
     admin_sources_absent(&files, managed_preferences_present)
@@ -1359,6 +1362,24 @@ mod tests {
             assert!(fixed_selection(&s, ENTRY, PROVIDER, v).is_err());
         }
         assert!(fixed_selection(&s, "api-key", PROVIDER, MODEL).is_err());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn native_local_provider_the_system_config_file_refuses_like_managed_configuration() {
+        assert!(ADMIN_FILES.contains(&"/etc/codex/config.toml"));
+        let (root, _plan) = fixture();
+        // The same name in a scratch folder: absent passes, present refuses, unexaminable refuses.
+        let etc = root.join("etc-codex");
+        std::fs::create_dir(&etc).unwrap();
+        let system = etc.join("config.toml");
+        assert!(admin_sources_absent(&[system.as_path()], || Ok(false)).is_ok(), "absent");
+        std::fs::write(&system, "unparsed").unwrap();
+        assert_eq!(admin_sources_absent(&[system.as_path()], || Ok(false)).unwrap_err(), LIMIT, "present");
+        std::fs::remove_file(&system).unwrap();
+        std::fs::set_permissions(&etc, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let unexaminable = admin_sources_absent(&[system.as_path()], || Ok(false));
+        std::fs::set_permissions(&etc, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(unexaminable.unwrap_err(), LIMIT, "presence cannot be established");
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]

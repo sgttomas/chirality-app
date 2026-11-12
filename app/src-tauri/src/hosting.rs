@@ -789,6 +789,9 @@ pub struct Host {
     cce_before_prepare: Mutex<Option<Box<dyn FnOnce(&Host,&call_custody::IncomingCall)+Send>>>,
     #[cfg(test)]
     cce_before_cut: Mutex<Option<Box<dyn FnOnce(&Host,&call_custody::IncomingCall)+Send>>>,
+    /// Runs in write_reply between the local file check and the locked admission.
+    #[cfg(test)]
+    before_reply_admission: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
     #[cfg(test)]
     cce_after_cut: Mutex<Option<Box<dyn FnOnce(&Host,&call_custody::IncomingCall)+Send>>>,
     #[cfg(test)]
@@ -878,6 +881,7 @@ impl Host {
             after_interrupt_send: Mutex::new(None),
             #[cfg(test)] cce_before_prepare: Mutex::new(None),
             #[cfg(test)] cce_before_cut: Mutex::new(None),
+            #[cfg(test)] before_reply_admission: Mutex::new(None),
             #[cfg(test)] cce_after_cut: Mutex::new(None),
             #[cfg(test)] cce_after_write: Mutex::new(None),
             #[cfg(test)] cce_simulated_write: Mutex::new(None),
@@ -2060,6 +2064,12 @@ impl Host {
         {let _gate=self.attachment_gate.lock().unwrap();let i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;}
         let result=Self::write_complete(&mut bound.file,&bytes);drop(serial);result
     }
+    /// A prepared reply refused by the local home's safeguard goes back to waiting, if it is still
+    /// the eligible prepared reply; the refusal is journalled. Nothing was written.
+    fn withdraw_local_reply(i:&mut Inner,generation:&Value,frame:&Value,reason:&str){
+        if Self::reply_eligible(i,generation,frame)&&i.server_requests.withdraw_prepared(generation,&frame["id"]).is_ok(){Self::persist_requests(i);}
+        i.journal.push(json!({"generation":generation,"class":"local-reply-refused","requestIdentity":frame["id"],"reason":reason}));
+    }
     fn reply_eligible(i:&Inner,generation:&Value,frame:&Value)->bool{
         let entry=i.server_requests.entries().into_iter().find(|e|e["generation"]==*generation&&e["requestId"]==frame["id"]&&e["state"]=="settling"&&e["replyWriteResult"]=="not-attempted");
         let Some(entry)=entry else{return false;};
@@ -2090,10 +2100,16 @@ impl Host {
         // writes nothing; an already prepared reply stays prepared and unwritten (not waiting).
         if let Err(reason)=self.check_local_reply(){
             drop(serial);
-            self.inner.0.lock().unwrap().journal.push(json!({"generation":bound.generation,"class":"local-reply-refused","requestIdentity":frame["id"],"reason":reason}));
+            let mut i=self.inner.0.lock().unwrap();
+            Self::withdraw_local_reply(&mut i,&bound.generation,frame,&reason);
             return Err(reason);
         }
-        let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}i.server_requests.begin_reply_write(&bound.generation,&frame["id"])?};
+        #[cfg(test)] {let hook=self.before_reply_admission.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;if !Self::reply_eligible(&i,&bound.generation,frame){return Err("reply no longer eligible after source/frame wait; nothing sent".into());}
+            // Under the lock the save takes to mark the binding superseded: admitted before the mark,
+            // or refused.
+            if Self::local_binding_superseded(&i){let reason=crate::native_local_provider::RELAUNCH.to_owned();Self::withdraw_local_reply(&mut i,&bound.generation,frame,&reason);return Err(reason);}
+            i.server_requests.begin_reply_write(&bound.generation,&frame["id"])?};
         let result=Self::write_complete(&mut bound.file,&bytes);observation.complete(result.is_ok());drop(serial);
         let mut i=self.inner.0.lock().unwrap();Self::observe_reply_writes(&mut i);if i.generation!=bound.generation||i.server_requests.is_closed(&bound.generation){drop(i);self.flush_recovery_observations();return Err("reply write finished for closed/superseded source; original result retained, no successor settlement inferred".into());}
         i.server_requests.written(&bound.generation,&frame["id"],result.is_ok());Self::persist_requests(&mut i);drop(i);self.flush_recovery_observations();result
@@ -2753,12 +2769,26 @@ impl Host {
                 let generation=i.generation.clone();let reply=i.server_requests.prepare_offered_unavailable(f.index,&generation,&f.rpc.view())?;let bound=self.capture_pipe(&i)?;(bound,reply)};
             let bytes=Self::frame_bytes(&frame)?;if bytes.len()>2048{return Err("offered response frame limit".into())}
             let serial=self.frame_write.lock().unwrap();
-            // After the writer wait, holding neither Inner nor the gate.
-            self.check_local_reply()?;
+            // After the writer wait, holding neither Inner nor the gate. A refusal withdraws the
+            // prepared reply, so the call is waiting again.
+            if let Err(reason)=self.check_local_reply(){
+                let mut i=self.inner.0.lock().unwrap();let generation=i.generation.clone();
+                if f.resolution.load(Ordering::SeqCst)==0&&i.server_requests.withdraw_prepared(&generation,&f.rpc.view()).is_ok(){Self::persist_requests(&mut i);}
+                i.journal.push(json!({"generation":generation,"class":"local-reply-refused","requestIdentity":f.rpc.view(),"reason":reason}));
+                return Err(reason);
+            }
             #[cfg(test)] {let hook=self.cce_before_cut.lock().unwrap().take();if let Some(h)=hook{h(self,call);}}
             let observation={let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;Self::cce_check_call(&i,call)?;
                 let e=i.server_requests.original_offered(f.index,&i.generation,&f.rpc.view()).ok_or("original offered entry absent")?;
                 if e["state"]!="settling"||e["replyWriteResult"]!="not-attempted"||f.resolution.load(Ordering::SeqCst)!=0{return Err("original offered reply no longer eligible".into())}
+                // Under the lock the save takes to mark the binding superseded: admitted before the
+                // mark, or refused and withdrawn.
+                if Self::local_binding_superseded(&i){
+                    let reason=crate::native_local_provider::RELAUNCH.to_owned();let generation=i.generation.clone();
+                    if i.server_requests.withdraw_prepared(&generation,&f.rpc.view()).is_ok(){Self::persist_requests(&mut i);}
+                    i.journal.push(json!({"generation":generation,"class":"local-reply-refused","requestIdentity":f.rpc.view(),"reason":reason}));
+                    return Err(reason);
+                }
                 f.cut.store(i.receipt_position,Ordering::SeqCst);f.state.compare_exchange(1,2,Ordering::SeqCst,Ordering::SeqCst).map_err(|_|"offered attempt no longer preparable")?;
                 let generation=i.generation.clone();i.server_requests.begin_reply_write(&generation,&f.rpc.view())?};
             #[cfg(test)] {let hook=self.cce_after_cut.lock().unwrap().take();if let Some(h)=hook{h(self,call);}}

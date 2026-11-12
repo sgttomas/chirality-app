@@ -1175,6 +1175,12 @@ impl Host {
         if !self.local_bound()? { return Ok(()); }
         self.check_local_home()
     }
+    /// Under Inner, the lock `supersede_local` takes to set the mark: a reply admitted to its
+    /// write after this returns false was admitted before the mark (and so before the save removed
+    /// the record); once it returns true no reply is admitted in this home again.
+    pub(super) fn local_binding_superseded(i:&Inner)->bool {
+        i.local_provider.as_ref().is_some_and(|b| b.superseded)
+    }
     fn local_bound(&self)->Result<bool,String> {
         Ok(self.inner.0.lock().map_err(|_| crate::native_local_provider::LIMIT.to_owned())?.local_provider.is_some())
     }

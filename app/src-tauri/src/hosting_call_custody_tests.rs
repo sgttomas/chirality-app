@@ -733,3 +733,28 @@ fn call_custody_rejected_second_invocation_cannot_cancel_first_preparation() {
     assert_eq!(f.view()["state"], 3);
     assert_eq!(f.view()["canonicalUpdated"], true);
 }
+
+/// DEL-01-05: in the dedicated local home, the offered-call reply's admission takes the lock the
+/// settings save takes to mark the binding superseded: admitted before the mark, or refused.
+#[test]
+fn call_custody_local_offered_reply_is_refused_when_the_binding_is_superseded_before_its_admission() {
+    for held in [true, false] {
+        let mut f = Fixture::new(Role::WORKING_ITEMS);
+        f.start(true);
+        f.host.inner.0.lock().unwrap().local_provider = Some(crate::hosting::access_provider::LocalProviderBinding::for_test("call-home", "/synthetic"));
+        if held {
+            // Between the reply's file check and its locked admission, the save marks the binding.
+            *f.host.cce_before_cut.lock().unwrap() = Some(Box::new(|h, _| h.supersede_local().unwrap()));
+        }
+        feed(&f.host, &call(json!(10)));
+        let entry = f.host.inner.0.lock().unwrap().server_requests.entries()[0].clone();
+        if held {
+            f.empty();
+            assert_eq!((entry["state"].as_str(), entry["replyWriteResult"].as_str()), (Some("outstanding"), Some("not-attempted")), "withdrawn: zero bytes written, the call waits");
+            assert!(f.host.journal().iter().any(|e| e["class"] == "local-reply-refused"));
+        } else {
+            assert_eq!(f.drain(), json!({"id":10,"result":unavailable()}), "admitted before any mark: written as before");
+            assert_eq!(entry["state"], "answered");
+        }
+    }
+}
