@@ -414,14 +414,18 @@ fn records_store_portable_reconstruction_cold_consumers_keep_role_wr_decision_an
             .iter()
             .any(|item| item["quoted"]["recordId"] == performed["record"]["recordId"]));
 
+        // The act entered this store through a package import: quoted evidence
+        // that counts as no act of this person (DEL-04-03 REQ-010). It is listed
+        // as a claim with its origin and decides nothing.
         let original_decision = crate::runtime_session::read_decision_packages(&project);
-        let projection = &original_decision["rows"][0]["decision"];
-        assert_eq!(projection["act"], performed["record"]["recordId"]);
-        assert_eq!(projection["lapse"], "not lapsed");
-        assert!(projection["captureProvenance"]
-            .as_str()
-            .unwrap()
-            .contains("not verified"));
+        let row = &original_decision["rows"][0];
+        assert!(row["decision"].is_null(), "{row}");
+        assert_eq!(row["state"], "pending — awaiting the person's decision");
+        assert_eq!(row["claims"][0]["act"], performed["record"]["recordId"]);
+        assert_eq!(
+            row["claims"][0]["origin"],
+            "imported package record (quoted evidence)"
+        );
         let decision = project.join("project/decisions/PKG-1.json");
         let mut edited: Value = serde_json::from_slice(&decision_bytes).unwrap();
         edited["purpose"] = json!(
@@ -429,14 +433,16 @@ fn records_store_portable_reconstruction_cold_consumers_keep_role_wr_decision_an
         );
         std::fs::write(&decision, serde_json::to_vec_pretty(&edited).unwrap()).unwrap();
         let changed = crate::runtime_session::read_decision_packages(&project);
+        assert!(changed["rows"][0]["decision"].is_null());
         assert_eq!(
-            changed["rows"][0]["decision"]["act"],
+            changed["rows"][0]["claims"][0]["act"],
             performed["record"]["recordId"]
         );
-        assert_eq!(
-            changed["rows"][0]["decision"]["lapse"],
-            "lapsed — the package changed after the decision"
-        );
+        assert!(changed["rows"][0]["limits"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|l| l == "package file differs from the content the request recorded"));
         std::fs::write(&decision, &decision_bytes).unwrap();
 
         let (after, limits) = crate::storage::read_all(&project);
