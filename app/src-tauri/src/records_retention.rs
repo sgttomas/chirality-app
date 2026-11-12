@@ -363,12 +363,23 @@ pub(crate) fn write_path(path: &Path) -> Result<Option<storage::Ownership>, Stri
     records_store::package::check_write_binding(&dir)?;
     Ok(Some(guard))
 }
+/// A reader's admission: a shared hold on the project's existing admission
+/// control. A read creates neither the control nor its folder. With nothing
+/// of the project in the store there is nothing to read and nothing to hold;
+/// records with no control beside them are unavailable, with that reason.
 pub(crate) fn read_path(path: &Path) -> Result<Option<storage::Ownership>, String> {
     let Some(dir) = records_store::configured_project_dir(path) else {
         return Ok(None);
     };
     if records_store::package::owns(&dir) { return Ok(None); }
-    let guard = storage::lock_shared(&gate(&dir)?)?;
+    let control = gate(&dir)?;
+    let Some(guard) = storage::lock_shared_existing(&control)? else {
+        return match std::fs::symlink_metadata(&dir) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Ok(_) => Err(format!("project records unavailable: their admission control {} is missing beside them; a read creates nothing", control.display())),
+            Err(e) => Err(format!("project records unavailable: {}: {e}", dir.display())),
+        };
+    };
     if state(&dir)?.disposition.is_some() {
         return Err(
             "project records disposed or disposal incomplete; no store payload available".into(),

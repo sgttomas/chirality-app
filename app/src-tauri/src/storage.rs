@@ -148,6 +148,21 @@ pub fn lock_shared(path: &Path) -> Result<Ownership, String> {
 pub fn try_lock_exclusive(path: &Path) -> Result<Option<Ownership>, String> {
     flock(path, libc::LOCK_EX | libc::LOCK_NB, false)
 }
+/// A shared lock on a lock file that already exists, for a reader: it creates
+/// neither the file nor a folder. `None` when the file does not exist.
+pub(crate) fn lock_shared_existing(path: &Path) -> Result<Option<Ownership>, String> {
+    use std::os::unix::fs::OpenOptionsExt;
+    check_path(path)?;
+    let file = match OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC).open(path) {
+        Ok(file) => file,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("owning lock: {}: {e}", path.display())),
+    };
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_SH) } != 0 {
+        return Err(format!("owning lock: {}", std::io::Error::last_os_error()));
+    }
+    Ok(Some(Ownership(file, None)))
+}
 /// Read ownership allows a closed retained payload (for export), while the
 /// stable admission lease still prevents removal during the read.
 pub(crate) fn read_lock(path:&Path)->Result<Ownership,String>{flock(path,libc::LOCK_EX,true).map(|o|o.unwrap())}
