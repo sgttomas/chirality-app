@@ -15,6 +15,12 @@ Reading signatures runs `codesign -d`, `xcrun stapler validate` and
 `spctl --assess`. Only the owner, or an examiner the owner authorises, runs
 this on a real package. It signs nothing, changes nothing in the package,
 reads no keychain item and never opens the private folder.
+
+What these tools withstand: they are operator-run tools on stable inputs. They are built so that an
+observation that was not made, that failed, or that is incomplete cannot come out as success, and so
+that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
+a writer changing the inputs during the run, nor someone with write access forging a record: a
+completion marker or a recorded digest is not authentication.
 """
 import argparse
 import importlib.util

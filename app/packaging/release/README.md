@@ -16,6 +16,15 @@ overlay) and keeps the Cargo binary name for the executable, because no
 `mainBinaryName` is set. The supplier's Codex is at `Contents/Resources/codex/`
 unchanged.
 
+## What the tools withstand
+
+These are operator-run tools on stable inputs. They are built so that an
+observation that was not made, that failed, or that is incomplete cannot come
+out as success, and so that drift and mistakes are caught. They are not a
+filesystem snapshot. They are not built to withstand a writer changing the
+inputs during the run, or someone with write access forging a record: a
+completion marker or a recorded digest is not authentication.
+
 ## What the tools write, and the private folder
 
 Each run writes two kinds of file into its own output folder.

@@ -18,6 +18,12 @@ INCOMPLETE.txt and BUILD_FAILED.json.
 
 No signing, notarization or keychain tool is run, and no credential, signing
 identity or provisioning profile is an input.
+
+What these tools withstand: they are operator-run tools on stable inputs. They are built so that an
+observation that was not made, that failed, or that is incomplete cannot come out as success, and so
+that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
+a writer changing the inputs during the run, nor someone with write access forging a record: a
+completion marker or a recorded digest is not authentication.
 """
 import argparse
 import importlib.util
