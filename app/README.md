@@ -1387,8 +1387,12 @@ records capability's own read-log write is admitted through the control that
 exists and is refused, with the read, when it is missing. A control that is
 not a regular, singly linked file is refused without waiting. A store whose
 state cannot be read reads as unavailable, never as empty or as "no records
-yet": a project's import account is read only as its two written line forms,
-and any other content in it makes the account unknown. A read writes
+yet": a project's import account is read whole and only as line forms the
+App has written (a started line, a completed line, and the single line with
+no event that the first store builds wrote for a completed import); an
+unclosed last line, a blank line or any other content makes the account
+unknown. The capability's read-log write makes only its own folder beneath
+parents that exist. A read writes
 only two things below an existing store: the records read log that the
 agents' records capability writes for each call (`reads/records-reads.jsonl`),
 and the derived query cache described below. The host status (`recordsStore`)
