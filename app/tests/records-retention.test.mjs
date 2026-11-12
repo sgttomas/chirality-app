@@ -83,9 +83,12 @@ test('with a disposal standing only the project file can be restored, and an unf
  }
  const value=store({closed:false,legalHold:false,disposition:'kept'});
  value.project.attachment={projectId:null,refusal:'link changed; not attached',limits:[],fault:'link changed',resolutions:['restore-link','adopt','new-identity']};
- value.packageImport={state:'incomplete',importId:'invented-import'};
+ // Review round 2, finding 4: with the link changed, finishing the import is
+ // refused by its preparation, so the host says it cannot be finished here.
+ value.packageImport={state:'incomplete',importId:'invented-import',canFinish:false,finishReason:'The project file differs from the one this import recorded.'};
  const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{}}));
- assert.doesNotMatch(html,RESTORE);assert.doesNotMatch(html,ADOPT);assert.doesNotMatch(html,FRESH);assert.match(html,/Finish package import/);
+ assert.doesNotMatch(html,RESTORE);assert.doesNotMatch(html,ADOPT);assert.doesNotMatch(html,FRESH);assert.doesNotMatch(html,/Finish package import/);
+ assert.match(html,/cannot be finished from here now: The project file differs from the one this import recorded/);
 });
 test('uncertain completion publication retains a reconciliation offer',()=>{
  const html=render({closed:true,legalHold:false,disposition:'completion durability uncertain'});
@@ -118,7 +121,7 @@ test('foreign or unattached project offers separate path-free package import',as
 test('interrupted package import offers only its recovery among project mutations',async()=>{
  const value=store({closed:false,legalHold:false,disposition:'kept'});
  value.project.notImported=2;value.project.attachment.refusal='publication incomplete';
- value.packageImport={state:'incomplete',importId:'invented-import',packageIdentity:'invented-hash',limit:'publication durability uncertain'};
+ value.packageImport={state:'incomplete',importId:'invented-import',packageIdentity:'invented-hash',limit:'publication durability uncertain',canFinish:true};
  const calls=[];
  const panel=RecordsStorePanel({store:value,act:async(...args)=>{calls.push(args);}});
  const html=renderToStaticMarkup(panel);
@@ -216,7 +219,7 @@ test('missing package controls offer repair only on explicit native capability',
 test('interrupted association retains Finish with absent or startup link',async()=>{
  for (const projectId of [null,'invented-startup-Q']) {
   const value=store(undefined);value.project.attachment={projectId,limits:[]};
-  value.packageImport={state:'incomplete',canRepair:false,needsPackage:false,reason:'identity association is unfinished'};
+  value.packageImport={state:'incomplete',canRepair:false,needsPackage:false,reason:'identity association is unfinished',canFinish:true};
   const calls=[];
   const panel=RecordsStorePanel({store:value,act:async(...args)=>{calls.push(args);}});
   const html=renderToStaticMarkup(panel);

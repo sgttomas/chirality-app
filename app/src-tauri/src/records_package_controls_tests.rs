@@ -185,6 +185,56 @@ fn a_folder_whose_link_names_a_project_with_an_unfinished_import_elsewhere_keeps
     assert_eq!(super::super::status(&f.root)["state"], "incomplete");
 }
 
+/// Review round 2, finding 4: status and recovery select the same identity
+/// and folder, and Finish is not offered where its preparation refuses.
+#[test]
+fn an_interrupted_import_under_a_changed_link_is_not_offered_finish_and_status_and_recovery_agree() {
+    // Interrupted after its roots line, so the store records this folder.
+    let f = Fixture::new(false);
+    let plan = f.original_plan();
+    STOP.with(|flag| *flag.borrow_mut() = Some("link"));
+    assert!(super::super::apply(plan, &actor(), &observed()).is_err());
+    STOP.with(|flag| *flag.borrow_mut() = None);
+    let link_path = f.root.join(PROJECT_LINK);
+    let link_bytes = std::fs::read(&link_path).unwrap();
+    let store_id = opened().unwrap().1;
+    std::fs::write(&link_path, serde_json::to_vec(&link_value("chirality-project:other-fixture", &store_id)).unwrap()).unwrap();
+    let view = super::super::status(&f.root);
+    assert_eq!(view["state"], "incomplete", "{view}");
+    assert_eq!(view["canFinish"], false, "{view}");
+    assert!(view["finishReason"].as_str().is_some_and(|r| r.contains("project file differs")), "{view}");
+    assert_eq!(recovery_project(&f.root).unwrap().2, f.dir(), "recovery selects the folder's own project, as status does");
+    assert!(super::super::prepare_resume(&f.root, &actor(), &observed()).is_err());
+    // The file exactly as the import left it: Finish is offered and prepares.
+    std::fs::write(&link_path, &link_bytes).unwrap();
+    let view = super::super::status(&f.root);
+    assert_eq!((view["state"].as_str(), view["canFinish"].as_bool()), (Some("incomplete"), Some(true)), "{view}");
+    assert!(super::super::prepare_resume(&f.root, &actor(), &observed()).is_ok());
+}
+
+/// Review round 2, finding 4: a folder whose changed link names another
+/// folder's project with controls to repair is not offered Repair, which its
+/// preparation would refuse; its package state and capability agree.
+#[test]
+fn a_folder_whose_link_names_another_folders_import_is_not_offered_repair() {
+    let f = Fixture::new(false);
+    f.import();
+    let row = f.row();
+    std::fs::remove_file(f.dir().join(row.intent.receipt_relative())).unwrap();
+    assert_eq!(status(&f.root)["canRepair"], true);
+    let other = f.base.join("other-repair-project");
+    std::fs::create_dir_all(&other).unwrap();
+    crate::records::append_project(&other,None,"app-writer:local","evidence_limit",&crate::records::APP_WRITER,
+        json!({"label":"unresolvable reference","subjectRef":"invented other entry"})).unwrap();
+    let store_id = opened().unwrap().1;
+    std::fs::write(other.join(PROJECT_LINK), serde_json::to_vec(&link_value(&f.project, &store_id)).unwrap()).unwrap();
+    let view = super::super::status(&other);
+    assert_eq!(view["state"], "none", "{view}");
+    assert_ne!(view["canRepair"], true, "{view}");
+    assert!(prepare(&other, None, &actor(), &observed()).is_err());
+    assert_eq!(status(&f.root)["canRepair"], true, "its own folder still can");
+}
+
 #[test]
 fn incomplete_original_import_finishes_from_retained_or_reselected_exact_package() {
     for reselect in [false, true] {

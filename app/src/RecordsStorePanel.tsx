@@ -86,7 +86,9 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
       </p>}
       {packageImport?.state === "incomplete" && <p role="alert">
         Package import is interrupted. Project records remain unavailable until it is finished.{" "}
-        <button onClick={() => act("records_store_import_package", { action: "resume" })}>Finish package import</button>
+        {packageImport.canFinish === true
+          ? <button onClick={() => act("records_store_import_package", { action: "resume" })}>Finish package import</button>
+          : <>It cannot be finished from here now{packageImport.finishReason ? `: ${String(packageImport.finishReason)}` : "."}</>}
       </p>}
       {packageImport?.state === "unavailable" && <p role="alert">Package import status is unavailable. Project records remain unavailable.</p>}
       {packageRepairable && <p>
@@ -106,7 +108,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
         <button onClick={()=>act("records_store_retention",{action:retention.legalHold ? "release-hold" : "set-hold"})}>{retention.legalHold ? "Release legal hold" : "Set legal hold"}</button>{" "}
         {kept && retention.closed && !retention.legalHold && <button onClick={()=>act("records_store_retention",{action:"dispose"})}>Dispose of records after verified export</button>}
       </p>}
-      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : !packageBlocked && <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button>}</p>}
+      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : packageBlocked ? null : attachment?.projectId && !attachment?.refusal ? <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button> : <small>The disposal can be finished once this folder is attached to its records again; restore the project file first.</small>}</p>}
       {project.notImported > 0 && kept && !retention.closed && !packageBlocked && <p>
         <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>

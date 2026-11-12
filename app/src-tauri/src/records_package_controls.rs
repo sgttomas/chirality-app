@@ -779,6 +779,11 @@ pub(crate) fn status(root: &Path) -> Value {
             return Ok(json!({"canRepair":false,"needsPackage":false,
                 "limit":"Disposal has started; package-control repair cannot recreate removed payload. Missing native completion remains held."}));
         }
+        // As preparation requires: repair only from each intent's own folder.
+        if let Some(row) = selected.iter().find(|row| row.intent.root != root) {
+            return Ok(json!({"canRepair":false,"needsPackage":false,
+                "limit":format!("These package controls belong to the project folder {}; repair them from there.", row.intent.root.display())}));
+        }
         Ok(json!({"canRepair":true,"needsPackage":needs_package(root)?,
             "repairImports":selected.iter().map(|row|row.intent.id.clone()).collect::<Vec<_>>(),
             "limit":"Ordinary reads and recording remain fenced until the surviving original intents' derived controls are confirmed."}))
