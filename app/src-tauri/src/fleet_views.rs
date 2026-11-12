@@ -230,10 +230,7 @@ fn read_decisions(census: &mut Census, root: &Path) -> Result<DecisionRead, Stri
         let observed = read_package(census, root, reference, limits);
         packages.insert(
             reference.to_owned(),
-            crate::decision_view::FileObservation {
-                identity: observed.identity.clone(),
-                absent: observed.absent,
-            },
+            observed.clone(),
         );
         observed
     });
@@ -310,7 +307,7 @@ fn decision_need(
             }
             let mut limits = Vec::new();
             let current = match read.packages.get(reference) {
-                Some(seen) => crate::decision_view::FileObservation { identity: seen.identity.clone(), absent: seen.absent },
+                Some(seen) => seen.clone(),
                 None => read_package(census, root, reference, &mut limits),
             };
             let for_file: Vec<&Value> = rows.iter().filter(|r| r["packageFile"] == reference).collect();
@@ -362,7 +359,8 @@ fn decision_need(
         format!("; recorded and not counted: {}", limits.join("; "))
     };
     let mut value = match text(&row["state"]) {
-        "decided" => {
+        // A lapsed decision keeps its act shown; its lapse decides the need.
+        s if s == "decided" || s == crate::decision_view::LAPSED => {
             let d = &row["decision"];
             let act = d["act"].as_str().or_else(|| row["currentCandidates"][0].as_str()).unwrap_or("");
             let lapse = text(&d["lapse"]);

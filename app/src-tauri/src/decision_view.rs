@@ -23,6 +23,11 @@ pub(crate) const PENDING: &str = "pending — awaiting the person's decision";
 pub(crate) const INCOMPLETE_PREFIX: &str = "act records incomplete; ";
 pub(crate) const DECIDED_INCOMPLETE: &str = "act records incomplete; a deciding act was read";
 pub(crate) const PENDING_INCOMPLETE: &str = "act records incomplete; no deciding act was read";
+/// A decision whose package file's current bytes are not the content decided.
+pub(crate) const LAPSED: &str = "decision lapsed — the package file is not the content decided";
+/// A decision the package file's current bytes cannot confirm.
+pub(crate) const PACKAGE_UNRESOLVED: &str =
+    "unresolved — the package file's current bytes cannot confirm the decision";
 /// An act whose bound content is not the package identity its request claims.
 pub(crate) const BINDING_UNRESOLVED: &str =
     "unresolved — an act's bound content is not its request's package identity";
@@ -47,9 +52,12 @@ pub fn person_label(p: &Value) -> String {
 }
 
 /// One coherent current buffer; no record, capture, or native-origin admission.
+#[derive(Clone)]
 pub(crate) struct FileObservation {
     pub identity: Option<ContentIdentity>,
     pub absent: bool,
+    /// The bytes read once, from which the package's own facts are taken.
+    pub bytes: Option<Vec<u8>>,
 }
 impl FileObservation {
     /// The identity of bytes the caller has read once.
@@ -60,6 +68,7 @@ impl FileObservation {
                 value: sha256_hex(b),
             }),
             absent,
+            bytes: bytes.map(<[u8]>::to_vec),
         }
     }
 }
@@ -74,31 +83,16 @@ fn observe_file(root: &Path, reference: &str, limits: &mut Vec<String>) -> FileO
         limits.push(
             "package file reference is not a contained relative path; content not observed".into(),
         );
-        return FileObservation {
-            identity: None,
-            absent: false,
-        };
+        return FileObservation::of(None, false);
     }
     let path = root.join(rel);
     if let Err(e) = crate::storage::check_path(&path) {
         limits.push(format!("package file content not observed: {e}"));
-        return FileObservation {
-            identity: None,
-            absent: false,
-        };
+        return FileObservation::of(None, false);
     }
     match std::fs::read(path) {
-        Ok(bytes) => FileObservation {
-            identity: Some(ContentIdentity {
-                method: FILE_IDENTITY_METHOD.into(),
-                value: sha256_hex(&bytes),
-            }),
-            absent: false,
-        },
-        Err(e) => FileObservation {
-            identity: None,
-            absent: e.kind() == std::io::ErrorKind::NotFound,
-        },
+        Ok(bytes) => FileObservation::of(Some(&bytes), false),
+        Err(e) => FileObservation::of(None, e.kind() == std::io::ErrorKind::NotFound),
     }
 }
 fn identity(value: &Value) -> ContentIdentity {
@@ -258,33 +252,96 @@ fn names_recorder(act: &Value) -> bool {
     else {
         return false;
     };
-    // Unicode case folding by the standard library's lowercase, after trimming.
+    // The standard library's full case mapping, upper then lower, after
+    // trimming: STRASSE and Straße, and the Greek sigma forms, compare equal.
     // No normalization form is applied: composed and decomposed spellings of
-    // one name compare as different.
-    let fold = |s: &str| s.trim().to_lowercase();
+    // one name compare as different. This is a conformance check of what the
+    // record says; it authenticates no one.
+    let fold = |s: &str| s.trim().to_uppercase().to_lowercase();
     let recorder = fold(recorder);
     ["displayName", "osAccount", "codexAccount", "hostActor"]
         .iter()
         .filter_map(|k| act["body"]["decisionActor"][*k].as_str())
         .any(|name| fold(name) == recorder)
 }
-/// The one check of a record's authority to change standing in any way: to
-/// decide, to correct or supersede another record, or to observe a lapse. It
-/// must be read from this installation's store outside every imported part
-/// (`origin_decides`) and must not name its recorder as the decision actor.
-/// A record that fails is listed as a claim and changes nothing, in either
-/// direction.
-fn may_alter(origin: Origin, record: &Value) -> Result<(), String> {
-    if !origin_decides(origin) {
-        return Err(origin.label().to_owned());
+/// The door. Every act-record line is classified here, once, into exactly one
+/// of three classes, before any derivation sees it.
+mod door {
+    use super::{names_recorder, origin_decides, Origin};
+    use serde_json::{json, Value};
+
+    /// A record line the door admitted: read from this installation's store
+    /// subtree for the project, outside every imported part that a whole and
+    /// valid import account establishes, schema-conformant (it was read), and
+    /// not naming its recorder as the decision actor. Its fields are private to
+    /// this module and `classify` is its only constructor, so the derivation,
+    /// which takes only this type, cannot be handed a claim or a record of
+    /// unestablished origin.
+    pub(crate) struct Authorized {
+        record: Value,
+        source: Value,
     }
-    if names_recorder(record) {
-        return Err(format!(
-            "the record names its recorder {} as the decision actor (nonconformant)",
-            record["recorder"]["identity"].as_str().unwrap_or("?")
-        ));
+    impl Authorized {
+        pub(crate) fn record(&self) -> &Value {
+            &self.record
+        }
+        pub(crate) fn source(&self) -> &Value {
+            &self.source
+        }
     }
-    Ok(())
+    /// The linking facts of a decision request that is a claim, and nothing
+    /// else a decision could rest on: an imported request can link, and can
+    /// fail to link, and supplies none of the facts a decision rests on. Its
+    /// body is kept for display only, marked as that request's claim.
+    pub(crate) struct RequestLink {
+        pub(crate) id: String,
+        pub(crate) file: String,
+        pub(crate) method: String,
+        pub(crate) value: String,
+        pub(crate) origin: Origin,
+        pub(crate) shown: Value,
+        pub(crate) source: Value,
+    }
+    pub(crate) enum Classified {
+        Authorized(Authorized),
+        /// Known not to be authorized.
+        Claim { record: Value, source: Value, origin: Origin, reason: String },
+        /// Its origin cannot be established.
+        NotEstablished { record: Value, source: Value, reason: String },
+    }
+    pub(crate) fn classify(record: Value, source: Value, origin: Origin, why: Option<String>) -> Classified {
+        if origin == Origin::Unknown {
+            let reason = why.unwrap_or_else(|| origin.label().to_owned());
+            return Classified::NotEstablished { record, source, reason };
+        }
+        if !origin_decides(origin) {
+            return Classified::Claim { record, source, origin, reason: origin.label().to_owned() };
+        }
+        if names_recorder(&record) {
+            let reason = format!(
+                "the record names its recorder {} as the decision actor (nonconformant)",
+                record["recorder"]["identity"].as_str().unwrap_or("?")
+            );
+            return Classified::Claim { record, source, origin, reason };
+        }
+        Classified::Authorized(Authorized { record, source })
+    }
+    /// A claim that is a decision request may link a row; nothing more.
+    pub(crate) fn link(record: &Value, source: &Value, origin: Origin) -> Option<RequestLink> {
+        if record["kind"] != "act_request" || record["body"].get("alternatives").is_none() {
+            return None;
+        }
+        let ev = &record["body"]["evidence"];
+        Some(RequestLink {
+            id: record["recordId"].as_str()?.to_owned(),
+            file: ev["ref"].as_str().unwrap_or("").to_owned(),
+            method: ev["method"].as_str().unwrap_or("").to_owned(),
+            value: ev["claimedIdentity"].as_str().unwrap_or("").to_owned(),
+            origin,
+            shown: record["body"].clone(),
+            source: json!(source),
+        })
+    }
 }
 
 /// One act log as the caller read it, once.
@@ -304,49 +361,61 @@ pub(crate) struct RecordSet {
 }
 
 /// The copies the explicit legacy import named, by store-relative path, each
-/// with the length and SHA-256 of the bytes it copied.
+/// with the length and SHA-256 of the bytes it copied. Read strictly: anything
+/// not whole and well formed leaves origins unestablished, never "no imports".
+/// An absent account (the caller passes none) is a project that never imported.
 fn legacy_copies(bytes: &[u8]) -> Result<HashMap<String, Vec<(u64, String)>>, String> {
-    // Present but empty, torn, or not readable whole: what was imported is not
-    // established, so no origin in the project is.
     if bytes.iter().all(u8::is_ascii_whitespace) {
-        return Err("the project's import record is present but empty".into());
+        return Err("the project's import account is present but empty".into());
     }
     if !bytes.ends_with(b"\n") {
-        return Err("the project's import record ends in a torn line".into());
+        return Err("the project's import account ends in a torn line".into());
     }
+    let bad = |why: &str| Err(format!("the project's import account is not well formed: {why}"));
     let mut lines = Vec::new();
     for line in bytes.split(|b| *b == b'\n').filter(|l| !l.is_empty()) {
-        let line = serde_json::from_slice::<Value>(line)
-            .map_err(|_| "the project's import record is unreadable".to_string())?;
-        if !line["event"].is_string() {
-            return Err("the project's import record holds a line that is not an import event".into());
+        let Ok(line) = serde_json::from_slice::<Value>(line) else {
+            return bad("a line is not JSON");
+        };
+        if line["format"] != "chirality.records-store.import"
+            || line["importId"].as_str().is_none_or(str::is_empty)
+        {
+            return bad("a line is not an import event");
         }
-        lines.push(line);
+        let member = match line["event"].as_str() {
+            Some("started") => "census",
+            Some("completed") => "files",
+            _ => return bad("a line is neither a started nor a completed event"),
+        };
+        let Some(files) = line[member].as_array() else {
+            return bad(&format!("a {} event has no {member} list", line["event"].as_str().unwrap_or("")));
+        };
+        for file in files {
+            let well_formed = file["copy"].as_str().is_some_and(|c| !c.is_empty())
+                && file["sha256"].as_str().is_some_and(|h| h.len() == 64 && h.bytes().all(|b| b.is_ascii_hexdigit()))
+                && file["bytes"].as_u64().is_some();
+            if !well_formed {
+                return bad("a file descriptor lacks a copy path, a sha256 digest or a byte count as a number");
+            }
+        }
+        lines.push((line, member));
     }
     let done: HashSet<&str> = lines
         .iter()
-        .filter(|l| l["event"] == "completed")
-        .filter_map(|l| l["importId"].as_str())
+        .filter(|(l, _)| l["event"] == "completed")
+        .filter_map(|(l, _)| l["importId"].as_str())
         .collect();
     let mut out: HashMap<String, Vec<(u64, String)>> = HashMap::new();
-    for line in &lines {
-        let files = match line["event"].as_str() {
-            Some("completed") => &line["files"],
-            Some("started") if !done.contains(line["importId"].as_str().unwrap_or("")) => {
-                &line["census"]
-            }
-            _ => continue,
-        };
-        for file in files.as_array().into_iter().flatten() {
-            if let (Some(copy), Some(sha), Some(count)) = (
-                file["copy"].as_str(),
-                file["sha256"].as_str(),
-                file["bytes"].as_u64(),
-            ) {
-                out.entry(copy.to_owned())
-                    .or_default()
-                    .push((count, sha.to_owned()));
-            }
+    for (line, member) in &lines {
+        // A started event without its completed one still names copies that
+        // may exist; its census is evidence, checked against the bytes.
+        if *member == "census" && done.contains(line["importId"].as_str().unwrap_or("")) {
+            continue;
+        }
+        for file in line[*member].as_array().into_iter().flatten() {
+            out.entry(file["copy"].as_str().unwrap_or("").to_owned())
+                .or_default()
+                .push((file["bytes"].as_u64().unwrap_or(0), file["sha256"].as_str().unwrap_or("").to_owned()));
         }
     }
     Ok(out)
@@ -357,7 +426,7 @@ fn classifier(
     path: &Path,
     bytes: &[u8],
     copies: &Result<HashMap<String, Vec<(u64, String)>>, String>,
-) -> impl Fn(u64, u64) -> Origin {
+) -> impl Fn(u64, u64) -> (Origin, Option<String>) {
     let rel = store_dir.and_then(|dir| path.strip_prefix(dir).ok().map(|r| (dir, r)));
     let (package, legacy): (Result<u64, String>, Result<u64, String>) = match rel {
         None => (Ok(0), Ok(0)),
@@ -381,21 +450,26 @@ fn classifier(
     let in_store = rel.is_some();
     move |start, end| {
         if !in_store {
-            return Origin::ProjectFile;
+            return (Origin::ProjectFile, None);
         }
-        let (Ok(package), Ok(legacy)) = (&package, &legacy) else {
-            return Origin::Unknown;
+        let package = match &package {
+            Ok(p) => *p,
+            Err(e) => return (Origin::Unknown, Some(format!("package-import account: {e}"))),
         };
-        if end <= *package {
-            Origin::PackageImport
-        } else if start < *package {
-            Origin::Unknown
-        } else if end <= *legacy {
-            Origin::LegacyImport
-        } else if start < *legacy {
-            Origin::Unknown
+        let legacy = match &legacy {
+            Ok(p) => *p,
+            Err(e) => return (Origin::Unknown, Some(e.clone())),
+        };
+        if end <= package {
+            (Origin::PackageImport, None)
+        } else if start < package {
+            (Origin::Unknown, Some("the line crosses the end of a package-imported part".into()))
+        } else if end <= legacy {
+            (Origin::LegacyImport, None)
+        } else if start < legacy {
+            (Origin::Unknown, Some("the line crosses the end of a legacy-imported part".into()))
         } else {
-            Origin::Store
+            (Origin::Store, None)
         }
     }
 }
@@ -510,7 +584,8 @@ pub(crate) fn derive_from(
     } = set;
     let mut record_set_complete = limits.is_empty();
     // Sources not fully read: an unreadable or nonconformant line, a torn tail,
-    // a log that could not be opened, or a set that could not be discovered.
+    // a log that could not be opened, a set that could not be discovered, or a
+    // record whose origin cannot be established.
     let mut unread_sources: Vec<String> = limits.clone();
     let copies = match &imports {
         Ok(Some(bytes)) => legacy_copies(bytes),
@@ -522,10 +597,12 @@ pub(crate) fn derive_from(
             limits.push(format!("{e}; the origin of store records is not established"));
         }
     }
-    let mut all_entries = Vec::new();
-    let mut all_origins = Vec::new();
-    let mut all_claims = Vec::new();
+    // The door: every line classified once.
+    let mut admitted: Vec<door::Authorized> = Vec::new();
+    let mut claims: Vec<(Value, Value, Origin, String)> = Vec::new();
+    let mut not_established: Vec<(Value, Value, String)> = Vec::new();
     let mut complete_logs = HashSet::new();
+    let mut read_entries = 0;
     for log in logs {
         let label = crate::storage::log_label(root, &log.path);
         let bytes = match log.bytes {
@@ -546,19 +623,218 @@ pub(crate) fn derive_from(
         }
         let classify = classifier(store_dir.as_deref(), &log.path, &bytes, &copies);
         for (e, start, end) in read {
-            all_claims.push(json!({"record":e,"source":{"log":label,"seq":e["seq"]}}));
-            all_origins.push(classify(start, end));
-            all_entries.push(e);
+            read_entries += 1;
+            let source = json!({"log":label,"seq":e["seq"]});
+            let (origin, why) = classify(start, end);
+            match door::classify(e, source, origin, why) {
+                door::Classified::Authorized(a) => admitted.push(a),
+                door::Classified::Claim { record, source, origin, reason } => claims.push((record, source, origin, reason)),
+                door::Classified::NotEstablished { record, source, reason } => not_established.push((record, source, reason)),
+            }
         }
         limits.extend(found_limits);
     }
-    let read_entries = all_entries.len();
+    // D: a record whose origin cannot be established makes the reading
+    // incomplete, exactly as an unread line does. It is not known to be
+    // unauthorized: it may be the person's own later act in a log the account
+    // can no longer vouch for. Damage inside the store can therefore remove a
+    // decision's standing and can never create one.
+    for (record, source, reason) in &not_established {
+        record_set_complete = false;
+        unread_sources.push(format!(
+            "{} seq {}: record {} of unestablished origin ({reason})",
+            source["log"].as_str().unwrap_or(""),
+            source["seq"],
+            record["recordId"].as_str().unwrap_or("without an identity")
+        ));
+    }
+    let links: Vec<door::RequestLink> = claims
+        .iter()
+        .filter_map(|(record, source, origin, _)| door::link(record, source, *origin))
+        .collect();
+    let derived = derive_rows(&admitted, &links, &complete_logs, package, &mut limits);
+    let mut rows = derived.rows;
+    // C: claims are attached afterwards, for display only, to the row they cite.
+    attach_claims(&mut rows, &admitted, &claims, &mut limits);
+    let view_claims: Vec<Value> = claims
+        .iter()
+        .filter(|(record, _, _, _)| {
+            let id = record["recordId"].as_str().unwrap_or("");
+            !rows.iter().any(|r| array_has(&r["claims"], id))
+        })
+        .map(claim_entry)
+        .collect();
+    // While any act log is not fully read, every row's state begins with the
+    // incompleteness and no lapse is established; the comparison of the current
+    // bytes is kept as an observation.
+    if !record_set_complete {
+        for row in rows.iter_mut() {
+            let plain = row["state"].as_str().unwrap_or("").to_owned();
+            row["state"] = json!(if plain == "decided" {
+                DECIDED_INCOMPLETE.to_owned()
+            } else if plain == PENDING {
+                PENDING_INCOMPLETE.to_owned()
+            } else {
+                format!("{INCOMPLETE_PREFIX}{plain}")
+            });
+            let mut row_limits = row["limits"].as_array().cloned().unwrap_or_default();
+            row_limits.push(json!(format!("act records not fully read: {}", unread_sources.join(" | "))));
+            row["limits"] = json!(row_limits);
+            let unestablished = |p: &mut Value| {
+                if p.is_object() {
+                    p["currentBytesObservation"] = json!(format!(
+                        "an observation, not a lapse state: the package file's current bytes, compared with the bound content: {}",
+                        p["currentContentComparison"].as_str().unwrap_or("not compared")
+                    ));
+                    p["lapse"] = json!("not established while act records are incomplete");
+                    p["lapseShown"] = Value::Null;
+                }
+            };
+            unestablished(&mut row["decision"]);
+            if let Some(contenders) = row["contenders"].as_array_mut() {
+                for p in contenders.iter_mut() {
+                    unestablished(p);
+                }
+            }
+        }
+    }
+    limits.extend(derived.view_tail);
+    json!({"view": "decision packages (DEL-06-02; derived, not authority)", "rows": rows, "recordCorrections": derived.record_corrections,
+        "recordSetComplete": record_set_complete,
+        "readScope": {"entriesRead": read_entries, "decisionRecords": derived.decision_records,
+            "authorized": admitted.len(), "claims": claims.len(), "notEstablished": not_established.len(),
+            "authority": "only conforming act records in this installation's records store, outside every imported part, decide a package; other records are listed as claims; a record of unestablished origin makes the reading incomplete"},
+        "claims": view_claims,
+        "limits": limits, "unresolvedRecords": derived.unresolved})
+}
+
+fn array_has(list: &Value, id: &str) -> bool {
+    list.as_array().is_some_and(|v| v.iter().any(|c| c["recordId"] == id))
+}
+/// One claim as it is shown: its origin in the reader's words, its identity,
+/// recorder, the actor it names, and what it chose or claimed to do.
+fn claim_entry((record, source, origin, reason): &(Value, Value, Origin, String)) -> Value {
+    let b = &record["body"];
+    json!({
+        "recordId": record["recordId"],
+        "act": record["recordId"],
+        "kind": record["kind"],
+        "origin": origin.label(),
+        "reason": reason,
+        "recordedBy": record["recorder"],
+        "actor": if b["decisionActor"].is_object() { json!(person_label(&b["decisionActor"])) } else { Value::Null },
+        "actKind": b["actKind"],
+        "alternativeChosen": b["relations"]["alternativeChosen"],
+        "request": b["relations"]["requestRef"],
+        "claimedToCorrect": record.get("corrects"),
+        "claimedToSupersede": b["relations"]["supersededBy"],
+        "claimedToObserve": b["act"]["recordId"],
+        "recordSources": [source],
+        "decides": false,
+    })
+}
+/// The request a record cites, followed through what it observes or corrects.
+fn cited_request<'r>(
+    record: &'r Value,
+    by_id: &HashMap<&str, &'r Value>,
+    depth: usize,
+) -> Option<&'r str> {
+    if depth > 8 {
+        return None;
+    }
+    if record["kind"] == "act_request" {
+        return record["recordId"].as_str();
+    }
+    if let Some(r) = record["body"]["relations"]["requestRef"].as_str() {
+        return Some(r);
+    }
+    let next = record["body"]["act"]["recordId"].as_str().or_else(|| record["corrects"].as_str())?;
+    cited_request(by_id.get(next)?, by_id, depth + 1)
+}
+fn attach_claims(
+    rows: &mut [Value],
+    admitted: &[door::Authorized],
+    claims: &[(Value, Value, Origin, String)],
+    limits: &mut Vec<String>,
+) {
+    let mut by_id: HashMap<&str, &Value> = HashMap::new();
+    for a in admitted {
+        if let Some(id) = a.record()["recordId"].as_str() {
+            by_id.entry(id).or_insert(a.record());
+        }
+    }
+    for (record, _, _, _) in claims {
+        if let Some(id) = record["recordId"].as_str() {
+            by_id.entry(id).or_insert(record);
+        }
+    }
+    for claim in claims {
+        let (record, _, _, reason) = claim;
+        let id = record["recordId"].as_str().unwrap_or("");
+        let row = cited_request(record, &by_id, 0).and_then(|request| {
+            rows.iter().position(|r| {
+                ["requests", "correctedRequests"].iter().any(|k| {
+                    r[*k].as_array().is_some_and(|v| v.iter().any(|x| x == request))
+                })
+            })
+        }).or_else(|| {
+            // A claim request for a package a row already shows, by file and identity.
+            (record["kind"] == "act_request").then(|| {
+                let ev = &record["body"]["evidence"];
+                rows.iter().position(|r| {
+                    r["packageFile"] == ev["ref"]
+                        && r["packageIdentity"]["method"] == ev["method"]
+                        && r["packageIdentity"]["value"] == ev["claimedIdentity"]
+                })
+            }).flatten()
+        });
+        if let Some(i) = row {
+            if !array_has(&rows[i]["claims"], id) {
+                if let Some(list) = rows[i]["claims"].as_array_mut() {
+                    list.push(claim_entry(claim));
+                }
+                let mut row_limits = rows[i]["limits"].as_array().cloned().unwrap_or_default();
+                row_limits.push(json!(format!("{id}: {reason}; listed as a claim and decides nothing")));
+                rows[i]["limits"] = json!(row_limits);
+            }
+        } else {
+            limits.push(format!("{id}: {reason}; listed as a claim and decides nothing"));
+        }
+    }
+}
+
+/// What the derivation over authorized records gives back.
+struct Derived {
+    rows: Vec<Value>,
+    record_corrections: Value,
+    view_tail: Vec<String>,
+    decision_records: usize,
+    unresolved: Vec<Value>,
+}
+/// Rows, standing, ordering, grouping, duplicate resolution and lapse, from
+/// authorized records alone. It takes `door::Authorized`, which only the door
+/// constructs, so no claim or record of unestablished origin can reach it;
+/// claim requests reach it only as `door::RequestLink`, which carries the link
+/// and none of the facts a decision rests on.
+fn derive_rows(
+    authorized: &[door::Authorized],
+    links: &[door::RequestLink],
+    complete_logs: &HashSet<String>,
+    package: &mut dyn FnMut(&str, &mut Vec<String>) -> FileObservation,
+    limits: &mut Vec<String>,
+) -> Derived {
+    let all_entries: Vec<Value> = authorized.iter().map(|a| a.record().clone()).collect();
+    let all_claims: Vec<Value> = authorized
+        .iter()
+        .map(|a| json!({"record": a.record(), "source": a.source()}))
+        .collect();
     // §6: an act citing a request the log does not hold is a view limit, on no row.
-    let request_ids: HashSet<&str> = all_entries
+    let mut request_ids: HashSet<&str> = all_entries
         .iter()
         .filter(|e| e["kind"] == "act_request")
         .filter_map(|e| e["recordId"].as_str())
         .collect();
+    request_ids.extend(links.iter().map(|l| l.id.as_str()));
     let mut view_limits_tail = Vec::new();
     for a in all_entries.iter().filter(|e| e["kind"] == "human_act") {
         if let Some(r) = a["body"]["relations"]["requestRef"].as_str() {
@@ -575,11 +851,12 @@ pub(crate) fn derive_from(
     // observations, and every record a correction relation joins to these.
     let selected = {
         let id_of = |i: usize| all_entries[i]["recordId"].as_str().unwrap_or("");
-        let packages: HashSet<&str> = all_entries
+        let mut packages: HashSet<&str> = all_entries
             .iter()
             .filter(|e| e["kind"] == "act_request" && e["body"].get("alternatives").is_some())
             .filter_map(|e| e["recordId"].as_str())
             .collect();
+        packages.extend(links.iter().map(|l| l.id.as_str()));
         let mut by_id: HashMap<&str, Vec<usize>> = HashMap::new();
         let mut correctors: HashMap<&str, Vec<usize>> = HashMap::new();
         let mut lapses: HashMap<&str, Vec<usize>> = HashMap::new();
@@ -626,40 +903,22 @@ pub(crate) fn derive_from(
         chosen
     };
     let mut entries = Vec::new();
-    let mut entry_origins = Vec::new();
     let mut source_claims = Vec::new();
     for (i, e) in all_entries.into_iter().enumerate() {
         if selected[i] {
             entries.push(e);
-            entry_origins.push(all_origins[i]);
             source_claims.push(all_claims[i].clone());
         }
     }
     let mut sources: HashMap<String, Vec<Value>> = HashMap::new();
-    let mut origins: HashMap<String, Vec<Origin>> = HashMap::new();
-    for (claim, origin) in source_claims.iter().zip(&entry_origins) {
+    for claim in &source_claims {
         if let Some(id) = claim["record"]["recordId"].as_str() {
             sources
                 .entry(id.to_owned())
                 .or_default()
                 .push(claim["source"].clone());
-            origins.entry(id.to_owned()).or_default().push(*origin);
         }
     }
-    // A record decides only when every copy read of it has a deciding origin.
-    let origin_of = |id: &str| -> Origin {
-        let found = origins.get(id).map(Vec::as_slice).unwrap_or(&[]);
-        found
-            .iter()
-            .copied()
-            .find(|o| !origin_decides(*o))
-            .unwrap_or(if found.is_empty() { Origin::Unknown } else { Origin::Store })
-    };
-    // Records that may not change standing, with why; listed as claims.
-    let authority = |record: &Value| -> Result<(), String> {
-        may_alter(origin_of(record["recordId"].as_str().unwrap_or("")), record)
-    };
-    let mut unauthorized: Vec<Value> = Vec::new();
     let record_corrections = record_relations::project_from_read_claims(&source_claims, &complete_logs);
     let mut grouped: HashMap<String, Vec<&Value>> = HashMap::new();
     for e in &entries {
@@ -696,11 +955,6 @@ pub(crate) fn derive_from(
             continue;
         };
         let id = e["recordId"].as_str().unwrap_or("");
-        if let Err(why) = authority(e) {
-            limits.push(format!("{id}: claims to correct {target}, but {why}; listed as a claim and changes nothing"));
-            unauthorized.push(json!({"recordId":id,"kind":e["kind"],"claimedToCorrect":target,"origin":origin_of(id).label(),"reason":why}));
-            continue;
-        }
         let reason = e["correctionReason"]
             .as_str()
             .is_some_and(|v| !v.is_empty());
@@ -788,7 +1042,6 @@ pub(crate) fn derive_from(
             reported_native_observation(e)
                 && e.get("corrects").is_none()
                 && !duplicates.contains(id)
-                && authority(e).is_ok()
         })
         .collect();
     for a in &native {
@@ -833,8 +1086,6 @@ pub(crate) fn derive_from(
                 && e["body"]["actKind"] == t["body"]["actKind"]
                 && e["body"]["relations"]["requestRef"] == t["body"]["relations"]["requestRef"]
                 && !same_capture(e, t)
-                && authority(e).is_ok()
-                && authority(t).is_ok()
             {
                 edges
                     .entry(id.to_owned())
@@ -843,10 +1094,7 @@ pub(crate) fn derive_from(
                 continue;
             }
         }
-        if let Err(why) = authority(e) {
-            unauthorized.push(json!({"recordId":id,"kind":e["kind"],"claimedToSupersede":target,"origin":origin_of(id).label(),"reason":why}));
-        }
-        limits.push(format!("{id}: supersession target {target} unresolvable/ambiguous, not a distinct compatible capture, or not a record that may change standing; not applied"));
+        limits.push(format!("{id}: supersession target {target} unresolvable/ambiguous or not a distinct compatible capture; not applied"));
     }
     // Contradictory precedence cannot erase either contender.
     let cyclic: HashSet<String> = edges
@@ -876,17 +1124,12 @@ pub(crate) fn derive_from(
     // DEL-06-02 Several decisions: a correction stands in place of the entry it
     // corrects, before any request or act is judged; both stay listed.
     let corrected_away = |id: &str| corrected.contains_key(id);
-    // Lapse observations obey the same rule: one that may not change standing,
-    // or that a correction stands in place of, is no lapse history.
+    // A lapse observation a correction stands in place of is no lapse history.
     let mut not_history: HashSet<String> = unresolved_observations.clone();
     for e in entries.iter().filter(|e| e["kind"] == "act_lapsed") {
         let id = e["recordId"].as_str().unwrap_or("");
         if corrected_away(id) {
             not_history.insert(id.to_owned());
-        } else if let Err(why) = authority(e) {
-            not_history.insert(id.to_owned());
-            limits.push(format!("{id}: lapse observation {why}; listed as a claim and changes nothing"));
-            unauthorized.push(json!({"recordId":id,"kind":e["kind"],"claimedToObserve":e["body"]["act"]["recordId"],"origin":origin_of(id).label(),"reason":why}));
         }
     }
     // DV-1: a row per package. Requests are reconciled by the package they cite
@@ -908,12 +1151,27 @@ pub(crate) fn derive_from(
             ev["claimedIdentity"].as_str().unwrap_or("").to_owned(),
         )
     };
-    let mut groups: Vec<((String, String, String), Vec<&Value>, Vec<String>)> = Vec::new();
+    // An authorized request is the request; a claim request sharing its record
+    // identity is only a claim. A claim request may otherwise link a row.
+    type Group<'g> = ((String, String, String), Vec<&'g Value>, Vec<String>, Vec<&'g door::RequestLink>);
+    let mut groups: Vec<Group> = Vec::new();
     for r in requests.iter().copied().filter(|r| !corrected_away(r["recordId"].as_str().unwrap_or(""))) {
         let key = package_key(r);
         match groups.iter_mut().find(|g| g.0 == key) {
             Some(group) => group.1.push(r),
-            None => groups.push((key, vec![r], Vec::new())),
+            None => groups.push((key, vec![r], Vec::new(), Vec::new())),
+        }
+    }
+    let authorized_requests: HashSet<&str> = requests.iter().filter_map(|r| r["recordId"].as_str()).collect();
+    let mut linked = HashSet::new();
+    for l in links.iter().filter(|l| !authorized_requests.contains(l.id.as_str())) {
+        if !linked.insert(l.id.as_str()) {
+            continue;
+        }
+        let key = (l.file.clone(), l.method.clone(), l.value.clone());
+        match groups.iter_mut().find(|g| g.0 == key) {
+            Some(group) => group.3.push(l),
+            None => groups.push((key, Vec::new(), Vec::new(), vec![l])),
         }
     }
     for r in requests.iter().copied().filter(|r| corrected_away(r["recordId"].as_str().unwrap_or(""))) {
@@ -946,15 +1204,25 @@ pub(crate) fn derive_from(
         .filter(|e| e["kind"] == "human_act")
         .collect();
     let mut rows = Vec::new();
-    for (_, group, corrected_requests) in &groups {
-        let p = group[0];
-        let b = &p["body"];
-        let pid = p["recordId"].as_str().unwrap_or("");
-        let request_ids: Vec<&str> = group.iter().filter_map(|r| r["recordId"].as_str()).collect();
+    for (_, group, corrected_requests, group_links) in &groups {
+        // The facts a row shows come from its authorized request; a row resting
+        // only on a claim request shows that request's facts, marked as its claim.
+        let rests_on_claim = group.is_empty();
+        let b: &Value = match group.first() {
+            Some(p) => &p["body"],
+            None => &group_links[0].shown,
+        };
+        let pid: &str = match group.first() {
+            Some(p) => p["recordId"].as_str().unwrap_or(""),
+            None => group_links[0].id.as_str(),
+        };
+        let mut request_ids: Vec<&str> = group.iter().filter_map(|r| r["recordId"].as_str()).collect();
+        request_ids.extend(group_links.iter().map(|l| l.id.as_str()));
         let alts = b["alternatives"].as_array().cloned().unwrap_or_default();
         let cons = b["consequences"].as_array().cloned().unwrap_or_default();
         let alt_ids: Vec<&str> = alts.iter().filter_map(|a| a["id"].as_str()).collect();
         let mut row_limits: Vec<String> = Vec::new();
+        // Only authorized requests can conflict; claim requests never do.
         let conflicting_requests = group.iter().any(|r| {
             ["actKind", "alternatives", "consequences", "subject", "purpose", "scope"]
                 .iter()
@@ -1017,11 +1285,21 @@ pub(crate) fn derive_from(
             Lapse::Lapsed => row_limits.push("package file differs from the content the request recorded".into()),
             _ => {},
         }
+        // The facts a decision rests on come from the package file's own current
+        // bytes, where they are the content its request claims; otherwise from
+        // an authorized request; never from a claim request.
+        let file_facts: Option<Value> = now
+            .bytes
+            .as_ref()
+            .filter(|_| now.identity.as_ref() == Some(&requested))
+            .and_then(|bytes| serde_json::from_slice::<Value>(bytes).ok());
+        let deciding_facts: Option<&Value> = file_facts.as_ref().or(group.first().map(|p| &p["body"]));
+        let deciding_alternatives: Option<Vec<&str>> = deciding_facts.map(|f| {
+            f["alternatives"].as_array().map(|v| v.iter().filter_map(|a| a["id"].as_str()).collect()).unwrap_or_default()
+        });
         // DV-4, DV-5
         let mut decided: Vec<&Value> = Vec::new();
         let mut seen_acts = HashSet::new();
-        let mut claims = Vec::new();
-        let mut origin_unresolved = false;
         let mut binding_unresolved = false;
         for a in acts.iter().copied().filter(|a| {
             let r = &a["body"]["relations"]["requestRef"];
@@ -1029,24 +1307,19 @@ pub(crate) fn derive_from(
         }) {
             let ab = &a["body"];
             let rid = a["recordId"].as_str().unwrap_or("");
-            if ab["actKind"] != b["actKind"] {
-                row_limits.push(format!("{rid}: an act of kind {} cites this package; it is not the {} the package requests",
-                    ab["actKind"].as_str().unwrap_or("?"), b["actKind"].as_str().unwrap_or("?")));
-                continue;
+            if let Some(facts) = deciding_facts {
+                if ab["actKind"] != facts["actKind"] {
+                    row_limits.push(format!("{rid}: an act of kind {} cites this package; it is not the {} the package requests",
+                        ab["actKind"].as_str().unwrap_or("?"), facts["actKind"].as_str().unwrap_or("?")));
+                    continue;
+                }
             }
             let chosen = ab["relations"]["alternativeChosen"].as_str();
-            if b["actKind"] == "A16" && !chosen.map(|c| alt_ids.contains(&c)).unwrap_or(false) {
-                row_limits.push(format!("{rid}: act not counted: chosen alternative {chosen:?} is not one the package names"));
-                continue;
-            }
-            let origin = origin_of(rid);
-            if let Err(why) = may_alter(origin, a) {
-                origin_unresolved |= origin == Origin::Unknown;
-                row_limits.push(format!("{rid}: {why}; listed as a claim and decides nothing"));
-                claims.push(json!({"recordId":rid,"act":rid,"origin":origin.label(),"reason":why,
-                    "recordedBy":a["recorder"],"actor":person_label(&ab["decisionActor"]),
-                    "alternativeChosen":chosen,"recordSources":sources.get(rid),"decides":false}));
-                continue;
+            if let Some(named) = &deciding_alternatives {
+                if ab["actKind"] == "A16" && !chosen.map(|c| named.contains(&c)).unwrap_or(false) {
+                    row_limits.push(format!("{rid}: act not counted: chosen alternative {chosen:?} is not one the package names"));
+                    continue;
+                }
             }
             let cited = ab["relations"]["requestRef"].as_str().unwrap_or("");
             if corrected_requests.iter().any(|id| id == cited) {
@@ -1056,8 +1329,13 @@ pub(crate) fn derive_from(
             // An act decides a request only where its bound content is the
             // package identity that request claims, by method and value.
             if !corrected_away(rid) {
-                let cited_request = group.iter().find(|r| r["recordId"] == cited);
-                let claimed = cited_request.map(|r| &r["body"]["evidence"]);
+                // The link: the cited request's claimed package identity, whatever
+                // the request's origin.
+                let cited_link = group_links.iter().find(|l| l.id == cited)
+                    .map(|l| json!({"method":l.method,"claimedIdentity":l.value}));
+                let cited_request = group.iter().find(|r| r["recordId"] == cited).map(|r| r["body"]["evidence"].clone());
+                let claimed_value = cited_request.or(cited_link);
+                let claimed = claimed_value.as_ref();
                 let bound_content = ab["boundContent"].as_array();
                 let comparable = |m: &Value, v: &Value| m.as_str().is_some_and(|x| !x.is_empty()) && v.as_str().is_some_and(|x| !x.is_empty());
                 let matches = claimed.zip(bound_content).is_some_and(|(c, bc)| {
@@ -1080,42 +1358,6 @@ pub(crate) fn derive_from(
                 decided.push(a);
             }
         }
-        // Records that claimed to correct, supersede or observe a lapse on what
-        // this row reads, but may not change standing: listed, deciding nothing.
-        let mut bearing: HashSet<String> = request_ids.iter().map(|s| s.to_string()).collect();
-        bearing.extend(corrected_requests.iter().cloned());
-        let citing: Vec<String> = acts
-            .iter()
-            .filter(|a| a["body"]["relations"]["requestRef"].as_str().is_some_and(|r| bearing.contains(r)))
-            .map(|a| a["recordId"].as_str().unwrap_or("").to_owned())
-            .collect();
-        bearing.extend(citing);
-        let observing: Vec<String> = entries
-            .iter()
-            .filter(|e| e["kind"] == "act_lapsed" && e["body"]["act"]["recordId"].as_str().is_some_and(|a| bearing.contains(a)))
-            .map(|e| e["recordId"].as_str().unwrap_or("").to_owned())
-            .collect();
-        bearing.extend(observing);
-        for u in &unauthorized {
-            let id = u["recordId"].as_str().unwrap_or("");
-            let target = ["claimedToCorrect", "claimedToSupersede", "claimedToObserve"]
-                .iter()
-                .find_map(|k| u[*k].as_str());
-            let bears = bearing.contains(id) || target.is_some_and(|t| bearing.contains(t));
-            if bears && !claims.iter().any(|c| c["recordId"] == id) {
-                let record = entries.iter().find(|e| e["recordId"] == id);
-                let mut claim = u.clone();
-                claim["recordedBy"] = record.map(|r| r["recorder"].clone()).unwrap_or(Value::Null);
-                claim["actor"] = record
-                    .filter(|r| r["body"]["decisionActor"].is_object())
-                    .map(|r| json!(person_label(&r["body"]["decisionActor"])))
-                    .unwrap_or(Value::Null);
-                claim["alternativeChosen"] = record.map(|r| r["body"]["relations"]["alternativeChosen"].clone()).unwrap_or(Value::Null);
-                claim["recordSources"] = json!(sources.get(id));
-                claim["decides"] = json!(false);
-                claims.push(claim);
-            }
-        }
         let mut row = json!({
             "package": pid,
             "requests": request_ids,
@@ -1135,7 +1377,12 @@ pub(crate) fn derive_from(
             "decision": Value::Null,
             "requestResolution": if request_ids.iter().any(|id| duplicates.contains(*id)) { "conflicting identity" } else if request_ids.iter().any(|id| sources.get(*id).is_some_and(|v|v.len()>1)) { "unique claim (identical copies)" } else { "unique claim" },
             "requestSources": sources.get(pid),
-            "claims": claims,
+            "links": group_links.iter().map(|l| json!({"request":l.id,"origin":l.origin.label(),"source":l.source})).collect::<Vec<_>>(),
+            "restsOnClaimRequest": rests_on_claim,
+            "factsFrom": if rests_on_claim {
+                json!({"request": pid, "origin": group_links[0].origin.label(), "standing": "these facts are that request's claim; an imported request can link, and can fail to link, and supplies none of the facts a decision rests on"})
+            } else { json!({"request": pid, "origin": Origin::Store.label()}) },
+            "claims": [],
             "limits": [],
         });
         // Retain a projection for each readable claim, including unresolved corrections.
@@ -1150,7 +1397,8 @@ pub(crate) fn derive_from(
                 "decision package {}",
                 ab["relations"]["requestRef"].as_str().unwrap_or(pid)
             );
-            let expected_scope = b["scope"]
+            let scope_facts: &Value = deciding_facts.unwrap_or(&Value::Null);
+            let expected_scope = scope_facts["scope"]
                 .as_str()
                 .filter(|s| !s.is_empty())
                 .unwrap_or("not named by the package");
@@ -1159,8 +1407,8 @@ pub(crate) fn derive_from(
                     .as_array()
                     .is_some_and(|v| v.len() == 1 && v[0] == expected_subject)
                 && ab["boundContent"].as_array().is_some_and(|v| v.len() == 1)
-                && ab["scope"] == expected_scope
-                && ab["purpose"] == b["purpose"];
+                && (deciding_facts.is_none()
+                    || (ab["scope"] == expected_scope && ab["purpose"] == scope_facts["purpose"]));
             let history_records: Vec<&str> = decided
                 .iter()
                 .filter(|other| same_capture(a, other) && same_capture_facts(a, other))
@@ -1274,6 +1522,15 @@ pub(crate) fn derive_from(
             } else {
                 label(state)
             };
+            // A standing observation of the past whose state is unknown: the row
+            // says both without choosing between them.
+            let unknown_past = state == Lapse::NotLapsed
+                && entries.iter().any(|e| {
+                    e["kind"] == "act_lapsed"
+                        && history_records.iter().any(|id| e["body"]["act"]["recordId"] == *id)
+                        && e["body"]["state"].as_str().is_some_and(|s| s.starts_with("unknown"))
+                        && !not_history.contains(e["recordId"].as_str().unwrap_or(""))
+                });
             let projection = json!({
                 "act": arid,
                 "actKind": ab["actKind"],
@@ -1285,12 +1542,15 @@ pub(crate) fn derive_from(
                 "recordedBy": format!("{} {}", a["recorder"]["role"].as_str().unwrap_or(""), a["recorder"]["identity"].as_str().unwrap_or("")),
                 "actRecord": {"decisionActor": ab["decisionActor"], "recorder": a["recorder"], "boundSubject": ab["boundSubject"],
                     "boundContent": ab["boundContent"], "scope": ab["scope"], "purpose": ab["purpose"]},
-                "origin": origin_of(arid).label(),
+                "origin": Origin::Store.label(),
                 "recordingMode": ab["recordingMode"],
                 "captureProvenance": "recorded claim; native capture origin not verified by this unsealed reader",
                 "captureEvidence": ab["captureEvidence"].as_array().map(|c| c.iter().map(|x| x["ref"].clone()).collect::<Vec<_>>()),
                 "capturedAt": ab["captureTime"],
                 "lapse": lapse,
+                "lapseShown": if unknown_past {
+                    json!("the current content is what was decided; whether it lapsed in between is not known")
+                } else { Value::Null },
                 "standingComparison": {"bound": ab["boundContent"][0], "current": now.identity.as_ref().map(|c| json!({"method":c.method,"value":c.value})), "recordedSubjectScopeMatchesRequest": same_subject_scope},
                 "lapseHistory": history_refs,
                 "lapseHistoryProvenance": "recorded observations; native origin not verified",
@@ -1345,16 +1605,12 @@ pub(crate) fn derive_from(
         let unresolved = decided.iter().any(|a| {
             duplicates.contains(a["recordId"].as_str().unwrap_or(""))
                 || cyclic.contains(a["recordId"].as_str().unwrap_or(""))
-        }) || request_ids.iter().any(|id| duplicates.contains(*id))
-            || origin_unresolved;
+        }) || request_ids.iter().any(|id| duplicates.contains(*id));
         let equivalent_capture = !maxima.is_empty()
             && maxima
                 .iter()
                 .all(|a| same_capture(a, maxima[0]) && same_capture_facts(a, maxima[0]));
-        if origin_unresolved {
-            row_limits.push("the origin of an act citing this package is not established; no decision is read".into());
-        }
-        if (unresolved && (!decided.is_empty() || origin_unresolved))
+        if (unresolved && !decided.is_empty())
             || (eligible.is_empty() && decided.iter().any(|a| blocked(a)))
             || (!eligible.is_empty() && maxima.len() != 1 && !equivalent_capture)
         {
@@ -1469,6 +1725,48 @@ pub(crate) fn derive_from(
             }).collect::<Vec<_>>());
             row["decision"] = projection;
         }
+        // E: a decision rests on the act and the package file's own current
+        // bytes. The act's bound content must equal the cited request's claimed
+        // package identity (checked above, as the link) and the file's current
+        // bytes, and the file's own bytes must name the act's kind and the
+        // alternative chosen. A request record supplies none of these facts.
+        if row["state"] == "decided" {
+            let current = maxima
+                .iter()
+                .find(|a| a["body"]["recordingMode"] == "direct capture")
+                .or_else(|| maxima.first())
+                .copied();
+            if let Some(current) = current {
+                let bound = identity(&current["body"]["boundContent"][0]);
+                let chosen = current["body"]["relations"]["alternativeChosen"].as_str();
+                let verdict: Result<(), (&str, String)> = match now.identity.as_ref() {
+                    None if now.absent => Err((LAPSED, "the package file is absent".into())),
+                    None => Err((PACKAGE_UNRESOLVED, "the package file's current bytes could not be read".into())),
+                    Some(c) if c.method != bound.method => Err((PACKAGE_UNRESOLVED, format!(
+                        "the act's bound content ({}) and the package file's current bytes ({}) are not identified by one method",
+                        bound.method, c.method))),
+                    Some(c) if c.value != bound.value => Err((LAPSED, "the package file's current bytes are not the content decided".into())),
+                    Some(_) => {
+                        let facts = now.bytes.as_ref().and_then(|b| serde_json::from_slice::<Value>(b).ok());
+                        let names = facts.as_ref().is_some_and(|f| {
+                            f["actKind"] == current["body"]["actKind"]
+                                && (current["body"]["actKind"] != "A16"
+                                    || f["alternatives"].as_array().is_some_and(|v| v.iter().any(|a| a["id"].as_str() == chosen && chosen.is_some())))
+                        });
+                        if names { Ok(()) } else {
+                            Err((PACKAGE_UNRESOLVED, "the package file's current bytes do not name the act's kind and the alternative it chose".into()))
+                        }
+                    }
+                };
+                if let Err((state, why)) = verdict {
+                    row["state"] = json!(state);
+                    row_limits.push(format!("{}: {why}; not decided", current["recordId"].as_str().unwrap_or("")));
+                    if state == PACKAGE_UNRESOLVED {
+                        row["decision"] = Value::Null;
+                    }
+                }
+            }
+        }
         if binding_unresolved {
             row["state"] = json!(BINDING_UNRESOLVED);
             row["decision"] = Value::Null;
@@ -1478,35 +1776,6 @@ pub(crate) fn derive_from(
             row["decision"] = Value::Null;
             row_limits.push("request record identity has conflicting facts; no unique package/offer binding resolved".into());
         }
-        // An unread line may be a correction of the act or a later opposing
-        // decision; it is used for nothing (DEL-04-03 REQ-012), and the row draws
-        // no conclusion it could overturn. Every state then begins with the
-        // incompleteness, and no lapse is established; the comparison of the
-        // current bytes is kept beside it as an observation.
-        if !record_set_complete {
-            let plain = row["state"].as_str().unwrap_or("").to_owned();
-            row["state"] = json!(if plain == "decided" {
-                DECIDED_INCOMPLETE.to_owned()
-            } else if plain == PENDING {
-                PENDING_INCOMPLETE.to_owned()
-            } else {
-                format!("{INCOMPLETE_PREFIX}{plain}")
-            });
-            row_limits.push(format!("act records not fully read: {}", unread_sources.join(" | ")));
-            let unestablished = |p: &mut Value| {
-                if p.is_object() {
-                    p["currentBytesObservation"] = json!(format!(
-                        "an observation, not a lapse state: the package file's current bytes, compared with the bound content: {}",
-                        p["currentContentComparison"].as_str().unwrap_or("not compared")
-                    ));
-                    p["lapse"] = json!("not established while act records are incomplete");
-                }
-            };
-            unestablished(&mut row["decision"]);
-            for p in projections.iter_mut() {
-                unestablished(p);
-            }
-        }
         row["currentCandidates"] = json!(maxima
             .iter()
             .map(|a| a["recordId"].clone())
@@ -1515,12 +1784,21 @@ pub(crate) fn derive_from(
         row["limits"] = json!(row_limits);
         rows.push(row);
     }
-    limits.extend(view_limits_tail);
-    json!({"view": "decision packages (DEL-06-02; derived, not authority)", "rows": rows, "recordCorrections":record_corrections,
-        "recordSetComplete": record_set_complete,
-        "readScope": {"entriesRead": read_entries, "decisionRecords": entries.len(),
-            "authority": "only acts in this installation's records store, outside every imported prefix, decide a package; other origins are listed as claims"},
-        "limits": limits, "unresolvedRecords": entries.iter().filter(|e| duplicates.contains(e["recordId"].as_str().unwrap_or("")) || invalid_corrections.contains(e["recordId"].as_str().unwrap_or(""))).collect::<Vec<_>>()})
+    let unresolved_records: Vec<Value> = entries
+        .iter()
+        .filter(|e| {
+            let id = e["recordId"].as_str().unwrap_or("");
+            duplicates.contains(id) || invalid_corrections.contains(id)
+        })
+        .cloned()
+        .collect();
+    Derived {
+        rows,
+        record_corrections,
+        view_tail: view_limits_tail,
+        decision_records: entries.len(),
+        unresolved: unresolved_records,
+    }
 }
 
 #[cfg(test)]
