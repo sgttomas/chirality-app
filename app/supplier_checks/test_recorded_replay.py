@@ -49,6 +49,9 @@ def inputs(recording, generation, profile="strict", remap=False):
         if profile == "app-continue" and frame.get("method") == "thread/resume":
             frames.append({"jsonrpc": "2.0", "id": "constructed-catalog", "method": "thread/list",
                            "params": {"sortDirection": "desc"}})
+            # The App reads its configuration at the folder it started this peer in before it resumes.
+            frames.append({"jsonrpc": "2.0", "id": "constructed-reading", "method": "config/read",
+                           "params": {"cwd": os.getcwd(), "includeLayers": True}})
             frame["params"]["excludeTurns"] = True
         frames.append(frame)
         if profile == "app-recovery" and frame.get("method") == "thread/turns/list":
@@ -334,6 +337,7 @@ class SubprocessReplay(unittest.TestCase):
             if index == 29:
                 expected.append({"id": 5, "result": {"data": [copy.deepcopy(recording["frames"][25]["frame"]["result"]["thread"])],
                                                        "nextCursor": None}})
+                expected.append({"id": "constructed-reading", "result": peer.PROVIDER_READING_RESULT})
         self.assertEqual(output, expected)
         self.assertEqual(output[5]["result"], {"data": [], "nextCursor": None})
         self.assertEqual(output[6]["result"]["data"][0], recording["frames"][25]["frame"]["result"]["thread"])
@@ -342,8 +346,17 @@ class SubprocessReplay(unittest.TestCase):
         self.assertEqual(binding["selected_frame_indices"], list(range(19, 35)))
         self.assertEqual(binding["outside_segment_frame_indices"], [])
         constructed = [row for row in rows if row["event"] == "constructed-frame"]
-        self.assertEqual([row["direction"] for row in constructed], ["app->codex", "codex->app"])
-        for row in constructed:
+        self.assertEqual([(row["direction"], row["recipe"]) for row in constructed],
+                         [("app->codex", "thread-list-envelope-from-thread-read"), ("codex->app", "thread-list-envelope-from-thread-read"),
+                          ("app->codex", peer.PROVIDER_READING_RECIPE), ("codex->app", peer.PROVIDER_READING_RECIPE)])
+        for row in constructed[2:]:
+            self.assertNotIn("frame_index", row)
+            self.assertNotIn("recorded_rpc_id", row)
+            self.assertNotIn("source_frame_index", row, "no recorded frame stands behind the constructed reading")
+            self.assertEqual((row["method"], row["actual_rpc_id"], row["actual_rpc_id_type"]), ("config/read", "constructed-reading", "str"))
+            self.assertIn("no such frame was captured from the supplier", row["constructed_standing"])
+            self.assertIn("not evidence of a supplier reply", row["constructed_standing"])
+        for row in constructed[:2]:
             self.assertNotIn("frame_index", row)
             self.assertNotIn("recorded_rpc_id", row)
             self.assertEqual(row["source_frame_index"], 25)
@@ -399,15 +412,15 @@ class SubprocessReplay(unittest.TestCase):
             ("invalid-id", lambda frames: frames[5].update(id=None)),
             ("notification", lambda frames: frames[5].pop("id")),
             ("duplicate-catalog", lambda frames: frames.insert(6, {**copy.deepcopy(frames[5]), "id": "second-catalog"})),
-            ("resume-reuses-catalog-id", lambda frames: frames[6].update(id=frames[5]["id"])),
-            ("wrong-resume-thread", lambda frames: frames[6]["params"].update(threadId="PRIVATE_CATALOG_CANARY")),
-            ("missing-resume-coverage", lambda frames: frames[6]["params"].pop("excludeTurns")),
-            ("false-resume-coverage", lambda frames: frames[6]["params"].update(excludeTurns=False)),
-            ("null-resume-coverage", lambda frames: frames[6]["params"].update(excludeTurns=None)),
-            ("numeric-resume-coverage", lambda frames: frames[6]["params"].update(excludeTurns=1)),
-            ("resume-guidance-override", lambda frames: frames[6]["params"].update(developerInstructions="PRIVATE_CATALOG_CANARY")),
-            ("resume-model-override", lambda frames: frames[6]["params"].update(model="PRIVATE_CATALOG_CANARY")),
-            ("extra-resume-param", lambda frames: frames[6]["params"].update(persistExtendedHistory=True)),
+            ("resume-reuses-catalog-id", lambda frames: frames[7].update(id=frames[5]["id"])),
+            ("wrong-resume-thread", lambda frames: frames[7]["params"].update(threadId="PRIVATE_CATALOG_CANARY")),
+            ("missing-resume-coverage", lambda frames: frames[7]["params"].pop("excludeTurns")),
+            ("false-resume-coverage", lambda frames: frames[7]["params"].update(excludeTurns=False)),
+            ("null-resume-coverage", lambda frames: frames[7]["params"].update(excludeTurns=None)),
+            ("numeric-resume-coverage", lambda frames: frames[7]["params"].update(excludeTurns=1)),
+            ("resume-guidance-override", lambda frames: frames[7]["params"].update(developerInstructions="PRIVATE_CATALOG_CANARY")),
+            ("resume-model-override", lambda frames: frames[7]["params"].update(model="PRIVATE_CATALOG_CANARY")),
+            ("extra-resume-param", lambda frames: frames[7]["params"].update(persistExtendedHistory=True)),
         ]
         for name, mutate in cases:
             with self.subTest(case=name):
@@ -426,6 +439,57 @@ class SubprocessReplay(unittest.TestCase):
                 self.assertEqual(rows[-1]["outcome"], "error")
                 self.assertFalse(any(row.get("frame_index") == 30 and row["event"] == "frame" for row in rows))
                 self.assertFalse(any(row["event"] == "finish" for row in rows))
+
+    def test_continue_requires_exactly_one_matched_configuration_reading_before_the_resume(self):
+        """The constructed reply lets the recorded Continue proceed; it is no evidence of a supplier reply."""
+        path, digest, recording = capture()
+        original = inputs(recording, 2, "app-continue")
+        self.assertEqual(original[6]["method"], "config/read")
+        elsewhere = Path(self.root.name) / "another-folder"
+        elsewhere.mkdir()
+        cases = [
+            ("absent", lambda frames: frames.pop(6)),
+            ("second-reading", lambda frames: frames.insert(7, {**copy.deepcopy(frames[6]), "id": "second-reading"})),
+            ("reading-before-catalog", lambda frames: frames.insert(5, frames.pop(6))),
+            ("wrong-method", lambda frames: frames[6].update(method="config/value/read")),
+            ("extra-param-key", lambda frames: frames[6]["params"].update(profile="PRIVATE_CATALOG_CANARY")),
+            ("missing-param-key", lambda frames: frames[6]["params"].pop("includeLayers")),
+            ("layers-not-requested", lambda frames: frames[6]["params"].update(includeLayers=False)),
+            ("another-folder", lambda frames: frames[6]["params"].update(cwd=str(elsewhere))),
+            ("relative-folder", lambda frames: frames[6]["params"].update(cwd=".")),
+            ("folder-not-text", lambda frames: frames[6]["params"].update(cwd=None)),
+            ("notification", lambda frames: frames[6].pop("id")),
+            ("reused-catalog-id", lambda frames: frames[6].update(id=frames[5]["id"])),
+            ("extra-envelope-field", lambda frames: frames[6].update(trace="PRIVATE_CATALOG_CANARY")),
+        ]
+        for name, mutate in cases:
+            with self.subTest(case=name):
+                supplied = copy.deepcopy(original)
+                mutate(supplied)
+                audit = Path(self.root.name) / ("reading-" + name + ".jsonl")
+                result = self.invoke(path, digest, audit, "app-continue", 2, supplied)
+                self.assertEqual(result.returncode, 2, name)
+                self.assertNotIn(b"Traceback", result.stderr)
+                self.assertNotIn(b"PRIVATE_CATALOG_CANARY", result.stderr + audit.read_bytes())
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-2]["event"], "error")
+                self.assertEqual(rows[-2]["frame_index"], 30)
+                self.assertFalse(any(row.get("frame_index") == 30 and row["event"] == "frame" for row in rows),
+                                 "the recorded resume is not served")
+                self.assertFalse(any(row["event"] == "finish" for row in rows))
+        # Another profile treats the reading as any unexpected frame.
+        for profile, generation, before in (("strict", 2, "thread/resume"), ("app", 1, "turn/start")):
+            with self.subTest(profile=profile):
+                supplied = inputs(recording, generation, profile)
+                at = next(i for i, frame in enumerate(supplied) if frame.get("method") == before)
+                supplied.insert(at, {"jsonrpc": "2.0", "id": "unexpected-reading", "method": "config/read",
+                                     "params": {"cwd": os.getcwd(), "includeLayers": True}})
+                audit = Path(self.root.name) / ("reading-" + profile + ".jsonl")
+                result = self.invoke(path, digest, audit, profile, generation, supplied)
+                self.assertEqual(result.returncode, 2)
+                rows = [json.loads(line) for line in audit.read_text().splitlines()]
+                self.assertEqual(rows[-2]["event"], "error")
+                self.assertFalse(any(row["event"] == "constructed-frame" for row in rows))
 
     def test_continue_profile_and_pause_gate_refuse_unsupported_or_existing_inputs(self):
         for index, (scenario, generation) in enumerate((("st5", 1), ("st5-race", 2), ("nv04", 1))):
@@ -519,6 +583,9 @@ class SubprocessReplay(unittest.TestCase):
                 self.send(process, catalog)
                 self.assertEqual(reader.read(), {"id": catalog["id"], "result": {
                     "data": [recording["frames"][25]["frame"]["result"]["thread"]], "nextCursor": None}})
+                reading = next(supplied)
+                self.send(process, reading)
+                self.assertEqual(reader.read(), {"id": reading["id"], "result": peer.PROVIDER_READING_RESULT})
             if row["direction"] == "app->codex":
                 self.send(process, next(supplied))
             else:
@@ -547,9 +614,9 @@ class SubprocessReplay(unittest.TestCase):
         for frame in inputs(recording, 2, "app-continue"):
             self.send(process, frame)
         process.stdin.close()
-        # Nine frames reach the consumer: eight original supplier frames
-        # through idle plus the separately constructed catalog result.
-        for unused in range(9):
+        # Ten frames reach the consumer: eight original supplier frames through
+        # idle plus the separately constructed catalog and configuration-reading replies.
+        for unused in range(10):
             self.assertIsInstance(reader.read(), dict)
         self.assertEqual(process.wait(timeout=12), 2)
         self.assertEqual(process.stderr.read(), b"recorded-replay: release-marker-timeout\n")
