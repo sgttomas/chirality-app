@@ -308,6 +308,10 @@ struct Inner {
     configuration_identity: Option<Value>,
     stop_record: Option<Value>,
     threads: Vec<Value>,
+    /// The latest `thread/status/changed` of the open generation per
+    /// conversation, with its receipt position, received since that
+    /// conversation's last admission reply. Cleared when the generation closes.
+    thread_status_observations: std::collections::BTreeMap<String, Value>,
     conversation_turns: Vec<Value>,
     execution_custody: execution_custody::ExecutionCustody,
     turn_request_threads: HashMap<String, (Value, String, u64)>,
@@ -1950,6 +1954,7 @@ impl Host {
                 thread["statusObservationEnded"] = json!(true);
             }
         }
+        i.thread_status_observations.clear();
         json!({"unknownNoResponse": unknown, "endedUnanswered": ended})
     }
 
@@ -2516,7 +2521,7 @@ impl Host {
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
         Self::check_local_reported(&i,&response["result"])?;
         self.check_local_reading_current(&i,dispatch.local_config.as_ref())?;
-        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());
+        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}));i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
         let thread=native["id"].as_str().unwrap();
@@ -2590,7 +2595,7 @@ impl Host {
         let reading=i.local_fork_configs.get(request.request_ref()).cloned();
         self.check_local_reading_current(&i,reading.as_ref())?;
         let standing=i.supplier_standing.clone();let result=&response["result"];
-        let row=json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()});
+        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}));
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
         // after the correlated fork of a source offered it in this generation.
         // The capability still checks the fork's observed cwd on every read.
@@ -2684,9 +2689,34 @@ impl Host {
         if result.is_err()&&owns_preparation{let _=f.state.compare_exchange(1,5,Ordering::SeqCst,Ordering::SeqCst);}
         result
     }
-    fn validate_native_result(target: &str, result: &Value) -> Result<(),String> {
-        let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
-        jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?.validate(result).map_err(|e|format!("native {target} schema: {e}"))
+    /// A conversation row about to be admitted, with the status Codex reported
+    /// for it after its admission reply, if any: that report is newer than
+    /// the reply the row was built from.
+    fn with_observed_status(i: &Inner, mut row: Value) -> Value {
+        if let Some(observed) = row["threadId"].as_str().and_then(|thread| i.thread_status_observations.get(thread)) {
+            row["status"] = observed["status"].clone();
+            row["statusSource"] = observed["statusSource"].clone();
+        }
+        row
+    }
+    /// Validates against one definition of the pinned generated schema. The
+    /// schema is static for the pin, so each definition's compiled validator
+    /// is built once and kept.
+    pub(crate) fn validate_native_result(target: &str, result: &Value) -> Result<(),String> {
+        static VALIDATORS: std::sync::OnceLock<Mutex<std::collections::BTreeMap<String, Arc<jsonschema::Validator>>>> = std::sync::OnceLock::new();
+        let validator = {
+            let mut held = VALIDATORS.get_or_init(Default::default).lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            match held.get(target) {
+                Some(validator) => Arc::clone(validator),
+                None => {
+                    let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
+                    let built = Arc::new(jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?);
+                    held.insert(target.to_owned(), Arc::clone(&built));
+                    built
+                }
+            }
+        };
+        validator.validate(result).map_err(|e|format!("native {target} schema: {e}"))
     }
 
 
@@ -2967,7 +2997,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
             }
         }
-        let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
+        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));i.threads.push(row);Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -4099,13 +4129,27 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // to the admitted row of the generation it arrived in. It admits no
         // conversation. One that does not match the pinned type leaves the
         // status unknown: the earlier value is no longer what Codex reports.
+        // The latest one is also kept for a conversation with no row yet: a
+        // status can arrive after an admission reply was received and before
+        // its caller admits the row, and must not be lost to the reply's
+        // older value (`with_observed_status`).
         if class == "notification" && frame["method"] == "thread/status/changed" {
             let matched = Self::validate_native_result("ThreadStatusChangedNotification", &frame["params"]);
-            for thread in i.threads.iter_mut().filter(|t| t["generation"] == gen && t["threadId"].is_string() && t["threadId"] == frame["params"]["threadId"]) {
-                thread["status"] = if matched.is_ok() { frame["params"]["status"].clone() } else { Value::Null };
-                thread["statusSource"] = json!({"method":"thread/status/changed","receiptPosition":pos});
-                if matched.is_err() { thread["statusSource"]["limit"] = json!("the notification does not match the pinned ThreadStatusChangedNotification; status unknown"); }
+            let mut observed = json!({"status":if matched.is_ok() { frame["params"]["status"].clone() } else { Value::Null },
+                "statusSource":{"method":"thread/status/changed","receiptPosition":pos}});
+            if matched.is_err() { observed["statusSource"]["limit"] = json!("the notification does not match the pinned ThreadStatusChangedNotification; status unknown"); }
+            if let Some(thread_id) = frame["params"]["threadId"].as_str().filter(|id| !id.is_empty()) {
+                for thread in i.threads.iter_mut().filter(|t| t["generation"] == gen && t["threadId"] == thread_id) {
+                    thread["status"] = observed["status"].clone();
+                    thread["statusSource"] = observed["statusSource"].clone();
+                }
+                i.thread_status_observations.insert(thread_id.to_owned(), observed);
             }
+        }
+        // An admission reply carries the conversation's status as of the
+        // reply: an observation received before it is older and is dropped.
+        if class == "response" && matches!(correlated_method.as_deref(), Some("thread/start" | "thread/resume" | "thread/fork")) {
+            if let Some(thread_id) = frame["result"]["thread"]["id"].as_str() { i.thread_status_observations.remove(thread_id); }
         }
         if class == "notification" && matches!(frame["method"].as_str(), Some("turn/started" | "turn/completed")) {
             if let Some(thread) = frame["params"]["threadId"].as_str() {
@@ -5584,6 +5628,43 @@ mod conversation_transport_tests {
         for (status,direct) in [("notLoaded",true),("idle",false)] {let host=host();let mut view=history_selected();let q=view.continue_query().unwrap();let(r,e,_)=history_exchange(&host,&q,Some(json!({"result":history_resume(status,direct)})));view.receive(&q,"conversation-home",&g(),&e["response"]["result"]).unwrap();assert!(host.history_admit_resume(&view,&r).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);}
         let host=host();let mut view=history_selected();let q=view.continue_query().unwrap();let error=json!({"code":-32600,"message":"resume refused","data":{"kept":"native"}});let(r,e,_)=history_exchange(&host,&q,Some(json!({"error":error})));assert_eq!(e["response"]["error"],error);view.receive_error(&q,"conversation-home",&g(),&error).unwrap();assert!(host.history_admit_resume(&view,&r).is_err());
         let q=view.continue_query().unwrap();let mut wrong=history_resume("idle",true);wrong["thread"]["id"]=json!("foreign-thread");let(r,e,_)=history_exchange(&host,&q,Some(json!({"result":wrong})));assert!(view.receive(&q,"conversation-home",&g(),&e["response"]["result"]).is_err());assert!(host.history_admit_resume(&view,&r).is_err());assert_eq!(host.journal().last().unwrap()["frame"],e["response"]);
+    }
+    // A status Codex reports after the admission reply was received, and
+    // before the caller admits the row, is newer than the reply and stands in
+    // the admitted row. One received before the reply is older and is dropped.
+    // A status notification alone admits no conversation.
+    #[test]
+    fn a_status_reported_between_the_admission_reply_and_the_row_is_not_lost() {
+        let status=|host:&Arc<Host>,params:Value|host.on_line(&serde_json::to_vec(&json!({"method":"thread/status/changed","params":params})).unwrap(),&g());
+        let begin=|host:&Arc<Host>,before:Vec<Value>|{let mut receipt=None;let(result,_)=exchange(host,Some(json!({"result":history_resume("idle",true)})),before,||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured","guidance")?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});result.unwrap();receipt.unwrap()};
+        let row=|host:&Arc<Host>|host.snapshot()["threads"].as_array().unwrap().iter().find(|t|t["threadId"]=="stored").cloned();
+        let active=json!({"type":"active","activeFlags":["waitingOnApproval"]});
+        // Reply, then the newer status, then admission.
+        let host=host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"stored","status":active}));
+        assert!(row(&host).is_none(),"a status notification admits no conversation");
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        let admitted=row(&host).unwrap();
+        assert_eq!(admitted["status"],active,"the reply said idle; Codex has since said otherwise");
+        assert_eq!(admitted["statusSource"]["method"],"thread/status/changed");
+        // The same, where the newer status is one the pinned type does not describe: unknown, not the reply's idle.
+        let host=self::host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"stored","status":{"type":"invented"}}));
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        let admitted=row(&host).unwrap();
+        assert_eq!(admitted["status"],Value::Null);assert!(admitted["statusSource"]["limit"].as_str().unwrap().contains("status unknown"));
+        // Status first, then the reply: the reply is newer and the row carries its status alone.
+        let host=self::host();let receipt=begin(&host,vec![json!({"method":"thread/status/changed","params":{"threadId":"stored","status":active}})]);
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        let admitted=row(&host).unwrap();
+        assert_eq!(admitted["status"],json!({"type":"idle"}));assert!(admitted.get("statusSource").is_none());
+        // Another conversation's status, and one from before the generation closed, change nothing.
+        let host=self::host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"another","status":active}));
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        assert_eq!(row(&host).unwrap()["status"],json!({"type":"idle"}));
+        status(&host,json!({"threadId":"later","status":active}));
+        {let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);assert!(i.thread_status_observations.is_empty(),"nothing is carried past the close");}
     }
     #[test]
     fn history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup() {
