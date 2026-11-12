@@ -4,6 +4,7 @@ No Tauri, Cargo, npm or Apple tool runs; the recipe build is simulated by
 placing an invented bundle where Tauri would.
 """
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -44,10 +45,11 @@ class FakeBuild:
 
     @staticmethod
     def touch_writable(env, stage):
+        (Path(env['NPM_CONFIG_LOGS_DIR']) / f'{stage}-debug.log').write_text('invented npm log')
         (Path(env['NPM_CONFIG_CACHE']) / '_logs').mkdir(exist_ok=True)
         (Path(env['NPM_CONFIG_CACHE']) / '_logs' / f'{stage}-debug.log').write_text('invented npm log')
         (Path(env['NPM_CONFIG_CACHE']) / '_update-notifier-last-checked').write_text('')
-        for name in ('HOME', 'TMPDIR', 'CODEX_HOME'):
+        for name in ('HOME', 'TMPDIR', 'CODEX_HOME', 'RUSTUP_HOME', 'NPM_CONFIG_PREFIX'):
             (Path(env[name]) / f'.{stage}-wrote-here').write_text(stage)
 
     def __call__(self, argv, *, env, cwd=None, timeout=None):
@@ -164,7 +166,7 @@ class ReleaseBuild(unittest.TestCase):
         self.assertTrue(description['vendor']['equal'])
         self.assertTrue(all(r['equal'] for r in description['resources']))
         self.assertEqual(description['limitations']['sha256'], fx.sha((ROOT / common.LIMITATIONS_SOURCE).read_bytes()))
-        self.assertEqual(description['limitations']['bundled'], 'not present in the bundle')
+        self.assertEqual(description['limitations']['bundled'], 'not observed')
         self.assertFalse((self.candidate / 'INCOMPLETE.txt').exists())
         validated = {Path(c['argv'][-1]).name for c in self.fake.calls if c['argv'][0] == '/usr/bin/dyld_info'}
         self.assertEqual(validated, {'chirality-app-v4', 'codex'})
@@ -191,7 +193,7 @@ class ReleaseBuild(unittest.TestCase):
                          'production_bundle_identifier': 'com.chirality.app', 'developer_id_team_identifier': self.team})
         description = json.loads((self.candidate / 'CANDIDATE.json').read_text())
         self.assertEqual(description['build']['publisher_input_sha256'], fx.sha(generated.read_bytes()))
-        self.assertIn(build.KEYCHAIN_SOURCE, description['build']['publisher_input_origin'])
+        self.assertEqual(description['build']['publisher_input_origin'], 'publisher-build-selection.s1 generated from the source keychain selection')
         self.assertFalse((ROOT / 'publisher-input').exists())
 
     def test_a_supplied_publisher_input_is_used_instead(self):
@@ -201,7 +203,7 @@ class ReleaseBuild(unittest.TestCase):
                                     'developer_id_team_identifier': self.team}))
         self.run_build(publisher_input=path, publisher_sha256=fx.sha(path.read_bytes()))
         self.assertFalse((self.candidate / 'publisher-input').exists())
-        self.assertEqual(json.loads((self.candidate / 'CANDIDATE.json').read_text())['build']['publisher_input_origin'], 'supplied file')
+        self.assertEqual(json.loads((self.candidate / 'CANDIDATE.json').read_text())['build']['publisher_input_origin'], 'supplied publisher input file')
 
     def test_keychain_selection_must_be_single_and_the_release_identifier(self):
         path = self.source / build.KEYCHAIN_SOURCE
@@ -223,20 +225,24 @@ class ReleaseBuild(unittest.TestCase):
         def presigned(app):
             (app / 'Contents/_CodeSignature').mkdir()
         cases = {
-            'dyld_info': (dict(dyld={'chirality-app-v4': Result(1)}), 'dyld_info'),
-            'version': (dict(mutate=wrong_version), 'CFBundleShortVersionString|version'),
-            'vendor modes': (dict(mutate=vendor_mode), 'vendor tree'),
-            'resource': (dict(mutate=resource_bytes), 'mapped resource'),
-            'developer signature': (dict(executable=fx.macho(common.CS_RUNTIME, cms=True)), 'ad hoc'),
-            'already signed': (dict(mutate=presigned), '_CodeSignature'),
+            'dyld_info': (dict(dyld={'chirality-app-v4': Result(1)}), 'dyld_validate'),
+            'dyld_info negative with zero': (dict(dyld={'chirality-app-v4': Result(0, b'', b'malformed LINKEDIT')}), 'dyld_validate'),
+            'version': (dict(mutate=wrong_version), 'info_plist_version'),
+            'vendor modes': (dict(mutate=vendor_mode), 'vendor_tree'),
+            'resource': (dict(mutate=resource_bytes), 'resource'),
+            'developer signature': (dict(executable=fx.macho(common.CS_RUNTIME, cms=True)), 'executable_signature'),
+            'already signed': (dict(mutate=presigned), 'already_signed'),
         }
-        for name, (changes, message) in cases.items():
+        for name, (changes, check_name) in cases.items():
             with self.subTest(name):
                 self.setUp()
                 for key, value in changes.items():
                     setattr(self.fake, key, value)
-                with self.assertRaisesRegex(ValueError, message):
+                with self.assertRaises(common.Failure) as raised:
                     self.run_build()
+                self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
+                refused = json.loads((self.candidate / 'BUILD_REFUSED.json').read_text())
+                self.assertIn(check_name, [c['check'] for c in refused['checks']])
                 self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
 
@@ -264,9 +270,8 @@ class ReleaseBuild(unittest.TestCase):
                     # Containment by device and inode, not by spelling.
                     common.require_inside(Path(call['env'][name]) / 'probe', self.candidate, name)
             self.assertTrue(call['cwd'] is None or Path(call['cwd']).resolve().is_relative_to(out))
-            self.assertNotIn('RUSTUP_HOME', call['env'])
         self.assertEqual(set(description['build']['writable_environment']), set(build.WRITABLE_ENVIRONMENT))
-        self.assertTrue((self.candidate / 'npm-cache/_logs/install-debug.log').is_file())
+        self.assertTrue((self.candidate / 'npm-logs/install-debug.log').is_file())
         self.assertTrue((self.candidate / 'cargo-home/registry/.package-cache').is_file())
         self.assertFalse((self.source / 'app/node_modules').exists())
         # The caches were copied in, not linked: writing the run's copy cannot reach the input.
@@ -297,7 +302,7 @@ class ReleaseBuild(unittest.TestCase):
                     self.fake.install = Result(1, b'', b'npm ERR! invented offline miss')
                 else:
                     self.fake.dyld = {'chirality-app-v4': Result(1)}
-                with self.assertRaises(ValueError):
+                with self.assertRaises(common.Failure):
                     self.run_build()
                 self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
@@ -320,9 +325,93 @@ class ReleaseBuild(unittest.TestCase):
             'applications': dict(out='/Applications/chirality-candidate'),
         }
         for name, changes in cases.items():
-            with self.subTest(name), self.assertRaises(ValueError):
+            with self.subTest(name), self.assertRaises(common.Failure):
                 self.run_build(**changes)
         self.assertFalse(any(c['argv'][0] == 'node' for c in self.fake.calls))
+
+    def test_links_that_leave_a_copied_input_are_refused(self):
+        def npm_logs_link(case):
+            outside = case.root / 'outside-cache'; outside.mkdir()
+            (case.npm_cache / '_logs').symlink_to(outside, target_is_directory=True)
+            return outside
+        def cargo_registry_link(case):
+            outside = case.root / 'outside-registry'; outside.mkdir()
+            shutil.rmtree(case.cargo_cache / 'registry')
+            (case.cargo_cache / 'registry').symlink_to(outside, target_is_directory=True)
+            return outside
+        def export_link(case):
+            outside = case.root / 'outside-export'; outside.mkdir()
+            (case.source / 'app/escape').symlink_to(outside, target_is_directory=True)
+            return outside
+        for name, make in (('npm _logs link', npm_logs_link), ('cargo registry link', cargo_registry_link), ('export link', export_link)):
+            with self.subTest(name):
+                self.setUp()
+                outside = make(self)
+                with self.assertRaises(common.Failure) as raised:
+                    self.run_build()
+                self.assertEqual(raised.exception.code, 'BUILD_LINK')
+                self.assertEqual(list(outside.iterdir()), [])
+                self.assertFalse(self.candidate.exists())
+        self.setUp()
+        (self.source / 'app/inside-link').symlink_to('src-tauri')  # a link that stays inside the export is copied as it is
+        self.run_build()
+        self.assertTrue((self.candidate / 'source/app/inside-link').is_symlink())
+
+    def walk_returnable(self, path):
+        common.validate_returnable(json.loads(path.read_text()), {self.team, common.SUPPLIER_TEAM})
+
+    def test_raw_output_and_exceptions_stay_out_of_returnable_files_and_streams(self):
+        secrets = ['invented-owner@example.invalid', 'invented-secret', 'QQQQ11111Q']
+        self.fake.install = Result(1, b'invented-owner@example.invalid\n', b'password=invented-secret QQQQ11111Q\n')
+        out, err = io.StringIO(), io.StringIO()
+        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=self.fake, host=('Darwin', 'arm64')), 2)
+        self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_INSTALL'] + '\n')
+        self.assertFalse(list(self.candidate.glob('install-*.log')))
+        names = os.listdir(self.candidate / common.PRIVATE_FOLDER)  # listing only; the private files are never read
+        self.assertTrue(any('install' in n for n in names))
+        failed = self.candidate / 'BUILD_FAILED.json'
+        self.walk_returnable(failed)
+        for secret in secrets:
+            self.assertNotIn(secret, failed.read_text() + out.getvalue() + err.getvalue())
+        self.setUp()
+        original = self.fake
+        def explode(argv, **kw):
+            if argv[:2] == ['npm', 'ci']:
+                raise ValueError('password=invented-secret invented-owner@example.invalid')
+            return original(argv, **kw)
+        out, err = io.StringIO(), io.StringIO()
+        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=explode, host=('Darwin', 'arm64')), 2)
+        self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_UNEXPECTED'] + '\n')
+        text = (self.candidate / 'BUILD_FAILED.json').read_text()
+        self.assertEqual(json.loads(text)['reason_code'], 'BUILD_UNEXPECTED')
+        for secret in secrets:
+            self.assertNotIn(secret, text + out.getvalue() + err.getvalue())
+
+    def test_the_candidate_is_published_only_after_the_final_check(self):
+        with patch.object(common, 'load_candidate', side_effect=OSError('invented transient read failure')):
+            with self.assertRaises(common.Failure) as raised:
+                self.run_build()
+        self.assertEqual(raised.exception.code, 'BUILD_FINAL')
+        self.assertFalse((self.candidate / common.CANDIDATE_FILE).exists())
+        self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
+        self.assertEqual(json.loads((self.candidate / 'BUILD_FAILED.json').read_text())['reason_code'], 'BUILD_FINAL')
+        with self.assertRaisesRegex(ValueError, 'did not finish'):
+            common.load_candidate(self.candidate, name=common.CANDIDATE_PENDING)
+        self.setUp()
+        self.run_build()
+        self.walk_returnable(self.candidate / common.CANDIDATE_FILE)
+        self.assertFalse((self.candidate / common.CANDIDATE_PENDING).exists())
+        self.assertNotIn(str(self.root), (self.candidate / common.CANDIDATE_FILE).read_text())
+
+    def cli_args(self):
+        args = ['--source-root', str(self.source), '--revision', 'a' * 40, '--vendor', str(self.vendor), '--expected-manifest',
+                self.kw['expected_manifest'], '--pin', '9.9.9', '--out', str(self.candidate), '--cargo-cache', str(self.cargo_cache),
+                '--npm-cache', str(self.npm_cache)]
+        for k, v in self.environment.items():
+            args += ['--env', k + '=' + v]
+        for k, v in self.tools.items():
+            args += ['--tool', k + '=' + v]
+        return args
 
 
 if __name__ == '__main__':

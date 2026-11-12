@@ -129,7 +129,7 @@ def candidate(root, *, team=TEAM, limitations=LIMITATIONS):
         'publisher': files,
         'limitations': {'source': common.LIMITATIONS_SOURCE, 'sha256': sha(limitations), 'copy': 'RELEASE_LIMITATIONS_4.0.0.md'},
     }
-    common.write_json_new(out / common.CANDIDATE_FILE, description)
+    common.write_returnable(out / common.CANDIDATE_FILE, description, out, {team, common.SUPPLIER_TEAM})
     return out
 
 
@@ -141,7 +141,7 @@ def tlv(tag, body):
 
 def profile_bytes(team=TEAM, prefix=TEAM, identifier='com.chirality.app'):
     """An invented CMS-shaped Developer ID profile; never Apple-signed."""
-    value = {'UUID': 'INVENTED-PROFILE', 'Platform': ['OSX'], 'ProvisionsAllDevices': True, 'TeamIdentifier': [team],
+    value = {'UUID': '0A1B2C3D-0000-4000-8000-00000000ABCD', 'Platform': ['OSX'], 'ProvisionsAllDevices': True, 'TeamIdentifier': [team],
              'ApplicationIdentifierPrefix': [prefix], 'CreationDate': datetime.datetime(2020, 1, 1),
              'ExpirationDate': datetime.datetime(2099, 1, 1),
              'Entitlements': {'com.apple.application-identifier': prefix + '.' + identifier, 'com.apple.developer.team-identifier': team,
@@ -200,16 +200,17 @@ class FakeApple:
                     (target / 'Contents/CodeResources').write_bytes(b'INVENTED STAPLED TICKET')
                 else:
                     with open(target, 'ab') as handle: handle.write(b'STAPLED-TICKET')
-            elif target.suffix == '.app' and not (target / 'Contents/CodeResources').is_file():
+                return Result(0, f'Processing: {target}\nThe staple and validate action worked!\n'.encode())
+            if target.suffix == '.app' and not (target / 'Contents/CodeResources').is_file():
                 return Result(65, b'', b'does not have a ticket stapled to it\n')
-            return Result(0, b'The validate action worked!\n')
+            return Result(0, f'Processing: {target}\nThe validate action worked!\n'.encode())
         if tool == '/usr/bin/ditto':
             app, archive = Path(rest[-2]), Path(rest[-1])
             tree = common.inventory.scan(app)
             archive.write_bytes(b'INVENTED-ZIP:' + json.dumps(tree['entries'], sort_keys=True).encode())
             return Result(0)
         if tool == '/usr/sbin/spctl':
-            return Result(0, b'', f'{rest[-1]}: accepted\nsource=Notarized Developer ID{self.spctl_extra}\n'.encode())
+            return Result(0, b'', f'{rest[-1]}: accepted\nsource=Notarized Developer ID\norigin=Developer ID Application: Invented{self.spctl_extra}\n'.encode())
         raise AssertionError('unexpected command ' + repr(argv))
 
     def kind(self, path):
@@ -235,7 +236,7 @@ class FakeApple:
                 with open(target, 'ab') as handle: handle.write(b'DMG-SIGNATURE')
             return Result(0)
         if '--verify' in rest:
-            return Result(0, b'', b'valid on disk\nsatisfies its Designated Requirement\n')
+            return Result(0, b'', f'{target}: valid on disk\n{target}: satisfies its Designated Requirement\n{target}: explicit requirement satisfied\n'.encode())
         kind = self.kind(target)
         if '--entitlements' in rest:
             if kind == 'vendor':

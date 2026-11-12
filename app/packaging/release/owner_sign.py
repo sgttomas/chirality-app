@@ -2,10 +2,25 @@
 
 Arguments are names and paths only. The signing identity and the notary
 profile are names of items already in the owner's keychain; no credential is
-an argument, an environment variable, a log entry or a record. Each step is
-verified before the next; any failure prints `STOP: <step>: <reason>`, runs no
-later command and writes no success result. Nothing is installed: the package
-is left in --out.
+an argument or an environment variable.
+
+Each step is verified before the next. Every observation goes through the one
+rule in common.observe. Any failure prints `STOP: <fixed reason>` (a reason
+from common.REASONS, naming the step and the observation), writes STOPPED.json,
+runs no later command and writes no success result. Nothing is installed.
+
+What is written, and where:
+- Returnable files (sent back): log.jsonl, the notarization summaries in
+  notary/, the App archive, PACKAGE_IDENTITY.json, RESULT.json or STOPPED.json.
+  They hold only values this tool constructs or selects and validates
+  (common.write_returnable); the command log holds the argv the tool built,
+  return codes, and the length and SHA-256 of each output stream, never
+  their content.
+- The private folder (its name is defined in common.py): raw command output, raw
+  notarization logs and traces, for the owner's own diagnosis. It may hold
+  account details, stays on the owner's machine and is not sent back. It is
+  written only through common.PrivateWriter and never read by this tool, by
+  record.py or by any test.
 
 The App is notarized and its ticket stapled to it; then the disk image built
 from the stapled App is notarized and its ticket stapled to the disk image.
@@ -20,6 +35,7 @@ import plistlib
 import re
 import shutil
 import sys
+import traceback
 
 
 def sibling(name):
@@ -32,118 +48,123 @@ def sibling(name):
 
 common, record = sibling('common'), sibling('record')
 prepare, inventory, sha = common.prepare, common.inventory, common.sha
+Failure, check, observe, ObservationFailed = common.Failure, common.check, common.observe, common.ObservationFailed
 
 CODESIGN, XCRUN, HDIUTIL, SPCTL, DITTO = '/usr/bin/codesign', '/usr/bin/xcrun', '/usr/bin/hdiutil', '/usr/sbin/spctl', '/usr/bin/ditto'
 IDENTITY = re.compile(r'Developer ID Application: (?P<name>[^/\\\x00-\x1f]{1,200}) \((?P<team>[A-Z0-9]{10})\)')
 PROFILE_NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]{0,63}')
-SUBMISSION_ID = re.compile(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
 LONG_TOKEN = re.compile(r'[A-Za-z0-9+/=_-]{32,}')
 KEY_FILES = ('.p12', '.p8', '.pem', '.cer', '.key', '.keychain', '.keychain-db', '.pfx')
 CREDENTIAL_ENVIRONMENT = re.compile(r'^(APPLE_|TAURI_SIGNING_|ALTOOL|AC_(PASSWORD|USERNAME|PROVIDER))|NOTARY')
-CLM_002 = ('a supplier executable lacks the supplier\'s Developer ID signature, hardened runtime, timestamp or code-directory '
-           'hash, or its entitlements are unreadable or include get-task-allow; re-signing the supplier\'s files is not part of '
-           'the signing arrangement (DEL-01-06 CLM-002), so whether this pin can be notarised returns to the owner')
-# The stapled ticket of a bundle is written by stapler at Contents/CodeResources, outside the signature's seal.
+# Shapes refused in arguments (input validation only; output is protected by selection, not by patterns).
+ARGUMENT_CREDENTIAL = [re.compile(p) for p in (
+    r'\b[a-z]{4}-[a-z]{4}-[a-z]{4}-[a-z]{4}\b', r'-----BEGIN', r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', r'\beyJ[A-Za-z0-9_-]{8,}\.',
+    r'(?i)\b(?:password|passwd|secret|token|api[_-]?key)\b\s*[=:]')]
+# Apple's stapler writes a bundle's ticket at Contents/CodeResources, outside what the signature
+# seals (the expected Apple layout). What this tool itself establishes is narrower: after stapling,
+# the only inventory change is that file, and the App is then verified again (step 8).
 SIGNED_EXTRA = {'Contents/_CodeSignature', 'Contents/_CodeSignature/CodeResources', 'Contents/embedded.provisionprofile'}
 STAPLED_EXTRA = SIGNED_EXTRA | {record.STAPLED_TICKET}
-
-
-class Stop(Exception):
-    def __init__(self, step, reason):
-        super().__init__(f'STOP: {step}: {reason}')
-        self.step, self.reason = step, reason
+STEP_NAMES = {0: 'supplier signatures', 1: 'copy', 2: 'profile', 3: 'entitlements', 4: 'sign App', 5: 'verify App',
+              6: 'notarize App', 7: 'staple App', 8: 'verify stapled App', 9: 'disk image', 10: 'notarize disk image',
+              11: 'staple disk image', 12: 'Gatekeeper', 13: 'record'}
+common.VOCABULARY.update({'-R', '-c', '-k', '--sequesterRsrc', '--keepParent', '--deep', '--strict', '--verify', '-vv'})
 
 
 def looks_like_credential(value):
-    return any(p.search(value) for p in common.CREDENTIAL_PATTERNS)
+    return any(p.search(value) for p in ARGUMENT_CREDENTIAL)
 
 
 def refusals(args, environ, host):
     """Every refusal that needs no command; returns the identity's team."""
-    def refuse(reason): raise Stop('refused', reason)
-    if host != ('Darwin', 'arm64'):
-        refuse('signing runs on arm64 macOS only')
-    bad = sorted(k for k in environ if CREDENTIAL_ENVIRONMENT.search(k))
-    if bad:
-        refuse('credential variables are set in the environment: ' + ', '.join(bad) + '; unset them, the keychain supplies everything')
+    check(host == ('Darwin', 'arm64'), 'REFUSED_HOST')
+    check(not any(CREDENTIAL_ENVIRONMENT.search(k) for k in environ), 'REFUSED_ENVIRONMENT')
     identity = args.identity
-    if '/' in identity or identity.startswith(('~', '.')) or identity.lower().endswith(KEY_FILES):
-        refuse('--identity must be the name of a signing identity, not a path')
+    check(not ('/' in identity or identity.startswith(('~', '.')) or identity.lower().endswith(KEY_FILES)), 'REFUSED_IDENTITY_PATH')
     match = IDENTITY.fullmatch(identity)
-    if not match:
-        refuse('--identity must read exactly "Developer ID Application: <name> (<TEAMID>)"')
-    if looks_like_credential(match['name']) or LONG_TOKEN.search(match['name']):
-        refuse('--identity looks like a credential')
+    check(match is not None, 'REFUSED_IDENTITY_FORM')
+    check(not (looks_like_credential(match['name']) or LONG_TOKEN.search(match['name'])), 'REFUSED_IDENTITY_CREDENTIAL')
     profile = args.notary_profile
-    if not PROFILE_NAME.fullmatch(profile) or looks_like_credential(profile) or LONG_TOKEN.fullmatch(profile):
-        refuse('--notary-profile must be a keychain profile name (letters, digits, . _ -), not a credential')
-    if not re.fullmatch('[0-9a-f]{64}', args.profile_sha256):
-        refuse('--profile-sha256 must be 64 lowercase hex digits')
+    check(PROFILE_NAME.fullmatch(profile) and not looks_like_credential(profile) and not LONG_TOKEN.fullmatch(profile), 'REFUSED_NOTARY_PROFILE')
+    check(re.fullmatch('[0-9a-f]{64}', args.profile_sha256) is not None, 'REFUSED_PROFILE_DIGEST_FORM')
     for name in ('candidate', 'profile', 'limitations', 'out'):
         value = getattr(args, name)
-        if looks_like_credential(value) or value.lower().endswith(KEY_FILES):
-            refuse(f'--{name} looks like a credential or key file')
+        check(not (looks_like_credential(value) or value.lower().endswith(KEY_FILES)), 'REFUSED_ARGUMENT_CREDENTIAL')
     # The candidate and every written path: never physically inside /Applications or ~/Library.
     # The profile and the limitations file are only read and may be wherever the owner keeps them.
     for name in ('candidate', 'out'):
         try:
             common.refuse_installed_location(getattr(args, name), '--' + name)
-        except ValueError as error:
-            refuse(str(error))
-    if os.path.lexists(args.out):
-        refuse('--out already exists; give a new directory')
-    if not Path(args.out).parent.is_dir():
-        refuse('the parent of --out must exist')
+        except ValueError:
+            raise Failure('REFUSED_LOCATION')
+    check(not os.path.lexists(args.out), 'REFUSED_OUT_EXISTS')
+    check(Path(args.out).parent.is_dir(), 'REFUSED_OUT_PARENT')
     return match['team']
 
 
 def guard(argv, app, dmg, signed):
     """One signing call on the App bundle and one on the disk image; never --deep or --force; never into the vendor tree."""
     if argv[0] == CODESIGN and ('--sign' in argv or '-s' in argv):
-        if any(a in ('--deep', '--force', '-f') or a.startswith('--deep') for a in argv):
-            raise Stop('guard', 'refusing to sign with --deep or --force')
         target = Path(argv[-1])
         vendor = app / common.VENDOR_DESTINATION
-        if target == vendor or target.is_relative_to(vendor) or 'Resources/codex' in argv[-1]:
-            raise Stop('guard', 'refusing to sign inside the supplier\'s vendor tree')
-        if target not in (app, dmg) or target in signed:
-            raise Stop('guard', 'refusing a signing call other than one on the App bundle and one on the disk image')
+        check(not any(a in ('--deep', '--force', '-f') or a.startswith('--deep') for a in argv), 'GUARD_SIGNING')
+        check(not (target == vendor or target.is_relative_to(vendor) or 'Resources/codex' in argv[-1]), 'GUARD_SIGNING')
+        check(target in (app, dmg) and target not in signed, 'GUARD_SIGNING')
         signed.append(target)
 
 
-class Session:
-    """Runs and logs commands, writes files, and redacts everything it writes through one Redactor."""
+def shown(argv, out, candidate):
+    """The argv as recorded: paths inside the output or the candidate folder as <out>/... or <candidate>/..."""
+    result = []
+    for arg in argv:
+        arg = str(arg)
+        if arg.startswith('/') and not common.is_shape(arg, 'tool_path'):
+            path = Path(arg)
+            if path == out or path.is_relative_to(out):
+                arg = '<out>' + ('/' + str(path.relative_to(out)) if path != out else '')
+            elif path == candidate or path.is_relative_to(candidate):
+                arg = '<candidate>' + ('/' + str(path.relative_to(candidate)) if path != candidate else '')
+            else:
+                arg = '<elsewhere>'
+        result.append(arg)
+    return result
 
-    def __init__(self, out, runner, environ, paths, redactor):
-        self.out, self.runner, self.paths, self.redactor = out, runner, paths, redactor
+
+class Session:
+    """Runs and logs commands. The command log is returnable; raw output goes only to the private folder."""
+
+    def __init__(self, out, runner, environ, paths, candidate, argv_allowed, public_teams):
+        self.out, self.runner, self.paths, self.candidate = out, runner, paths, candidate
+        self.argv_allowed, self.public_teams = argv_allowed, public_teams
         self.env = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'HOME': environ.get('HOME', '/'), 'LANG': 'en_US.UTF-8',
                     'TMPDIR': str(out / 'tmp')}
         self.signed = []
-        self.log = out / 'log.jsonl'
-
-    def writable(self, path, what='a written file'):
-        common.require_inside(path, self.out, what)
-        return Path(path)
+        self.private = common.PrivateWriter(out)
 
     def run(self, step, argv):
         argv = [str(a) for a in argv]
         guard(argv, self.paths['app'], self.paths['dmg'], self.signed)
         result = self.runner(argv, env=self.env)
-        entry = {'step': step, 'argv': argv, 'returncode': result.returncode,
-                 'stdout': result.stdout.decode('utf-8', 'replace'), 'stderr': result.stderr.decode('utf-8', 'replace')}
-        with open(self.writable(self.log), 'a', encoding='utf-8') as handle:
-            handle.write(json.dumps(self.redactor.json(entry)) + '\n')
+        self.private.write(f'step {step} {Path(argv[0]).name} {argv[1] if len(argv) > 1 else ""}',
+                           b'argv: ' + json.dumps(argv).encode() + f'\nreturn code: {result.returncode}\n--- stdout\n'.encode()
+                           + result.stdout + b'\n--- stderr\n' + result.stderr)
+        entry = {'step': str(step), 'argv': shown(argv, self.out, self.candidate), 'returncode': int(result.returncode),
+                 'stdout': {'length': len(result.stdout), 'sha256': sha(result.stdout)},
+                 'stderr': {'length': len(result.stderr), 'sha256': sha(result.stderr)}}
+        common.write_returnable(self.out / 'log.jsonl', entry, self.out, self.public_teams, argv_allowed=self.argv_allowed, append=True)
         return result
 
-    def write_bytes(self, path, raw, mode=0o644):
-        fd = os.open(self.writable(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
-        with os.fdopen(fd, 'wb') as handle:
-            handle.write(raw)
-        os.chmod(path, mode)
+    def observe(self, step, name, argv, code, subjects=()):
+        """Run one command and apply the one observation rule; a failure stops with `code`."""
+        try:
+            return observe(name, self.run(step, argv), subjects=subjects)
+        except ObservationFailed:
+            raise Failure(code)
 
-    def write_json(self, path, value, structural=False):
-        self.writable(path)
-        return common.write_json_new(path, self.redactor.json(value, structural=structural))
+    def act(self, step, argv, code):
+        """An action (no output to read): it counts only when its command returned zero."""
+        if self.run(step, argv).returncode != 0:
+            raise Failure(code)
 
 
 def sign_app_argv(identity, entitlements, app):
@@ -170,6 +191,14 @@ def attach_argv(dmg, mount):
     return [HDIUTIL, 'attach', '-readonly', '-nobrowse', '-noautoopen', '-mountpoint', str(mount), str(dmg)]
 
 
+def open_argv(dmg):
+    return [SPCTL, '-a', '-t', 'open', '--context', 'context:primary-signature', '-vv', str(dmg)]
+
+
+def exec_argv(app):
+    return [SPCTL, '-a', '-t', 'exec', '-vv', str(app)]
+
+
 def verify_app_argvs(app, requirement, vendor_paths):
     return ([[CODESIGN, '--verify', '--deep', '--strict', '--verbose=4', str(app)],
              [CODESIGN, '--verify', '--strict', '--verbose=4', '-R', '=' + requirement, str(app)],
@@ -190,15 +219,7 @@ def record_argvs(app, dmg, vendor_paths):
     for relative in vendor_paths:
         path = app / common.VENDOR_DESTINATION / relative
         argvs += [common.display_argv(path), common.entitlements_argv(path)]
-    return argvs + [[XCRUN, 'stapler', 'validate', str(app)], [XCRUN, 'stapler', 'validate', str(dmg)],
-                    [SPCTL, '-a', '-t', 'open', '--context', 'context:primary-signature', '-vv', str(dmg)],
-                    [SPCTL, '-a', '-t', 'exec', '-vv', str(app)]]
-
-
-# The step list. Each notarized subject is (step names, the file submitted, what is stapled).
-STEPS = ['0 supplier signatures', '1 copy', '2 profile', '3 entitlements', '4 sign App', '5 verify App',
-         '6 notarize App', '7 staple App', '8 verify stapled App', '9 disk image', '10 notarize disk image',
-         '11 staple disk image', '12 Gatekeeper', '13 record']
+    return argvs + [[XCRUN, 'stapler', 'validate', str(app)], [XCRUN, 'stapler', 'validate', str(dmg)], open_argv(dmg), exec_argv(app)]
 
 
 def plan(identity, profile, paths, candidate_app, vendor_paths, requirement):
@@ -208,303 +229,245 @@ def plan(identity, profile, paths, candidate_app, vendor_paths, requirement):
     steps = []
     for relative in vendor_paths:
         path = candidate_app / common.VENDOR_DESTINATION / relative
-        steps += [('0', common.display_argv(path)), ('0', common.entitlements_argv(path))]
-    steps.append(('4', sign_app_argv(identity, paths['entitlements'], app)))
-    steps += [('5', a) for a in verify_app_argvs(app, requirement, vendor_paths)]
-    steps.append(('6', archive_argv(app, paths['archive'])))
-    steps += [('6', a) for a in notarize_argvs(paths['archive'], profile, '<app-submission-id>')]
-    steps += [('7', a) for a in staple_argvs(app)]
-    steps += [('8', a) for a in verify_app_argvs(app, requirement, vendor_paths)]
-    steps += [('9', [HDIUTIL, 'create', '-volname', common.VOLUME_NAME, '-srcfolder', str(paths['staging']), '-format', 'UDZO', str(dmg)]),
-              ('9', sign_dmg_argv(identity, dmg)),
-              ('9', [CODESIGN, '--verify', '--strict', '--verbose=4', str(dmg)]), ('9', common.display_argv(dmg))]
-    steps += [('10', a) for a in notarize_argvs(dmg, profile, '<disk-image-submission-id>')]
-    steps += [('11', a) for a in staple_argvs(dmg)]
-    steps += [('12', [SPCTL, '-a', '-t', 'open', '--context', 'context:primary-signature', '-vv', str(dmg)]),
-              ('12', attach_argv(dmg, mount)), ('12', [SPCTL, '-a', '-t', 'exec', '-vv', str(mounted)]),
-              ('12', [HDIUTIL, 'detach', str(mount)]), ('13', attach_argv(dmg, mount))]
-    steps += [('13', a) for a in record_argvs(mounted, dmg, vendor_paths)]
-    steps.append(('13', [HDIUTIL, 'detach', str(mount)]))
+        steps += [(0, common.display_argv(path)), (0, common.entitlements_argv(path))]
+    steps.append((4, sign_app_argv(identity, paths['entitlements'], app)))
+    steps += [(5, a) for a in verify_app_argvs(app, requirement, vendor_paths)]
+    steps.append((6, archive_argv(app, paths['archive'])))
+    steps += [(6, a) for a in notarize_argvs(paths['archive'], profile, '<app-submission-id>')]
+    steps += [(7, a) for a in staple_argvs(app)]
+    steps += [(8, a) for a in verify_app_argvs(app, requirement, vendor_paths)]
+    steps += [(9, [HDIUTIL, 'create', '-volname', common.VOLUME_NAME, '-srcfolder', str(paths['staging']), '-format', 'UDZO', str(dmg)]),
+              (9, sign_dmg_argv(identity, dmg)), (9, [CODESIGN, '--verify', '--strict', '--verbose=4', str(dmg)]), (9, common.display_argv(dmg))]
+    steps += [(10, a) for a in notarize_argvs(dmg, profile, '<disk-image-submission-id>')]
+    steps += [(11, a) for a in staple_argvs(dmg)]
+    steps += [(12, open_argv(dmg)), (12, attach_argv(dmg, mount)), (12, exec_argv(mounted)), (12, [HDIUTIL, 'detach', str(mount)]),
+              (13, attach_argv(dmg, mount))]
+    steps += [(13, a) for a in record_argvs(mounted, dmg, vendor_paths)]
+    steps.append((13, [HDIUTIL, 'detach', str(mount)]))
     return steps
 
 
-def supplier_ok(display, entitlements):
-    return (display['returncode'] == 0 and not display['unsigned'] and display['team'] == common.SUPPLIER_TEAM
-            and bool(display['authorities']) and display['authorities'][0].startswith('Developer ID Application:')
-            and display['authorities'][0].endswith(f'({common.SUPPLIER_TEAM})') and display['runtime'] and not display['adhoc']
-            and display['timestamp'] is not None and bool(display['cdhash']) and entitlements is not None
-            and not entitlements.get('com.apple.security.get-task-allow') and not entitlements.get('get-task-allow'))
-
-
-def make_redactor(identity, notary_profile):
-    """The one redaction path: the two argument names verbatim, the public teams kept, all else credential-shaped removed."""
-    return common.Redactor(allowed=(identity, notary_profile), public_teams={common.SUPPLIER_TEAM, public_team()})
-
-
-def public_team():
-    """The publisher team published in this checkout's source (the compiled keychain selection)."""
-    return sibling('build').publisher_values(common.ROOT)[1]
-
-
 def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None):
-    if getattr(args, 'redactor', None) is None:
-        args.redactor = make_redactor(args.identity, args.notary_profile)
+    """The signing run. Raises Failure (a fixed reason) on any failed step; returns the result written."""
     environ = dict(os.environ if environ is None else environ)
     host = host or (platform.system(), platform.machine())
     team = refusals(args, environ, host)
     try:
         candidate, candidate_app, binding, requirement = common.load_candidate(args.candidate)
-    except (ValueError, OSError, KeyError) as error:
-        raise Stop('refused', 'candidate description does not verify: ' + str(error))
-    if binding['developer_id_team_identifier'] != team:
-        raise Stop('refused', 'the identity names a team other than the candidate\'s compiled publisher team')
+    except (ValueError, OSError, KeyError):
+        raise Failure('REFUSED_CANDIDATE')
+    check(binding['developer_id_team_identifier'] == team, 'REFUSED_TEAM')
     limitations = Path(args.limitations).read_bytes()
-    if sha(limitations) != candidate['limitations']['sha256']:
-        raise Stop('refused', '--limitations is not the candidate source\'s ' + common.LIMITATIONS_SOURCE)
+    check(sha(limitations) == candidate['limitations']['sha256'], 'REFUSED_LIMITATIONS')
     profile_raw = Path(args.profile).read_bytes()
-    if sha(profile_raw) != args.profile_sha256:
-        raise Stop('refused', 'the provisioning profile bytes differ from --profile-sha256')
+    check(sha(profile_raw) == args.profile_sha256, 'REFUSED_PROFILE_BYTES')
     out = Path(os.path.abspath(args.out))
+    candidate_dir = inventory.anchored(args.candidate)
+    public_teams = {team, common.SUPPLIER_TEAM}
     paths = {'staging': out / 'staging', 'app': out / 'staging' / common.APP_NAME,
              'dmg': out / f'{common.PRODUCT_NAME}-{common.RELEASE["version"]}.dmg', 'mount': out / 'mount',
              'entitlements': out / 'entitlements.plist', 'notary': out / 'notary',
              'archive': out / 'notary' / f'{common.PRODUCT_NAME}-{common.RELEASE["version"]}-app.zip'}
+    argv_allowed = {('--sign', args.identity), ('--keychain-profile', args.notary_profile), ('-R', '=' + requirement)}
     vendor_paths = common.macho_paths(candidate['vendor']['inventory'])
     commands = plan(args.identity, args.notary_profile, paths, candidate_app, vendor_paths, requirement)
     if args.dry_run:
-        return {'dry_run': True, 'plan': [{'step': s, 'argv': a} for s, a in commands]}
+        value = {'dry_run': True, 'plan': [{'step': str(s), 'argv': shown(a, out, candidate_dir)} for s, a in commands]}
+        common.validate_returnable(value, public_teams, argv_allowed=argv_allowed)
+        return value, None
 
     out.mkdir(mode=0o700)
-    session = Session(out, runner, environ, paths, args.redactor)
+    session = Session(out, runner, environ, paths, candidate_dir, argv_allowed, public_teams)
     for name in ('tmp', 'notary'):
-        session.writable(out / name).mkdir(mode=0o700)
+        common.require_inside(out / name, out, name)
+        (out / name).mkdir(mode=0o700)
     app, dmg, mount = paths['app'], paths['dmg'], paths['mount']
     run = session.run
 
-    def display(step, path, what):
-        shown = common.parse_display(run(step.split()[0], common.display_argv(path)))
-        if shown['returncode'] != 0 or shown['unsigned']:
-            raise Stop(step, f'the signature of {what} could not be displayed')
-        return shown
+    def write_bytes(path, raw, mode=0o644):
+        common.require_inside(path, out, 'a written file')
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, mode)
+        with os.fdopen(fd, 'wb') as handle:
+            handle.write(raw)
+        os.chmod(path, mode)
 
     # 0. The supplier's signature metadata, read before anything is copied.
+    check(vendor_paths, 'S0_NO_MACHO')
     supplier = {}
-    if not vendor_paths:
-        raise Stop(STEPS[0], 'the vendor tree holds no Mach-O file')
     for relative in vendor_paths:
         path = candidate_app / common.VENDOR_DESTINATION / relative
-        shown = common.parse_display(run('0', common.display_argv(path)))
-        entitlements = common.parse_entitlements(run('0', common.entitlements_argv(path)))
-        if not supplier_ok(shown, entitlements):
-            raise Stop(STEPS[0], relative + ': ' + CLM_002)
-        supplier[relative] = shown['cdhash']
+        fields = session.observe(0, 'signature', common.display_argv(path), 'S0_SIGNATURE')
+        check(fields['team'] == common.SUPPLIER_TEAM and fields['signer_team'] == common.SUPPLIER_TEAM
+              and fields['signer_kind'] == 'Developer ID Application' and fields['runtime'] and not fields['adhoc'], 'S0_SIGNATURE')
+        entitlements = session.observe(0, 'entitlements', common.entitlements_argv(path), 'S0_ENTITLEMENTS')
+        check(not entitlements.get('com.apple.security.get-task-allow') and not entitlements.get('get-task-allow'), 'S0_ENTITLEMENTS')
+        supplier[relative] = fields['cdhash']
 
     # 1. Copy with modes preserved under umask 022, and check the copy equal.
     previous = os.umask(0o022)
     try:
-        session.writable(paths['staging'], 'the staging folder').mkdir(mode=0o755)
-        shutil.copytree(candidate_app, session.writable(app, 'the App copy'), symlinks=True, copy_function=shutil.copy2)
+        common.require_inside(paths['staging'], out, 'the staging folder')
+        paths['staging'].mkdir(mode=0o755)
+        shutil.copytree(candidate_app, app, symlinks=True, copy_function=shutil.copy2)
     finally:
         os.umask(previous)
-    compared = inventory.compare(inventory.scan(app), candidate['bundle']['inventory'])
-    if not compared['equal']:
-        raise Stop(STEPS[1], 'the copy differs from the candidate (modes or bytes): ' + json.dumps(
-            {k: compared[k][:5] for k in ('differing', 'missing', 'extra')} | {'root_mode_equal': compared['root_mode_equal']}))
+    check(inventory.compare(inventory.scan(app), candidate['bundle']['inventory'])['equal'], 'S1_COPY')
 
     # 2. The provisioning profile at Contents/embedded.provisionprofile, mode 0644.
     selected = {'developer_id_team_identifier': team, 'production_bundle_identifier': binding['production_bundle_identifier']}
     try:
         profile = prepare.profile_consistency(profile_raw, args.profile_sha256, selected, now=now)
-    except ValueError as error:
-        raise Stop(STEPS[2], str(error))
+    except ValueError:
+        raise Failure('S2_PROFILE')
     destination = app / 'Contents/embedded.provisionprofile'
-    session.write_bytes(destination, profile_raw)
-    if os.stat(destination).st_mode & 0o7777 != 0o644 or sha(destination.read_bytes()) != args.profile_sha256:
-        raise Stop(STEPS[2], 'the placed profile is not mode 0644 with the selected digest')
+    write_bytes(destination, profile_raw)
+    check(os.stat(destination).st_mode & 0o7777 == 0o644 and sha(destination.read_bytes()) == args.profile_sha256, 'S2_PLACED')
 
     # 3. Entitlements from the binding: exactly the two keys.
     entitlements = {common.APP_ID_KEY: team + '.' + binding['production_bundle_identifier'], common.TEAM_KEY: team}
-    if profile['application_identifier'] != entitlements[common.APP_ID_KEY]:
-        raise Stop(STEPS[3], 'the profile grants another application identifier than the publisher binding derives')
-    session.write_bytes(paths['entitlements'], plistlib.dumps(entitlements, sort_keys=True))
+    check(profile['application_identifier'] == entitlements[common.APP_ID_KEY], 'S3_APP_ID')
+    write_bytes(paths['entitlements'], plistlib.dumps(entitlements, sort_keys=True))
 
     # 4. One signing call, on the bundle path.
-    if run('4', sign_app_argv(args.identity, paths['entitlements'], app)).returncode != 0:
-        raise Stop(STEPS[4], 'codesign failed; see log.jsonl')
+    session.act(4, sign_app_argv(args.identity, paths['entitlements'], app), 'S4_SIGN')
 
-    def verify_app(step, allowed_extra):
-        number = step.split()[0]
-        if run(number, [CODESIGN, '--verify', '--deep', '--strict', '--verbose=4', app]).returncode != 0:
-            raise Stop(step, 'deep strict verification failed')
-        if run(number, [CODESIGN, '--verify', '--strict', '--verbose=4', '-R', '=' + requirement, app]).returncode != 0:
-            raise Stop(step, 'the App does not satisfy the compiled publisher requirement')
-        shown = display(step, app, 'the App')
-        signed_entitlements = common.parse_entitlements(run(number, common.entitlements_argv(app)))
-        if signed_entitlements != entitlements:
-            raise Stop(step, 'the signed entitlements are not exactly the two publisher keys')
-        if not (shown['runtime'] and not shown['adhoc'] and shown['timestamp'] and shown['team'] == team
-                and shown['identifier'] == binding['production_bundle_identifier'] and shown['authorities'][:1] == [args.identity]):
-            raise Stop(step, 'the App signature lacks hardened runtime, timestamp, the identity or the identifier')
+    def verify_app(n, allowed_extra):
+        session.observe(n, 'verify', [CODESIGN, '--verify', '--deep', '--strict', '--verbose=4', app], f'S{n}_DEEP', [app])
+        session.observe(n, 'requirement', [CODESIGN, '--verify', '--strict', '--verbose=4', '-R', '=' + requirement, app],
+                        f'S{n}_REQUIREMENT', [app])
+        fields = session.observe(n, 'signature', common.display_argv(app), f'S{n}_DISPLAY')
+        check(fields['runtime'] and not fields['adhoc'] and fields['team'] == team and fields['signer_team'] == team
+              and fields['identifier'] == binding['production_bundle_identifier'] and fields['leaf_authority'] == args.identity, f'S{n}_SIGNER')
+        signed_entitlements = session.observe(n, 'entitlements', common.entitlements_argv(app), f'S{n}_ENTITLEMENTS')
+        check(signed_entitlements == entitlements, f'S{n}_ENTITLEMENTS')
         compared = inventory.compare(inventory.scan(app), candidate['bundle']['inventory'])
-        if (compared['differing'] != ['Contents/MacOS/' + common.MAIN_EXECUTABLE] or compared['missing']
-                or set(compared['extra']) != allowed_extra or not compared['root_mode_equal']):
-            raise Stop(step, 'the App changed beyond the main executable, _CodeSignature, the profile'
-                       + (' and the stapled ticket' if record.STAPLED_TICKET in allowed_extra else '') + ': '
-                       + json.dumps({k: compared[k][:5] for k in ('differing', 'missing', 'extra')}))
-        if not inventory.compare(inventory.scan(app / common.VENDOR_DESTINATION), candidate['vendor']['inventory'])['equal']:
-            raise Stop(step, 'the vendor tree changed')
+        check(compared['differing'] == ['Contents/MacOS/' + common.MAIN_EXECUTABLE] and not compared['missing']
+              and set(compared['extra']) == allowed_extra and compared['root_mode_equal'], f'S{n}_INVENTORY')
+        check(inventory.compare(inventory.scan(app / common.VENDOR_DESTINATION), candidate['vendor']['inventory'])['equal'], f'S{n}_VENDOR')
         for relative in vendor_paths:
-            if display(step, app / common.VENDOR_DESTINATION / relative, relative)['cdhash'] != supplier[relative]:
-                raise Stop(step, 'a supplier code-directory hash changed: ' + relative)
-        return shown
+            shown_fields = session.observe(n, 'signature', common.display_argv(app / common.VENDOR_DESTINATION / relative), f'S{n}_CDHASH')
+            check(shown_fields['cdhash'] == supplier[relative], f'S{n}_CDHASH')
 
-    def notarize(step, submitted, kind):
-        """Submit, wait, fetch the log; require Accepted, an explicit empty issues list and this exact digest."""
-        number = step.split()[0]
+    def notarize(n, submitted, kind):
+        """Submit, wait, fetch the log; require Accepted, an explicit issues list that is empty and this exact digest."""
         submitted_sha256 = sha(submitted.read_bytes())
-        submission = run(number, submit_argv(submitted, args.notary_profile))
+        result = session.observe(n, 'submit', submit_argv(submitted, args.notary_profile), f'S{n}_SUBMIT')
+        check(result['status'] == 'Accepted', f'S{n}_STATUS')
+        fetched = session.run(n, log_argv(result['id'], args.notary_profile))
         try:
-            result = json.loads(submission.stdout)
-        except ValueError:
-            result = {}
-        submission_id = result.get('id') if isinstance(result, dict) else None
-        if submission.returncode != 0 or not isinstance(submission_id, str) or not SUBMISSION_ID.fullmatch(submission_id):
-            raise Stop(step, 'notarytool submit did not return a submission')
-        if result.get('status') != 'Accepted':
-            raise Stop(step, f'notarization status is {result.get("status")!r}, not Accepted; nothing is stapled')
-        fetched = run(number, log_argv(submission_id, args.notary_profile))
-        try:
-            log = json.loads(fetched.stdout)
-        except ValueError:
-            log = None
-        if fetched.returncode != 0 or not isinstance(log, dict):
-            raise Stop(step, 'the notarization log could not be fetched')
-        if log.get('status') != 'Accepted' or 'issues' not in log or log['issues'] not in (None, []):
-            raise Stop(step, 'the notarization log is not Accepted with an explicitly empty issues list; nothing is stapled')
-        if log.get('sha256') != submitted_sha256 or log.get('jobId') != submission_id or sha(submitted.read_bytes()) != submitted_sha256:
-            raise Stop(step, 'the notarization log does not name this exact submission; nothing is stapled')
-        name = f'{kind}-notarization-log.json'
-        session.write_json(paths['notary'] / name, log, structural=True)
-        entry = {'log': 'notary/' + name, 'original_log_sha256': sha(fetched.stdout), 'submitted_sha256': submitted_sha256}
+            log = observe('notary_log', fetched)
+        except ObservationFailed:
+            raise Failure(f'S{n}_LOG')
+        check(log['status'] == 'Accepted', f'S{n}_LOG_STATUS')
+        check(log['issue_count'] == 0, f'S{n}_ISSUES')
+        check(log['job'] == result['id'], f'S{n}_JOB')
+        check(log['sha256'] == submitted_sha256 and sha(submitted.read_bytes()) == submitted_sha256, f'S{n}_DIGEST')
+        # The raw log went to the private folder with the command's output; the returnable summary
+        # holds only selected, validated fields, and the raw log's digest computed in memory.
+        summary = {'job': log['job'], 'status': log['status'], 'sha256': log['sha256'], 'issue_count': log['issue_count'],
+                   'original_log_sha256': sha(fetched.stdout)}
+        name = f'notary/{kind}-notarization.json'
+        common.write_returnable(out / name, summary, out, public_teams)
+        entry = {'summary': name, 'submitted_sha256': submitted_sha256}
         if submitted.is_relative_to(paths['notary']):
             entry['submitted'] = str(submitted.relative_to(out))
         return entry
 
-    def staple(step, target):
-        number = step.split()[0]
-        if run(number, [XCRUN, 'stapler', 'staple', target]).returncode != 0:
-            raise Stop(step, 'stapling failed')
-        if run(number, [XCRUN, 'stapler', 'validate', target]).returncode != 0:
-            raise Stop(step, 'the stapled ticket does not validate')
+    def staple(n, target):
+        session.observe(n, 'staple', [XCRUN, 'stapler', 'staple', target], f'S{n}_STAPLE', [target])
+        session.observe(n, 'validate', [XCRUN, 'stapler', 'validate', target], f'S{n}_VALIDATE', [target])
 
-    def detach(step):
-        if run(step.split()[0], [HDIUTIL, 'detach', mount]).returncode != 0:
-            raise Stop(step, 'the disk image did not detach; detach it yourself with hdiutil detach')
-
-    def detach_after(step, stop):
-        """Detach while already stopping; a failed detach is added to the reason, never hidden."""
-        if run(step.split()[0], [HDIUTIL, 'detach', mount]).returncode != 0 and isinstance(stop, Stop):
-            stop.reason += '; the disk image also did not detach: detach it yourself with hdiutil detach'
-            stop.args = (f'STOP: {stop.step}: {stop.reason}',)
+    def detach(n, code):
+        session.act(n, [HDIUTIL, 'detach', mount], code)
 
     # 5. Verify the signed App, and keep its inventory: the App as signed.
-    verify_app(STEPS[5], SIGNED_EXTRA)
+    verify_app(5, SIGNED_EXTRA)
     signed_tree = inventory.scan(app)
     signed_vendor = inventory.scan(app / common.VENDOR_DESTINATION)
 
-    # 6. Notarize the App: an archive of it in the private output; the bundle must not change.
+    # 6. Notarize the App: an archive of it in the output; the bundle must not change.
     before = inventory.scan(app)
-    if run('6', archive_argv(app, session.writable(paths['archive']))).returncode != 0 or not paths['archive'].is_file():
-        raise Stop(STEPS[6], 'archiving the App for submission failed')
-    if not inventory.compare(inventory.scan(app), before)['equal']:
-        raise Stop(STEPS[6], 'archiving changed the App')
-    notarizations = {'app': notarize(STEPS[6], paths['archive'], 'app')}
+    common.require_inside(paths['archive'], out, 'the App archive')
+    session.act(6, archive_argv(app, paths['archive']), 'S6_ARCHIVE')
+    check(paths['archive'].is_file() and not paths['archive'].is_symlink(), 'S6_ARCHIVE')
+    check(inventory.compare(inventory.scan(app), before)['equal'], 'S6_ARCHIVE_CHANGED')
+    notarizations = {'app': notarize(6, paths['archive'], 'app')}
 
     # 7. Staple and validate the App: the ticket is the only difference from the App as signed.
-    staple(STEPS[7], app)
+    staple(7, app)
     compared = inventory.compare(inventory.scan(app), signed_tree)
-    if compared['differing'] or compared['missing'] or compared['extra'] != [record.STAPLED_TICKET] or not compared['root_mode_equal']:
-        raise Stop(STEPS[7], 'stapling changed more than adding the ticket at ' + record.STAPLED_TICKET + ': '
-                   + json.dumps({k: compared[k][:5] for k in ('differing', 'missing', 'extra')}))
-    if not inventory.compare(inventory.scan(app / common.VENDOR_DESTINATION), signed_vendor)['equal']:
-        raise Stop(STEPS[7], 'the supplier\'s tree changed during stapling')
+    check(not compared['differing'] and not compared['missing'] and compared['extra'] == [record.STAPLED_TICKET]
+          and compared['root_mode_equal'], 'S7_ONLY_TICKET')
+    check(inventory.compare(inventory.scan(app / common.VENDOR_DESTINATION), signed_vendor)['equal'], 'S7_VENDOR')
     # 8. Verify the stapled App again. Nothing writes into the bundle after this.
-    verify_app(STEPS[8], STAPLED_EXTRA)
+    verify_app(8, STAPLED_EXTRA)
     stapled_tree = inventory.scan(app)
 
     # 9. The disk image: the stapled App and the limitations, signed with a timestamp.
-    session.write_bytes(paths['staging'] / common.LIMITATIONS_IN_IMAGE, limitations)
-    if run('9', [HDIUTIL, 'create', '-volname', common.VOLUME_NAME, '-srcfolder', paths['staging'], '-format', 'UDZO',
-                 session.writable(dmg)]).returncode != 0 or not dmg.is_file():
-        raise Stop(STEPS[9], 'hdiutil create failed')
-    if run('9', sign_dmg_argv(args.identity, dmg)).returncode != 0:
-        raise Stop(STEPS[9], 'codesign of the disk image failed')
-    if run('9', [CODESIGN, '--verify', '--strict', '--verbose=4', dmg]).returncode != 0:
-        raise Stop(STEPS[9], 'disk image signature does not verify')
-    image = display(STEPS[9], dmg, 'the disk image')
-    if not (image['timestamp'] and image['team'] == team and image['authorities'][:1] == [args.identity]):
-        raise Stop(STEPS[9], 'disk image signature lacks the identity or a timestamp')
-    if not inventory.compare(inventory.scan(app), stapled_tree)['equal']:
-        raise Stop(STEPS[9], 'the stapled App changed while the disk image was made')
+    write_bytes(paths['staging'] / common.LIMITATIONS_IN_IMAGE, limitations)
+    common.require_inside(dmg, out, 'the disk image')
+    session.act(9, [HDIUTIL, 'create', '-volname', common.VOLUME_NAME, '-srcfolder', paths['staging'], '-format', 'UDZO', dmg], 'S9_CREATE')
+    check(dmg.is_file() and not dmg.is_symlink(), 'S9_CREATE')
+    session.act(9, sign_dmg_argv(args.identity, dmg), 'S9_SIGN')
+    session.observe(9, 'verify', [CODESIGN, '--verify', '--strict', '--verbose=4', dmg], 'S9_VERIFY', [dmg])
+    image = session.observe(9, 'signature', common.display_argv(dmg), 'S9_DISPLAY')
+    check(image['team'] == team and image['signer_team'] == team and image['leaf_authority'] == args.identity, 'S9_DISPLAY')
+    check(inventory.compare(inventory.scan(app), stapled_tree)['equal'], 'S9_APP_CHANGED')
 
     # 10. Notarize the disk image; 11. staple and validate it.
-    notarizations['disk_image'] = notarize(STEPS[10], dmg, 'disk-image')
-    staple(STEPS[11], dmg)
+    notarizations['disk_image'] = notarize(10, dmg, 'disk-image')
+    staple(11, dmg)
 
     # 12. Gatekeeper on the disk image, and on the App from a read-only mount.
-    assessed = run('12', [SPCTL, '-a', '-t', 'open', '--context', 'context:primary-signature', '-vv', dmg])
-    if assessed.returncode != 0 or 'accepted' not in assessed.text() or 'Notarized Developer ID' not in assessed.text():
-        raise Stop(STEPS[12], 'the disk image is not accepted as Notarized Developer ID')
-    session.writable(mount, 'the mount point').mkdir(mode=0o700)
-    if run('12', attach_argv(dmg, mount)).returncode != 0:
-        raise Stop(STEPS[12], 'the disk image did not mount read-only')
+    session.observe(12, 'assessment', open_argv(dmg), 'S12_OPEN', [dmg])
+    common.require_inside(mount, out, 'the mount point')
+    mount.mkdir(mode=0o700)
+    session.act(12, attach_argv(dmg, mount), 'S12_ATTACH')
     try:
         mounted = mount / common.APP_NAME
-        if not inventory.compare(inventory.scan(mounted), stapled_tree)['equal']:
-            raise Stop(STEPS[12], 'the App in the disk image differs from the stapled App')
-        if (mount / common.LIMITATIONS_IN_IMAGE).read_bytes() != limitations:
-            raise Stop(STEPS[12], 'the limitations in the disk image differ from the candidate source')
-        executed = run('12', [SPCTL, '-a', '-t', 'exec', '-vv', mounted])
-        if executed.returncode != 0 or 'accepted' not in executed.text():
-            raise Stop(STEPS[12], 'the App on the mounted disk image is not accepted')
-    except BaseException as error:
-        detach_after(STEPS[12], error)
+        check(inventory.compare(inventory.scan(mounted), stapled_tree)['equal'], 'S12_MOUNTED')
+        check((mount / common.LIMITATIONS_IN_IMAGE).read_bytes() == limitations, 'S12_LIMITATIONS')
+        session.observe(12, 'assessment', exec_argv(mounted), 'S12_EXEC', [mounted])
+    except BaseException:
+        run(12, [HDIUTIL, 'detach', mount])  # clean-up while already stopping; its output is in the command log
         raise
-    detach(STEPS[12])
+    detach(12, 'S12_DETACH')
 
-    # 13. The package identity record, read from the package itself; every observation must succeed.
-    if run('13', attach_argv(dmg, mount)).returncode != 0:
-        raise Stop(STEPS[13], 'the disk image did not mount read-only')
+    # 13. The record, read from the package itself, built in memory; written only after the last
+    # observation succeeded and the disk image detached.
+    session.act(13, attach_argv(dmg, mount), 'S13_ATTACH')
     try:
-        digest = record.write(session.writable(out / 'PACKAGE_IDENTITY.json'), dmg=dmg, app=mount / common.APP_NAME,
-                              run=lambda argv: run('13', argv), candidate=candidate, notarizations=notarizations,
-                              signed_tree=signed_tree, redactor=args.redactor)
-    except record.ObservationFailed as failed:
-        stop = Stop(STEPS[13], str(failed))
-        detach_after(STEPS[13], stop)
-        raise stop
-    except BaseException as error:
-        detach_after(STEPS[13], error)
+        identity_record = record.build_record(dmg=dmg, app=mount / common.APP_NAME, run=lambda argv: run(13, argv), candidate=candidate,
+                                              notarizations=notarizations, signed_tree=signed_tree, record_dir=out,
+                                              public_teams=public_teams, publisher_team=team)
+    except record.RecordFailed as failed:
+        run(13, [HDIUTIL, 'detach', mount])
+        error = Failure('S13_OBSERVATION')
+        error.failures = failed.failures
+        raise error
+    except BaseException:
+        run(13, [HDIUTIL, 'detach', mount])
         raise
-    detach(STEPS[13])
+    detach(13, 'S13_DETACH')
+    digest = common.write_returnable(out / 'PACKAGE_IDENTITY.json', identity_record, out, public_teams)
     shutil.rmtree(out / 'tmp', ignore_errors=True)
-    summary = {'identity_name': args.identity, 'notary_profile_name': args.notary_profile, 'package': dmg.name,
-               'package_sha256': sha(dmg.read_bytes()), 'notarization': notarizations, 'record': 'PACKAGE_IDENTITY.json',
-               'record_sha256': digest, 'installed': False, 'result': 'complete'}
-    session.write_json(out / 'RESULT.json', summary)
-    return summary
+    summary = {'result': 'complete', 'package': dmg.name, 'package_sha256': sha(dmg.read_bytes()), 'record': 'PACKAGE_IDENTITY.json',
+               'record_sha256': digest, 'installed': False,
+               'notarization': {k: {'summary': v['summary'], 'submitted_sha256': v['submitted_sha256']} for k, v in notarizations.items()}}
+    common.write_returnable(out / 'RESULT.json', summary, out, public_teams)
+    return summary, public_teams
 
 
 def parser():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--identity', required=True, help='"Developer ID Application: <name> (<TEAMID>)" as in your keychain')
     p.add_argument('--notary-profile', required=True, help='the notarytool keychain profile name you stored')
-    p.add_argument('--candidate', required=True, help='the build output directory holding CANDIDATE.json (not in /Applications or ~/Library)')
+    p.add_argument('--candidate', required=True, help='the build output folder holding CANDIDATE.json (not in /Applications or ~/Library)')
     p.add_argument('--profile', required=True, help='the Developer ID provisioning profile file; only read, it may be wherever you keep it')
     p.add_argument('--profile-sha256', required=True)
     p.add_argument('--limitations', required=True,
                    help='docs/RELEASE_LIMITATIONS_4.0.0.md of the candidate source; only read, it may be wherever you keep it')
-    p.add_argument('--out', required=True, help='a new directory, not in /Applications or ~/Library, for everything this run writes')
+    p.add_argument('--out', required=True, help='a new folder, not in /Applications or ~/Library, for everything this run writes')
     p.add_argument('--dry-run', action='store_true', help='print the exact plan and run nothing')
     return p
 
@@ -512,23 +475,27 @@ def parser():
 def main(argv=None, *, stdout=None, stderr=None, **kw):
     stdout, stderr = stdout or sys.stdout, stderr or sys.stderr
     args = parser().parse_args(argv)
-    args.redactor = make_redactor(args.identity, args.notary_profile)
+    out = Path(os.path.abspath(args.out))
+    existed = os.path.lexists(out)
     try:
-        result = sign(args, **kw)
-    except Exception as error:  # every failure is a STOP with no later command and no success result
-        stop = error if isinstance(error, Stop) else Stop('unexpected', f'{type(error).__name__}: {error}')
-        text = args.redactor.text(str(stop))
-        print(text, file=stderr)
-        out = Path(args.out)
-        if stop.step != 'refused' and out.is_dir() and not os.path.lexists(out / 'STOPPED.json'):
+        result, public_teams = sign(args, **kw)
+    except BaseException as error:  # every failure, interruption included, is a STOP with a fixed reason
+        if isinstance(error, SystemExit):
+            raise
+        stop = error if isinstance(error, Failure) else Failure('INTERRUPTED' if isinstance(error, KeyboardInterrupt) else 'UNEXPECTED')
+        print('STOP: ' + stop.reason, file=stderr)
+        if not existed and out.is_dir():
             try:
-                common.require_inside(out / 'STOPPED.json', out, 'STOPPED.json')
-                common.write_json_new(out / 'STOPPED.json', {'result': 'stopped', 'step': stop.step, 'reason': stop.reason},
-                                      redactor=args.redactor)
-            except (OSError, ValueError):
+                if not isinstance(error, Failure):
+                    common.PrivateWriter(out).write('trace', ''.join(traceback.format_exception(error)))
+                value = {'result': 'stopped', 'reason_code': stop.code, 'reason': stop.reason,
+                         'failed_observations': getattr(stop, 'failures', []),
+                         'private_folder': common.PRIVATE_FOLDER}  # named only; never opened or examined
+                common.write_returnable(out / 'STOPPED.json', value, out, set())
+            except BaseException:
                 pass
         return 3
-    print(json.dumps(args.redactor.json(result), indent=2), file=stdout)
+    print(json.dumps(result, indent=2), file=stdout)
     return 0
 
 

@@ -342,7 +342,8 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     if profile_ref:
         # Tauri copies macOS.files relative to Contents/; placement is verified only by a later build inventory.
         config['bundle']['macOS']['files'] = {'embedded.provisionprofile': profile_ref['path']}
-    env = {'CARGO_NET_OFFLINE': 'true', 'NPM_CONFIG_OFFLINE': 'true', 'CARGO_BUILD_JOBS': '2', 'MACOSX_DEPLOYMENT_TARGET': '15.0'}
+    env = {'CARGO_NET_OFFLINE': 'true', 'NPM_CONFIG_OFFLINE': 'true', 'CARGO_BUILD_JOBS': '2', 'MACOSX_DEPLOYMENT_TARGET': '15.0',
+           'NPM_CONFIG_UPDATE_NOTIFIER': 'false'}
     if publisher_ref:
         env.update(CHIRALITY_PUBLISHER_SELECTION='production-v1', CHIRALITY_PUBLISHER_INPUT_FILE=publisher_ref['path'],
                    CHIRALITY_PUBLISHER_INPUT_SHA256=publisher_ref['sha256'])
@@ -350,7 +351,9 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
                     'LANG': 'explicit locale', 'TMPDIR': 'private build temporary directory',
                     'CARGO_HOME': 'prepared offline cache view', 'CARGO_TARGET_DIR': 'new isolated absolute target outside inputs',
                     'CODEX_HOME': 'fresh private scratch Codex home', 'NPM_CONFIG_CACHE': 'prepared offline npm cache',
-                    'NPM_CONFIG_USERCONFIG': 'empty task-owned config', 'NPM_CONFIG_GLOBALCONFIG': 'empty task-owned config'}
+                    'NPM_CONFIG_USERCONFIG': 'empty task-owned config', 'NPM_CONFIG_GLOBALCONFIG': 'empty task-owned config',
+                    'RUSTUP_HOME': 'task-owned rustup home inside the run folder', 'NPM_CONFIG_PREFIX': 'task-owned npm prefix inside the run folder',
+                    'NPM_CONFIG_LOGS_DIR': 'task-owned npm logs folder inside the run folder'}
     recipe = {'working_directory': str(app), 'inherit_environment': False,
               'environment_allowlist': sorted(set(env) | set(required_env)), 'required_environment': required_env, 'environment': env,
               'unset_environment': ['APPLE_SIGNING_IDENTITY', 'APPLE_CERTIFICATE', 'APPLE_CERTIFICATE_PASSWORD', 'APPLE_ID',
