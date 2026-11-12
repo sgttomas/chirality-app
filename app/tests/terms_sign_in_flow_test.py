@@ -17,19 +17,28 @@ flow = importlib.util.module_from_spec(spec); spec.loader.exec_module(flow)
 
 HOSTING = '''pub const DECLARED_PIN: &str = "{pin}";
     pub(crate) fn account_login_api_key(&self)->Result<SourceRequest,String>{{
-        let params=input.into_params();Self::validate_native_result("LoginAccountParams",&params)?;
+        let params=input.into_params();Self::validate_native_result("LoginAccountParams",&params).map_err(|_|"native API-key input shape invalid; sensitive diagnostic withheld".to_string())?;
         let source=self.request_begin_scoped_private("account/login/start",params,json!({{"kind":"person-directed"}}),false,Some(generation),true,None,None)?;
     }}
     pub(crate) fn account_login_oauth(&self)->Result<OAuthLogin,String>{{
         let kind=match mode{{{arms}}};
         let source=self.request_begin_scoped("account/login/start",json!({{"type":kind}}),json!({{"kind":"person-directed"}}),false,Some(generation))?;
+        let oauth_mode=if method=="account/login/start" {{None}}else{{None}};
     }}
+#[cfg(test)]
+#[path = "hosting_tests.rs"]
+mod hosting_tests;
+#[cfg(test)]
+mod tests {{
+    fn t(){{ host.request("account/login/start", json!({{"type":"apiKey"}})); }}
+}}
 '''
 ARMS = 'NativeLoginMode::Browser=>"chatgpt",NativeLoginMode::DeviceCode=>"chatgptDeviceCode"'
 AUTH = '''    pub(crate) fn into_params(self) -> Value {
         json!({"type":"apiKey","apiKey":self.value})
     }
 pub fn generic_guard(method: &str, params: &Value) -> Result<(), String> {
+    // A comment naming "account/login/start" is not code.
     if method == "account/login/start"
         && !matches!(
             params["type"].as_str(),
@@ -38,6 +47,7 @@ pub fn generic_guard(method: &str, params: &Value) -> Result<(), String> {
     {
         return Err("unsupported".into());
     }
+    if matches!(method,"account/login/start"|"account/login/cancel") { return Ok(()); }
 }
 '''
 LOCAL = 'fn start(host:&Host){ host.account_login_api_key_from_native_entry(generation, Some(&policy), || { Ok(None) }); }\n'
@@ -65,6 +75,8 @@ class SignInFlow(unittest.TestCase):
         (src / 'hosting_tests.rs').write_text('self.request_begin_scoped("account/login/start",json!({"type":"apiKey"}))\n')
         if extra:
             (src / 'extra.rs').write_text(extra)
+        elif (src / 'extra.rs').exists():
+            (src / 'extra.rs').unlink()
 
     def edit_schema(self, name, change):
         value = json.loads(self.schema.read_bytes())
@@ -77,6 +89,12 @@ class SignInFlow(unittest.TestCase):
     def test_same_definitions_and_types_are_unchanged(self):
         report = self.run_flow()
         self.assertEqual(report['status'], 'unchanged', report['differences'])
+        forms = {(e['file'], e['line']): e['form'] for e in report['candidate']['senders_examined']}
+        self.assertEqual(forms, {('hosting.rs', 4): 'API-key sender', ('hosting.rs', 8): 'native sign-in sender',
+                                 ('hosting.rs', 9): 'comparison', ('auth_rpc.rs', 6): 'generic route guard',
+                                 ('auth_rpc.rs', 14): 'matches! pattern'})
+        self.assertEqual(report['candidate']['test_files_not_read'], ['hosting_tests.rs'])
+        self.assertTrue(report['rules'])
         self.assertEqual(report['candidate']['account_sign_in_types'], ['chatgpt', 'chatgptDeviceCode'])
         self.assertEqual(report['candidate']['separate_api_key_login']['sent_from'], ['native_local_provider.rs'])
         self.assertNotIn('apiKey', report['candidate']['account_sign_in_types'])
@@ -110,6 +128,49 @@ class SignInFlow(unittest.TestCase):
         self.write_source(arms=ARMS + ',NativeLoginMode::Other=>"invented"')
         self.assertEqual(self.run_flow()['status'], 'unresolved')
 
+    # Review probes: each of these once read as unchanged.
+    def assertUnaccounted(self, report):
+        self.assertEqual(report['status'], 'unresolved')
+        self.assertTrue(report['candidate']['unaccounted'], report)
+
+    def test_wildcard_in_generic_route_allowed_types_is_unresolved(self):
+        self.write_source(allowed='"chatgpt" | "chatgptDeviceCode" | _')
+        self.assertUnaccounted(self.run_flow())
+
+    def test_sender_with_whitespace_before_the_parenthesis_is_unresolved(self):
+        for call in ('request_begin_scoped', 'request_begin_scoped_private'):
+            with self.subTest(call=call):
+                self.write_source(extra='impl Host {\n    fn review_new_login(&self, generation: &Value) -> Result<SourceRequest, String> {\n'
+                                  f'        self.{call} ("account/login/start", json!({{"type":"chatgptAuthTokens"}}), json!({{"kind":"person-directed"}}), false, Some(generation))\n'
+                                  '    }\n}\n')
+                report = self.run_flow()
+                self.assertUnaccounted(report)
+                self.assertEqual(report['candidate']['unaccounted'][0]['file'], 'extra.rs')
+
+    def test_sender_in_a_nested_module_is_unresolved(self):
+        nested = self.source / 'app/src-tauri/src/review_nested'; nested.mkdir()
+        (nested / 'mod.rs').write_text('fn f(&self){ self.request_begin_scoped_private("account/login/start", params, x) }\n')
+        report = self.run_flow()
+        self.assertUnaccounted(report)
+        self.assertEqual(report['candidate']['unaccounted'][0]['file'], 'review_nested/mod.rs')
+
+    def test_spelt_differently_stated_form_is_unresolved(self):
+        self.write_source(arms=ARMS + ',_=>"chatgpt"')
+        self.assertUnaccounted(self.run_flow())
+
+    def test_test_file_named_from_host_code_is_read(self):
+        (self.source / 'app/src-tauri/src/hosting_tests.rs').write_text('fn f(){ send("account/login/start"); }\n')
+        self.write_source(extra='#[path = "hosting_tests.rs"]\nmod live;\n')
+        self.assertUnaccounted(self.run_flow())
+
+    def test_source_outside_the_folder_and_unlexable_source_are_unresolved(self):
+        self.write_source(extra='#[path = "../elsewhere.rs"]\nmod outside;\n')
+        self.assertUnaccounted(self.run_flow())
+        self.write_source(extra='const X: &str = "unterminated;\n')
+        self.assertEqual(self.run_flow()['status'], 'unresolved')
+        self.write_source(extra='const X: &str = concat!("account/", "login/start");\n')
+        self.assertUnaccounted(self.run_flow())
+
     def test_missing_schema_is_unresolved(self):
         self.schema.unlink()
         report = self.run_flow()
@@ -125,7 +186,6 @@ class SignInFlow(unittest.TestCase):
         self.write_source(extra='let s=self.request_begin_scoped("account/login/start",json!({"type":"invented"}));\n')
         self.assertEqual(self.run_flow()['status'], 'unresolved')
         self.write_source()
-        (self.source / 'app/src-tauri/src/extra.rs').unlink()
         (self.source / 'app/src-tauri/src/hosting.rs').write_text('pub const DECLARED_PIN: &str = "9.9.9";\n')
         self.assertEqual(self.run_flow()['status'], 'unresolved')
 

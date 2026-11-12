@@ -17,6 +17,12 @@ the position applies to a candidate is the owner's statement. Equal schema defin
 equal sign-in types do not show that the supplier's own sign-in behaviour inside Codex is
 unchanged between pins; that is outside what a schema and the App's source can show.
 
+The sign-in types come only from the exact expression forms in FORMS and GENERIC_GUARD below.
+Every occurrence of the literal "account/login/start" in host source must be accounted for under
+RULES, and each is reported by file and line; an occurrence the tool cannot account for, a stated
+form spelt differently, or syntax it cannot read makes the result `unresolved`. Unknown never
+reads as unchanged.
+
 The compared definitions are the request, response and notification definitions of the
 methods the sign-in flow uses (account/login/start, account/login/cancel,
 account/login/completed, account/read, account/updated, account/logout), the login-method
@@ -60,15 +66,35 @@ ROOTS = (
 NAMED = ROOTS + ('CancelLoginAccountStatus', 'LoginAppBrand', 'AuthMode')
 
 PIN = re.compile(r'pub const DECLARED_PIN: &str = "([0-9]+\.[0-9]+\.[0-9]+)";')
-OAUTH = re.compile(r'let kind=match mode\{([^}]*)\};\s*let source=self\.request_begin_scoped\("account/login/start",json!\(\{"type":kind\}\)')
-GENERIC = re.compile(r'if method == "account/login/start"\s*&& !matches!\(\s*params\["type"\]\.as_str\(\),\s*Some\(([^)]*)\)\s*\)')
-API_KEY_PARAMS = re.compile(r'fn into_params\(self\) -> Value \{\s*json!\(\{"type":"apiKey","apiKey":self\.value\}\)')
-API_KEY_SEND = re.compile(r'let params=input\.into_params\(\);[^\n]*\n\s*let source=self\.request_begin_scoped_private\("account/login/start",params,')
-SEND_SITE = re.compile(r'request_begin_scoped(?:_private)?\("account/login/start"')
+METHOD = 'account/login/start'
+SOURCE_DIR = 'app/src-tauri/src'
+
+# The exact expression forms this tool was written against. Each is compared after stripping the
+# line's leading and trailing whitespace and nothing else; any other spelling is not recognised.
+FORMS = {
+    'native sign-in sender': (
+        re.compile(r'let kind=match mode\{((?:NativeLoginMode::[A-Za-z]+=>"[A-Za-z]+",)*NativeLoginMode::[A-Za-z]+=>"[A-Za-z]+")\};'),
+        'let source=self.request_begin_scoped("account/login/start",json!({"type":kind}),json!({"kind":"person-directed"}),false,Some(generation))?;'),
+    'API-key sender': (
+        re.compile(re.escape('let params=input.into_params();Self::validate_native_result("LoginAccountParams",&params).map_err(|_|"native API-key input shape invalid; sensitive diagnostic withheld".to_string())?;')),
+        'let source=self.request_begin_scoped_private("account/login/start",params,json!({"kind":"person-directed"}),false,Some(generation),true,None,None)?;'),
+}
+GENERIC_GUARD = ('if method == "account/login/start"', '&& !matches!(', 'params["type"].as_str(),',
+                 re.compile(r'Some\(("[A-Za-z]+"(?: \| "[A-Za-z]+")*)\)'), ')', '{')
+API_KEY_PARAMS = ('pub(crate) fn into_params(self) -> Value {', 'json!({"type":"apiKey","apiKey":self.value})', '}')
 API_KEY_CALLER = re.compile(r'\.account_login_api_key_from_native_entry\(')
-LITERAL = re.compile(r'"([A-Za-z]+)"')
-
-
+RULES = (
+    'Every .rs file under app/src-tauri/src, at any depth, is host source, except a file named *_tests.rs that '
+    'host source names only from items gated by #[cfg(test)] or #[cfg(all(test, ...))]; items so gated are not read.',
+    'Every string literal equal to "account/login/start" in host source is accounted for, by file and line, as one of: '
+    'the native sign-in sender, the API-key sender, the generic route guard (each in its exact stated form), a comparison '
+    '(== or !=), a match pattern (followed by =>, or by an if guard and =>), or a pattern inside matches!(...). '
+    'Any other occurrence, or a stated form spelt differently, is unresolved.',
+    'A literal that contains "login/start" without equalling the method, a concat! naming account, a #[path] or include! '
+    'reaching outside app/src-tauri/src, an unterminated literal or comment, or unbalanced braces is unresolved.',
+    'Method names assembled at run time are outside what reading literals can show; the generic route guard, read in its '
+    'exact form, is the boundary for a method name chosen at run time.',
+)
 class Unreadable(Exception):
     pass
 
@@ -79,6 +105,161 @@ def canonical(value):
 
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+CHAR = re.compile(r"'(?:\\(?:u\{[0-9a-fA-F_]{1,8}\}|x[0-9a-fA-F]{2}|[nrt\\0'\"])|[^\\'\n])'")
+RAW = re.compile(r'b?r(#*)"')
+ESCAPE = re.compile(r'\\(u\{([0-9a-fA-F_]{1,8})\}|x([0-9a-fA-F]{2})|.)', re.S)
+SIMPLE = {'n': '\n', 'r': '\r', 't': '\t', '\\': '\\', '0': '\0', "'": "'", '"': '"'}
+
+
+def lex(text):
+    """Mask comments and literal contents (keeping offsets and line breaks) and list string literals
+    as (start, end, value). Raises Unreadable on an unterminated literal or comment."""
+    masked, literals, i, n = list(text), [], 0, len(text)
+    def blank(a, b):
+        for k in range(a, b):
+            if masked[k] != '\n':
+                masked[k] = ' '
+    while i < n:
+        c = text[i]
+        ident_before = i > 0 and (text[i - 1].isalnum() or text[i - 1] == '_')
+        if text.startswith('//', i):
+            j = text.find('\n', i); j = n if j < 0 else j
+            blank(i, j); i = j
+        elif text.startswith('/*', i):
+            depth, j = 1, i + 2
+            while depth:
+                if j >= n:
+                    raise Unreadable('unterminated block comment')
+                if text.startswith('/*', j):
+                    depth += 1; j += 2
+                elif text.startswith('*/', j):
+                    depth -= 1; j += 2
+                else:
+                    j += 1
+            blank(i, j); i = j
+        elif not ident_before and (m := RAW.match(text, i)):
+            close = '"' + m.group(1)
+            j = text.find(close, m.end())
+            if j < 0:
+                raise Unreadable('unterminated raw string')
+            literals.append((i, j + len(close), text[m.end():j]))
+            blank(m.end(), j); i = j + len(close)
+        elif c == '"' or (c == 'b' and not ident_before and text.startswith('b"', i)):
+            start = i + (2 if c == 'b' else 1)
+            j = start
+            while True:
+                if j >= n:
+                    raise Unreadable('unterminated string')
+                if text[j] == '\\':
+                    j += 2
+                elif text[j] == '"':
+                    break
+                else:
+                    j += 1
+            body = text[start:j]
+            def unescape(m):
+                if m.group(2):
+                    return chr(int(m.group(2).replace('_', ''), 16))
+                if m.group(3):
+                    return chr(int(m.group(3), 16))
+                return SIMPLE.get(m.group(1), '' if m.group(1) == '\n' else '\\' + m.group(1))
+            literals.append((i, j + 1, ESCAPE.sub(unescape, body)))
+            blank(start, j); i = j + 1
+        elif c == "'" and (m := CHAR.match(text, i)):
+            blank(i + 1, m.end() - 1); i = m.end()
+        else:
+            i += 1
+    return ''.join(masked), literals
+
+
+TEST_CFG = re.compile(r'test|all\(\s*test\s*(?:,[^()]*)?\)|all\([^()]*,\s*test\s*(?:,[^()]*)?\)')
+ATTRIBUTE = re.compile(r'#\[\s*cfg\s*\(')
+
+
+def matching(masked, at, opening, closing):
+    depth = 0
+    for k in range(at, len(masked)):
+        if masked[k] == opening:
+            depth += 1
+        elif masked[k] == closing:
+            depth -= 1
+            if depth == 0:
+                return k
+    raise Unreadable(f'unbalanced {opening}{closing}')
+
+
+def test_regions(masked):
+    """Spans of items gated by a test-only cfg attribute, and whether the whole file is."""
+    spans = []
+    if re.search(r'#!\[\s*cfg\s*\(\s*test\s*\)\s*\]', masked):
+        return [(0, len(masked))], True
+    for m in ATTRIBUTE.finditer(masked):
+        if any(a <= m.start() < b for a, b in spans):
+            continue
+        close = matching(masked, m.end() - 1, '(', ')')
+        if not TEST_CFG.fullmatch(masked[m.end():close].strip()):
+            continue
+        end_attr = matching(masked, m.start() + 1, '[', ']')
+        k, depth = end_attr + 1, 0
+        while k < len(masked):
+            ch = masked[k]
+            if ch in '([':
+                depth += 1
+            elif ch in ')]':
+                depth -= 1
+            elif depth == 0 and ch == ';':
+                break
+            elif depth == 0 and ch == '{':
+                k = matching(masked, k, '{', '}')
+                break
+            k += 1
+        else:
+            raise Unreadable('test item has no end')
+        spans.append((m.start(), k + 1))
+    return spans, False
+
+
+def enclosing(masked, at):
+    """Open groups around an offset, innermost first: (opening offset, char, word before it)."""
+    groups, stack = [], []
+    for k in range(at):
+        ch = masked[k]
+        if ch in '([{':
+            stack.append(k)
+        elif ch in ')]}' and stack:
+            stack.pop()
+    for k in reversed(stack):
+        word = re.search(r'([A-Za-z_][A-Za-z0-9_]*!?)\s*$', masked[:k])
+        groups.append((k, masked[k], word.group(1) if word else ''))
+    return groups
+
+
+def classify(masked, start, end):
+    before, after = masked[:start].rstrip(), masked[end:].lstrip()
+    if before.endswith(('==', '!=')) or after.startswith(('==', '!=')):
+        return 'comparison'
+    if after.startswith('=>') or re.match(r'if\b[^;{}]*=>', after):
+        return 'match pattern'
+    for k, ch, word in enclosing(masked, start):
+        if ch != '(':
+            break
+        if word == 'matches!':
+            depth, first_comma = 0, None
+            for j in range(k + 1, start):
+                if masked[j] in '([{':
+                    depth += 1
+                elif masked[j] in ')]}':
+                    depth -= 1
+                elif masked[j] == ',' and depth == 0:
+                    first_comma = j
+                    break
+            return 'matches! pattern' if first_comma is not None else None
+        close = matching(masked, k, '(', ')')
+        if masked[close + 1:].lstrip().startswith('=>'):
+            return 'match pattern'
+    return None
 
 
 class Tree:
@@ -108,12 +289,23 @@ class Tree:
             raise Unreadable(f'{relative}: {type(error).__name__}') from error
 
     def rust_sources(self):
-        folder = self.root / 'app/src-tauri/src'
-        try:
-            names = sorted(n for n in os.listdir(folder) if n.endswith('.rs') and not n.endswith('_tests.rs'))
-        except OSError as error:
-            raise Unreadable(f'app/src-tauri/src: {type(error).__name__}') from error
-        return {n: self.read(f'app/src-tauri/src/{n}').decode('utf-8') for n in names}
+        """Every .rs file under the source folder at any depth: relative path -> text."""
+        folder = self.root / SOURCE_DIR
+        found = []
+        def walk(directory, prefix):
+            try:
+                entries = sorted(os.scandir(directory), key=lambda e: e.name)
+            except OSError as error:
+                raise Unreadable(f'{SOURCE_DIR}/{prefix}: {type(error).__name__}') from error
+            for entry in entries:
+                if entry.is_symlink():
+                    raise Unreadable(f'{SOURCE_DIR}/{prefix}{entry.name}: symbolic link refused')
+                if entry.is_dir(follow_symlinks=False):
+                    walk(entry.path, prefix + entry.name + '/')
+                elif entry.name.endswith('.rs'):
+                    found.append(prefix + entry.name)
+        walk(folder, '')
+        return {n: self.read(f'{SOURCE_DIR}/{n}').decode('utf-8') for n in found}
 
 
 class GitRevision(Tree):
@@ -131,9 +323,9 @@ class GitRevision(Tree):
         return self._git('show', f'{self.revision}:{relative}')
 
     def rust_sources(self):
-        names = self._git('ls-tree', '--name-only', f'{self.revision}:app/src-tauri/src').decode().split('\n')
-        names = sorted(n for n in names if n.endswith('.rs') and not n.endswith('_tests.rs'))
-        return {n: self.read(f'app/src-tauri/src/{n}').decode('utf-8') for n in names}
+        names = self._git('ls-tree', '-r', '--name-only', self.revision, '--', SOURCE_DIR).decode().split('\n')
+        names = sorted(n[len(SOURCE_DIR) + 1:] for n in names if n.endswith('.rs'))
+        return {n: self.read(f'{SOURCE_DIR}/{n}').decode('utf-8') for n in names}
 
 
 def references(value, found):
@@ -166,30 +358,102 @@ def compared_definitions(schema):
     return {name: definitions[name] for name in sorted(selected)}
 
 
-def sign_in_types(sources):
-    """The types the host sends for account sign-in, and the separate API-key login."""
-    hosting, auth = sources.get('hosting.rs'), sources.get('auth_rpc.rs')
-    if hosting is None or auth is None:
-        raise Unreadable('hosting.rs or auth_rpc.rs absent')
-    oauth = OAUTH.findall(hosting)
-    generic = GENERIC.findall(auth)
-    if len(oauth) != 1 or len(generic) != 1:
-        raise Unreadable('account sign-in send site not recognised')
-    sites = {n: len(SEND_SITE.findall(text)) for n, text in sources.items() if SEND_SITE.search(text)}
-    api_key = bool(API_KEY_PARAMS.search(auth)) and len(API_KEY_SEND.findall(hosting)) == 1
-    expected_sites = {'hosting.rs': 2 if api_key else 1}
-    if sites != expected_sites:
-        raise Unreadable('unrecognised account/login/start send site: ' + json.dumps(sites, sort_keys=True))
-    native = sorted(set(re.findall(r'=>"([A-Za-z]+)"', oauth[0])))
-    allowed = sorted(set(LITERAL.findall(generic[0])))
+def _lines_at(text, offset):
+    return text.count('\n', 0, offset) + 1
+
+
+def _stripped_lines(text):
+    return [line.strip() for line in text.split('\n')]
+
+
+def account_senders(sources):
+    """Account for every occurrence of the method literal in host source; derive the sign-in types."""
+    lexed, skipped_text, problems = {}, [], []
+    for name, text in sources.items():
+        masked, literals = lex(text)
+        spans, whole = test_regions(masked)
+        lexed[name] = (text, masked, literals, spans)
+        skipped_text.extend(text[a:b] for a, b in spans)
+    def in_test(name, offset):
+        return any(a <= offset < b for a, b in lexed[name][3])
+    host, excluded = [], []
+    for name in sorted(sources):
+        base = name.rsplit('/', 1)[-1]
+        text, masked, literals, spans = lexed[name]
+        named_in_tests = any(base in s for s in skipped_text)
+        named_elsewhere = any(base in v[0] and any(lit[2].endswith(base) and not in_test(other, lit[0]) for lit in v[2])
+                              for other, v in lexed.items() if other != name)
+        if spans == [(0, len(masked))] or (base.endswith('_tests.rs') and named_in_tests and not named_elsewhere):
+            excluded.append(name)
+        else:
+            host.append(name)
+    examined, oauth, generic, api_key = [], [], [], []
+    for name in host:
+        text, masked, literals, spans = lexed[name]
+        lines = _stripped_lines(text)
+        for start, end, value in literals:
+            if in_test(name, start):
+                continue
+            line = _lines_at(text, start)
+            here = lines[line - 1]
+            previous = lines[line - 2] if line >= 2 else ''
+            if value != METHOD:
+                if 'login/start' in value:
+                    problems.append({'file': name, 'line': line, 'unrecognised': 'literal names the method in another form'})
+                continue
+            form = None
+            for label, (prior, exact) in FORMS.items():
+                if here == exact:
+                    if (m := prior.fullmatch(previous)):
+                        form = label
+                        if label == 'native sign-in sender':
+                            oauth.append(sorted(set(re.findall(r'=>"([A-Za-z]+)"', m.group(1)))))
+                        else:
+                            api_key.append(name)
+                    break
+            if form is None and here == GENERIC_GUARD[0] and name.rsplit('/', 1)[-1] == 'auth_rpc.rs':
+                following = lines[line:line + 5]
+                if (len(following) == 5 and following[0] == GENERIC_GUARD[1] and following[1] == GENERIC_GUARD[2]
+                        and (m := GENERIC_GUARD[3].fullmatch(following[2])) and following[3:] == list(GENERIC_GUARD[4:])):
+                    form = 'generic route guard'
+                    generic.append(sorted(set(re.findall(r'"([A-Za-z]+)"', m.group(1)))))
+            if form is None and not any(here.startswith(e) or e in here for e in (f[1] for f in FORMS.values())):
+                form = classify(masked, start, end)
+            if form is None:
+                problems.append({'file': name, 'line': line, 'unrecognised': here[:200]})
+            else:
+                examined.append({'file': name, 'line': line, 'form': form})
+        for m in re.finditer(r'#\[\s*path\s*=\s*"([^"]*)"\s*\]|include!\(\s*"([^"]*)"\s*\)', text):
+            if in_test(name, m.start()):
+                continue
+            target = os.path.normpath(os.path.join(os.path.dirname(name), m.group(1) or m.group(2)))
+            if target.startswith('..') or os.path.isabs(target):
+                problems.append({'file': name, 'line': _lines_at(text, m.start()), 'unrecognised': 'source outside app/src-tauri/src'})
+        for m in re.finditer(r'concat!\s*\(', masked):
+            close = matching(masked, m.end() - 1, '(', ')')
+            if not in_test(name, m.start()) and any(m.start() <= s < close and 'account' in v for s, e, v in literals):
+                problems.append({'file': name, 'line': _lines_at(text, m.start()), 'unrecognised': 'concat! naming account'})
+    if len(oauth) != 1:
+        problems.append({'unrecognised': f'native sign-in sender found {len(oauth)} times; exactly one expected'})
+    if len(generic) != 1:
+        problems.append({'unrecognised': f'generic route guard found {len(generic)} times; exactly one expected'})
+    if api_key:
+        auth = next((lexed[n][0] for n in host if n.rsplit('/', 1)[-1] == 'auth_rpc.rs'), '')
+        lines = _stripped_lines(auth)
+        if not any(lines[k:k + 3] == list(API_KEY_PARAMS) for k in range(len(lines))):
+            problems.append({'unrecognised': 'API-key sender without the stated into_params form'})
+    native = oauth[0] if len(oauth) == 1 else []
+    allowed = generic[0] if len(generic) == 1 else []
     result = {'account_sign_in_types': sorted(set(native) | set(allowed)),
               'native_sign_in_types': native, 'generic_route_allowed_types': allowed,
+              'senders_examined': examined, 'unaccounted': problems,
+              'host_source_files': len(host), 'test_files_not_read': excluded,
               'separate_api_key_login': None}
     if api_key:
-        callers = sorted(n for n, text in sources.items() if API_KEY_CALLER.search(text) and n != 'hosting.rs')
+        callers = sorted(n for n in host if API_KEY_CALLER.search(lexed[n][1]) and n.rsplit('/', 1)[-1] != 'hosting.rs')
         result['separate_api_key_login'] = {
             'type': 'apiKey', 'sent_from': callers,
-            'standing': 'API-key login to a dedicated home, not account sign-in; outside the compared set'}
+            'standing': 'API-key login to a dedicated home, not account sign-in; outside the compared types'}
     return result
 
 
@@ -205,7 +469,7 @@ def derive(reader):
         raise Unreadable('schema is not JSON') from error
     definitions = compared_definitions(schema)
     named = {n: schema['definitions'].get(n) for n in NAMED}
-    flow = sign_in_types(reader.rust_sources())
+    flow = account_senders(reader.rust_sources())
     return {'pin': pin, 'schema_path': SCHEMA.format(pin=pin), 'schema_file_sha256': sha(raw),
             'compared_definitions': sorted(definitions),
             'compared_set_sha256': sha(canonical(definitions)),
@@ -236,18 +500,20 @@ def baseline(tree):
 def compare(source_root, record_root=None):
     """`unchanged` only when every input was read and nothing in the compared flow differs."""
     tree, retained = Tree(source_root), Tree(record_root or source_root)
-    report = {'format': 'chirality-terms-sign-in-flow/v1',
+    report = {'format': 'chirality-terms-sign-in-flow/v1', 'rules': list(RULES),
               'standing': 'states no applicability; whether the position applies is the owner\'s statement (DEL-01-06 CLM-003)'}
     try:
         base = baseline(retained)
         candidate = derive(tree)
-    except (Unreadable, ValueError, UnicodeDecodeError) as error:
+    except (Unreadable, ValueError, UnicodeDecodeError, RecursionError) as error:
         return report | {'status': 'unresolved', 'differences': [{'unreadable': str(error)}]}
     differences = []
     for name in sorted(set(base['definition_sha256']) | set(candidate['definition_sha256'])):
         before, after = base['definition_sha256'].get(name), candidate['definition_sha256'].get(name)
         if before != after:
             differences.append({'definition': name, 'baseline': before, 'candidate': after})
+    if candidate['unaccounted']:
+        differences.append({'unaccounted': candidate['unaccounted']})
     if base['account_sign_in_types'] != candidate['account_sign_in_types']:
         differences.append({'account_sign_in_types': {'baseline': base['account_sign_in_types'],
                                                       'candidate': candidate['account_sign_in_types']}})
