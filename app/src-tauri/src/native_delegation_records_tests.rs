@@ -2,11 +2,15 @@
 //! at the pipe (supplier_checks/recordings/nv04.recording.json) and received
 //! through the App's native view; they show what the recorder writes from
 //! such frames, not that a supplier's child ran on a candidate.
+use super::super::{published_at, Scope};
 use super::*;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 const RECORDING: &str = include_str!("../../supplier_checks/recordings/nv04.recording.json");
 const BRIEF: &str = include_str!("../../tests/fixtures/FX-FL1/briefs/W1.json");
+/// `shasum -a 256` of the recorded spawn prompt's bytes.
+const PROMPT_SHA256: &str = "08aa0f0fa681b447f6149da457dd11ed0543452bff50e01ce38f51dc0d78d3f7";
 
 struct Fixture {
     root: PathBuf,
@@ -127,10 +131,10 @@ fn a_spawn_received_live_is_recorded_once_with_the_identities_codex_reported() {
     assert_eq!(body["child"], json!({"threadId":s.child,"generation":g}));
     assert_eq!(body["spawnItem"]["itemId"], "call_spawn_1");
     assert_eq!(body["spawnItem"]["threadId"], s.parent.as_str());
-    // The prompt's identity is recomputed here from the recorded frame; its text is nowhere in the files.
-    assert!(!s.prompt.is_empty());
-    assert_eq!(body["spawnPrompt"], json!({"state":"supplied","bytes":s.prompt.len(),
-        "content":{"method":crate::util::FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(s.prompt.as_bytes())}}));
+    // The prompt's identity, against a SHA-256 of the recorded frame's prompt computed outside the product; its text is nowhere in the files.
+    assert_eq!(s.prompt, "st5-child-brief-marker: count the invented files.");
+    assert_eq!(body["spawnPrompt"], json!({"state":"supplied","bytes":49,
+        "content":{"method":"chirality.app.exact-bytes.sha256/v1","value":PROMPT_SHA256}}));
     assert!(f.lines(0).iter().chain(f.lines(1).iter()).all(|line| !line.contains(&s.prompt)));
     assert_eq!(body["association"], json!({"state":"no brief reference"}));
     // The status is the supplier's value, unchanged, from the same item.
@@ -210,13 +214,19 @@ fn the_association_is_recorded_only_as_the_prompt_and_the_brief_file_establish_i
         assert!(unresolved["reason"].as_str().unwrap().contains(reason), "{unresolved}");
         assert!(unresolved.get("brief").is_none());
     }
-    // A file with the referenced bytes that is not a brief record ties nothing.
+    // A file that is not a brief record ties nothing, whether or not its bytes are the referenced ones.
     let stray = f.project.join(FLEET).join("briefs/stray.json");
     std::fs::write(&stray, b"{}").unwrap();
-    assert_eq!(state(Some(&line("briefs/stray.json", &crate::util::sha256_hex(b"{}"))))["state"], "brief reference not resolved");
+    for digest in [crate::util::sha256_hex(b"{}"), other.clone()] {
+        let unresolved = state(Some(&line("briefs/stray.json", &digest)));
+        assert_eq!(unresolved["state"], "brief reference not resolved");
+        assert!(unresolved["reason"].as_str().unwrap().contains("not a readable brief record"));
+    }
+    assert_eq!(changed["brief"], "brief:W1", "a mismatch still names the brief the file holds");
     // Every state is one the record format admits, on a recorded dispatch.
     let g = generation("first");
-    for (index, prompt) in [Some(line("briefs/W1.json", &digest)), Some(line("briefs/W1.json", &other)), Some(line("briefs/absent.json", &digest)), None].into_iter().enumerate() {
+    let malformed = format!("{BRIEF_REFERENCE} briefs/W1.json");
+    for (index, prompt) in [Some(line("briefs/W1.json", &digest)), Some(line("briefs/W1.json", &other)), Some(line("briefs/absent.json", &digest)), None, Some(malformed)].into_iter().enumerate() {
         let mut s = spawn(&g, Some(prompt.as_deref()));
         s.child = format!("child-{index}");
         let mut view = handed(&s, &g, &f.project);
@@ -229,8 +239,11 @@ fn the_association_is_recorded_only_as_the_prompt_and_the_brief_file_establish_i
         assert!(session.snapshot()["limits"].as_array().unwrap().is_empty(), "{}", session.snapshot()["limits"]);
     }
     let recorded: Vec<Value> = f.of("dispatch_observed").iter().map(|row| row["body"]["association"]["state"].clone()).collect();
-    assert_eq!(recorded, json!(["brief referenced", "brief referenced; content does not match the reference", "brief reference not resolved", "no brief reference"]).as_array().unwrap().clone());
+    assert_eq!(recorded, json!(["brief referenced", "brief referenced; content does not match the reference", "brief reference not resolved", "no brief reference", "brief reference not resolved"]).as_array().unwrap().clone());
     assert_eq!(f.of("dispatch_observed")[3]["body"]["spawnPrompt"], json!({"state":"not supplied"}));
+    // A malformed line gives no complete reference to quote, and the child is still recorded under its parent.
+    let loose = &f.of("dispatch_observed")[4]["body"];
+    assert_eq!((&loose["association"]["references"], &loose["child"]["threadId"]), (&json!([]), &json!("child-4")));
 }
 
 #[test]
@@ -254,33 +267,59 @@ fn the_end_of_observation_is_recorded_with_its_cause_and_never_before_it_is_know
 }
 
 #[test]
-fn a_child_recorded_by_an_earlier_session_is_ended_at_relaunch_from_stored_lines_alone() {
+fn a_session_ends_only_its_own_observation_and_at_its_own_exit() {
     let f = Fixture::new();
-    let first = generation("first");
-    let s = spawn(&first, None);
-    f.observe(&mut Session::default(), &[handed(&s, &first, &f.project)], None);
-    assert_eq!(f.rows().len(), 2);
-    // The App is relaunched: a new session holds the same home, with nothing received yet.
-    let second = generation("second");
-    let mut view = crate::native_items::NativeView::new("invented-home".into()).unwrap();
-    view.ready(second.clone(), json!("invented version"), Value::Null).unwrap();
+    let g = generation("first");
+    let s = spawn(&g, None);
     let mut session = Session::default();
-    for _ in 0..3 {
-        f.observe(&mut session, &[view.snapshot()], None);
+    f.observe(&mut session, &[handed(&s, &g, &f.project)], None);
+    assert_eq!(f.rows().len(), 2);
+    // Another session, which recorded nothing of this child, holds the same home. Reading the same
+    // files, and exiting, it records nothing about a child it did not itself observe.
+    let second = generation("second");
+    let mut other_view = crate::native_items::NativeView::new("invented-home".into()).unwrap();
+    other_view.ready(second.clone(), json!("invented version"), Value::Null).unwrap();
+    let mut other = Session::default();
+    f.observe(&mut other, &[other_view.snapshot()], None);
+    other.end_own_delegation(&mut |generation| Some((f.context(generation), "App quit")));
+    assert_eq!(f.rows().len(), 2, "one home under two sessions establishes nothing about the first session's child");
+    // The session that recorded the child exits: its own observation ends, once.
+    for _ in 0..2 {
+        session.end_own_delegation(&mut |generation| Some((f.context(generation), "App quit")));
     }
     let ended = f.of("observation_ended");
     assert_eq!(ended.len(), 1);
-    assert_eq!(ended[0]["body"], json!({"child":{"threadId":s.child,"generation":first},"cause":"App relaunch","lastObserved":"pendingInit",
+    assert_eq!(ended[0]["body"], json!({"child":{"threadId":s.child,"generation":g},"cause":"App quit","lastObserved":"pendingInit",
         "nativeHome":f.of("dispatch_observed")[0]["body"]["nativeHome"]}));
-    // A session that holds another home says nothing of this one's children.
-    let g = Fixture::new();
-    let s = spawn(&first, None);
-    g.observe(&mut Session::default(), &[handed(&s, &first, &g.project)], None);
-    let mut other = crate::native_items::NativeView::new("another-home".into()).unwrap();
-    let other_generation = json!({"appSession":"second","home":"another-home","spawnCounter":1});
-    other.ready(other_generation, json!("invented version"), Value::Null).unwrap();
-    g.observe(&mut Session::default(), &[other.snapshot()], None);
-    assert!(g.of("observation_ended").is_empty());
+    // A generation whose home the exiting session no longer holds is given no end.
+    let h = Fixture::new();
+    let mut session = Session::default();
+    h.observe(&mut session, &[handed(&s, &g, &h.project)], None);
+    session.end_own_delegation(&mut |_| None);
+    assert!(h.of("observation_ended").is_empty());
+}
+
+#[test]
+fn facts_reach_the_store_in_the_order_observed_after_failed_writes() {
+    let f = Fixture::new();
+    let g = generation("first");
+    let mut s = spawn(&g, None);
+    // The store's log cannot be written: a folder stands where the file belongs.
+    let log = published_at(&f.scope, 0);
+    std::fs::create_dir_all(&log).unwrap();
+    let mut session = Session::default();
+    f.observe(&mut session, &[handed(&s, &g, &f.project)], None);
+    s.view.close(&g).unwrap();
+    f.observe(&mut session, &[handed(&s, &g, &f.project)], Some("Codex process stopped"));
+    assert!(session.has_pending() && f.lines(1).is_empty(), "nothing reaches the project's log before the store holds it");
+    std::fs::remove_dir(&log).unwrap();
+    for _ in 0..3 {
+        session.retry(Some(&f.project));
+    }
+    let kinds: Vec<Value> = f.rows().iter().map(|row| row["kind"].clone()).filter(|kind| KINDS.contains(&kind.as_str().unwrap())).collect();
+    assert_eq!(kinds, json!(["dispatch_observed", "child_observed", "observation_ended"]).as_array().unwrap().clone(),
+        "a delayed status is never written after the end of its own observation");
+    assert!(!session.has_pending());
 }
 
 #[test]

@@ -869,12 +869,16 @@ implemented behavior and qualification limits.
     referenced, brief referenced whose content does not match the
     reference, brief reference not resolved (with the reason), or no brief
     reference. A match shows which brief was named, not that the child
-    received or read it. `child_observed` is
+    received or read it. A file that is not a brief record is never a
+    reference that resolves, whatever its digest. `child_observed` is
     written when the status Codex reports for a child changes, and
     `observation_ended` when the generation it was observed in closes
-    (Codex stopped or exited) or, at the next launch, for a child an earlier
-    session left unended (cause "App relaunch"). A dispatch establishes a
-    child and its parent only. A spawn seen only in Codex history, or in a
+    (Codex stopped or exited) or when the App itself exits (cause "App
+    quit"). A session records the end only of its own observation: nothing
+    is ever written about a child another session recorded, and after a
+    crash or a kill no end is recorded at all. These facts reach the store
+    in the order observed; a later one waits while an earlier one is
+    unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
     conversation whose folder is not the selected project, is not recorded.
     An observation whose project has no usable records-store attachment
     waits and is recorded once it has one.
@@ -892,10 +896,12 @@ implemented behavior and qualification limits.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. Decision
     needs remain unknown without their required evidence. An item whose
-    brief an App-recorded dispatch referenced, with no return recorded, reads
-    `dispatched` with the child's last recorded status, and `unknown` once
-    that child's observation ended; a child tied to no brief leaves no item
-    plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
+    own brief file an App-recorded dispatch referenced, with no return
+    recorded, reads `dispatched` with the child's last recorded status, when
+    it was recorded and that nothing has been recorded since, and `unknown`
+    once an end of that child's observation is recorded. The same brief
+    identifier from another file ties nothing. A child tied to no brief
+    leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 

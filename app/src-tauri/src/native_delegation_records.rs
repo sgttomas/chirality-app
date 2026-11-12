@@ -3,13 +3,15 @@
 //! another: a dispatch (a completed spawn item, received live, naming a new
 //! child thread), the child's status as Codex last reported it, and the end of
 //! observation. They are published through the same store-first, identical-line
-//! writer as related conversations. A dispatch establishes the child and its
-//! parent only; no work done, return, review or integration follows from it.
-use super::{line, published_at, read_log, rows, settle, validate_record, Pending, Scope, Session, SourceContext};
+//! writer as related conversations, in the order they were observed. A
+//! dispatch establishes the child and its parent only; no work done, return,
+//! review or integration follows from it. A session records the end only of
+//! its own observation, on evidence it holds itself: nothing is ever recorded
+//! about a child another session observed.
+use super::{line, read_log, settle, validate_record, Pending, Session, SourceContext};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
-use std::sync::Arc;
 
 /// The one line by which a delegating agent's spawn prompt names its brief:
 /// `Chirality-Brief: briefs/<file>.json sha256:<64 lowercase hex>`. The path is
@@ -29,9 +31,21 @@ pub(super) struct State {
     /// Observations left unrecorded because their conversation's folder is
     /// not the selected project, or is not known. Decided once per key.
     outside: BTreeSet<String>,
-    /// The project and live sources whose earlier sessions were read for
-    /// unended children. Their stored lines do not change within a session.
-    relaunch_read: Option<String>,
+    /// Facts not yet fully published, in the order they were observed. A
+    /// later one is not written to the store while an earlier one is unwritten.
+    order: Vec<String>,
+    /// For each view, what it held when it was last read with nothing left
+    /// waiting; an unchanged view is not read again.
+    seen: BTreeMap<String, String>,
+}
+enum Taken {
+    Recorded,
+    /// The recording context is unavailable; a later tick finds it again.
+    Waits,
+    Refused,
+}
+pub(super) fn is_delegation(record: &Value) -> bool {
+    KINDS.contains(&record["kind"].as_str().unwrap_or(""))
 }
 
 fn key(parts: Value) -> String {
@@ -105,19 +119,15 @@ pub(super) fn associate(project: &Path, prompt: Option<&str>) -> Value {
     };
     let brief = crate::fleet_records::validate_line(&bytes).ok().filter(|r| r["kind"] == "brief")
         .and_then(|r| r["body"]["briefId"].as_str().map(str::to_owned));
-    let current = crate::util::sha256_hex(&bytes);
-    if &current == referenced {
-        match brief {
-            Some(brief) => json!({"state":"brief referenced","brief":brief,"briefFile":file,"briefContent":identity(&bytes)}),
-            None => unresolved("the referenced file is not a readable brief record", &references),
-        }
+    // A file that is not a brief record ties nothing, whatever its digest.
+    let Some(brief) = brief else {
+        return unresolved("the referenced file is not a readable brief record", &references);
+    };
+    if &crate::util::sha256_hex(&bytes) == referenced {
+        json!({"state":"brief referenced","brief":brief,"briefFile":file,"briefContent":identity(&bytes)})
     } else {
-        let mut value = json!({"state":"brief referenced; content does not match the reference","briefFile":file,
-            "referencedContent":{"method":crate::util::FILE_IDENTITY_METHOD,"value":referenced},"currentContent":identity(&bytes)});
-        if let Some(brief) = brief {
-            value["brief"] = json!(brief);
-        }
-        value
+        json!({"state":"brief referenced; content does not match the reference","brief":brief,"briefFile":file,
+            "referencedContent":{"method":crate::util::FILE_IDENTITY_METHOD,"value":referenced},"currentContent":identity(&bytes)})
     }
 }
 
@@ -163,26 +173,46 @@ impl Session {
             self.limits.push(reason);
         }
     }
-    /// Whether the fact was taken for recording. An observation whose
-    /// recording context is unavailable (no attached store, a changed project
-    /// link, a closed project) is left for a later tick, which finds it in the
-    /// same view; it is neither dropped nor recorded under another context.
-    fn delegation_fact(&mut self, key: String, context: SourceContext, kind: &str, body: Value) -> bool {
+    /// An observation whose recording context is unavailable (no attached
+    /// store, a changed project link, a closed project) is left for a later
+    /// tick, which finds it in the same view; it is neither dropped nor
+    /// recorded under another context.
+    fn delegation_fact(&mut self, key: String, context: SourceContext, kind: &str, body: Value) -> Taken {
         match fact(context, kind, body) {
             Ok(pending) if pending.permanent.is_some() => {
                 self.delegation_limit(format!("Native delegation observation ({kind}) waits to be recorded: {}", pending.permanent.unwrap()));
-                false
+                Taken::Waits
             }
-            Ok(mut pending) => {
-                settle(&mut pending);
-                self.facts.insert(key, pending);
-                true
+            Ok(pending) => {
+                self.facts.insert(key.clone(), pending);
+                self.delegation.order.push(key);
+                self.settle_delegation();
+                Taken::Recorded
             }
             Err(reason) => {
                 self.delegation_limit(format!("Native delegation observation ({kind}) not recorded: {reason}"));
-                false
+                self.delegation.outside.insert(key);
+                Taken::Refused
             }
         }
+    }
+    /// Publishes in the order observed. A fact the store does not yet hold
+    /// stops everything after it, so that a delayed status is never written
+    /// after the end of its own observation.
+    pub(super) fn settle_delegation(&mut self) {
+        let mut blocked = false;
+        let mut owed = Vec::new();
+        for key in std::mem::take(&mut self.delegation.order) {
+            let Some(pending) = self.facts.get_mut(&key) else { continue };
+            if !blocked {
+                settle(pending);
+                blocked = !pending.store_done;
+            }
+            if !(pending.store_done && pending.project_done && pending.events.iter().all(|e| e.store_done && e.project_done)) {
+                owed.push(key);
+            }
+        }
+        self.delegation.order = owed;
     }
     /// One reading of the native views the record tick received. `freeze`
     /// captures the recording context of a generation; `cause` says how a
@@ -195,10 +225,19 @@ impl Session {
         cause: &dyn Fn(&Value) -> Option<&'static str>,
     ) {
         let Some(project) = project.and_then(|p| p.canonicalize().ok()) else { return };
-        let mut live = BTreeMap::new();
         for view in views {
             let generation = &view["generation"];
             let Some(home) = generation["home"].as_str().filter(|_| crate::recovery::generation_ref(generation).is_ok()) else { continue };
+            // A view that has received nothing since it was last read through,
+            // with nothing left waiting, holds nothing new to record.
+            let slot = key(json!([home, generation]));
+            let held = key(json!([view["position"], view["items"].as_array().map_or(0, Vec::len),
+                view["descendants"].as_array().into_iter().flatten().filter(|node| node["observationEnded"] == true).count(),
+                view["hostThreads"].as_array().map_or(0, Vec::len)]));
+            if self.delegation.seen.get(&slot) == Some(&held) {
+                continue;
+            }
+            let mut waiting = false;
             let mut context: Option<SourceContext> = None;
             let mut collab: Vec<(u64, &Value)> = view["items"].as_array().into_iter().flatten()
                 .filter(|row| row["native"]["type"] == "collabAgentToolCall" && row["standing"] == "live-observed" && row["receipt"]["generation"] == *generation)
@@ -235,8 +274,12 @@ impl Session {
                         "association":associate(&project, prompt),
                         "observation":{"source":"item/completed notification, received live","position":position},
                         "typesPin":crate::hosting::DECLARED_PIN});
-                    if self.delegation_fact(dispatch, context, "dispatch_observed", body) {
-                        self.delegation.watched.insert(key(json!(["ended", home, generation, child])), json!({"threadId":child,"generation":generation}));
+                    match self.delegation_fact(dispatch, context, "dispatch_observed", body) {
+                        Taken::Recorded => {
+                            self.delegation.watched.insert(key(json!(["ended", home, generation, child])), json!({"threadId":child,"generation":generation}));
+                        }
+                        Taken::Waits => waiting = true,
+                        Taken::Refused => {}
                     }
                 }
             }
@@ -251,6 +294,10 @@ impl Session {
             }
             for (child, (row, status)) in latest {
                 let slot = key(json!([home, generation, child]));
+                // A status of a generation whose end this session recorded is not recorded after it.
+                if self.facts.contains_key(&key(json!(["ended", home, generation, child]))) {
+                    continue;
+                }
                 if self.delegation.statuses.get(&slot).is_some_and(|last| last == status) {
                     continue;
                 }
@@ -271,102 +318,56 @@ impl Session {
                 let body = json!({"child":{"threadId":child,"generation":generation},"status":status,
                     "statusSource":"collabAgentToolCall.agentsStates","sourceItem":item_ref(row),
                     "nativeHome":context.native_home.as_ref().ok(),"typesPin":crate::hosting::DECLARED_PIN});
-                if self.delegation_fact(observed, context, "child_observed", body) {
-                    self.delegation.statuses.insert(slot, status.to_owned());
-                    self.delegation.watched.insert(key(json!(["ended", home, generation, child])), json!({"threadId":child,"generation":generation}));
+                match self.delegation_fact(observed, context, "child_observed", body) {
+                    Taken::Recorded => {
+                        self.delegation.statuses.insert(slot, status.to_owned());
+                        self.delegation.watched.insert(key(json!(["ended", home, generation, child])), json!({"threadId":child,"generation":generation}));
+                    }
+                    Taken::Waits => waiting = true,
+                    Taken::Refused => {}
                 }
             }
             // A closed view marks every descendant's observation ended.
             let ended: Vec<&str> = view["descendants"].as_array().into_iter().flatten()
                 .filter(|node| node["observationEnded"] == true).filter_map(|node| node["threadId"].as_str()).collect();
-            if ended.is_empty() {
-                live.insert(home.to_owned(), generation["appSession"].clone());
-            }
             for child in ended {
                 let end = key(json!(["ended", home, generation, child]));
                 if self.facts.contains_key(&end) || !self.delegation.watched.contains_key(&end) {
                     continue;
                 }
-                let Some(cause) = cause(generation) else { continue };
+                let Some(cause) = cause(generation) else {
+                    waiting = true;
+                    continue;
+                };
                 let context = context.get_or_insert_with(|| freeze(generation)).clone();
                 let last = self.delegation.statuses.get(&key(json!([home, generation, child]))).cloned();
                 let body = json!({"child":self.delegation.watched[&end],"cause":cause,"lastObserved":last,"nativeHome":context.native_home.as_ref().ok()});
-                self.delegation_fact(end, context, "observation_ended", body);
+                if matches!(self.delegation_fact(end, context, "observation_ended", body), Taken::Waits) {
+                    waiting = true;
+                }
             }
-        }
-        if let Err(reason) = self.delegation_relaunch(&project, &live) {
-            self.delegation_limit(format!("Earlier native delegation observations were not read for their end: {reason}"));
+            if waiting {
+                self.delegation.seen.remove(&slot);
+            } else {
+                self.delegation.seen.insert(slot, held);
+            }
         }
     }
-    /// A child recorded by an earlier App session, whose observation was never
-    /// recorded as ended, is no longer observed by anyone once this session
-    /// holds that home's Codex: an App-owned home is hosted by one App at a
-    /// time. Its end is recorded with the cause "App relaunch" and the status
-    /// last recorded, which says nothing of the child's outcome. Only this
-    /// installation's stored lines are read: a line that entered by import is
-    /// quoted evidence of another source and is given no end here. No native
-    /// source is consulted.
-    fn delegation_relaunch(&mut self, project: &Path, live: &BTreeMap<String, Value>) -> Result<(), String> {
-        let read = key(json!([project.to_string_lossy(), live]));
-        if live.is_empty() || self.delegation.relaunch_read.as_ref() == Some(&read) {
-            return Ok(());
-        }
-        let scope = Scope::capture(project)?;
-        crate::records_retention::check_write(&scope.dir.path)?;
-        if crate::records_retention::terminal(&scope.dir.path)? {
-            return Ok(());
-        }
-        let bytes = read_log(&published_at(&scope, 0))?;
-        let imported = crate::records_store::package::quoted_prefix(&scope.dir.path, &format!("fleet/{}", super::LOG), &bytes)?;
-        let stored = rows(&bytes, true)?;
-        scope.check()?;
-        let mut children: BTreeMap<String, (Value, Value)> = BTreeMap::new();
-        let mut statuses: BTreeMap<String, String> = BTreeMap::new();
-        let mut ended = BTreeSet::new();
-        let mut start = 0u64;
-        for (row, line) in &stored {
-            let local = start >= imported;
-            start += line.len() as u64;
-            if !local || row["formatVersion"] != "0.2" || !KINDS.contains(&row["kind"].as_str().unwrap_or("")) {
+    /// At the App's own exit, this session's observation of every child it
+    /// recorded ends. `resolve` gives the recording context of a generation
+    /// and how its observation ended, or `None` where the session no longer
+    /// holds that generation's home. Nothing is recorded for a child this
+    /// session did not itself record.
+    pub(super) fn end_own_delegation(&mut self, resolve: &mut dyn FnMut(&Value) -> Option<(SourceContext, &'static str)>) {
+        for (end, child) in self.delegation.watched.clone() {
+            if self.facts.contains_key(&end) {
                 continue;
             }
-            let child = &row["body"]["child"];
-            let (Some(home), Some(thread)) = (child["generation"]["home"].as_str(), child["threadId"].as_str()) else { continue };
-            let end = key(json!(["ended", home, child["generation"], thread]));
-            match row["kind"].as_str() {
-                Some("observation_ended") => {
-                    ended.insert(end);
-                }
-                Some(kind) => {
-                    if kind == "child_observed" {
-                        statuses.insert(end.clone(), row["body"]["status"].as_str().unwrap_or_default().to_owned());
-                    }
-                    children.entry(end).or_insert_with(|| (child.clone(), row["body"]["nativeHome"].clone()));
-                }
-                None => {}
-            }
-        }
-        for (end, (child, native_home)) in children {
-            let home = child["generation"]["home"].as_str().unwrap_or_default();
-            if ended.contains(&end) || self.facts.contains_key(&end) || live.get(home).is_none_or(|session| *session == child["generation"]["appSession"]) {
-                continue;
-            }
-            let activity = crate::records_retention::activity(&scope.project.path)?.ok_or("recording custody unavailable")?;
-            let context = SourceContext { scope: Ok(scope.clone()), native_home: Ok(native_home.clone()), generation: child["generation"].clone(),
-                activity: Some(Arc::new(activity)), custody_limit: None };
-            let body = json!({"child":child,"cause":"App relaunch","lastObserved":statuses.get(&end),"nativeHome":native_home});
+            let Some((context, cause)) = resolve(&child["generation"]) else { continue };
+            let last = self.delegation.statuses.get(&key(json!([child["generation"]["home"], child["generation"], child["threadId"]]))).cloned();
+            let body = json!({"child":child,"cause":cause,"lastObserved":last,"nativeHome":context.native_home.as_ref().ok()});
             self.delegation_fact(end, context, "observation_ended", body);
         }
-        self.delegation.relaunch_read = Some(read);
-        Ok(())
-    }
-}
-
-#[cfg(test)]
-impl Session {
-    /// The relaunch reading alone, for a session that holds `home` under `app_session`.
-    pub(crate) fn delegation_relaunch_for_test(&mut self, project: &Path, home: &str, app_session: &str) -> Result<(), String> {
-        self.delegation_relaunch(project, &BTreeMap::from([(home.to_owned(), json!(app_session))]))
     }
 }
 

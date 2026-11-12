@@ -9433,6 +9433,34 @@ for line in sys.stdin:
         assert_eq!(rows.len(),3,"{rows:?}");
         assert_eq!(rows[2]["body"],json!({"child":{"threadId":"child-old","generation":g},"cause":"Codex process stopped","lastObserved":"running","nativeHome":dispatch["nativeHome"]}));
     }
+    // DEL-06-01: at the App's own exit, with Codex still running, the session's
+    // observation of the child it recorded ends with the cause "App quit".
+    #[test]
+    fn the_apps_exit_ends_its_own_observation_of_a_recorded_child(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-exit-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        assert!(crate::records_store::attach(&peer.fixture.root,true).unwrap().dir.is_some());
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let rows=||crate::read_fleet_records_for_workspace(peer.project()).unwrap()["coordination"]["nativeDelegation"].as_array().unwrap().iter().map(|row|row["record"].clone()).collect::<Vec<Value>>();
+        // An exit before anything was recorded writes nothing.
+        links.end_delegation_at_exit(peer.project(),&[peer.home.clone()]);assert!(rows().is_empty());
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while rows().len()<2{
+            for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+            assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
+        }
+        assert_eq!(peer.home.host.snapshot()["state"],"ready");
+        for _ in 0..2{links.end_delegation_at_exit(peer.project(),&[peer.home.clone()]);}
+        let recorded=rows();assert_eq!(recorded.len(),3,"{recorded:?}");
+        assert_eq!((&recorded[2]["kind"],&recorded[2]["body"]["cause"],&recorded[2]["body"]["lastObserved"]),(&json!("observation_ended"),&json!("App quit"),&json!("running")));
+        assert_eq!(recorded[2]["body"]["child"],json!({"threadId":"child-old","generation":g}));
+    }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.
     #[test]

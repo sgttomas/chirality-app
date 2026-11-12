@@ -656,7 +656,7 @@ impl Fixture {
             "nativeHome":self.native_home(),"typesPin":crate::hosting::DECLARED_PIN}))
     }
     fn ended(&self, child: &str, last: &str) -> Value {
-        native("observation_ended", &format!("ended-{child}"), json!({"child":native_child(child),"cause":"App relaunch","lastObserved":last,"nativeHome":self.native_home()}))
+        native("observation_ended", &format!("ended-{child}"), json!({"child":native_child(child),"cause":"App quit","lastObserved":last,"nativeHome":self.native_home()}))
     }
     /// The store's governing copy holds exactly these lines; the project's log gets the identical lines.
     fn observed(&mut self, rows: &[Value]) {
@@ -708,15 +708,25 @@ fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observat
     let w = f.read();
     let held = work(view(&w), "W1");
     assert_eq!(held["category"], "dispatched", "a child Codex reports completed is not a return");
-    assert!(held["causes"].to_string().contains("child last observed completed"));
+    assert!(held["causes"].to_string().contains("child last observed completed as recorded invented time; nothing has been recorded of it since"));
     assert_eq!(view(&w)["queue"], json!([]));
     // The governing copy is only ever appended to; a rewritten one would be refused whole.
     f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed"), f.ended("child-a", "completed")]);
     let w = f.read();
     let held = work(view(&w), "W1");
     assert_eq!(held["category"], "unknown");
-    assert!(held["causes"].to_string().contains("observation ended (App relaunch), last recorded status completed; outcome unknown"));
+    assert!(held["causes"].to_string().contains("observation ended (App quit) as recorded invented time, last recorded status completed; outcome unknown"));
     assert_eq!(view(&w)["queue"], json!([]), "an ended observation is no return");
+    // A status of the ended generation written after its end (a delayed write) does not revive it.
+    f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed"), f.ended("child-a", "completed"), f.status("child-a", "pendingInit")]);
+    let w = f.read();
+    let held = work(view(&w), "W1");
+    assert_eq!(held["category"], "unknown", "an ended generation stays ended");
+    assert_eq!(held["dispatch"]["observationEnded"], true);
+    // Each record that decided the row is among its sources, with its source line and governing order.
+    assert_eq!(held["sources"]["dispatch"]["recordId"], dispatch["observationId"]);
+    assert_eq!(held["sources"]["childObservation"]["recordId"], "fl:app:ended-child-a");
+    assert!(held["sources"]["dispatch"]["protectedOrder"].is_u64() && held["sources"]["dispatch"]["source"]["line"].is_u64());
     f.ret("fl:return", "W1");
     let w = f.read();
     assert_eq!(work(view(&w), "W1")["category"], "returned");
@@ -764,4 +774,41 @@ fn fleet_views_a_project_line_naming_the_app_or_a_child_tied_to_no_brief_never_r
     assert_eq!(work(view(&w), "W1")["category"], "dispatched");
     assert!(work(view(&w), "W1")["causes"].to_string().contains("does not have the content the prompt referenced"));
     assert_eq!(work(view(&w), "W1")["dispatch"]["briefContentMatches"], false, "the mismatch is its own field, not only a sentence");
+}
+
+// A dispatch is tied to an item only where the file its prompt referenced is
+// the file of that item's own brief (DEL-06-01 REQ-001: an association is
+// recorded only as established). Expectations are that rule, not the output.
+#[test]
+fn fleet_views_a_dispatch_ties_only_through_the_items_own_brief_file() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    // Another undertaking holds a valid brief with the same identifier, in its own file.
+    let mut foreign = brief("brief:W1", "another manager");
+    foreign["recordId"] = json!("fl:foreign-brief");
+    foreign["undertaking"] = json!("OTHER");
+    let foreign_bytes = serde_json::to_vec(&foreign).unwrap();
+    f.put("briefs/OTHER-W1.json", &foreign_bytes);
+    let elsewhere = json!({"state":"brief referenced","brief":"brief:W1","briefFile":"briefs/OTHER-W1.json",
+        "briefContent":{"method":util::FILE_IDENTITY_METHOD,"value":util::sha256_hex(&foreign_bytes)}});
+    let foreign_dispatch = f.dispatch("foreign-child", elsewhere);
+    f.observed(&[foreign_dispatch.clone()]);
+    let w = f.read();
+    let item = work(view(&w), "W1");
+    assert_ne!(item["category"], "dispatched", "the same identifier from another file ties nothing");
+    assert!(item["dispatch"].is_null());
+    assert!(item["causes"].to_string().contains("names this brief identifier from another file"));
+    // The item's own brief file is referenced: it is held.
+    let own = f.dispatch("own-child", association);
+    f.observed(&[foreign_dispatch.clone(), own.clone()]);
+    let w = f.read();
+    assert_eq!(work(view(&w), "W1")["category"], "dispatched");
+    assert_eq!(work(view(&w), "W1")["dispatch"]["child"], "own-child");
+    // The item's brief file is gone: the scope's table says unknown, and the dispatch is shown beside it.
+    std::fs::remove_file(f.project.join(FOLDER).join("briefs/W1.json")).unwrap();
+    let w = f.read();
+    let item = work(view(&w), "W1");
+    assert_eq!(item["category"], "unknown");
+    assert!(item["causes"].to_string().contains("named brief absent or ambiguous"));
+    assert!(item["causes"].to_string().contains("this item's brief file is not established"));
 }

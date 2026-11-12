@@ -463,45 +463,6 @@ fn restore_fleet_package(f: &Fixture, log: &Path, remove: bool) -> Value {
     records_store::package::apply(plan, &actor, &observed).unwrap()
 }
 
-// An imported dispatch is quoted evidence of another installation, even where
-// its home identity is the same string as this one's. Relaunch gives an end
-// only to a child this installation recorded.
-#[test]
-fn relaunch_ends_only_children_this_installation_recorded_never_an_imported_one() {
-    let f = Fixture::new();
-    let dispatch = |child: &str| {
-        let generation = json!({"appSession":"invented-earlier-session","home":"invented-package-home","spawnCounter":1});
-        let record = json!({"format":"chirality.fleet.record","formatVersion":"0.2","observationId":format!("fl:app:invented-dispatch-{child}"),
-            "kind":"dispatch_observed","recorder":{"kind":"App","identity":"app-writer:local"},"observedAt":"invented observation",
-            "body":{"mechanism":"Codex native subagent","parent":{"threadId":"invented-parent","generation":generation},
-                "child":{"threadId":child,"generation":generation},"parentSource":"collabAgentToolCall.senderThreadId",
-                "nativeHome":{"homeId":"invented-package-home","root":crate::attachments::native_path_identity(&f.project),"physical":{"device":1,"inode":1}},
-                "spawnItem":{"threadId":"invented-parent","turnId":"turn","itemId":format!("spawn-{child}")},"spawnPrompt":{"state":"not supplied"},
-                "association":{"state":"no brief reference"},"observation":{"source":"item/completed notification, received live","position":3},
-                "typesPin":crate::hosting::DECLARED_PIN}});
-        let mut bytes = serde_json::to_vec(&record).unwrap();
-        bytes.push(b'\n');
-        validate_line(&bytes).unwrap();
-        bytes
-    };
-    let imported = dispatch("imported-child");
-    let log = f.pair(&[imported.clone()]);
-    restore_fleet_package(&f, &log, true);
-    let relaunch = || crate::native_conversation_links::Session::default().delegation_relaunch_for_test(&f.project, "invented-package-home", "invented-this-session").unwrap();
-    relaunch();
-    assert_eq!(std::fs::read(&log).unwrap(), imported, "nothing is recorded about an imported child");
-    // This direct fixture append stands for a dispatch an earlier session of this installation recorded.
-    let bytes = [imported, dispatch("local-child")].concat();
-    f.put(&log, &bytes);
-    f.put(&f.project_log(), &bytes);
-    relaunch();
-    relaunch();
-    let rows: Vec<Value> = std::fs::read_to_string(&log).unwrap().lines().map(|line| serde_json::from_str(line).unwrap()).collect();
-    assert_eq!(rows.len(), 3, "one end, written once");
-    assert_eq!((&rows[2]["kind"], &rows[2]["body"]["child"]["threadId"], &rows[2]["body"]["cause"]), (&json!("observation_ended"), &json!("local-child"), &json!("App relaunch")));
-    assert_eq!(std::fs::read(f.project_log()).unwrap(), std::fs::read(&log).unwrap());
-}
-
 #[test]
 fn imported_native_relationship_claims_stay_quoted_and_later_local_append_has_its_own_provenance() {
     let f = Fixture::new();

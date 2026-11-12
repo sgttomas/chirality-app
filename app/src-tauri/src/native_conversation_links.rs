@@ -364,28 +364,37 @@ pub(crate) struct Session {
     limits: Vec<String>,
     delegation: delegation::State,
 }
+/// How the host's lifecycle events say a generation's Codex ended, if they do.
+fn generation_end(home: &HomeSession, generation: &Value) -> Option<&'static str> {
+    let events = home.host.lifecycle_events();
+    let ended = |state: &str| events.iter().any(|event| event["generation"] == *generation && event["toState"] == state);
+    if ended("exited-unexpectedly") {
+        Some("Codex process exited unexpectedly")
+    } else if ended("stopped") {
+        Some("Codex process stopped")
+    } else {
+        None
+    }
+}
 impl Session {
+    /// The App is exiting: this session's own observation of each child it
+    /// recorded ends, with the cause the host's lifecycle gives for that
+    /// generation or, where Codex was not seen to end, "App quit".
+    pub(crate) fn end_delegation_at_exit(&mut self, project: Option<&Path>, homes: &[Arc<HomeSession>]) {
+        self.end_own_delegation(&mut |generation| {
+            let home = homes.iter().find(|home| home.host.snapshot()["generation"]["home"] == generation["home"])?;
+            Some((freeze_at(project, home, generation.clone()), generation_end(home, generation).unwrap_or("App quit")))
+        });
+    }
     /// The record tick hands over each home's native views as received. What
     /// they show of native delegation is recorded once; nothing is sent.
     pub(crate) fn observe_delegation(&mut self, project: Option<&Path>, home: &HomeSession, views: &[Value]) {
-        let events = std::cell::OnceCell::new();
         self.observe_delegation_views(
             project,
             views,
             &mut |generation| freeze_at(project, home, generation.clone()),
-            &|generation| {
-                let ended = |state: &str| events.get_or_init(|| home.host.lifecycle_events()).iter()
-                    .any(|event| event["generation"] == *generation && event["toState"] == state);
-                if ended("exited-unexpectedly") {
-                    Some("Codex process exited unexpectedly")
-                } else if ended("stopped") {
-                    Some("Codex process stopped")
-                } else if home.host.snapshot()["generation"] != *generation {
-                    Some("cause not observed")
-                } else {
-                    None
-                }
-            },
+            &|generation| generation_end(home, generation)
+                .or_else(|| (home.host.snapshot()["generation"] != *generation).then_some("cause not observed")),
         );
     }
     pub(crate) fn has_pending(&self) -> bool {
@@ -650,7 +659,9 @@ impl Session {
                 self.recovery_limit = Some(reason);
             }
         }
-        for fact in self.facts.values_mut().filter(|p| p.permanent.is_none()) {
+        // Delegation facts are published in the order observed, apart.
+        self.settle_delegation();
+        for fact in self.facts.values_mut().filter(|p| p.permanent.is_none() && !delegation::is_delegation(&p.record)) {
             if project.is_some_and(|root| {
                 fact.context
                     .scope
