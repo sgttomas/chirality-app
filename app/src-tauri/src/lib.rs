@@ -1778,13 +1778,21 @@ fn ordinary_send_text_classified(home: &runtime_session::HomeSession, workflows:
     let model=if home.class()==home_resources::HomeClass::LocalProvider { Some(native_local_provider::MODEL) } else { model };
     // TC-2: one original ordered notice/person frame, with the same mode/model.
     if let Some(sent) = runtime_session::send_with_pending_notice_effort_observed(workflows, generation, thread, text, mode, model, effort, &mut |_| {}) {
-        // Definite only when no frame was attempted: no request was made, or
+        // Not sent only when no frame was attempted: no request was made, or
         // the Host's record shows its write never began (the notice then stays
-        // pending). A written notice-carrying turn is settled as sent whatever
-        // Codex replied, so any failure after a write stays unknown here.
+        // pending). Refused only on the Host's own record of Codex's correlated
+        // error reply to the written frame. The notice's own rules consume it
+        // on a write attempt whatever Codex replied and do not send it again;
+        // that is one fact and Codex's refusal of the turn is another, so the
+        // refusal is reported as one that carried the notice. Any other
+        // failure after a write attempt stays unknown.
         return sent.result.map_err(|e| match (&sent.written, &sent.source) {
             (false, None) => NotSent(e),
             (false, Some(source)) if source.write_attempt_observed() == Some(false) => NotSent(e),
+            (true, Some(source)) => match home.host.turn_start_refusal(source) {
+                Some(error) => hosting::TurnStartFailure::Refused { message: e, error, carried_end_notice: true },
+                None => Unknown(e),
+            },
             _ => Unknown(e),
         });
     }

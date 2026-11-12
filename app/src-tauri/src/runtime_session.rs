@@ -8707,7 +8707,7 @@ for line in sys.stdin:
         let native = json!({"code":-32000,"message":"fixture refused turn/start"});
         assert!(matches!(&refused, TurnStartFailure::Refused { error, .. } if *error == native), "{refused:?}");
         assert_eq!(refused.message(), format!("turn/start native error: {native}"), "the message every other caller receives is unchanged");
-        assert_eq!(refused.window_value(), json!({"sendOutcome":"refused-by-codex","nativeError":native}));
+        assert_eq!(refused.window_value(), json!({"sendOutcome":"refused-by-codex","nativeError":native,"nativeErrorText":serde_json::to_string_pretty(&native).unwrap(),"carriedEndNotice":false}));
         let record = peer.home.host.client_requests().last().unwrap().clone();
         assert_eq!((record["writeResult"].as_str(), record["outcome"].as_str()), (Some("written"), Some("response-observed-error")), "the register is unchanged");
         let starts = peer.turn_starts();
@@ -10378,10 +10378,29 @@ for line in sys.stdin:
         assert!(matches!(refused,TurnStartFailure::NotSent(_)),"{refused:?}");
         assert_eq!(notice_frames(&peer),0);assert!(notice_state(&root,&a).starts_with("pending"),"kept for the next turn");
         peer.set_mode("turn-mode","error");
+        // Written, and Codex's own correlated error came back: Codex refused the turn. That is
+        // reported as a refusal that carried the notice; the notice's own rules are untouched
+        // (consumed by the write attempt, never resent).
         let written=crate::ordinary_send_text_classified(&peer.home,&root,&peer.generation,"thread","with notice",None,None,None).unwrap_err();
-        assert!(matches!(written,TurnStartFailure::Unknown(_)),"{written:?}");
-        assert!(written.window_value().is_string(),"an unknown outcome keeps its present form");
+        assert!(matches!(&written,TurnStartFailure::Refused{error,carried_end_notice:true,..} if error["code"].is_i64()&&error["message"].is_string()),"{written:?}");
+        let shown=written.window_value();
+        assert_eq!((shown["sendOutcome"].as_str(),shown["carriedEndNotice"].as_bool()),(Some("refused-by-codex"),Some(true)),"{shown}");
         assert_eq!(notice_frames(&peer),1);assert_eq!(notice_state(&root,&a),"sent once with the next ordinary turn");
+        peer.set_mode("turn-mode","");
+        assert!(send_with_pending_notice(&root,&peer.generation,"thread","next").is_none(),"the refused notice is not resent");
+        assert_eq!(notice_frames(&peer),1);
+    }
+    // A notice-carrying frame that was written and got no reply before Codex ended is not a
+    // refusal: nothing establishes what Codex did with it.
+    #[test]
+    fn ordinary_notice_send_written_without_a_reply_stays_unknown(){
+        use crate::hosting::TurnStartFailure;
+        let peer=Peer::new();let (root,a)=ended_run(&peer);
+        peer.set_mode("turn-mode","exit");
+        let unanswered=crate::ordinary_send_text_classified(&peer.home,&root,&peer.generation,"thread","with notice",None,None,None).unwrap_err();
+        assert!(matches!(unanswered,TurnStartFailure::Unknown(_)),"{unanswered:?}");
+        assert!(unanswered.window_value().is_string(),"an unknown outcome keeps its present form");
+        assert_eq!(notice_state(&root,&a),"sent once with the next ordinary turn");
     }
     // Never twice: an attachment-bearing turn whose frame was written but whose turn Codex
     // refused has sent the notice; it is never resent, and the next turn carries none.

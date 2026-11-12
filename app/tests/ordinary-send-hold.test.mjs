@@ -153,7 +153,10 @@ test('with nothing else changed, a Send captured before an unconfirmed attempt s
 // rejects with a structured value naming its class. Defect reproduced on stock
 // Codex 0.167.0: Codex answered turn/start with a JSON-RPC error and the App
 // showed it as an unconfirmed send and held the conversation.
-const codexRefusal = {sendOutcome:'refused-by-codex', nativeError:{code:-32600, data:{currentModelProvider:'invented_current', modelProvider:'invented_chat', type:'modelProviderMismatch'}, message:'This chat uses invented_chat, but your current provider is invented_current. Switch to invented_chat to continue.'}};
+const nativeRefusal = {code:-32600, data:{currentModelProvider:'invented_current', modelProvider:'invented_chat', type:'modelProviderMismatch'}, message:'This chat uses invented_chat, but your current provider is invented_current. Switch to invented_chat to continue.'};
+// `nativeErrorText` is the host's own serialization; here it carries an integer JavaScript cannot hold exactly, as the host's text would.
+const NATIVE_TEXT = '{\n  "code": -32600,\n  "data": {\n    "limit": 9007199254740993\n  },\n  "message": "as serialized by the host"\n}';
+const codexRefusal = {sendOutcome:'refused-by-codex', nativeError:nativeRefusal, nativeErrorText:NATIVE_TEXT, carriedEndNotice:false};
 const refusedNotice = ui => ui.c.querySelectorAll(node => node.getAttribute('aria-label') === 'Message refused by Codex')[0];
 
 test('Codex\'s definite refusal shows its own message and error data, keeps the text and model choice, adds no unconfirmed record and leaves Send usable', async () => {
@@ -165,7 +168,11 @@ test('Codex\'s definite refusal shows its own message and error data, keeps the 
     assert.equal(ui.sends.length, 1);
     assert.match(refusedNotice(ui).textContent, /Codex refused this message and started no turn\./);
     assert.ok(refusedNotice(ui).textContent.includes(`Codex's message: ${codexRefusal.nativeError.message}`), 'Codex\'s message as received');
-    assert.ok(refusedNotice(ui).textContent.includes(JSON.stringify(codexRefusal.nativeError, null, 2)), 'Codex\'s error data as received');
+    assert.ok(refusedNotice(ui).textContent.includes(NATIVE_TEXT), 'the error is shown from the host\'s serialized text');
+    assert.ok(refusedNotice(ui).textContent.includes('9007199254740993'), 'an integer the window cannot hold exactly is not rounded');
+    assert.ok(!refusedNotice(ui).textContent.includes(JSON.stringify(nativeRefusal, null, 2)), 'and never rebuilt from the decoded value');
+    assert.match(refusedNotice(ui).textContent, /This attempt added no hold on sending and cleared neither your text nor your model choice\./);
+    assert.doesNotMatch(refusedNotice(ui).textContent, /you can send again|Nothing is held|end notice/);
     assert.equal(ui.notices(), undefined, 'no unconfirmed record');
     assert.doesNotMatch(ui.c.textContent, /may have been sent/);
     assert.equal(props(ui.field()).value, 'Please summarise the report', 'the text is kept');
@@ -184,7 +191,8 @@ test('a refusal before anything was written shows the App\'s reason and holds no
     await ui.type('Kept text');
     await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
     const notice = ui.c.querySelectorAll(node => node.getAttribute('aria-label') === 'Message not sent')[0];
-    assert.match(notice.textContent, /Not sent: the App refused this message before writing anything to Codex\..*The App's reason: invented: conversation is not loaded in this home generation/);
+    assert.match(notice.textContent, /Not sent: the App refused this message before writing anything to Codex\. This attempt added no hold on sending and cleared neither your text nor your model choice\..*The App's reason: invented: conversation is not loaded in this home generation/);
+    assert.doesNotMatch(notice.textContent, /you can send again|Nothing is held/);
     assert.equal(ui.notices(), undefined);
     assert.equal(props(ui.field()).value, 'Kept text');
     assert.equal(props(ui.send()).disabled, false);
@@ -195,9 +203,13 @@ test('anything other than the host\'s well-formed definite refusal is still an u
   const lookalikes = [
     'turn/start native error: {"code":-32600,"message":"refused"}',
     {sendOutcome:'refused-by-codex'},
-    {sendOutcome:'refused-by-codex', nativeError:{message:'no code'}},
-    {sendOutcome:'refused-by-codex', nativeError:{code:'1', message:'string code'}},
-    {sendOutcome:'refused-by-codex', nativeError:{code:1, message:'x'}, extra:true},
+    {sendOutcome:'refused-by-codex', nativeError:{code:1, message:'the earlier two-key form'}},
+    {...codexRefusal, nativeError:{message:'no code'}},
+    {...codexRefusal, nativeError:{code:'1', message:'string code'}},
+    {...codexRefusal, nativeErrorText:''},
+    {...codexRefusal, nativeErrorText:{code:1}},
+    {...codexRefusal, carriedEndNotice:'yes'},
+    {...codexRefusal, extra:true},
     {sendOutcome:'refused-before-write', reason:''},
     {sendOutcome:'not-a-class', reason:'x'},
     new Error('invented: write failed'),
@@ -212,4 +224,38 @@ test('anything other than the host\'s well-formed definite refusal is still an u
       assert.equal(props(ui.field()).value, 'Draft that may have gone');
     });
   }
+});
+
+test('a refusal that carried a run\'s end notice says so, and that the App does not send the notice again', async () => {
+  await mounted((args, n) => { if (n === 1) throw {...codexRefusal, carriedEndNotice:true}; return {id:n, result:{turn:{id:'t'}}}; }, async ui => {
+    await ui.type('Text sent with the notice');
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.match(refusedNotice(ui).textContent, /Codex refused this message and started no turn\..*This message also carried a workflow run's end notice, which Codex refused with it\. The App does not send that notice again\./);
+    assert.equal(ui.notices(), undefined, 'a refusal Codex made is not an unknown outcome');
+    assert.equal(props(ui.send()).disabled, false);
+  });
+});
+
+// The notice stays on screen across navigation and a Codex stop, so it says
+// only what the refused attempt did; the composer says whether sending is possible now.
+test('the refusal notice claims nothing about sending now: another conversation\'s hold and a stopped Codex are the composer\'s to say', async () => {
+  await mounted((args, n) => { if (n === 1) throw 'invented: no response from Codex'; if (n === 2) throw codexRefusal; return {id:n}; }, async ui => {
+    await ui.render({threadKey:JSON.stringify([g, 'thread-b'])});
+    await ui.type('Unknown in B');
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.equal(props(ui.send()).disabled, true, 'B is held after its unknown outcome');
+    await ui.render({threadKey:JSON.stringify([g, 'thread-a'])});
+    await React.act(async () => { props(ui.send()).onClick(); }); await ui.settle();
+    assert.match(refusedNotice(ui).textContent, /Codex refused this message and started no turn\./);
+    assert.equal(props(ui.send()).disabled, false, 'A is not held by its definite refusal');
+    // Back in B: the notice may remain, B stays held, and nothing on the page says B can be sent to.
+    await ui.render({threadKey:JSON.stringify([g, 'thread-b'])});
+    assert.equal(props(ui.send()).disabled, true, 'B is still held');
+    assert.doesNotMatch(ui.c.textContent, /you can send again|Nothing is held/);
+    assert.match(ui.readiness(), /wasn't confirmed and may have been sent/);
+    // Codex stops: the notice still says only what the attempt did.
+    await ui.render({host:{...hostFor(), state:'exited-unexpectedly', generationClosed:true}, threadKey:JSON.stringify([g, 'thread-a'])});
+    assert.equal(props(ui.send()).disabled, true, 'nothing can be sent to a stopped Codex');
+    assert.doesNotMatch(ui.c.textContent, /you can send again|Nothing is held/);
+  });
 });

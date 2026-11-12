@@ -433,7 +433,9 @@ pub(crate) enum TurnStartFailure {
     /// Refused by the App before any byte was written to Codex.
     NotSent(String),
     /// Codex's correlated JSON-RPC error, carried unchanged in `error`.
-    Refused { message: String, error: Value },
+    /// `carried_end_notice`: the refused frame also carried a run's end notice,
+    /// which the notice's own rules do not send again.
+    Refused { message: String, error: Value, carried_end_notice: bool },
     /// The outcome is not known: the message may have been sent.
     Unknown(String),
 }
@@ -450,7 +452,10 @@ impl TurnStartFailure {
     pub(crate) fn window_value(self) -> Value {
         match self {
             Self::NotSent(reason) => json!({"sendOutcome":"refused-before-write","reason":reason}),
-            Self::Refused { error, .. } => json!({"sendOutcome":"refused-by-codex","nativeError":error}),
+            // `nativeErrorText` is the error serialized here, for display: a
+            // window that rebuilt it from the decoded value could round a
+            // large integer Codex sent.
+            Self::Refused { error, carried_end_notice, .. } => json!({"sendOutcome":"refused-by-codex","nativeErrorText":serde_json::to_string_pretty(&error).unwrap_or_else(|_| error.to_string()),"nativeError":error,"carriedEndNotice":carried_end_notice}),
             Self::Unknown(message) => Value::String(message),
         }
     }
@@ -3821,7 +3826,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if let Some(error) = response.get("error") {
             let message = format!("{method} native error: {error}");
             return Err(match source.as_ref().filter(|_| method == "turn/start").and_then(|s| Self::correlated_turn_start_error(&i, s, &response)) {
-                Some(error) => TurnStartFailure::Refused { message, error },
+                Some(error) => TurnStartFailure::Refused { message, error, carried_end_notice: false },
                 None => Unknown(message),
             });
         }
@@ -3852,6 +3857,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// `response-observed-error` (an integer code and a string message), with
     /// no result beside it. The caller has already checked that the generation
     /// is still the request's own and open. Otherwise None: the outcome stays unknown.
+    /// Codex's definite refusal of this written `turn/start`, decided from the
+    /// Host's own record alone (`correlated_turn_start_error`) while the
+    /// request's generation is still current and open; otherwise None.
+    pub(crate) fn turn_start_refusal(&self, source: &SourceRequest) -> Option<Value> {
+        let i = self.inner.0.lock().unwrap();
+        if i.generation != source.generation || i.server_requests.is_closed(&source.generation) || i.state != "ready" { return None; }
+        let response = i.source_requests.get(&source.request_id().to_string())?.response.clone()?;
+        Self::correlated_turn_start_error(&i, source, &response)
+    }
     fn correlated_turn_start_error(i: &Inner, source: &SourceRequest, response: &Value) -> Option<Value> {
         let e = i.source_requests.get(&source.request_id().to_string())?;
         if e.request.request_ref != source.request_ref || e.request.frame != source.frame || e.request.generation != source.generation
@@ -5272,7 +5286,12 @@ mod conversation_transport_tests {
         let refused=class.unwrap().unwrap_err();
         assert!(matches!(&refused,TurnStartFailure::Refused{error,..} if *error==native),"{refused:?}");
         assert_eq!(refused.message(),format!("turn/start native error: {native}"));
-        assert_eq!(refused.window_value(),json!({"sendOutcome":"refused-by-codex","nativeError":native}));
+        assert_eq!(refused.window_value(),json!({"sendOutcome":"refused-by-codex","nativeError":native,"nativeErrorText":serde_json::to_string_pretty(&native).unwrap(),"carriedEndNotice":false}));
+        // The text for display is serialized here: an integer the window could not hold exactly survives in it.
+        let large=TurnStartFailure::Refused{message:"m".into(),error:json!({"code":-32000,"message":"m","data":{"limit":9007199254740993u64,"at":-9007199254740993i64}}),carried_end_notice:true}.window_value();
+        assert!(large["nativeErrorText"].as_str().unwrap().contains("9007199254740993")&&large["nativeErrorText"].as_str().unwrap().contains("-9007199254740993"),"{large}");
+        assert_eq!(large["carriedEndNotice"],true);
+        assert_eq!(serde_json::from_str::<Value>(large["nativeErrorText"].as_str().unwrap()).unwrap(),large["nativeError"]);
         assert_eq!(host.client_requests()[0]["outcome"],"response-observed-error");assert_eq!(host.client_requests()[0]["writeResult"],"written");
         assert_eq!(host.snapshot()["conversationTurns"],json!([]));
         // Replies that are not a well-formed correlated error or result stay unknown.
