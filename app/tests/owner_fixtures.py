@@ -90,7 +90,7 @@ def tlv(tag, body):
     return bytes([tag]) + length + body
 
 
-def profile_bytes(team=TEAM, prefix=TEAM, identifier='com.chirality.app'):
+def profile_bytes(team=TEAM, prefix=TEAM, identifier='com.chirality.app', content=None):
     """An invented CMS-shaped Developer ID profile; never Apple-signed."""
     value = {'UUID': '0A1B2C3D-0000-4000-8000-00000000ABCD', 'Platform': ['OSX'], 'ProvisionsAllDevices': True, 'TeamIdentifier': [team],
              'ApplicationIdentifierPrefix': [prefix], 'CreationDate': datetime.datetime(2020, 1, 1),
@@ -98,7 +98,7 @@ def profile_bytes(team=TEAM, prefix=TEAM, identifier='com.chirality.app'):
              'Entitlements': {'com.apple.application-identifier': prefix + '.' + identifier, 'com.apple.developer.team-identifier': team,
                               'keychain-access-groups': [prefix + '.*']}}
     prep = common.prepare
-    encap = tlv(0x30, tlv(0x06, prep.DATA_OID) + tlv(0xa0, tlv(0x04, plistlib.dumps(value))))
+    encap = tlv(0x30, tlv(0x06, prep.DATA_OID) + tlv(0xa0, tlv(0x04, content(plistlib.dumps(value)) if content else plistlib.dumps(value))))
     signed = tlv(0x30, tlv(0x02, b'\x01') + tlv(0x31, b'') + encap + tlv(0x31, b'INVENTED signer info'))
     return tlv(0x30, tlv(0x06, prep.SIGNED_DATA_OID) + tlv(0xa0, signed))
 

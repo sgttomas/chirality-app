@@ -180,7 +180,7 @@ def profile_facts(app, public_teams, failures):
         return 'not observed'
     raw = path.read_bytes()
     try:
-        value = plistlib.loads(prepare.profile_content(raw), fmt=plistlib.FMT_XML)
+        value = plistlib.loads(prepare.profile_content(raw), fmt=plistlib.FMT_XML, dict_type=prepare.UniquePlistDict)
         require(isinstance(value, dict), 'profile is not a dictionary')
     except (ValueError, plistlib.InvalidFileException):
         failures.append(failure('provisioning profile'))
@@ -386,7 +386,7 @@ def committed_vendor_paths(pin):
     paths = set()
     for expected in sorted((common.ROOT / 'app/src-tauri/resources/distribution-reference').rglob('expected.json')):
         try:
-            value = json.loads(expected.read_bytes())
+            value = json.loads(expected.read_bytes(), object_pairs_hook=obs.unique_pairs)
             if value.get('pin') == pin:
                 paths |= {e['path'] for e in value['inventory']['entries'] if isinstance(e.get('path'), str)}
         except (OSError, ValueError, KeyError, TypeError, AttributeError):

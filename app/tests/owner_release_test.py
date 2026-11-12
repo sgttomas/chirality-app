@@ -783,6 +783,16 @@ class RecordCheck(unittest.TestCase):
         (self.app / 'Contents/embedded.provisionprofile').write_bytes(fx.profile_bytes(team='OTHER00001', prefix='OTHER00001'))
         self.assert_found('observed.provisioning_profile')
 
+    def test_a_profile_with_a_key_twice_is_a_failure(self):
+        """Of the same kind as round 4 finding 1: the profile's App identifier twice is not read as the last one."""
+        twice = lambda xml: xml.replace(b'<key>com.apple.developer.team-identifier</key>',
+                                        b'<key>com.apple.application-identifier</key><string>8A7JL35U4S.com.chirality.app</string>'
+                                        b'<key>com.apple.developer.team-identifier</key>', 1)
+        (self.app / 'Contents/embedded.provisionprofile').write_bytes(fx.profile_bytes(identifier='com.example.other', content=twice))
+        failures = []
+        facts = record.profile_facts(self.app, {fx.TEAM}, failures)
+        self.assertEqual((facts['decoded'], [f['observation'] for f in failures]), (False, ['provisioning profile']))
+
     def test_incomplete_display_and_negative_assessment_are_failures(self):
         fake = self.case.fake
         fake.override[('-d', '--verbose=3')] = Result(0, b'', b'Identifier=com.chirality.app\nTeamIdentifier=8A7JL35U4S\n')
