@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('library_workflow_set', ROOT / 'app/packaging/library_set.py')
@@ -157,6 +158,51 @@ class LibrarySet(unittest.TestCase):
             finally:
                 target.chmod(original)
         self.assertTrue(self.run_compare()['equal'])
+
+    # Review round 2 probes library-mutate-*: a file created in a package folder while it was being
+    # read was omitted and the comparison read equal, on either side.
+    def test_change_while_reading_is_refused_on_either_side(self):
+        original = tool.read_file
+        for side in ('library', 'shipped'):
+            for mutation in ('add-entry', 'edit-file', 'add-in-nested-folder'):
+                with self.subTest(side=side, mutation=mutation):
+                    self.setUp()
+                    package = (self.library / 'workflows' if side == 'library' else self.shipped)
+                    target = package / ('beta/resources/method.md' if mutation == 'add-in-nested-folder' else 'alpha/WORKFLOW.md')
+                    done = []
+                    def reading(fd, name, where, expected=None):
+                        raw = original(fd, name, where, expected)
+                        if not done and where.endswith(str(target.relative_to(package))) and where.startswith(
+                                'library' if side == 'library' else 'shipped'):
+                            done.append(True)
+                            if mutation == 'edit-file':
+                                target.write_text('changed while read')
+                            else:
+                                (target.parent / 'new.md').write_text('created while read')
+                        return raw
+                    with patch.object(tool, 'read_file', side_effect=reading):
+                        with self.assertRaisesRegex(tool.Refused, 'changed while read'):
+                            self.run_compare()
+                    self.assertTrue(done)
+
+    # Review round 2 probes library-unknown-revision-method and -missing-revision-method.
+    def test_manifest_revision_is_always_verified(self):
+        def edit(change):
+            manifest = json.loads((self.shipped / 'MANIFEST.json').read_bytes())
+            change(manifest['packages'][0]); self.write_manifest(manifest)
+        cases = {
+            'unknown method, wrong revision': lambda p: p.update(revision_method='unknown', revision='0' * 64),
+            'missing method, wrong revision': lambda p: (p.pop('revision_method'), p.update(revision='0' * 64)),
+            'missing method, right revision': lambda p: p.pop('revision_method'),
+            'unknown method, right revision': lambda p: p.update(revision_method='unknown'),
+            'known method, wrong revision': lambda p: p.update(revision='0' * 64),
+            'missing revision': lambda p: p.pop('revision'),
+            'missing file list': lambda p: p.pop('files'),
+        }
+        for label, change in cases.items():
+            with self.subTest(case=label):
+                self.setUp(); edit(change)
+                self.assertRefused()
 
     def test_index_and_folders_disagreeing_is_refused(self):
         (self.library / 'workflows/unindexed').mkdir()

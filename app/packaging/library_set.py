@@ -21,7 +21,11 @@ Exit 0 only when the shipped set equals the Library's whole workflow set byte fo
 packages are missing, extra or differ; 2 when an input is refused. Every directory it traverses,
 from `/` down, is opened without following a link, and every file is read through a descriptor
 opened the same way: a link at any level, a special file, a name with a line break and any entry
-it cannot list, open or read refuse the comparison; nothing is skipped. Reads only; writes nothing.
+it cannot list, open or read refuse the comparison; nothing is skipped. Each directory is listed
+again after its content is read, and the same names and file identities (device, inode, size,
+modification time) are required, so a change during the read refuses. Every shipped package must
+carry the known revision method and the revision recomputed from its tree; an unknown or missing
+method, or another revision, refuses. Reads only; writes nothing.
 """
 import argparse
 import hashlib
@@ -84,12 +88,16 @@ def open_child_dir(fd, name, where):
     return child
 
 
-def read_file(fd, name, where):
-    """One regular file relative to a directory descriptor, never following a link."""
+def read_file(fd, name, where, expected=None):
+    """One regular file relative to a directory descriptor, never following a link. With
+    `expected` (the directory listing's identity), the opened file must be that same file."""
     leaf = _os(where, os.open, name, FILE_FLAGS, dir_fd=fd)
     try:
         before = os.fstat(leaf)
         require(stat.S_ISREG(before.st_mode), f'not a regular file: {where}')
+        if expected is not None:
+            require((before.st_mode, before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) == expected,
+                    f'changed while read: {where}')
         chunks = []
         while chunk := _os(where, os.read, leaf, 1 << 20):
             chunks.append(chunk)
@@ -100,17 +108,27 @@ def read_file(fd, name, where):
         os.close(leaf)
 
 
-def listing(fd, where):
-    """Names and own metadata of one directory; a link or special entry refuses."""
+def identities(fd, where):
+    """Names and identities (mode, device, inode, size, modification time) of one directory's
+    entries; a link or special entry refuses."""
     names = sorted(_os(where, os.listdir, fd), key=str.encode)
     entries = {}
     for name in names:
         require('\n' not in name and '\r' not in name, f'line break in a name refused: {where}/{name}')
-        mode = _os(f'{where}/{name}', os.stat, name, dir_fd=fd, follow_symlinks=False).st_mode
-        require(not stat.S_ISLNK(mode), f'symbolic link refused: {where}/{name}')
-        require(stat.S_ISDIR(mode) or stat.S_ISREG(mode), f'special file refused: {where}/{name}')
-        entries[name] = mode
+        info = _os(f'{where}/{name}', os.stat, name, dir_fd=fd, follow_symlinks=False)
+        require(not stat.S_ISLNK(info.st_mode), f'symbolic link refused: {where}/{name}')
+        require(stat.S_ISDIR(info.st_mode) or stat.S_ISREG(info.st_mode), f'special file refused: {where}/{name}')
+        entries[name] = (info.st_mode, info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
     return entries
+
+
+def listing(fd, where):
+    return {name: identity[0] for name, identity in identities(fd, where).items()}
+
+
+def unchanged_since(fd, where, before):
+    """Listing a directory again after reading its content must give the same names and identities."""
+    require(identities(fd, where) == before, f'changed while read: {where}')
 
 
 def read_package(parent_fd, name, where):
@@ -118,15 +136,17 @@ def read_package(parent_fd, name, where):
     opened without following links; any error refuses."""
     files = {}
     def visit(fd, prefix, place):
-        for entry, mode in listing(fd, place).items():
-            if stat.S_ISDIR(mode):
+        before = identities(fd, place)
+        for entry, identity in before.items():
+            if stat.S_ISDIR(identity[0]):
                 child = open_child_dir(fd, entry, f'{place}/{entry}')
                 try:
                     visit(child, prefix + entry + '/', f'{place}/{entry}')
                 finally:
                     os.close(child)
             else:
-                files[prefix + entry] = read_file(fd, entry, f'{place}/{entry}')
+                files[prefix + entry] = read_file(fd, entry, f'{place}/{entry}', identity)
+        unchanged_since(fd, place, before)
     top = open_child_dir(parent_fd, name, where)
     try:
         visit(top, '', where)
@@ -167,11 +187,13 @@ def library(library_root):
         # A skill and a workflow may share a name (3.4.0: drawing-titleblock-page); within a kind they may not.
         kinds_names = [(m.get('kind'), m.get('name')) for m in methods if isinstance(m, dict)]
         require(len(kinds_names) == len(set(kinds_names)), 'duplicate method name within a kind in index')
-        entries = listing(workflows_fd, 'library workflows')
+        top = identities(workflows_fd, 'library workflows')
+        entries = {n: i[0] for n, i in top.items()}
         folders = sorted(n for n, mode in entries.items() if stat.S_ISDIR(mode))
         require(set(folders) == set(names), 'index and folders disagree: index only ' + json.dumps(sorted(set(names) - set(folders)))
                 + ', folders only ' + json.dumps(sorted(set(folders) - set(names))))
         packages = {n: read_package(workflows_fd, n, f'library workflows/{n}') for n in sorted(names)}
+        unchanged_since(workflows_fd, 'library workflows', top)
     finally:
         os.close(workflows_fd)
     listed = {m['name']: sorted(m.get('resources') or []) for m in methods if isinstance(m, dict) and m.get('kind') == 'workflow'}
@@ -197,22 +219,28 @@ def shipped(workflows_dir):
             require(isinstance(source, str) and PurePosixPath(source).parts == ('workflows', name),
                     f'source path outside workflows/: {source}')
             listed[name] = package
-        entries = listing(root_fd, 'shipped')
+        top = identities(root_fd, 'shipped')
+        entries = {n: i[0] for n, i in top.items()}
         folders = sorted(n for n, mode in entries.items() if stat.S_ISDIR(mode))
         loose = sorted(n for n, mode in entries.items() if not stat.S_ISDIR(mode) and n != 'MANIFEST.json')
         require(not loose, 'unlisted file beside the packages: ' + json.dumps(loose))
         require(set(folders) == set(listed), 'manifest and tree disagree: manifest only ' + json.dumps(sorted(set(listed) - set(folders)))
                 + ', tree only ' + json.dumps(sorted(set(folders) - set(listed))))
         packages = {n: read_package(root_fd, n, f'shipped {n}') for n in sorted(listed)}
+        unchanged_since(root_fd, 'shipped', top)
     finally:
         os.close(root_fd)
     for name, package in listed.items():
-        recorded = {f.get('path'): (f.get('bytes'), f.get('sha256')) for f in package.get('files') or []}
-        require(len(recorded) == len(package.get('files') or []), f'duplicate file in manifest package {name}')
+        listed_files = package.get('files')
+        require(isinstance(listed_files, list) and all(isinstance(f, dict) and set(f) == {'path', 'bytes', 'sha256'} for f in listed_files),
+                f'manifest package {name} has no well-formed file list')
+        recorded = {f['path']: (f['bytes'], f['sha256']) for f in listed_files}
+        require(len(recorded) == len(listed_files), f'duplicate file in manifest package {name}')
         actual = {p: (len(raw), sha(raw)) for p, raw in packages[name].items()}
         require(recorded == actual, f'manifest and tree disagree in package {name}')
-        if package.get('revision_method') == REVISION_METHOD:
-            require(package.get('revision') == revision(packages[name]), f'manifest revision differs from tree in package {name}')
+        # Never skipped: an unknown or missing method, or a revision other than the recomputed one, refuses.
+        require(package.get('revision_method') == REVISION_METHOD, f'unknown or missing revision method in manifest package {name}')
+        require(package.get('revision') == revision(packages[name]), f'manifest revision differs from tree in package {name}')
     return {'manifest_sha256': sha(raw_manifest), 'packages': packages}
 
 
