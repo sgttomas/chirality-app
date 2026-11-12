@@ -16,10 +16,11 @@ What the launcher states, and nothing more:
    CHIRALITY_DEV_OPENAI_BASE_URL). The exact mapping is checked against this
    list immediately before the start (child_environment, check_environment).
 2. A run's record is whole or absent (write_record), and the record never says
-   clean on what was not established: clean means the App started and exited
-   by itself with status 0, nothing of its process group was left, both
-   after-listings were made and equal to the before-listing, and no signal was
-   received before the outcome was fixed (outcome, compare).
+   clean on what was not established: clean means the App's process was
+   started and exited with status 0, no member of its process group was alive
+   after the settle time, both after-listings were made and equal to the
+   before-listing, and the launcher received none of the signals it acts on
+   (SIGINT, SIGTERM, SIGHUP) before the outcome was fixed (outcome, compare).
 3. The real Library's places named for the build are compared before and after
    the run, by names, kinds, sizes and modification times (listing, compare).
 
