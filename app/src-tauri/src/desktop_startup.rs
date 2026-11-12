@@ -2076,6 +2076,9 @@ mod tests {
             view["currentAppProjectContext"] = state.project_context.view();
             view["configuredProviderReadRevision"] = home
                 .host
+                .configured_provider_observation_revision(&peer.g, f.project.to_str().unwrap());
+            view["providerOfferReadRevision"] = home
+                .host
                 .configured_provider_revision(&peer.g, f.project.to_str().unwrap());
             let available = desktop
                 .lock()
@@ -3254,6 +3257,9 @@ mod tests {
             view["providerEndpointEdit"] = json!({"available":desktop.lock().unwrap().endpoint_source_available(home.host_config.as_ref().unwrap())});
             view["currentAppProjectContext"] = state.project_context.view();
             view["configuredProviderReadRevision"] = home
+                .host
+                .configured_provider_observation_revision(&generation, f.project.to_str().unwrap());
+            view["providerOfferReadRevision"] = home
                 .host
                 .configured_provider_revision(&generation, f.project.to_str().unwrap());
             view

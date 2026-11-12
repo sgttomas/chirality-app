@@ -9,7 +9,7 @@ import {loadSrc} from './support/load-src.mjs';
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {RunWorkflowGuide, runReading} = loadSrc('RunJourney');
+const {RunWorkflowGuide, runReading, guideResultWords} = loadSrc('RunJourney');
 const UNKNOWN = {state:'native workflow-text send outcome unknown; original source retained', limit:'reply lost'};
 const REFUSED = {state:'native workflow-text turn/start refused by Codex; original source retained', limit:'invented refusal'};
 const NOT_CONFIRMED = 'start not confirmed (turn refused or outcome unknown); not opened, not live';
@@ -167,12 +167,11 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
   await ui.press('Look for other workflows in this library');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
   const guide = region(ui.c, 'Run a workflow');
-  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly; you can inspect it in the workflow studio\./);
-  const why = all(guide, 'details').find(d => d.textContent.startsWith('Why'));
-  assert.match(why.textContent, /production bundle candidate; not a published release/, 'the host reason stays available under Why');
+  const included = region(guide, 'Included workflow coordinated-knowledge-work');
+  assert.match(included.textContent, /Can't be used in this App: production bundle candidate; not a published release\./, 'the host reason is said beside the workflow');
   assert.equal(all(guide, 'button').some(b => b.textContent.includes('coordinated-knowledge-work')), false);
   await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
-  await ui.press('Use coordinated-knowledge-work (included with the App)');
+  await ui.press('Use coordinated-knowledge-work');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_production_bundle', args:{name:'coordinated-knowledge-work'}}, 'a host-runnable bundled entry uses the existing bundled selection');
   await ui.rerender({data:data()});
   await ui.rerender({data:data({selections:selected(false)})});
@@ -258,7 +257,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text");
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text. Progress may still show the state from before this press.", 'an unrecognised refusal stays in the App\'s words');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
@@ -455,6 +454,117 @@ test('a saved desktop setup shows the project folder only when its projection ma
     assert.match(region(ui.c,'Project location').textContent,/Project is set; its folder name is unavailable/,`unknown source ${source} supplies no folder`);
   }
   assert.deepEqual(ui.calls,[]);await ui.close();
+});
+
+// Walk of the development App at main 4bb28164: a press that met a passing
+// history reader failed with the host's own words under Progress, a start the
+// App could not record left "Check your inputs, then start the run", and an
+// included workflow showed a library's "newer revisions can't be checked".
+test('a refused press is said in plain words under Next only where nothing was done, and an included workflow shows no library revision note', async () => {
+  const busy = {command:'workflow_select_production_bundle', message:'Error: Native history context is busy; refresh the workflow choice', failed:true, settled:true};
+  const ui = await mount({host:host(), data:data(), thread:'T1', outcome:busy});
+  const last = region(ui.c, 'Run a workflow — last result');
+  assert.equal(all(last, 'p')[0].textContent, "Couldn't choose the included workflow: the App was busy reading conversation history, so nothing was done. Press the button again.");
+  assert.match(last.textContent, /What the App reportedNative history context is busy; refresh the workflow choice$/, 'the exact reply stays under details');
+  assert.equal(last.getAttribute('role'), 'alert');
+  const section = region(ui.c, 'Run a workflow');
+  const children = Array.from(section.childNodes);
+  assert.equal(children.indexOf(last), children.findIndex(node => /^Next:/.test(node.textContent)) + 1, 'the result follows the Next line, before the steps');
+  // The App's own refusal before any host command is issued.
+  await ui.rerender({outcome:{command:'workflow_open_project_library', message:'Error: Workflow source or chat changed; refresh the displayed choice before acting', failed:true, settled:true}});
+  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /^Couldn't show this project's workflows: the conversation chosen here is no longer open in this view, so nothing was done\. Choose the conversation again/);
+  // Plain words only for the exact message from a command that checks first.
+  // A start refused after its records were written is never "nothing was done".
+  for (const [command, message] of [
+    ['workflow_send_run', 'refused-not-sent: turn/start generation changed before request registration'],
+    ['workflow_send_run', 'Workflow native generation changed; refresh the displayed choice'],
+    ['workflow_end_run', 'Native history context is busy; refresh the workflow choice'],
+    ['workflow_prepare_run', 'Workflow App source changed; nothing selected or prepared'],
+    ['workflow_prepare_run', 'the Native history context is busy; refresh the workflow choice, later'],
+  ]) {
+    await ui.rerender({outcome:{command, message:`Error: ${message}`, failed:true, settled:true}});
+    const words = region(ui.c, 'Run a workflow — last result').textContent;
+    assert.ok(words.includes(message), `${command}: the App's own words are shown`);
+    assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
+  }
+  await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
+  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /\. Progress may still show the state from before this press\.$/);
+
+  const included = {kind:'workflow', origin:'bundled', source_root:'invented-library:library-v9.9.9', name:'coordinated-knowledge-work', revision:'3730d84debb5aa', revision_method:'invented/v1', derived_from:null};
+  const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:included,
+    newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
+  const catalogue = source => ({standing:'s', ...(source ? {source} : {}), entries:[{name:included.name, revision:included.revision, identity:included, runnable:true}]});
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()}), outcome:null});
+  assert.doesNotMatch(section.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, revision 3730d84debb5…\. Ready to run\./, 'source and revision of an included workflow, with no library named');
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, from Chirality Library 9\.9\.9, revision 3730d84debb5…\./);
+  // The role line: the conversation's role beside the roles the Library lists for the chosen included workflow.
+  const withRoles = source => ({...catalogue(source), entries:[{...catalogue(source).entries[0], roles:['TASK', 'WORKING_ITEMS']}]});
+  const roleLine = () => region(ui.c, "Role and the workflow's listed roles");
+  await ui.rerender({data:data({selections:bundled, productionCatalog:withRoles({tag:'library-v9.9.9'})})});
+  assert.equal(roleLine().textContent, "This conversation's role is not known to this App process. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.", 'a conversation row with no role established by the App');
+  await ui.rerender({host:host({threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'HELP_HUMAN', supply_ref:'sup:1'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'TASK'}}]})});
+  assert.equal(roleLine().textContent, 'This conversation is in the role HELP_HUMAN. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.', 'the chosen conversation\'s own role, not another conversation\'s');
+  await ui.rerender({host:host()});
+  // Review round 1: the development holding copy also has the bundled origin, with another source root.
+  const development = [{...bundled[0], selection:{...bundled[0].selection, identity:{...included, source_root:'chirality-root', revision:'1b1733864cd8aa'}}}];
+  await ui.rerender({data:data({selections:development, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
+  const other = region(ui.c, 'Workflow chosen for this run').textContent;
+  assert.match(other, /^coordinated-knowledge-work — a bundled copy \(source chirality-root\), revision 1b1733864cd8…\./, 'a selection that is not a catalogue entry is described by its own source');
+  assert.doesNotMatch(other, /included with the App|Chirality Library/);
+  assert.equal(roleLine(), undefined, 'a selection that is not a catalogue entry gets no role line: the Library\'s list is the catalogue\'s');
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()})});
+  await ui.rerender({data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}}}]})});
+  assert.match(section.textContent, /Newer revisions of resolve-spacing can't be checked/, 'a library workflow still says when newer revisions could not be read');
+  await ui.close();
+});
+
+test('a prepared run the host did not send says what happened in plain words and then the host\'s own recovery text', async () => {
+  const unsent = (state, limit, retry) => ({reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false, state, limit, ...(retry ? {retry} : {})}});
+  const ui = await mount({host:host(), data:data({selections:selected(), runs:[unsent('WR pre-send publication failed; nothing sent', 'nothing written: no records store', 'Retry publishes the same original records; sending stays a separate once-only step')]}), thread:'T1'});
+  const section = region(ui.c, 'Run a workflow');
+  assert.match(section.textContent, /Next: The run didn't start\. Progress says why and what to do\./);
+  assert.equal(region(ui.c, 'Run progress').textContent.split(' Start the run')[0].replace(/^Not started\./, '').trim().startsWith("Nothing was sent. The App couldn't finish saving the run's record. What the App says to do: Retry publishes the same original records; sending stays a separate once-only step. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store"), true);
+  assert.ok(button(ui.c, 'Start the run'), 'the prepared run can be started again');
+  for (const [state, what] of [
+    ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the copy of the workflow's supporting files that this run was prepared with\./],
+    ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the chosen workflow for this run\./],
+    ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. The App couldn't apply the same workflow approval it applied when you prepared this run\./],
+  ]) {
+    await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause', 'invented host recovery text')]})});
+    const progress = region(ui.c, 'Run progress').textContent;
+    assert.match(progress, what, state); assert.match(progress, /What the App says to do: invented host recovery text\. The App reported: /, 'the next action is the host\'s own');
+    assert.doesNotMatch(progress, /Prepare the run again|Start the run again|Choose the workflow again/, 'the guide prescribes nothing the host did not');
+  }
+  await ui.rerender({data:data({selections:selected(), runs:[unsent('a state the guide does not know', 'invented cause')]})});
+  const unknown = region(ui.c, 'Run progress').textContent;
+  assert.match(unknown, /^Not started\. The App reports that this run was not sent\. The App reported: a state the guide does not know: invented cause/);
+  assert.doesNotMatch(unknown, /Nothing was sent\.|What the App says to do/, 'an unknown state is given no words the host did not establish');
+  await ui.press('Prepare this run again');
+  assert.equal(ui.calls.at(-1).command, 'workflow_prepare_run', 'preparing again stays offered; the host accepts it while a prepared run is unsent');
+  await ui.close();
+});
+
+// Review rounds 1 and 2 of pull request 241, the question asked of every
+// result: can something not observed, or failed, come out as done?
+test('a result line says only what the command established', () => {
+  assert.equal(guideResultWords({command:'workflow_end_and_start', message:'{"start":{"state":"successor not started"}}', failed:false, settled:true}), null, 'an unnamed command\'s reply is never called done');
+  assert.equal(guideResultWords({command:'workflow_prepare_run', message:'', failed:false, settled:false}), null, 'a press whose result has not arrived claims nothing');
+  const bundle = message => guideResultWords({command:'workflow_select_production_bundle', message, failed:false, settled:true}).words;
+  assert.equal(bundle('{"state":"selected","choiceChat":{"sourceRef":"src","threadId":"T1"}}'), 'Chose the included workflow for this conversation.');
+  assert.equal(bundle('{"state":"selected","choiceChat":null}'), 'Opened the included workflow to read. Nothing was chosen for a conversation.', 'the studio\'s inspection with no conversation is not a choice');
+  for (const reply of ['{"state":"selected"}', 'not json', '']) assert.equal(bundle(reply), 'The App accepted this. The Workflow step shows what is chosen for the conversation.', `a reply that does not say which: ${reply}`);
+  assert.equal(guideResultWords({command:'workflow_open_project_library', message:'{}', failed:false, settled:true}).words, "Opened this project's workflow library.", 'opening the library is not having listed it');
+});
+
+test('a library folder the App could not list is said where the list would be', async () => {
+  const base = data().libraries[0];
+  const unavailable = {...base, entryListing:{state:'unavailable', reference:'listing-2', libraryRef:'lib:project', entries:[], limits:['library entry folder unreadable: invented cause']}};
+  const ui = await mount({thread:'T1', host:host(), data:data({libraries:[unavailable]})});
+  assert.match(region(ui.c, 'Run a workflow').textContent, /The App couldn't look in this library's folder for other workflows: library entry folder unreadable: invented cause/);
+  assert.equal(region(ui.c, 'Workflows that need a first review'), undefined);
+  await ui.close();
 });
 
 // Each reading of an open run says what Codex reported for this conversation and nothing that would follow from it.

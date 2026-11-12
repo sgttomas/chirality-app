@@ -147,6 +147,7 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
     require_no_admin_layers()?;
     let mut config = base.clone();
     config.codex_home = plan.native_path().into();
+    config.process_lock = Some(plan.native_path().join(PROCESS_LOCK));
     config.session_flags = vec![
         "analytics.enabled=false".into(), "features.plugins=false".into(),
         // Session flags merge into lower layers; a foreign catalogue URL must never receive the home key.
@@ -156,6 +157,50 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
         format!("model_providers.{PROVIDER}={{name=\"oMLX\",base_url=\"{ENDPOINT}\",wire_api=\"responses\",requires_openai_auth=true}}"),
     ];
     Ok(config)
+}
+/// App-owned lock file in the dedicated local home, held by every process of a Codex the App
+/// started there (the child inherits the locked descriptor). Not auth.lock, not Codex's.
+pub(crate) const PROCESS_LOCK: &str = "chirality-codex-process.lock";
+pub(crate) const EARLIER_PROCESS: &str = "An earlier Codex process for the local model home has not ended, so Codex was not started there. It normally ends by itself within a minute; start Codex again once it has. Quitting and reopening the App does not end it.";
+/// The refusal when the App cannot open or lock its lock file at all.
+pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
+/// Opens (creating it private if absent) the App's lock file and takes an exclusive, non-waiting
+/// flock. The returned descriptor is close-on-exec (std opens with O_CLOEXEC); the start clears that
+/// in the Codex child only. Held by another open file description: EARLIER_PROCESS. A link, a file
+/// not private to this user, a hard-linked file or any other failure: PROCESS_LOCK_UNAVAILABLE.
+#[cfg(unix)]
+pub(crate) fn take_process_lock(path: &Path) -> Result<std::fs::File, String> {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+        .map_err(|_| PROCESS_LOCK_UNAVAILABLE)?;
+    let m = file.metadata().map_err(|_| PROCESS_LOCK_UNAVAILABLE)?;
+    if !m.is_file() || m.uid() != unsafe { libc::geteuid() } || m.mode() & 0o077 != 0 || m.nlink() != 1 {
+        return Err(PROCESS_LOCK_UNAVAILABLE.into());
+    }
+    // Descriptors 0 to 2 are replaced by the child's standard streams before the pre-exec step.
+    if file.as_raw_fd() <= libc::STDERR_FILENO {
+        return Err(PROCESS_LOCK_UNAVAILABLE.into());
+    }
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+        return Err(if std::io::Error::last_os_error().raw_os_error() == Some(libc::EWOULDBLOCK) {
+            EARLIER_PROCESS.into()
+        } else {
+            PROCESS_LOCK_UNAVAILABLE.into()
+        });
+    }
+    Ok(file)
+}
+#[cfg(not(unix))]
+pub(crate) fn take_process_lock(_: &Path) -> Result<std::fs::File, String> {
+    Err(PROCESS_LOCK_UNAVAILABLE.into())
 }
 /// Codex 0.167 loads administrator configuration (legacy managed_config.toml, requirements.toml and
 /// macOS managed preferences) ABOVE session flags, so the fixed flags cannot hold the provider,

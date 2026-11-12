@@ -69,6 +69,49 @@ class SQReceivingTests(unittest.TestCase):
 
     def schema_valid(self, value): self.assertEqual(list(self.result_validator.iter_errors(value)),[])
 
+    def test_run_b_failure_against_the_declared_modes_is_received_with_its_failed_outcomes(self):
+        # Run B recorded truthfully: the modes stay as declared, the local server seen in the
+        # account home is stated in the failed steps' own result records.
+        case = APP / 'tests/group_b_sq_receiving_fixtures/run-b-failed'
+        dossier = json.loads((case / 'dossier.json').read_bytes())
+        spec = importlib.util.spec_from_file_location('sq_rules_run_b', APP / 'examination/sq_receiving/sq_dossier_rules.py')
+        rules = importlib.util.module_from_spec(spec); spec.loader.exec_module(rules)
+        schema = json.loads((APP / 'examination/sq_receiving/sq.dossier.schema.json').read_bytes())
+        step_map = json.loads((APP / 'examination/sq_receiving/sq.step-map.json').read_bytes())
+        self.assertEqual([e.message for e in Draft202012Validator(schema).iter_errors(dossier)], [])
+        self.assertEqual(rules.violations(dossier, step_map), [])
+        # All five scenarios are carried; the journeys, like run A, are planned and not yet run.
+        self.assertEqual([s['scenario'] for s in dossier['scenarios']], ['V4-EXM-10', 'V4-EXM-11', 'V4-EXM-12', 'J1', 'J2'])
+        self.assertEqual({s['basis'] for s in dossier['scenarios'] if s['scenario'] in ('J1', 'J2')}, {'not_established'})
+        run_b = next(s for s in dossier['scenarios'] if s['scenario'] == 'V4-EXM-12')
+        self.assertEqual([(m['kind'], m['home']) for m in run_b['access_modes']],
+                         [('chatgpt_account', 'H-acct'), ('local_provider', 'H-omlx')])
+        self.assertEqual(run_b['outcome'], 'fail')
+        for step in ('M12-2', 'M12-5'):
+            record = json.loads((case / f'result-{step}.json').read_bytes())
+            self.schema_valid(record)
+            self.assertEqual(record['outcome'], 'fail')
+            self.assertEqual(record['configuration']['model_server']['home'], 'H-acct')
+            self.assertIn('observed', record['limits'][0]['detail'].lower())
+            self.assertIn('account home H-acct', record['limits'][0]['detail'])
+            self.assertIn('dedicated local home H-omlx', record['limits'][0]['detail'])
+            self.assertIn('declared', record['limits'][0]['detail'])
+        result = self.consumer.check(case / 'selection.json', (case / 'selection.sha256').read_text().strip())
+        self.assertTrue(result['selection_consistent'], result)
+        self.assertEqual(result['errors'], [])
+        self.assertEqual(result['reported_outcomes'],
+                         {'result-M12-1': 'pass', 'result-M12-2': 'fail', 'result-M12-3': 'pass',
+                          'result-M12-4': 'pass', 'result-M12-5': 'fail', 'result-M12-6': 'pass'})
+        # Run A not yet run and no review: truthfully incomplete, never complete.
+        self.assertEqual(result['coverage'], 'incomplete')
+        self.assertEqual(result['missing_selected_inputs'],
+                         ['non-recorded steps: examination obligations outstanding',
+                          'primary review absent; SQ-SEQ7 remains outstanding'])
+        # The report carries no access mode or home as observed and verifies no native observation.
+        self.assertNotIn('access_modes', json.dumps(result))
+        self.assertNotIn('H-omlx', json.dumps(result))
+        self.assertIs(result['native_observation_verified'], False)
+
     def test_connected_development_full_source_validation_no_package_change(self):
         result=self.check();self.assertTrue(result['selection_consistent']);self.assertEqual(result['coverage'],'complete')
         self.assertTrue(self.selected['steps']);self.assertEqual(self.selected['packages'],[]);self.assertEqual(self.selected['changes'],[])
@@ -115,6 +158,184 @@ class SQReceivingTests(unittest.TestCase):
         pkg=json.loads((APP/'tests/group_b_fixtures/package.json').read_bytes());pkg['app'].update({k:self.selected['candidate'][k] for k in ('revision','build_identity')})
         self.add('package','package',pkg);self.selected['packages']=[{'ref':pkg['record_id'],'slot':'package','result_slots':[slot]}]
         return pkg
+
+    def test_journey_results_join_without_a_scenario_and_keep_their_operation(self):
+        j1=next(s for s in self.dossier['scenarios'] if s['scenario']=='J1')
+        self.assertEqual((j1['basis'],j1['steps'][0]['operation']['means']),('agent_operated','app_controls_by_computer_use'))
+        self.assertEqual(self.value('result-J1-1')['case'],{'owner_deliverable':'DEL-09-02','case_id':'J1-1'})
+        self.assertEqual(self.value('result-J1-1')['configuration']['route']['native_route']['method'],'ui_automation')
+        r=self.check();self.assertEqual(r['coverage'],'complete')
+        self.assertEqual(r['reported_journey_basis'],{'J1':'agent_operated','J2':'not_established'})
+
+    def test_agent_operated_journey_step_cannot_read_as_person_operated(self):
+        v=self.value('result-J1-2');v['configuration']['route']['native_route']={'method':'person_operated','form_ref':'INVENTED-FORM-J1-2'}
+        self.schema_valid(v);self.save('result-J1-2',v)
+        self.refused('journey operation disagrees with result native route')
+
+    def jstep(self, step):
+        return next(st for s in self.dossier['scenarios'] for st in s['steps'] if st['step']==step)
+
+    def test_journey_steps_not_attempted_name_no_operator(self):
+        j2=next(s for s in self.dossier['scenarios'] if s['scenario']=='J2')
+        self.assertEqual(j2['basis'],'not_established')
+        self.assertTrue(all('operation' not in st and st['outcome']=='not-run' for st in j2['steps']))
+        self.assertTrue(all('operation' in st for st in next(s for s in self.dossier['scenarios'] if s['scenario']=='J1')['steps']))
+
+    def attempt_j2_1(self):
+        # A truthful blocked step operated by a person's own hand is received as consistent.
+        st=self.jstep('J2-1');st['outcome']='blocked'
+        st['operation']={'operator':{'kind':'person','identity':'INVENTED person operating'},'means':'app_controls_by_hand',
+                         'observations':[],'outside_controls':[],'interface_gaps':[],'examination_limits':[],'interventions':[]}
+        j2=next(s for s in self.dossier['scenarios'] if s['scenario']=='J2');j2.update(outcome='blocked',basis='person_observed')
+        v=self.value('result-J2-1');v['outcome']='blocked';v.pop('not_run_because');v['blocked_by']='INVENTED unmet prerequisite'
+        self.schema_valid(v);self.save('result-J2-1',v)
+
+    def test_person_operated_journey_step_cannot_read_as_automation(self):
+        self.attempt_j2_1();self.assertEqual(self.check()['coverage'],'complete')
+        v=self.value('result-J2-1');v['configuration']['route']['native_route']={'method':'ui_automation','tool':'INVENTED tool','tool_definition_check':'INVENTED-DC-N2'}
+        self.schema_valid(v);self.save('result-J2-1',v)
+        self.refused('journey operation disagrees with result native route')
+
+    def test_step_not_through_the_controls_keeps_its_operator_and_is_unsupported(self):
+        self.jstep('J1-1')['operation']['means']='not_through_app_controls'
+        r=self.check();self.assertTrue(r['selection_consistent'],r);self.assertEqual(r['coverage'],'unsupported')
+        self.assertIn('journey step not through the App controls: result-J1-1',r['unsupported_joins'])
+        v=self.value('result-J1-1');v['configuration']['route']['native_route']={'method':'person_operated','form_ref':'INVENTED-FORM-J1-1'}
+        self.schema_valid(v);self.save('result-J1-1',v)
+        self.refused('journey operation disagrees with result native route')
+
+    def test_planned_parts_cannot_disappear(self):
+        planned=[p['part'] for p in self.value('result-J1-4')['parts']]
+        self.assertEqual(planned,['supplied-as-selected','changed-file-held'])
+        self.assertEqual([p['part'] for p in self.value('result-J2-7')['parts']],['allow-disk-records','require-verified-approval'])
+        v=self.value('result-J1-4');v['parts'].pop();self.schema_valid(v);self.save('result-J1-4',v)
+        self.refused('planned journey parts missing, repeated or set aside')
+
+    def test_planned_part_cannot_be_declared_not_applicable(self):
+        v=self.value('result-J2-7');gone=v['parts'].pop()
+        v['parts_not_applicable']=[{'part':gone['part'],'reason':'INVENTED keychain protection unavailable','declared_in':{'case_definition':'INVENTED-SQ-CASE-DEFINITION','identity':'sha256:'+'0'*64}}]
+        self.schema_valid(v);self.save('result-J2-7',v)
+        self.refused('planned journey parts missing, repeated or set aside')
+
+    def test_a_blocked_part_cannot_yield_a_passed_step(self):
+        st=self.jstep('J1-4');st['outcome']='pass'
+        st['operation']['observations']=[{'id':'file-changed-after-selection','status':'made','result':'arranged','evidence':'INVENTED changed file'}]
+        v=self.value('result-J1-4');v['outcome']='pass';v.pop('blocked_by')
+        v['parts'][0].update(outcome='pass');v['parts'][0].pop('blocked_by')
+        self.schema_valid(v);self.save('result-J1-4',v)
+        self.refused('EXP-R1')
+
+    def run_j2_7(self, route='native_development', needs_native=True, second='pass'):
+        # J2-7 attempted by a person's own hand: one run-start turn under each approval policy.
+        rules=self.consumer_rules()
+        st=self.jstep('J2-7');parts=['allow-disk-records','require-verified-approval']
+        observations=[]
+        for part in parts:
+            for check in ('run-turn-matches-run-text','workflow-body-matches-stored-file'):
+                made=part==parts[0] or second=='pass'
+                observations.append({'id':part+'/'+check,'status':'made','result':'equal','evidence':'INVENTED '+part+' '+check}
+                                    if made else {'id':part+'/'+check,'status':'not_made'})
+        v=self.value('result-J2-7');v.pop('not_run_because')
+        for part in v['parts']:
+            part.pop('not_run_because');part['needs_native']=needs_native
+            if needs_native is None: part.pop('needs_native')
+            if part['part']==parts[0] or second=='pass':
+                part.update(outcome='pass',evidence=[{'ref':'INVENTED run under '+part['part'],'provenance':'test_definition','route':route}])
+            else:
+                part.update(outcome='blocked',blocked_by='INVENTED keychain protection unavailable on this candidate')
+        v['outcome']=rules.aggregate([p['outcome'] for p in v['parts']])
+        if v['outcome']=='blocked': v['blocked_by']='INVENTED keychain protection unavailable on this candidate'
+        st.update(outcome=v['outcome'],operation={'operator':{'kind':'person','identity':'INVENTED person operating'},
+                  'means':'app_controls_by_hand','observations':observations,'outside_controls':[],'interface_gaps':[],
+                  'examination_limits':[],'interventions':[]})
+        j2=next(s for s in self.dossier['scenarios'] if s['scenario']=='J2')
+        j2.update(basis='person_observed',outcome=rules.aggregate([x['outcome'] for x in j2['steps']]))
+        self.schema_valid(v);self.save('result-J2-7',v)
+
+    def consumer_rules(self):
+        return module('sq_rules_for_receiving_test', APP/'examination/sq_receiving/sq_dossier_rules.py')
+
+    def test_j2_7_passed_on_native_evidence_is_received(self):
+        self.run_j2_7();r=self.check();self.assertTrue(r['selection_consistent'],r);self.assertEqual(r['coverage'],'complete')
+        self.assertEqual(r['reported_outcomes']['result-J2-7'],'pass')
+
+    def test_a_passed_part_without_native_evidence_is_refused(self):
+        # The result leaves needs_native unstated, so DEL-09-01's EXP-R4 is not engaged by the result;
+        # the definition's mark is what refuses (SQ-R18).
+        for kwargs in ({'route':'seam_replay','needs_native':None},{'route':'interface_webkit','needs_native':None},{'needs_native':False}):
+            with self.subTest(**kwargs):
+                self.setUp();self.run_j2_7(**kwargs)
+                self.refused('journey step accepted as passed although its recorded facts forbid it (SQ-R18)')
+        # Stated as needing native evidence, EXP-R4 refuses it first.
+        self.setUp();self.run_j2_7(route='seam_replay');self.refused('EXP-R4')
+        self.setUp();self.run_j2_7(needs_native=None)
+        v=self.value('result-J2-7')
+        for part in v['parts']: part['evidence']=[]
+        self.save('result-J2-7',v)
+        self.refused('journey step accepted as passed although its recorded facts forbid it (SQ-R18)')
+
+    def test_one_policy_blocked_leaves_j2_7_blocked_and_not_passed(self):
+        self.run_j2_7(second='blocked');r=self.check();self.assertTrue(r['selection_consistent'],r)
+        self.assertEqual(r['reported_outcomes']['result-J2-7'],'blocked')
+        # The record cannot state pass: its result's parts aggregate to blocked (EXP-R1) and its facts permit no pass.
+        self.jstep('J2-7')['outcome']='pass';self.refused('outcome mismatch')
+
+    def test_both_receivers_and_the_dossier_rules_call_the_one_outcome_function(self):
+        import ast
+        for name in ('worker.py','worker_packages.py','sq_dossier_rules.py'):
+            tree=ast.parse((APP/'examination/sq_receiving'/name).read_text())
+            called={n.func.attr if isinstance(n.func,ast.Attribute) else getattr(n.func,'id',None) for n in ast.walk(tree) if isinstance(n,ast.Call)}
+            self.assertIn('pass_forbidden',called,name)
+
+    def j1_4_gap_with_parts(self, second):
+        # The reviewer's round 3 case on J1-4: an interface gap, the changed file not arranged.
+        st=self.jstep('J1-4')
+        st['operation']['interface_gaps']=['INVENTED the App did not say the changed file would be held']
+        st['operation']['observations']=[{'id':'file-changed-after-selection','status':'not_made'}]
+        v=self.value('result-J1-4');v['parts'][0].pop('blocked_by')
+        v['parts'][0].update(outcome='pass',evidence=[{'ref':'INVENTED supplied as selected','provenance':'test_definition','route':'native_development'}])
+        if second=='pass':
+            v['parts'][1].pop('blocked_by');v['parts'][1].update(outcome='pass',evidence=list(v['parts'][0]['evidence']))
+            v['outcome']='pass';v.pop('blocked_by');st['outcome']='pass'
+            j1=next(s for s in self.dossier['scenarios'] if s['scenario']=='J1');j1['outcome']='blocked'
+        self.schema_valid(v);self.save('result-J1-4',v)
+
+    def test_gap_with_one_part_blocked_is_received_as_blocked(self):
+        self.j1_4_gap_with_parts('blocked');r=self.check()
+        self.assertTrue(r['selection_consistent'],r);self.assertEqual(r['reported_outcomes']['result-J1-4'],'blocked')
+
+    def test_gap_with_every_part_passed_is_refused(self):
+        # The parts are the whole of the step, so the part in which the gap was met is not passed.
+        self.j1_4_gap_with_parts('pass')
+        self.refused('journey step accepted as passed although its recorded facts forbid it (SQ-R18)')
+
+    def earlier_error(self):
+        # An agent-operated result missing its tool-definition check: refused by the result schema first.
+        v=self.value('result-J1-1');v['configuration']['route']['native_route'].pop('tool_definition_check');self.save('result-J1-1',v)
+
+    def assert_nothing_unadmitted_published(self, result, *absent):
+        self.assertFalse(result['selection_consistent'],result)
+        self.assertNotIn('reported_outcomes',result);self.assertNotIn('reported_journey_basis',result)
+        for text in absent: self.assertNotIn(text,json.dumps(result))
+
+    def test_forbidden_pass_on_replay_evidence_is_not_reported_after_an_earlier_error(self):
+        self.run_j2_7(route='seam_replay',needs_native=None);self.earlier_error()
+        self.assert_nothing_unadmitted_published(self.check(),'"result-J2-7": "pass"')
+
+    def test_forged_person_basis_is_not_reported_after_an_earlier_error(self):
+        next(s for s in self.dossier['scenarios'] if s['scenario']=='J1')['basis']='person_observed';self.earlier_error()
+        self.assert_nothing_unadmitted_published(self.check(),'person_observed')
+
+    def test_dossier_without_a_journey_refused(self):
+        slots={'result-'+st['step'] for s in self.dossier['scenarios'] if s['scenario']=='J2' for st in s['steps']}
+        self.dossier['scenarios']=[s for s in self.dossier['scenarios'] if s['scenario']!='J2']
+        self.selected['steps']=[s for s in self.selected['steps'] if s['result_slot'] not in slots]
+        self.selected['artifacts']=[a for a in self.selected['artifacts'] if a['slot'] not in slots]
+        refs={'INVENTED-SQ-'+slot[len('result-'):] for slot in slots}
+        for slot in slots: self.selected['review']['results'].pop(slot)
+        self.selected['review']['evidence']=[e for e in self.selected['review']['evidence'] if e['ref'] not in refs]
+        v=self.value('review');v['evidence_set']=[e for e in v['evidence_set'] if e not in refs];self.save('review',v)
+        self.refused('SQ-R11')
 
     def test_ce07_package_citation_missing_bytes(self):
         self.packaged();(self.root/'package.json').unlink();self.incomplete('selected file missing')

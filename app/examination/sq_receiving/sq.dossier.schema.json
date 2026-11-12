@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-09-02:standalone-dossier:0.2",
   "title": "Standalone qualification dossier (DEL-09-02 SQ-v0.2 §5; OUT-002; PROPOSED)",
-  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R10 in prototype/check_sq.py.",
+  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R13 and SQ-R18 in app/examination/sq_receiving/sq_dossier_rules.py (SQ-R14…SQ-R17 retired into SQ-R18).",
   "type": "object",
   "required": ["record_kind", "format", "record_id", "support_revision", "case_definition", "candidate", "integration_owner", "examiner", "scenarios", "handoff", "currency", "date"],
   "additionalProperties": false,
@@ -93,33 +93,134 @@
       "required": ["scenario", "run_ref", "steps"],
       "additionalProperties": false,
       "properties": {
-        "scenario": { "enum": ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12"] },
+        "scenario": { "enum": ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12", "J1", "J2"] },
         "run_ref": { "type": "string", "minLength": 1, "description": "The joined run. V4-EXM-11's must equal V4-EXM-10's (SQ-R2)." },
         "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
         "access_modes": {
           "type": "array",
+          "description": "The access modes run B is defined to exercise, each in the home the scope defines for it (the account home H-acct for the ChatGPT account, the dedicated local home H-omlx for the local model server), with the conversation assigned to each (SQ-R3). A declaration, not an observation: this field asserts nothing about what was observed on the candidate. A home, mode or conversation observed to differ on the candidate is recorded as the failed outcome of the M12 step that observed it, in that step's result record, never by altering this declaration.",
           "items": {
             "type": "object",
             "required": ["kind", "home", "conversation_ref"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["chatgpt_account", "api_key", "local_provider"] },
-              "home": { "enum": ["H-acct", "H-key"] },
-              "conversation_ref": { "type": "string", "minLength": 1 }
+              "kind": { "enum": ["chatgpt_account", "local_provider"], "description": "A declared access mode of run B." },
+              "home": { "enum": ["H-acct", "H-omlx"], "description": "The home the scope defines for this mode, as declared; an observed home that differs is a failed M12 step, not a changed value here." },
+              "conversation_ref": { "type": "string", "minLength": 1, "description": "The conversation assigned to this mode, as declared; distinct for each mode." }
             }
           }
         },
-        "outcome": { "$ref": "#/$defs/outcome", "description": "Only once every counted step is recorded (SQ-R4)." }
+        "outcome": { "$ref": "#/$defs/outcome", "description": "Only once every counted step is recorded (SQ-R4)." },
+        "basis": {
+          "enum": ["person_observed", "agent_operated", "not_established"],
+          "description": "J1 and J2 only: the basis that follows from the operation facts on the journey's attempted steps (SQ-R13); a summary of those observations, not a separate declaration. agent_operated: any attempted step operated by an agent or through computer use, or in which an agent operated a control. person_observed: at least one attempted step, every attempted step operated by a person by their own hand through the App's shipped controls, and no control operated or explained by anyone else. not_established: otherwise (no step attempted yet, a person's step done not through the App's controls, or a control operated by another person or explained by anyone)."
+        }
       },
-      "if": { "properties": { "scenario": { "const": "V4-EXM-12" } } },
-      "then": { "required": ["access_modes"] }
+      "allOf": [
+        { "if": { "properties": { "scenario": { "const": "V4-EXM-12" } } }, "then": { "required": ["access_modes"] } },
+        { "if": { "properties": { "scenario": { "enum": ["J1", "J2"] } } }, "then": { "required": ["basis"] }, "else": { "not": { "required": ["basis"] } } }
+      ]
+    },
+    "actor": {
+      "type": "object",
+      "description": "A person or an agent, identified; an agent also by provider, model and the session or thread it ran in.",
+      "required": ["kind", "identity"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["person", "agent"] },
+        "identity": { "type": "string", "minLength": 1 },
+        "provider": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "session": { "type": "string", "minLength": 1, "description": "The session or thread the agent ran in." }
+      },
+      "if": { "properties": { "kind": { "const": "agent" } } },
+      "then": { "required": ["provider", "model", "session"] }
+    },
+    "operation": {
+      "type": "object",
+      "description": "Who operated a J1 or J2 step and by what means, kept apart from what was done outside the App's controls, from what the App's window did not give, and from what the examination itself could not perceive or operate. Present on a recorded J1 or J2 step whose outcome shows an attempt (pass, fail, blocked, inconclusive) and absent on a not-run or unrecorded step (SQ-R12). Blocked means attempted and stopped by a stated precondition or dependency (DEL-09-01), so a blocked step carries the operation of whoever began the attempt, by the means that attempt used, even when it stopped before any control was operated; a step that no one began is not run. These are the examiner's observations of the step as it was carried out, not a plan; only identities are declarations, as the actor or the session that ran the agent states them. SQ-R18 (pass_forbidden in sq_dossier_rules.py) refuses \"pass\" for a step whose facts, read against its definition in the step map, forbid it; the receivers apply it again with the step's result record. The check guarantees only that a journey step is not accepted as passed when its recorded facts forbid it; which other outcome a record states is DEL-09-01's aggregate of its parts, and whether that outcome and the record's prose are right is the independent reviewer's under DEL-09-02 VER-007.",
+      "required": ["operator", "means", "observations", "outside_controls", "interface_gaps", "examination_limits", "interventions"],
+      "additionalProperties": false,
+      "properties": {
+        "operator": { "$ref": "#/$defs/actor" },
+        "means": {
+          "enum": ["app_controls_by_hand", "app_controls_by_computer_use", "not_through_app_controls"],
+          "description": "The App's shipped controls by the person's own hand; the App's shipped controls through harness computer use; or not through the App's controls, which cannot pass (SQ-R18)."
+        },
+        "observations": {
+          "type": "array",
+          "description": "Each required observation the step's definition names (step map required_observations), by identifier: made or not made, and when made its result from the closed set for its kind (a preparation: arranged or not_arranged; an independent observation: equal or differs) and a reference to its evidence. One missing is not made. A note may stand beside them; no check reads it.",
+          "items": {
+            "type": "object",
+            "required": ["id", "status"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "status": { "enum": ["made", "not_made"] },
+              "result": { "enum": ["arranged", "not_arranged", "equal", "differs"] },
+              "evidence": { "type": "string", "pattern": "\\S" },
+              "note": { "type": "string", "minLength": 1 }
+            },
+            "allOf": [
+              { "if": { "properties": { "status": { "const": "made" } } }, "then": { "required": ["result", "evidence"] } },
+              { "if": { "properties": { "status": { "const": "not_made" } } }, "then": { "not": { "required": ["result"] } } }
+            ]
+          }
+        },
+        "outside_controls": {
+          "type": "array",
+          "description": "Anything else done outside the App's controls for this step, apart from the journey action and from its required observations; allowed for any operator. Free text: no check reads it.",
+          "items": {
+            "type": "object",
+            "required": ["kind", "what"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "enum": ["preparation", "independent_observation"] },
+              "what": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "interface_gaps": {
+          "type": "array",
+          "description": "What the App's window did not give a user in this step: a term unexplained, a next action missing, a state unclear, an engineering record that had to be read. Empty when none. A step with any is not passed (SQ-R18); DEL-02-02 counts it an interface failure, and the reviewer holds the record to that.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "examination_limits": {
+          "type": "array",
+          "description": "What the operator or its tool could not perceive or operate in this step: a native dialog the tool cannot see, a control it cannot press, focus lost to another window. Empty when none. It is not an interface failure. A step with any is not passed (SQ-R18); it is normally blocked (stopped by it) or inconclusive (its evidence left insufficient), not failed on that ground alone. An operator that cannot tell whether the App or the examination fell short lists it here and records the step inconclusive.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "interventions": {
+          "type": "array",
+          "description": "Every intervention in the step by anyone other than its operator, with the role in which they acted (examiner, another agent, another person) and who they were (VER-009, VER-010). An agent that operated a control makes the journey agent-operated; anyone else who operated a control, or anyone who explained one, keeps it from being a person observed; an intervention of kind other, which is anything but operating or explaining a control, changes no basis but stays listed (SQ-R13).",
+          "items": {
+            "type": "object",
+            "required": ["by", "actor", "kind", "what"],
+            "additionalProperties": false,
+            "properties": {
+              "by": { "enum": ["examiner", "agent", "other_person"], "description": "The role in which the actor intervened; an examiner may be a person or an agent." },
+              "actor": { "$ref": "#/$defs/actor" },
+              "kind": { "enum": ["operated_control", "explained_control", "other"], "description": "other excludes operating or explaining a control." },
+              "what": { "type": "string", "minLength": 1 }
+            },
+            "allOf": [
+              { "if": { "properties": { "by": { "const": "agent" } } }, "then": { "properties": { "actor": { "properties": { "kind": { "const": "agent" } } } } } },
+              { "if": { "properties": { "by": { "const": "other_person" } } }, "then": { "properties": { "actor": { "properties": { "kind": { "const": "person" } } } } } }
+            ]
+          }
+        }
+      },
+      "allOf": [
+        { "if": { "properties": { "operator": { "properties": { "kind": { "const": "person" } } } } }, "then": { "properties": { "means": { "not": { "const": "app_controls_by_computer_use" } } } } },
+        { "if": { "properties": { "operator": { "properties": { "kind": { "const": "agent" } } } } }, "then": { "properties": { "means": { "not": { "const": "app_controls_by_hand" } } } } }
+      ]
     },
     "step": {
       "type": "object",
       "required": ["step", "state", "counts", "supplier_cases"],
       "additionalProperties": false,
       "properties": {
-        "step": { "type": "string", "pattern": "^(J-[1-9]R?|S11-[1-6]|M12-[1-6])$" },
+        "step": { "type": "string", "pattern": "^(J-[1-9]R?|S11-[1-6]|M12-[1-6]|J1-[1-6]|J2-[1-7])$" },
         "state": {
           "enum": ["designed", "planned", "awaiting_input", "held", "run", "recorded", "reopened"],
           "description": "EXP §6.1 case states. 'held' only for an input held by an unresolved owner matter, never for a held DAG arc."
@@ -161,6 +262,7 @@
             }
           }
         },
+        "operation": { "$ref": "#/$defs/operation" },
         "core_loop_element": { "type": "string", "minLength": 1, "description": "DEL-11-03 REQ-001 element this step bears on." },
         "v3_reference": { "type": "string", "minLength": 1, "description": "App v3 JOURNEY_RESULTS reference for DEL-11-03's comparison; evidence only." }
       },

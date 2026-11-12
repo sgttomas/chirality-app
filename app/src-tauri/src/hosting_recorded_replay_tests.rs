@@ -261,11 +261,14 @@ runpy.run_path({peer},run_name='__main__')
                 .iter()
                 .any(|r| r["requestIdentity"] == 0)
         });
-        // Recorded frame 14, sent just before the approval request: the
-        // conversation's status as the supplier reported it, applied unchanged.
-        let sent = &self.recording["frames"][14]["frame"];
-        assert_eq!(sent["method"], "thread/status/changed");
-        assert_eq!(sent["params"]["status"]["activeFlags"], json!(["waitingOnApproval"]));
+        // The conversation's status as the supplier last reported it before
+        // the approval request, applied unchanged. Found in the recording by
+        // what the frames are, not by their index.
+        let frames = self.recording["frames"].as_array().unwrap();
+        let request = frames.iter().position(|f| f["frame"]["method"] == "item/commandExecution/requestApproval").unwrap();
+        let sent = frames[..request].iter().rev().map(|f| &f["frame"])
+            .find(|f| f["method"] == "thread/status/changed" && f["params"]["threadId"] == self.thread())
+            .expect("the recording reports this conversation's status before its approval request");
         let row = self.home.host.snapshot()["threads"]
             .as_array()
             .unwrap()
@@ -874,12 +877,14 @@ fn recorded_nv04_parent_completion_keeps_its_child_live_until_separate_completio
             .any(|t| t["id"] == child_turn && t["status"] == "inProgress"),
         "{before}"
     );
-    // Recorded frame 27: the supplier reported the parent conversation idle
-    // while its child's turn was still in progress. The parent's row carries
-    // that status as sent; it says nothing about the child.
-    let sent = &f.recording["frames"][27]["frame"];
-    assert_eq!(sent["method"], "thread/status/changed");
-    assert_eq!(sent["params"]["threadId"], f.thread());
+    // The parent's row carries the status the supplier last reported for it
+    // among the frames delivered so far (the peer pauses after frame 28), as
+    // sent; it says nothing about the child, whose turn is still in progress.
+    // The frame is found by what it is: the order of the frames around the
+    // parent's completion is not the supplier's settled behaviour.
+    let sent = f.recording["frames"].as_array().unwrap()[..=28].iter().rev().map(|r| &r["frame"])
+        .find(|r| r["method"] == "thread/status/changed" && r["params"]["threadId"] == f.thread())
+        .expect("the recording reports the parent's status before the pause");
     let parent = f.home.host.snapshot()["threads"]
         .as_array()
         .unwrap()
@@ -888,7 +893,6 @@ fn recorded_nv04_parent_completion_keeps_its_child_live_until_separate_completio
         .cloned()
         .unwrap();
     assert_eq!(parent["status"], sent["params"]["status"], "{parent}");
-    assert_eq!(parent["status"], json!({"type":"idle"}));
     assert_eq!(parent["statusSource"]["method"], "thread/status/changed");
     assert!(before["turnRecords"]
         .as_array()

@@ -805,6 +805,11 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["currentAppProjectContext"] = state.project_context.view();
     s["configuredProviderReadRevision"] = if home.class() == home_resources::HomeClass::Account {
         home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
+            .map(|cwd|home.host.configured_provider_observation_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
+    } else { Value::Null };
+    // The endpoint and Add reviews follow every configuration read of the folder, as their native checks do.
+    s["providerOfferReadRevision"] = if home.class() == home_resources::HomeClass::Account {
+        home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
             .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
     } else { Value::Null };
     s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
@@ -1122,7 +1127,7 @@ fn read_configured_providers(state:State<'_,AppState>,generation:Value,mode_home
     state.validate_home_source(&home).map_err(|_|refused())?;
     let active=state.homes.lock().unwrap().active();
     if !Arc::ptr_eq(&active,&home) || home.host.snapshot()["generation"]!=generation || state.project_context.view()!=project
-        || home.host.configured_provider_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
+        || home.host.configured_provider_observation_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
     Ok(view)
 }
 
@@ -1493,7 +1498,7 @@ fn role_set_metadata() -> Value {
         // the set; only those that may start a conversation are offered as one.
         Ok(set) => json!({"available":true,"roles":set.roles,"defaultRole":set.default_role(),
             "conversationRoles":role_supply::Role::ALL.into_iter().filter(|r|r.primary_entry()).collect::<Vec<_>>(),
-            "identity":identity,"standing":"candidate; U-R6/U-R11 open"}),
+            "identity":identity,"standing":"candidate; U-R6 open"}),
         Err(reason) => json!({"available":false,"reason":reason,"identity":identity}),
     }
 }
@@ -1553,6 +1558,13 @@ fn thread_start(
 /// (New conversation, Continue as, clean trial). It binds the start to that
 /// home and generation before any effect; nothing is recaptured.
 #[allow(clippy::too_many_arguments)]
+/// What a start records as "the preselection was left as it was". The caller's
+/// claim stands only for the role set's own default: no caller can record
+/// another role, or no role, as preselected. An absent claim stays absent
+/// (not established).
+fn established_preselection(claimed: Option<bool>, role: Option<role_supply::Role>, default: Option<role_supply::Role>) -> Option<bool> {
+    claimed.map(|claimed| claimed && role.is_some() && role == default)
+}
 fn start_conversation(
     app: &tauri::AppHandle,
     state: &AppState,
@@ -1566,6 +1578,7 @@ fn start_conversation(
     preselected: Option<bool>,
 ) -> Result<Value, String> {
     let supply_ref=util::opaque_id("sup:")?;
+    let preselected=established_preselection(preselected,role,role_supply::bundled_role_set().ok().and_then(|set|set.default_role()));
     // An unknown class or absent home keeps its existing refusal observation.
     // A different, replaced, closed or incomplete source is refused before any
     // effect or record: no endpoint, role, provider or start state changes, and
@@ -2067,15 +2080,16 @@ fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathB
 }
 #[tauri::command(async)]
 fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
-    workflow_context_home(&state,&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    workflow_context_home(&state,&context,wait)?;
     let Some(path)=workflow_native_folder(&app,"Select exact coordinated-knowledge-work development holding copy")? else{return Ok(json!({"state":"native selection dismissed"}));};
     noted_selection(&state,&context,|root,chat|root.select_development_copy(chat,path))
 }
 /// The displayed App source is an opaque HomeSession reference, usable even
 /// before Codex starts. A changed active source refuses rather than redirecting.
-fn workflow_context_home(state: &AppState, context: &workflow_selection::Context) -> Result<Arc<runtime_session::HomeSession>, String> {
+fn workflow_context_home(state: &AppState, context: &workflow_selection::Context, wait: workflow_selection::Wait) -> Result<Arc<runtime_session::HomeSession>, String> {
     let home = state.homes.lock().unwrap().active();
-    context.verify_home(&home)?;
+    context.verify_home_within(&home, wait)?;
     Ok(home)
 }
 /// Recheck at mutation after any native picker/queued operation. The expected
@@ -2092,17 +2106,19 @@ fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppStat
     let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join(RESOURCE_WORKFLOWS);
     noted_selection(&state,&context,|workflows,chat|workflows.select_production_bundle(chat,root,&name))
 }
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_select_production_copy(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
     noted_selection(&state,&context,|root,chat|{root.verify_library_context(&context)?;root.select_production_copy(chat,&name)})
 }
 #[tauri::command(async)]
 fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String,context:workflow_selection::Context)->Result<Value,String>{
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
-    workflow_context_home(&state,&context)?;
+    workflow_context_home(&state,&context,wait)?;
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
-    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let wait=workflow_selection::Wait::for_press(); // the picker took the person's time, not the press's
+    let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;
     root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
     // WR SQ-D D-2: the opened library's drafts are listed at once.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
@@ -2165,8 +2181,9 @@ fn workflow_follow_newer_revision(state:State<'_,AppState>,selection_ref:String,
 /// WR §3: the explicit App project's own library, without a folder picker.
 #[tauri::command(async)]
 fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;
     root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
     // The library is open either way; a listing that cannot run now says so in the list.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
@@ -2174,23 +2191,26 @@ fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selec
 /// WR SQ-D D-2…D-4 in the host (OI-008 ruling): observe the active library's drafts now.
 #[tauri::command(async)]
 fn workflow_observe_drafts(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;
     root.observe_drafts(&view["items"])
 }
 /// WR ME-1: explicitly refresh the opened library's file entries. No native
 /// contact, review, selection, registration or record write is performed.
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_library_entries_refresh(state:State<'_,AppState>,library_ref:String,context:workflow_selection::Context)->Result<Value,String>{
-    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),|root,_|root.observe_library_entries(&library_ref))
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,|root,_|root.observe_library_entries(&library_ref))
 }
 /// WR ME-1/2: choose an ordered subset of one held observation. Names and
 /// content are resolved by its original owner, never supplied by the renderer.
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_review_library_entries(state:State<'_,AppState>,library_ref:String,listing_ref:String,entry_refs:Vec<String>,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;state.validate_home_source(&home)?;
     let (_,observed)=current_actor_context_for(&state,&home);
-    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),|root,home|root.review_library_entries(home,observed,&library_ref,&listing_ref,&entry_refs))
+    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,|root,home|root.review_library_entries(home,observed,&library_ref,&listing_ref,&entry_refs))
 }
 /// WR TT-3, TT-3a, TT-3b (SQ-DT DT-1…DT-3, SQ-FT FT-1…FT-3): Try pressed on a
 /// listed draft. The host takes the trial snapshot, composes the trial text and
@@ -2226,11 +2246,12 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
+fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,preselected:Option<bool>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
     let class=home_class(&mode_home_class).map_err(SendRefusal::kept)?;
     // The source is bound before the trial's begin step: a mismatch keeps the pre-fill.
     runtime_session::trial_flows::start_bound_clean_trial(&state.workflows,&state.homes,class,&generation,&reference,
-        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,None),
+        // As an ordinary start: the record says whether the role was the preselection or the person's choice.
+        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,preselected),
         |home,started,thread|runtime_session::trial_flows::send_trial(&state.workflows,home,&reference,started,thread,&person_text))
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
@@ -2291,11 +2312,12 @@ fn workflow_review_draft(state:State<'_,AppState>,name:String)->Result<Value,Str
     // The review is open either way; the list shows it at its next observation.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_create_draft(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;
-    let mut root=state.workflows.lock().unwrap();
-    let chat=context.verify_home(&home)?;workflow_context_home(&state,&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;
+    let (mut root,current,chat)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;
+    if !Arc::ptr_eq(&home,&current) {return Err("Workflow App home source changed; refresh the displayed choice".into());}
     root.verify_choice_context(&context,chat.as_ref())?;root.verify_library_context(&context)?;
     root.create_selected_draft(chat.as_ref(),&name)
 }
@@ -2348,12 +2370,13 @@ fn workflow_continue_registration(state:State<'_,AppState>,review_ref:String)->R
     let result=library.control.lock().unwrap().as_mut().ok_or("Original library act owner unavailable")?.continue_a15(original.offer.as_ref().ok_or("Original opaque offer not retained")?)?;
     original.accept_result(result)?;Ok(original.status.clone())
 }
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;state.validate_home_source(&home)?;
     if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The run target differs from the displayed workflow chat; nothing prepared".into());}
     // The exact displayed choice is rechecked under Root before composing.
-    let reference=workflow_selection::prepare(&state.workflows,&context,||state.homes.lock().unwrap().active(),person_text,state.workspace.as_deref())?;
+    let reference=workflow_selection::prepare(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,person_text,state.workspace.as_deref())?;
     Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
 }
 #[tauri::command(async)]
@@ -2405,10 +2428,13 @@ fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Val
 /// CH-1 "End ‹A› and start ‹B›" as one confirmed step: A ends, B is prepared and started.
 #[tauri::command(async)]
 fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;state.validate_home_source(&home)?;
     let view=crate::host_tick::receive_view(&home); // as workflow_end_run
     if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The successor target differs from the displayed workflow chat; nothing ended".into());}
-    let mut root=state.workflows.lock().unwrap();let chat=context.verify_home(&home)?.ok_or("Choose a workflow chat")?;workflow_context_home(&state,&context)?;root.verify_choice_context(&context,Some(&chat))?;
+    let (mut root,current,chat)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;
+    if !Arc::ptr_eq(&home,&current) {return Err("Workflow App home source changed; refresh the displayed choice".into());}
+    let chat=chat.ok_or("Choose a workflow chat")?;root.verify_choice_context(&context,Some(&chat))?;
     let next=root.end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
     drop(root);
     let started=runtime_session::start_workflow_run(&state.workflows,&next);

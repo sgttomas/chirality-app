@@ -44,6 +44,13 @@ needs:
     end; the requirement check reports each declared requirement's outcome for the current host;
     and each checkpoint's arrival and disposition in a run is recorded.
   gating: false
+- from: DEL-02-04
+  condition: For the conversation chosen for a run, in its own home, the role the App supplied at
+    its start is reported as App-observed, a start with no role is reported as that and not as
+    unknown, and where this App process holds no record of the supply the role is reported as
+    not established.
+  gating: false
+  when: Showing the conversation's role beside the roles the Library lists for a chosen workflow
 - from: DEL-04-01
   condition: Registering a workflow revision is a distinct act kind reserved to the person, with
     its own name and wording, and it does not say that the revision was examined, checked or
@@ -55,6 +62,11 @@ needs:
     a record can be validated; and entries for a run's text and its supply check are carried in
     the run's log.
   gating: false
+- from: external:sgttomas/chirality-library release
+  condition: The selected Library release publishes its source archive with a digest, and its
+    method index names each workflow and the files of its package, so that the bundled workflows
+    are generated from the archive and compared with it.
+  when: When the bundled workflows are generated or compared with the release.
 - from: external:person using the App
   condition: A person reviews and registers workflows, sends the messages the App prepares, and
     starts and ends runs.
@@ -87,6 +99,10 @@ code_paths:
 - app/src-tauri/resources/workflow_role/workflow-record-envelope.schema.json
 - app/src-tauri/resources/production_workflows/**
 - app/src-tauri/resources/development_workflows/**
+# The generator that writes production_workflows from the selected Library release, and its
+# comparison of that tree with the release archive (AC-014).
+- tools/library_workflows/bundle.py
+- tools/library_workflows/README.md
 # runtime_session.rs, lib.rs, hosting.rs and host_tick.rs are shared. Here: the workflow
 # session (library, drafts, trials, selection, run preparation and the supply check), its
 # commands, and the reading of run offers on the observation tick. Opening and ending a run,
@@ -97,6 +113,7 @@ code_paths:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/host_tick.rs
 - app/src/RunJourney.tsx
+- app/src/IncludedWorkflows.tsx
 - app/src/MakeJourney.tsx
 - app/src/LibraryEntries.tsx
 - app/src/WorkflowRegistrationReview.tsx
@@ -121,6 +138,7 @@ checks:
 - app/src-tauri/src/workflow_assurance_tests.rs
 - app/src-tauri/src/workflow_catalog_tests.rs
 - app/src-tauri/src/p2_production_catalog_tests.rs
+- tools/library_workflows/test_bundle.py
 - app/src-tauri/src/workflow_receiving_tests.rs
 - app/src-tauri/src/workflow_record_store_tests.rs
 - app/src-tauri/src/record_supply_tests.rs
@@ -148,6 +166,7 @@ checks:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/runtime_session.rs
 - app/tests/run-journey.test.mjs
+- app/tests/included-workflows.test.mjs
 - app/tests/make-journey.test.mjs
 - app/tests/journey-navigation.test.mjs
 - app/tests/workflow-library.test.mjs

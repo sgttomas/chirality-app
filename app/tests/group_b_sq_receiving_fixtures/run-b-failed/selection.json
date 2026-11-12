@@ -1,0 +1,139 @@
+{
+  "format": "sq-exp-receiving-selection.v1",
+  "purpose": "current_producer_declaration",
+  "support": {
+    "declaration_sha256": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
+    "support_identity": {
+      "exp_version": "EXP-v0.2",
+      "schema_ids": {
+        "result": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+        "review": "urn:chirality:app-v4:del-09-01:exam-review-record:0.2",
+        "change": "urn:chirality:app-v4:del-09-01:exam-change-impact:0.2"
+      },
+      "prototype_sha256": "f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
+    }
+  },
+  "candidate": {
+    "revision": "INVENTED-SQ-REVISION",
+    "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+    "codex_pin": "0.160.0"
+  },
+  "dossier": {
+    "path": "dossier.json",
+    "sha256": "bf5a414536aeefbb32e371f14fb95aee64e6a39da8df74caf9a0b71ffde06f0f"
+  },
+  "case_definition": {
+    "ref": "INVENTED-SQ-CASE-DEFINITION",
+    "path": "case-definition.txt",
+    "sha256": "dcf0fa22c6e6e3752e05491d056142e58b9efca378c5200d3294e981c26cb19c"
+  },
+  "artifacts": [
+    {
+      "slot": "result-M12-1",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-1.json",
+        "sha256": "9a7416214b06b7cbfa0adf87d3dad2d9d3abc3f6d2fa429b492c161c766ea51b"
+      },
+      "binding": {
+        "path": "result-M12-1.binding.json",
+        "sha256": "3856ab5c4ac57710acdca4cc3eee680e5af1c344b7a6b8d24d2f427043408351"
+      }
+    },
+    {
+      "slot": "result-M12-2",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-2.json",
+        "sha256": "008fd5e2aa7a4acb7969e5819d60887d8e471b4ab6f8be900274199c06487179"
+      },
+      "binding": {
+        "path": "result-M12-2.binding.json",
+        "sha256": "099e1cb0c8d5f4b487dd0c8f7cdf8f6450c7b9d8e3c60353d1981f9a7f4cffe4"
+      }
+    },
+    {
+      "slot": "result-M12-3",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-3.json",
+        "sha256": "2c3ae54235682e8558e4ec0bc8d4256014dc7cbbc0db524e005f2a50a95b6a6b"
+      },
+      "binding": {
+        "path": "result-M12-3.binding.json",
+        "sha256": "6ebb921a19d6e3c8dc2a088e4d95bf65a58fcbdd136bd464e4551658c13d872c"
+      }
+    },
+    {
+      "slot": "result-M12-4",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-4.json",
+        "sha256": "68cccf8c617c64c04b735a99298ae1012ac8314f1d9d7a3a21e63171aaca930a"
+      },
+      "binding": {
+        "path": "result-M12-4.binding.json",
+        "sha256": "bf82f6e95d4b7b46833502f2d11bb5c2bb40c7bfcac4c060c26df9344eba1151"
+      }
+    },
+    {
+      "slot": "result-M12-5",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-5.json",
+        "sha256": "f304df8d7d15d1e1e216c963a313a4e6bd140be2a6b8fffde43f2fecdb71c7d9"
+      },
+      "binding": {
+        "path": "result-M12-5.binding.json",
+        "sha256": "00e3984398301b4b24a765351bd92bcbc8f621eb1a5f85ea0046558c60f97283"
+      }
+    },
+    {
+      "slot": "result-M12-6",
+      "kind": "result",
+      "record": {
+        "path": "result-M12-6.json",
+        "sha256": "2a668e7ce0ddcc6ad377b3c5f02ac6607a028fa68ff113a4aec57db171a6e053"
+      },
+      "binding": {
+        "path": "result-M12-6.binding.json",
+        "sha256": "f4e1493f92b984016ee4b9e7d562ced22a2103f8e1b8ff4d44a3cc376aa1ae96"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-1",
+      "result_slot": "result-M12-1"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-2",
+      "result_slot": "result-M12-2"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-3",
+      "result_slot": "result-M12-3"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-4",
+      "result_slot": "result-M12-4"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-5",
+      "result_slot": "result-M12-5"
+    },
+    {
+      "scenario": "V4-EXM-12",
+      "step": "M12-6",
+      "result_slot": "result-M12-6"
+    }
+  ],
+  "review": null,
+  "packages": [],
+  "changes": []
+}
