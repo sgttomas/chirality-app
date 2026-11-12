@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./hostReads";
 
 type NativePath = { encoding: "unix_bytes"; bytes: number[] };
 type Location = { displayPath: string; nativePath: NativePath };
