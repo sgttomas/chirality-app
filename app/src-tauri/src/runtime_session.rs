@@ -584,9 +584,8 @@ fn seed_instructions_with_admission(root: &std::path::Path, after_absence: impl 
     if !initial {
         // First seed is distinct from repairing a known existing user store.
         // Missing, unreadable, non-UTF8 or linked copies are errors, never fallback.
-        // A file this release adds is placed once in a store seeded without it.
-        crate::instruction_store::add_later(root, crate::role_supply::DELEGATION_GUIDANCE_PATH,
-            DELEGATION_DEFAULT, INSTRUCTION_RELEASE)?;
+        // Nothing is written into an existing store: a store seeded before the
+        // delegation guidance was shipped reads it as missing.
         return validate_instruction_copies(root);
     }
     after_absence();

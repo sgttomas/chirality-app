@@ -76,14 +76,9 @@ implemented behavior and qualification limits.
    discloses expected model contact at thread start, before a turn; it does not
    represent that notice as measured socket traffic. Reviewed v4 guidance seeds
    an editable App instruction copy without overwriting edits; new conversations
-   read current bytes. A file a later release adds (`DELEGATION_RECORDS.md`) is
-   placed once, with its own addition record, only where the copy's readable
-   seed record shows it was seeded without it; no existing file is touched.
-   The App first records that the placement was begun, writes the file whole
-   and only then makes it visible, and records it last; a placement begun and
-   not recorded as finished is never made again.
-   Otherwise, and once placed, its absence is a missing file: a start in a role
-   that may delegate is refused saying so, and a start with no role is not. The Rust host prepares additive native child roles
+   read current bytes. The App writes into that copy only when it first seeds
+   it. A missing `DELEGATION_RECORDS.md` refuses a start in a role that may
+   delegate, saying so; a start with no role is not refused. The Rust host prepares additive native child roles
    from that frozen guidance, withholding colliding or unsupported names and
    rechecking configuration/source currentness before dispatch. The opt-in
    [supplier child-carrier check](supplier_checks/child_roles.py)
@@ -1229,6 +1224,14 @@ explicit unqualified supplier selection in private bounded atomic storage.
 It never saves credentials, model/provider choices, trust or a claimed lease.
 The exact bundled supplier path and standing are shown; matching label,
 generated reference and binary bytes do not authenticate or qualify it.
+
+A development home made by an earlier build has no `DELEGATION_RECORDS.md` in
+its guidance folder, the `instructions` folder inside the App data folder of
+that run (`app_data_dir()`/`instructions`). Starts in HELP_HUMAN, HELPS_HUMANS
+and WORKING_ITEMS are refused there until the file is copied in, from the
+repository root:
+`cp app/src-tauri/resources/instructions/DELEGATION_RECORDS.md "<App data>/instructions/"`.
+Starting a fresh home seeds it.
 
 The existing environment route below remains complete and exclusive. Any
 startup supplier/home/project/key/shared/development input selects it, even if

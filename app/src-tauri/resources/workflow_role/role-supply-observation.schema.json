@@ -977,10 +977,7 @@
               ],
               "properties": {
                 "path": {
-                  "enum": [
-                    ".seed-record.json",
-                    ".seed-addition-DELEGATION_RECORDS.json"
-                  ]
+                  "const": ".seed-record.json"
                 },
                 "content": {
                   "$ref": "#/$defs/contentIdentity"

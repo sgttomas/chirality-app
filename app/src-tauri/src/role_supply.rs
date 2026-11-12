@@ -238,20 +238,8 @@ fn read_guidance_snapshot(
         )
     }
     let opened_root = directory(root)?;
-    // A file a later release added to an existing store has its own addition
-    // record; every other file's history is the store's first seed record.
-    let present = |name: &str| {
-        let c = CString::new(name).unwrap();
-        let mut m = std::mem::MaybeUninit::<libc::stat>::uninit();
-        let found = unsafe { libc::fstatat(opened_root.as_raw_fd(), c.as_ptr(), m.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) };
-        found == 0
-    };
-    let history_name = match seed_history::addition_record(path) {
-        Some(name) if present(name) => name,
-        _ => seed_history::SEED_RECORD,
-    };
     let history = (|| -> Result<(File, Metadata, Vec<u8>), &'static str> {
-        let name = CString::new(history_name).unwrap();
+        let name = CString::new(seed_history::SEED_RECORD).unwrap();
         let flags = libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY;
         let fd = unsafe { libc::openat(opened_root.as_raw_fd(), name.as_ptr(), flags) };
         if fd < 0 {
@@ -308,10 +296,10 @@ fn read_guidance_snapshot(
         Ok((file, before, raw)) => {
             let stable = (|| -> Result<bool, String> {
                 let after = file.metadata().map_err(|e| e.to_string())?;
-                let named = at(&opened_root, history_name, false)?.metadata().map_err(|e| e.to_string())?;
+                let named = at(&opened_root, seed_history::SEED_RECORD, false)?.metadata().map_err(|e| e.to_string())?;
                 Ok(after.is_file() && named.is_file() && stamp(&before) == stamp(&after) && stamp(&after) == stamp(&named))
             })().unwrap_or(false);
-            if stable { seed_history::report(history_name, &raw, path, &bytes) } else { seed_history::unknown("changed") }
+            if stable { seed_history::report(&raw, path, &bytes) } else { seed_history::unknown("changed") }
         }
         Err(reason) => seed_history::unknown(reason),
     };

@@ -178,79 +178,175 @@ fn legacy_store(t: &Temp) -> PathBuf {
     std::fs::write(store.join(".seed-record.json"), format!("{record}\n")).unwrap();
     store
 }
-fn snapshot(store: &Path) -> Vec<(String, Vec<u8>, (u64, i64, i64))> {
+/// The whole store folder as it stands: every entry under it, by relative
+/// name, with its kind, its bytes (or a link's target), inode and
+/// modification time. Two equal listings mean nothing was written, replaced
+/// or removed between them.
+fn tree(store: &Path) -> Vec<(String, String, Vec<u8>, u64, i64, i64)> {
     use std::os::unix::fs::MetadataExt;
-    let mut out = vec![];
-    for path in ["AGENTS.md", ".seed-record.json"].into_iter().map(str::to_owned).chain(Role::ALL.into_iter().map(role_path)) {
-        let m = std::fs::symlink_metadata(store.join(&path)).unwrap();
-        out.push((path.clone(), std::fs::read(store.join(&path)).unwrap(), (m.ino(), m.mtime(), m.mtime_nsec())));
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<(String, String, Vec<u8>, u64, i64, i64)>) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            let m = std::fs::symlink_metadata(&path).unwrap();
+            let name = path.strip_prefix(root).unwrap().to_string_lossy().into_owned();
+            let (kind, bytes) = if m.file_type().is_symlink() {
+                ("link", std::fs::read_link(&path).unwrap().to_string_lossy().into_owned().into_bytes())
+            } else if m.is_dir() {
+                ("dir", vec![])
+            } else {
+                ("file", std::fs::read(&path).unwrap_or_else(|_| b"<unreadable>".to_vec()))
+            };
+            out.push((name, kind.to_owned(), bytes, m.ino(), m.mtime(), m.mtime_nsec()));
+            if m.is_dir() && !m.file_type().is_symlink() {
+                walk(root, &path, out);
+            }
+        }
     }
+    let root = std::fs::symlink_metadata(store).unwrap();
+    let mut out = vec![(".".to_owned(), "dir".to_owned(), vec![], root.ino(), root.mtime(), root.mtime_nsec())];
+    walk(store, store, &mut out);
+    out.sort();
     out
 }
 
+/// Two App starts (the store check at App start, twice) and a composition in
+/// every conversation role and with no role, on an existing store. Asserts
+/// that the whole store folder is unchanged by name, bytes, inode and
+/// modification time, and returns each composition's result.
+fn start_without_writing(store: &Path) -> Vec<(Option<Role>, Result<Composition, String>)> {
+    let before = tree(store);
+    let checked = [seed_instructions(store), seed_instructions(store)];
+    let results: Vec<_> = [None, Some(Role::HELP_HUMAN), Some(Role::HELPS_HUMANS), Some(Role::WORKING_ITEMS)]
+        .into_iter().map(|role| (role, compose_role(store, role))).collect();
+    assert_eq!(tree(store), before, "an existing store was written, replaced or removed");
+    for result in checked {
+        result.unwrap();
+    }
+    results
+}
+
+/// The delegation guidance is absent: each delegating start is refused with
+/// the missing-file sentence, and no role is supplied the product guidance alone.
+fn assert_absent_refuses_delegating_roles_only(store: &Path, results: Vec<(Option<Role>, Result<Composition, String>)>) {
+    assert!(std::fs::symlink_metadata(store.join(DELEGATION)).is_err(), "the delegation guidance appeared");
+    for (role, result) in results {
+        match role {
+            None => assert_eq!(carried_bytes(&result.unwrap()), std::fs::read(store.join("AGENTS.md")).unwrap()),
+            Some(role) => assert_eq!(result.unwrap_err(), missing_guidance_reason(store, DELEGATION, false, None), "{role:?}"),
+        }
+    }
+}
+
+/// The delegation guidance is present: each delegating start is supplied the
+/// bytes on disk as they are, and returns the delegation part of each.
+fn assert_present_is_read_as_it_is(store: &Path, results: Vec<(Option<Role>, Result<Composition, String>)>) -> Vec<Value> {
+    let mut supplied = vec![];
+    for (role, result) in results {
+        let c = result.unwrap();
+        assert_eq!(carried_bytes(&c), expected(store, role, role.is_some()), "{role:?}");
+        if role.is_some() {
+            supplied.push(parts(&c)[2].clone());
+        }
+    }
+    supplied
+}
+
+/// (e) First seeding into an empty location creates the six guidance files and
+/// one seed record naming them, and nothing else.
 #[test]
-fn store_seeded_into_an_empty_folder_holds_every_shipped_default() {
+fn first_seeding_creates_the_six_files_and_one_seed_record_and_nothing_else() {
     let t = Temp::new();
     seed_instructions(&t.store()).unwrap();
+    let listing: Vec<(String, String)> = tree(&t.store()).into_iter().map(|(name, kind, ..)| (name, kind)).collect();
+    let mut want: Vec<(String, String)> = [".", "agents"].iter().map(|n| (n.to_string(), "dir".to_owned()))
+        .chain(["AGENTS.md", DELEGATION, ".seed-record.json"].iter().map(|n| (n.to_string(), "file".to_owned())))
+        .chain(Role::ALL.into_iter().map(|r| (role_path(r), "file".to_owned()))).collect();
+    want.sort();
+    assert_eq!(listing, want);
     for path in ["AGENTS.md".to_owned(), DELEGATION.to_owned()].into_iter().chain(Role::ALL.into_iter().map(role_path)) {
         assert_eq!(std::fs::read(t.store().join(&path)).unwrap(), shipped(&path), "{path}");
     }
     let record: Value = serde_json::from_slice(&std::fs::read(t.store().join(".seed-record.json")).unwrap()).unwrap();
-    assert!(record["created"].as_array().unwrap().iter().any(|e| e["path"] == DELEGATION));
-    assert!(!t.store().join(".seed-addition-DELEGATION_RECORDS.json").exists());
+    let mut named: Vec<&str> = record["created"].as_array().unwrap().iter().map(|e| e["path"].as_str().unwrap()).collect();
+    named.sort();
+    let mut six: Vec<String> = ["AGENTS.md".to_owned(), DELEGATION.to_owned()].into_iter().chain(Role::ALL.into_iter().map(role_path)).collect();
+    six.sort();
+    assert_eq!(named, six);
+    // A later start writes nothing.
+    start_without_writing(&t.store());
 }
 
+/// (a) An older store, first seeded without the delegation guidance: nothing
+/// is written; the delegating roles are refused and no role starts.
 #[test]
-fn a_store_that_predates_the_file_gains_it_once_and_nothing_else_changes() {
+fn an_older_store_without_the_file_is_never_written_and_refuses_the_delegating_roles_only() {
     let t = Temp::new();
     let store = legacy_store(&t);
     std::fs::write(store.join("agents/AGENT_HELP_HUMAN.md"), "The person's edited HELP_HUMAN\n").unwrap();
-    let before = snapshot(&store);
-    seed_instructions(&store).unwrap();
-    assert_eq!(snapshot(&store), before, "a file already in the store was touched");
-    assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), shipped(DELEGATION));
-    let addition: Value = serde_json::from_slice(&std::fs::read(store.join(".seed-addition-DELEGATION_RECORDS.json")).unwrap()).unwrap();
-    assert_eq!(addition["format"], "chirality.instruction-seed-addition/1");
-    assert_eq!(addition["created"][0]["path"], DELEGATION);
-    assert_eq!(addition["created"][0]["defaultContent"]["value"], sha(&shipped(DELEGATION)));
-    let c = compose_role(&store, Some(Role::HELP_HUMAN)).unwrap();
-    let p = parts(&c);
-    assert_eq!(p[1]["source"]["state"], "modified");
-    assert_eq!(p[2]["source"]["state"], "default");
-    assert_eq!(p[2]["source"]["seedHistory"]["record"]["path"], ".seed-addition-DELEGATION_RECORDS.json");
-    assert_eq!(p[1]["source"]["seedHistory"]["record"]["path"], ".seed-record.json");
-    // A later start adds nothing again.
-    let added = std::fs::read(store.join(".seed-addition-DELEGATION_RECORDS.json")).unwrap();
-    seed_instructions(&store).unwrap();
-    assert_eq!(std::fs::read(store.join(".seed-addition-DELEGATION_RECORDS.json")).unwrap(), added);
-    // Once placed, its absence is the person's: refused, never restored.
-    std::fs::remove_file(store.join(DELEGATION)).unwrap();
-    assert_missing_refuses_and_no_role_starts(&store);
+    let results = start_without_writing(&store);
+    assert_absent_refuses_delegating_roles_only(&store, results);
 }
 
-/// The delegation guidance is absent and the App placed nothing: a start in
-/// each role that may delegate is refused with the missing-file reason; a
-/// start with no role carries the product guidance alone; once the person
-/// puts the file back, a delegating start is supplied it.
-fn assert_missing_refuses_and_no_role_starts(store: &Path) {
-    seed_instructions(store).unwrap();
-    assert!(!store.join(DELEGATION).exists(), "the App put the file back");
-    for role in delegating_roles() {
-        assert_eq!(compose_role(store, Some(role)).unwrap_err(), missing_guidance_reason(store, DELEGATION, false, None), "{role:?}");
-    }
-    let none = compose_role(store, None).unwrap();
-    assert_eq!(carried_bytes(&none), std::fs::read(store.join("AGENTS.md")).unwrap());
-    // The person's own act; the App offers no restore control (see the PR).
-    std::fs::write(store.join(DELEGATION), shipped(DELEGATION)).unwrap();
-    let c = compose_role(store, Some(Role::HELP_HUMAN)).unwrap();
-    assert_eq!(carried_bytes(&c), expected(store, Some(Role::HELP_HUMAN), true));
-    assert_eq!(parts(&c)[2]["source"]["state"], "default");
-}
-
+/// (b) Files a development home may hold under the names an earlier build of
+/// this change used are untouched and change nothing.
 #[test]
-fn without_a_readable_seed_record_nothing_is_placed_and_the_file_reads_as_missing() {
-    let corrupt: [(&str, fn(&Path)); 4] = [
-        ("deleted", |p| std::fs::remove_file(p).unwrap()),
+fn files_under_names_an_earlier_build_used_are_untouched_and_change_nothing() {
+    let earlier = [
+        (".seed-addition-DELEGATION_RECORDS.json", r#"{"format":"chirality.instruction-seed-addition/1","release":"r","created":[{"path":"DELEGATION_RECORDS.md","defaultContent":{"method":"chirality.app.exact-bytes.sha256/v1","value":"0000000000000000000000000000000000000000000000000000000000000000"}}],"preserved":[]}"#),
+        (".seed-addition-DELEGATION_RECORDS.begun.json", r#"{"format":"chirality.instruction-seed-addition-begun/1","path":"DELEGATION_RECORDS.md"}"#),
+        (".DELEGATION_RECORDS.md.placing", "Invented scratch bytes\n"),
+    ];
+    // Absent, and present as a person's own file.
+    for present in [false, true] {
+        let t = Temp::new();
+        let store = legacy_store(&t);
+        for (name, bytes) in earlier {
+            std::fs::write(store.join(name), bytes).unwrap();
+        }
+        if present {
+            std::fs::write(store.join(DELEGATION), "The person's own delegation notes\n").unwrap();
+        }
+        let results = start_without_writing(&store);
+        for (name, bytes) in earlier {
+            assert_eq!(std::fs::read(store.join(name)).unwrap(), bytes.as_bytes(), "{name}");
+        }
+        if present {
+            for part in assert_present_is_read_as_it_is(&store, results) {
+                assert_eq!(part["source"]["state"], "modified");
+                assert_eq!(part["source"]["seedHistory"], json!({"status":"unestablished","reason":"missing"}));
+            }
+        } else {
+            assert_absent_refuses_delegating_roles_only(&store, results);
+        }
+    }
+}
+
+/// (c) The older store after the person copies the shipped default in by hand:
+/// supplied in the delegating roles as the default, its seed history
+/// unestablished, and nothing written.
+#[test]
+fn an_older_store_with_the_default_copied_in_by_hand_is_supplied_it_and_never_written() {
+    let t = Temp::new();
+    let store = legacy_store(&t);
+    std::fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/instructions").join(DELEGATION), store.join(DELEGATION)).unwrap();
+    let results = start_without_writing(&store);
+    for part in assert_present_is_read_as_it_is(&store, results) {
+        assert_eq!(part["source"]["path"], DELEGATION);
+        assert_eq!(part["source"]["state"], "default");
+        assert_eq!(part["content"]["value"], sha(&shipped(DELEGATION)));
+        assert_eq!(part["source"]["reviewedDefault"]["content"]["value"], sha(&shipped(DELEGATION)));
+        assert_eq!(part["source"]["seedHistory"], json!({"status":"unestablished","reason":"missing"}));
+    }
+}
+
+/// (d) A store whose seed record is absent or unreadable, with the delegation
+/// guidance present and absent, in a store first seeded with it and in an
+/// older one: nothing is written; present is read as it is; absent refuses
+/// the delegating roles only.
+#[test]
+fn without_a_readable_seed_record_nothing_is_written_and_the_file_is_read_as_it_is() {
+    let records: [(&str, fn(&Path)); 4] = [
+        ("absent", |p| std::fs::remove_file(p).unwrap()),
         ("corrupted", |p| std::fs::write(p, b"{\"format\":").unwrap()),
         ("names other paths", |p| std::fs::write(p, br#"{"format":"chirality.instruction-seed-record/1","release":"r","created":[],"preserved":[]}"#).unwrap()),
         ("linked", |p| {
@@ -259,210 +355,48 @@ fn without_a_readable_seed_record_nothing_is_placed_and_the_file_reads_as_missin
             std::os::unix::fs::symlink(&target, p).unwrap();
         }),
     ];
-    for (case, apply) in corrupt {
-        // A store seeded with the file, then the file deleted and the record lost.
-        let t = Temp::new();
-        let store = t.store();
-        seed_instructions(&store).unwrap();
-        std::fs::remove_file(store.join(DELEGATION)).unwrap();
-        apply(&store.join(".seed-record.json"));
-        assert_missing_refuses_and_no_role_starts(&store);
-        assert!(!store.join(".seed-addition-DELEGATION_RECORDS.json").exists(), "{case}");
-        // An older store whose record is lost likewise gains nothing.
-        let t = Temp::new();
-        let store = legacy_store(&t);
-        apply(&store.join(".seed-record.json"));
-        assert_missing_refuses_and_no_role_starts(&store);
-        assert!(!store.join(".seed-addition-DELEGATION_RECORDS.json").exists(), "{case}");
-    }
-}
-
-#[test]
-fn a_store_seeded_with_the_file_never_has_it_restored_and_a_present_file_is_kept() {
-    let t = Temp::new();
-    seed_instructions(&t.store()).unwrap();
-    std::fs::remove_file(t.store().join(DELEGATION)).unwrap();
-    assert_missing_refuses_and_no_role_starts(&t.store());
-
-    // An older store where the person already has a file of that name.
-    let t = Temp::new();
-    let store = legacy_store(&t);
-    std::fs::write(store.join(DELEGATION), "The person's own notes\n").unwrap();
-    seed_instructions(&store).unwrap();
-    assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), b"The person's own notes\n");
-    let addition: Value = serde_json::from_slice(&std::fs::read(store.join(".seed-addition-DELEGATION_RECORDS.json")).unwrap()).unwrap();
-    assert_eq!(addition["preserved"], json!([{"path":DELEGATION,"origin":"unknown"}]));
-    let c = compose_role(&store, Some(Role::WORKING_ITEMS)).unwrap();
-    assert_eq!(parts(&c)[2]["source"]["state"], "modified");
-    assert_eq!(parts(&c)[2]["source"]["seedHistory"], json!({"status":"unestablished","reason":"preserved-path"}));
-}
-
-const ADDITION: &str = ".seed-addition-DELEGATION_RECORDS.json";
-const BEGUN: &str = ".seed-addition-DELEGATION_RECORDS.begun.json";
-const SCRATCH: &str = ".DELEGATION_RECORDS.md.placing";
-
-#[test]
-fn a_finished_placement_leaves_the_whole_file_its_record_and_nothing_else() {
-    let t = Temp::new();
-    let store = legacy_store(&t);
-    seed_instructions(&store).unwrap();
-    assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), shipped(DELEGATION));
-    assert!(store.join(ADDITION).is_file());
-    assert!(!store.join(BEGUN).exists() && !store.join(SCRATCH).exists());
-}
-
-/// What an interruption leaves when the file was made visible and its record
-/// was not written, after the person has removed the file: the marker alone.
-/// The App cannot tell that from a placement that never made the file, so it
-/// places nothing, whatever else of its own it finds.
-#[test]
-fn a_placement_begun_and_not_recorded_as_finished_places_nothing_again() {
-    for scratch_left in [false, true] {
-        let t = Temp::new();
-        let store = legacy_store(&t);
-        std::fs::write(store.join(BEGUN), b"").unwrap();
-        if scratch_left {
-            std::fs::write(store.join(SCRATCH), &shipped(DELEGATION)[..10]).unwrap();
+    for (case, apply) in records {
+        for older in [false, true] {
+            for present in [false, true] {
+                let t = Temp::new();
+                let store = if older { legacy_store(&t) } else {
+                    seed_instructions(&t.store()).unwrap();
+                    std::fs::remove_file(t.store().join(DELEGATION)).unwrap();
+                    t.store()
+                };
+                if present {
+                    std::fs::write(store.join(DELEGATION), "The person's own delegation notes\n").unwrap();
+                }
+                apply(&store.join(".seed-record.json"));
+                let results = start_without_writing(&store);
+                if present {
+                    for part in assert_present_is_read_as_it_is(&store, results) {
+                        assert_eq!(part["source"]["state"], "modified", "{case}");
+                        assert_eq!(part["source"]["seedHistory"]["status"], "unestablished", "{case}");
+                    }
+                } else {
+                    assert_absent_refuses_delegating_roles_only(&store, results);
+                }
+            }
         }
-        let before = snapshot(&store);
-        seed_instructions(&store).unwrap();
-        seed_instructions(&store).unwrap();
-        assert!(!store.join(DELEGATION).exists(), "the App placed the file again");
-        assert!(!store.join(ADDITION).exists(), "a placement was recorded that was not made");
-        assert!(store.join(BEGUN).exists() && !store.join(SCRATCH).exists());
-        assert_eq!(snapshot(&store), before);
-        // Refused in the delegating roles, a start with no role unaffected,
-        // and the file the person puts back is supplied.
-        assert_missing_refuses_and_no_role_starts(&store);
-        // The file is now the person's: the next start leaves it as it is and
-        // records it as preserved, never as created by the App.
-        std::fs::write(store.join(DELEGATION), "The person's own text\n").unwrap();
-        seed_instructions(&store).unwrap();
-        assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), b"The person's own text\n");
-        let addition: Value = serde_json::from_slice(&std::fs::read(store.join(ADDITION)).unwrap()).unwrap();
-        assert_eq!(addition["created"], json!([]));
-        assert_eq!(addition["preserved"], json!([{"path":DELEGATION,"origin":"unknown"}]));
-        assert!(!store.join(BEGUN).exists());
-        // And its later removal is the person's too.
-        std::fs::remove_file(store.join(DELEGATION)).unwrap();
-        seed_instructions(&store).unwrap();
-        assert!(!store.join(DELEGATION).exists());
     }
 }
 
-/// The interruption itself, as the round 2 review made it: the file is made
-/// visible, then the addition record cannot be written. The person removes
-/// the file, and no later start puts it back.
+/// A store first seeded with the delegation guidance, the file then removed by
+/// the person: nothing puts it back, the delegating roles are refused, no role
+/// starts, and the person's own copy back is supplied.
 #[test]
-fn a_file_removed_after_an_interrupted_placement_is_not_put_back() {
-    use std::os::unix::fs::PermissionsExt;
+fn a_removed_delegation_file_is_not_put_back_and_a_copy_back_by_hand_is_supplied() {
     let t = Temp::new();
-    let store = legacy_store(&t);
-    let locked = store.clone();
-    crate::instruction_store::AFTER_VISIBLE.with(|hook| {
-        *hook.borrow_mut() = Some(Box::new(move || {
-            std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
-        }))
-    });
-    let interrupted = seed_instructions(&store);
-    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o755)).unwrap();
-    assert!(interrupted.unwrap_err().contains("Permission denied"));
-    assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), shipped(DELEGATION), "the file was made visible whole");
-    assert!(!store.join(ADDITION).exists() && store.join(BEGUN).exists());
-    // The person removes it before the App starts again.
+    let store = t.store();
+    seed_instructions(&store).unwrap();
     std::fs::remove_file(store.join(DELEGATION)).unwrap();
-    assert_missing_refuses_and_no_role_starts(&store);
-    assert!(!store.join(ADDITION).exists(), "a placement was recorded while the file was absent");
-
-    // The same interruption with the file left where it is: kept as it is and
-    // recorded as preserved with unknown origin, which claims less than happened.
-    let t = Temp::new();
-    let store = legacy_store(&t);
-    let locked = store.clone();
-    crate::instruction_store::AFTER_VISIBLE.with(|hook| {
-        *hook.borrow_mut() = Some(Box::new(move || {
-            std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
-        }))
-    });
-    assert!(seed_instructions(&store).is_err());
-    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o755)).unwrap();
-    seed_instructions(&store).unwrap();
-    assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), shipped(DELEGATION));
-    let addition: Value = serde_json::from_slice(&std::fs::read(store.join(ADDITION)).unwrap()).unwrap();
-    assert_eq!((&addition["created"], &addition["preserved"]), (&json!([]), &json!([{"path":DELEGATION,"origin":"unknown"}])));
-    assert!(!store.join(BEGUN).exists());
-}
-
-/// The record governs: a marker whose removal failed after the record was
-/// written does not turn a finished placement into one begun and not finished,
-/// and does not bring back a file the person then removed.
-#[test]
-fn a_marker_left_beside_a_finished_record_changes_nothing() {
-    let t = Temp::new();
-    let store = legacy_store(&t);
-    seed_instructions(&store).unwrap();
-    let record = std::fs::read(store.join(ADDITION)).unwrap();
-    std::fs::write(store.join(BEGUN), b"left behind").unwrap();
-    seed_instructions(&store).unwrap();
-    assert_eq!(std::fs::read(store.join(ADDITION)).unwrap(), record);
-    assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), shipped(DELEGATION));
-    assert!(!store.join(BEGUN).exists());
-    let c = compose_role(&store, Some(Role::HELP_HUMAN)).unwrap();
-    assert_eq!(parts(&c)[2]["source"]["state"], "default");
-    std::fs::write(store.join(BEGUN), b"left behind").unwrap();
-    std::fs::remove_file(store.join(DELEGATION)).unwrap();
-    assert_missing_refuses_and_no_role_starts(&store);
-    assert_eq!(std::fs::read(store.join(ADDITION)).unwrap(), record);
-}
-
-/// Where the marker cannot be written nothing is placed and nothing is
-/// claimed, and a later start, able to write, places the file as usual.
-#[test]
-fn a_placement_that_cannot_begin_places_nothing_and_claims_nothing() {
-    use std::os::unix::fs::PermissionsExt;
-    let t = Temp::new();
-    let store = legacy_store(&t);
-    let before = snapshot(&store);
-    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o555)).unwrap();
-    let refused = seed_instructions(&store);
-    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o755)).unwrap();
-    assert!(refused.is_err(), "the start reported no failure");
-    for leaf in [DELEGATION, ADDITION, BEGUN, SCRATCH] {
-        assert!(!store.join(leaf).exists(), "{leaf}");
-    }
-    assert_eq!(snapshot(&store), before);
-    seed_instructions(&store).unwrap();
-    assert_eq!(std::fs::read(store.join(DELEGATION)).unwrap(), shipped(DELEGATION));
-    assert!(store.join(ADDITION).is_file() && !store.join(BEGUN).exists());
-}
-
-/// Nothing at the guidance path is replaced, and a scratch file the App does
-/// not know to be its own is left alone.
-#[test]
-fn the_placement_replaces_nothing_and_removes_nothing_it_does_not_know_to_be_its_own() {
-    // A dangling link at the guidance path: left as it is, recorded as preserved.
-    let t = Temp::new();
-    let store = legacy_store(&t);
-    std::os::unix::fs::symlink(t.0.join("nowhere"), store.join(DELEGATION)).unwrap();
-    let _ = seed_instructions(&store);
-    assert!(std::fs::symlink_metadata(store.join(DELEGATION)).unwrap().file_type().is_symlink());
-    assert!(!t.0.join("nowhere").exists(), "the default was written through the link");
-    let addition: Value = serde_json::from_slice(&std::fs::read(store.join(ADDITION)).unwrap()).unwrap();
-    assert_eq!(addition["preserved"], json!([{"path":DELEGATION,"origin":"unknown"}]));
-    assert!(compose_role(&store, Some(Role::HELP_HUMAN)).is_err());
-    assert!(!store.join(BEGUN).exists() && !store.join(SCRATCH).exists());
-
-    // A file under the scratch name with no marker: not known to be the App's.
-    let t = Temp::new();
-    let store = legacy_store(&t);
-    std::fs::write(store.join(SCRATCH), "not known to be the App's\n").unwrap();
-    seed_instructions(&store).unwrap();
-    assert_eq!(std::fs::read(store.join(SCRATCH)).unwrap(), b"not known to be the App's\n");
-    for leaf in [DELEGATION, ADDITION, BEGUN] {
-        assert!(!store.join(leaf).exists(), "{leaf}");
-    }
-    for role in delegating_roles() {
-        assert_eq!(compose_role(&store, Some(role)).unwrap_err(), missing_guidance_reason(&store, DELEGATION, false, None));
+    let results = start_without_writing(&store);
+    assert_absent_refuses_delegating_roles_only(&store, results);
+    std::fs::write(store.join(DELEGATION), shipped(DELEGATION)).unwrap();
+    for part in assert_present_is_read_as_it_is(&store, start_without_writing(&store)) {
+        assert_eq!(part["source"]["state"], "default");
+        assert_eq!(part["source"]["seedHistory"]["status"], "declared");
     }
 }
 

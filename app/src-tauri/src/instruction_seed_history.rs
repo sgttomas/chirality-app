@@ -8,24 +8,6 @@ pub(super) const MAX_BYTES: u64 = 16 * 1024;
 /// The record the first seed of a store writes once.
 pub(crate) const SEED_RECORD: &str = ".seed-record.json";
 pub(crate) const SEED_FORMAT: &str = "chirality.instruction-seed-record/1";
-/// The record written once when a later release adds a file to a store that
-/// was first seeded without it.
-pub(crate) const ADDITION_FORMAT: &str = "chirality.instruction-seed-addition/1";
-const DELEGATION_ADDITION: &str = ".seed-addition-DELEGATION_RECORDS.json";
-/// The marker that a later addition was begun. It is no record of a placement.
-pub(crate) const ADDITION_BEGUN_FORMAT: &str = "chirality.instruction-seed-addition-begun/1";
-const DELEGATION_ADDITION_BEGUN: &str = ".seed-addition-DELEGATION_RECORDS.begun.json";
-
-/// The addition record of a file a later release adds to an existing store.
-pub(crate) fn addition_record(path: &str) -> Option<&'static str> {
-    (path == DELEGATION_GUIDANCE_PATH).then_some(DELEGATION_ADDITION)
-}
-/// The marker written before a later-added file is made visible, and removed
-/// once its addition record is written. It claims only that the placement
-/// was begun.
-pub(crate) fn addition_begun(path: &str) -> Option<&'static str> {
-    (path == DELEGATION_GUIDANCE_PATH).then_some(DELEGATION_ADDITION_BEGUN)
-}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -54,15 +36,11 @@ fn seeded_sets() -> [BTreeSet<String>; 2] {
     [before, since]
 }
 
-/// The paths the first seed record names, when it is well formed.
-pub(crate) fn seeded_paths(raw: &[u8]) -> Option<BTreeSet<String>> {
-    parse(SEED_RECORD, raw)
-}
-
-fn parse(name: &str, raw: &[u8]) -> Option<BTreeSet<String>> {
+/// The paths a first seed record names, when it is valid: either set above.
+fn parse(raw: &[u8]) -> Option<BTreeSet<String>> {
     // Struct deserialization rejects duplicate and unexpected fields.
     let record: Record = serde_json::from_slice(raw).ok()?;
-    if record.release.is_empty() { return None; }
+    if record.format != SEED_FORMAT || record.release.is_empty() { return None; }
     let mut seen = BTreeSet::new();
     for entry in &record.created {
         if !super::guidance_path(&entry.path) || !seen.insert(entry.path.clone())
@@ -73,25 +51,19 @@ fn parse(name: &str, raw: &[u8]) -> Option<BTreeSet<String>> {
     for entry in &record.preserved {
         if !super::guidance_path(&entry.path) || !seen.insert(entry.path.clone()) || entry.origin != "unknown" { return None; }
     }
-    let valid = if name == SEED_RECORD {
-        record.format == SEED_FORMAT && seeded_sets().contains(&seen)
-    } else {
-        record.format == ADDITION_FORMAT && seen.len() == 1
-            && seen.iter().all(|p| addition_record(p) == Some(name))
-    };
-    valid.then_some(seen)
+    seeded_sets().contains(&seen).then_some(seen)
 }
 
 pub(super) fn unknown(reason: &str) -> Value {
     json!({"status":"unestablished","reason":reason})
 }
 
-pub(super) fn report(name: &str, raw: &[u8], path: &str, supplied: &[u8]) -> Value {
+pub(super) fn report(raw: &[u8], path: &str, supplied: &[u8]) -> Value {
     let parsed = (|| -> Option<Value> {
-        let seen = parse(name, raw)?;
+        let seen = parse(raw)?;
         if !seen.contains(path) {
-            // A first seed record that predates this file declares nothing
-            // of it; its addition record is the one that would.
+            // A first seed record from before the delegation guidance was
+            // shipped declares nothing of it.
             return Some(unknown("missing"));
         }
         let record: Record = serde_json::from_slice(raw).ok()?;
@@ -100,7 +72,7 @@ pub(super) fn report(name: &str, raw: &[u8], path: &str, supplied: &[u8]) -> Val
         };
         let default = json!({"method":entry.default_content.method,"value":entry.default_content.value});
         Some(json!({"status":"declared","standing":"mutable seed-record declaration; creation custody not authenticated",
-            "record":{"path":name,"content":content(raw)},
+            "record":{"path":SEED_RECORD,"content":content(raw)},
             "release":record.release,"defaultContent":default,
             "matchesSuppliedContent":content(supplied)==default}))
     })();
