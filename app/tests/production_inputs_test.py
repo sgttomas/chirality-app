@@ -93,6 +93,11 @@ class ProductionInputs(unittest.TestCase):
         self.assertIn('third-party-notices/fonts/index.json',dest);self.assertIn('third-party-notices/fonts/LICENSE-IBM-Plex-OFL.txt',dest)
         self.assertIn('distribution-reference/build-selection.s2.json',dest)
         self.assertNotIn('--debug',recipe['argv']);self.assertIn('--no-sign',recipe['argv'])
+        # The release configuration (DEL-01-06 REQ-001): a build, not a development run, made with
+        # the distribution successor; custom-protocol is what makes the built App not a development run.
+        self.assertIn('build',recipe['argv']);self.assertNotIn('dev',recipe['argv'])
+        features=recipe['argv'][recipe['argv'].index('--features')+1].split(',')
+        self.assertEqual(sorted(features),['custom-protocol','distribution-successor'])
         self.assertNotIn('CHIRALITY_PUBLISHER_SELECTION',recipe['environment'])
         self.assertIn('CHIRALITY_PUBLISHER_SELECTION',recipe['unset_environment'])
         self.assertEqual(len(config['bundle']['resources']),52)

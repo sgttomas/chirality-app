@@ -25,6 +25,13 @@ needs:
     compiles as its publisher identity.
   gating: true
   when: Verifying the supplier on an installed production build
+- from: DEL-01-06
+  condition: The released package is built in the release configuration (the distribution
+    successor, not a development run), so that what the App consults at startup is what REQ-006
+    states for that configuration.
+  gating: true
+  when: Relying, for the candidate, on the release configuration consulting no development
+    startup input
 - from: DEL-04-03
   condition: The run-record format has entries for a turn's model and destination, for supplied
     guidance and for tool-permission settlements, and its writer appends them.
