@@ -404,11 +404,12 @@ test('a turn known only by an error notice keeps its place in the receiving orde
   turnErrors:[{threadId:'T',turnId:'earlier',error:{message:'m'},willRetry:true,receiptPosition:2,ordinalInTurn:1,observedOrder:2,laterFrameForTurn:false}],
   unreadableTurnErrors:[{threadId:'T',turnId:'earliest',receiptPosition:1,observedOrder:1}]};
  assert.deepEqual(activityModel(v,'T').turns.map(t=>t.turnId),['earliest','earlier','later']);
+});
+
 test('a turn an earlier App session left live carries the note the host supplies, and no other turn does',()=>{
  const note=(thread,turn)=>thread==='T'&&turn==='turn-1'?'This turn was in progress when the App last ran; the App ended without a normal quit. Codex\'s history now reports that turn as interrupted. Nothing was resumed or resent.':null;
  const html=renderToStaticMarkup(React.createElement(NativeActivityView,{view:view(),threadId:'T',restartNoteFor:note}));
  assert.equal(html.match(/This turn was in progress when the App last ran/g).length,1);
  assert.match(html,/<h4>Turn 1 · interrupted<\/h4>.*?<p role="note"><small>This turn was in progress when the App last ran; the App ended without a normal quit\./s);
  assert.doesNotMatch(render(view()),/when the App last ran/);
-||||||| 0dc04311
 });
