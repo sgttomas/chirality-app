@@ -4,7 +4,7 @@ Agents run this. It prepares the plan with production_inputs/prepare.py,
 checks it, checks the Cargo build input, installs the npm dependencies
 offline, runs the plan's recipe argv from an empty environment holding only
 the allowlisted variables, checks the built bundle, and publishes
-CANDIDATE.json, which owner_sign.py verifies before it does anything.
+CANDIDATE.json, which the signing step verifies before it does anything.
 
 The inputs it would write through (the source export, the Cargo home and the
 npm cache) are copied into its output folder; every writable location of the

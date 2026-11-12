@@ -448,5 +448,37 @@ class ReleaseBuild(unittest.TestCase):
         return args
 
 
+class PrivateFolderGuard(unittest.TestCase):
+    """The test-process guard of release_fixtures: a convention that helps keep the rule that no tool, test or
+    agent of ours opens, lists or walks the private folder. It is not an enforcement; its limits are in its docstring.
+    Round 4 finding 3 named the routes it missed; each is refused here before anything is read or started."""
+
+    def test_the_guard_refuses_the_ways_round_4_found(self):
+        import glob, subprocess
+        with tempfile.TemporaryDirectory() as temp:
+            folder = Path(temp) / common.PRIVATE_FOLDER
+            os.mkdir(folder, 0o700)
+            created = os.open(folder / 'x', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)  # a create-only write is the writer's way
+            os.close(created)
+            attempts = {
+                'listdir': lambda: os.listdir(folder), 'scandir': lambda: os.scandir(folder), 'walk': lambda: list(os.walk(folder)),
+                'open rb': lambda: open(folder / 'x', 'rb'), 'read_bytes': lambda: (folder / 'x').read_bytes(),
+                'iterdir': lambda: list(folder.iterdir()), 'os.open read': lambda: os.open(folder, os.O_RDONLY),
+                'open w+': lambda: open(folder / 'x', 'w+'), 'open r+b': lambda: open(folder / 'x', 'r+b'),
+                'open a+': lambda: open(folder / 'x', 'a+'), 'os.open O_RDWR': lambda: os.open(folder / 'x', os.O_RDWR),
+                'os.open O_WRONLY without O_EXCL': lambda: os.open(folder / 'x', os.O_WRONLY),
+                'bytes path': lambda: open(os.fsencode(folder / 'x'), 'rb'), 'bytes listdir': lambda: os.listdir(os.fsencode(folder)),
+                'glob': lambda: glob.glob(str(folder / '*')), 'pathlib glob': lambda: list(folder.glob('*')),
+                'subprocess': lambda: subprocess.run(['/bin/cat', str(folder / 'x')], capture_output=True),
+                'through a link': lambda: open(Path(temp) / 'alias', 'rb'),
+            }
+            os.symlink(folder / 'x', Path(temp) / 'alias')
+            for name, attempt in attempts.items():
+                with self.subTest(name), self.assertRaises(PermissionError):
+                    attempt()
+            os.unlink(folder / 'x')
+            os.rmdir(folder)
+
+
 if __name__ == '__main__':
     unittest.main()

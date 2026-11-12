@@ -617,35 +617,9 @@ class Reasons(unittest.TestCase):
 
 
 class NoPrivateReader(unittest.TestCase):
-    """No code path reads the private folder: only PrivateWriter writes there, it has no read method, every
-    path the tools accept is refused by name when it lies inside such a folder, and this suite runs under a
-    guard, a convention of this test process with the limits its docstring states (release_fixtures)."""
-
-    def test_the_suite_guard_refuses_the_ways_round_4_found(self):
-        import glob, subprocess
-        with tempfile.TemporaryDirectory() as temp:
-            folder = Path(temp) / common.PRIVATE_FOLDER
-            os.mkdir(folder, 0o700)
-            created = os.open(folder / 'x', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)  # a create-only write is the writer's way
-            os.close(created)
-            attempts = {
-                'listdir': lambda: os.listdir(folder), 'scandir': lambda: os.scandir(folder), 'walk': lambda: list(os.walk(folder)),
-                'open rb': lambda: open(folder / 'x', 'rb'), 'read_bytes': lambda: (folder / 'x').read_bytes(),
-                'iterdir': lambda: list(folder.iterdir()), 'os.open read': lambda: os.open(folder, os.O_RDONLY),
-                'open w+': lambda: open(folder / 'x', 'w+'), 'open r+b': lambda: open(folder / 'x', 'r+b'),
-                'open a+': lambda: open(folder / 'x', 'a+'), 'os.open O_RDWR': lambda: os.open(folder / 'x', os.O_RDWR),
-                'os.open O_WRONLY without O_EXCL': lambda: os.open(folder / 'x', os.O_WRONLY),
-                'bytes path': lambda: open(os.fsencode(folder / 'x'), 'rb'), 'bytes listdir': lambda: os.listdir(os.fsencode(folder)),
-                'glob': lambda: glob.glob(str(folder / '*')), 'pathlib glob': lambda: list(folder.glob('*')),
-                'subprocess': lambda: subprocess.run(['/bin/cat', str(folder / 'x')], capture_output=True),
-                'through a link': lambda: open(Path(temp) / 'alias', 'rb'),
-            }
-            os.symlink(folder / 'x', Path(temp) / 'alias')
-            for name, attempt in attempts.items():
-                with self.subTest(name), self.assertRaises(PermissionError):
-                    attempt()
-            os.unlink(folder / 'x')
-            os.rmdir(folder)
+    """No code path reads the private folder: only PrivateWriter writes there, it has no read method, and every
+    path the tools accept is refused by name when it lies inside such a folder. The suite guard, a convention
+    with the limits its docstring states, is tested in release_build_test.py."""
 
     def test_only_the_writer_touches_the_private_folder(self):
         for path in sorted(RELEASE_DIR.glob('*.py')):
