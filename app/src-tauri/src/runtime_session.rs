@@ -4790,11 +4790,12 @@ impl WorkflowRootSession {
         workflows: &std::sync::Mutex<Self>,
         context: &crate::workflow_selection::Context,
         active_home: impl Fn() -> std::sync::Arc<HomeSession>,
+        wait: crate::workflow_selection::Wait,
         action: impl FnOnce(&mut Self, std::sync::Arc<HomeSession>) -> Result<T, String>,
     ) -> Result<T, String> {
         let home = active_home();
-        context.verify_home(&home)?;
-        let (mut root, current, _) = crate::workflow_selection::lock_root(workflows, context, &active_home)?;
+        context.verify_home_within(&home, wait)?;
+        let (mut root, current, _) = crate::workflow_selection::lock_root(workflows, context, &active_home, wait)?;
         if !std::sync::Arc::ptr_eq(&home, &current) {
             return Err("Workflow App home source changed; no library operation performed".into());
         }

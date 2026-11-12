@@ -44,6 +44,7 @@ fn action_result_create(
         root,
         &context,
         || homes.lock().unwrap().active(),
+        crate::workflow_selection::Wait::for_press(),
         |root, _, chat| {
             root.verify_library_context(&context)?;
             root.create_selected_draft(chat, args["name"].as_str().unwrap())
@@ -175,6 +176,7 @@ fn workflow_action_actual_create_result_precedes_explicit_draft_observation() {
         &root,
         &context,
         || homes.lock().unwrap().active(),
+        crate::workflow_selection::Wait::for_press(),
         |root, _| root.observe_drafts(&view["items"]),
     )
     .unwrap();
@@ -238,8 +240,8 @@ fn workflow_action_actual_create_result_precedes_explicit_draft_observation() {
     );
 }
 
-// A press's context check meets other readers of the history context: the
-// status read and the host's ticks hold it for a moment at a time.
+// A press's context check meets other holders of the history context (a status
+// read, a host tick, a history command), each for a moment at a time.
 fn press_fixture() -> (Fixture, Arc<HomeSession>, Mutex<WorkflowRootSession>, crate::workflow_selection::Context) {
     let fixture = Fixture::new();
     let home = Arc::new(
@@ -276,14 +278,16 @@ fn workflow_press_waits_for_a_passing_history_reader() {
 }
 
 #[test]
-fn workflow_press_releases_root_for_a_status_read_that_holds_history() {
+fn workflow_press_gives_root_up_while_history_is_held_and_checks_again() {
     let (_fixture, home, root, context) = press_fixture();
     let root = Arc::new(root);
     let calls = std::sync::atomic::AtomicUsize::new(0);
     let reader = Mutex::new(None);
     let active = || {
-        // The second call is made with Root held. A reader shaped like
-        // host_status arrives then: it holds history and waits for Root.
+        // The second call is made with Root held. A constructed holder
+        // arrives then: it takes history and then waits for Root. No current
+        // reader has that order (the status read releases history first);
+        // the press must not depend on that.
         if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 1 {
             let (held, wait_held) = std::sync::mpsc::channel();
             let (home, root) = (home.clone(), root.clone());
@@ -298,11 +302,46 @@ fn workflow_press_releases_root_for_a_status_read_that_holds_history() {
         }
         home.clone()
     };
-    let (guard, current, chat) = crate::workflow_selection::lock_root(&root, &context, &active).unwrap();
+    let (guard, current, chat) = crate::workflow_selection::lock_root(&root, &context, &active, crate::workflow_selection::Wait::for_press()).unwrap();
     assert!(Arc::ptr_eq(&current, &home));
     assert!(chat.is_none());
     drop(guard);
     reader.lock().unwrap().take().unwrap().join().unwrap();
-    // Root was given up once for the reader, and the check was made again.
-    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 4);
+    // Root was given up for the holder and the check made again: the holder
+    // finished, which it could not have done while the press kept Root.
+    assert!(calls.load(std::sync::atomic::Ordering::SeqCst) >= 4);
+}
+
+#[test]
+fn workflow_press_reports_busy_when_history_stays_held_and_refuses_a_changed_choice_after_waiting() {
+    let (_fixture, home, root, context) = press_fixture();
+    // Held for longer than one press waits: the press reports busy, having
+    // compared nothing, and leaves Root free.
+    let held = home.history.lock().unwrap();
+    let started = std::time::Instant::now();
+    let busy = crate::workflow_selection::lock_root(&root, &context, || home.clone(), crate::workflow_selection::Wait::for_press()).map(|_| ()).unwrap_err();
+    assert_eq!(busy, "Native history context is busy; refresh the workflow choice");
+    assert!(started.elapsed() < std::time::Duration::from_secs(5), "one press, one bounded wait");
+    assert!(root.try_lock().is_ok());
+    drop(held);
+    // A context that no longer holds is refused after the wait, never acted on.
+    let mut stale = context.clone();
+    stale.history_epoch = Some(stale.history_epoch.unwrap_or(0) + 1);
+    let (released, wait_released) = std::sync::mpsc::channel();
+    let holder = {
+        let home = home.clone();
+        std::thread::spawn(move || {
+            let guard = home.history.lock().unwrap();
+            released.send(()).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+            drop(guard);
+        })
+    };
+    wait_released.recv().unwrap();
+    let refused = crate::workflow_selection::with_choice(&root, &stale, || home.clone(), crate::workflow_selection::Wait::for_press(), |_, _, _| -> Result<(), String> {
+        panic!("a changed choice reached its action")
+    })
+    .unwrap_err();
+    assert_eq!(refused, "Native history selection changed; refresh the displayed workflow choice");
+    holder.join().unwrap();
 }
