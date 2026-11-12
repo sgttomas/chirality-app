@@ -7,17 +7,25 @@
 //! selection) and returns the `WORKFLOW.md` text of the bytes that resolution
 //! holds, which are the bytes a run's text is composed from. It creates no file
 //! or folder and changes no selection, library, run or record. A caller's name
-//! is looked up in the compiled catalogue; it is never joined to a folder.
+//! is looked up in the compiled catalogue before it is used as a package name;
+//! a name that is not in the catalogue reaches no folder.
 //!
 //! What ties a text to a workflow is its content. The caller names no path;
 //! text is returned only when the files read hash to the revision the person
 //! was shown. Where those files are read from is bounded by the shared snapshot
 //! reader exactly as it is for selecting and running: it refuses a link at the
 //! package folder and inside it, and it follows links in the folders above it.
-//! Verification also reads the fixed host authorities that selecting reads:
-//! the included catalogue's manifest, and for a registered revision the
-//! library's registration ledger and its act evidence. This command adds no
-//! location boundary of its own and claims none.
+//! Verification also reads the fixed host authorities that selecting reads,
+//! which differ by the kind of selection:
+//! - an included entry, or a chosen installed bundle: the installed
+//!   `MANIFEST.json`, compared with the compiled manifest;
+//! - a development holding copy: nothing further;
+//! - an unregistered holding copy in a library: that library's registration
+//!   ledger, and whether a revision store exists there for the name;
+//! - a registered project or user revision: the registration ledger, the
+//!   library's act log and the registered store, and, where registration
+//!   recorded them, capture evidence and its keychain seal.
+//! This command adds no location boundary of its own and claims none.
 //!
 //! What it says of the text is only what the host established: which identity
 //! it was read for, and that the bytes read hashed to that identity's revision

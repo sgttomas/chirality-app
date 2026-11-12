@@ -96,8 +96,8 @@ fn included_entry_refusals_say_why_and_return_no_text() {
     // Before this App's installed resources are known, nothing is read.
     assert_refused(&root.read_included_text(&included_target(BUNDLED, &identity.revision)), "could not be verified");
     root.configure_installed_bundle(installed.0.clone()).unwrap();
-    // A name is looked up in the compiled catalogue, never joined to a folder:
-    // a package beside the bundle, reachable by a relative path, is not read.
+    // A name is looked up in the compiled catalogue before it is used as a package name, and a name that is
+    // not in the catalogue reaches no folder: a package beside the bundle, reachable by a relative path, is not read.
     let outside = installed.0.parent().unwrap().join("outside");
     crate::workflow_workspace::Snapshot::from_files([("WORKFLOW.md".to_owned(), b"outside text".to_vec())].into()).unwrap().publish_new(&outside).unwrap();
     for name in ["no-such-workflow", "../outside", "coordinated-knowledge-work/../../outside", "/etc", "", "Coordinated-Knowledge-Work"] {
