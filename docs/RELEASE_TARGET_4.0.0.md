@@ -161,9 +161,10 @@ the owner decide on what was actually observed.
    with the supplier's actual events: a completed turn does not mark an active
    child done, a reply without acknowledgment is not shown as settled, and an
    unavailable outcome is shown as unknown. When a run reaches a checkpoint
-   the workflow declares, its arrival is recorded and it waits for the
-   person's act: continued work, a tool's success, an interruption or a replay
-   of history does not perform it. After quit and reopen it is the same run,
+   the workflow declares, its arrival is recorded, and the checkpoint's
+   disposition is waiting until evidence of the required human act exists; the
+   App does not pause or hold the run. Continued work, a tool's success, an
+   interruption or a replay of history does not perform it. After quit and reopen it is the same run,
    and a later run inherits no arrival, disposition or act from it. A failure
    is repaired or brought to the owner for disposition; it is never passed
    over.
