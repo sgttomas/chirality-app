@@ -53,9 +53,9 @@ and workflows.
 from Chirality. The migration does not publish or qualify a v4 release; the
 existing v3.0.1 release remains the fallback.
 
-The [current release pathway](execution/_Coordination/CURRENT_EXECUTION_BASIS.md#release-target-and-authority)
-targets the full public v4 release with the live embedded SWBPIPE journey.
-It identifies delivery owners, next results and the evidence still needed.
+The [release target](docs/RELEASE_TARGET_4.0.0.md) defines the public v4
+release, version 4.0.0, with the exit criteria that are its definition of done
+and the deliverables that own each.
 
 Chirality makes a general agent act within and for a host application. Its
 workflow-authoring App is the exemplar. [Chirality thesis](https://github.com/sgttomas/chirality-library/blob/main/docs/thesis/README.md)
@@ -72,11 +72,11 @@ For the toolchain, build and launch instructions, start with the
 [App developer start](app/README.md#developer-start). The rest of that README
 describes the current product path, checks and remaining qualification limits.
 
-The [current manual selection](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
-applies to forward development. The
-[historical SWB/Domain interface basis](execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md)
-retains the dated relay and adoption record. New contract gaps belong in their
-owning deliverable's scope; PR descriptions carry the history of their fixes.
+The Library edition selected in [AGENTS.md](AGENTS.md), and with it the
+Project Management manual in that release, applies to forward development.
+App and host boundaries are in [host integration](docs/HOST_INTEGRATION.md).
+New contract gaps belong in their owning deliverable's scope; PR descriptions
+carry the history of their fixes.
 
 ### User documentation
 
@@ -86,9 +86,10 @@ need verification against the release candidate before publication.
 
 ### Basis and history
 
-The [execution basis and retained history](execution/_Coordination/CURRENT_EXECUTION_BASIS.md)
-identify the accepted project basis, current release obligations and historical
-source selections. Earlier acceptance gates apply to their recorded subjects;
+The accepted project basis is identified in [PRD §0](docs/PRD.md), the accepted
+decomposition at its [pointer](execution/_Decomposition/checkpoint_snapshots/_LATEST_ACCEPTED.md),
+and the release obligations in the [release target](docs/RELEASE_TARGET_4.0.0.md).
+Earlier acceptance gates apply to their recorded subjects;
 v4 publication and replacement of v3.0.1 remain separate decisions.
 
 <details>

@@ -189,3 +189,36 @@ App qualification result. Host-only checks:
 `python3 -B -m unittest discover -s app/examination/windows_platform -p test_p03.py -v`
 from the repository root with a fresh scratch CODEX_HOME. This does not execute
 or requalify P-01/P-02 and does not use any VM or supplier.
+
+## Standing native boundaries for Windows work
+
+These hold for every Windows change. `AGENTS.md` states who carries Windows
+work and the holds that apply to it.
+
+- **Where a change starts.** From DEL-01-01 (supplier and process hosting),
+  DEL-01-02 (recovery), DEL-01-04 (native requests and attachments), DEL-01-05
+  (access), DEL-01-06 (packaging) and PKG-09 (examination). Do not weaken or
+  bypass a check to claim portability.
+- **Process ownership and termination.** A Windows Job kill-on-close mechanism
+  may preserve termination of workers when the spawning App dies; it does not
+  select the App's parent-death behaviour. Neither EOF nor successful delivery
+  of a termination request proves process exit. A Job memory limit is not an
+  automatic replacement for a counted-heap grant, a measured process footprint
+  or a host-headroom admission: each needs its own Windows definition and
+  evidence.
+- **Namespace, locks, publication and SQLite.** DEL-01-02 owns the process,
+  namespace, lock, publication and SQLite probe gates. Open-time and sidecar
+  races and the Windows directory-sync gap are unresolved. App crash cleanup
+  and Windows durable confirmation are reserved policy questions and are not
+  selected. Fixtures may compare candidate behaviour without selecting a
+  production policy or inventing durable success.
+- **Documents and submission.** DEL-03-03 owns production App receiving of
+  person-selected documents and the test-compiled submission seams. The first
+  Windows App milestone is standalone.
+- **Before dependent implementation.** Align on Windows architecture and
+  evidence targets, process ownership and termination semantics, file
+  identity, locking, publication and durability, portable exchange, native
+  runtime provisioning and the actual App-to-host interface. Preserve source
+  and revision identity, opt-in access, stale refusal, host-owned validation,
+  truthful receipts and unknown outcomes. A shared implementation or a new
+  transport is not presumed necessary.

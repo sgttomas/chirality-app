@@ -304,8 +304,13 @@ class TermsPosition(unittest.TestCase):
         with self.assertRaises(ValueError):
             reader.parse(b'{"state":"unresolved","state":"applicable_position_retained"}')
 
-    def test_schema_itself_is_a_valid_schema(self):
-        reader.Draft202012Validator.check_schema(reader.parse(reader.SCHEMA.read_bytes()))
+    def test_schema_itself_and_real_record_consistency(self):
+        schema = reader.parse(reader.SCHEMA.read_bytes())
+        reader.Draft202012Validator.check_schema(schema)
+        result = reader.check('execution/PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json',
+                              ROOT / 'app/packaging/terms/retained')
+        self.assertFalse(result['release_authorized'])
+        self.assertFalse(result['distribution_decision_recorded'])
 
     def test_cli_invalid_record_exits_nonzero(self):
         self.record['state'] = 'approved_for_release'

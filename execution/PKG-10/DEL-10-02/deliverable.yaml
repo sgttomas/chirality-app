@@ -2,9 +2,9 @@ id: DEL-10-02
 name: Proportionate undertaking controls and practice feedback
 needs:
 - from: DEL-10-01
-  condition: The execution basis names the selected edition of the manual and of the shared roles and methods
-    by release and recoverable identity, so that a brief can state its basis and a practice note can cite the
-    section and edition it concerns.
+  condition: The selection in `AGENTS.md`, with the reference folder for the selected edition, names the selected
+    edition of the manual and of the shared roles and methods by release and recoverable identity, so that
+    a brief can state its basis and a practice note can cite the section and edition it concerns.
   gating: true
 - from: DEL-10-04
   condition: An accepted current version of the project dependency graph exists with its handoff and currency

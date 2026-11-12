@@ -45,9 +45,9 @@ needs:
     and whether a common component is agreed or still open.
   gating: true
 - from: DEL-10-01
-  condition: The execution basis names the selected edition of the manual and of the shared roles and methods
-    by release and recoverable identity, so that the working-guidance entries of the responsibility map point
-    at an identified edition.
+  condition: The selection in `AGENTS.md`, with the reference folder for the selected edition, names the selected
+    edition of the manual and of the shared roles and methods by release and recoverable identity, so that
+    the working-guidance entries of the responsibility map point at an identified edition.
   gating: true
 - from: external:owners of the affected Root, Runtime, App and Piping consumers
   condition: The current source of each consumer that a proposed change of placement or supply affects is

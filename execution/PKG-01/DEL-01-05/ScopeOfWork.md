@@ -26,7 +26,7 @@ It is the BACKEND_FEATURE_SLICE `DEL-01-05` of PKG-01 in the accepted decomposit
 | SOW-149 | Account, provider and local-server interfaces qualified against the pin; the embedding protocol is `DEL-01-01`'s share | ARCHITECTURE §6 |
 | SOW-150 | A compliant local server can be substituted | ARCHITECTURE §6 |
 
-Its examination scenario is EXAMINATION V4-EXM-12. The records leave the set of access modes unsettled (publication punchlist P3 names three); this scope follows PRD V4-APP-02: ChatGPT account and local provider.
+Its examination scenario is EXAMINATION V4-EXM-12. The access modes are two, as PRD V4-APP-02 has them: ChatGPT account and local provider. The decomposition row and OI-010 record three as accepted history.
 
 ## Deliverable Definition — Ontology
 

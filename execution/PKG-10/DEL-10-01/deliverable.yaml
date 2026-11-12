@@ -8,8 +8,9 @@ needs:
   condition: The pointer names the accepted final decomposition and gives the rule for reading it as amended
     by the accepted scope-change amendments.
 - from: external:sgttomas/chirality-library Project Management manual
-  condition: The Library publishes the Project Management manual, Consolidated v9, at a revision from which
-    the selected text can be recovered, including its chapter on development positions.
+  condition: The selected Library release contains the Project Management manual in its Consolidated
+    edition, including its chapter on development positions, so that the selected text is recovered
+    from that release.
 - from: external:sgttomas/chirality-library release
   condition: The selected Library release publishes its tag, commit and source archive digest, and contains
     the role files, the workflow index, the project-entry template and the document metadata schema.
@@ -25,7 +26,6 @@ code_paths:
 - AGENTS.md
 - CLAUDE.md
 - init-prompt.md
-- execution/_Coordination/CURRENT_EXECUTION_BASIS.md
 - reference/library-v2.1.0/**
 - reference/library-v3.0.0/**
 - reference/library-v3.1.0/**

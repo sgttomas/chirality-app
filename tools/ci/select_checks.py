@@ -24,9 +24,6 @@ PROSE_PATHS = frozenset({
     "docs/CI_SELECTION.md",
     "docs/OPERATING_METHOD.md",
     "docs/user-manual/README.md",
-    "execution/_Coordination/CURRENT_EXECUTION_BASIS.md",
-    "execution/_Coordination/PUBLICATION_PUNCHLIST.md",
-    "execution/_Coordination/WINDOWS_UNDERTAKING.md",
     "tools/deliverables/README.md",
 })
 # These domains contain code, contracts, fixtures or retained source inputs.
