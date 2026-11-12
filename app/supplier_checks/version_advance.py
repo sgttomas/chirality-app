@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Compare a Codex pin with the prior pin before the App relies on it (DEL-01-01 REQ-006, VER-006).
+"""Inventory, difference and evidence check for a Codex pin advance (DEL-01-01 REQ-006, VER-006).
 
-The comparison covers the generated schema, the supplement and the recorded exchanges
-of both pins, derives what the App relies on from its host source, and returns a verdict:
-"passed" only when every finding that touches what the App relies on has a disposition
-citing a recorded decision and no input was missing; otherwise "returned for decision"
-(CLM-003). The tool executes no supplier and no model and reads only the files named by
-its arguments.
+It establishes what the App relies on, reports each relied-on definition (and every
+definition reached from one by reference) as unchanged or changed with its exact
+difference, and checks the recorded exchanges of both pins as evidence. It classifies no
+change: every change to what the App relies on is a finding that needs an explicit
+disposition naming exactly that change (CLM-003). It passes only when every finding is
+disposed, no disposition names a finding that does not exist, and every evidence
+requirement is met; a disposition never stands in for evidence. It executes no supplier and
+no model and reads only the files named by its arguments.
 
 Usage, from `app/`:
-  python3 supplier_checks/version_advance.py compare --from 0.160.0 --to 0.167.0 \
+  python3 supplier_checks/version_advance.py compare --from 0.160.0 --to 0.167.0 \\
       --out supplier_checks/version_advance/0.160.0-to-0.167.0.json
 
 Every input location is an argument with a repository default:
@@ -40,7 +42,7 @@ import jsonschema
 HERE = Path(__file__).resolve().parent
 APP = HERE.parent
 REPO = APP.parent
-FORMAT = "chirality.app-v4.version-advance.v1"
+FORMAT = "chirality.app-v4.version-advance.v2"
 SCENARIOS = ("nv04", "st5", "st5-race")
 RECORDING_FORMATS = ("chirality.app-v4.hosting-capture.st5.v1", "chirality.app-v4.supplier-capture.v2")
 BUNDLE = "codex_app_server_protocol.schemas.json"
@@ -50,82 +52,56 @@ SUPPLEMENT = "SUPPLEMENT.json"
 UNIONS = {"ClientRequest": "client_requests", "ClientNotification": "client_notifications",
           "ServerRequest": "server_requests", "ServerNotification": "server_notifications"}
 PIN = re.compile(r"^\d+\.\d+\.\d+$")
-ANNOTATIONS = ("description", "title")
-LOWER_BOUNDS = ("minItems", "minLength", "minimum")
-UPPER_BOUNDS = ("maxItems", "maxLength", "maximum")
 ID_KEY = re.compile(r"^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|\d+)$")
+LONG = 1000  # a differing value whose canonical text is longer is given by digest and length
+LOOPBACK = ("127.0.0.1", "::1")
 
 RULES = {
-    "classification": {
-        "documentation only": "only the description or title keyword of a schema object differs (never a "
-                              "property or definition of that name)",
-        "additive": "a new optional property, a new enum value, a new anyOf member, a new oneOf member that is "
-                    "disjoint from every other member, the previous form kept as one alternative (anyOf, or "
-                    "oneOf with the kept form disjoint from every other member; constraints placed beside the "
-                    "choice are compared with the previous form's separately), a widened type (a type added to "
-                    "the type set, integer to number, a lower bound lowered or removed, an upper bound raised or "
-                    "removed, a format, enum, allOf member or items constraint removed, additionalProperties "
-                    "opened), oneOf turned into anyOf",
-        "breaking": "a removed property, enum value or alternative, a narrowed or changed type (a type removed "
-                    "or replaced, a reference to a different definition, a form replaced, a constraint added or "
-                    "tightened, additionalProperties closed), a newly required property, anyOf turned into oneOf",
-        "unclassified": "anything else, including a property that is no longer required, a changed default, a "
-                        "changed format, a changed $schema, a type set rewritten with the same effect, a new oneOf "
-                        "member that is not shown disjoint from every other member, and a widening inside a oneOf "
-                        "member that is not shown disjoint from every other member; never counted as additive",
-        "oneOf": "two members are shown disjoint when the JSON types they can accept (from type, enum or const; "
-                 "number admits integer) do not overlap, or both require a property whose schema admits one value "
-                 "(a single-value enum or a const) and the values differ, or both are enums or consts with no "
-                 "common value; a member given by $ref is never shown disjoint",
-        "alternatives": "anyOf/oneOf/allOf members are matched by their method or type discriminator, their "
-                        "$ref, a single enum value, a bare type, their title, or else their exact content",
-        "new_optional_property": "a newly named optional property is classed additive although, where additional "
-                                 "properties were open, it constrains a value an earlier sender could have sent "
-                                 "under that name; the generated schemas leave additional properties open because "
-                                 "the supplier ignores unknown fields, not to admit any value under future names",
-    },
-    "standing": "read from MANIFEST.sha256 at file level: an element is experimental exactly when its file is "
-                "in json-schema/experimental and not json-schema/stable; variants_differ says the two variants "
-                "of a file present in both have different digests; ts/ lines and comment lines are not read",
+    "identity": "a definition is unchanged exactly when its parsed JSON value written canonically (object keys "
+                "sorted, no insignificant whitespace, strings and numbers as Python's json writes them, so 1 and "
+                "1.0 differ) is the same text at both pins; nothing is stripped or normalised beyond that; "
+                "otherwise it is changed, and its difference is listed path by path (object keys, list indexes; "
+                "a list of different length is one difference), each value in full or, when its canonical text "
+                "is longer than %d characters, by SHA-256 and length" % LONG,
     "relied_on": "a protocol method is relied on when its exact name appears as a Rust string literal in the "
                  "host source outside files ending _tests.rs and outside modules gated by #[cfg(test)] or "
-                 "#[cfg(all(test, ...))]; a definition is relied on when it is reachable by $ref, at either pin, "
-                 "from the params of a relied-on client request or notification, from that request's response "
-                 "definition, or from the params and response of a relied-on server request or the params of "
-                 "a relied-on server notification; a response definition is <Name>Response for params "
-                 "<Name>Params, else the method's segments in PascalCase followed by Response, in the same "
-                 "namespace",
-    "shape": "per scenario and per supplier notification, server request and reply to a request made at both "
-             "pins: the set of key paths with their JSON value types and whether each path is present in every "
-             "such frame; every scalar value is ignored (so identifiers, times, paths and text), as are array "
-             "lengths, the order of array items and keys, and object keys that are UUIDs or digit strings "
-             "(read as <id>)",
-    "validation": "jsonschema Draft 7 against the to-pin bundle's ServerNotification (frames from the supplier "
-                  "with a method and no id) and ServerRequest (frames from the supplier with an id and a method); "
-                  "the supplier's replies to App requests and the App's own frames are not validated (replies are "
-                  "compared by shape only); formats are not asserted",
-    "absent_groups": "a supplier notification or server request group recorded at the prior pin is judged driven "
-                     "at the new pin when the App-side frame that precedes its first occurrence in the prior "
-                     "recording (same generation, direction, kind and method, counted by occurrence) also occurs "
-                     "in the new recording; a reply group is judged driven when the App request it answers occurs "
-                     "in the new recording; a group that is driven and absent is a finding when its method is "
-                     "relied on, and a group that is not driven is listed as not driven",
-    "inputs": "each pin needs a main bundle whose definitions hold the four method unions, each with members, and "
-              "non-empty v2 definitions; a v2 bundle equal to the main bundle's v2 definitions in both "
-              "directions (references rewritten to the flat form); a manifest listing files in both variants; "
-              "a recording of every scenario with frames; the host source must yield at least one relied-on "
-              "method; a file that is absent where it is optional is read as empty, while a path that exists "
-              "and cannot be read as a file is an input problem",
-    "findings": "a breaking or unclassified schema change, a removed method or definition, a standing change, a "
-                "failed validation, a removed or retyped recorded key path, a recorded group absent although "
-                "driven, or a changed or unobservable "
-                "mechanism that involves a relied-on method or definition; its id is VA- and the first 12 hex "
-                "digits of the SHA-256 of its kind, subject and detail",
-    "additive_rule": "additive and documentation-only changes to relied-on elements need no decision because a "
-                     "receiver must accept unknown enum values and extra fields and a sender is not obliged to "
-                     "send new optional fields",
-    "verdict": "passed only when every finding has a disposition, every disposition names a finding of this "
-               "comparison and no input was missing or unusable; otherwise returned for decision",
+                 "#[cfg(all(test, ...))]; its root definitions are the params of a relied-on request or "
+                 "notification and the response of a relied-on request (<Name>Response for params <Name>Params, "
+                 "else the method's segments in PascalCase followed by Response); every definition reachable "
+                 "from a root by $ref at either pin is reached and compared like a root",
+    "findings": "each needs a disposition: a relied-on or reached definition changed, added or removed; a "
+                "relied-on method's member of its method union changed; a relied-on method removed; a standing "
+                "change of a relied-on element; a supplement element lost; for a relied-on method, a recorded "
+                "group present at the prior pin and absent at the new pin, a shape difference of a recorded "
+                "group, or a prior-pin recorded frame that fails validation against the new pin's schema",
+    "finding_id": "VA- and the first 12 hex digits of the SHA-256 of the canonical JSON of the finding's kind, "
+                  "subject and the SHA-256 of its exact old and new content (null where absent), so a "
+                  "disposition stops applying when the change is other than the one decided",
+    "inadmissible": "never disposable and each prevents passing: a missing or unusable input or one lacking a "
+                    "required structure; a recording lacking a step of its scenario's script in any generation "
+                    "(coverage_required); a new-pin recording not of the current format; a current-format "
+                    "recording whose socket_watch is absent or does not have samples an integer greater than "
+                    "zero, failed_samples exactly zero, samples_by_generation with at least one for every "
+                    "generation that has frames, non_loopback_peers empty and loopback_peers only 127.0.0.1 or "
+                    "::1; a new-pin supplier notification or server request that fails validation against the "
+                    "new pin's schema; an expected mechanism not observed at the new pin",
+    "shape": "per scenario and per supplier notification, server request and reply to a request: the set of "
+             "key paths with their JSON value types and whether each path is present in every such frame; "
+             "every scalar value is ignored (so identifiers, times, paths and text), as are array lengths, "
+             "the order of array items and keys, and object keys that are UUIDs or digit strings (read as <id>)",
+    "validation": "jsonschema Draft 7 against the new pin's ServerNotification (supplier frames with a method "
+                  "and no id) and ServerRequest (supplier frames with an id and a method); the supplier's "
+                  "replies and the App's frames are not validated; formats are not asserted",
+    "standing": "read from MANIFEST.sha256 at file level: experimental exactly when the file is in "
+                "json-schema/experimental and not json-schema/stable",
+    "inputs": "each pin needs a main bundle whose definitions hold the four method unions with members naming "
+              "their method and non-empty v2 definitions, a v2 bundle equal to the main bundle's v2 "
+              "definitions in both directions (references rewritten to the flat form), a manifest listing "
+              "files in both variants, and a recording of every scenario with frames; the host source must "
+              "yield at least one relied-on method; an optional file that is absent is read as empty, a path "
+              "that exists and cannot be read as a file is unusable",
+    "verdict": "passed only when every finding has a disposition naming its identifier, every disposition names "
+               "a finding of this comparison and nothing is inadmissible; otherwise returned for decision",
 }
 
 
@@ -292,333 +268,6 @@ def closure(roots, defs):
     return seen
 
 
-SCHEMA_MAPS = ("properties", "patternProperties", "definitions")
-SCHEMA_LISTS = ("anyOf", "oneOf", "allOf")
-SCHEMA_SINGLE = ("items", "additionalItems", "additionalProperties", "contains", "propertyNames", "not", "if",
-                 "then", "else")
-
-
-def strip_annotations(node):
-    """The schema without description and title, removed only where they are keywords of a
-    schema object, never where they name a property or a definition."""
-    if not isinstance(node, dict):
-        return node
-    out = {}
-    for key, value in node.items():
-        if key in ANNOTATIONS:
-            continue
-        if key in SCHEMA_MAPS and isinstance(value, dict):
-            out[key] = {name: strip_annotations(inner) for name, inner in value.items()}
-        elif key in SCHEMA_LISTS and isinstance(value, list):
-            out[key] = [strip_annotations(inner) for inner in value]
-        elif key in SCHEMA_SINGLE:
-            out[key] = [strip_annotations(inner) for inner in value] if isinstance(value, list) \
-                else strip_annotations(value)
-        else:
-            out[key] = value
-    return out
-
-
-def core(node):
-    """strip_annotations, also without the $schema keyword of the node itself."""
-    stripped = strip_annotations(node)
-    if isinstance(stripped, dict):
-        stripped.pop("$schema", None)
-    return stripped
-
-
-def alternative_key(node):
-    if not isinstance(node, dict):
-        return "json:" + canonical(node)
-    rest = set(node) - set(ANNOTATIONS) - {"$schema"}
-    if "$ref" in node and rest == {"$ref"}:
-        return "$ref=" + str(ref_name(node["$ref"]) or node["$ref"])
-    properties = node.get("properties") or {}
-    for discriminator in ("method", "type"):
-        values = (properties.get(discriminator) or {}).get("enum")
-        if isinstance(values, list) and len(values) == 1:
-            return "%s=%s" % (discriminator, values[0])
-    if isinstance(node.get("enum"), list):
-        return "enum=" + canonical(node["enum"][0]) if len(node["enum"]) == 1 else \
-            "enum of " + canonical(node.get("type"))
-    if "type" in node and rest <= {"type", "format", "items", "additionalProperties"}:
-        return "type=" + canonical(node["type"])
-    if "title" in node:
-        return "title=" + str(node["title"])
-    return "content=" + digest(canonical(core(node)).encode())[:12]
-
-
-def keyed(alternatives):
-    keyed_list, counts = {}, {}
-    for alternative in alternatives:
-        key = alternative_key(alternative)
-        counts[key] = counts.get(key, 0) + 1
-        keyed_list[key if counts[key] == 1 else "%s#%d" % (key, counts[key])] = alternative
-    return keyed_list
-
-
-def types_of(node):
-    value = node.get("type")
-    return set(value) if isinstance(value, list) else {value}
-
-
-def covers(wider, narrower):
-    """True when the JSON type set `wider` admits every type of `narrower` (number admits integer)."""
-    return all(kind in wider or (kind == "integer" and "number" in wider) for kind in narrower)
-
-
-def possible_types(node):
-    """The JSON types a schema object can accept, or None when that is not evident from the node."""
-    if not isinstance(node, dict) or "$ref" in node:
-        return None
-    if isinstance(node.get("enum"), list):
-        kinds = {json_type(value) for value in node["enum"]}
-    elif "const" in node:
-        kinds = {json_type(node["const"])}
-    elif "type" in node:
-        return types_of(node)
-    else:
-        return None
-    return {kind for kind in kinds if covers(types_of(node), {kind})} if "type" in node else kinds
-
-
-def tags(node):
-    """{property: value} for each required property whose schema admits a single value (enum or const)."""
-    if not isinstance(node, dict) or "$ref" in node:
-        return {}
-    required, found = set(node.get("required") or []), {}
-    for name, schema in (node.get("properties") or {}).items():
-        if name in required and isinstance(schema, dict):
-            if isinstance(schema.get("enum"), list) and len(schema["enum"]) == 1:
-                found[name] = canonical(schema["enum"][0])
-            elif "const" in schema:
-                found[name] = canonical(schema["const"])
-    return found
-
-
-def enum_values(node):
-    if not isinstance(node, dict) or "$ref" in node:
-        return None
-    if isinstance(node.get("enum"), list):
-        return {canonical(value) for value in node["enum"]}
-    if "const" in node:
-        return {canonical(node["const"])}
-    return None
-
-
-def disjoint(first, second):
-    """True only when no instance can satisfy both schemas, shown by RULES["oneOf"]."""
-    kinds = possible_types(first), possible_types(second)
-    if None not in kinds and not (any(covers(kinds[1], {k}) for k in kinds[0])
-                                  or any(covers(kinds[0], {k}) for k in kinds[1])):
-        return True
-    first_tags, second_tags = tags(first), tags(second)
-    if any(name in second_tags and second_tags[name] != value for name, value in first_tags.items()):
-        return True
-    values = enum_values(first), enum_values(second)
-    return None not in values and not (values[0] & values[1])
-
-
-def diff_schema(before, after, path=""):
-    """Every change between two schema nodes, each classified by RULES["classification"]."""
-    changes = []
-
-    def change(where, kind, what, old=None, new=None):
-        record = {"path": where, "class": kind, "change": what}
-        if old is not None:
-            record["before"] = old
-        if new is not None:
-            record["after"] = new
-        changes.append(record)
-
-    if before == after:
-        return changes
-    if not (isinstance(before, dict) and isinstance(after, dict)):
-        change(path, "unsupported", "schema is not an object on both sides (boolean schemas are not supported)",
-               before, after)
-        return changes
-    for key in ANNOTATIONS:
-        if before.get(key) != after.get(key):
-            change(path + "/" + key, "documentation only", key + " changed", before.get(key), after.get(key))
-    if before.get("$schema") != after.get("$schema"):
-        change(path + "/$schema", "unclassified", "$schema (dialect) changed", before.get("$schema"),
-               after.get("$schema"))
-    choices = ("anyOf", "oneOf")
-    old_choice = [k for k in choices if k in before]
-    new_choice = [k for k in choices if k in after]
-    if not old_choice and len(new_choice) == 1:
-        choice = new_choice[0]
-        members = after[choice]
-        kept = [i for i, alt in enumerate(members) if core(alt) == core(before)]
-        if kept:
-            others = [alt for i, alt in enumerate(members) if i != kept[0]]
-            if choice == "oneOf" and not all(disjoint(members[kept[0]], other) for other in others):
-                change(path, "unclassified", "new alternative (the previous form is kept as one oneOf alternative, "
-                                             "which another alternative may also match)")
-            else:
-                change(path, "additive", "new alternative (the previous form is kept as one alternative)")
-            # Constraints beside the choice now apply to the previous form too.
-            siblings = {k: v for k, v in after.items() if k not in ANNOTATIONS + ("$schema", choice)}
-            previous = {k: v for k, v in before.items() if k in siblings}
-            changes.extend(diff_schema(previous, siblings, path))
-            return changes
-    if not new_choice and any(core(alt) == core(after) for k in old_choice for alt in before[k]):
-        change(path, "breaking", "alternative removed (the form is now one former alternative)")
-        return changes
-    if before.get("$ref") != after.get("$ref"):
-        change(path, "breaking", "changed type (reference to a different definition)" if "$ref" in before
-               and "$ref" in after else "changed type (form replaced)", before.get("$ref"), after.get("$ref"))
-        return changes
-    if old_choice == ["oneOf"] and new_choice == ["anyOf"]:
-        change(path, "additive", "oneOf became anyOf (an instance may now match several alternatives)")
-        before = dict(before, anyOf=before["oneOf"])
-        del before["oneOf"]
-    elif old_choice == ["anyOf"] and new_choice == ["oneOf"]:
-        change(path, "breaking", "anyOf became oneOf (an instance must now match exactly one alternative)")
-        before = dict(before, oneOf=before["anyOf"])
-        del before["anyOf"]
-    for key in sorted((set(before) | set(after)) - set(ANNOTATIONS) - {"$ref", "$schema"}):
-        old, new, where = before.get(key), after.get(key), path + "/" + key
-        if old == new:
-            continue
-        if key == "properties":
-            old, new = old or {}, new or {}
-            required = set(after.get("required") or [])
-            for name in sorted(set(old) | set(new)):
-                if name not in new:
-                    kept = sorted(str(alt.get("title", alternative_key(alt))) for k in choices
-                                  for alt in after.get(k, []) if isinstance(alt, dict)
-                                  and core((alt.get("properties") or {}).get(name)) == core(old[name]))
-                    change(where + "/" + name, "breaking", "property removed" + (
-                        " (kept only in the alternative %s)" % ", ".join(kept) if kept else ""))
-                elif name not in old:
-                    if name in required:
-                        change(where + "/" + name, "breaking", "required property added")
-                    else:
-                        change(where + "/" + name, "additive", "optional property added")
-                else:
-                    changes.extend(diff_schema(old[name], new[name], where + "/" + name))
-        elif key == "required":
-            old_set, new_set = set(old or []), set(new or [])
-            old_properties, new_properties = before.get("properties") or {}, after.get("properties") or {}
-            for name in sorted(new_set - old_set):
-                if not (name in new_properties and name not in old_properties):  # else "required property added"
-                    change(where + "/" + name, "breaking", "property newly required")
-            for name in sorted(old_set - new_set):
-                if not (name in old_properties and name not in new_properties):  # else "property removed"
-                    change(where + "/" + name, "unclassified", "property no longer required")
-        elif key == "enum":
-            if old is None:
-                change(where, "breaking", "enum constraint added")
-            elif new is None:
-                change(where, "additive", "enum constraint removed")
-            else:
-                for value in sorted(map(canonical, old)):
-                    if value not in map(canonical, new):
-                        change(where + "/" + value, "breaking", "enum value removed")
-                for value in sorted(map(canonical, new)):
-                    if value not in map(canonical, old):
-                        change(where + "/" + value, "additive", "enum value added")
-        elif key == "type":
-            old_set, new_set = types_of(before), types_of(after)
-            if old is None:
-                alternatives = before.get("anyOf", []) + before.get("oneOf", [])
-                already = alternatives and all(isinstance(a, dict) and "type" in a and types_of(a) <= new_set
-                                               for a in alternatives)
-                change(where, "breaking", "type narrowed (type constraint added%s)" % (
-                    "; every alternative already had this type" if already else ""), None, new)
-            elif new is None:
-                change(where, "additive", "type widened (type constraint removed)", old, None)
-            elif covers(new_set, old_set) and not covers(old_set, new_set):
-                change(where, "additive", "type widened", old, new)
-            elif covers(old_set, new_set) and not covers(new_set, old_set):
-                change(where, "breaking", "type narrowed", old, new)
-            elif covers(old_set, new_set):
-                change(where, "unclassified", "type set rewritten", old, new)
-            else:
-                change(where, "breaking", "type changed", old, new)
-        elif key in ("anyOf", "oneOf", "allOf") and (old is None or new is None):
-            change(where, "breaking" if old is None else "additive",
-                   "%s constraint %s" % (key, "added" if old is None else "removed"))
-        elif key in ("anyOf", "oneOf", "allOf"):
-            old_keyed, new_keyed = keyed(old or []), keyed(new or [])
-            for name in sorted(set(old_keyed) | set(new_keyed)):
-                at = "%s[%s]" % (where, name)
-                apart = key != "oneOf" or name not in new_keyed or all(
-                    disjoint(new_keyed[name], other) for other_name, other in new_keyed.items() if other_name != name)
-                if name not in new_keyed:
-                    change(at, "additive" if key == "allOf" else "breaking",
-                           "allOf member removed" if key == "allOf" else "alternative removed")
-                elif name not in old_keyed:
-                    if key == "allOf":
-                        change(at, "breaking", "allOf member added")
-                    elif apart:
-                        change(at, "additive", "alternative added")
-                    else:
-                        change(at, "unclassified", "oneOf alternative added that another alternative may also match")
-                else:
-                    inner = diff_schema(old_keyed[name], new_keyed[name], at)
-                    if not apart:  # widening a oneOf member may make it overlap another member
-                        inner = [dict(item, **{"class": "unclassified", "change": item["change"] +
-                                               " (in a oneOf alternative that another alternative may also match)"})
-                                 if item["class"] == "additive" else item for item in inner]
-                    changes.extend(inner)
-        elif key == "items":
-            if isinstance(old, dict) and isinstance(new, dict):
-                changes.extend(diff_schema(old, new, where))
-            elif old is None:
-                change(where, "breaking", "items constraint added")
-            elif new is None:
-                change(where, "additive", "items constraint removed")
-            else:
-                change(where, "unsupported", "items as a list or boolean is not supported", old, new)
-        elif key == "additionalProperties":
-            if isinstance(old, dict) and isinstance(new, dict):
-                changes.extend(diff_schema(old, new, where))
-            else:
-                openness = {None: 2, True: 2, False: 0}
-                old_open = 1 if isinstance(old, dict) else openness.get(old)
-                new_open = 1 if isinstance(new, dict) else openness.get(new)
-                if old_open is None or new_open is None:
-                    change(where, "unsupported", "additionalProperties value is not a boolean or schema", old, new)
-                elif old_open == new_open:
-                    change(where, "unclassified", "additionalProperties written differently (true or omitted)",
-                           old, new)
-                elif new_open > old_open:
-                    change(where, "additive", "additionalProperties opened", old, new)
-                else:
-                    change(where, "breaking", "additionalProperties closed", old, new)
-        elif key in LOWER_BOUNDS + UPPER_BOUNDS:
-            lower = key in LOWER_BOUNDS
-            if old is None:
-                change(where, "breaking", "bound added", None, new)
-            elif new is None:
-                change(where, "additive", "bound removed", old, None)
-            elif not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in (old, new)):
-                change(where, "unclassified", "bound changed", old, new)
-            elif (new > old) == lower:
-                change(where, "breaking", "bound tightened", old, new)
-            else:
-                change(where, "additive", "bound relaxed", old, new)
-        elif key == "format":
-            if old is None:
-                change(where, "breaking", "format added", None, new)
-            elif new is None:
-                change(where, "additive", "format removed", old, None)
-            else:
-                change(where, "unclassified", "format changed", old, new)
-        else:
-            change(where, "unclassified" if key == "default" else "unsupported",
-                   "default changed" if key == "default" else "keyword %s is not supported" % key, old, new)
-    return changes
-
-
-def union_method_of(path):
-    match = re.match(r"^(ClientRequest|ClientNotification|ServerRequest|ServerNotification)/oneOf\[method=([^\]]+)\]",
-                     path)
-    return match.groups() if match else (None, None)
-
-
 # ---------- standing ----------
 def manifest_elements(text):
     variants = {"stable": {}, "experimental": {}}
@@ -770,36 +419,6 @@ def recording_problem(record, scenario, pin):
                and isinstance(row["frame"], dict) for row in frames):
         return "a frame row lacks generation, direction, position or a JSON object frame"
     return None
-
-
-def token(row, kind, method):
-    return "g%s %s %s %s" % (row["generation"], row["direction"], kind, method)
-
-
-def absent_groups(before_rows, after_rows, before_shapes, after_shapes):
-    """{group: {"driven": bool, "driven_by": str}} for the supplier groups of the prior recording that the
-    new recording lacks, judged by RULES["absent_groups"]."""
-    before, after = classify(before_rows), classify(after_rows)
-    after_tokens = [token(row, kind, method) for row, kind, method in after]
-    out = {}
-    for group in sorted(set(before_shapes) - set(after_shapes)):
-        kind, method = group.rsplit(" ", 1)
-        if kind == "reply to":
-            needed = [t for t in after_tokens if t.endswith(" app->codex request " + method)]
-            out[group] = {"driven": bool(needed), "driven_by": "the App request " + method}
-            continue
-        wanted = {"notification": "notification", "server request": "request"}[kind]
-        first = next(i for i, (row, k, m) in enumerate(before)
-                     if row["direction"] == "codex->app" and k == wanted and m == method)
-        previous = next((i for i in range(first - 1, -1, -1) if before[i][0]["direction"] == "app->codex"), None)
-        if previous is None:
-            out[group] = {"driven": True, "driven_by": "the start of the recording"}
-            continue
-        step = token(*before[previous])
-        occurrence = sum(token(*item) == step for item in before[:previous + 1])
-        out[group] = {"driven": after_tokens.count(step) >= occurrence,
-                      "driven_by": "%s (occurrence %d)" % (step, occurrence)}
-    return out
 
 
 def sequence(rows):
@@ -990,52 +609,85 @@ def nv04_mechanism(record):
     return mechanism, expected, {"spawn_items_live": len(live), "spawn_items_in_history_reads": len(history)}
 
 
-COVERAGE = {
-    "st5": ["a supplier server request item/commandExecution/requestApproval with an id in generation 1",
-            "the App's answer to that request in generation 1",
-            "an App thread/resume request in generation 2",
-            "the events process-group-frozen and answer-written",
-            "at least one supplier notification to validate"],
-    "st5-race": ["a supplier server request item/commandExecution/requestApproval with an id in generation 1",
-                 "the App's answer to that request in generation 1",
-                 "an App thread/resume request in generation 2",
-                 "at least one supplier notification to validate"],
-    "nv04": ["a collabAgentToolCall item in an item/started and an item/completed notification",
-             "turn/completed notifications for the spawning thread and for the spawned thread",
-             "at least one supplier notification to validate"],
+OLDER, CURRENT = RECORDING_FORMATS
+ST5_SCRIPT = [(1, "reply", "initialize"), (1, "sent", "initialized"), (1, "reply", "thread/start"),
+              (1, "reply", "turn/start"), (1, "server request", ST5_METHODS[0]), (1, "answer", ST5_METHODS[0]),
+              (1, "sent", "thread/turns/list"), (2, "reply", "initialize"), (2, "sent", "initialized"),
+              (2, "reply", "thread/read"), (2, "reply", "thread/turns/list"), (2, "reply", "thread/loaded/list"),
+              (2, "reply", "thread/resume"), (0, "notification", "any")]
+ST5_EVENTS = [(0, "event", "process-group-frozen"), (0, "event", "answer-written")]
+NV04_FIRST = [(1, "reply", "initialize"), (1, "sent", "initialized"), (1, "reply", "thread/start"),
+              (1, "reply", "turn/start"), (1, "spawn item", "item/started"), (1, "spawn item", "item/completed"),
+              (1, "completion", "parent"), (1, "completion", "child"), (1, "reply", "thread/loaded/list"),
+              (0, "notification", "any")]
+
+
+def history(generation):
+    return [(generation, "reply", "thread/read parent"), (generation, "reply", "thread/turns/list"),
+            (generation, "reply", "thread/items/list"), (generation, "reply", "thread/read child")]
+
+
+# Every step of each scenario's script (capture.py for the current format; the 0.160.0 harness's
+# shorter nv04 script for the older one) that the comparison reads.
+SCRIPTS = {
+    (CURRENT, "st5"): ST5_SCRIPT + ST5_EVENTS, (CURRENT, "st5-race"): ST5_SCRIPT,
+    (CURRENT, "nv04"): NV04_FIRST + history(1) + [(2, "reply", "initialize"), (2, "sent", "initialized")]
+    + history(2),
+    (OLDER, "st5"): ST5_SCRIPT + ST5_EVENTS, (OLDER, "st5-race"): ST5_SCRIPT, (OLDER, "nv04"): NV04_FIRST,
 }
 
 
+def step_label(step):
+    generation, kind, what = step
+    where = "generation %d: " % generation if generation else ""
+    return where + {"reply": "App request %s with its result", "sent": "App frame %s",
+                    "server request": "supplier server request %s", "answer": "App answer to %s",
+                    "spawn item": "supplier %s carrying a collabAgentToolCall item",
+                    "completion": "supplier turn/completed of the %s thread", "event": "event %s",
+                    "notification": "a supplier notification to validate (%s)"}[kind] % what
+
+
 def coverage_gaps(scenario, record):
-    """The COVERAGE requirements of the scenario that the recording does not meet."""
+    """The steps of SCRIPTS the recording lacks."""
     rows = frame_rows(record)
-    supplier = [row for row in rows if row["direction"] == "codex->app"]
-    notes = [row for row in supplier if "method" in row["frame"] and "id" not in row["frame"]]
-    met = {"at least one supplier notification to validate": bool(notes)}
-    if scenario in ("st5", "st5-race"):
-        request = next((row for row in supplier if row["generation"] == 1 and "id" in row["frame"]
-                        and row["frame"].get("method") == ST5_METHODS[0]), None)
-        met[COVERAGE[scenario][0]] = request is not None
-        met[COVERAGE[scenario][1]] = request is not None and any(
-            row["generation"] == 1 and row["direction"] == "app->codex" and "method" not in row["frame"]
-            and row["frame"].get("id") == request["frame"]["id"] for row in rows)
-        met[COVERAGE[scenario][2]] = any(row["generation"] == 2 and row["direction"] == "app->codex"
-                                         and row["frame"].get("method") == "thread/resume" for row in rows)
-        if scenario == "st5":
-            events = record.get("events") or []
-            names = {event.get("event") for event in events if isinstance(event, dict)}
-            met[COVERAGE["st5"][3]] = {"process-group-frozen", "answer-written"} <= names
-    else:
-        live = {row["frame"]["method"]: ((row["frame"].get("params") or {}).get("item") or {}) for row in notes
-                if row["frame"]["method"] in ("item/started", "item/completed")
-                and ((row["frame"].get("params") or {}).get("item") or {}).get("type") == "collabAgentToolCall"}
-        met[COVERAGE["nv04"][0]] = set(live) == {"item/started", "item/completed"}
-        completed = live.get("item/completed") or {}
-        threads = {(n["frame"].get("params") or {}).get("threadId") for n in notes
-                   if n["frame"]["method"] == "turn/completed"}
-        met[COVERAGE["nv04"][1]] = bool(completed.get("senderThreadId") in threads and (
-            completed.get("receiverThreadIds") or [None])[0] in threads)
-    return [requirement for requirement in COVERAGE[scenario] if not met.get(requirement)]
+    completed = [((row["frame"].get("params") or {}).get("item") or {}) for row in rows
+                 if row["direction"] == "codex->app" and row["frame"].get("method") == "item/completed"
+                 and ((row["frame"].get("params") or {}).get("item") or {}).get("type") == "collabAgentToolCall"]
+    threads = {"parent": completed[0].get("senderThreadId") if completed else None,
+               "child": (completed[0].get("receiverThreadIds") or [None])[0] if completed else None}
+    replies = {(row["generation"], canonical(row["frame"].get("id"))) for row in rows
+               if row["direction"] == "codex->app" and "method" not in row["frame"] and "result" in row["frame"]}
+
+    def present(generation, kind, what):
+        mine = [row for row in rows if row["generation"] == generation or not generation]
+        frame = lambda row: row["frame"]
+        if kind == "reply":
+            method, _, which = what.partition(" ")
+            return any(row["direction"] == "app->codex" and frame(row).get("method") == method and "id" in frame(row)
+                       and (not which or (frame(row).get("params") or {}).get("threadId") == threads[which])
+                       and (generation, canonical(frame(row)["id"])) in replies for row in mine)
+        if kind == "sent":
+            return any(row["direction"] == "app->codex" and frame(row).get("method") == what for row in mine)
+        if kind in ("server request", "answer"):
+            asked = [frame(row)["id"] for row in mine if row["direction"] == "codex->app"
+                     and frame(row).get("method") == what and "id" in frame(row)]
+            return bool(asked) if kind == "server request" else any(
+                row["direction"] == "app->codex" and "method" not in frame(row) and frame(row).get("id") in asked
+                for row in mine)
+        if kind == "spawn item":
+            return any(row["direction"] == "codex->app" and frame(row).get("method") == what
+                       and ((frame(row).get("params") or {}).get("item") or {}).get("type") == "collabAgentToolCall"
+                       for row in mine)
+        if kind == "completion":
+            return threads[what] is not None and any(
+                row["direction"] == "codex->app" and frame(row).get("method") == "turn/completed"
+                and (frame(row).get("params") or {}).get("threadId") == threads[what] for row in mine)
+        if kind == "event":
+            return any(event.get("event") == what for event in record.get("events") or [])
+        return any(row["direction"] == "codex->app" and "method" in frame(row) and "id" not in frame(row)
+                   for row in mine)
+
+    return [step_label(step) for step in SCRIPTS[(record["format"], scenario)] if not present(*step)]
 
 
 def mechanism_of(scenario, record):
@@ -1045,9 +697,75 @@ def mechanism_of(scenario, record):
 
 
 # ---------- comparison ----------
-def finding(kind, subject, detail, involves):
-    body = {"kind": kind, "subject": subject, "detail": detail}
-    return dict(body, id="VA-" + digest(canonical(body).encode())[:12], involves=sorted(set(involves)))
+def content_sha(value):
+    return None if value is None else digest(canonical(value).encode())
+
+
+def shown(value):
+    text = canonical(value)
+    return value if len(text) <= LONG else {"sha256": digest(text.encode()), "length": len(text)}
+
+
+def diff_paths(before, after, path=""):
+    """[{path, before, after}] for every place where two JSON values differ (RULES["identity"])."""
+    if canonical(before) == canonical(after):
+        return []
+    if isinstance(before, dict) and isinstance(after, dict):
+        out = []
+        for key in sorted(set(before) | set(after)):
+            where = "%s/%s" % (path, key)
+            if key not in after:
+                out.append({"path": where, "before": shown(before[key]), "after": "<absent>"})
+            elif key not in before:
+                out.append({"path": where, "before": "<absent>", "after": shown(after[key])})
+            else:
+                out += diff_paths(before[key], after[key], where)
+        return out
+    if isinstance(before, list) and isinstance(after, list) and len(before) == len(after):
+        return [d for index, (old, new) in enumerate(zip(before, after))
+                for d in diff_paths(old, new, "%s/%d" % (path, index))]
+    if isinstance(before, list) and isinstance(after, list):
+        old_texts, new_texts = [canonical(v) for v in before], [canonical(v) for v in after]
+        out = [{"path": "%s/%d" % (path, i), "before": shown(v), "after": "<absent>"}
+               for i, v in enumerate(before) if old_texts[i] not in new_texts]
+        out += [{"path": "%s/%d" % (path, i), "before": "<absent>", "after": shown(v)}
+                for i, v in enumerate(after) if new_texts[i] not in old_texts]
+        if out:  # items only at one pin, by index at that pin
+            return out
+    return [{"path": path or "/", "before": shown(before), "after": shown(after)}]
+
+
+def finding(kind, subject, before, after, detail=""):
+    body = {"kind": kind, "subject": subject, "before_sha256": content_sha(before),
+            "after_sha256": content_sha(after)}
+    result = dict(body, id="VA-" + digest(canonical(body).encode())[:12])
+    if detail:
+        result["detail"] = detail
+    return result
+
+
+def socket_gaps(record):
+    """Why a current-format recording's socket_watch report does not meet RULES["inadmissible"]."""
+    watch = record.get("socket_watch")
+    if not isinstance(watch, dict):
+        return ["a socket_watch report"]
+    gaps = []
+    samples, failed, by_generation = watch.get("samples"), watch.get("failed_samples"), watch.get(
+        "samples_by_generation")
+    if not (type(samples) is int and samples > 0):
+        gaps.append("socket_watch samples an integer greater than zero")
+    if not (type(failed) is int and failed == 0):
+        gaps.append("socket_watch failed_samples present and zero")
+    generations = sorted({str(row["generation"]) for row in frame_rows(record)})
+    if not (isinstance(by_generation, dict) and all(
+            type(by_generation.get(g)) is int and by_generation[g] >= 1 for g in generations)):
+        gaps.append("socket_watch samples_by_generation of at least one for generation(s) %s" % ", ".join(generations))
+    if watch.get("non_loopback_peers") != []:
+        gaps.append("socket_watch non_loopback_peers present and empty")
+    peers = watch.get("loopback_peers")
+    if not (isinstance(peers, list) and all(peer in LOOPBACK for peer in peers)):
+        gaps.append("socket_watch loopback_peers only 127.0.0.1 or ::1")
+    return gaps
 
 
 def default_recordings(pin):
@@ -1072,8 +790,9 @@ def compare(from_pin, to_pin, resources=None, from_resources=None, to_resources=
     inputs = Inputs()
     argument = {"from": "from-resources" if from_resources else "resources",
                 "to": "to-resources" if to_resources else "resources"}
+    findings, evidence = [], {"recording_admission": [], "validation_failures": [], "mechanisms_not_observed": []}
 
-    # schema
+    # generated schema
     bundles, defs, manifests, v2_checks = {}, {}, {}, {}
     for side, pin in pins.items():
         folder = folders[side] / pin
@@ -1081,9 +800,10 @@ def compare(from_pin, to_pin, resources=None, from_resources=None, to_resources=
         v2 = inputs.json("generated v2 schema bundle at " + pin, folder / V2_BUNDLE, argument[side], folders[side])
         text = inputs.bytes("generator output manifest at " + pin, folder / MANIFEST, argument[side], folders[side])
         if bundles[side] is not None:
-            for problem in bundle_problems(bundles[side]):
+            problems = bundle_problems(bundles[side])
+            for problem in problems:
                 inputs.problems.append({"role": "generated schema bundle", "pin": pin, "problem": problem})
-            if bundle_problems(bundles[side])[:1] == ["no definitions object"]:
+            if problems[:1] == ["no definitions object"]:
                 bundles[side] = None
         defs[side] = definitions(bundles[side] or {})
         try:
@@ -1104,42 +824,15 @@ def compare(from_pin, to_pin, resources=None, from_resources=None, to_resources=
                 inputs.problems.append({"role": "generated v2 schema bundle", "pin": pin,
                                         "problem": "differs from the main bundle for %d definitions"
                                                    % len(v2_checks[pin])})
-    method_sets = {}
-    for union, label in UNIONS.items():
-        before, after = union_methods(defs["from"], union), union_methods(defs["to"], union)
-        method_sets[label] = {"at_from": sorted(before), "at_to": sorted(after), "count_from": len(before),
-                              "count_to": len(after), "added": sorted(set(after) - set(before)),
-                              "removed": sorted(set(before) - set(after))}
-    root_from = sorted(name for name in defs["from"] if not name.startswith("v2/"))
-    root_to = sorted(name for name in defs["to"] if not name.startswith("v2/"))
-    changed = {}
-    for name in sorted(set(defs["from"]) & set(defs["to"])):
-        if defs["from"][name] != defs["to"][name]:
-            changed[name] = diff_schema(defs["from"][name], defs["to"][name], name)
-    added_defs = sorted(set(defs["to"]) - set(defs["from"]))
-    removed_defs = sorted(set(defs["from"]) - set(defs["to"]))
-
-    def namespace_counts(names):
-        return {"root": sum(not n.startswith("v2/") for n in names), "v2": sum(n.startswith("v2/") for n in names)}
-
-    standing_changes, standing_added, standing_removed, parts_changed = [], [], [], []
-    for element in sorted(set(manifests["from"]) | set(manifests["to"])):
-        old, new = manifests["from"].get(element), manifests["to"].get(element)
-        if old is None:
-            standing_added.append({"element": element, "standing": new["standing"]})
-        elif new is None:
-            standing_removed.append({"element": element, "standing": old["standing"]})
-        elif old["standing"] != new["standing"]:
-            standing_changes.append({"element": element, "before": old["standing"], "after": new["standing"]})
-        elif old["variants_differ"] != new["variants_differ"]:
-            parts_changed.append({"element": element, "before": old["variants_differ"],
-                                  "after": new["variants_differ"]})
+    methods = {side: {union: union_methods(defs[side], union) for union in UNIONS} for side in pins}
+    method_sets = {label: {"at_from": sorted(methods["from"][union]), "at_to": sorted(methods["to"][union]),
+                           "count_from": len(methods["from"][union]), "count_to": len(methods["to"][union]),
+                           "added": sorted(set(methods["to"][union]) - set(methods["from"][union])),
+                           "removed": sorted(set(methods["from"][union]) - set(methods["to"][union]))}
+                   for union, label in UNIONS.items()}
 
     # what the App relies on
-    names = set()
-    for side in pins:
-        for union in UNIONS:
-            names |= set(union_methods(defs[side], union))
+    names = {method for side in pins for union in UNIONS for method in methods[side][union]}
     source = Path(source or APP / "src-tauri/src")
     relied, files_read = relied_methods(source, names, inputs) if source.is_dir() else ({}, 0)
     if not source.is_dir():
@@ -1151,70 +844,62 @@ def compare(from_pin, to_pin, resources=None, from_resources=None, to_resources=
     roots, unmapped = {"from": set(), "to": set()}, []
     for side in pins:
         for union in UNIONS:
-            for method, alternative in union_methods(defs[side], union).items():
+            for method, member in methods[side][union].items():
                 if method not in relied:
                     continue
-                params = params_of(alternative)
-                if params:
-                    roots[side].add(params)
+                if params_of(member):
+                    roots[side].add(params_of(member))
                 if union in ("ClientRequest", "ServerRequest"):
-                    response = response_of(method, alternative, defs[side])
+                    response = response_of(method, member, defs[side])
                     if response:
                         roots[side].add(response)
                     else:
-                        unmapped.append({"method": method, "pin": pins[side], "params": params})
-    relied_defs = closure(roots["from"], defs["from"]) | closure(roots["to"], defs["to"])
-    relied_source = {"rule": RULES["relied_on"], "files_read": files_read, "methods": relied,
-                     "unmapped_responses": sorted(unmapped, key=canonical),
-                     "definitions": sorted(relied_defs)}
+                        unmapped.append({"method": method, "pin": pins[side], "params": params_of(member)})
+    reached = {side: closure(roots[side], defs[side]) for side in pins}
+    relied_defs = reached["from"] | reached["to"]
+    root_names = roots["from"] | roots["to"]
     inputs.read.append({"role": "host source (identity of what was derived from it)",
                         "path": Inputs.label(source, "source", source),
                         "sha256": digest(canonical(relied).encode()),
                         "note": "digest of the relied-on method map; file bytes are not pinned so that the "
                                 "result changes only when what the App relies on changes"})
 
-    def touches(path):
-        union, method = union_method_of(path)
-        if union:
-            return [method] if method in relied else []
-        name = path.split("/")[0] if not path.startswith("v2/") else "/".join(path.split("/")[:2])
-        return [name] if name in relied_defs else []
-
-    findings, additive, documentation = [], [], []
-    for name, changes in changed.items():
-        for item in changes:
-            involved = touches(item["path"])
-            if not involved:
+    # definitions: identity and difference
+    unchanged, changed = [], {}
+    for name in sorted(relied_defs):
+        old, new = defs["from"].get(name), defs["to"].get(name)
+        if old is not None and new is not None and canonical(old) == canonical(new):
+            unchanged.append(name)
+            continue
+        state = "added" if old is None else "removed" if new is None else "changed"
+        changed[name] = {"state": state, "role": "root" if name in root_names else "reached by reference",
+                         "before_sha256": content_sha(old), "after_sha256": content_sha(new),
+                         "difference": diff_paths(old, new) if state == "changed" else []}
+        findings.append(finding("definition " + state, name, old, new))
+    members_changed = {}
+    for union in UNIONS:
+        for method in sorted(relied):
+            old, new = methods["from"][union].get(method), methods["to"][union].get(method)
+            if old is None and new is None:
                 continue
-            if item["class"] in ("breaking", "unclassified"):
-                findings.append(finding("schema change (%s)" % item["class"], item["path"], item["change"], involved))
-            elif item["class"] == "additive":
-                additive.append(dict(item, involves=involved))
-            elif item["class"] == "documentation only":
-                documentation.append(dict(item, involves=involved))
-    for label, sets in method_sets.items():
-        for method in sets["removed"]:
-            if method in relied:
-                findings.append(finding("method removed", method, label, [method]))
-        for method in sets["added"]:
-            if method in relied:
-                additive.append({"path": method, "class": "additive", "change": "method added to " + label,
-                                 "involves": [method]})
-    for name in removed_defs:
-        if name in relied_defs:
-            findings.append(finding("definition removed", name, "absent at the new pin", [name]))
-    for entry in standing_changes + standing_removed:
-        definition = element_definition(entry["element"])
-        if definition in relied_defs or definition in UNIONS:
-            findings.append(finding("standing change", entry["element"],
-                                    "%s -> %s" % (entry.get("before", entry.get("standing")),
-                                                  entry.get("after", "absent")), [definition]))
+            if new is None:
+                findings.append(finding("relied-on method removed", "%s %s" % (union, method), old, None))
+            elif old is not None and canonical(old) != canonical(new):
+                members_changed["%s %s" % (union, method)] = diff_paths(old, new)
+                findings.append(finding("method union member changed", "%s %s" % (union, method), old, new))
+    standing_changes = []
+    for element in sorted(set(manifests["from"]) & set(manifests["to"])):
+        old, new = manifests["from"][element]["standing"], manifests["to"][element]["standing"]
+        if old != new:
+            standing_changes.append({"element": element, "before": old, "after": new})
+            if element_definition(element) in relied_defs:
+                findings.append(finding("standing change", element, old, new))
 
     # supplement
     supplement = {}
     for side, pin in pins.items():
-        path = Path((from_supplement if side == "from" else to_supplement) or folders[side] / pin / SUPPLEMENT)
         given = from_supplement if side == "from" else to_supplement
+        path = Path(given or folders[side] / pin / SUPPLEMENT)
         entries = inputs.json("supplement at " + pin, path, side + "-supplement" if given else argument[side],
                               path.parent if given else folders[side], required=bool(given))
         if entries is not None and not (isinstance(entries, list) and all(
@@ -1223,23 +908,17 @@ def compare(from_pin, to_pin, resources=None, from_resources=None, to_resources=
                                     "problem": "not a list of entries naming element, pin and evidence"})
             entries = None
         supplement[side] = entries or []
-    generated_to = set(defs["to"]) | {m for union in UNIONS for m in union_methods(defs["to"], union)}
-    supplement_result = {
-        "at_from": supplement["from"], "at_to": supplement["to"],
-        "in_generated_output_at_to": {e["element"]: e["element"] in generated_to
-                                      for e in supplement["from"] + supplement["to"]},
-    }
+    generated_to = set(defs["to"]) | {m for union in UNIONS for m in methods["to"][union]}
     carried = {e["element"] for e in supplement["to"]}
     for entry in supplement["from"]:
         if entry["element"] not in generated_to and entry["element"] not in carried:
-            findings.append(finding("supplement element lost", entry["element"],
-                                    "neither generated nor supplemented at the new pin", [entry["element"]]))
+            findings.append(finding("supplement element lost", entry["element"], entry, None))
 
     # recorded exchanges
     validators = Validators(bundles["to"]) if bundles["to"] is not None else None
-    coverage = []
-    recordings, folders_rec = {}, {"from": Path(from_recordings or default_recordings(from_pin)),
-                                   "to": Path(to_recordings or default_recordings(to_pin))}
+    limits, recordings = [], {}
+    folders_rec = {"from": Path(from_recordings or default_recordings(from_pin)),
+                   "to": Path(to_recordings or default_recordings(to_pin))}
     for scenario in scenarios:
         records = {}
         for side, pin in pins.items():
@@ -1254,151 +933,121 @@ def compare(from_pin, to_pin, resources=None, from_resources=None, to_resources=
             records[side] = record
         if None in records.values():
             continue
-        for side in pins:
-            for requirement in coverage_gaps(scenario, records[side]):
-                coverage.append({"scenario": scenario, "pin": pins[side], "lacks": requirement})
+        for side, pin in pins.items():
+            record = records[side]
+            gaps = coverage_gaps(scenario, record)
+            if record["format"] == CURRENT:
+                gaps += socket_gaps(record)
+            elif side == "to":
+                gaps.append("the current recording format %s" % CURRENT)
+            else:
+                limits.append("the %s recording at %s carries no socket observation because its format (%s) did "
+                              "not record one; this is a limit of the comparison, not an observation"
+                              % (scenario, pin, OLDER))
+            evidence["recording_admission"] += [{"scenario": scenario, "pin": pin, "lacks": gap} for gap in gaps]
         rows = {side: frame_rows(records[side]) for side in pins}
         sequences = {side: sequence(rows[side]) for side in pins}
         shape = {side: shapes(rows[side]) for side in pins}
-        common = sorted(set(shape["from"]) & set(shape["to"]))
         differences = shape_differences(shape["from"], shape["to"])
         entry = {
             "frames": {pins[side]: len(rows[side]) for side in pins},
             "sequence": {pins[side]: sequences[side] for side in pins},
             "sequence_differences": sequence_differences(sequences["from"], sequences["to"]),
-            "shape_groups_compared": common,
             "shape_groups_only_from": sorted(set(shape["from"]) - set(shape["to"])),
             "shape_groups_only_to": sorted(set(shape["to"]) - set(shape["from"])),
             "shape_differences": differences,
         }
-        absent = absent_groups(rows["from"], rows["to"], shape["from"], shape["to"])
-        entry["groups_absent_at_to"] = absent
-        for group, judgement in sorted(absent.items()):
-            method = group.split(" ")[-1]
-            if judgement["driven"] and method in relied:
-                findings.append(finding("recorded group absent although driven", "%s %s" % (scenario, group),
-                                        "driven by " + judgement["driven_by"], [method]))
-        for group, difference in differences.items():
-            method = group.split(" ")[-1]
-            if method not in relied:
-                continue
-            for path in difference["paths_only_before"]:
-                findings.append(finding("recorded key path missing", "%s %s" % (scenario, group), path, [method]))
-            for change in difference["types_changed"]:
-                findings.append(finding("recorded type changed", "%s %s" % (scenario, group),
-                                        "%s %s -> %s" % (change["path"], change["before"], change["after"]),
-                                        [method]))
-            for path in difference["no_longer_in_every_frame"]:
-                findings.append(finding("recorded key path no longer in every frame", "%s %s" % (scenario, group),
-                                        path, [method]))
+        for group in entry["shape_groups_only_from"]:
+            if group.split(" ")[-1] in relied:
+                findings.append(finding("recorded group absent at the new pin", "%s %s" % (scenario, group),
+                                        shape["from"][group], None))
+        for group in differences:
+            if group.split(" ")[-1] in relied:
+                findings.append(finding("recorded shape changed", "%s %s" % (scenario, group),
+                                        shape["from"][group], shape["to"][group]))
         if validators is not None:
             entry["validation_against_to"] = {pins[side]: validate(rows[side], validators) for side in pins}
-            for side in pins:
-                for failure in entry["validation_against_to"][pins[side]]["failures"]:
-                    if failure["method"] in relied:
-                        findings.append(finding("failed validation", "%s recorded at %s" % (scenario, pins[side]),
-                                                "%s g%s/%s against %s at %s" % (
-                                                    failure["method"], failure["generation"], failure["position"],
-                                                    failure["against"], to_pin), [failure["method"]]))
+            for failure in entry["validation_against_to"][from_pin]["failures"]:
+                if failure["method"] in relied:
+                    findings.append(finding("prior-pin frame fails the new schema", "%s %s g%s/%s" % (
+                        scenario, failure["method"], failure["generation"], failure["position"]),
+                        failure["errors"], None))
+            evidence["validation_failures"] += [dict(failure, scenario=scenario) for failure in
+                                                entry["validation_against_to"][to_pin]["failures"]]
         mechanisms = {}
         for side in pins:
             observed, expected, context, involved = mechanism_of(scenario, records[side])
             mechanisms[pins[side]] = {"observed": observed, "context": context}
         entry["mechanism"] = dict(mechanisms, expected=expected, involves=involved)
-        relied_involved = [method for method in involved if method in relied]
-        before, after = mechanisms[from_pin]["observed"], mechanisms[to_pin]["observed"]
-        # A value first observed at the new pin is an observation, not a change; an expected
-        # mechanism that does not hold at the new pin is a finding even if it did not hold before.
-        for key in sorted(set(after) | set(expected)):
-            old, new = before.get(key), after.get(key)
-            if old is not None and new is None:
-                findings.append(finding("mechanism no longer observable", scenario, key, relied_involved))
-            elif old is not None and new != old:
-                findings.append(finding("mechanism changed", scenario, "%s %s -> %s" % (key, old, new),
-                                        relied_involved))
-            elif key in expected and new != expected[key]:
-                findings.append(finding("mechanism not as expected at the new pin", scenario,
-                                        "%s is %s" % (key, new), relied_involved))
+        evidence["mechanisms_not_observed"] += [
+            {"scenario": scenario, "mechanism": key, "expected": value,
+             "observed": mechanisms[to_pin]["observed"].get(key)}
+            for key, value in sorted(expected.items()) if mechanisms[to_pin]["observed"].get(key) != value]
         recordings[scenario] = entry
-    findings = [f for f in findings if f["involves"]]
 
     # dispositions
     path = Path(dispositions or HERE / "version_advance" / ("%s-to-%s.dispositions.json" % (from_pin, to_pin)))
     authored = inputs.json("dispositions", path, "dispositions", path.parent, required=bool(dispositions))
-    entries = []
+    entries, fields = [], ("decided_by", "decision", "finding", "where_recorded")
     if authored is not None:
-        fields = ("decided_by", "decision", "finding", "where_recorded")
-        if isinstance(authored, list) and all(isinstance(e, dict) and set(e) == set(fields) and all(
-                isinstance(e[k], str) and e[k].strip() for k in fields) for e in authored):
+        if isinstance(authored, list) and all(
+                isinstance(e, dict) and set(fields) <= set(e) <= set(fields) | {"group"}
+                and all(isinstance(v, str) and v.strip() for v in e.values()) for e in authored):
             entries = authored
         else:
             inputs.problems.append({"role": "dispositions", "path": Inputs.label(path, "dispositions", path.parent),
-                                    "problem": "not a list of {finding, decided_by, decision, where_recorded} "
-                                               "with every field non-empty"})
-    unique = {}
-    for item in findings:
-        unique[item["id"]] = item
+                                    "problem": "not a list of {finding, decided_by, decision, where_recorded"
+                                               "[, group]} with every field a non-empty string"})
+    unique = {item["id"]: item for item in findings}
     findings = [unique[key] for key in sorted(unique)]
     disposed = {entry["finding"] for entry in entries}
     undisposed = [item["id"] for item in findings if item["id"] not in disposed]
-    unsupported = [{"path": item["path"], "construct": item["change"]}
-                   for changes in changed.values() for item in changes if item["class"] == "unsupported"]
-    for side in pins:
-        for name, node in defs[side].items():
-            for ref in sorted(refs_all(node, set())):
-                if ref_name(ref) not in defs[side]:
-                    unsupported.append({"path": "%s at %s" % (name, pins[side]),
-                                        "construct": "reference %s does not name a definition of the bundle" % ref})
-    unsupported = sorted({canonical(u): u for u in unsupported}.values(), key=canonical)
     stale = sorted(disposed - set(unique))
-    fail_closed = {
-        "missing_inputs": sorted(inputs.missing, key=canonical),
-        "missing_structure": sorted(inputs.problems, key=canonical),
-        "unsupported_constructs": unsupported,
-        "insufficient_coverage": sorted(coverage, key=canonical),
-        "coverage_required": {scenario: COVERAGE[scenario] for scenario in scenarios},
-    }
-    reasons = []
-    if undisposed:
-        reasons.append("%d finding(s) without a disposition" % len(undisposed))
+    inadmissible = {"missing_inputs": sorted(inputs.missing, key=canonical),
+                    "missing_structure": sorted(inputs.problems, key=canonical)}
+    inadmissible.update({key: sorted(value, key=canonical) for key, value in evidence.items()})
+    reasons = ["%d finding(s) without a disposition" % len(undisposed)] if undisposed else []
     reasons += ["a disposition names no finding of this comparison: " + item for item in stale]
-    reasons += ["missing input: %s %s" % (item["role"], item["path"]) for item in fail_closed["missing_inputs"]]
-    reasons += ["missing structure: %s %s: %s" % (item["role"], item.get("pin", item.get("path", "")),
-                                                  item["problem"]) for item in fail_closed["missing_structure"]]
-    reasons += ["unsupported construct: %s: %s" % (item["path"], item["construct"]) for item in unsupported]
-    reasons += ["insufficient coverage: %s at %s lacks %s" % (item["scenario"], item["pin"], item["lacks"])
-                for item in fail_closed["insufficient_coverage"]]
-    passed = not reasons
+    reasons += ["%s: %s" % (key.replace("_", " "), canonical(item)) for key, items in sorted(inadmissible.items())
+                for item in items]
+    inadmissible["coverage_required"] = {"%s %s" % (scenario, fmt): [step_label(step) for step in steps]
+                                         for (fmt, scenario), steps in sorted(SCRIPTS.items())
+                                         if scenario in scenarios}
+
+    def namespace_counts(names):
+        return {"root": sum(not n.startswith("v2/") for n in names), "v2": sum(n.startswith("v2/") for n in names)}
+
+    common = set(defs["from"]) & set(defs["to"])
     return {
         "format": FORMAT,
         "from": from_pin,
         "to": to_pin,
         "rules": RULES,
         "scenarios": list(scenarios),
+        "limits": limits,
         "inputs": {"read": sorted(inputs.read, key=canonical)},
-        "unusable": fail_closed,
+        "inadmissible": inadmissible,
         "schema": {
             "method_sets": method_sets,
-            "definitions": {
+            "all_definitions": {
                 "count_from": namespace_counts(defs["from"]), "count_to": namespace_counts(defs["to"]),
-                "root_names_unchanged": root_from == root_to,
-                "added": added_defs, "removed": removed_defs,
-                "changed": {name: sorted(changes, key=canonical) for name, changes in changed.items()},
-                "changed_count": namespace_counts(changed),
+                "added": sorted(set(defs["to"]) - set(defs["from"])),
+                "removed": sorted(set(defs["from"]) - set(defs["to"])),
+                "changed_count": namespace_counts([n for n in common
+                                                   if canonical(defs["from"][n]) != canonical(defs["to"][n])]),
             },
+            "relied_on_and_reached": {"unchanged": unchanged, "changed": changed},
+            "relied_on_method_members_changed": members_changed,
             "v2_bundle_differs_from_main_bundle": v2_checks,
-            "standing": {"changed": standing_changes, "elements_added": standing_added,
-                         "elements_removed": standing_removed, "experimental_parts_changed": parts_changed},
+            "standing_changed": standing_changes,
         },
-        "supplement": supplement_result,
+        "supplement": {"at_from": supplement["from"], "at_to": supplement["to"]},
         "recorded_exchanges": recordings,
-        "relied_on": relied_source,
+        "relied_on": {"files_read": files_read, "methods": relied, "roots": sorted(root_names),
+                      "unmapped_responses": sorted(unmapped, key=canonical)},
         "findings": findings,
-        "not_requiring_decision": {"rule": RULES["additive_rule"],
-                                   "additive": sorted(additive, key=canonical),
-                                   "documentation_only": sorted(documentation, key=canonical)},
         "verdict": {
-            "verdict": "passed" if passed else "returned for decision",
+            "verdict": "returned for decision" if reasons else "passed",
             "undisposed_findings": undisposed,
             "disposed_findings": sorted(i for i in disposed if i in unique),
             "dispositions_naming_no_finding": stale,
@@ -1433,8 +1082,9 @@ def main(argv=None):
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(render(result), encoding="utf-8")
     verdict = result["verdict"]
-    print("%s: %d findings, %d undisposed" % (verdict["verdict"], len(result["findings"]),
-                                              len(verdict["undisposed_findings"])))
+    print("%s: %d findings, %d undisposed, %d reasons" % (verdict["verdict"], len(result["findings"]),
+                                                          len(verdict["undisposed_findings"]),
+                                                          len(verdict["reasons"])))
     return 0 if verdict["verdict"] == "passed" else 1
 
 

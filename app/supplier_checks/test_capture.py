@@ -8,6 +8,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 import types
@@ -141,10 +142,16 @@ class MetadataPaths(unittest.TestCase):
         for field, value in (("entrypoint", "../not-in-inventory"), ("entrypoint", "/bin/sh"), ("entrypoint", "bin"),
                              ("entrypoint", "bin/absent"), ("entrypoint", "bin/../bin/codex"), ("entrypoint", ""),
                              ("entrypoint", None), ("entrypoint", 7), ("pathDir", "bin/codex"), ("pathDir", "."),
-                             ("pathDir", ".."), ("execServer", "../not-in-inventory"), ("resourcesDir", "bin/codex")):
+                             ("pathDir", ".."), ("execServer", "../not-in-inventory"), ("resourcesDir", "bin/codex"),
+                             ("pathDir", "search:/outside"), ("entrypoint", "bin/co:dex")):
             with self.subTest(field=field, value=value):
                 record = json.loads(json.dumps(self.record))
                 record["package_metadata"][field] = value
+                # Even as a genuine inventory member, a name holding the path separator is refused.
+                record["inventory"]["entries"].append(
+                    {"path": value, "kind": "dir" if field == "pathDir" else "file", "mode": 0o755,
+                     "size": 0, "sha256": hashlib.sha256(b"").hexdigest()} if isinstance(value, str) and ":" in value
+                    else {"path": "unused", "kind": "dir", "mode": 0o755})
                 with self.assertRaisesRegex(capture.Refused, "of the verified inventory"):
                     capture.metadata_members(record)
                 with self.assertRaises(capture.Refused):
@@ -173,6 +180,23 @@ class MetadataPaths(unittest.TestCase):
         with self.assertRaisesRegex(capture.Refused, "passes through a link"):
             capture.admitted_path(str(self.vendor), self.record, "entrypoint")
 
+    def test_the_supplier_environment_is_five_variables_and_its_path_names_only_the_admitted_directory(self):
+        homes = []
+        for name in ("user-home", "home", "tmp"):
+            (self.vendor.parent / name).mkdir()
+            homes.append(str(self.vendor.parent / name))
+        admitted = capture.admitted_path(str(self.vendor), self.record, "pathDir")
+        environment = capture.supplier_environment(admitted, str(self.vendor), *homes)
+        self.assertEqual(sorted(environment), ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR"])
+        self.assertEqual(environment["PATH"].split(os.pathsep), [admitted, "/usr/bin", "/bin", "/usr/sbin", "/sbin"])
+        outside = str(self.vendor.parent / "not-in-inventory")
+        for path_directory in (admitted + os.pathsep + outside, outside, str(self.vendor), "codex-path", ""):
+            with self.subTest(path_directory=path_directory):
+                with self.assertRaises((capture.Refused, ValueError)):
+                    capture.supplier_environment(path_directory, str(self.vendor), *homes)
+        with self.assertRaisesRegex(capture.Refused, "HOME"):
+            capture.supplier_environment(admitted, str(self.vendor), homes[0] + os.pathsep + outside, *homes[1:])
+
     def test_the_harness_refuses_metadata_that_escapes_before_anything_can_run(self):
         self.record["package_metadata"]["entrypoint"] = "../not-in-inventory"
         with self.assertRaises(capture.Refused):
@@ -196,16 +220,46 @@ class SocketWatch(unittest.TestCase):
         self.assertIsNone(capture.socket_peers(1, self.lsof(1, stderr="lsof: no pwd entry")))
         self.assertIsNone(capture.socket_peers(1, self.lsof(1, header + row % "127.0.0.1")))
 
+    def test_an_unreadable_process_list_is_not_an_empty_group(self):
+        listing = lambda code, out="", err="": (lambda *a, **k: types.SimpleNamespace(returncode=code, stdout=out, stderr=err))
+        self.assertEqual(capture.group_members(7, listing(0, "  1\n  7\n  7\n")), 2)
+        self.assertEqual(capture.group_members(7, listing(0, "  1\n  3\n")), 0)
+        self.assertIsNone(capture.group_members(7, listing(2)))
+        self.assertIsNone(capture.group_members(7, listing(0, "")))
+        self.assertIsNone(capture.group_members(7, listing(0, "  7\n", "ps: warning")))
+
+    def test_a_sample_that_fails_as_the_process_exits_still_counts_as_failed(self):
+        harness = capture.Harness.__new__(capture.Harness)
+        harness.gens, harness.events, harness.started = [], [], 0.0
+        harness.stop_reason, harness.socket_samples, harness.failed_samples = None, 0, 0
+        harness.loopback_peers, harness.samples_by_generation, harness.sample_lock = set(), {}, threading.Lock()
+        process = subprocess.Popen(["/bin/sleep", "30"], start_new_session=True)
+        done = threading.Event()
+
+        def failing_as_it_exits(group):
+            process.kill()
+            process.wait()
+            done.set()
+            return None
+        harness.gens.append(types.SimpleNamespace(proc=process, pgid=os.getpgid(process.pid), number=1))
+        original, capture.socket_peers = capture.socket_peers, failing_as_it_exits
+        try:
+            harness.watch_sockets(done)
+        finally:
+            capture.socket_peers = original
+        self.assertEqual((harness.socket_samples, harness.failed_samples), (0, 1))
+        self.assertIn("could not take a sample", harness.stop_reason)
+
     def test_a_failed_sample_or_a_foreign_peer_stops_the_run(self):
         for peers, expected in ((None, "could not take a sample"), (["203.0.113.7"], "non-loopback socket")):
             with self.subTest(peers=peers), tempfile.TemporaryDirectory() as root:
                 harness = capture.Harness.__new__(capture.Harness)
                 harness.gens, harness.events, harness.started = [], [], 0.0
                 harness.stop_reason, harness.socket_samples, harness.failed_samples = None, 0, 0
-                harness.loopback_peers = set()
+                harness.loopback_peers, harness.samples_by_generation, harness.sample_lock = set(), {}, threading.Lock()
                 process = subprocess.Popen(["/bin/sleep", "30"], start_new_session=True)
                 try:
-                    harness.gens.append(types.SimpleNamespace(proc=process, pgid=os.getpgid(process.pid)))
+                    harness.gens.append(types.SimpleNamespace(proc=process, pgid=os.getpgid(process.pid), number=1))
                     done = threading.Event()
                     original, capture.socket_peers = capture.socket_peers, lambda group: peers
                     try:
@@ -221,6 +275,127 @@ class SocketWatch(unittest.TestCase):
                         process.kill()
                 self.assertIn(expected, harness.stop_reason)
                 self.assertEqual(harness.failed_samples, 1 if peers is None else 0)
+
+
+STAND_IN = r'''#!%(python)s
+"""An invented stand-in for the supplier, for the capture harness's own tests. Not Codex."""
+import json, os, sys
+MODE = %(mode)r
+if sys.argv[1:] == ["--version"]:
+    print("codex-cli 9.9.9")
+    sys.exit(0)
+P, C, X, T = "parent-thread-0001", "child-thread-0002", "other-thread-0003", "turn-0001"
+ITEM = {"type": "collabAgentToolCall", "id": "call_spawn_1", "tool": "spawnAgent", "senderThreadId": P,
+        "prompt": "st5-child-brief-marker: count the invented files."}
+def send(message):
+    sys.stdout.write(json.dumps(message) + "\n")
+    sys.stdout.flush()
+def note(method, params):
+    send({"jsonrpc": "2.0", "method": method, "params": params})
+for line in sys.stdin:
+    message = json.loads(line)
+    if "id" not in message or "method" not in message:
+        continue
+    reply = lambda result: send({"jsonrpc": "2.0", "id": message["id"], "result": result})
+    method = message["method"]
+    if method == "initialize":
+        identity = {"opaque": "invented-private-installation"} if MODE == "identity-object" else "invented-id"
+        reply({"codexHome": os.environ["CODEX_HOME"], "userAgent": "stand-in/1", "installationId": identity,
+               "platformFamily": "unix", "platformOs": "macos", "environment": sorted(os.environ)})
+    elif method == "thread/start":
+        reply({"thread": {"id": P}})
+    elif method == "turn/start":
+        reply({"turn": {"id": T}})
+        note("item/started", {"threadId": P, "item": dict(ITEM, status="inProgress", receiverThreadIds=[])})
+        receivers = [] if MODE == "no-receiver" else [C]
+        note("item/completed", {"threadId": P, "item": dict(ITEM, status="completed", receiverThreadIds=receivers)})
+        if MODE == "child-first":
+            note("turn/completed", {"threadId": C, "turn": {"id": "turn-c"}})
+        if MODE != "no-parent-completion":
+            note("turn/completed", {"threadId": P, "turn": {"id": T}})
+        if MODE == "unrelated-completion":
+            note("turn/completed", {"threadId": X, "turn": {"id": "turn-x"}})
+        elif MODE not in ("no-child-completion", "child-first"):
+            note("turn/completed", {"threadId": C, "turn": {"id": "turn-c"}})
+    elif method == "thread/items/list" and MODE == "no-reply":
+        pass
+    elif method == "thread/turns/list" and MODE == "error-reply":
+        send({"jsonrpc": "2.0", "id": message["id"], "error": {"code": -32000, "message": "invented"}})
+    else:
+        reply({"data": [], "thread": {"id": message.get("params", {}).get("threadId")}})
+'''
+
+
+class HarnessAgainstAStandInSupplier(unittest.TestCase):
+    """The whole nv04 path against an invented peer: what the harness refuses to record."""
+
+    def setUp(self):
+        self.root = tempfile.TemporaryDirectory()
+        self.base = Path(os.path.realpath(self.root.name))
+        self.originals = (capture.socket_peers, capture.group_members)
+        capture.socket_peers = lambda group: []  # the stand-in opens no socket; lsof is not what is tested here
+
+    def tearDown(self):
+        capture.socket_peers, capture.group_members = self.originals
+        self.root.cleanup()
+
+    def run_nv04(self, mode):
+        vendor = self.base / "vendor"
+        (vendor / "bin").mkdir(parents=True)
+        (vendor / "codex-path").mkdir()
+        (vendor / "bin/codex").write_text(STAND_IN % {"python": sys.executable, "mode": mode})
+        os.chmod(vendor / "bin/codex", 0o755)
+        (vendor / "codex-package.json").write_text(json.dumps(
+            {"version": "9.9.9", "entrypoint": "bin/codex", "pathDir": "codex-path"}))
+        import intake
+        record = intake.distribution_record(str(vendor), "9.9.9", {"url": "https://example.invalid/a", "size": 1,
+                                                                    "sha256": "0" * 64})
+        (self.base / "records/9.9.9").mkdir(parents=True)
+        (self.base / "records/9.9.9/CANONICAL_DISTRIBUTION.json").write_text(json.dumps(record))
+        code = capture.main(["--vendor", str(vendor), "--pin", "9.9.9", "--expected-root", str(self.base / "records"),
+                             "--out", str(self.base / "out"), "--child-hold", "0", "--step-timeout", "2", "nv04"])
+        return code, self.base / "out/nv04.recording.json"
+
+    def test_a_complete_run_is_recorded_with_identities_withheld_and_a_five_variable_environment(self):
+        for mode in ("complete", "identity-object"):
+            with self.subTest(mode=mode):
+                self.tearDown()
+                self.setUp()
+                code, path = self.run_nv04(mode)
+                self.assertEqual(code, 0)
+                text = path.read_text()
+                self.assertNotIn("invented-private-installation", text)
+                self.assertNotIn("invented-id", text)
+                self.assertNotIn("stand-in/1", text)
+                record = json.loads(text)
+                initialize = next(row["frame"]["result"] for row in record["frames"]
+                                  if row["direction"] == "codex->app" and "result" in row["frame"])
+                self.assertEqual(initialize["installationId"], "<REDACTED-INSTALLATION-ID>")
+                # macOS adds __CF_USER_TEXT_ENCODING inside a process itself; nothing else may appear.
+                self.assertEqual(sorted(set(initialize["environment"]) - {"__CF_USER_TEXT_ENCODING"}),
+                                 ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR"])
+                self.assertEqual((record["socket_watch"]["failed_samples"], record["pin"]), (0, "9.9.9"))
+                self.assertGreater(record["socket_watch"]["samples"], 0)
+
+    def test_an_observation_that_was_not_made_writes_no_recording(self):
+        for mode in ("no-reply", "error-reply", "no-parent-completion", "no-child-completion",
+                     "unrelated-completion", "child-first", "no-receiver"):
+            with self.subTest(mode=mode):
+                self.tearDown()
+                self.setUp()
+                code, path = self.run_nv04(mode)
+                self.assertEqual(code, 2)
+                self.assertFalse(path.exists())
+
+    def test_a_failed_socket_sample_or_an_unreadable_process_list_writes_no_recording(self):
+        for failing in ("socket_peers", "group_members"):
+            with self.subTest(failing=failing):
+                self.tearDown()
+                self.setUp()
+                setattr(capture, failing, lambda group: None)
+                code, path = self.run_nv04("complete")
+                self.assertEqual(code, 2)
+                self.assertFalse(path.exists())
 
 
 class Redaction(unittest.TestCase):
@@ -244,14 +419,34 @@ class Redaction(unittest.TestCase):
         self.assertEqual(leaks(json.dumps(redacted)), [])
         self.assertEqual(counts["installation identifier"], 1)
 
-    def test_identity_values_are_replaced_whatever_the_spacing_and_in_text_that_is_not_json(self):
-        redact, _, _ = self.redactor()
+    def test_identity_values_are_replaced_whatever_their_spacing_type_or_nesting(self):
+        redact, leaks, _ = self.redactor()
         spaced = json.loads('{"installationId": "invented-private-installation", "serverName" : "host"}')
         self.assertEqual(redact(spaced), {"installationId": "<REDACTED-INSTALLATION-ID>", "serverName": "<REDACTED-HOST>"})
-        self.assertEqual(redact('not json {"installationId" :  "invented-private-installation"}'),
-                         'not json {"installationId" :  "<REDACTED-INSTALLATION-ID>"}')
-        self.assertEqual(redact('escaped {\\"userAgent\\":\\"client\\"}'),
-                         'escaped {\\"userAgent\\":\\"<REDACTED-USER-AGENT>\\"}')
+        for value in ({"opaque": "invented-private-installation"}, ["invented-private-installation"], None, 7):
+            with self.subTest(value=value):
+                redacted = redact({"outer": [{"installationId": value}]})
+                self.assertEqual(redacted, {"outer": [{"installationId": "<REDACTED-INSTALLATION-ID>"}]})
+                self.assertEqual(leaks(json.dumps(redacted)), [])
+        held = redact({"arguments": json.dumps({"userAgent": "client/1", "keep": 1})})
+        self.assertEqual(json.loads(held["arguments"]), {"userAgent": "<REDACTED-USER-AGENT>", "keep": 1})
+        unchanged = json.dumps({"keep": 1}, indent=2)
+        self.assertEqual(redact({"arguments": unchanged}), {"arguments": unchanged})
+
+    def test_text_that_is_not_json_and_names_an_identity_key_is_withheld_whole(self):
+        redact, leaks, _ = self.redactor()
+        for text in ('log {"installationId" :  "invented-private-installation"} tail',
+                     'escaped {\\"userAgent\\":\\"client\\\\\\"x suffix-secret\\"} end'):
+            with self.subTest(text=text):
+                self.assertEqual(redact({"note": text}), {"note": capture.TEXT_MARKER})
+        self.assertEqual(redact("the userAgent is a word here"), "the userAgent is a word here")
+
+    def test_the_final_check_names_a_remembered_identity_value_or_an_unreplaced_identity_key(self):
+        redact, leaks, _ = self.redactor()
+        redact({"installationId": {"opaque": "invented-private-installation"}})
+        self.assertEqual(leaks('{"elsewhere": "invented-private-installation"}'), ["invented-private-installation"])
+        self.assertEqual(leaks('{"installationId": {"opaque": "x"}}'), ["installationId not replaced by its marker"])
+        self.assertEqual(leaks('{"installationId": "<REDACTED-INSTALLATION-ID>", "userAgent client identity": 2}'), [])
 
     def test_short_names_are_replaced_and_anything_left_is_reported(self):
         redact, leaks, _ = self.redactor(user="al", host="mb")
@@ -282,6 +477,8 @@ class RecordingsAtThePin(unittest.TestCase):
                 self.assertIsNone(record["app_candidate"])
                 self.assertGreater(record["socket_watch"]["samples"], 0)
                 self.assertEqual(record["socket_watch"]["failed_samples"], 0)
+                self.assertEqual(sorted(record["socket_watch"]["samples_by_generation"]), ["1", "2"])
+                self.assertTrue(all(record["socket_watch"]["samples_by_generation"].values()))
                 self.assertEqual(record["socket_watch"]["non_loopback_peers"], [])
                 self.assertLessEqual(set(record["socket_watch"]["loopback_peers"]), {"127.0.0.1", "::1"})
 
