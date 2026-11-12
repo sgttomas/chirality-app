@@ -162,6 +162,10 @@ jobs:
         run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs
+      - name: File-act arrival presentation
+        # The one focused web test that starts cargo: it runs a single Rust test of the library target the
+        # cohorts above built, offline (the full route runs this file through npm test).
+        run: node --test tests/file-act-arrival.test.mjs
       - name: Save compiled third-party Rust dependencies
         if: ${{ !cancelled() }}
         uses: ./.github/actions/app-v4-rust-cache-save
