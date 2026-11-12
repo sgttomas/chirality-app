@@ -50,7 +50,7 @@ code_paths:
 - app/src-tauri/src/instruction_store.rs
 - app/src-tauri/src/instruction_seed_history.rs
 # conversation_roles.rs and ConversationRoles.tsx are shared with DEL-01-04. Here: the role
-# list, the default and the guidance-changed reading. Placement, "Continue as", Fork and the
+# list, the default, the limit accounts and the guidance-changed reading. Placement, "Continue as", Fork and the
 # handoff summary are DEL-01-04's.
 - app/src-tauri/src/conversation_roles.rs
 - app/src/ConversationRoles.tsx
