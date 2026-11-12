@@ -130,6 +130,49 @@ class PackagingPreparation(unittest.TestCase):
         self.assertEqual((self.output/'bundle/Contents/Resources/codex/bin/codex-exec-server').read_bytes(), helper.read_bytes())
         self.assertFalse(result['package_complete'])
 
+    def test_a_pin_without_a_usable_committed_record_refuses_its_layout(self):
+        # Review of PR 242: an absent record must not select the layout without an exec server.
+        empty = self.root/'no-supplier-resources'; empty.mkdir()
+        main_only = dict(self.metadata, version='0.167.2')
+        invented = {'entries': [{'path': 'bin/codex', 'kind': 'file', 'macho': True, 'mode': '0o755'},
+                                {'path': 'codex-path', 'kind': 'dir'}, {'path': 'codex-resources', 'kind': 'dir'}]}
+        with patch.object(inventory, 'SUPPLIER_RESOURCES', empty):
+            for metadata in (main_only, dict(main_only, execServer='bin/codex-exec-server')):
+                with self.assertRaisesRegex(ValueError, 'pin 0.167.2 cannot be obtained: its committed distribution record is absent'):
+                    inventory.validate_package_layout(metadata, invented, '0.167.2')
+            # The legacy layout applies only to 0.160.0 and earlier, named by version.
+            self.assertNotIn('execServer', inventory.expected_package_metadata('0.160.0'))
+            self.assertNotIn('execServer', inventory.expected_package_metadata('0.158.0'))
+            for pin in ('0.160.1', '0.161.0', '0.167.0', '1.0.0'):
+                with self.assertRaisesRegex(ValueError, 'cannot be obtained'):
+                    inventory.expected_package_metadata(pin)
+            for pin in ('latest', '0.167', '', None):
+                with self.assertRaisesRegex(ValueError, 'cannot be obtained'):
+                    inventory.expected_package_metadata(pin)
+            record = empty/'0.167.2/CANONICAL_DISTRIBUTION.json'; record.parent.mkdir()
+            full = dict(main_only, execServer='bin/codex-exec-server')
+            for content, reason in (('{not json', 'absent or unreadable'), (b'\xff', 'absent or unreadable'),
+                                    ('[]', 'no complete package metadata'),
+                                    (json.dumps({'pin': '0.167.2'}), 'no complete package metadata'),
+                                    (json.dumps({'pin': '0.167.2', 'package_metadata': {'version': '0.167.2'}}), 'no complete package metadata'),
+                                    (json.dumps({'pin': '0.167.0', 'package_metadata': dict(full, version='0.167.0')}), 'names another pin'),
+                                    (json.dumps({'pin': '0.167.2', 'package_metadata': dict(full, version='0.167.0')}), 'names another pin')):
+                with self.subTest(reason=reason, content=content[:30]):
+                    if isinstance(content, bytes): record.write_bytes(content)
+                    else: record.write_text(content)
+                    with self.assertRaisesRegex(ValueError, reason):
+                        inventory.validate_package_layout(full, invented, '0.167.2')
+        # prepare.py's own import of the module refuses the same way, before writing anything.
+        self.metadata.update(version='0.167.2', execServer='bin/codex-exec-server')
+        (self.vendor/'codex-package.json').write_text(json.dumps(self.metadata))
+        helper = self.vendor/'bin/codex-exec-server'
+        helper.write_bytes(bytes.fromhex('cffaedfe') + b'INVENTED exec server; never run'); helper.chmod(0o755)
+        with patch.object(sys.modules[prepare.validate_package_layout.__module__], 'SUPPLIER_RESOURCES', empty/'absent'):
+            with self.assertRaisesRegex(ValueError, 'cannot be obtained'):
+                self.run_prepare(pin='0.167.2')
+        self.assertFalse(self.output.exists())
+        self.assertTrue(self.run_prepare(pin='0.167.2')['staging_copy_comparison']['equal'])
+
     def test_selected_resources_are_inspected_without_claiming_placement(self):
         guidance=self.root/'AGENTS.md'; guidance.write_text('invented product guidance')
         self.inputs.write_text(json.dumps({'guidance':str(guidance),'bundle_id':'dev.invented.app','minimum_macos':'15.0'}))

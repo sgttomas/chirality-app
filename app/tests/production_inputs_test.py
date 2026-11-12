@@ -29,6 +29,17 @@ class ProductionInputs(unittest.TestCase):
         self.metadata = {'layoutVersion':1,'version':'9.9.9','target':'aarch64-apple-darwin','variant':'codex',
                          'entrypoint':'bin/codex','resourcesDir':'codex-resources','pathDir':'codex-path'}
         (self.vendor / 'codex-package.json').write_text(json.dumps(self.metadata))
+        # The invented pin 9.9.9 has its own invented committed distribution record, so these
+        # tests reach the refusals they are about; a pin without one refuses its layout.
+        self.supplier_resources = self.root / 'supplier-resources'
+        for record in module.inventory.SUPPLIER_RESOURCES.glob('*/CANONICAL_DISTRIBUTION.json'):
+            (self.supplier_resources / record.parent.name).mkdir(parents=True)
+            shutil.copyfile(record, self.supplier_resources / record.parent.name / record.name)
+        (self.supplier_resources / '9.9.9').mkdir(parents=True)
+        (self.supplier_resources / '9.9.9' / 'CANONICAL_DISTRIBUTION.json').write_text(
+            json.dumps({'pin': '9.9.9', 'package_metadata': self.metadata}))
+        resources_patch = patch.object(module.inventory, 'SUPPLIER_RESOURCES', self.supplier_resources)
+        resources_patch.start(); self.addCleanup(resources_patch.stop)
         self.bind_vendor_reference()
         self.output = self.root / 'output'
         self.kw = dict(source_root=self.source,vendor=self.vendor,expected_manifest=module.inventory.scan(self.vendor)['manifest_sha256'],
@@ -325,6 +336,16 @@ class ProductionInputs(unittest.TestCase):
         helper.chmod(0o755)
         with self.assertRaisesRegex(ValueError, 'selected vendor does not match mapped supplier reference'):
             self.run_plan(pin='0.167.2', expected_manifest=module.inventory.scan(self.vendor)['manifest_sha256'])
+        self.assertFalse(self.output.exists())
+
+    def test_a_pin_without_its_committed_record_refuses_before_any_output(self):
+        # Review of PR 242: an absent record must not select the layout without an exec server.
+        self.metadata.update(version='0.167.2')
+        (self.vendor/'codex-package.json').write_text(json.dumps(self.metadata))
+        empty = self.root / 'no-supplier-resources'; empty.mkdir()
+        with patch.object(module.inventory, 'SUPPLIER_RESOURCES', empty):
+            with self.assertRaisesRegex(ValueError, 'pin 0.167.2 cannot be obtained: its committed distribution record is absent'):
+                self.run_plan(pin='0.167.2', expected_manifest=module.inventory.scan(self.vendor)['manifest_sha256'])
         self.assertFalse(self.output.exists())
 
     def test_empty_directories_glob_metadata_and_checkout_refuse(self):

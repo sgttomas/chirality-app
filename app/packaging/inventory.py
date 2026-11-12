@@ -97,21 +97,39 @@ def compare(actual, expected):
 
 
 SUPPLIER_RESOURCES = Path(__file__).resolve().parent.parent / 'src-tauri' / 'resources' / 'supplier'
+# The stock layout without an exec server was written for these pins only: 0.160.0 and earlier.
+LEGACY_LAYOUT_LAST_PIN = (0, 160, 0)
+PACKAGE_METADATA_KEYS = ('layoutVersion', 'version', 'target', 'variant', 'entrypoint', 'resourcesDir', 'pathDir')
 
 
 def expected_package_metadata(pin):
-    """The pin's package metadata: from its committed distribution record when the
-    repository keeps one (`src-tauri/resources/supplier/<pin>/CANONICAL_DISTRIBUTION.json`),
-    otherwise the stock layout without an exec server (0.160.0 and earlier)."""
-    record = SUPPLIER_RESOURCES / pin / 'CANONICAL_DISTRIBUTION.json' if PIN.match(pin) else None
-    if record is not None and record.is_file():
+    """The pin's expected package metadata.
+
+    Pins 0.160.0 and earlier use the stock layout without an exec server. Every later
+    pin takes its layout from its committed distribution record
+    (`src-tauri/resources/supplier/<pin>/CANONICAL_DISTRIBUTION.json`); when that
+    record is absent, unreadable, for another pin or without package metadata, the
+    expected layout cannot be obtained and this refuses."""
+    if not isinstance(pin, str) or not PIN.match(pin):
+        raise ValueError(f'expected package metadata cannot be obtained: {pin!r} is not a pin')
+    if tuple(int(part) for part in pin.split('.')) <= LEGACY_LAYOUT_LAST_PIN:
+        return {'layoutVersion': 1, 'version': pin, 'target': 'aarch64-apple-darwin',
+                'variant': 'codex', 'entrypoint': 'bin/codex',
+                'resourcesDir': 'codex-resources', 'pathDir': 'codex-path'}
+    record = SUPPLIER_RESOURCES / pin / 'CANONICAL_DISTRIBUTION.json'
+    try:
         basis = json.loads(record.read_text(encoding='utf-8'))
-        if basis.get('pin') != pin or basis.get('package_metadata', {}).get('version') != pin:
-            raise ValueError('committed distribution record does not name the selected pin')
-        return dict(basis['package_metadata'])
-    return {'layoutVersion': 1, 'version': pin, 'target': 'aarch64-apple-darwin',
-            'variant': 'codex', 'entrypoint': 'bin/codex',
-            'resourcesDir': 'codex-resources', 'pathDir': 'codex-path'}
+    except (OSError, UnicodeDecodeError, ValueError) as error:
+        raise ValueError(f'expected package metadata for pin {pin} cannot be obtained: '
+                         f'its committed distribution record is absent or unreadable ({type(error).__name__})') from None
+    metadata = basis.get('package_metadata') if isinstance(basis, dict) else None
+    if not isinstance(metadata, dict) or any(key not in metadata for key in PACKAGE_METADATA_KEYS):
+        raise ValueError(f'expected package metadata for pin {pin} cannot be obtained: '
+                         'its committed distribution record has no complete package metadata')
+    if basis.get('pin') != pin or metadata.get('version') != pin:
+        raise ValueError(f'expected package metadata for pin {pin} cannot be obtained: '
+                         'its committed distribution record names another pin')
+    return dict(metadata)
 
 
 def validate_package_layout(metadata, inventory, pin):
