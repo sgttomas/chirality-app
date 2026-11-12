@@ -262,7 +262,15 @@ fn legacy_and_library_history_remain_in_place_and_opaque() {
         .iter()
         .find(|r| r["package"] == "rec:app:coord:0001")
         .unwrap();
-    assert_eq!(historical["decision"]["lapse"], "unknown (incomparable)");
+    // The legacy import's copy carries only the trust of the project folder it
+    // came from (records_store::IMPORT_STANDING): listed as a claim, deciding nothing.
+    assert!(historical["decision"].is_null());
+    assert_eq!(historical["state"], "pending — awaiting the person's decision");
+    assert_eq!(historical["claims"][0]["act"], "rec:app:coord:0003");
+    assert_eq!(
+        historical["claims"][0]["origin"],
+        "legacy-imported copy of a project file (quoted evidence)"
+    );
 
     let library = ScratchDirectory::new("library-acts");
     let log = storage::library_log(&library);

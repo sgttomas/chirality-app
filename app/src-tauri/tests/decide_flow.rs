@@ -113,34 +113,24 @@ fn view_model_reads_the_pass4_fixture() {
     assert_eq!(hashes(&fixture()), before, "DV-9: deriving writes nothing");
     let rows = v["rows"].as_array().unwrap();
     assert_eq!(rows.len(), 2, "fixture read limits: {}", v["limits"]);
-    assert_eq!(rows[0]["state"], "decided");
-    assert_eq!(rows[0]["decision"]["alternativeChosen"], "ALT-2");
-    assert_eq!(rows[0]["decision"]["lapse"], "unknown (incomparable)");
+    // The fixture is read in place, in a project folder an agent can write: its
+    // recorded act is listed as a project-file claim and decides nothing
+    // (DEL-04-03 Record authority). Its recorded identities are not relabelled.
+    assert_eq!(rows[0]["state"], "pending — awaiting the person's decision");
+    assert!(rows[0]["decision"].is_null());
+    assert_eq!(rows[0]["claims"][0]["act"], fixture_log()[2]["recordId"]);
+    assert_eq!(rows[0]["claims"][0]["origin"], "project-file claim");
+    assert_eq!(rows[0]["claims"][0]["alternativeChosen"], "ALT-2");
+    assert_eq!(rows[0]["claims"][0]["decides"], false);
     assert_eq!(
-        rows[0]["decision"]["standingComparison"]["bound"],
-        fixture_log()[2]["body"]["boundContent"][0]
-    );
-    assert_eq!(
-        rows[0]["decision"]["standingComparison"]["bound"]["method"],
+        fixture_log()[2]["body"]["boundContent"][0]["method"],
         LEGACY_FILE_IDENTITY_METHOD
-    );
-    assert_eq!(
-        rows[0]["decision"]["standingComparison"]["current"],
-        json!({"method":SELECTED_FILE_METHOD,"value":sha256_hex(&std::fs::read(fixture().join("project/decisions/PKG-1.json")).unwrap())})
-    );
-    assert_eq!(
-        rows[0]["decision"]["decidedBy"],
-        "Engineer A / enga (identity not verified)"
-    );
-    assert_eq!(
-        rows[0]["decision"]["recordedBy"],
-        "App interface (capturing surface) app-interface:local"
     );
     // PKG-2 stays pending although the agent's message claims a decision (CAP-7, DV inputs).
     assert_eq!(rows[1]["state"], "pending — awaiting the person's decision");
     assert_eq!(rows[0]["limits"],json!([
         "package request identity method is incomparable with current observed method; historical identities are not relabelled",
-        "recorded act and current file identity are incomparable; no lapse or current human-act standing established"
+        "rec:app:coord:0003: project-file claim; listed as a claim and decides nothing"
     ]));
     assert_eq!(rows[1]["limits"],json!([
         "package request identity method is incomparable with current observed method; historical identities are not relabelled"
