@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 /** What each guide command did, in the person's words. */
 const ACTION_WORDS: Record<string, [string, string]> = {
-  workflow_open_project_library: ["Showed this project's workflows", "show this project's workflows"],
+  workflow_open_project_library: ["Opened this project's workflow library", "show this project's workflows"],
   workflow_library_entries_refresh: ["Looked for other workflows in this library", "look for other workflows in this library"],
   workflow_review_library_entries: ["Opened the review", "open the review"],
   workflow_select_listed: ["Chose the workflow for this conversation", "choose the workflow"],
@@ -38,12 +38,12 @@ const REFUSAL_WORDS: { exact: string; commands: string[]; words: string }[] = [
   { exact: "Workflow source or chat changed; refresh the displayed choice before acting", commands: CHECKED_FIRST, words: "the conversation chosen here is no longer open in this view, so nothing was done. Choose the conversation again, then press the button again." },
 ];
 const refusalWords = (command: string, reply: string): string | undefined => REFUSAL_WORDS.find(row => row.exact === reply && row.commands.includes(command))?.words;
-/** The host's states for a prepared run it did not send, with what a person does next. Each state itself says nothing was sent. */
+/** The host's states for a prepared run it did not send, in plain words. Each state itself says nothing was sent. What to do is the host's own text. */
 const NOT_SENT: Record<string, string> = {
-  "WR pre-send publication failed; nothing sent": "The App couldn't save the run's record. Start the run again; if it fails the same way, the reason is in the App's report below.",
-  "generated supporting files changed or unavailable; nothing sent": "The workflow's supporting files changed or can't be read since you prepared the run. Prepare the run again.",
-  "selected revision source changed or unavailable; nothing sent": "The chosen workflow's stored files changed or can't be read since you prepared the run. Choose the workflow again, then prepare the run again.",
-  "workflow approval changed since preparation; nothing sent": "Your workflow approval setting changed since you prepared the run. Prepare the run again.",
+  "WR pre-send publication failed; nothing sent": "The App couldn't save the run's record.",
+  "generated supporting files changed or unavailable; nothing sent": "The copy of the workflow's supporting files that the App made for this run changed or can't be read.",
+  "selected revision source changed or unavailable; nothing sent": "The chosen workflow's stored files changed or can't be read since you prepared the run.",
+  "workflow approval changed since preparation; nothing sent": "Your workflow approval setting changed since you prepared the run.",
 };
 export type GuideOutcome = { command: string; message: string; failed?: boolean; settled?: boolean };
 /** The last guide action's result without raw host JSON; the exact reply stays under details. */
@@ -57,6 +57,14 @@ export function guideResultWords(outcome: GuideOutcome): { words: string; detail
     if (plain) return { words: `Couldn't ${verb}: ${plain}`, detail: reply, failed: true };
     // A start that failed leaves the run in a state Progress reads; what to do next is said there.
     return { words: `Couldn't ${verb}: ${reply}${outcome.command === "workflow_send_run" ? " — see Progress for what the App knows and what to do next." : ""}`, detail: "", failed: true };
+  }
+  // The included-workflow command also serves reading one with no conversation
+  // (the studio's inspection): the host says which it was in `choiceChat`.
+  if (outcome.command === "workflow_select_production_bundle") {
+    let chat: Json;
+    try { chat = JSON.parse(outcome.message)?.choiceChat; } catch { chat = undefined; }
+    if (chat === null) return { words: "Opened the included workflow to read. Nothing was chosen for a conversation.", detail: outcome.message, failed: false };
+    if (!chat || typeof chat !== "object") return { words: "The App accepted this. The Workflow step shows what is chosen for the conversation.", detail: outcome.message, failed: false };
   }
   return { words: `${done}.`, detail: outcome.message, failed: false };
 }
@@ -124,33 +132,14 @@ export function runReading(run: Json, host: Json): RunReading {
     const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
     if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
-    // Working is read only from what the host established as this
-    // conversation's current live turn (the target it would steer), or from a
-    // conversation status Codex sent. A retained turn that still looks in
-    // progress is not enough: it may be an earlier turn.
-    if (!Array.isArray(host?.conversationTurns)) return { tone: "uncertain", title: "Can't tell whether Codex is still working", detail: "The App has no reading of this conversation's steps right now, so it can't say whether Codex is working. Read the conversation before you reply or end the run." };
-    const turns = list(host?.conversationTurns).filter((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
-    const current = list(host?.steeringTargets).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation))?.target;
-    const currentTurn = current && current.threadId === run.conversation && same(current.generation, host?.generation) ? current : null;
-    if (thread?.status?.type === "active" || currentTurn) return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
-    const latest = turns.filter((row: Json) => Number.isFinite(row.receiptPosition)).sort((a: Json, b: Json) => b.receiptPosition - a.receiptPosition)[0];
-    const ended = latest?.terminalEventObserved === true;
-    if (ended && latest.nativeTurn?.status === "failed") return { tone: "failed", title: "Codex's last step failed", detail: `${latest.nativeTurn.error?.message ? `Codex reported: ${text(latest.nativeTurn.error.message)}. ` : ""}The run is still open; read the conversation, then reply there to continue or end the run.` };
-    if (ended && latest.nativeTurn?.status === "interrupted") return { tone: "idle", title: "Open — Codex's last step was interrupted", detail: "Codex's last step was stopped before it finished. The run is still open; reply in the conversation to continue, or end the run." };
-    // Any turn last seen in progress with no current turn established (its
-    // observation ended, or the host cannot tell which turn is current): the
-    // App did not see it stop.
-    if (turns.some((row: Json) => row.nativeTurn?.status === "inProgress" && row.terminalEventObserved !== true))
-      return { tone: "uncertain", title: "Can't tell whether Codex is still working", detail: "The App didn't see this run's current step end and can't establish that it is still running, so it may still be working. Read the conversation before you reply or end the run." };
+    if (thread?.status?.type === "active") return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
     return { tone: "idle", title: "Open — Codex is not working right now", detail: "The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
   }
-  // Only a prepared run is read as starting, not started or ready; any other state is not one this guide knows.
-  if (!starts(lifecycle, "prepared")) return { tone: "uncertain", title: "Can't tell this run's state", detail: `The App reported a run state this view doesn't know${lifecycle ? ` (${lifecycle})` : ""}. Read the conversation before deciding what to do.` };
   if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
   if (status.sent === false && status.limit) {
-    const next = NOT_SENT[text(status.state)];
-    return { tone: "failed", title: "Not started", detail: `${next ? `Nothing was sent. ${next}` : "The App reports that this run was not sent."} The App reported: ${text(status.state)}: ${text(status.limit)}` };
+    const what = NOT_SENT[text(status.state)];
+    return { tone: "failed", title: "Not started", detail: `${what ? `Nothing was sent. ${what}` : "The App reports that this run was not sent."}${typeof status.retry === "string" && status.retry ? ` What the App says to do: ${status.retry}.` : ""} The App reported: ${text(status.state)}: ${text(status.limit)}` };
   }
   return { tone: "idle", title: "Ready to start", detail: "The run is prepared and has not been sent. Start it when your inputs are ready." };
 }
@@ -180,8 +169,11 @@ function RunResult({ run, host, loaded, showConversation }: { run: Json; host: J
   </li>;
 }
 
-export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation }: {
-  data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean;
+/** Said in a guide whose view did not refresh after the last press: what it shows is from before that press. */
+export const VIEW_NOT_REFRESHED = "The App couldn't refresh this view after your last press, so what it shows is from before that press. Nothing can be started, prepared or ended from here until it refreshes.";
+
+export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation, viewStale = false }: {
+  data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean; viewStale?: boolean;
   text: string; setText: (text: string) => void; outcome?: GuideOutcome | null;
   showConversation?: (threadId: string, target?: string) => void;
 }) {
@@ -197,7 +189,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const projectFolder = appProjectFolder(host);
   // Every host-changing control goes through one guard: never while busy or
   // while the shown workflow source/generation differs from the host's.
-  const canAct = !busy && sourceCurrent;
+  const canAct = !busy && sourceCurrent && !viewStale;
   const perform = (command: string, args: Record<string, unknown>) => { if (canAct) void act(command, args); };
   // After Prepare, land on Start; after Start, on Progress (not on the page).
   const startButton = useRef<HTMLButtonElement>(null);
@@ -259,7 +251,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   // even while the selection's standing admits it (WR §4.6, SL-4).
   const chosenReady = chosen?.runnable === true && !chosen?.currentLimit;
   const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
-  const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
+  const step = viewStale ? VIEW_NOT_REFRESHED
+    : !ready ? "Connect Codex first: open Connection & access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
     : !active ? projectAvailable ? "Show this project's workflows to begin." : "No project folder is set. Choose one in Desktop setup; it applies the next time you open the App."
     : !thread ? conversations.length ? "Choose the conversation that will run the workflow." : "Start a conversation first, then choose it here."
@@ -311,6 +304,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           <ul>{unregistered.map((entry: Json) => <li key={entry.reference}><strong>{text(entry.name)}</strong>{" "}
             <button disabled={!canAct} onClick={() => perform("workflow_review_library_entries", { libraryRef: active.reference, listingRef: listing.reference, entryRefs: [entry.reference] })}>Review {text(entry.name)} for first use…</button></li>)}</ul>
         </div>}
+        {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
         {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}
         {active && <button disabled={!canAct} onClick={() => perform("workflow_library_entries_refresh", { libraryRef: active.reference })}>Look for other workflows in this library</button>}
         {bundled.map((entry: Json) => entry.runnable === true
@@ -327,7 +321,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>Name any files in the project folder that it should use. This text goes with the workflow's own instructions in one starting message.</small></p>
       </li>
       <li aria-labelledby="run-start-heading"><h3 id="run-start-heading">Start</h3>
-        {!prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
+        {viewStale ? <p role="note">Not shown until this view refreshes: whether a run is prepared or has been sent.</p> : !prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
             <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
           <button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || (unresolvedStart && checkedRun !== holdKey)}
           onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
@@ -337,7 +331,9 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>
       <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>
-        {reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
+        {viewStale ? <div ref={progressNode} tabIndex={-1} className="run-journey-state" aria-label="Run progress"><p role="status"><strong>Can't tell.</strong> This view hasn't refreshed since your last press, so the App isn't showing this run's state. Read the conversation for what happened.</p>
+          {thread && <p>{showConversation ? <button onClick={() => showConversation(thread)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}</p>}</div>
+        : reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
           <p role="status"><strong>{reading.title}.</strong> {reading.detail}</p>
           {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p>{showConversation
             ? <button onClick={() => showConversation(latest.conversation, reading.tone === "waiting" ? "conversation-requests" : "conversation")}>{reading.tone === "waiting" ? "Answer in the conversation" : "Show the conversation"}</button>
@@ -349,7 +345,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         </div> : orderUnknown ? <p role="status">This conversation has several runs, and the App can't tell which one is the latest. Each is listed under Results.</p> : <p>No run in this conversation yet.</p>}
       </li>
       <li aria-labelledby="run-results-heading"><h3 id="run-results-heading">Results</h3>
-        {(resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
+        {viewStale && <p role="note">Runs in this conversation are not shown until this view refreshes.</p>}
+        {!viewStale && (resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
           {resultOrder.ordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}
           {resultOrder.unordered.length > 0 && <li><small>{resultOrder.ordered.length ? "These runs' order isn't known:" : resultOrder.unordered.length > 1 ? "The App doesn't know these runs' order:" : ""}</small></li>}
           {resultOrder.unordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}

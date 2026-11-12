@@ -29,7 +29,7 @@ function host(over = {}) {
     currentAppProjectContext:{reference:'/invented/work-project', sourceCaption:'configured App directory', standing:'s'}, currentAppProjectContextLimit:null,
     attachmentSelections:{launchAppProjectObservation:{source:'explicit App launch CHIRALITY_WORKSPACE', nativeRoot:path('/invented/work-project'), associationStanding:'a'}},
     threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'idle'}}],
-    serverRequests:[], conversationTurns:[], ...over}; // the host always reports the turns list, empty when it has seen none
+    serverRequests:[], ...over};
 }
 function data(over = {}) {
   return {context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:'lib:project',
@@ -500,74 +500,78 @@ test('a refused press is said in plain words under Next only where nothing was d
   await ui.close();
 });
 
-test('a prepared run the host did not send says what the host established and the next action for that state', async () => {
-  const unsent = (state, limit) => ({reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false, state, limit}});
-  const ui = await mount({host:host(), data:data({selections:selected(), runs:[unsent('WR pre-send publication failed; nothing sent', 'nothing written: no records store')]}), thread:'T1'});
+test('a prepared run the host did not send says what happened in plain words and then the host\'s own recovery text', async () => {
+  const unsent = (state, limit, retry) => ({reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false, state, limit, ...(retry ? {retry} : {})}});
+  const ui = await mount({host:host(), data:data({selections:selected(), runs:[unsent('WR pre-send publication failed; nothing sent', 'nothing written: no records store', 'Retry publishes the same original records; sending stays a separate once-only step')]}), thread:'T1'});
   const section = region(ui.c, 'Run a workflow');
   assert.match(section.textContent, /Next: The run didn't start\. Progress says why and what to do\./);
-  assert.match(region(ui.c, 'Run progress').textContent, /Not started\. Nothing was sent\. The App couldn't save the run's record\. Start the run again; .* The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store/);
+  assert.equal(region(ui.c, 'Run progress').textContent.split(' Start the run')[0].replace(/^Not started\./, '').trim().startsWith("Nothing was sent. The App couldn't save the run's record. What the App says to do: Retry publishes the same original records; sending stays a separate once-only step. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store"), true);
   assert.ok(button(ui.c, 'Start the run'), 'the prepared run can be started again');
-  for (const [state, next] of [
-    ['generated supporting files changed or unavailable; nothing sent', /supporting files changed or can't be read since you prepared the run\. Prepare the run again\./],
-    ['selected revision source changed or unavailable; nothing sent', /Choose the workflow again, then prepare the run again\./],
-    ['workflow approval changed since preparation; nothing sent', /Your workflow approval setting changed since you prepared the run\. Prepare the run again\./],
+  for (const [state, what] of [
+    ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The copy of the workflow's supporting files that the App made for this run changed or can't be read\./],
+    ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The chosen workflow's stored files changed or can't be read since you prepared the run\./],
+    ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. Your workflow approval setting changed since you prepared the run\./],
   ]) {
-    await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause')]})});
+    await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause', 'invented host recovery text')]})});
     const progress = region(ui.c, 'Run progress').textContent;
-    assert.match(progress, next, state); assert.match(progress, /^Not started\. Nothing was sent\./); assert.doesNotMatch(progress, /Start the run again/, state);
+    assert.match(progress, what, state); assert.match(progress, /What the App says to do: invented host recovery text\. The App reported: /, 'the next action is the host\'s own');
+    assert.doesNotMatch(progress, /Prepare the run again|Start the run again|Choose the workflow again/, 'the guide prescribes nothing the host did not');
   }
   await ui.rerender({data:data({selections:selected(), runs:[unsent('a state the guide does not know', 'invented cause')]})});
   const unknown = region(ui.c, 'Run progress').textContent;
   assert.match(unknown, /^Not started\. The App reports that this run was not sent\. The App reported: a state the guide does not know: invented cause/);
-  assert.doesNotMatch(unknown, /Nothing was sent\.|again/, 'an unknown state is given no next action the host did not establish');
+  assert.doesNotMatch(unknown, /Nothing was sent\.|What the App says to do/, 'an unknown state is given no words the host did not establish');
   await ui.press('Prepare this run again');
-  assert.equal(ui.calls.at(-1).command, 'workflow_prepare_run', 'preparing again is offered where starting again is not the answer');
+  assert.equal(ui.calls.at(-1).command, 'workflow_prepare_run', 'preparing again stays offered; the host accepts it while a prepared run is unsent');
   await ui.close();
 });
 
-// Walk at main 4bb28164 with a run started against an unreachable model: the
-// turn was in progress while the conversation row still read idle, and the
-// guide said "Codex is not working right now". Review of pull request 241:
-// an older turn that still looks in progress must not read as working.
-test('an open run reads as working only from the host\'s current live turn; otherwise failed, interrupted, idle or cannot tell', () => {
-  const run = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
-  const turn = (over, native) => ({threadId:'T1', turnId:'turn-1', generation:g, receiptPosition:1, terminalEventObserved:false, observationEnded:false, nativeTurn:{status:'inProgress', error:null, ...native}, ...over});
-  const current = (threadId = 'T1', generation = g) => [{generation, threadId, target:{generation, threadId, turnId:'turn-1'}}];
-  const none = (reason = 'current live steering target is unavailable or ambiguous; refresh native observations') => [{generation:g, threadId:'T1', target:null, reason}];
-  assert.equal(runReading(run, host({conversationTurns:[turn()], steeringTargets:current()})).tone, 'working', 'the conversation row is idle; the host established its live turn');
-  assert.equal(runReading(run, host({conversationTurns:[turn({threadId:'T2'})], steeringTargets:current('T2')})).tone, 'idle', 'another conversation\'s turn');
-  assert.equal(runReading(run, host({conversationTurns:[turn({generation:{...g, spawnCounter:2}})], steeringTargets:current('T1', {...g, spawnCounter:2})})).tone, 'idle', 'an earlier Codex session\'s turn');
-  assert.equal(runReading(run, host({conversationTurns:[turn({terminalEventObserved:true}, {status:'completed'})], steeringTargets:none()})).tone, 'idle', 'a completed turn is not working, and never completed work');
-  // The reviewer's case: an older row still in progress, a newer turn failed.
-  const olderLive = turn({turnId:'turn-old', receiptPosition:1});
-  const failed = runReading(run, host({conversationTurns:[olderLive, turn({turnId:'turn-new', receiptPosition:2, terminalEventObserved:true}, {status:'failed', error:{message:'invented failure'}})], steeringTargets:none()}));
-  assert.equal(failed.tone, 'failed', 'an older in-progress row never hides a newer failure'); assert.equal(failed.title, "Codex's last step failed");
-  assert.match(failed.detail, /^Codex reported: invented failure\. The run is still open/);
-  assert.equal(runReading(run, host({conversationTurns:[olderLive, turn({turnId:'turn-new', receiptPosition:2, terminalEventObserved:true}, {status:'completed'})], steeringTargets:none()})).tone, 'uncertain', 'the older turn was never seen to end, so the App cannot say Codex stopped');
-  assert.equal(runReading(run, host({conversationTurns:[turn({receiptPosition:2, terminalEventObserved:true}, {status:'completed'}), turn({turnId:'turn-0', receiptPosition:1, terminalEventObserved:true}, {status:'failed'})], steeringTargets:none()})).tone, 'idle', 'only the latest turn');
-  const interrupted = runReading(run, host({conversationTurns:[turn({terminalEventObserved:true}, {status:'interrupted'})], steeringTargets:none()}));
-  assert.equal(interrupted.title, "Open — Codex's last step was interrupted", 'interrupted is its own state'); assert.doesNotMatch(interrupted.detail, /ended the run|complete/);
-  // Not observed is never read as stopped, working or done.
-  for (const view of [{conversationTurns:[turn({observationEnded:true})], steeringTargets:none()}, {conversationTurns:[turn()], steeringTargets:none()}, {conversationTurns:[turn()]}]) {
-    const lost = runReading(run, host(view));
-    assert.equal(lost.tone, 'uncertain'); assert.match(lost.title + lost.detail, /Can't tell whether Codex is still working.*may still be working/);
-    assert.doesNotMatch(lost.title + lost.detail, /not working right now|completed|finished/);
-  }
-  assert.equal(runReading(run, host({conversationTurns:[], steeringTargets:none()})).title, 'Open — Codex is not working right now', 'no turn was ever observed in progress');
-  assert.equal(runReading(run, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}], conversationTurns:[turn()], steeringTargets:current()})).tone, 'waiting', 'a waiting request comes first');
-});
-
-// Review round 1 of pull request 241, the question asked of every state: can
-// something not observed come out as ready, working or done?
-test('a state the guide was not given is never read as ready, idle or done', () => {
-  const run = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
-  const noTurns = runReading(run, {...host(), conversationTurns:undefined});
-  assert.equal(noTurns.tone, 'uncertain', 'no reading of the conversation\'s steps is not "Codex is not working"');
-  for (const lifecycle of [undefined, {}, {state:'a state this view does not know'}]) {
-    const unknown = runReading({conversation:'T1', lifecycle}, host());
-    assert.equal(unknown.tone, 'uncertain', JSON.stringify(lifecycle)); assert.equal(unknown.title, "Can't tell this run's state");
-    assert.doesNotMatch(unknown.title + unknown.detail, /Ready to start|prepared and has not been sent/);
-  }
+// Review rounds 1 and 2 of pull request 241, the question asked of every
+// result: can something not observed, or failed, come out as done?
+test('a result line says only what the command established', () => {
   assert.equal(guideResultWords({command:'workflow_end_and_start', message:'{"start":{"state":"successor not started"}}', failed:false, settled:true}), null, 'an unnamed command\'s reply is never called done');
   assert.equal(guideResultWords({command:'workflow_prepare_run', message:'', failed:false, settled:false}), null, 'a press whose result has not arrived claims nothing');
+  const bundle = message => guideResultWords({command:'workflow_select_production_bundle', message, failed:false, settled:true}).words;
+  assert.equal(bundle('{"state":"selected","choiceChat":{"sourceRef":"src","threadId":"T1"}}'), 'Chose the included workflow for this conversation.');
+  assert.equal(bundle('{"state":"selected","choiceChat":null}'), 'Opened the included workflow to read. Nothing was chosen for a conversation.', 'the studio\'s inspection with no conversation is not a choice');
+  for (const reply of ['{"state":"selected"}', 'not json', '']) assert.equal(bundle(reply), 'The App accepted this. The Workflow step shows what is chosen for the conversation.', `a reply that does not say which: ${reply}`);
+  assert.equal(guideResultWords({command:'workflow_open_project_library', message:'{}', failed:false, settled:true}).words, "Opened this project's workflow library.", 'opening the library is not having listed it');
+});
+
+// Review round 2: after a start that succeeded, a view refresh that failed
+// left "Ready to start", "Nothing has been sent yet" and Start enabled again.
+test('a view that did not refresh after the last press makes no claim from its cached run and offers no start, prepare or end', async () => {
+  const preparedRun = {reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{}};
+  const view = {host:host(), data:data({selections:selected(), runs:[preparedRun]}), thread:'T1', outcome:{command:'workflow_send_run', message:'{"state":"native workflow-text turn observed; run opened"}', failed:false, settled:true}};
+  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
+  const render = viewStale => React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:view.host, thread:'T1', busy:false, text:'', viewStale,
+    chooseThread:() => {}, setText:() => {}, act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome})));
+  await render(false);
+  assert.ok(button(c, 'Start the run'), 'the cached view alone offers Start');
+  await render(true);
+  const section = region(c, 'Run a workflow');
+  assert.match(section.textContent, /Next: The App couldn't refresh this view after your last press, so what it shows is from before that press\./);
+  assert.doesNotMatch(section.textContent, /Ready to start|has not been sent|Nothing has been sent yet|Prepared resolve-spacing/, 'no claim from the cached run');
+  assert.match(region(c, 'Run progress').textContent, /^Can't tell\. This view hasn't refreshed since your last press/);
+  assert.equal(button(c, 'Start the run'), undefined); assert.equal(button(c, 'Prepare this run'), undefined);
+  for (const node of all(section, 'button')) if (!/Show the conversation/.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is not offered`);
+  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested; see Progress for what happened\./, 'the press\'s own result stays');
+  const open = {...preparedRun, source:'s', lifecycle:{state:OPEN}};
+  view.data = data({selections:selected(), runs:[open]});
+  await render(true);
+  assert.equal(button(c, 'End this run'), undefined, 'an open run in a stale view offers no end');
+  assert.match(section.textContent, /Runs in this conversation are not shown until this view refreshes\./);
+  await render(false);
+  assert.ok(button(c, 'End this run'), 'a refreshed view shows the run again');
+  assert.deepEqual(calls, []);
+  await React.act(async () => root.unmount());
+});
+
+test('a library folder the App could not list is said where the list would be', async () => {
+  const base = data().libraries[0];
+  const unavailable = {...base, entryListing:{state:'unavailable', reference:'listing-2', libraryRef:'lib:project', entries:[], limits:['library entry folder unreadable: invented cause']}};
+  const ui = await mount({thread:'T1', host:host(), data:data({libraries:[unavailable]})});
+  assert.match(region(ui.c, 'Run a workflow').textContent, /The App couldn't look in this library's folder for other workflows: library entry folder unreadable: invented cause/);
+  assert.equal(region(ui.c, 'Workflows that need a first review'), undefined);
+  await ui.close();
 });

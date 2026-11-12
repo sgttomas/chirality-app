@@ -3,7 +3,7 @@ import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { cleanTrialAnchor } from "./TrialComposer";
-import { GuideResult, type GuideOutcome } from "./RunJourney";
+import { GuideResult, VIEW_NOT_REFRESHED, type GuideOutcome } from "./RunJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackDoubtsFor, bringBackHeld, bringBackSendBlock, doubtDestination, endBringBack, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -218,8 +218,8 @@ function nextFor(draft: Json): { words: string; href: string; link: string } {
  * `workflow_observe_drafts`; trial, review and registration stay in the
  * existing draft list and review, where only the person's act registers.
  */
-export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation, findInHistory, outcome }: {
-  data: Json; host: Json; act: Act; busy: boolean; outcome?: GuideOutcome | null; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
+export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation, findInHistory, outcome, viewStale = false }: {
+  data: Json; host: Json; act: Act; busy: boolean; outcome?: GuideOutcome | null; viewStale?: boolean; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
   showConversation?: (threadId: string, target?: string) => void; findInHistory?: (hint: string) => void;
 }) {
   // Continue <draft> moves the person to its current step once it is shown,
@@ -245,7 +245,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   const [name, setName] = useState("");
   const sourceCurrent = !!data?.context?.sourceRef && host?.workflowRoot?.context?.sourceRef === data.context.sourceRef && same(data.context.generation, host?.generation);
   const ready = host?.state === "ready" && host?.generationClosed !== true;
-  const canAct = !busy && sourceCurrent;
+  const canAct = !busy && sourceCurrent && !viewStale;
   const conversations = list(host?.threads).filter((row: Json) => same(row.generation, host?.generation));
   const chosen = conversations.find((row: Json) => JSON.stringify([row.generation, row.threadId]) === conversation);
   const active = list(data?.libraries).find((library: Json) => library.reference === data?.activeLibrary);
@@ -256,7 +256,8 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   const existingDraft = drafts.find((draft: Json) => draft.name === trimmed);
   const registeredSame = list(active?.registered).some((row: Json) => row.name === trimmed);
   const unfinished = drafts.filter((draft: Json) => draft.state !== "registered, unchanged since" && draft.state !== "removed");
-  const blocked = !ready ? "Connect Codex first: open Connection & access and start Codex."
+  const blocked = viewStale ? VIEW_NOT_REFRESHED
+    : !ready ? "Connect Codex first: open Connection & access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
     : !active ? data?.projectLibraryAvailable === true ? "Show this project's workflows so the draft has a place to go, and to see unfinished drafts." : "Open a workflow library in the workflow studio below, or choose a project in Desktop setup."
     : !chosen ? conversations.length ? "Choose the conversation where you did the work." : "Do the work in a conversation first, then choose it here."
@@ -310,6 +311,8 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       </li>
       <li><h3>Find, try and register it</h3>
         <button disabled={!canAct || !active} onClick={() => { if (canAct && active) void act("workflow_observe_drafts", {}); }}>Look for drafts in this library</button>
+        {typeof data?.drafts?.limit === "string" && data.drafts.limit && <p role="note">The App couldn't read this library's drafts: {data.drafts.limit}</p>}
+        {viewStale && <p role="note">Draft states below are from before your last press.</p>}
         {existingDraft && step ? (() => { const next = step; return <div className="run-journey-state" aria-label="Draft status">
           <p ref={draftStatus} tabIndex={-1} role="status" aria-label="Draft state"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}
