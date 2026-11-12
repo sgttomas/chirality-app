@@ -21,29 +21,55 @@ who produced the package, and it shows no human act.
 
 Outcomes. The output always makes two separate statements, "Package bytes:" and
 "Log integrity:", and neither stands for the other.
-  exit status 0  the package bytes are consistent and no chain is broken (or
-                 the package carries no chained log, which is said as such).
+  exit status 0  the package bytes are consistent, no chain is broken and no
+                 line was set aside (or the package carries no chained log,
+                 which is said as such).
   exit status 2  the package bytes are consistent, and the integrity of a log is
                  limited: the package records that its chain was already broken
                  (or could not be read) in the store at export, and the lines
-                 agree; or the package's legacy profile records no head for a
-                 log, so its chain was not checked. Each such log and line is
-                 named. The package is not refused, and its logs are not whole.
-                 A log that was not checked is never counted as unbroken.
+                 agree; or the App set a line aside as invalid; or a recorded
+                 head could not be compared with the lines (a role supply log
+                 the App refused for a reason this verifier cannot see, or a
+                 legacy profile that records no head for a log). Each such log
+                 and line is named. The package is not refused, and its logs
+                 are not whole. A log that was not checked is never counted as
+                 unbroken, and a head that was not compared is never counted as
+                 agreeing.
   exit status 1  failed: something disagrees. A member, a checksum, an
                  inventory, or a chain that does not match what the package
                  records for it, in either direction.
 
-How lines are read. Each line is read as the App reads it: the same JSON
-(no lone surrogates, no number out of range, nesting no deeper than the App
-allows), the top level of the record format (its required members, the group
-rules), and a line the App would set aside as invalid is counted without its
-link being examined, as the App does. This verifier carries no record schema, so
-it cannot see a fault deeper in a record than that. For a line that has every
-top-level member and is invalid for a deeper reason, it examines a link the App
-does not: it can then report a broken chain, and fail a faithfully exported
-package, where the App reports an invalid line. It cannot tell that case from an
-altered line. The App can: verify or import the package through the App.
+The chain-head tag, records-chain-heads.json. It lists, for each chained log
+of the payload, the head the App's reader found: the SHA-256 of the log's last
+counted line, the number of lines counted, whether lines carry links, how many
+lines written before chaining began carry none, and each place the chain was
+broken. Profile 0.3 (formatVersion "0.3") adds the reader's account of the
+log's lines, so that this verifier follows the chain exactly as the App did:
+  setAside  the numbers (from 1) of the lines the App counted in the chain
+            without reading them as records, because it found them unreadable
+            or invalid. Such a line's bytes are in the chain: the line after
+            it links to them. Its own link is not examined.
+  torn      the numbers of the torn lines the App closed and set aside after an
+            interrupted write. Such a line is not counted; the line after it
+            names its exact length and SHA-256 and is itself in the chain.
+For a role supply log the App could not take, profile 0.3 also records the
+line and the kind of the fault that stopped it.
+
+What the account can and cannot do. A line the account lists as set aside
+always turns the result from clean to limited, and is named. A line the
+account does not list must be readable and must link, or its break must be the
+one the package records; otherwise verification fails. So the account can only
+add stated limits and never remove a failure. The package is unsigned: someone
+who rewrites a log, its account and the manifests together is not detected.
+
+Packages of profile 0.1 or 0.2 carry no account. For those this verifier reads
+each line as nearly as it can as the App's reader does (the same JSON, the top
+level of the record format, the group rules) and it cannot see a fault deeper
+in a record than that: for a line whole at its top level and invalid deeper, it
+examines a link the App does not, and can fail a faithfully exported package
+there. It says so when it fails on a chain of such a package; verifying or
+importing the package through the App settles it. No release exported those
+profiles.
 """
 import hashlib
 import json
@@ -89,7 +115,8 @@ HEX64 = re.compile(r"[0-9a-f]{64}\Z")
 # The App's JSON reader (serde_json) refuses nesting deeper than this.
 MAX_DEPTH = 127
 NOT_JSON, MISSING = object(), object()
-CANNOT_TELL = ("This verifier reads each record only as far as the top level of the record format. If the App set this "
+CANNOT_TELL = ("This package is of a chain-head profile that carries no account of its lines (0.1 or 0.2). "
+               "This verifier reads each record only as far as the top level of the record format. If the App set this "
                "line aside as invalid for a deeper reason, the App does not examine the line's link, and this package may be "
                "a faithful export: this verifier cannot tell that from an altered line, and the App can. Verify or import "
                "the package through the App to settle it.")
@@ -233,11 +260,19 @@ def parsed(raw):
             return any(lone_surrogate(key) or lone_surrogate(item) for key, item in value.items())
         return False
 
+    def members(pairs):
+        # Every member is examined before a repeated key keeps its last value:
+        # the App's reader refuses a lone surrogate wherever it stands.
+        if any(lone_surrogate(key) or lone_surrogate(item) for key, item in pairs):
+            raise ValueError("lone surrogate")
+        return dict(pairs)
+
     try:
         text = raw.decode("utf-8")
         if text.count("[") + text.count("{") > MAX_DEPTH and too_deep(text):
             return NOT_JSON
-        value = json.loads(text, parse_constant=refuse, parse_int=whole, parse_float=real)
+        value = json.loads(text, parse_constant=refuse, parse_int=whole, parse_float=real,
+                           object_pairs_hook=members if "\\u" in text else None)
     except (UnicodeError, ValueError, RecursionError):
         return NOT_JSON
     return NOT_JSON if "\\u" in text and lone_surrogate(value) else value
@@ -426,33 +461,117 @@ def record_chain(data):
     return chain, broken, unexamined, torn
 
 
+def account_chain(log, data, set_aside, torn):
+    """A record log's chain followed by the package's own account of it (profile
+    0.3): a line the account lists as set aside is counted and its link not
+    examined; a torn line it lists is not counted, and the line after it must
+    name it exactly; every other line must be readable JSON and is examined.
+    Returns the chain and every break as (line, reason)."""
+    chain, broken = Chain(), []
+    lines = data.split(b"\n")
+    lines.pop()  # the unclosed final part: a partial, never a line of the chain
+    for listed in sorted(set_aside | torn):
+        if listed > len(lines):
+            raise ChainDisagreement(f"{log}: the package's account names line {listed}, and the log has {len(lines)} complete lines")
+    for index, raw in enumerate(lines):
+        no = index + 1
+        if no in torn:
+            # The App's reader takes the naming from the complete line after,
+            # whatever it then makes of that line itself (it may set it aside
+            # too): either way that line's bytes are held by the chain or by
+            # the line after it in turn.
+            following = parsed(lines[index + 1]) if index + 1 < len(lines) else NOT_JSON
+            body = member(following, "body")
+            if (member(following, "kind") != "evidence_limit" or member(body, "label") != PARTIAL
+                    or member(body, "subjectRef") != f"line {no}; {len(raw)} bytes; sha256 {hashlib.sha256(raw).hexdigest()}"):
+                raise ChainDisagreement(f"{log}: the package's account lists line {no} as a torn line the App closed, "
+                                        "and the line after it does not name it by its exact length and SHA-256")
+            continue
+        if no in set_aside:
+            chain.count(raw)
+            continue
+        if all(byte in WHITESPACE for byte in raw):
+            continue
+        entry = decoded(raw[:-1] if raw.endswith(b"\r") else raw)
+        if entry is None:
+            raise ChainDisagreement(f"{log}: line {no} is not a readable record, and the package's account does not list it as set aside")
+        why = chain.step(raw, entry["prevLine"] if "prevLine" in entry else MISSING)
+        if why:
+            broken.append((no, why))
+    return chain, broken
+
+
+def listed_lines(log, head, name):
+    """One list of the account: line numbers from 1, ascending, each once."""
+    lines = head.get(name)
+    if not isinstance(lines, list) or any(type(no) is not int or no < 1 for no in lines) or lines != sorted(set(lines)):
+        raise ChainDisagreement(f"{log}: the package's account of its lines ({name}) is missing or malformed")
+    return set(lines)
+
+
+ROLE_KINDS = ("torn final line", "unreadable line", "invalid observation", "duplicate observation identity", "sequence", "chain")
+
+
 def role_chain(data):
     """The role supply log's chain as far as this verifier can read it
     (role_observations.rs, read_lines): every line whole, JSON, with a distinct
     observation identity, in sequence and linked. Returns the chain and the
-    first fault as (line, reason), or None. The App also validates each
-    observation's format, which this verifier cannot."""
+    first fault as (line, kind), or None; the kinds are the App's (ROLE_KINDS).
+    The App also validates each observation's format, which this verifier
+    cannot: a fault of that kind is one it does not see."""
     chain, seen = Chain(), set()
     lines = data.split(b"\n")
-    if lines.pop() != b"":
-        return chain, (len(lines) + 1, "a torn final line")
-    for index, raw in enumerate(lines):
+    # The App's reader takes the lines in order, so it meets an unclosed final
+    # part only after every complete line before it passed.
+    unclosed = lines.pop() != b""
+    for index, raw in enumerate(lines + ([None] if unclosed else [])):
+        if raw is None:
+            return chain, (index + 1, "torn final line")
         row = parsed(raw)
         if row is NOT_JSON:
-            return chain, (index + 1, "it is not readable JSON")
+            return chain, (index + 1, "unreadable line")
         if not (member(row, "format") == "chirality.role.supply" and member(row, "formatVersion") == "0.2"):
             identity, seq = member(row, "observationId"), member(row, "seq")
             if not isinstance(identity, str):
-                return chain, (index + 1, "it names no observation identity")
+                return chain, (index + 1, "invalid observation")
             if identity in seen:
-                return chain, (index + 1, "its observation identity occurs twice")
+                return chain, (index + 1, "duplicate observation identity")
             seen.add(identity)
             if type(seq) is not int or seq != chain.lines + 1:
-                return chain, (index + 1, "its sequence differs from its place in the log")
-        why = chain.step(raw, row["prevLine"] if isinstance(row, dict) and "prevLine" in row else MISSING)
-        if why:
-            return chain, (index + 1, f"chain broken: {why}")
+                return chain, (index + 1, "sequence")
+        if chain.step(raw, row["prevLine"] if isinstance(row, dict) and "prevLine" in row else MISSING):
+            return chain, (index + 1, "chain")
     return chain, None
+
+
+def unread_role_log(log, head, chain, fault):
+    """A role supply log the package records the App could not take. Returns
+    (limit, compared): the integrity limit to report, and whether the recorded
+    refusal was compared with the lines and agrees. Fails where the lines
+    contradict the recorded refusal. The recorded state alone is never taken
+    as agreement."""
+    said = f"({head['state']}: {head.get('error')})"
+    if fault is None and chain.lines == 0:
+        raise ChainDisagreement(f"{log}: the package records that the App could not read this log {said}, but the log is empty, which the App reads")
+    line, kind = head.get("line"), head.get("kind")
+    carried = "its lines are carried as they stood and no chain head is established for it"
+    if type(line) is not int or kind not in ROLE_KINDS:
+        # No line and kind recorded (an earlier profile, or a refusal of the
+        # file and not of a line): nothing here can be compared.
+        return (f"{log}: the package records that the App could not read this log's chain when it was exported {said}; "
+                "it does not record where, so this verifier cannot compare that with the lines; " + carried), False
+    if fault is not None and fault[0] < line:
+        raise ChainDisagreement(f"{log}: the package records the App's reader stopping at line {line} ({kind}), "
+                                f"but line {fault[0]} already has a fault it stops at: {fault[1]}")
+    if fault is not None and fault[0] == line and fault[1] == kind:
+        return (f"{log}: the App could not read this log's chain when it was exported: line {line}, {kind} {said}; "
+                "this verifier finds the same fault at the same line; " + carried), True
+    if kind == "invalid observation":
+        # The App validates each observation's format; this verifier cannot.
+        return (f"{log}: the package records that the App refused this log at line {line} as an invalid observation {said}; "
+                "this verifier does not hold the observation format and cannot compare that with the lines; " + carried), False
+    found = "no fault it can see" if fault is None else f"line {fault[0]}: {fault[1]}"
+    raise ChainDisagreement(f"{log}: the package records the App's reader stopping at line {line} ({kind}), and this verifier finds {found}")
 
 
 def compare_head(log, name, head, chain, broken):
@@ -501,7 +620,7 @@ def chains(root, payload):
     if heads is None or heads.get("format") != "chirality.records-export-chain-heads" or heads.get("method") != METHOD:
         raise ValueError("unsupported chain-head tag")
     profile = heads.get("formatVersion")
-    if profile not in ("0.1", "0.2"):
+    if profile not in ("0.1", "0.2", "0.3"):
         raise ValueError("unsupported chain-head tag profile")
     recorded = {}
     for item in heads.get("logs") if isinstance(heads.get("logs"), list) else [None]:
@@ -511,7 +630,7 @@ def chains(root, payload):
             raise ValueError(f"{item['log']}: chain head recorded twice")
         recorded[item["log"]] = item["chain"]
     names = {path[len("data/"):]: checksum for path, checksum in payload.items()}
-    expected = chain_logs(names, profile == "0.2")
+    expected = chain_logs(names, profile != "0.1")
     for log in expected:
         if log not in recorded:
             raise ValueError(f"{log}: payload log has no recorded chain head")
@@ -520,7 +639,7 @@ def chains(root, payload):
             raise ValueError(f"{log}: recorded chain head names no payload log")
         if log not in expected:
             raise ValueError(f"{log}: recorded chain head for a file that is not a chained log")
-    notes, limited, limited_logs, recomputed = [], [], set(), 0
+    notes, limited, limited_logs, recomputed, not_compared = [], [], set(), 0, []
     for log in expected:
         head = recorded[log]
         data = read_bytes(root / "data" / log)
@@ -529,40 +648,43 @@ def chains(root, payload):
         if log == ROLE_LOG:
             chain, fault = role_chain(data)
             if "state" in head:
-                # No head: the App could not read this log's chain at export, and
-                # its own verification reads the copy the same way. The recorded
-                # state alone is not evidence: the lines are read here too.
-                if fault is None and chain.lines == 0:
-                    raise ChainDisagreement(f"{log}: the package records that the App could not read this log "
-                                            f"({head['state']}: {head.get('error')}), but the log is empty, which the App reads")
-                limited.append(f"{log}: the package records that the App could not read this log's chain when it was exported "
-                               f"({head['state']}: {head.get('error')}); " + (
-                                   f"this verifier finds a fault at line {fault[0]}: {fault[1]}" if fault is not None else
-                                   "this verifier finds no fault in what it can check, and cannot check each observation's format") +
-                               "; its lines are carried as they stood and no chain head is established for it")
+                limit, compared = unread_role_log(log, head, chain, fault)
+                limited.append(limit)
                 limited_logs.add(log)
+                if not compared:
+                    not_compared.append(log)
                 continue
             if fault is not None:
                 raise ChainDisagreement(f"{log}: line {fault[0]}: {fault[1]}; the package records a whole chain for this log")
+            if profile == "0.3" and (listed_lines(log, head, "setAside") or listed_lines(log, head, "torn")):
+                raise ChainDisagreement(f"{log}: the package's account sets lines of this log aside, and the App takes this log whole or not at all")
             compare_head(log, "role supply observations", head, chain, [])
             recomputed += 1
+            notes.append(f"{log}: its chain is compared; this verifier does not hold the observation format, so it does not check "
+                         "that each observation is one the App accepts")
         else:
             if "state" in head:
                 # A record log's copy is readable here, so a recorded "unreadable" disagrees.
                 raise ChainDisagreement(f"{log}: recorded at export as {head['state']}: {head.get('error')}")
-            chain, broken, unexamined, torn = record_chain(data)
+            if profile == "0.3":
+                unexamined, torn = sorted(listed_lines(log, head, "setAside")), sorted(listed_lines(log, head, "torn"))
+                if set(unexamined) & set(torn):
+                    raise ChainDisagreement(f"{log}: the package's account lists a line both as set aside and as torn")
+                chain, broken = account_chain(log, data, set(unexamined), set(torn))
+            else:
+                chain, broken, unexamined, torn = record_chain(data)
             compare_head(log, PurePosixPath(log).name, head, chain, broken)
             recomputed += 1
             limited.extend(f"{log}: chain broken at line {no}: {why}; the package records it broken there when exported"
                            for no, why in broken)
-            if broken:
+            # A line set aside is a limit, never part of a clean result.
+            limited.extend(f"{log}: line {no} was set aside by the App as invalid: it is not read as a record, and its own link is not examined"
+                           for no in unexamined)
+            if broken or unexamined:
                 limited_logs.add(log)
-            notes.extend(f"{log}: line {no} is a torn line the App closed and set aside; it is not a chain link" for no in torn)
-            if unexamined:
-                shown_lines = ", ".join(str(no) for no in unexamined[:10]) + (f" and {len(unexamined) - 10} more" if len(unexamined) > 10 else "")
-                notes.append(f"{log}: {len(unexamined)} line{'' if len(unexamined) == 1 else 's'} (line {shown_lines}) "
-                             f"{'is not a record' if len(unexamined) == 1 else 'are not records'} this verifier or the App reads; "
-                             "counted in the chain, and the link of such a line is not examined")
+            notes.extend(f"{log}: line {no} is a torn line the App closed and set aside after an interrupted write. It is not a limit: "
+                         "the line after it names its exact length and SHA-256 and is itself "
+                         + ("a torn line that the line after it names in turn" if no + 1 in torn else "in the chain") for no in torn)
         if chain.unchained:
             notes.append(f"{log}: unchained (legacy): {chain.unchained} lines before the chain starts carry no link"
                          if chain.linked else f"{log}: unchained (legacy): no line carries a chain link")
@@ -571,8 +693,9 @@ def chains(root, payload):
         # an integrity limit, never part of "no chain is broken".
         limited.append(f"{ROLE_LOG}: this package's legacy chain-head profile (0.1) records no head for this log, so its chain was not checked")
         limited_logs.add(ROLE_LOG)
+        not_compared.append(ROLE_LOG)
     return {"profile": profile, "logs": len(expected), "recomputed": recomputed, "limited": limited,
-            "limitedLogs": len(limited_logs), "notes": notes}
+            "limitedLogs": len(limited_logs), "notCompared": not_compared, "notes": notes}
 
 
 def verify(root):
@@ -590,7 +713,13 @@ def verify(root):
     file_names={name for name, metadata in all_files.items() if stat.S_ISREG(metadata[2])}
     if file_names != set(payload) | tags | {"tagmanifest-sha256.txt"}:
         raise ValueError("package inventory differs from manifests")
-    report = chains(root, payload)
+    try:
+        report = chains(root, payload)
+    except ChainDisagreement as error:
+        # Which profile the package is in decides what a chain failure can mean.
+        heads = decoded(read_bytes(root / HEADS))
+        error.profile = heads.get("formatVersion") if heads is not None else None
+        raise
     if members(root) != all_files:
         raise ValueError("package changed during verification")
     return len(payload), "records-administration.json" in tags, report
@@ -601,25 +730,31 @@ LIMITED = 2  # exit status: bytes consistent, and a log's integrity is limited
 
 def report_lines(count, administration, report):
     """What a person is told for a package that agrees with what it records.
-    Two statements, never one: whether the bytes agree with the manifests and
-    recorded heads, and whether any log's own integrity is limited."""
+    Separate statements, never one: whether the bytes agree with the manifests;
+    which recorded heads were compared with the lines; and whether any log's
+    own integrity is limited."""
     logs, recomputed, limited, notes = report["logs"], report["recomputed"], report["limited"], report["notes"]
-    chains = f"{recomputed} log chain{'' if recomputed == 1 else 's'}" if recomputed == logs else f"{recomputed} of {logs} log chains"
-    lines = [f"Package bytes: consistent. {count} payload files and the export tags agree with the manifests, "
-             f"and {chains} recomputed from the payload {'ends' if recomputed == 1 and recomputed == logs else 'end'} at the head this package records."]
-    if limited:
+    not_compared = report["notCompared"]
+    lines = [f"Package bytes: consistent. {count} payload files and the export tags agree with the manifests."]
+    if logs or not_compared:
+        lines.append(f"Recorded chain heads: {recomputed} of {logs} compared with the lines, and each agrees." + (
+            f" NOT COMPARED: {', '.join(not_compared)}. This verifier cannot establish that such a log is the one "
+            "the package describes; the App can. Each is named under log integrity." if not_compared else ""))
+    if limited or not_compared:
+        # A head that was not compared is never a clean result, whatever else was found.
         faults, among = len(limited), report["limitedLogs"]
-        lines.append(f"Log integrity: LIMITED. {faults} fault{'' if faults == 1 else 's'} in {among} log{'' if among == 1 else 's'}. "
+        lines.append(f"Log integrity: LIMITED. {faults} limit{'' if faults == 1 else 's'} in {among} log{'' if among == 1 else 's'}. "
                      "The store's own records were already limited there when this package was exported, and the package carries them as they stood:")
         lines.extend(f"  Integrity limit: {limit}" for limit in limited)
         lines.append("  A broken chain is reported and never repaired. Consistent bytes do not make these logs whole.")
-        lines.append(f"Result: package bytes consistent; log integrity limited (exit status {LIMITED}).")
+        lines.append(f"Result: package bytes consistent; log integrity limited"
+                     f"{'; ' + str(len(not_compared)) + ' recorded head' + ('' if len(not_compared) == 1 else 's') + ' not compared' if not_compared else ''} (exit status {LIMITED}).")
     elif logs == 0:
         # Nothing examined is said as nothing examined, not as a clean result.
         lines.append("Log integrity: nothing to check. This package carries no chained log.")
         lines.append("Result: package bytes consistent; no chained log in the package (exit status 0).")
     else:
-        lines.append("Log integrity: no chain is broken. Every link this verifier examined names the line before it." + (
+        lines.append("Log integrity: no chain is broken and no line was set aside. Every link this verifier examined names the line before it." + (
             f" {len(notes)} note{'' if len(notes) == 1 else 's'} below name{'s' if len(notes) == 1 else ''} what that does not cover." if notes else ""))
         lines.append("Result: package bytes consistent; no chain is broken" + ("; see the notes" if notes else "") + " (exit status 0).")
     lines.extend(f"Note: {note}" for note in notes)
@@ -635,10 +770,12 @@ if __name__ == "__main__":
     try:
         count, administration, report = verify(Path(sys.argv[1]))
     except ChainDisagreement as error:
-        print(f"Result: failed (exit status 1). Verification failed: {error}\n{CANNOT_TELL}", file=sys.stderr)
+        print(f"Result: failed (exit status 1). Verification failed: {error}", file=sys.stderr)
+        if getattr(error, "profile", None) in ("0.1", "0.2"):
+            print(CANNOT_TELL, file=sys.stderr)
         sys.exit(1)
     except (OSError, ValueError, IndexError, UnicodeError) as error:
         print(f"Result: failed (exit status 1). Verification failed: {error}", file=sys.stderr)
         sys.exit(1)
     print("\n".join(report_lines(count, administration, report)))
-    sys.exit(LIMITED if report["limited"] else 0)
+    sys.exit(LIMITED if report["limited"] or report["notCompared"] else 0)

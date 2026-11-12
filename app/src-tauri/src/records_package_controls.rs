@@ -626,21 +626,35 @@ pub(crate) fn prepare(
         deferred,
     })
 }
-/// What each package whose payload this recovery finishes publishing states
-/// about its logs' own integrity, by import.
+/// What is known of each recovered import's package and its logs' own
+/// integrity, by import: the package's statement where this recovery reads
+/// the package again to finish publishing its payload, and "not stated" where
+/// it repairs controls only and does not read the package. Never omitted.
 fn resumed_integrity(plan: &ControlPlan) -> Vec<(String, Value)> {
-    plan.work.iter().filter_map(|work| match &work.kind {
-        WorkKind::Resume(source) => Some((work.entry.intent.id.clone(), source.snapshot.log_integrity().clone())),
-        WorkKind::Controls => None,
-    }).collect()
+    plan.work.iter().map(|work| (work.entry.intent.id.clone(), match &work.kind {
+        WorkKind::Resume(source) => source.snapshot.log_integrity().clone(),
+        WorkKind::Controls => json!({"state":"not stated"}),
+    })).collect()
+}
+/// The sentence for one recovered import, or None where its package states
+/// no chain recorded broken.
+fn integrity_sentence(id: &str, found: &Value, summary: bool) -> Option<String> {
+    if found["state"] == "not stated" {
+        return Some(format!("Import {id}: Log integrity: NOT STATED. This recovery repairs the import's controls and does not read its package again, so it does not say whether any of its logs was limited; the records store's own report of the project's logs does."));
+    }
+    let said = if summary { crate::records_export::integrity_summary(found) } else { crate::records_export::integrity_statement(found) };
+    said.map(|limit| format!("Import {id}: {limit}"))
 }
 /// The recovery's result with those statements: its `state` and `standing`
-/// read alone never pass a limited log as clean.
+/// read alone never pass a limited or unstated log as clean.
 fn with_integrity(mut out: Value, resumed: Vec<(String, Value)>) -> Value {
-    let limits: Vec<String> = resumed.iter().filter_map(|(id, found)| crate::records_export::integrity_statement(found).map(|limit| format!("Import {id}: {limit}"))).collect();
+    let limits: Vec<String> = resumed.iter().filter_map(|(id, found)| integrity_sentence(id, found, false)).collect();
+    let limited = resumed.iter().any(|(_, found)| found["state"] == crate::records_export::LIMITED);
+    let unstated = resumed.iter().any(|(_, found)| found["state"] == "not stated");
     out["logIntegrity"] = json!(resumed.into_iter().map(|(id, found)| json!({"importId":id,"logIntegrity":found})).collect::<Vec<_>>());
-    if !limits.is_empty() {
-        out["state"] = json!(format!("{}; log integrity limited", out["state"].as_str().unwrap_or("package controls recovered")));
+    if limited || unstated {
+        out["state"] = json!(format!("{}; log integrity {}", out["state"].as_str().unwrap_or("package controls recovered"),
+            match (limited, unstated) { (true, true) => "limited, and not stated for a controls-only repair", (true, false) => "limited", _ => "not stated" }));
         out["standing"] = json!(format!("{STANDING} {}", limits.join(" ")));
     }
     out
@@ -652,13 +666,13 @@ pub(crate) fn statement(
         "packageIdentity":work.entry.intent.package_identity,"missingJournalReference":work.entry.missing_entry,
         "missingReceipt":work.entry.missing_receipt,"missingCompletion":work.entry.done.is_none(),
         "finishOriginalPayload":matches!(work.kind,WorkKind::Resume(_)),"originalActor":work.entry.intent.actor,
-        "logIntegrity":match &work.kind { WorkKind::Resume(source) => source.snapshot.log_integrity().clone(), WorkKind::Controls => Value::Null },
+        "logIntegrity":match &work.kind { WorkKind::Resume(source) => source.snapshot.log_integrity().clone(), WorkKind::Controls => json!({"state":"not stated"}) },
         "review":work.context})).collect();
     // A payload this recovery finishes publishing may carry a log whose
     // integrity is limited: said here as its own statement, per package.
     let limited = resumed_integrity(plan);
-    let integrity: Vec<String> = limited.iter().filter_map(|(id, found)| crate::records_export::integrity_statement(found).map(|limit| format!("Import {id}: {limit}"))).collect();
-    let summary: Vec<String> = limited.iter().filter_map(|(id, found)| crate::records_export::integrity_summary(found).map(|limit| format!("Import {id}: {limit}"))).collect();
+    let integrity: Vec<String> = limited.iter().filter_map(|(id, found)| integrity_sentence(id, found, false)).collect();
+    let summary: Vec<String> = limited.iter().filter_map(|(id, found)| integrity_sentence(id, found, true)).collect();
     let full = format!("Recover the derived controls of {} original package import(s)?\n\nProject folder: {}\n\nEach surviving original native intent remains unchanged. This repairs its missing derived controls or finishes only its original frozen payload publications. It performs no new import act, restores no actor or native custody, preserves later local append-only records and valid newer retention history, and replaces no unequal file.\n\nDeferred original operations (still fenced; finish separately): {}\n\n{}\n\nActor for this recovery (identity not verified): {}",
         plan.work.len(),plan.root.display(),if plan.deferred.is_empty(){"none".into()}else{plan.deferred.join(", ")},STANDING,crate::act_control::native_statement::actor_line(&plan.actor));
     let full = if integrity.is_empty() { full } else { format!("{full}\n\n{}", integrity.join("\n\n")) };

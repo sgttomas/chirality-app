@@ -166,7 +166,7 @@ fn package_import_of_a_store_with_a_broken_chain_is_not_refused_and_reports_the_
     let standalone = std::process::Command::new("python3").arg(bag.join("verify.py")).arg(&bag).output().unwrap();
     assert_eq!(standalone.status.code(), Some(2), "{}", String::from_utf8_lossy(&standalone.stderr));
     let stdout = String::from_utf8_lossy(&standalone.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 fault in 1 log."), "{stdout}");
+    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 limit in 1 log."), "{stdout}");
     assert!(stdout.contains(&format!("Integrity limit: {rel}: chain broken at line 2")), "{stdout}");
     // Import is not refused: the person is told before deciding, as its own
     // statement, and in the result.

@@ -317,8 +317,15 @@ impl RoleLog {
         let mut identities = std::collections::BTreeSet::new();
         let mut chain = record_lines::Chain::default();
         let mut raw = vec![];
+        // Where and why a refusal arose, for an export's account of a log
+        // this reader could not take (chain-head profile 0.3).
+        FAULT.with(|f| f.set(None));
+        let at = |line: usize, kind: &'static str| FAULT.with(|f| f.set(Some((line, kind))));
         loop {
             raw.clear();
+            // A refusal for the read itself or for the budget is of the
+            // file, not of a line: the mark of the line before does not stand.
+            FAULT.with(|f| f.set(None));
             if reader
                 .read_until(b'\n', &mut raw)
                 .map_err(|e| e.to_string())?
@@ -331,13 +338,16 @@ impl RoleLog {
                 return Err(METADATA_BUDGET.into());
             }
             if raw.pop() != Some(b'\n') {
+                at(chain.lines + 1, "torn final line");
                 return Err(
                     "role observation log has a torn final line; nothing inferred or appended"
                         .into(),
                 );
             }
+            at(chain.lines + 1, "unreadable line");
             let row: Value = serde_json::from_slice(&raw)
                 .map_err(|e| format!("unreadable role observation line: {e}"))?;
+            at(chain.lines + 1, "invalid observation");
             if row["format"] == "chirality.role.supply" && row["formatVersion"] == "0.2" {
                 // Retain older exact evidence without promoting its numeric generation.
                 static LEGACY: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
@@ -370,15 +380,20 @@ impl RoleLog {
                         .ok_or("observation identity absent")?
                         .to_owned(),
                 ) {
+                    at(chain.lines + 1, "duplicate observation identity");
                     return Err("duplicate role observation identity in log".into());
                 }
                 if row["seq"].as_u64() != Some(chain.lines as u64 + 1) {
+                    at(chain.lines + 1, "sequence");
                     return Err("role observation sequence differs from source order".into());
                 }
             }
+            at(chain.lines + 1, "chain");
             chain.step(chain.lines + 1, &raw, row.get("prevLine"))?;
             rows.push(row);
         }
+        // Past the lines: a later refusal is of the file, not of a line.
+        FAULT.with(|f| f.set(None));
         let after = file.metadata().map_err(|e| e.to_string())?;
         if (
             before.len(),
@@ -889,6 +904,32 @@ impl RoleLog {
     }
 }
 
+thread_local! {
+    /// The line and kind of the refusal `read_lines_bounded` last returned on
+    /// this thread, when it was of a line.
+    static FAULT: std::cell::Cell<Option<(usize, &'static str)>> = const { std::cell::Cell::new(None) };
+}
+/// `copied_chain_head` with the reader's account, as an export package of
+/// chain-head profile 0.3 records it. This reader takes a role supply log
+/// whole or not at all, so a log it took has no line set aside and none torn
+/// (`setAside` and `torn` are empty); a log it refused records the line and
+/// kind of the fault that stopped it, when the refusal was of a line: "torn
+/// final line", "unreadable line", "invalid observation", "duplicate
+/// observation identity", "sequence" or "chain".
+pub(crate) fn copied_chain_account(path: &Path) -> Value {
+    FAULT.with(|f| f.set(None));
+    let mut head = copied_chain_head(path);
+    if head.get("state").is_some() {
+        if let Some((line, kind)) = FAULT.with(|f| f.get()) {
+            head["line"] = json!(line);
+            head["kind"] = json!(kind);
+        }
+    } else {
+        head["setAside"] = json!([]);
+        head["torn"] = json!([]);
+    }
+    head
+}
 /// Export copies and the person's on-demand head view use this format's
 /// schema/chain reader; these observations are never parsed as R1 records.
 pub(crate) fn copied_chain_head(path: &Path) -> Value {

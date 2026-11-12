@@ -476,3 +476,34 @@ fn an_rs_writer_waiting_behind_an_import_that_did_not_complete_writes_nothing() 
     assert_eq!(std::fs::read(&log).unwrap(), before, "nothing written");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+#[test]
+fn a_logs_account_names_each_line_the_reader_set_aside_and_each_torn_line_it_closed() {
+    let root = folder("chain-account-");
+    let log = log_in(&root);
+    records::append(&log, "evidence_limit", &APP_WRITER, body("first")).unwrap();
+    let first = raw_lines(&log).remove(0);
+    // Line 2 is torn, and line 3 names it exactly but is not itself a record
+    // the reader takes: the reader still takes the naming from it. Line 4 is
+    // blank, line 5 is not JSON, and line 6 is a record linked to line 5.
+    let torn = b"{\"torn".to_vec();
+    let naming = serde_json::to_vec(&json!({"kind":"evidence_limit","unknownMember":true,
+        "body":{"label":records::PARTIAL_NOT_RECOVERED,"subjectRef":records::torn_line_ref(2, &torn)}})).unwrap();
+    let junk = b"not json".to_vec();
+    let mut last = records::envelope("evidence_limit", &APP_WRITER, body("last"), crate::util::opaque_id("rec:app:").unwrap(), 2, None, None);
+    last["prevLine"] = json!({"method":LINE_METHOD,"value":line_identity(&junk)});
+    let last = serde_json::to_vec(&last).unwrap();
+    assert!(is_valid_line(&last) && !is_valid_line(&naming));
+    write_lines(&log, &[first, torn, naming, b" \t".to_vec(), junk, last.clone()]);
+    let account = chain_account(&log);
+    assert_eq!(account["setAside"], json!([3, 5]), "{account}");
+    assert_eq!(account["torn"], json!([2]), "{account}");
+    assert_eq!((account["lines"].as_u64(), account["head"].as_str(), account["broken"].as_array().unwrap().len()), (Some(4), Some(line_identity(&last).as_str()), 0), "{account}");
+    // The account adds to the head; it changes nothing the head records.
+    let head = chain_head(&log);
+    for (name, value) in head.as_object().unwrap() {
+        assert_eq!(&account[name], value, "{name}");
+    }
+    assert_eq!(account.as_object().unwrap().len(), head.as_object().unwrap().len() + 2);
+    let _ = std::fs::remove_dir_all(&root);
+}

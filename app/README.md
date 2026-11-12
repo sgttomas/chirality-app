@@ -1337,25 +1337,45 @@ broken is not refused: its bytes are consistent, and the log's integrity is
 limited at the line the package records, which is said with the log and line
 each time and stays reported by the store's reader after import. A chain that
 does not match what the package records for it, in either direction, fails.
-`verify.py` ends with exit status 0 when the bytes are consistent and no chain
-is broken, 2 when the bytes are consistent and a log's integrity is limited,
-and 1 when anything disagrees; its output leads with "Package bytes:" and "Log
-integrity:". What was not checked or not stated is never counted as unbroken:
+`verify.py` ends with exit status 0 when the bytes are consistent, no chain is
+broken and no line was set aside, 2 when the bytes are consistent and a log's
+integrity is limited or a recorded head could not be compared with the lines,
+and 1 when anything disagrees; its output leads with "Package bytes:",
+"Recorded chain heads:" and "Log integrity:". What was not checked or not stated is never counted as unbroken:
 a log a legacy package records no head for is an integrity limit, a package
 with no chained log says there was nothing to check, and lines written before
-chaining began are named as outside what the chain shows. It reads each line as the App's reader does: the same JSON, the top level
-of the record format (kept equal to `schemas/RS_RECORD.schema.json` by its
-test), the group rules, and a line the App sets aside as unreadable or
-invalid is counted without its link being examined. It then compares every
-recorded fact of a head with the lines, including the detail of each recorded
-break. It carries no record schema, so one case remains: for a line that has
-the whole top level of a record and is invalid deeper (in its body), it
-examines a link the App does not, and can fail a faithfully exported package
-there. It cannot tell that case from an altered line and says so when it
-fails on a chain; **Verify an exported package** or importing through the App
-settles it (LIM-007). The role supply log's observations are likewise checked
-only for what needs no schema: whole lines, JSON, distinct identities,
-sequence and links. Disposal may rely on an export
+chaining began are named as outside what the chain shows. The chain-head tag `records-chain-heads.json` is written in profile 0.3
+(`formatVersion` "0.3"; a package format addition decided by App Agent 0,
+2026-11-12). Each log's head, as before, records the SHA-256 of its last
+counted line, the lines counted, whether lines carry links, the lines written
+before chaining began, and each place the chain was broken. Profile 0.3 adds
+the reader's account of the log's lines: `setAside`, the numbers (from 1) of
+the lines the App counted in the chain without reading them as records,
+because it found them unreadable or invalid (such a line's bytes are in the
+chain, and its own link is not examined); and `torn`, the numbers of the torn
+lines the App closed and set aside after an interrupted write (not counted;
+the line after each names its exact length and SHA-256 and is itself in the
+chain). For a role supply log the App could not take, it records the `line`
+and `kind` of the fault that stopped it. Nothing else in a package changed.
+`verify.py` follows that account, so it reads a log's chain exactly as the
+App did without holding the record schema. The property the account has: a
+line it lists as set aside always turns the result from clean to limited and
+is named, by `verify.py` and by the App; a line it does not list must be
+readable and must link, or its break must be the one the package records, or
+verification fails. So the account can only add stated limits and never
+remove a failure. The package is unsigned: someone who rewrites a log, its
+account and the manifests together is not detected (LIM-007). The App reads
+packages of profiles 0.1 and 0.2 as before, and reports a line it sets aside
+as a limit for a package of any profile, since it recomputes the account from
+the payload. `verify.py` reads those two profiles by working out for itself,
+as nearly as it can without the schema, which lines the App set aside; for
+them alone it can fail a faithful package at a line whole at its top level
+and invalid deeper, and says so when it fails. No release exported them. A
+role supply log's observations are checked by `verify.py` only for what
+needs no schema (whole lines, JSON, distinct identities, sequence and links),
+which its output says; where the package records that the App refused such a
+log, the refusal is compared with the lines where it can be, and is reported
+as "not compared" where it cannot, never as agreement. Disposal may rely on an export
 that carries a limited log: the native disposal question says so as its own
 statement, and the disposal act records it in its `export` member as
 `logIntegrity` (state "no chain recorded broken" or "limited", with each log

@@ -297,6 +297,39 @@ pub(crate) fn chain_head(path: &std::path::Path) -> Value {
         "signedCheckpoints":"not written: they wait for App signing (OI-011)"})
 }
 
+/// A log's chain head with the reader's account of its lines, as an export
+/// package of chain-head profile 0.3 records it: `setAside`, the lines the
+/// reader counted in the chain without reading them as records (unreadable or
+/// invalid; such a line's own link is not examined), and `torn`, the torn
+/// lines the App closed and set aside (not counted; the line after each names
+/// its exact length and SHA-256). Line numbers are from 1. With the account a
+/// reader that holds no record schema can follow the chain exactly as this
+/// reader did.
+pub(crate) fn chain_account(path: &std::path::Path) -> Value {
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let bytes = match std::fs::read(path) {
+        Ok(b) => b,
+        Err(e) => return json!({"state":"unreadable","error":e.to_string()}),
+    };
+    let mut limits: Vec<String> = Vec::new();
+    // (line, lines counted before it, read as no entry, torn)
+    let mut seen: Vec<(usize, usize, bool, bool)> = Vec::new();
+    let parsed = parse_with(&bytes, &name, 0, 0, 1, Chain::default(), &mut |l| {
+        seen.push((l.no, l.chain_before.lines, l.entries.is_empty(), !l.notes.is_empty()));
+        limits.extend(l.limits.into_iter().filter(|m| m.contains("chain broken")));
+    });
+    let (mut set_aside, mut torn) = (Vec::new(), Vec::new());
+    for (index, (no, before, unread, is_torn)) in seen.iter().enumerate() {
+        // Counted: the chain's line count advanced over this line.
+        let after = seen.get(index + 1).map_or(parsed.chain.lines, |next| next.1);
+        if *is_torn { torn.push(*no); } else if *unread && after == before + 1 { set_aside.push(*no); }
+    }
+    json!({"method":LINE_METHOD,"head":parsed.chain.last,"lines":parsed.chain.lines,"linked":parsed.chain.linked,
+        "unchained":parsed.chain.unchained,"unchainedLimit":parsed.chain.unchained_note(&name),"broken":limits,
+        "setAside":set_aside,"torn":torn,
+        "signedCheckpoints":"not written: they wait for App signing (OI-011)"})
+}
+
 #[cfg(test)]
 #[path = "record_lines_tests.rs"]
 mod tests;

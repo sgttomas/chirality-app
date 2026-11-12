@@ -78,12 +78,42 @@ fn manifest(folder: &Path, paths: impl Iterator<Item = String>) -> Result<Vec<u8
     for path in paths { out.push_str(&format!("{}  {}\n", digest(&folder.join(&path))?, encode(&path))); }
     Ok(out.into_bytes())
 }
-fn heads_profile(folder: &Path, paths: impl Iterator<Item = String>, roles: bool) -> Value {
-    let logs: Vec<Value> = paths.filter(|p| p.ends_with(".jsonl") && (p.starts_with("runs/") || p.starts_with("acts/") || p == crate::records_store::REGISTERED_COPY || (roles && p == crate::role_observations::RELATIVE_LOG)))
-        .map(|path| {let chain=if path==crate::role_observations::RELATIVE_LOG{crate::role_observations::copied_chain_head(&folder.join(&path))}else{crate::record_lines::chain_head(&folder.join(&path))};json!({"log":path,"chain":chain})}).collect();
-    json!({"format":"chirality.records-export-chain-heads","formatVersion":if roles{"0.2"}else{"0.1"},"method":crate::record_lines::LINE_METHOD,"logs":logs})
+/// The chain-head tag's profiles. 0.1 recorded a head for each record log;
+/// 0.2 added the role supply log's; 0.3 (written by this build) adds to each
+/// log's head the reader's account of its lines, `setAside` and `torn`
+/// (`record_lines::chain_account`), and to a role supply log the reader could
+/// not take, the `line` and `kind` of its fault. Earlier profiles are read.
+#[derive(Clone, Copy, PartialEq)]
+enum Profile { V01, V02, V03 }
+impl Profile {
+    fn version(self) -> &'static str { match self { Profile::V01 => "0.1", Profile::V02 => "0.2", Profile::V03 => "0.3" } }
+    fn of(version: Option<&str>) -> Result<Self, String> {
+        match version { Some("0.1") => Ok(Profile::V01), Some("0.2") => Ok(Profile::V02), Some("0.3") => Ok(Profile::V03), _ => Err("unsupported chain-head tag profile".into()) }
+    }
+    fn describes(self) -> &'static str {
+        match self {
+            Profile::V01 => "0.1: legacy RS-only heads; role supply log heads unestablished",
+            Profile::V02 => "0.2: RS and role supply log heads",
+            Profile::V03 => "0.3: RS and role supply log heads, with the reader's account of each log's lines",
+        }
+    }
 }
-fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_profile(folder,paths,true) }
+fn heads_profile(folder: &Path, paths: impl Iterator<Item = String>, profile: Profile) -> Value {
+    let (roles, account) = (profile != Profile::V01, profile == Profile::V03);
+    let logs: Vec<Value> = paths.filter(|p| p.ends_with(".jsonl") && (p.starts_with("runs/") || p.starts_with("acts/") || p == crate::records_store::REGISTERED_COPY || (roles && p == crate::role_observations::RELATIVE_LOG)))
+        .map(|path| {
+            let file = folder.join(&path);
+            let chain = match (path == crate::role_observations::RELATIVE_LOG, account) {
+                (true, true) => crate::role_observations::copied_chain_account(&file),
+                (true, false) => crate::role_observations::copied_chain_head(&file),
+                (false, true) => crate::record_lines::chain_account(&file),
+                (false, false) => crate::record_lines::chain_head(&file),
+            };
+            json!({"log":path,"chain":chain})
+        }).collect();
+    json!({"format":"chirality.records-export-chain-heads","formatVersion":profile.version(),"method":crate::record_lines::LINE_METHOD,"logs":logs})
+}
+fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_profile(folder,paths,Profile::V03) }
 fn publish(from: &Path, to: &Path) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
@@ -199,21 +229,29 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     inventory.insert("tagmanifest-sha256.txt".into());
     if file_inventory.into_keys().collect::<BTreeSet<_>>() != inventory { return Err("package inventory differs from manifests".into()); }
     let expected: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
-    let role_heads=match expected["formatVersion"].as_str(){Some("0.1")=>false,Some("0.2")=>true,_=>return Err("unsupported chain-head tag profile".into())};
-    let observed = heads_profile(&folder.join("data"), actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned()),role_heads);
+    let profile=Profile::of(expected["formatVersion"].as_str())?;
+    let role_heads=profile!=Profile::V01;
+    let names=||actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned());
+    let observed = heads_profile(&folder.join("data"), names(), profile);
     if observed != expected { return Err("copied log chain heads differ from export manifest".into()); }
+    // What the reader finds in the payload now, with its account of each
+    // log's lines, whatever profile the package was written in: a line set
+    // aside is an integrity limit for a package of any profile.
+    let found = if profile==Profile::V03 { observed } else { heads_profile(&folder.join("data"), names(), Profile::V03) };
     // Two statements, never one: the bytes agree with the manifests and the
     // recorded heads; and, separately, whether a log's own integrity is
     // limited. A chain already broken in the store at export is carried as
     // it stood: the package is not refused, and its log is not whole.
-    let integrity = log_integrity(&expected, !role_heads && actual.contains(&format!("data/{}", crate::role_observations::RELATIVE_LOG)));
+    let integrity = log_integrity(&found, !role_heads && actual.contains(&format!("data/{}", crate::role_observations::RELATIVE_LOG)));
     let limited = integrity["state"] == LIMITED;
     Ok(json!({"state":if limited {"package bytes consistent; log integrity limited"} else {"package bytes consistent; no chain recorded broken"},
         "packageBytes":"consistent with the manifests and the recorded chain heads","logIntegrity":integrity,
-        "files":payload.len(),"administration":administration,"chainHeadProfile":if role_heads{"0.2: RS and role supply log heads"}else{"0.1: legacy RS-only heads; role supply log heads unestablished"},"signing":"unsigned; no origin or human act authenticated"}))
+        "files":payload.len(),"administration":administration,"chainHeadProfile":profile.describes(),"signing":"unsigned; no origin or human act authenticated"}))
 }
 /// The two states a build that states log integrity writes.
 pub(crate) const LIMITED: &str = "limited";
+/// What is said of a line the reader set aside, after its log and line.
+const SET_ASIDE: &str = " was set aside by the App as invalid: it is not read as a record, and its own link is not examined";
 pub(crate) const WHOLE: &str = "no chain recorded broken";
 /// What a package's chain-head tag records about its logs' own integrity,
 /// apart from whether the package's bytes are consistent: each chain the
@@ -229,7 +267,8 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
             let log = item["log"].as_str().unwrap_or("a log the tag does not name");
             let chain = &item["chain"];
             if let Some(state) = chain["state"].as_str() {
-                limits.push(format!("{log}: chain not read at export ({state}: {})", chain["error"].as_str().unwrap_or("no cause recorded")));
+                limits.push(format!("{log}: chain not read at export ({state}: {}){}", chain["error"].as_str().unwrap_or("no cause recorded"),
+                    match (chain["line"].as_u64(), chain["kind"].as_str()) { (Some(line), Some(kind)) => format!("; the fault is at line {line}: {kind}"), _ => String::new() }));
             } else if let Some(broken) = chain["broken"].as_array() {
                 limits.extend(broken.iter().map(|limit| match limit.as_str() {
                     Some(limit) => { let at = limit.find("chain broken").unwrap_or(0); format!("{log}: {}", &limit[at..]) }
@@ -238,6 +277,8 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
             } else {
                 limits.push(format!("{log}: the package does not state whether this chain was broken at export"));
             }
+            // A line the reader set aside is a limit, never part of a clean result.
+            limits.extend(chain["setAside"].as_array().into_iter().flatten().map(|line| format!("{log}: line {line}{SET_ASIDE}")));
         },
     }
     if role_log_without_head {
@@ -249,10 +290,14 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
 /// before the member existed does not state it: that reads as "not stated",
 /// never as no chain recorded broken.
 pub(crate) fn stored_log_integrity(export: &Value) -> Value {
-    match export.get("logIntegrity") {
-        Some(v) if v["state"] == WHOLE || (v["state"] == LIMITED && v["limits"].is_array()) => v.clone(),
-        _ => json!({"state":"not stated"}),
-    }
+    // Only the two forms this build writes are read, whole: the clean state
+    // with nothing else, or the limited state with at least one limit, each
+    // a text. Anything else, malformed or self-contradictory, is not stated.
+    let Some(members) = export.get("logIntegrity").and_then(Value::as_object) else { return json!({"state":"not stated"}) };
+    let whole = members.len() == 1 && members.get("state").is_some_and(|s| s == WHOLE);
+    let limited = members.len() == 2 && members.get("state").is_some_and(|s| s == LIMITED)
+        && members.get("limits").and_then(Value::as_array).is_some_and(|limits| !limits.is_empty() && limits.iter().all(|l| l.as_str().is_some_and(|t| !t.is_empty())));
+    if whole || limited { Value::Object(members.clone()) } else { json!({"state":"not stated"}) }
 }
 /// The sentence a person is shown where a package they are verifying,
 /// importing or relying on carries a log whose integrity is limited; `None`
@@ -290,10 +335,20 @@ fn summary_item(limit: &str) -> String {
         let count = log.chars().count();
         if count <= 44 { log.to_owned() } else { format!("…{}", log.chars().skip(count - 40).collect::<String>()) }
     };
-    match limit.find(MARK) {
+    // The break's own text follows the log's path, and a path may itself
+    // hold these words: the last occurrence is the break's (the App's break
+    // text never contains them).
+    match limit.rfind(MARK) {
         Some(at) => {
             let line: String = limit[at + MARK.len()..].chars().take_while(char::is_ascii_digit).collect();
             format!("{} is broken at line {line}", short(&limit[..at]))
+        }
+        // A line set aside: its log and its whole line number, taken from the
+        // end of the limit for the same reason.
+        None if limit.ends_with(SET_ASIDE) && limit[..limit.len() - SET_ASIDE.len()].rfind(": line ").is_some() => {
+            let named = &limit[..limit.len() - SET_ASIDE.len()];
+            let at = named.rfind(": line ").unwrap_or(0);
+            format!("{}: line {} was set aside by the App as invalid", short(&named[..at]), &named[at + ": line ".len()..])
         }
         None => {
             let (log, what) = limit.split_once(": ").unwrap_or(("a log", limit));
@@ -305,12 +360,12 @@ fn summary_item(limit: &str) -> String {
 /// has verified (`verify`).
 pub(crate) fn package_log_integrity(folder: &Path) -> Result<Value, String> {
     let heads: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
-    let role_log = match std::fs::symlink_metadata(folder.join("data").join(crate::role_observations::RELATIVE_LOG)) {
-        Ok(_) => true,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
-        Err(e) => return Err(format!("package role supply log unavailable: {e}")),
-    };
-    Ok(log_integrity(&heads, role_log && heads["formatVersion"] != "0.2"))
+    let profile = Profile::of(heads["formatVersion"].as_str())?;
+    let data = folder.join("data");
+    let names: Vec<String> = files(&data, false)?.into_keys().collect();
+    let role_log = names.iter().any(|name| name == crate::role_observations::RELATIVE_LOG);
+    // Read from the payload, with the reader's account, for any profile.
+    Ok(log_integrity(&heads_profile(&data, names.into_iter(), Profile::V03), role_log && profile == Profile::V01))
 }
 #[cfg(test)]
 thread_local! {
@@ -561,6 +616,15 @@ pub(crate) fn dispose_members(
     remove_empty_tree(stage)?;
     crate::storage::sync_dir(source.parent().ok_or("project source has no parent")?)?;
     crate::storage::sync_dir(stage.parent().ok_or("staging has no parent")?)
+}
+/// Rewrites a package's chain-head tag in an earlier profile, as a build of
+/// that profile exported it, and its tag manifest with it.
+#[cfg(test)]
+pub(crate) fn reprofile_as_for_test(folder:&Path,version:&str){
+    let paths=files(&folder.join("data"),false).unwrap().into_keys().collect::<Vec<_>>();
+    std::fs::write(folder.join(HEADS),serde_json::to_vec_pretty(&heads_profile(&folder.join("data"),paths.into_iter(),Profile::of(Some(version)).unwrap())).unwrap()).unwrap();
+    let tags:Vec<String>=TAGS.iter().filter(|p|folder.join(p).exists()).map(|p|p.to_string()).collect();
+    std::fs::write(folder.join("tagmanifest-sha256.txt"),manifest(folder,tags.into_iter()).unwrap()).unwrap();
 }
 #[cfg(test)]
 pub(crate) fn reprofile_for_test(folder:&Path){

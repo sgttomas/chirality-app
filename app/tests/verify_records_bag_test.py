@@ -47,7 +47,7 @@ class VerifyBagTest(unittest.TestCase):
         self.write_manifest("manifest-sha256.txt", payload)
         self.write_manifest("tagmanifest-sha256.txt", verifier.TAGS)
 
-    def write_heads(self, version="0.2", **chains):
+    def write_heads(self, version="0.3", **chains):
         """Records `chains` (log: chain) as the export would, then seals."""
         heads = {"format": "chirality.records-export-chain-heads", "formatVersion": version,
                  "method": verifier.METHOD, "logs": [{"log": log, "chain": chain} for log, chain in sorted(chains.items())]}
@@ -59,7 +59,7 @@ class VerifyBagTest(unittest.TestCase):
         return subprocess.run([sys.executable, str(self.root / "verify.py"), str(self.root)], capture_output=True, text=True)
 
     def test_valid_package_and_legacy_history_limit(self):
-        self.assertEqual(verifier.verify(self.root), (1, False, {"profile": "0.2", "logs": 0, "recomputed": 0, "limited": [], "limitedLogs": 0, "notes": []}))
+        self.assertEqual(verifier.verify(self.root), (1, False, {"profile": "0.3", "logs": 0, "recomputed": 0, "limited": [], "limitedLogs": 0, "notCompared": [], "notes": []}))
         whole = self.run_verifier()
         self.assertEqual(whole.returncode, 0, whole.stderr)
         self.assertTrue(whole.stdout.startswith("Package bytes: consistent."), whole.stdout)
@@ -75,6 +75,23 @@ class VerifyBagTest(unittest.TestCase):
         # The verifier carries no schema; what it does carry must equal it.
         schema = json.loads((SOURCE.parent.parent / "src-tauri/schemas/RS_RECORD.schema.json").read_text(encoding="utf-8"))["$defs"]
         entry, group, link = schema["entry"], schema["groupLine"], schema["chainLink"]
+        # The whole structure the verifier mirrors, so that no change at the
+        # top level of the format can pass here unnoticed.
+        self.assertEqual(set(entry), {"type", "required", "additionalProperties", "properties", "anyOf", "oneOf"})
+        self.assertEqual(entry["type"], "object")
+        for name in ("recordId", "corrects"):
+            self.assertEqual(entry["properties"][name], {"$ref": "#/$defs/recordId"})
+        self.assertEqual(entry["properties"]["runId"], {"$ref": "#/$defs/runId"})
+        self.assertEqual(entry["properties"]["prevLine"], {"$ref": "#/$defs/chainLink"})
+        # Below the top level the format is a body by kind, which is not carried here.
+        for choice in entry["oneOf"]:
+            self.assertEqual(set(choice), {"properties"})
+            self.assertEqual(set(choice["properties"]), {"kind", "body"})
+            self.assertIn(choice["properties"]["kind"]["const"], verifier.KINDS)
+        self.assertEqual({choice["properties"]["kind"]["const"] for choice in entry["oneOf"]}, set(verifier.KINDS))
+        self.assertEqual(set(group), {"description", "type", "required", "additionalProperties", "properties"})
+        self.assertEqual(group["type"], "object")
+        self.assertEqual(group["properties"]["prevLine"], {"$ref": "#/$defs/chainLink"})
         self.assertEqual(list(verifier.ENTRY_REQUIRED), entry["required"])
         self.assertEqual(verifier.ENTRY_MEMBERS, set(entry["properties"]))
         self.assertIs(entry["additionalProperties"], False)
@@ -105,42 +122,88 @@ class VerifyBagTest(unittest.TestCase):
         self.assertEqual(group["properties"]["groupId"], {"type": "string", "pattern": "^grp:"})
         self.assertEqual(group["properties"]["entries"], {"type": "array", "minItems": 2, "items": {"allOf": [{"$ref": "#/$defs/entry"}, {"not": {"required": ["prevLine"]}}]}})
 
-    def test_role_log_chain_is_recomputed_in_profile_0_2_and_left_as_a_limit_in_0_1(self):
+    def test_role_log_chain_is_compared_and_a_log_the_app_refused_is_never_taken_on_trust(self):
         lines = linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 2, "observationId": "obs:two"}])
+        whole = head(lines, "role supply observations")
         self.write_log(ROLE, lines)
-        self.write_heads(**{ROLE: head(lines, "role supply observations")})
-        self.assertEqual(verifier.verify(self.root)[2]["recomputed"], 1)
+        self.write_heads(**{ROLE: whole})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual((report["recomputed"], report["limited"], report["notCompared"]), (1, [], []))
+        # What this verifier does not check of a role log is said, not left out.
+        self.assertIn("does not check that each observation is one the App accepts", report["notes"][0])
         # A fault the App's reader refuses the whole log for disagrees with a recorded whole chain.
-        for fault, says in ((linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 2, "observationId": "obs:one"}]), "occurs twice"),
-                            (linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 3, "observationId": "obs:two"}]), "sequence differs"),
-                            (lines + b"not json\n", "not readable JSON"), (lines + b'{"seq": 3', "a torn final line")):
-            self.write_log(ROLE, fault)
-            self.write_heads(**{ROLE: head(lines, "role supply observations")})
-            with self.assertRaisesRegex(verifier.ChainDisagreement, says):
-                verifier.verify(self.root)
+        faults = {"duplicate observation identity": linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 2, "observationId": "obs:one"}]),
+                  "sequence": linked([{"seq": 1, "observationId": "obs:one"}, {"seq": 3, "observationId": "obs:two"}]),
+                  "unreadable line": lines + b"not json\n", "torn final line": lines + b'{"seq": 3'}
+        for kind, data in faults.items():
+            with self.subTest(kind=kind):
+                self.write_log(ROLE, data)
+                self.write_heads(**{ROLE: whole})
+                with self.assertRaisesRegex(verifier.ChainDisagreement, kind):
+                    verifier.verify(self.root)
+        # The App takes this log whole or not at all: an account cannot set its lines aside.
         self.write_log(ROLE, lines)
+        self.write_heads(**{ROLE: dict(whole, setAside=[2])})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "takes this log whole or not at all"):
+            verifier.verify(self.root)
         self.write_heads()
         with self.assertRaisesRegex(ValueError, "observations.jsonl: payload log has no recorded chain head"):
             verifier.verify(self.root)
-        # A role log the App could not read at export is carried as a limit, as
-        # the App's own verification accepts it; the recorded state alone is
-        # not evidence, so the lines are read here too.
-        unreadable = {"state": "unreadable or invalid role supply chain", "error": "invented"}
-        self.write_heads(**{ROLE: unreadable})
-        report = verifier.verify(self.root)[2]
-        self.assertEqual((len(report["limited"]), report["limitedLogs"], report["recomputed"], report["logs"]), (1, 1, 0, 1))
-        self.assertIn("could not read this log's chain when it was exported", report["limited"][0])
-        self.assertIn("this verifier finds no fault in what it can check, and cannot check each observation's format", report["limited"][0])
-        unread = self.run_verifier()
-        self.assertEqual(unread.returncode, 2, unread.stderr)
-        self.assertIn("and 0 of 1 log chains recomputed", unread.stdout)
-        self.assertIn("\nLog integrity: LIMITED. 1 fault in 1 log.", unread.stdout)
+
+        # A log the App could not take at export. The recorded refusal names
+        # its line and kind (profile 0.3), and the lines are read here too.
+        def refused(line, kind):
+            return {"state": "unreadable or invalid role supply chain", "error": "invented", "line": line, "kind": kind}
         self.write_log(ROLE, lines + b"not json\n")
-        self.write_heads(**{ROLE: unreadable})
-        self.assertIn("this verifier finds a fault at line 3: it is not readable JSON", verifier.verify(self.root)[2]["limited"][0])
-        # An empty log is one the App reads: a recorded "could not read" disagrees.
+        self.write_heads(**{ROLE: refused(3, "unreadable line")})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual((len(report["limited"]), report["limitedLogs"], report["recomputed"], report["notCompared"]), (1, 1, 0, []))
+        self.assertIn("this verifier finds the same fault at the same line", report["limited"][0])
+        same = self.run_verifier()
+        self.assertEqual(same.returncode, 2, same.stderr)
+        self.assertIn("\nRecorded chain heads: 0 of 1 compared with the lines, and each agrees.\n", same.stdout)
+        self.assertIn("\nLog integrity: LIMITED. 1 limit in 1 log.", same.stdout)
+        # The App's reader takes the lines in order: an unclosed end after the
+        # line it stopped at is not what it stopped for.
+        self.write_log(ROLE, lines + b"not json\n" + b'{"unclosed')
+        self.write_heads(**{ROLE: refused(3, "unreadable line")})
+        self.assertIn("this verifier finds the same fault at the same line", verifier.verify(self.root)[2]["limited"][0])
+        self.write_heads(**{ROLE: refused(4, "torn final line")})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "line 3 already has a fault"):
+            verifier.verify(self.root)
+        self.write_log(ROLE, lines + b"not json\n")
+        self.write_heads(**{ROLE: refused(3, "unreadable line")})
+        # The lines contradict the recorded refusal: another kind of fault at
+        # that line, an earlier fault, or no fault where one of a kind this
+        # verifier sees was recorded (the log swapped for a readable one).
+        self.write_heads(**{ROLE: refused(3, "sequence")})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "stopping at line 3 .sequence., and this verifier finds line 3: unreadable line"):
+            verifier.verify(self.root)
+        self.write_heads(**{ROLE: refused(5, "unreadable line")})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "line 3 already has a fault"):
+            verifier.verify(self.root)
+        self.write_log(ROLE, lines)
+        self.write_heads(**{ROLE: refused(3, "unreadable line")})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "this verifier finds no fault it can see"):
+            verifier.verify(self.root)
+        # A refusal for the observation's format is one this verifier cannot
+        # compare: said as not compared, never as agreement.
+        self.write_heads(**{ROLE: refused(2, "invalid observation")})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual(report["notCompared"], [ROLE])
+        self.assertIn("does not hold the observation format and cannot compare that with the lines", report["limited"][0])
+        unsure = self.run_verifier()
+        self.assertEqual(unsure.returncode, 2, unsure.stderr)
+        self.assertIn(f"NOT COMPARED: {ROLE}. This verifier cannot establish that such a log is the one the package describes; the App can.", unsure.stdout)
+        self.assertIn("\nResult: package bytes consistent; log integrity limited; 1 recorded head not compared (exit status 2).", unsure.stdout)
+        # A refusal that records no line (an earlier profile): not compared either.
+        self.write_heads(version="0.2", **{ROLE: {"state": "unreadable or invalid role supply chain", "error": "invented"}})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual(report["notCompared"], [ROLE])
+        self.assertIn("it does not record where, so this verifier cannot compare that with the lines", report["limited"][0])
+        # An empty log is one the App reads: a recorded refusal disagrees.
         self.write_log(ROLE, b"")
-        self.write_heads(**{ROLE: unreadable})
+        self.write_heads(**{ROLE: refused(1, "invalid observation")})
         with self.assertRaisesRegex(verifier.ChainDisagreement, "the log is empty, which the App reads"):
             verifier.verify(self.root)
         # The legacy profile recorded RS heads only and never this log's.
@@ -149,7 +212,7 @@ class VerifyBagTest(unittest.TestCase):
         report = verifier.verify(self.root)[2]
         # Not checked is not clean: an integrity limit and its own exit
         # status, never part of "no chain is broken".
-        self.assertEqual((report["notes"], len(report["limited"])), ([], 1))
+        self.assertEqual((report["notes"], len(report["limited"]), report["notCompared"]), ([], 1, [ROLE]))
         self.assertIn("legacy chain-head profile (0.1) records no head for this log, so its chain was not checked", report["limited"][0])
         unchecked = self.run_verifier()
         self.assertEqual(unchecked.returncode, 2, unchecked.stderr)
@@ -162,10 +225,10 @@ class VerifyBagTest(unittest.TestCase):
         lines = linked([entry(1, "first"), entry(2, "second"), entry(3, "third")])
         self.write_log(LOG, lines)
         self.write_heads(**{LOG: head(lines)})
-        self.assertEqual(verifier.verify(self.root)[2], {"profile": "0.2", "logs": 1, "recomputed": 1, "limited": [], "limitedLogs": 0, "notes": []})
+        self.assertEqual(verifier.verify(self.root)[2], {"profile": "0.3", "logs": 1, "recomputed": 1, "limited": [], "limitedLogs": 0, "notCompared": [], "notes": []})
         clean = self.run_verifier()
         self.assertEqual(clean.returncode, 0, clean.stderr)
-        self.assertIn("\nLog integrity: no chain is broken. Every link this verifier examined names the line before it.\n", clean.stdout)
+        self.assertIn("\nLog integrity: no chain is broken and no line was set aside. Every link this verifier examined names the line before it.\n", clean.stdout)
         self.assertIn("\nResult: package bytes consistent; no chain is broken (exit status 0).", clean.stdout)
         # Same length, still a record, every checksum recomputed; the chain is not.
         self.write_log(LOG, lines.replace(b'"first"', b'"FIRST"'))
@@ -218,10 +281,11 @@ class VerifyBagTest(unittest.TestCase):
         self.assertEqual(limited.returncode, 2, limited.stderr)
         one, two = limited.stdout.split("\n")[:2]
         self.assertTrue(one.startswith("Package bytes: consistent."), limited.stdout)
-        self.assertTrue(two.startswith("Log integrity: LIMITED. 1 fault in 1 log."), limited.stdout)
+        self.assertEqual(two, "Recorded chain heads: 1 of 1 compared with the lines, and each agrees.")
+        self.assertTrue(limited.stdout.split("\n")[2].startswith("Log integrity: LIMITED. 1 limit in 1 log."), limited.stdout)
         self.assertIn("\n  Integrity limit: runs/run-one/app-writer.jsonl: chain broken at line 2:", limited.stdout)
         self.assertIn("\nResult: package bytes consistent; log integrity limited (exit status 2).", limited.stdout)
-        for phrase in ("no chain is broken", "names the line before it", "Result: verified", "exit status 0"):
+        for phrase in ("no chain is broken", "no line was set aside", "names the line before it", "Result: verified", "exit status 0"):
             self.assertNotIn(phrase, limited.stdout)
         # The line before the recorded break changed again after export: the
         # break is at the same line, and it is no longer the break recorded.
@@ -239,7 +303,8 @@ class VerifyBagTest(unittest.TestCase):
         self.assertEqual(failed.returncode, 1)
         self.assertEqual(failed.stdout, "")
         self.assertTrue(failed.stderr.startswith("Result: failed (exit status 1). Verification failed: runs/run-one/app-writer.jsonl: chain broken at line 3:"), failed.stderr)
-        self.assertIn("this verifier cannot tell that from an altered line, and the App can. Verify or import the package through the App", failed.stderr)
+        # A package with the reader's account leaves nothing this verifier cannot tell.
+        self.assertNotIn("cannot tell", failed.stderr)
         # A recorded break the lines do not have, one the verifier cannot place, and none stated.
         self.write_log(LOG, whole)
         self.write_heads(**{LOG: head(whole, broken=recorded(lines))})
@@ -276,7 +341,20 @@ class VerifyBagTest(unittest.TestCase):
         self.write_log(log, data)
         chain = {"method": verifier.METHOD, "head": sha(after), "lines": 3, "linked": True, "unchained": 1, "broken": [],
                  "unchainedLimit": "coordination.rs.jsonl: unchained (legacy): lines before the first linked line (1) carry no chain link; the chain starts after them"}
-        self.write_heads(**{log: chain})
+        # With the account (profile 0.3) the torn line is listed; without it
+        # (0.2) this verifier works it out as the App's reader does. Both ways
+        # it is a note that says why it is not a limit.
+        for version, account in (("0.3", {"setAside": [], "torn": [2]}), ("0.2", {})):
+            self.write_heads(version=version, **{log: dict(chain, **account)})
+            report = verifier.verify(self.root)[2]
+            self.assertEqual((report["limited"], len(report["notes"])), ([], 2), version)
+            self.assertIn("line 2 is a torn line the App closed and set aside after an interrupted write. It is not a limit: "
+                          "the line after it names its exact length and SHA-256 and is itself in the chain", report["notes"][0])
+        # An account that lists as torn a line the line after it does not name, fails.
+        self.write_heads(**{log: dict(chain, setAside=[], torn=[1])})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "lists line 1 as a torn line the App closed, and the line after it does not name it"):
+            verifier.verify(self.root)
+        self.write_heads(**{log: dict(chain, setAside=[], torn=[2])})
         notes = verifier.verify(self.root)[2]["notes"]
         self.assertEqual(len(notes), 2)
         self.assertIn("line 2 is a torn line the App closed and set aside", notes[0])
@@ -291,11 +369,79 @@ class VerifyBagTest(unittest.TestCase):
         wrong = json.dumps(dict(entry(2, f"line 2; {len(torn)} bytes; sha256 {sha(b'other')}", label=verifier.PARTIAL),
                                 prevLine={"method": verifier.METHOD, "value": sha(legacy[:-1])})).encode()
         self.write_log(log, legacy + torn + b"\n" + wrong + b"\n")
-        self.write_heads(**{log: dict(chain, head=sha(wrong), lines=2)})
+        self.write_heads(version="0.2", **{log: dict(chain, head=sha(wrong), lines=2)})
         with self.assertRaises(verifier.ChainDisagreement):
             verifier.verify(self.root)
 
-    def test_lines_the_app_sets_aside_are_counted_and_their_links_not_examined(self):
+    def test_the_account_of_set_aside_lines_is_followed_and_can_only_add_stated_limits(self):
+        # Profile 0.3. The App counted line 2 without reading it as a record
+        # and says so; the verifier follows that and reports it as a limit.
+        nothing = {"method": verifier.METHOD, "value": "0" * 64}
+        first = json.dumps(dict(entry(1, "first"), prevLine={"method": verifier.METHOD, "value": None})).encode()
+        # Whole at its top level, invalid deeper, with a link that names
+        # nothing: the case no schema-less reader can judge. The account settles it.
+        aside = json.dumps(dict(entry(9, "deeper"), body={"unknown": "member"}, prevLine=nothing)).encode()
+        last = json.dumps(dict(entry(2, "last"), prevLine={"method": verifier.METHOD, "value": sha(aside)})).encode()
+        data = first + b"\n" + aside + b"\n" + last + b"\n"
+        self.write_log(LOG, data)
+        recorded = {"method": verifier.METHOD, "head": sha(last), "lines": 3, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}
+        self.write_heads(**{LOG: dict(recorded, setAside=[2], torn=[])})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual(report["limited"], [f"{LOG}: line 2 was set aside by the App as invalid: it is not read as a record, and its own link is not examined"])
+        self.assertEqual((report["limitedLogs"], report["recomputed"], report["notes"]), (1, 1, []))
+        # A set-aside line never reads as a clean pass: its own status and statement.
+        ran = self.run_verifier()
+        self.assertEqual(ran.returncode, 2, ran.stderr)
+        self.assertIn("\nLog integrity: LIMITED. 1 limit in 1 log.", ran.stdout)
+        self.assertIn("\n  Integrity limit: runs/run-one/app-writer.jsonl: line 2 was set aside by the App as invalid", ran.stdout)
+        for phrase in ("no chain is broken", "no line was set aside", "exit status 0"):
+            self.assertNotIn(phrase, ran.stdout)
+        # The account cannot remove a failure. A line it does not list must
+        # link, or its break must be the one recorded:
+        self.write_heads(**{LOG: dict(recorded, setAside=[], torn=[])})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, r"chain broken at line 2: .*the package records no break there"):
+            verifier.verify(self.root)
+        # and must be readable:
+        junk = first + b"\nnot json at all\n"
+        self.write_log(LOG, junk)
+        self.write_heads(**{LOG: dict(recorded, head=sha(b"not json at all"), lines=2, setAside=[], torn=[])})
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "line 2 is not a readable record, and the package's account does not list it as set aside"):
+            verifier.verify(self.root)
+        self.write_heads(**{LOG: dict(recorded, head=sha(b"not json at all"), lines=2, setAside=[2], torn=[])})
+        self.assertEqual(len(verifier.verify(self.root)[2]["limited"]), 1)
+        # Listing a line does not hide its bytes: it is counted, so the head
+        # the package records still covers it.
+        self.write_log(LOG, first + b"\nnot json at ALL\n")
+        self.seal()
+        with self.assertRaisesRegex(verifier.ChainDisagreement, "recomputed chain head .* differs from the recorded head"):
+            verifier.verify(self.root)
+        # A failure on a package with an account carries no "cannot tell" sentence.
+        failed = self.run_verifier()
+        self.assertEqual(failed.returncode, 1)
+        self.assertNotIn("cannot tell", failed.stderr)
+        # A torn line whose naming line the App itself set aside: the App's
+        # reader takes the naming from that line whatever it makes of it, so
+        # the account lists both and the verifier follows it.
+        torn = b'{"torn'
+        naming = json.dumps({"kind": "evidence_limit", "unknownMember": True,
+                             "body": {"label": verifier.PARTIAL, "subjectRef": f"line 2; {len(torn)} bytes; sha256 {sha(torn)}"}}).encode()
+        after = json.dumps(dict(entry(2, "after"), prevLine={"method": verifier.METHOD, "value": sha(naming)})).encode()
+        self.write_log(LOG, first + b"\n" + torn + b"\n" + naming + b"\n" + after + b"\n")
+        self.write_heads(**{LOG: dict(recorded, head=sha(after), lines=3, setAside=[3], torn=[2])})
+        report = verifier.verify(self.root)[2]
+        self.assertEqual(report["limited"], [f"{LOG}: line 3 was set aside by the App as invalid: it is not read as a record, and its own link is not examined"])
+        self.assertEqual(len(report["notes"]), 1)
+        self.assertIn("line 2 is a torn line the App closed and set aside", report["notes"][0])
+        # A malformed account, or one naming a line the log does not have, fails.
+        self.write_log(LOG, data)
+        for account in ({"setAside": [2]}, {"setAside": "2", "torn": []}, {"setAside": [2, 2], "torn": []}, {"setAside": [0], "torn": []},
+                        {"setAside": [2], "torn": [2]}, {"setAside": [2, 9], "torn": []}, {"setAside": [True], "torn": []}):
+            with self.subTest(account=account):
+                self.write_heads(**{LOG: dict(recorded, **account)})
+                with self.assertRaises(verifier.ChainDisagreement):
+                    verifier.verify(self.root)
+
+    def test_without_an_account_lines_the_app_sets_aside_are_counted_and_their_links_not_examined(self):
         # Each of these the App's reader refuses (record_lines.rs decode_line,
         # serde_json) and counts without examining a link; a faithful package
         # of a store that holds them must not fail here. Every one carries a
@@ -313,6 +459,9 @@ class VerifyBagTest(unittest.TestCase):
             json.dumps(dict(entry(9, "bad link"), prevLine={"method": verifier.METHOD, "value": "short"})).encode(),
             json.dumps(dict(entry(9, "number"), prevLine=nothing)).encode().replace(b'"seq": 9', b'"seq": 1e400'),
             json.dumps(dict(entry(9, "surrogate"), prevLine=nothing)).encode().replace(b'"surrogate"', b'"\\ud800"'),
+            # A repeated key whose first value holds the lone surrogate: the
+            # App's reader refuses it before the last value would replace it.
+            b'{"writtenAt":"\\ud800",' + json.dumps(dict(entry(9, "repeated key"), prevLine=nothing)).encode()[1:],
             json.dumps(dict(entry(9, "deep"), prevLine=nothing)).encode().replace(b'"deep"}', b'"deep", "detail": {"a": ' + deep.encode() + b'}}'),
             json.dumps({"format": verifier.GROUP_FORMAT, "formatVersion": "0.1", "groupId": "grp:invented", "prevLine": nothing,
                         "entries": [entry(5, "group a"), entry(7, "group b")]}).encode(),
@@ -326,23 +475,22 @@ class VerifyBagTest(unittest.TestCase):
         last = json.dumps(dict(entry(2, "last"), prevLine={"method": verifier.METHOD, "value": previous})).encode()
         data += last + b"\n"
         self.write_log(LOG, data)
-        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(last), "lines": len(rows) + 1, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        self.write_heads(version="0.2", **{LOG: {"method": verifier.METHOD, "head": sha(last), "lines": len(rows) + 1, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
         report = verifier.verify(self.root)[2]
-        self.assertEqual(report["limited"], [])
-        self.assertEqual(len(report["notes"]), 1)
-        self.assertIn(f"{len(refused)} lines (line 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 and 1 more) are not records this verifier or the App reads", report["notes"][0])
-        self.assertIn("the link of such a line is not examined", report["notes"][0])
+        self.assertEqual(report["limited"], [f"{LOG}: line {no} was set aside by the App as invalid: it is not read as a record, and its own link is not examined"
+                                             for no in range(2, len(refused) + 2)])
+        self.assertEqual((report["notes"], report["limitedLogs"]), ([], 1))
         # One level fewer is JSON the App reads, so that line's link is examined.
         within = json.dumps(dict(entry(9, "deep"), prevLine=nothing)).encode().replace(b'"deep"}', b'"deep", "detail": {"a": ' + b"[" * 124 + b"]" * 124 + b'}}')
         self.write_log(LOG, rows[0] + b"\n" + within + b"\n")
-        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(within), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        self.write_heads(version="0.2", **{LOG: {"method": verifier.METHOD, "head": sha(within), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
         with self.assertRaisesRegex(verifier.ChainDisagreement, "chain broken at line 2: it links to"):
             verifier.verify(self.root)
         # A whole, well-formed group is read: its link is examined.
         group = json.dumps({"format": verifier.GROUP_FORMAT, "formatVersion": "0.1", "groupId": "grp:invented", "prevLine": nothing,
                             "entries": [entry(5, "group a"), entry(6, "group b")]}).encode()
         self.write_log(LOG, rows[0] + b"\n" + group + b"\n")
-        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(group), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        self.write_heads(version="0.2", **{LOG: {"method": verifier.METHOD, "head": sha(group), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
         with self.assertRaisesRegex(verifier.ChainDisagreement, "chain broken at line 2: it links to"):
             verifier.verify(self.root)
         # A torn line the next line names is set aside even when it is JSON,
@@ -351,7 +499,7 @@ class VerifyBagTest(unittest.TestCase):
         limit = json.dumps(dict(entry(2, f"line 2; {len(named)} bytes; sha256 {sha(named)}", label=verifier.PARTIAL),
                                 prevLine={"method": verifier.METHOD, "value": sha(rows[0])})).encode()
         self.write_log(LOG, rows[0] + b"\n" + named + b"\n" + limit + b"\n")
-        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(limit), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        self.write_heads(version="0.2", **{LOG: {"method": verifier.METHOD, "head": sha(limit), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
         self.assertIn("line 2 is a torn line the App closed and set aside", verifier.verify(self.root)[2]["notes"][0])
 
     def test_a_record_invalid_deeper_than_its_top_level_is_the_stated_case_this_verifier_cannot_tell(self):
@@ -362,12 +510,13 @@ class VerifyBagTest(unittest.TestCase):
         first = linked([entry(1, "first")])
         self.write_log(LOG, first + deeper + b"\n")
         # The head the App records for it: counted, no break.
-        self.write_heads(**{LOG: {"method": verifier.METHOD, "head": sha(deeper), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
+        self.write_heads(version="0.2", **{LOG: {"method": verifier.METHOD, "head": sha(deeper), "lines": 2, "linked": True, "unchained": 0, "unchainedLimit": None, "broken": []}})
         with self.assertRaisesRegex(verifier.ChainDisagreement, "chain broken at line 2"):
             verifier.verify(self.root)
         failed = self.run_verifier()
         self.assertEqual(failed.returncode, 1)
-        self.assertIn("\nThis verifier reads each record only as far as the top level of the record format.", failed.stderr)
+        self.assertIn("\nThis package is of a chain-head profile that carries no account of its lines (0.1 or 0.2). "
+                      "This verifier reads each record only as far as the top level of the record format.", failed.stderr)
         self.assertIn("this package may be a faithful export: this verifier cannot tell that from an altered line, and the App can.", failed.stderr)
         # A failure that is not about a chain carries no such sentence.
         (self.root / "data/evidence.bin").write_bytes(b"changed")
@@ -467,7 +616,7 @@ def head(data, name="app-writer.jsonl", broken=()):
     (record_lines.rs, chain_head)."""
     lines = data.split(b"\n")[:-1]
     return {"method": verifier.METHOD, "head": sha(lines[-1]), "lines": len(lines),
-            "linked": True, "unchained": 0, "unchainedLimit": None, "broken": list(broken)}
+            "linked": True, "unchained": 0, "unchainedLimit": None, "broken": list(broken), "setAside": [], "torn": []}
 
 
 if __name__ == "__main__":

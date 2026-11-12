@@ -284,7 +284,10 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
             .as_str()
             .is_some_and(|path| path.ends_with(RELATIVE_LOG))
             && head["head"] == role["chain"]["head"]));
-    assert_eq!(heads["formatVersion"], "0.2");
+    // Profile 0.3: the head carries the reader's account, and this reader
+    // takes the log whole, so nothing in it is set aside or torn.
+    assert_eq!(heads["formatVersion"], "0.3");
+    assert_eq!((&role["chain"]["setAside"], &role["chain"]["torn"]), (&json!([]), &json!([])));
     // A valid checksummed tag still must cover this format's actual head.
     let mut omitted = heads.clone();
     omitted["logs"] = json!([]);
@@ -356,7 +359,7 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
         String::from_utf8_lossy(&standalone.stderr)
     );
     let stdout = String::from_utf8_lossy(&standalone.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 fault in 1 log."), "{stdout}");
+    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 limit in 1 log."), "{stdout}");
     assert!(stdout.contains("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head for this log, so its chain was not checked"), "{stdout}");
     assert!(stdout.contains("It does not show who produced the package, and it shows no human act."));
     let current =
@@ -847,4 +850,29 @@ fn native_children_quoted_original_limit_and_common_source_mismatches_are_unavai
             "{case}"
         );
     }
+}
+
+#[test]
+fn copied_chain_account_records_the_line_and_kind_of_a_refused_log() {
+    let folder = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("role-account-").unwrap());
+    std::fs::create_dir_all(&folder).unwrap();
+    let log = folder.join(LOG);
+    // A line that is not JSON, and a torn final line: each refused whole,
+    // with where and why, for an export package's tag (profile 0.3).
+    for (bytes, line, kind) in [(&b"not json\n"[..], 1, "unreadable line"), (&b"{\"unclosed"[..], 1, "torn final line"), (&b"{}\n"[..], 1, "invalid observation")] {
+        std::fs::write(&log, bytes).unwrap();
+        let account = copied_chain_account(&log);
+        assert_eq!(account["state"], "unreadable or invalid role supply chain", "{account}");
+        assert_eq!((account["line"].as_u64(), account["kind"].as_str()), (Some(line), Some(kind)), "{account}");
+        assert!(account.get("setAside").is_none(), "a refused log has no head and no account of lines");
+        // The head an earlier profile records carries neither.
+        let head = copied_chain_head(&log);
+        assert!(head.get("line").is_none() && head.get("kind").is_none(), "{head}");
+    }
+    // An empty log is read whole: a head, with nothing set aside.
+    std::fs::write(&log, b"").unwrap();
+    let whole = copied_chain_account(&log);
+    assert!(whole.get("state").is_none(), "{whole}");
+    assert_eq!((whole["lines"].as_u64(), &whole["setAside"], &whole["torn"]), (Some(0), &json!([]), &json!([])));
+    let _ = std::fs::remove_dir_all(&folder);
 }
