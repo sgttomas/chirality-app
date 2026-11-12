@@ -385,23 +385,34 @@ test('a turn last seen in progress is not headed in progress once Codex has stop
  assert.match(html,/<h4>Turn 1 · interrupted<\/h4>/,'an observed end stays as observed');assert.match(html,/<h4>Turn 2 · completed<\/h4>/);
 });
 
-test('an error notice the App could not read is said as that and given no retry meaning',()=>{
+test('a frame named error that the App could not read is said as that and given no retry meaning',()=>{
  const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
- const unreadable=(turnId,receiptPosition,threadId='T')=>({threadId,turnId,receiptPosition,observedOrder:receiptPosition,reason:'the frame does not match the pinned ErrorNotification; its meaning and retry state are not established',standing:'live-observed'});
- v.unreadableTurnErrors=[unreadable('turn-3',50),unreadable('turn-x',51,'OTHER')];
+ const unreadable=(turnId,receiptPosition,extra={})=>({threadId:'T',turnId,receiptPosition,observedOrder:receiptPosition,ordinalInTurn:1,kind:'not-the-pinned-error-notification',reason:'its meaning and retry state are not established',standing:'live-observed',...extra});
+ v.unreadableTurnErrors=[unreadable('turn-3',50),unreadable('turn-x',51,{threadId:'OTHER'})];
  const only=render(v);
- assert.match(only,/<div aria-label="Errors Codex reported in this turn"><p role="status">Codex sent an error notice for this turn that the App could not read as the error notice its Codex version defines, so its meaning and retry state are not established\. It is kept unchanged in the native envelopes under Host diagnostics \(received at position 50\)\.<\/p><\/div>/);
- assert.doesNotMatch(only,/will retry|will not retry|Codex reported an error in this turn/);
- // Beside a readable notice: the readable one keeps its own words, and the unreadable one counted as a later event.
- v.turnErrors=[notice('turn-3',40,1,{laterFrameForTurn:true})];v.unreadableTurnErrors.push(unreadable('turn-3',52));
+ assert.match(only,/<div aria-label="Errors Codex reported in this turn"><p role="status">Codex sent a frame named <code>error<\/code> for this turn that the App could not read as the error notice its Codex version defines, so its meaning and retry state are not established\. Received at position 50; the original envelope is under Host diagnostics only while the host(&#x27;|')s journal still holds it\.<\/p><\/div>/);
+ assert.doesNotMatch(only,/will retry|will not retry|Codex reported an error in this turn|kept unchanged|an error notice for this turn/);
+ // A request from Codex that happened to be named error is said to be a request, not a notice.
+ v.unreadableTurnErrors=[unreadable('turn-3',50,{kind:'server-request-named-error'})];
+ assert.match(render(v),/not established\. It was a request from Codex and not a notice\. Received at position 50;/);
+ // Beside a readable notice, and past the per-turn cap: the count is what was received, and what was kept is said.
+ v.turnErrors=[notice('turn-3',40,1,{laterFrameForTurn:true})];
+ v.unreadableTurnErrors=[unreadable('turn-3',60,{ordinalInTurn:11}),unreadable('turn-3',61,{ordinalInTurn:12,kind:'server-request-named-error'})];
  const both=render(v);
  assert.match(both,/Codex said it will retry\. The App has received further events for this turn since\./);
- assert.match(both,/Codex sent 2 error notices for this turn that the App could not read.*their meaning and retry state are not established\. They are kept unchanged.*\(received at position 50, 52\)/);
+ assert.match(both,/Codex sent 12 frames named <code>error<\/code> for this turn that the App could not read.*their meaning and retry state are not established\. 1 of those kept was a request from Codex and not a notice\. The App kept the latest 2\. Received at position 60, 61; the original envelopes are under Host diagnostics only while the host(&#x27;|')s journal still holds them\./);
 });
 
 test('a turn known only by an error notice keeps its place in the receiving order',()=>{
  const v={items:[{threadId:'T',turnId:'later',native:{id:'m',type:'agentMessage',text:'x'},displayState:'completed',observedOrder:10}],turns:[],turnRecords:[],revisions:[],descendants:[],
-  turnErrors:[{threadId:'T',turnId:'earlier',error:{message:'m'},willRetry:true,receiptPosition:2,ordinalInTurn:1,observedOrder:2,laterFrameForTurn:false}],
-  unreadableTurnErrors:[{threadId:'T',turnId:'earliest',receiptPosition:1,observedOrder:1}]};
+  turnErrors:[{threadId:'T',turnId:'earlier',error:{message:'m'},willRetry:true,receiptPosition:2,ordinalInTurn:1,observedOrder:2,turnFirstObservedOrder:2,laterFrameForTurn:false}],
+  unreadableTurnErrors:[{threadId:'T',turnId:'earliest',receiptPosition:1,observedOrder:1,turnFirstObservedOrder:1}]};
  assert.deepEqual(activityModel(v,'T').turns.map(t=>t.turnId),['earliest','earlier','later']);
+ // The host keeps only a turn's newest notices: every notice kept for the earlier turn arrived after the later
+ // turn's item, and the turn still stands where its first notice was received.
+ v.turnErrors=[40,41].map((observedOrder,n)=>({threadId:'T',turnId:'earlier',error:{message:'m'},willRetry:true,receiptPosition:observedOrder,ordinalInTurn:33+n,observedOrder,turnFirstObservedOrder:2,laterFrameForTurn:false}));
+ assert.deepEqual(activityModel(v,'T').turns.map(t=>t.turnId),['earliest','earlier','later']);
+ // Without the first-order field (an older host), the kept notices' own order is all there is.
+ v.turnErrors.forEach(e=>delete e.turnFirstObservedOrder);
+ assert.deepEqual(activityModel(v,'T').turns.map(t=>t.turnId),['earliest','later','earlier']);
 });
