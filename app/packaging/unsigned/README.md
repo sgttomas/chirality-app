@@ -85,7 +85,9 @@ The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
 for one named revision into a new private output root: it exports and verifies
 the revision, verifies a supplier release package against its committed
 canonical distribution record and extracts it for the overlay, builds with a
-fresh `dev.chirality.app-v4.candidate.<tag>` identifier, writes the build
+fresh `dev.chirality.app-v4.candidate.<tag>` identifier and a private HOME,
+CARGO_HOME and npm cache inside the output root (the caller's prepared caches
+are copied in, read only), writes the build
 facts and prints the identification command to run next. It refuses the
 release identifier `com.chirality.app` and the product name `Chirality`.
 

@@ -15,6 +15,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import pwd
 import shutil
 import stat
 import subprocess
@@ -1031,7 +1032,9 @@ class ReleasePackageRecord(GitScratch):
             'unknown format': lambda: self.refresh(change=lambda r: r.update(format='example.invalid/1')),
             'other platform': lambda: self.refresh(change=lambda r: r['archive'].update(
                 url=r['archive']['url'].replace('aarch64-apple-darwin', 'x86_64-unknown-linux-musl'))),
-            'pin differs from locator': lambda: self.refresh(change=lambda r: r.update(pin='0.0.2')),
+            # Pin and package metadata agree with each other; only the locator's version differs.
+            'pin differs from locator': lambda: self.refresh(change=lambda r: (
+                r.update(pin='0.0.2'), r['package_metadata'].update(version='0.0.2'))),
         }
         original = self.tmp / 'original'; shutil.copytree(self.vendor, original)
         for name, mutate in cases.items():
@@ -1082,8 +1085,20 @@ def build_schema(version):
     return {'$schema': schema['$schema'], **schema['properties']['build'], '$defs': schema['$defs']}
 
 
+def snapshot(top):
+    """Every name under top with its type, mode, times and bytes: listing for listing, byte for byte."""
+    seen = {}
+    for current, dirs, files in os.walk(top):
+        for name in sorted(dirs + files) + ['.']:
+            path = os.path.join(current, name)
+            info = os.lstat(path)
+            data = Path(path).read_bytes() if stat.S_ISREG(info.st_mode) else None
+            seen[os.path.relpath(path, top)] = (info.st_mode, info.st_size, info.st_mtime_ns, data)
+    return seen
+
+
 class CandidateBuild(Scratch):
-    """build_candidate.py planning, export, supplier extraction and facts; no node, cargo or network."""
+    """build_candidate.py planning, containment, isolation, export, supplier extraction and facts."""
     def setUp(self):
         super().setUp()
         self.repo = self.tmp / 'repo'
@@ -1106,12 +1121,26 @@ class CandidateBuild(Scratch):
         release_archive(self.vendor, self.archive)
         self.record = self.tmp / 'inputs/CANONICAL_DISTRIBUTION.json'
         self.record.write_text(json.dumps(distribution_record(self.archive, tree_inventory(self.vendor))))
-        self.environ = {'HOME': str(self.tmp), 'PATH': '/usr/bin:/bin', 'LANG': 'C',
+        # Sentinels standing in for the caller's home, toolchain folders and prepared caches.
+        self.caller = self.tmp / 'caller-home'
+        for name, data in (('.npm/_cacache/index-v5/marker', b'invented cache entry'),
+                           ('.npm/_logs/earlier.log', b'invented earlier log'),
+                           ('.cargo/registry/cache/marker', b'invented crate'),
+                           ('.npmrc', b'invented=1\n'),
+                           ('toolchain/node-bin/node', b'invented, never run'), ('toolchain/node-bin/npm', b'invented'),
+                           ('toolchain/rust-bin/cargo', b'invented, never run'), ('toolchain/rust-bin/rustc', b'invented')):
+            (self.caller / name).parent.mkdir(parents=True, exist_ok=True)
+            (self.caller / name).write_bytes(data)
+        self.inputs = {'node_bin': str(self.caller / 'toolchain/node-bin'), 'rust_bin': str(self.caller / 'toolchain/rust-bin'),
+                       'npm_cache': str(self.caller / '.npm'), 'cargo_home': str(self.caller / '.cargo')}
+        self.environ = {'HOME': str(self.caller), 'PATH': '/usr/bin:/bin', 'LANG': 'C',
                         'APPLE_SIGNING_IDENTITY': 'invented', 'TAURI_SIGNING_PRIVATE_KEY': 'invented',
-                        'APPLE_ID': 'invented@example.invalid', 'CODEX_HOME': '/invented/personal'}
+                        'APPLE_ID': 'invented@example.invalid', 'CODEX_HOME': '/invented/personal',
+                        'CARGO_HOME': '/invented/cargo', 'RUSTUP_HOME': '/invented/rustup'}
 
-    def plan(self, out='out', **kw):
-        return build_candidate.plan(self.repo, 'HEAD', self.tmp / out, environ=self.environ, **kw)
+    def plan(self, out='out', inputs=None, **kw):
+        return build_candidate.plan(self.repo, 'HEAD', self.tmp / out, environ=self.environ,
+                                    inputs=inputs or self.inputs, **kw)
 
     def test_plan_names_fresh_identifier_overlay_command_and_clean_environment(self):
         p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
@@ -1127,10 +1156,10 @@ class CandidateBuild(Scratch):
                                       '--bundles', 'app', '--features', 'custom-protocol',
                                       '--config', 'packaging/unsigned/tauri.development.conf.json',
                                       '--config', root + '/tauri.candidate.conf.json', '--', '--offline', '--locked'])
-        self.assertEqual(p['env'], {'HOME': str(self.tmp), 'PATH': '/usr/bin:/bin', 'LANG': 'C',
-                                    'TMPDIR': root + '/tmp', 'CARGO_TARGET_DIR': root + '/target',
-                                    'CODEX_HOME': root + '/codex-home', 'CARGO_NET_OFFLINE': 'true',
-                                    'NPM_CONFIG_OFFLINE': 'true'})
+        self.assertEqual(p['env']['HOME'], root + '/home')
+        self.assertEqual(p['env']['LANG'], 'C')
+        self.assertEqual(p['env']['NPM_CONFIG_UPDATE_NOTIFIER'], 'false')
+        self.assertFalse(any(k.startswith(('APPLE', 'TAURI', 'RUSTUP')) for k in p['env']))
         self.assertEqual(p['bundle'], root + '/target/debug/bundle/macos/' + p['product'] + '.app')
         again = self.plan()
         self.assertNotEqual(again['identifier'], p['identifier'])  # same revision, same day: distinct
@@ -1140,16 +1169,38 @@ class CandidateBuild(Scratch):
         self.assertIn('--supplier-acquisition ' + str(self.record), command)
         self.assertIn('--revision ' + self.commit, command)
 
-    def test_plan_refuses_unsafe_output_roots_tags_and_half_a_supplier(self):
-        (self.tmp / 'exists').mkdir()
-        (self.tmp / 'real').mkdir(); (self.tmp / 'alias').symlink_to(self.tmp / 'real')
-        for out, kw in (('exists', {}), ('repo/app/out', {}), ('repo', {}), ('alias/out', {}), ('missing/out', {}),
-                        ('out', {'tag': 'bad tag'}), ('out', {'supplier_archive': self.archive})):
-            with self.subTest(out=out, kw=kw):
-                with self.assertRaises(ValueError):
-                    self.plan(out, **kw)
-        with self.assertRaises(ValueError):
-            build_candidate.plan(self.repo, 'HEAD', self.tmp / 'out', environ={'HOME': str(self.tmp)})
+    def test_every_writable_place_in_the_planned_environment_is_inside_the_output_root(self):
+        p = self.plan()
+        root = Path(p['root'])
+        for key, value in p['env'].items():
+            with self.subTest(key=key):
+                if key == 'PATH':  # read-only toolchain folders and system folders only
+                    self.assertEqual(value.split(':'), [self.inputs['node_bin'], self.inputs['rust_bin'],
+                                                        '/usr/bin', '/bin', '/usr/sbin', '/sbin'])
+                elif value.startswith('/'):
+                    self.assertTrue(Path(value) == root or root in Path(value).parents, value)
+        for key in ('HOME', 'TMPDIR', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'CODEX_HOME', 'NPM_CONFIG_CACHE',
+                    'NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG', 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR'):
+            self.assertIn(key, p['env'])
+
+    def test_planned_install_leaves_the_callers_home_and_caches_unchanged(self):
+        node = shutil.which('node')
+        if not node or not shutil.which('npm', path=os.path.dirname(node)):
+            self.skipTest('node and npm are not on PATH; this isolation test runs the real npm install command')
+        inputs = dict(self.inputs, node_bin=os.path.dirname(node))
+        before = snapshot(self.caller)
+        p = self.plan(inputs=inputs)
+        root = Path(p['root'])
+        root_id = build_candidate.create_root(p)
+        build_candidate.prepare_environment(p, root_id)
+        project = root / 'source/app'; project.mkdir(parents=True)
+        (project / 'package.json').write_text('{"name": "invented", "version": "0.0.0", "private": true}\n')
+        with open(root / 'build.log', 'xb') as log:
+            build_candidate._run(p['install'], p['env'], project, log)
+        self.assertTrue((project / 'package-lock.json').is_file())
+        self.assertEqual(snapshot(self.caller), before)
+        self.assertEqual((root / 'npm-cache/_cacache/index-v5/marker').read_bytes(), b'invented cache entry')
+        self.assertFalse((root / 'npm-cache/_cacache/index-v5/marker').samefile(self.caller / '.npm/_cacache/index-v5/marker'))
 
     def test_names_never_collide_with_the_installed_release_app(self):
         # The 4.0.0 package installs as Chirality.app, identifier com.chirality.app.
@@ -1166,11 +1217,10 @@ class CandidateBuild(Scratch):
                 with self.assertRaisesRegex(ValueError, 'development product name'):
                     build_candidate.check_names('dev.chirality.app-v4.candidate.x', product)
         build_candidate.check_names('dev.chirality.app-v4.candidate.x', 'Chirality App v4 (development x)')
-        for tag in ('com.chirality.app', 'x.com', 'Chirality)', ') (', '-', 'a--b', 'x y', ''):
+        for tag in ('com.chirality.app', 'x.com', 'Chirality)', ') (', '-', 'a--b', 'x y'):
             with self.subTest(tag=tag):
-                if tag:
-                    with self.assertRaises(ValueError):
-                        self.plan(tag=tag)
+                with self.assertRaises(ValueError):
+                    self.plan(tag=tag)
         p = self.plan(tag='x')
         self.assertEqual((p['identifier'], p['product']), ('dev.chirality.app-v4.candidate.x', 'Chirality App v4 (development x)'))
         for change in ({'identifier': 'com.chirality.app'}, {'productName': 'Chirality'}):
@@ -1180,18 +1230,82 @@ class CandidateBuild(Scratch):
                     build_candidate.run(bad)
                 self.assertFalse(Path(p['root']).exists())
 
-    def test_output_root_refuses_applications_and_library(self):
-        home = Path(os.path.expanduser('~'))
-        for out in (Path('/Applications/out'), home / 'Library/out', Path('/Library/out')):
+    def test_plan_refuses_unsafe_output_roots_tags_inputs_and_half_a_supplier(self):
+        (self.tmp / 'exists').mkdir()
+        (self.tmp / 'real').mkdir(); (self.tmp / 'alias').symlink_to(self.tmp / 'real')
+        (self.tmp / 'repo-alias').symlink_to(self.repo)
+        for out, kw in (('exists', {}), ('repo/app/out', {}), ('repo', {}), ('alias/out', {}), ('missing/out', {}),
+                        ('repo-alias/out', {}), ('out', {'tag': 'bad tag'}), ('out', {'supplier_archive': self.archive})):
+            with self.subTest(out=out, kw=kw):
+                with self.assertRaises(ValueError):
+                    self.plan(out, **kw)
+        for key, broken in (('rust_bin', self.tmp / 'exists'), ('npm_cache', self.caller / '.cargo'),
+                            ('cargo_home', self.caller / '.npm'), ('node_bin', self.caller / 'toolchain/rust-bin')):
+            with self.subTest(input=key):
+                with self.assertRaises(ValueError):
+                    self.plan(inputs=dict(self.inputs, **{key: str(broken)}))
+        with self.assertRaisesRegex(ValueError, 'not on PATH'):
+            build_candidate.plan(self.repo, 'HEAD', self.tmp / 'out', environ={'HOME': str(self.tmp), 'PATH': ''})
+
+    def test_output_root_containment_is_by_identity_not_spelling(self):
+        variant = self.tmp / 'REPO/app/out'
+        if not variant.parent.exists():
+            self.skipTest('the test filesystem is case-sensitive, so a case variant names a different place')
+        with self.assertRaisesRegex(ValueError, 'output root is inside'):
+            build_candidate.output_root(variant, self.repo)
+        with self.assertRaisesRegex(ValueError, 'output root is inside'):
+            build_candidate.output_root(self.tmp / 'Repo/App/out', self.repo)
+
+    def test_output_root_refuses_reserved_roots_and_their_case_variants(self):
+        # Paths only: output_root reads metadata and creates nothing.
+        homes = {Path(os.path.expanduser('~')), Path(pwd.getpwuid(os.getuid()).pw_dir)}
+        places = [Path('/Applications/out'), Path('/Library/out'), Path('/System/Library/out')]
+        places += [h / 'Library/out' for h in homes] + [h / 'Applications/out' for h in homes if (h / 'Applications').is_dir()]
+        if Path('/APPLICATIONS').exists():
+            places += [Path('/applications/out'), Path('/library/out'), Path('/system/library/out')]
+            places += [h / 'library/out' for h in homes]
+        for out in places:
+            if not out.parent.is_dir():
+                continue
             with self.subTest(out=out):
-                with self.assertRaisesRegex(ValueError, 'output root is under'):
+                with self.assertRaisesRegex(ValueError, 'output root is inside'):
                     build_candidate.output_root(out, self.repo)
+                self.assertFalse(out.exists())
+
+    def test_a_path_inside_the_root_pointing_outside_refuses(self):
+        p = self.plan()
+        root = Path(p['root'])
+        root_id = build_candidate.create_root(p)
+        outside = self.tmp / 'outside'; outside.mkdir()
+        (outside / 'file').write_bytes(b'outside')
+        (root / 'source').symlink_to(outside)
+        os.link(outside / 'file', root / 'build.log')
+        for path, reason in ((root / 'source', 'symlink'), (root / 'source/app', 'symlink'),
+                             (root / 'build.log', 'hard-linked'), (self.tmp / 'elsewhere', 'outside'),
+                             (root / '../outside', 'outside')):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(ValueError, reason):
+                    build_candidate.contained(root, root_id, path)
+        build_candidate.contained(root, root_id, root / 'target/debug')
+
+    def test_run_refuses_a_link_out_of_the_root_made_before_a_write(self):
+        p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
+        outside = self.tmp / 'outside'; outside.mkdir()
+
+        def export(repo, commit, source):
+            os.mkdir(source)
+            os.symlink(outside, Path(p['root']) / 'codex-package')
+            return {'tracked_files_verified': 1}
+        with mock.patch.object(build_candidate, 'export', export):
+            with self.assertRaisesRegex(ValueError, 'symlink inside the output root'):
+                build_candidate.run(p)
+        self.assertEqual(list(outside.iterdir()), [])
 
     def test_facts_validate_as_the_build_object_of_v2_and_v3(self):
         from jsonschema import Draft202012Validator
         p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
-        facts = build_candidate.facts(p, '0' * 64, {'node': 'v0.0.0-invented'}, {'app/package-lock.json': '1' * 64},
-                                      WHEN, WHEN, {'tauri_build': WHEN + '/' + WHEN})
+        facts = build_candidate.facts(p, '0' * 64, {'node': 'v0.0.0-invented', 'npm_cache_input': '/invented (copied)'},
+                                      {'app/package-lock.json': '1' * 64}, WHEN, WHEN, {'tauri_build': WHEN + '/' + WHEN})
         for version in ('v2', 'v3'):
             with self.subTest(version=version):
                 self.assertEqual(list(Draft202012Validator(build_schema(version)).iter_errors(facts)), [])
@@ -1212,29 +1326,45 @@ class CandidateBuild(Scratch):
             {e['path']: e for e in tree_inventory(self.vendor)}))
         self.assertEqual(stat.S_IMODE(tree.stat().st_mode), 0o755)
 
-    def test_prepare_supplier_refuses_wrong_archive_links_and_differing_inventory(self):
-        def rewrite(change=None, extra=None):
-            release_archive(self.vendor, self.archive, extra)
+    def test_prepare_supplier_refuses_before_extracting_anything(self):
+        def rewrite(change=None, extra=None, mode=None):
+            with tarfile.open(self.archive, 'w:gz') as tar:
+                for child in sorted(self.vendor.iterdir()):
+                    tar.add(child, arcname=child.name, filter=lambda info: mode(info) if mode else info)
+                for info, data in (extra or []):
+                    tar.addfile(info, io.BytesIO(data) if data is not None else None)
             record = distribution_record(self.archive, tree_inventory(self.vendor))
             if change:
                 change(record)
             self.record.write_text(json.dumps(record))
+
+        def setuid(info):
+            if info.name == 'bin/codex':
+                info.mode = 0o4755
+            return info
         link = tarfile.TarInfo('codex-path/link'); link.type = tarfile.SYMTYPE; link.linkname = 'rg'
         cases = {
             'digest': lambda: rewrite(lambda r: r['archive'].update(sha256='0' * 64)),
             'link': lambda: rewrite(extra=[(link, None)]),
+            'set-id mode the data filter would clear': lambda: rewrite(mode=setuid),
             'inventory mode': lambda: rewrite(lambda r: r['inventory']['entries'][0].update(mode=0o700)),
+            'inventory size': lambda: rewrite(lambda r: next(e for e in r['inventory']['entries'] if e['kind'] == 'file').update(size=1)),
             'npm form': lambda: self.record.write_text(json.dumps({'format': bundled_supplier.NPM_FORM})),
+            'empty record': lambda: self.record.write_bytes(b''),
+            'missing record': lambda: self.record.unlink(),
+            'empty archive': lambda: self.archive.write_bytes(b''),
         }
         for index, (name, mutate) in enumerate(cases.items()):
             with self.subTest(name=name):
+                release_archive(self.vendor, self.archive)
+                self.record.write_text(json.dumps(distribution_record(self.archive, tree_inventory(self.vendor))))
                 mutate()
                 tree = self.tmp / f'private{index}/codex-package'; tree.parent.mkdir()
-                with self.assertRaises((ValueError, KeyError)):
+                with self.assertRaises((ValueError, KeyError, OSError)):
                     build_candidate.prepare_supplier(self.archive, self.record, tree)
+                self.assertFalse(tree.exists(), name)
 
-    def test_run_exports_verifies_and_writes_facts_with_build_steps_substituted(self):
-        p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
+    def fake_steps(self, p, build_ok=True, bundle=True):
         calls = []
 
         def fake_run(command, env, cwd, log):
@@ -1242,10 +1372,17 @@ class CandidateBuild(Scratch):
             if command[0] == 'npm':
                 cli = Path(cwd) / 'node_modules/@tauri-apps/cli'; cli.mkdir(parents=True)
                 (cli / 'package.json').write_text('{"version": "0.0.0-invented"}')
-            else:
+            elif not build_ok:
+                raise ValueError('node failed (exit 1); see build.log')
+            elif bundle:
                 Path(p['bundle']).mkdir(parents=True)
-        with mock.patch.object(build_candidate, '_run', fake_run), \
-                mock.patch.object(build_candidate, '_version', lambda command, env, cwd: 'invented ' + command[-1]):
+        return calls, mock.patch.object(build_candidate, '_run', fake_run), \
+            mock.patch.object(build_candidate, '_version', lambda command, env, cwd: 'invented ' + command[0])
+
+    def test_run_exports_verifies_and_writes_facts_with_build_steps_substituted(self):
+        p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
+        calls, run_patch, version_patch = self.fake_steps(p)
+        with run_patch, version_patch:
             facts = build_candidate.run(p)
         root = Path(p['root'])
         self.assertEqual(stat.S_IMODE(root.stat().st_mode), 0o700)
@@ -1255,10 +1392,40 @@ class CandidateBuild(Scratch):
         self.assertEqual(facts['lockfiles']['app/src-tauri/Cargo.lock'], identify.sha(b'version = 4\n'))
         self.assertEqual(facts['config_overlays'][0]['sha256'], identify.sha(b'{"identifier": "dev.example.skeleton"}\n'))
         self.assertEqual(facts['toolchain']['tauri_cli'], '0.0.0-invented')
+        self.assertEqual(facts['toolchain']['npm_cache_input'], self.inputs['npm_cache'] + '/_cacache (read only; copied into the output root)')
+        self.assertEqual(facts['toolchain']['cargo_home_input'], self.inputs['cargo_home'] + ': registry (read only; copied into the output root)')
+        self.assertEqual((root / 'cargo-home/registry/cache/marker').read_bytes(), b'invented crate')
         self.assertEqual(json.loads((root / 'tauri.candidate.conf.json').read_bytes()), p['overlay'])
         self.assertEqual(build_candidate.tree_entries(root / 'codex-package'),
                          bundled_supplier.comparable({e['path']: e for e in tree_inventory(self.vendor)}))
         self.assertEqual(identify.verify_export(self.repo, self.commit, '.', root / 'source')['tracked_files_verified'], 4)
+
+    def test_a_failed_or_bundleless_build_writes_no_facts_and_prints_no_next_step(self):
+        for name, kw in (('build exits non-zero', {'build_ok': False}), ('no bundle produced', {'bundle': False})):
+            with self.subTest(name=name):
+                p = self.plan(out=name.replace(' ', '-'))
+                _, run_patch, version_patch = self.fake_steps(p, **kw)
+                out, err = io.StringIO(), io.StringIO()
+                with run_patch, version_patch, mock.patch.object(build_candidate, 'plan', lambda *a, **k: p), \
+                        contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = build_candidate.main(['--repo', str(self.repo), '--revision', 'HEAD', '--out', p['root']])
+                self.assertEqual(code, 2)
+                self.assertEqual(out.getvalue(), '')
+                self.assertIn('error', json.loads(err.getvalue()))
+                self.assertFalse((Path(p['root']) / 'build-facts.json').exists())
+
+    def test_default_inputs_read_rustup_settings_without_running_a_shim(self):
+        rustup = self.tmp / 'rustup'
+        (rustup / 'toolchains/stable-invented/bin').mkdir(parents=True)
+        (rustup / 'settings.toml').write_text('default_toolchain = "stable-invented"\n')
+        shims = self.tmp / 'shims'; shims.mkdir()
+        (shims / 'rustup').write_text('#!/bin/sh\nexit 99\n'); (shims / 'rustup').chmod(0o755)
+        (shims / 'cargo').symlink_to(shims / 'rustup')
+        node_bin = self.caller / 'toolchain/node-bin'; (node_bin / 'node').chmod(0o755)
+        found = build_candidate.default_inputs({'HOME': str(self.caller), 'RUSTUP_HOME': str(rustup),
+                                                'PATH': f'{node_bin}:{shims}'})
+        self.assertEqual(found, {'node_bin': str(node_bin), 'rust_bin': str(rustup / 'toolchains/stable-invented/bin'),
+                                 'npm_cache': str(self.caller / '.npm'), 'cargo_home': str(self.caller / '.cargo')})
 
 
 if __name__ == '__main__':
