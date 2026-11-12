@@ -58,6 +58,7 @@ Boundary:
 - **REQ-005** — This deliverable performs no act that CLM-001, CLM-003 and CLM-004 give elsewhere: it defines no pin, qualifies no protocol, writes no supplier position, makes no distribution decision and authors no bundled content.
 - **REQ-006** — Every component shipped in the package has its notice in the package: the supplier's Codex and the components inside it, the App's own compiled and bundled dependencies, and bundled fonts and assets. A component whose notice cannot be established is named as uncovered, and the package is not offered for public release while one remains.
 - **REQ-007** — Every limitation the release carries is listed in `docs/RELEASE_LIMITATIONS_4.0.0.md`, which Agent 0 keeps with a reason for each entry and the owner sees with the request for the verdict, and each is stated with the release. For 4.0.0, rotation of the capture-seal key is unavailable, and the release says so.
+- **REQ-008** — Installing and running the package leaves a person's existing data under the App's identity as it was. 4.0.0 keeps the existing production identifier, so data written by v3.0.1 may be present; nothing imports, resets or reseals it. [`docs/RELEASE_TARGET_4.0.0.md`, Direction]
 
 - **AC-001** — The package's bundle declares the stated target, identifier and version; the inventory of its vendor tree equals the expected inventory for the pin; the inventory of each bundled resource equals the inventory of the input its supplier maintains; and the bundle read after a run equals the bundle as signed. Verify by VER-001. [REQ-001]
 - **AC-002** — Every signed executable of the packaged vendor tree carries the supplier's signature and the supplier's entitlements unchanged; the App's own code carries the publisher identity, hardened runtime and a timestamp, with no debugging entitlement; the entitlements on the App's own code equal the set its named features need, including what keychain protection needs; a provisioning profile in the bundle names the publisher identity's App ID and team and allows those entitlements; the notarisation ticket is stapled; and the package identity record states the same facts as an independent reading of the package. Verify by VER-002. [REQ-001, REQ-002]
@@ -67,6 +68,7 @@ Boundary:
 - **AC-006** — None of the acts in REQ-005 is produced by this deliverable's code or records, and no result here is presented as Windows support, as a qualification of the SWBPIPE host, or as the joined examination of the candidate. Verify by VER-005. [REQ-005]
 - **AC-007** — For the package, every component found in it by reading the package has a notice whose text equals the component's own published licence, or is named as uncovered. Verify by VER-006. [REQ-006]
 - **AC-008** — The material a person receives with the package lists every limitation in the release's limitations list, including that key rotation is unavailable. Verify by VER-007. [REQ-007]
+- **AC-009** — On the installed package, with data written by v3.0.1 present under the App's identity, that data is unchanged after the package has been installed, launched and run: the same files with the same bytes, and nothing imported, reset or resealed. Verify by VER-008. [REQ-008]
 
 ## Production and Verification Method — Praxeology
 
@@ -79,6 +81,7 @@ A package is produced from one candidate in a fixed order: the vendor tree is pl
 - **VER-005** — Judgment by an independent reviewer: trace each act of REQ-005 to its owner, and read the package's results for claims they do not support.
 - **VER-006** — Comparison with each component's own published licence: list the components by reading the package and the dependency lists it was built from, and compare each shipped notice with the licence its publisher distributes for that version.
 - **VER-007** — Comparison with the release's limitations list: read the limitation text in the material shipped with the package against each entry of the list.
+- **VER-008** — Comparison with a record made before installation: on a machine holding data written by v3.0.1 under the App's identity, record that data's inventory and content identities, install, launch and run the package, and compare the data with the record. Only identities are recorded; no content of the data appears in a record.
 
 ## Governing Values and Decisions — Axiology
 
@@ -99,3 +102,4 @@ A package is produced from one candidate in a fixed order: the vendor tree is pl
 | OUT-002 | OBJ-002 | REQ-005, CLM-001, CLM-003, CLM-004 | AC-006 | VER-005 | An independent reviewer's trace of each act of REQ-005 to its owner under CLM-001, CLM-003 and CLM-004, and reading of the package's results for any claim beyond the macOS Apple Silicon target of PRD V4-CST-02. |
 | OUT-001 | OBJ-002 | REQ-006 | AC-007 | VER-006 | Outside source: each component's licence as its publisher distributes it. The component list is read from the package under examination. |
 | OUT-004 | OBJ-002 | REQ-007 | AC-008 | VER-007 | The limitation text shipped with the package compared with the release's limitations list, including key rotation left unavailable for 4.0.0. It establishes that the shipped text matches that list, not that the list is complete. |
+| OUT-003 | OBJ-002 | REQ-008 | AC-009 | VER-008 | Outside source: the inventory and content identities of the v3.0.1 data as recorded before the package was installed, which the package did not write, compared with the same data after the package has been installed and run. |
