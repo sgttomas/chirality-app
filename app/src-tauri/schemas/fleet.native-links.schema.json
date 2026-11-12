@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-06-01:fleet-native-links:0.2",
-  "title": "Source-qualified native conversation relationship observation",
-  "description": "FR §4 owner direction: native conversation identity is the native thread ID qualified by its stable actual home/source. Native generation and request identity are observation context, not an objective/undertaking key. Only correlated App Continue-as/start or fork facts are written. No dispatch, work state, role supply or current authority is established. Earlier 0.1 records remain quoted compatibility sources.",
+  "title": "Source-qualified native conversation relationship and delegation observations",
+  "description": "Native conversation identity is the native thread ID qualified by its stable actual home/source. Native generation and request identity are observation context, not an objective/undertaking key. The App writes correlated Continue-as/start and fork facts as related conversations, and what it observes of Codex's native delegation: a dispatch (a completed spawn item naming a new child thread, with its association to a brief), the child's status as Codex last reported it, and the end of observation. A dispatch establishes the child and its parent only: no work done, return, review or integration. An observation carries no undertaking; only its association ties a dispatch to a brief. No role supply or current authority is established. Earlier 0.1 records remain quoted compatibility sources.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -28,6 +28,9 @@
     "kind": {
       "enum": [
         "related_conversation",
+        "dispatch_observed",
+        "child_observed",
+        "observation_ended",
         "recording_limit",
         "recording_recovered"
       ]
@@ -122,6 +125,237 @@
           }
         }
       }
+    },
+    "nativeHome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "homeId",
+        "root",
+        "physical"
+      ],
+      "properties": {
+        "homeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "root": {
+          "$ref": "#/$defs/nativePath"
+        },
+        "physical": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "device",
+            "inode"
+          ],
+          "properties": {
+            "device": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "inode": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "contentIdentity": {
+      "description": "Identity of exact bytes: the lowercase SHA-256 hex digest under the App's exact-bytes method.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "value"
+      ],
+      "properties": {
+        "method": {
+          "const": "chirality.app.exact-bytes.sha256/v1"
+        },
+        "value": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "nativeItem": {
+      "description": "One native item by Codex's own thread, turn and item identities.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threadId",
+        "turnId",
+        "itemId"
+      ],
+      "properties": {
+        "threadId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turnId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "briefFile": {
+      "description": "A brief file path relative to the project's fleet folder.",
+      "type": "string",
+      "pattern": "^briefs/[A-Za-z0-9._-]+\\.json$"
+    },
+    "briefId": {
+      "type": "string",
+      "pattern": "^brief:[A-Za-z0-9._-]+$"
+    },
+    "association": {
+      "description": "How the observed dispatch is tied to a brief, from the spawn prompt Codex supplied and the brief file's bytes when the dispatch was recorded. A resolved reference records what the brief record itself stated then: its record identity, its work item and its undertaking. That is the tie, and a reader never works it out again from the project's files. A matching reference shows which brief the prompt named and what its bytes were then, not that the child received or read it. A mismatch shows only that the file's bytes are not those referenced, not which of the two changed. Nothing is inferred: an absent prompt, an absent reference and a reference that cannot be resolved are each recorded as such.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ],
+          "properties": {
+            "state": {
+              "const": "no brief reference"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "brief",
+            "briefRecord",
+            "workItem",
+            "undertaking",
+            "briefFile",
+            "briefContent"
+          ],
+          "properties": {
+            "state": {
+              "const": "brief referenced"
+            },
+            "brief": {
+              "$ref": "#/$defs/briefId"
+            },
+            "briefFile": {
+              "$ref": "#/$defs/briefFile"
+            },
+            "briefContent": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "briefRecord": {
+              "description": "The record identity of the brief record the file held when the dispatch was recorded.",
+              "type": "string",
+              "pattern": "^fl:[A-Za-z0-9._:/-]+$"
+            },
+            "workItem": {
+              "description": "The work item that brief record names. With `undertaking`, this is the tie; it is never worked out again from the project's files.",
+              "type": "string",
+              "minLength": 1
+            },
+            "undertaking": {
+              "description": "The undertaking that brief record belongs to.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "brief",
+            "briefRecord",
+            "workItem",
+            "undertaking",
+            "briefFile",
+            "referencedContent",
+            "currentContent"
+          ],
+          "properties": {
+            "state": {
+              "const": "brief referenced; content does not match the reference"
+            },
+            "brief": {
+              "$ref": "#/$defs/briefId"
+            },
+            "briefFile": {
+              "$ref": "#/$defs/briefFile"
+            },
+            "referencedContent": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "currentContent": {
+              "$ref": "#/$defs/contentIdentity"
+            },
+            "briefRecord": {
+              "description": "The record identity of the brief record the file held when the dispatch was recorded.",
+              "type": "string",
+              "pattern": "^fl:[A-Za-z0-9._:/-]+$"
+            },
+            "workItem": {
+              "description": "The work item that brief record names. With `undertaking`, this is the tie; it is never worked out again from the project's files.",
+              "type": "string",
+              "minLength": 1
+            },
+            "undertaking": {
+              "description": "The undertaking that brief record belongs to.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "reason",
+            "references"
+          ],
+          "properties": {
+            "state": {
+              "const": "brief reference not resolved"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "references": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "briefFile",
+                  "referencedContent"
+                ],
+                "properties": {
+                  "briefFile": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "referencedContent": {
+                    "$ref": "#/$defs/contentIdentity"
+                  }
+                }
+              },
+              "description": "Each reference the prompt gave in full; empty where no complete reference could be read."
+            }
+          }
+        }
+      ]
     }
   },
   "allOf": [
@@ -231,6 +465,213 @@
               "typesPin": {
                 "type": "string",
                 "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "dispatch_observed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mechanism",
+              "parent",
+              "child",
+              "parentSource",
+              "nativeHome",
+              "spawnItem",
+              "spawnPrompt",
+              "association",
+              "observation",
+              "typesPin"
+            ],
+            "properties": {
+              "mechanism": {
+                "const": "Codex native subagent"
+              },
+              "parent": {
+                "$ref": "#/$defs/endpoint"
+              },
+              "child": {
+                "$ref": "#/$defs/endpoint"
+              },
+              "parentSource": {
+                "const": "collabAgentToolCall.senderThreadId"
+              },
+              "nativeHome": {
+                "$ref": "#/$defs/nativeHome"
+              },
+              "spawnItem": {
+                "$ref": "#/$defs/nativeItem"
+              },
+              "spawnPrompt": {
+                "description": "The prompt text is never recorded, only the identity of its exact UTF-8 bytes, or that Codex supplied none.",
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state",
+                      "content",
+                      "bytes"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "supplied"
+                      },
+                      "content": {
+                        "$ref": "#/$defs/contentIdentity"
+                      },
+                      "bytes": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state"
+                    ],
+                    "properties": {
+                      "state": {
+                        "const": "not supplied"
+                      }
+                    }
+                  }
+                ]
+              },
+              "association": {
+                "$ref": "#/$defs/association"
+              },
+              "observation": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "source",
+                  "position"
+                ],
+                "properties": {
+                  "source": {
+                    "const": "item/completed notification, received live"
+                  },
+                  "position": {
+                    "description": "The App's receipt position in this generation; never a native sequence.",
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
+              },
+              "typesPin": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "child_observed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "child",
+              "status",
+              "statusSource",
+              "sourceItem",
+              "nativeHome",
+              "typesPin"
+            ],
+            "properties": {
+              "child": {
+                "$ref": "#/$defs/endpoint"
+              },
+              "status": {
+                "description": "The supplier's value, unchanged.",
+                "type": "string",
+                "minLength": 1
+              },
+              "statusSource": {
+                "const": "collabAgentToolCall.agentsStates"
+              },
+              "sourceItem": {
+                "$ref": "#/$defs/nativeItem"
+              },
+              "nativeHome": {
+                "$ref": "#/$defs/nativeHome"
+              },
+              "typesPin": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "observation_ended"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "body": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "child",
+              "cause",
+              "lastObserved",
+              "nativeHome"
+            ],
+            "properties": {
+              "child": {
+                "$ref": "#/$defs/endpoint"
+              },
+              "cause": {
+                "enum": [
+                  "Codex process stopped",
+                  "Codex process exited unexpectedly",
+                  "App quit",
+                  "App relaunch",
+                  "cause not observed"
+                ]
+              },
+              "lastObserved": {
+                "description": "The last status recorded for the child in that generation, or null. Nothing about the child's outcome follows.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "nativeHome": {
+                "$ref": "#/$defs/nativeHome"
               }
             }
           }
