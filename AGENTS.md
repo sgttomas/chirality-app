@@ -56,8 +56,10 @@ grant, including any limit on passing those decisions on:
 
 - Decisions follow perspective. Agent 0 decides what the target needs,
   including changes to scopes, criteria and holds, and records each decision
-  by changing the text it governs. A Type 1 decides within the locality of its
-  assignment and takes what reaches beyond it to Agent 0. A Type 2 uses its
+  by changing the text it governs. A Type 1 decides how the work within the
+  locality of its assignment is done, and takes to Agent 0 a changed
+  commitment, criterion or hold and whatever reaches beyond that locality. A
+  Type 2 uses its
   judgment within its bounded assignment and does not change objectives,
   commitments or holds.
 - Before deciding, look for the owner's intention in the PRD, the scopes and
@@ -65,6 +67,10 @@ grant, including any limit on passing those decisions on:
   intention, not for the decision.
 - Each pull request says what was decided and why, so that the owner can
   reverse a decision without having been asked first.
+- Where a scope still names the owner as the decider of a matter this grant
+  transfers, the grant settles who may decide. The record names the agent
+  that decided, never the owner, and a criterion that requires the owner as
+  actor is corrected in its scope, with its review, before it is relied on.
 - The delegation transfers project decisions. It does not supply the evidence
   a hold waits on, perform an act that belongs to another person, or reach
   resources outside the undertaking. Verification, required checks and
@@ -295,7 +301,9 @@ reviews remain separate contributions from the INTERLOCUTOR's advice.
 
 Who decides a commitment, a criterion or a hold is stated in the
 [posture](#posture-for-this-phase-finishing-toward-app-400) above. What it
-reserves, releases among them, remains the owner's.
+reserves, releases among them, remains the owner's. The delegation does not
+authorise narrowing the acts the product reserves to a person (DEL-04-01) or
+changing the shipped permission model.
 
 When an owner instruction overrides a standing rule, note the exception in the
 PR and ask once whether the standing rule should change.
@@ -311,6 +319,11 @@ HELP_HUMAN is clear in the matter (owner, 2026-10-23: "You can continue to
 replace wording as you recommend without asking me any more so long as an
 independent review has been done and you're clear in the matter."). The PR
 quotes the old and new text and the review.
+
+While the posture above is in force, its grant decides who may change a scope
+or a criterion. This delegation's conditions still apply to every such change
+of wording: an independent review examines the exact old and new text first,
+and the PR quotes both texts and the review.
 
 ### Build and verification
 
