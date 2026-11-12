@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Launch one identified development App build, once, in a new throwaway home (DEL-09-02 examination tooling).
 
-A controlled development launcher for first launches on new throwaway homes
-that never hold a sign-in. It is not an isolation boundary. Each run creates a
-launch folder and its home, launches the App once, and does nothing more with
-them; it cannot relaunch a home.
+A development launcher for first launches on new throwaway homes that never
+hold a sign-in, all under one homes root. It is not a boundary around the App
+or around anything the App starts. Each run creates a launch folder under the
+root, launches the App once with its home there, publishes a record, and does
+nothing more with them; it cannot relaunch a home. The caller does not choose
+where the launch folder, the home or the record go; the candidate folder is
+the only path a caller gives.
 
 What the launcher states, and nothing more:
 1. The App's environment is built from nothing: HOME and CFFIXED_USER_HOME
@@ -20,46 +23,67 @@ What the launcher states, and nothing more:
 3. The real Library's places named for the build are compared before and after
    the run, by names, kinds, sizes and modification times (listing, compare).
 
+What the App starts, and what limits it. The App is this project's own
+reviewed code; what it does with the home and environment it is given is the
+App's. In every real run the App starts the supplier's Codex, which is not this
+project's code. What applies to Codex in a launch by this launcher is only
+this: it receives, through the App, the nine overrides, which redirect its
+model address and obstruct its other network clients under their defaults, and
+nothing more; it runs commands under the supplier's own sandbox and the App's
+permission model, neither of which this launcher sets, checks or observes.
+What the launcher can see of Codex is whether a member of the App's process
+group was alive after the settle time, and nothing else: not what Codex read,
+wrote or reached. This launcher starts no Codex itself.
+
 What it also does, each with its limit:
-- It checks the bundle against its identification record with identification's
-  own check before the launch (identify_candidate). The check hashes the bundle
-  twice, a few seconds for a real build. Its errors name the kind of failure,
-  counts and field names, not values read from the record.
-- It refuses a listed, not exhaustive, set of mistakes in the paths it is given
-  (check_syntax, refuse_launch_folder_ancestry, open_directory, check_place): a
-  path that is not absolute or has an empty, "." or ".." component or a
-  trailing slash, refused as written before any normalisation; a path whose
-  written ancestry names a launch folder; a link anywhere in the access path; a
-  place in the real Library, the real home itself or a folder holding it, or a
-  checkout; a run folder that already exists. Limit: a path that reaches a
-  launch folder by another spelling of its name (a different letter case on a
-  volume that ignores case, another Unicode form) is not detected.
-- The home the App is launched into is one it has just created: the launch
-  folder and home/ within it are each made by an exclusive create, which fails
-  if anything already exists there under any spelling the volume treats as the
-  same, and nothing is ever reused (make_folder). A caller's mistake may put a
-  new launch folder inside another throwaway home; the App is still launched
-  only into the new home. Limit: HOME is passed to the App as a pathname, and
-  the helper does not re-check it after the create.
-- Under the new home it creates a temporary folder and an output file for the
-  App's output, through a held handle, and reads nothing there.
-- It records what the record-field table in the pull request lists: the
-  comparison's names and change labels and counts, the per-user cache folder
-  and preference-folder observations (names and change labels; they never
-  refuse a launch or fail a run), how the App ended, and the output file's
-  path. No content of any file.
-- The address override (CHIRALITY_DEV_OPENAI_BASE_URL) replaces the built-in
-  provider's address for model requests only, once the App reads that input
-  (it arrives with the Access lane's change, not yet on main; of a candidate
-  built before it, nothing is said). The proxy overrides obstruct some of the
-  supplier's other clients under their defaults. Neither establishes where a
-  launch's requests went. The helper reads no system managed configuration.
+- The homes root is dev/chirality-t3/scratch/app/homes/examination under the
+  account's home (homes_root). The launcher refuses to run unless the root is
+  an existing directory of this user, reached from / without following any
+  link. It never creates the root and deletes nothing.
+- Under the root it creates a launch folder (launch-<UTC time>-<random>) by an
+  exclusive create through the root's held handle, and within it home/ and
+  record/ the same way (make_folder). An exclusive create fails if anything
+  already exists there under any spelling the volume treats as the same, so the
+  App is never launched into a home that existed before the run. Limit: HOME is
+  passed to the App as a pathname, and the launcher does not re-check it.
+- The record is published in record/, whole or absent. A launch folder whose
+  record/ is empty is one whose run did not complete; nothing more is known of
+  it from the folder.
+- Under the home it creates a temporary folder and an output file for the App's
+  output, through the home's handle, and reads nothing there.
+- The candidate folder is admitted (find_candidate, identify_candidate) when it
+  is written as an absolute path with no empty, "." or ".." component and no
+  trailing slash (refused as written, before any normalisation); it is reached
+  from / with no link in its path; no directory on that path is the homes root
+  (compared by device and inode while descending, before anything beneath the
+  root is examined); it has build_candidate.py's layout; the identification
+  record is the one at identification/candidate-identification.json inside it;
+  the bundle is the one entry of target/debug/bundle/macos, whose name must be
+  the record's bundle name, checked first to be a single plain name ending in
+  .app and opened by the launcher only as an entry of that folder's handle; and
+  identification's own validation and check of that bundle against that record
+  pass (which compares the bundle's name, identifier and inventory with the
+  record, and hashes the bundle twice). Identification's check reads the bundle
+  by the candidate path joined with that checked name, opening each component
+  without following links. The identification record does not say where its
+  bundle was identified; what is compared is the record found beside the bundle
+  in the build's layout. Errors name the kind of failure, counts and field
+  names, not values read from the record.
+- The record lists what leaves a run: the comparison's names, change labels and
+  counts; the per-user cache folder and preference-folder observations (names
+  and change labels; they never refuse a launch or fail a run); how the App
+  ended; the output file's path. No content of any file.
+- The address override replaces the built-in provider's address for model
+  requests only, once the App reads that input (it arrives with the Access
+  lane's change, not yet on main; of a candidate built before it, nothing is
+  said). Neither override establishes where a launch's requests went. The
+  launcher reads no system managed configuration.
 
 Limits: the comparison sees names, kinds, sizes and modification times, not
-content; the App's working directory is given by pathname; the helper does not
-confine the App, sends it no input and does not look at its window; it deletes
-nothing (a launch folder is removed by hand, after the App started from it has
-ended: a killed helper does not end the App).
+content; the App's working directory is given by pathname; the launcher sends
+the App no input and does not look at its window; it deletes nothing (a launch
+folder is removed by hand, after the App started from it has ended: a killed
+launcher does not end the App).
 """
 import sys
 
@@ -84,15 +108,16 @@ import time  # noqa: E402
 from xml.parsers.expat import ExpatError  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
-REPOSITORY = HERE.parents[2]
 sys.path.insert(0, str(HERE.parent / 'candidate_identity'))
 import identify  # noqa: E402  (identification's record validation and check)
 
 TOOL = 'app/examination/standalone/launch.py'
 NOTE = ('Evidence for a journey step record, written by ' + TOOL + '; not an examination record format, '
         'and nothing validates it.')
-HOME = 'home'  # the one entry of a launch folder
-RECORD = 'launch-record.json'  # in the run folder
+CODEX_NOTE = 'this launcher starts no Codex itself; whether the App started one is not known to it'
+HOMES_ROOT = ('dev', 'chirality-t3', 'scratch', 'app', 'homes', 'examination')  # under the account's home
+HOME, RECORD_FOLDER = 'home', 'record'  # the two children of a launch folder
+RECORD = 'launch-record.json'  # in record/
 BUNDLE_FOLDER = ('target', 'debug', 'bundle', 'macos')  # in a candidate folder (build_candidate.py)
 IDENTIFICATION = ('identification', 'candidate-identification.json')  # in a candidate folder (identify.py record)
 INVENTORY = 'bundle-inventory.json'  # beside the identification record
@@ -100,7 +125,6 @@ SYSTEM_PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
 LANG = 'en_US.UTF-8'
 SETTLE_SECONDS = 5.0  # waited after the App exits before listing, and again before the second listing
 DIRECTORY = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
-LAUNCH_FOLDER_NAME = re.compile(r'launch-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}')
 
 # STATEMENT 1: the proxy overrides every launch is passed: name -> (value, why). All eight: the supplier has a
 # websocket client (reads HTTPS, then HTTP, then ALL, upper case first) and an HTTP client (HTTPS for secure, HTTP for
@@ -135,16 +159,21 @@ WATCHED = ('Application Support', 'Caches', 'WebKit', 'HTTPStorages', 'Preferenc
            'Logs', 'Cookies', 'Application Scripts', 'Autosave Information', 'LaunchAgents')
 EXECUTABLE_RULE = re.compile(r'chirality-[a-z0-9][a-z0-9_-]{2,}')  # e.g. chirality-app-v4
 
-_forwarding = threading.Event()  # set while the helper latches signals (tests wait on it before signalling)
+_forwarding = threading.Event()  # set while the launcher latches signals (tests wait on it before signalling)
 
 
 class Refusal(ValueError):
-    """A refusal whose message is the helper's own words, never content read from a file."""
+    """A refusal whose message is the launcher's own words, never content read from a file."""
 
 
 def real_home():
-    """The real home, from the account database, never from HOME; the one place tests point elsewhere."""
+    """The real home, from the account database, never from HOME."""
     return Path(os.path.realpath(pwd.getpwuid(os.getuid()).pw_dir))
+
+
+def homes_root():
+    """The one homes root; the one thing tests replace with a stand-in."""
+    return real_home().joinpath(*HOMES_ROOT)
 
 
 def user_cache_dir():
@@ -180,7 +209,82 @@ def kind_of(path, dir_fd=None):
     return 'link' if stat.S_ISLNK(info.st_mode) else 'dir' if stat.S_ISDIR(info.st_mode) else 'other'
 
 
-# ---- the listed path checks (not exhaustive) ----------------------------------------------------------
+def _ident(fd):
+    info = os.fstat(fd)
+    return info.st_dev, info.st_ino
+
+
+def plain_name(value, what):
+    """A single plain entry name: text, not empty, no separator or NUL, not "." or ".."."""
+    if not isinstance(value, str) or value in ('', '.', '..') or '/' in value or '\0' in value:
+        raise Refusal(f'{what} is not a single plain name')
+    return value
+
+
+# ---- the homes root and the new launch folder ---------------------------------------------------------
+
+def open_directory(path, what, refuse_identity=None):
+    """A handle on a directory reached from / with no link in any component. With refuse_identity, a directory on
+    the way (or the end) whose device and inode equal it is refused before anything beneath it is examined."""
+    fd = os.open('/', DIRECTORY)
+    try:
+        for part in Path(path).parts[1:]:
+            if refuse_identity is not None and _ident(fd) == refuse_identity:
+                raise Refusal(f'{what} lies under the homes root: {path}')
+            try:
+                child = os.open(part, DIRECTORY, dir_fd=fd)
+            except OSError:
+                raise Refusal(f'{what} must be an existing folder given by a path with no link in it '
+                              f'(a link or something else stands where a folder should be, or it could not be opened): '
+                              f'{path}') from None
+            os.close(fd)
+            fd = child
+        if refuse_identity is not None and _ident(fd) == refuse_identity:
+            raise Refusal(f'{what} is the homes root: {path}')
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def open_root():
+    """The homes root: an existing directory of this user, reached from / without following any link. Never created."""
+    root = homes_root()
+    fd = open_directory(root, 'the homes root')
+    if os.fstat(fd).st_uid != os.getuid():
+        os.close(fd)
+        raise Refusal(f'the homes root is not owned by this user: {root}')
+    return root, fd
+
+
+def new_folder_name():
+    return f'launch-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}'
+
+
+def make_folder(root, root_fd):
+    """A new launch folder under the root and home/ and record/ within it, each by an exclusive create through a held
+    handle: a create fails if anything already exists there under any spelling the volume treats as the same.
+    Returns the folder's path and held handles on home/ and record/. Nothing in the home is read."""
+    name = new_folder_name()
+    try:
+        os.mkdir(name, 0o700, dir_fd=root_fd)
+    except FileExistsError:
+        raise Refusal(f'a launch folder could not be created: something already exists there ({root / name})') from None
+    folder_fd = os.open(name, DIRECTORY, dir_fd=root_fd)
+    try:
+        handles = []
+        for child in (HOME, RECORD_FOLDER):
+            try:
+                os.mkdir(child, 0o700, dir_fd=folder_fd)
+            except FileExistsError:
+                raise Refusal(f'{child}/ could not be created: something already exists there ({root / name})') from None
+            handles.append(os.open(child, DIRECTORY, dir_fd=folder_fd))
+    finally:
+        os.close(folder_fd)
+    return root / name, handles[0], handles[1]
+
+
+# ---- the candidate ------------------------------------------------------------------------------------
 
 def check_syntax(text, what):
     """A caller's path as written, before any normalisation: absolute, no empty, "." or ".." component, no trailing
@@ -192,74 +296,13 @@ def check_syntax(text, what):
     return Path(text)
 
 
-def refuse_launch_folder_ancestry(path, what):
-    """Refuse a path whose written ancestry, or own name, names a launch folder, as written (another spelling of the
-    name is not detected). Nothing is touched."""
-    if any(LAUNCH_FOLDER_NAME.fullmatch(p.name) for p in (path, *path.parents)):
-        raise Refusal(f'{what} names a launch folder in its path: {path}')
-    return path
-
-
-def caller_path(text, what):
-    return refuse_launch_folder_ancestry(check_syntax(text, what), what)
-
-
-def _identity(path):
-    info = os.stat(path)
-    return info.st_dev, info.st_ino
-
-
-def inside(path, place):
-    """path is place or lies inside it, judged by device and inode."""
-    try:
-        target = _identity(place)
-    except FileNotFoundError:
-        return False
-    path = Path(path)
-    while kind_of(path) == 'absent':
-        path = path.parent
-    real = Path(os.path.realpath(path))
-    return target in {_identity(p) for p in (real, *real.parents)}
-
-
-def check_place(path, what):
-    """Not inside the real Library, not the real home or a folder holding it, not inside a checkout."""
-    home = real_home()
-    if inside(path, home / 'Library'):
-        raise Refusal(f'{what} is inside the real home Library: {path}')
-    if kind_of(path) != 'absent' and inside(home, path):
-        raise Refusal(f'{what} is or contains the real home: {path}')
-    if inside(path, REPOSITORY) or any(kind_of(p / '.git') != 'absent' for p in (path, *path.parents)):
-        raise Refusal(f'{what} is inside a repository checkout: {path}')
-    return path
-
-
-def open_directory(path, what):
-    """A handle on a directory reached from / with no link in any component."""
-    fd = os.open('/', DIRECTORY)
-    try:
-        for part in Path(path).parts[1:]:
-            try:
-                child = os.open(part, DIRECTORY, dir_fd=fd)
-            except OSError:
-                raise Refusal(f'{what} must be an existing folder given by a path with no link in it '
-                              f'(a link or something else stands where a folder should be, or it could not be opened): '
-                              f'{path}') from None
-            os.close(fd)
-            fd = child
-        return fd
-    except BaseException:
-        os.close(fd)
-        raise
-
-
 def open_within(fd, names, what):
-    """A handle on a folder reached from fd through names, without following any link."""
+    """A handle on a folder reached from fd through names (each a plain entry name), without following any link."""
     held = os.dup(fd)
     try:
         for name in names:
             try:
-                child = os.open(name, DIRECTORY, dir_fd=held)
+                child = os.open(plain_name(name, what), DIRECTORY, dir_fd=held)
             except OSError:
                 raise Refusal(f'{what} is missing, or a link stands in its path') from None
             os.close(held)
@@ -280,48 +323,57 @@ def regular_file(dir_fd, name, what):
         raise Refusal(f'{what} is not a plain file of this user (a link, a folder or a shared file)')
 
 
-def under_applications(path):
-    return any(name.lower() == 'applications' for name in Path(path).parts)
-
-
-# ---- the candidate ------------------------------------------------------------------------------------
-
-def find_candidate(text):
-    """The bundle and its identification record at the fixed places of a candidate folder made by
-    build_candidate.py, reached without following any link."""
-    root = caller_path(text, 'the candidate folder')
-    if under_applications(root):
-        raise Refusal('a candidate under an Applications folder is not launched: ' + str(root))
-    root_fd = open_directory(root, 'the candidate folder')
+def find_candidate(text, root_identity):
+    """The candidate folder in build_candidate.py's layout, reached without following any link and not under the
+    homes root; its identification record and stored inventory are plain files of this user; its bundle folder holds
+    exactly one entry. Returns the candidate path and the record's path; the bundle is found from the record."""
+    candidate = check_syntax(text, 'the candidate folder')
+    candidate_fd = open_directory(candidate, 'the candidate folder', refuse_identity=root_identity)
     try:
-        check_place(root, 'the candidate folder')
-        macos = open_within(root_fd, BUNDLE_FOLDER, "the candidate's bundle folder (target/debug/bundle/macos)")
-        try:
-            entries = os.listdir(macos)
-            if len(entries) != 1 or not entries[0].endswith('.app'):
-                raise Refusal("the candidate's bundle folder does not hold exactly one bundle")
-            os.close(open_within(macos, entries, 'the bundle'))
-        finally:
-            os.close(macos)
-        identification = open_within(root_fd, IDENTIFICATION[:1], "the candidate's identification folder")
+        identification = open_within(candidate_fd, IDENTIFICATION[:1], "the candidate's identification folder")
         try:
             regular_file(identification, IDENTIFICATION[1], 'the identification record')
             regular_file(identification, INVENTORY, 'the stored bundle inventory')
         finally:
             os.close(identification)
     finally:
-        os.close(root_fd)
-    return root.joinpath(*BUNDLE_FOLDER, entries[0]), root.joinpath(*IDENTIFICATION)
+        os.close(candidate_fd)
+    return candidate, candidate.joinpath(*IDENTIFICATION)
+
+
+def find_bundle(candidate, record_data):
+    """The bundle is the one entry of the candidate's bundle folder whose name is the record's bundle name. The name
+    read from the record is checked to be a single plain name ending in .app before anything is opened by it, and it
+    is opened only as an entry of the bundle folder's held handle. The executable path from the record is checked to
+    be Contents/MacOS/<plain name> the same way."""
+    bundle = record_data.get('bundle') if isinstance(record_data.get('bundle'), dict) else {}
+    name = plain_name(bundle.get('name'), "the record's bundle name")
+    if not name.endswith('.app'):
+        raise Refusal("the record's bundle name does not end in .app")
+    executable = bundle.get('executable', {}).get('path') if isinstance(bundle.get('executable'), dict) else None
+    parts = executable.split('/') if isinstance(executable, str) else []
+    if len(parts) != 3 or parts[:2] != ['Contents', 'MacOS']:
+        raise Refusal("the record's executable path is not Contents/MacOS/<name>")
+    plain_name(parts[2], "the record's executable name")
+    candidate_fd = open_directory(candidate, 'the candidate folder')
+    try:
+        macos = open_within(candidate_fd, BUNDLE_FOLDER, "the candidate's bundle folder (target/debug/bundle/macos)")
+        try:
+            if os.listdir(macos) != [name]:
+                raise Refusal("the candidate's bundle folder does not hold exactly the record's bundle")
+            os.close(open_within(macos, [name], 'the bundle'))
+        finally:
+            os.close(macos)
+    finally:
+        os.close(candidate_fd)
+    return candidate.joinpath(*BUNDLE_FOLDER, name), executable, parts[2]
 
 
 def identify_candidate(app, record_path):
-    """The record is valid and identification's own check finds the bundle equal to it. Errors name the kind of
-    failure, counts and field names, never a value read from the record."""
+    """Identification's own validation and check of the bundle against the record. Errors name the kind of failure,
+    counts and field names, never a value read from the record."""
     try:
-        record = json.loads(Path(record_path).read_bytes())
-        if not isinstance(record, dict) or not record.get('candidate_key'):
-            raise Refusal('the identification record has no candidate key')
-        identify.validate_record(record)
+        identify.validate_record(json.loads(Path(record_path).read_bytes()))
         result = identify.check(argparse.Namespace(record=str(record_path), app=str(app)))
     except Refusal:
         raise
@@ -336,7 +388,19 @@ def identify_candidate(app, record_path):
         raise Refusal('the bundle differs from its identification record '
                       f"({counts['changed']} changed, {counts['missing']} missing, {counts['extra']} extra entries"
                       + (f"; fields: {', '.join(fields)}" if fields else '') + ')')
-    return record
+
+
+def read_record(record_path):
+    """The identification record's content, read once; only its own fields are used, never quoted in an error."""
+    try:
+        value = json.loads(Path(record_path).read_bytes())
+    except (OSError, ValueError):
+        raise Refusal('the identification record could not be read as JSON') from None
+    if not isinstance(value, dict) or not isinstance(value.get('candidate_key'), str) or not value['candidate_key']:
+        raise Refusal('the identification record has no candidate key')
+    if not isinstance(value.get('bundle'), dict) or not isinstance(value['bundle'].get('identifier'), str):
+        raise Refusal('the identification record has no bundle identifier')
+    return value
 
 
 # ---- STATEMENT 3: the comparison ----------------------------------------------------------------------
@@ -446,7 +510,7 @@ def outcome(facts):
         if facts.get('returncode') != 0:
             failures.append('the App ' + facts['ended'])
         if facts['signals']:
-            failures.append(f"the helper received a signal ({len(facts['signals'])}) before the outcome was fixed")
+            failures.append(f"the launcher received a signal ({len(facts['signals'])}) before the outcome was fixed")
         if facts.get('process_group') != 'gone':
             failures.append("a process of the App's process group was still running after the settle time")
     result = facts.get('comparison', {}).get('result', 'not made')
@@ -499,42 +563,10 @@ def disclosure(before, after, exclude=()):
     return {'observation': 'made', 'changes': [c for c in differences(before[0], after[0]) if c['path'] not in exclude]}
 
 
-# ---- the new launch folder and its home ---------------------------------------------------------------
-
-def new_folder_name():
-    return f'launch-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{secrets.token_hex(4)}'
-
-
-def make_folder(parent):
-    """A new launch folder and home/ within it, each by an exclusive create through a held handle: the create fails
-    if anything already exists there under any spelling the volume treats as the same. Returns the folder's path and
-    a held handle on the new home. Nothing in the home is read."""
-    parent_fd = open_directory(parent, 'the parent')
-    try:
-        check_place(parent, 'the parent')
-        name = new_folder_name()
-        try:
-            os.mkdir(name, 0o700, dir_fd=parent_fd)
-        except FileExistsError:
-            raise Refusal(f'a launch folder could not be created: something already exists there ({parent / name})') from None
-        folder_fd = os.open(name, DIRECTORY, dir_fd=parent_fd)
-    finally:
-        os.close(parent_fd)
-    try:
-        try:
-            os.mkdir(HOME, 0o700, dir_fd=folder_fd)
-        except FileExistsError:
-            raise Refusal(f'the home could not be created: something already exists there ({parent / name / HOME})') from None
-        home_fd = os.open(HOME, DIRECTORY, dir_fd=folder_fd)
-    finally:
-        os.close(folder_fd)
-    return parent / name, home_fd
-
-
 # ---- STATEMENT 1: the environment ---------------------------------------------------------------------
 
 def check_model_address(value):
-    """A loopback address only, by the helper's own rule (localhost, empty and blank are refused)."""
+    """A loopback address only, by the launcher's own rule (localhost, empty and blank are refused)."""
     match = MODEL_ADDRESS_RULE.fullmatch(value) if isinstance(value, str) and len(value) <= 2048 else None
     if not match or (match.group(1) and not 1 <= int(match.group(1)) <= 65535):
         raise Refusal(f'{MODEL_ADDRESS} must be http(s)://127.0.0.1 or [::1], an optional port 1-65535 and a plain path')
@@ -580,47 +612,46 @@ def how_it_ended(returncode):
     return f'exited with status {returncode}'
 
 
+def group_state(pgid):
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return 'gone'
+    except PermissionError:
+        return 'still running'
+    return 'still running'
+
+
 def launch(args):
-    run = caller_path(args.run_dir, 'the run folder')
-    parent = caller_path(args.parent, 'the parent')
     model_address = DEFAULT_MODEL_ADDRESS if args.model_address is None else check_model_address(args.model_address)
-    app, record_path = find_candidate(args.candidate)
-    record_data = identify_candidate(app, record_path)
-    identifier = record_data['bundle']['identifier']
-    executable_path = record_data['bundle']['executable']['path']
-    executable = executable_path.rsplit('/', 1)[-1]
-    check_executable(executable)
-    run_parent = open_directory(run.parent, "the run folder's parent")
+    root, root_fd = open_root()
     try:
-        check_place(run, 'the run folder')
-        if kind_of(run.name, dir_fd=run_parent) != 'absent':
-            raise Refusal(f'the run folder already exists: {run}')
-        folder, home_fd = make_folder(parent)
-        try:
-            os.mkdir(run.name, 0o700, dir_fd=run_parent)
-            run_fd = os.open(run.name, DIRECTORY, dir_fd=run_parent)
-        except BaseException:
-            os.close(home_fd)
-            raise
+        candidate, record_path = find_candidate(args.candidate, _ident(root_fd))
+        record_data = read_record(record_path)
+        app, executable_path, executable = find_bundle(candidate, record_data)
+        check_executable(executable)
+        identify_candidate(app, record_path)
+        folder, home_fd, record_fd = make_folder(root, root_fd)
     finally:
-        os.close(run_parent)
+        os.close(root_fd)
+    print(json.dumps({'launch_folder': str(folder)}), file=sys.stderr, flush=True)
     try:
-        return _run(args, app, record_data, identifier, executable_path, executable, model_address,
-                    folder, home_fd, run, run_fd)
+        return _run(args, app, record_data, executable_path, executable, model_address, folder, home_fd, record_fd)
     finally:
-        os.close(run_fd)
+        os.close(record_fd)
         os.close(home_fd)
 
 
-def _run(args, app, record_data, identifier, executable_path, executable, model_address, folder, home_fd, run, run_fd):
+def _run(args, app, record_data, executable_path, executable, model_address, folder, home_fd, record_fd):
+    identifier = record_data['bundle']['identifier']
     home = folder / HOME
     tmp = f'.chirality-launch-tmp-{secrets.token_hex(4)}'
-    record = {'note': NOTE, 'helper': {'path': TOOL, 'sha256': sha256_file(__file__)},
-              'candidate_key': record_data['candidate_key'], 'identifier': identifier, 'bundle': str(app),
-              'candidate_folder': args.candidate, 'launch_folder': str(folder), 'home': str(home),
+    record = {'note': NOTE, 'made_by': {'path': TOOL, 'sha256': sha256_file(__file__)}, 'made_at': now(),
+              'candidate_key': record_data['candidate_key'], 'identifier': identifier, 'candidate_folder': args.candidate,
+              'bundle': str(app), 'launch_folder': str(folder), 'home': str(home), 'codex': CODEX_NOTE,
               'address_override': 'the default (nothing listens there)' if args.model_address is None
               else 'given by the caller'}
-    facts = {'started': False, 'signals': [], 'open': True, 'run': str(run)}
+    facts = {'started': False, 'signals': [], 'open': True, 'record': str(folder / RECORD_FOLDER / RECORD)}
     proc, output = None, None
     cache = user_cache_dir()
     previous = {}
@@ -645,17 +676,17 @@ def _run(args, app, record_data, identifier, executable_path, executable, model_
             before = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)
         except OSError as error:
             facts['ended'] = f'not launched: the before-listing could not be made ({type(error).__name__})'
-            return _finish(run_fd, record, facts, code=2, label='not launched')
+            return _finish(record_fd, record, facts, code=2, label='not launched')
         prefs_before = preferences_observation()
         cache_before = observe(cache, ('',), identifier, executable, 'per-user cache folder')
         try:  # immediately before the start: the exact mapping (STATEMENT 1)
             check_environment(env, home, tmp)
         except Refusal as error:
             facts['ended'] = f'not launched: {error}'
-            return _finish(run_fd, record, facts, code=2, label='not launched')
+            return _finish(record_fd, record, facts, code=2, label='not launched')
         if facts['signals']:
-            facts['ended'] = 'not launched: the helper received a signal before the App started'
-            return _finish(run_fd, record, facts, code=2, label='not launched')
+            facts['ended'] = 'not launched: the launcher received a signal before the App started'
+            return _finish(record_fd, record, facts, code=2, label='not launched')
         output_name = f'.chirality-launch-output-{secrets.token_hex(3)}.log'
         output = os.open(output_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=home_fd)
         record['output'] = str(home / output_name)
@@ -665,13 +696,11 @@ def _run(args, app, record_data, identifier, executable_path, executable, model_
                                     stdout=output, stderr=output, start_new_session=True, close_fds=True)
         except OSError as error:
             facts['ended'] = f'did not start ({type(error).__name__})'
-            return _finish(run_fd, record, facts, code=1)
+            return _finish(record_fd, record, facts, code=1)
         facts['started'] = True
         record['pid'] = proc.pid
         if facts['signals']:
             proc.send_signal(signal.SIGTERM)
-        print(json.dumps({'launched': proc.pid, 'run_folder': str(run), 'launch_folder': str(folder)}),
-              file=sys.stderr, flush=True)
         facts['returncode'] = proc.wait()
         facts['ended'] = how_it_ended(facts['returncode'])
         record['ended_at'] = now()
@@ -691,7 +720,7 @@ def _run(args, app, record_data, identifier, executable_path, executable, model_
         record['disclosed'] = {'preferences': disclosure(prefs_before, prefs_after, named),
                                'user_cache': {'folder': str(cache) if cache else None,
                                               **disclosure(cache_before, cache_after)}}
-        return _finish(run_fd, record, facts, code=None)
+        return _finish(record_fd, record, facts, code=None)
     finally:
         _forwarding.clear()
         if output is not None:
@@ -703,59 +732,48 @@ def _run(args, app, record_data, identifier, executable_path, executable, model_
             signal.signal(s, handler)
 
 
-def group_state(pgid):
-    try:
-        os.killpg(pgid, 0)
-    except ProcessLookupError:
-        return 'gone'
-    except PermissionError:
-        return 'still running'
-    return 'still running'
-
-
-def write_record(run_fd, record):
-    """STATEMENT 2: the record exists whole under its name or not at all: written to a temporary name in the run
-    folder, flushed, then linked to its name (never over an existing one). A temporary file left by an interruption
-    has another name and is not the record."""
+def write_record(record_fd, record):
+    """STATEMENT 2: the record exists whole under its name or not at all: written to a temporary name in record/,
+    flushed, then linked to its name (never over an existing one). A temporary file left by an interruption has
+    another name and is not the record."""
     temporary = f'.{RECORD}.partial-{secrets.token_hex(4)}'
-    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=run_fd)
+    fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=record_fd)
     with os.fdopen(fd, 'w') as stream:
         stream.write(json.dumps(record, indent=2) + '\n')
         stream.flush()
         os.fsync(stream.fileno())
-    os.link(temporary, RECORD, src_dir_fd=run_fd, dst_dir_fd=run_fd, follow_symlinks=False)
-    os.unlink(temporary, dir_fd=run_fd)
+    os.link(temporary, RECORD, src_dir_fd=record_fd, dst_dir_fd=record_fd, follow_symlinks=False)
+    os.unlink(temporary, dir_fd=record_fd)
 
 
-def _finish(run_fd, record, facts, code, label=None):
+def _finish(record_fd, record, facts, code, label=None):
     facts['open'] = False  # the outcome is fixed from here: a later signal changes nothing in the record
     result, failures = outcome(facts)
-    record['app_started'] = facts['started']
+    record['app_started'] = 'started' if facts['started'] else 'not started'
     record['ended'] = facts.get('ended')
     record.setdefault('started_at', None)
     record['real_library'] = facts.get('comparison', {'result': 'not made'})
     record['signals_received'] = list(facts['signals'])
     record['failures'] = failures
     record['outcome'] = label or result
-    write_record(run_fd, record)
-    print(json.dumps({'outcome': record['outcome'], 'record': facts['run'] + '/' + RECORD, 'failures': failures},
-                     indent=2))
+    write_record(record_fd, record)
+    print(json.dumps({'outcome': record['outcome'], 'record': facts['record'], 'failures': failures}, indent=2))
     return code if code is not None else (0 if result == 'clean' else 1)
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description=__doc__.splitlines()[0] + ' A controlled development launcher, not an isolation boundary.',
-        epilog='Each run creates a new launch folder (launch-<time>-<random>) holding a new home (home/), launches the '
-               'App once, and does nothing more with them. The helper deletes nothing. What it states, what it also '
-               'does and its limits are in the module docstring.')
+        description=__doc__.splitlines()[0] + ' Not a boundary around the App or what it starts.',
+        epilog='Each run creates a new launch folder (launch-<time>-<random>) under the homes root '
+               '(dev/chirality-t3/scratch/app/homes/examination under the account\'s home, which must exist), with '
+               'home/ and record/ in it, launches the App once and publishes the record in record/. The caller does '
+               'not choose where they go. What the launcher states, what it also does and its limits are in the '
+               'module docstring.')
     parser.add_argument('command', choices=['launch'])
     parser.add_argument('--candidate', required=True,
-                        help='the candidate folder made by build_candidate.py: the bundle is read from '
-                             'target/debug/bundle/macos and its identification record from '
-                             "identification/candidate-identification.json; identification's check must pass")
-    parser.add_argument('--run-dir', required=True, help='new folder for the run record')
-    parser.add_argument('--parent', required=True, help='existing folder in which the new launch folder is made')
+                        help='the candidate folder made by build_candidate.py; the identification record is '
+                             'identification/candidate-identification.json in it and the bundle the one entry of '
+                             "target/debug/bundle/macos, named as the record names it; identification's check must pass")
     parser.add_argument('--model-address', help=f'a loopback stub address for {MODEL_ADDRESS}; omitted means the default '
                         f'{DEFAULT_MODEL_ADDRESS} (nothing listens there); empty or blank is refused; '
                         'http(s)://127.0.0.1 or [::1] only')
