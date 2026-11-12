@@ -26,13 +26,9 @@ These are comparisons at particular points. Nothing watches a pathname between
 them or between the passes. A bundle put at the name before a pass first examined
 it is what that pass describes, as one whole bundle: if both passes describe it,
 it is the bundle identified; if only the second does and its inventory differs
-from the first pass's, the reading is refused. An inventory, and so an identity
-and a record, describes a bundle's entries, bytes and represented metadata, not
-which physical copy was read: two copies with equal inventories are not told
-apart, within a reading or by a check against a record. So whoever identifies
-a candidate sees to it that nothing rebuilds or replaces the bundle during
-identification and its intended use, and identifies it in the place it will be
-opened from.
+from the first pass's, the reading is refused. So whoever identifies a candidate
+sees to it that nothing rebuilds or replaces the bundle during identification and
+its intended use, and identifies it in the place it will be opened from.
 """
 import argparse
 import contextlib

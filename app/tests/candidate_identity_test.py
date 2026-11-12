@@ -252,8 +252,7 @@ class AncestryBinding(Scratch):
         with patch, self.assertRaisesRegex(ValueError, 'between identification passes'):
             identify.inventory(app)
         self.assertTrue(done)
-        # A separate copy with an EQUAL inventory is not told apart: an identity describes entries,
-        # bytes and represented metadata, not which physical copy was read.
+        # A separate copy with an equal inventory, put there in the second pass only.
         twin = write_bundle(self.tmp / 'twin')
         self.assertNotEqual(twin.stat().st_ino, app.stat().st_ino)
         expected = identify.identity(identify.inventory(app))
@@ -781,10 +780,7 @@ class CandidateRecord(GitScratch):
         code, out, _ = self.check(); self.assertEqual(code, 1)
         self.assertIn('Contents/Resources/instructions/AGENTS.md', json.loads(out)['changed'])
 
-    def test_a_record_does_not_transfer_to_a_bundle_put_at_its_name(self):
-        # An identification record is of the bundle that was examined. Another bundle put at the same
-        # name, even in the instant before a later reading reaches it, has its own identity and does
-        # not check against that record.
+    def test_check_fails_for_a_bundle_with_different_bytes_put_at_the_recorded_name_before_the_check_reaches_it(self):
         code, _, err = self.record(); self.assertEqual(code, 0, err)
         recorded = json.loads((self.tmp / 'rec/candidate-identification.json').read_text())['app_candidate']['build_identity']
         # The same entries and sizes as the recorded bundle; one file's bytes differ.
@@ -807,13 +803,25 @@ class CandidateRecord(GitScratch):
         self.assertEqual(report['build_identity'], identify.identity(identify.inventory(self.app)))
         self.assertEqual(report['changed'], ['Contents/Resources/instructions/AGENTS.md'])
         self.assertEqual(identify.identity(identify.inventory(self.app.with_name('Old.app'))), recorded)
-        # What a record does not do: tell apart a separate copy whose inventory is equal.
-        self.app.rename(self.app.with_name('Differing.app'))
-        self.app.with_name('Old.app').rename(self.tmp / 'elsewhere.app')
+
+    def test_check_passes_for_a_separate_copy_with_an_equal_inventory_at_the_recorded_name_and_fails_on_another_name(self):
+        code, _, err = self.record(); self.assertEqual(code, 0, err)
+        recorded = json.loads((self.tmp / 'rec/candidate-identification.json').read_text())['app_candidate']['build_identity']
+        first_inode = self.app.stat().st_ino
+        self.app.rename(self.tmp / 'elsewhere.app')
         twin = write_bundle(self.tmp / 'twin'); twin.rename(self.app)
+        self.assertNotEqual(self.app.stat().st_ino, first_inode)
         code, out, _ = self.check()
         self.assertEqual(code, 0, out)
         self.assertEqual(json.loads(out)['build_identity'], recorded)
+        # The same copy under another file name: the inventory is equal and the check fails on the name.
+        renamed = self.app.with_name('Other.app'); self.app.rename(renamed)
+        code, out, _ = self.run_tool('check', '--record', str(self.tmp / 'rec/candidate-identification.json'), '--app', str(renamed))
+        self.assertEqual(code, 1)
+        report = json.loads(out)
+        self.assertTrue(report['equal'])
+        self.assertEqual(report['build_identity'], recorded)
+        self.assertEqual(report['record_fields_mismatched'], ['name'])
 
     def test_shared_development_bundle_rule(self):
         judge = identify.judge_development_bundle
