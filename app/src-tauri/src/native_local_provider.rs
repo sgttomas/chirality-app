@@ -164,7 +164,7 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
 pub(crate) const PROCESS_LOCK: &str = "chirality-codex-process.lock";
 /// What a held lock establishes is only that something holds it: the sentence names what may,
 /// and asserts neither which nor for how long.
-pub(crate) const EARLIER_PROCESS: &str = "The App's lock for the local model home is held, so Codex was not started there. A Codex process started earlier for that home, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to end before Codex can start there; the App cannot tell which program it is.";
+pub(crate) const EARLIER_PROCESS: &str = "The App's lock for the local model home is held, so Codex was not started there. A Codex process started earlier for that home, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
 /// The refusal when the App cannot open or lock its lock file at all.
 pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
 /// What trying the App's process lock of a home found, when it was not taken.

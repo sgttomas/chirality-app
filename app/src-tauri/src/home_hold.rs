@@ -62,7 +62,7 @@ pub(crate) const MISSING: &str = "The Codex home does not exist, so Codex was no
 /// nor for how long. (The dedicated local home has its own sentence,
 /// `native_local_provider::EARLIER_PROCESS`, with the same clauses; no
 /// program of the person's settings is started there.)
-pub(crate) const PROCESS_HELD: &str = "The App's lock for this Codex home is held, so Codex was not started there. A Codex process started earlier for that home, or a program it started, may hold it; that program may be one your own Codex settings start, such as a notifier or a hook. Try again in a minute. If it stays held, whatever holds it has to end before Codex can start there; the App cannot tell which program it is.";
+pub(crate) const PROCESS_HELD: &str = "The App's lock for this Codex home is held, so Codex was not started there. A Codex process started earlier for that home, or a program it started, may hold it; that program may be one your own Codex settings start, such as a notifier or a hook. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
 /// What a person is told when the App could not try its process lock of a
 /// home at all. Never read as free.
 pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check its lock for this Codex home, so Codex was not started there.";
@@ -77,7 +77,7 @@ pub(crate) fn process_held_here(census: &crate::hosting::process_group_custody::
         Census::Complete(_) => "When checked just now, processes of its group were running.",
         Census::Unknown(_) => "Its process group could not be checked.",
     };
-    format!("The App's lock for this Codex home is held, so Codex was not started there. This App started a Codex process for that home and has not confirmed that it ended; that process, or a program it started, may hold the lock. {seen} Try again in a minute. If it stays held, whatever holds it has to end before Codex can start there.")
+    format!("The App's lock for this Codex home is held, so Codex was not started there. This App started a Codex process for that home and has not confirmed that it ended; that process, or a program it started, may hold the lock. {seen} Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there.")
 }
 
 /// A held home directory's identity: (device, inode).

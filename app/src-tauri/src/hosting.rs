@@ -1744,6 +1744,10 @@ impl Host {
     }
     fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
         self.begin_start_request();
+        // The home is the folder the child will use: it is given `cfg.cwd` as its working folder
+        // and resolves a relative CODEX_HOME there, so the hold, the identity checks and the lock
+        // are all on the folder resolved the same way.
+        let home_path = cfg.cwd.join(&cfg.codex_home);
         // DEL-01-01/05: one App at a time on a Codex home, held while this
         // Host lives; the claim keeps the home from being taken over while
         // this start is under way. Refused before anything is spawned, and
@@ -1754,11 +1758,11 @@ impl Host {
         // this Host only once this call is admitted as an attempt; a call
         // refused before that drops it and keeps no claim on the home.
         let owner: std::sync::Weak<dyn crate::home_hold::HoldOwner> = Arc::downgrade(self) as std::sync::Weak<dyn crate::home_hold::HoldOwner>;
-        let (hold, _start_claim, identity) = match crate::home_hold::claim_host(&cfg.codex_home, self.hold_id, owner, &self.home_starting) {
+        let (hold, _start_claim, identity) = match crate::home_hold::claim_host(&home_path, self.hold_id, owner, &self.home_starting) {
             Ok(claimed) => claimed,
             Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
         };
-        let home = AdmittedHome { path: cfg.codex_home.clone(), identity };
+        let home = AdmittedHome { path: home_path, identity };
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
         // Every home (DEL-01-02 REQ-010): no Codex is started on a home while a Codex process the
@@ -7137,14 +7141,62 @@ mod local_process_lock_tests {
         stop_and_wait(&host);
         drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));
     }
-    /// The sentence for a held lock says what may hold it and asserts neither which nor how long.
+    /// A relative home is held and locked where the child will resolve it (its working folder),
+    /// not in the App's own working folder, which here holds no folder of that name.
     #[test]
-    fn local_process_lock_refusal_asserts_only_what_a_held_lock_shows() {
-        for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it"] {
-            assert!(!EARLIER_PROCESS.contains(claim), "{claim}");
+    fn a_relative_home_is_held_and_locked_where_the_child_resolves_it() {
+        let f = Fixture::new(false, false);
+        let mut cfg = f.cfg.clone();
+        assert!(cfg.process_lock.is_none() && cfg.codex_home == f.root.join("home") && cfg.cwd.is_absolute());
+        cfg.cwd = f.root.clone();
+        cfg.codex_home = PathBuf::from("home");
+        // The plain development route: a start through a distribution tree resolves the home in
+        // the App's own working folder first and so does not reach a child with a relative home.
+        cfg.distribution = None;
+        assert!(!std::env::current_dir().unwrap().join("home").exists());
+        let earlier = take_process_lock(&f.lock_path()).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&cfg, "fixture").unwrap_err(), crate::home_hold::PROCESS_HELD);
+        assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
+        drop(earlier);
+        // Free: the child starts in that folder and holds the lock that is in it.
+        assert_eq!(host.start(&cfg, "fixture").unwrap()["state"], "ready");
+        assert!(f.started(), "the child resolved the relative home to the same folder");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
+        assert!(!std::env::current_dir().unwrap().join("home").exists(), "nothing was created in the App's own working folder");
+        stop_and_wait(&host);
+    }
+    /// While a start verifies its supplier, before it is spawned, it already holds its home's
+    /// lock: a start that looked at the home before the file existed cannot be passed by another
+    /// start that creates it.
+    #[test]
+    fn a_first_start_holds_its_homes_lock_from_before_verification() {
+        let f = Fixture::new(false, false);
+        assert!(!f.lock_path().exists());
+        let host = Arc::new(Host::new());
+        let (path, seen) = (f.lock_path(), Arc::new(Mutex::new(None)));
+        let (probe, started) = (seen.clone(), f.root.join("home/started"));
+        *host.before_successor_gate.lock().unwrap() = Some(Box::new(move || {
+            *probe.lock().unwrap() = Some((started.exists(), take_process_lock(&path).map(drop)));
+        }));
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert_eq!(seen.lock().unwrap().clone(), Some((false, Err(EARLIER_PROCESS.to_string()))), "held by the start itself before anything was spawned");
+        stop_and_wait(&host);
+    }
+    /// Lexical only: the claims withdrawn from these sentences stay out of them. Whether a
+    /// sentence is true of what was observed is a reader's judgment, not this test's.
+    #[test]
+    fn local_process_lock_refusal_does_not_carry_the_withdrawn_claims() {
+        use process_group_custody::Census;
+        let here = [Census::Complete(0), Census::Complete(3), Census::Unknown("errno 1 at /x".into())].map(|c| crate::home_hold::process_held_here(&c));
+        for sentence in [EARLIER_PROCESS, crate::home_hold::PROCESS_HELD, here[0].as_str(), here[1].as_str(), here[2].as_str()] {
+            for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "has to end before"] {
+                assert!(!sentence.contains(claim), "{claim}");
+            }
+            assert!(!sentence.contains('/') && !sentence.chars().any(|c| c.is_ascii_digit()), "{sentence}");
         }
-        assert!(EARLIER_PROCESS.contains("is held") && EARLIER_PROCESS.contains("may hold it") && EARLIER_PROCESS.contains("cannot tell which program"));
-        assert!(!EARLIER_PROCESS.contains('/') && !EARLIER_PROCESS.chars().any(|c| c.is_ascii_digit()));
+        assert!(!crate::home_hold::PROCESS_HELD.contains("local model") && !crate::home_hold::PROCESS_LOCK_UNAVAILABLE.contains("local model"));
+        assert!(!crate::home_hold::PROCESS_HELD.contains("another copy of the App"), "the home hold refuses another copy of the App before the lock is tried");
     }
 
     /// A home that has no lock file gets one at its first start: one small private file, held by
@@ -7205,7 +7257,7 @@ mod local_process_lock_tests {
         assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), PROCESS_HELD);
         assert_eq!(starts(), 1, "no second stand-in while the lock is held");
         for sentence in [unknown.as_str(), seen.as_str(), PROCESS_HELD, crate::home_hold::PROCESS_LOCK_UNAVAILABLE] {
-            for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "/", "pid"] {
+            for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "has to end before", "/", "pid"] {
                 assert!(!sentence.contains(claim), "{claim}: {sentence}");
             }
         }
