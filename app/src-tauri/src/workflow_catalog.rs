@@ -1,6 +1,8 @@
-//! One explicitly selected Root package, embedded unchanged for development.
-//! This is neither published release qualification nor historical shipping proof.
-//! The child module alone constructs Selection from this closed resource set.
+//! The development catalog: one explicitly selected Root package, embedded
+//! unchanged. The production catalog: every workflow of the selected Library
+//! release, named by a compiled manifest and read from installed resources.
+//! Neither is published release qualification nor historical shipping proof.
+//! This child module alone constructs Selection from these closed sets.
 use super::{Selection, SelectionAdmission, Snapshot, WorkflowIdentity, SNAPSHOT_METHOD};
 use std::{
     collections::BTreeMap,
@@ -108,26 +110,25 @@ impl HoldingCopySelection {
     }
 }
 
-/// Integrator-selected production inputs. Candidate admission is distinct from
-/// historical release recognition: this first manifest claims no shipped past.
+/// Every workflow of the selected Library release, as the generated manifest
+/// names them (`python3 -m tools.library_workflows`). Candidate admission is
+/// distinct from historical release recognition: the manifest claims no
+/// shipped past.
 pub const PRODUCTION_STANDING: &str = "production bundle candidate; not a published release";
-pub const RELEASE_SUBJECT: &str = "chirality-app-v4:APP-V4-BUNDLE-INPUTS-20261008";
+/// The bundled library's source root: the selected Library edition.
+pub const RELEASE_SUBJECT: &str = "chirality-library:library-v3.4.0";
 const MANIFEST: &[u8] = include_bytes!("../resources/production_workflows/MANIFEST.json");
-const PRODUCTION_WORKFLOW: &[u8] =
-    include_bytes!("../resources/production_workflows/coordinated-knowledge-work/WORKFLOW.md");
-const PRODUCTION_NOTES: &[u8] =
-    include_bytes!("../resources/production_workflows/coordinated-knowledge-work/REVIEW-NOTES.md");
 
-/// WR LS-5 closed bundled-run subject (DEL-02-02 BUNDLED-RUN-01, 2026-11-03).
-/// Agent 0 selected this exact pinned production manifest and package revision as
-/// the first bundled workflow input of App v4. Only this subject, resolved from
-/// this App's own installed resources, runs without A15. Changing either the
-/// compiled manifest or package bytes requires a reviewed change here. These
-/// constants claim no published release, shipped history or qualification.
+/// WR LS-5 closed bundled-run subject (DEL-02-02 BUNDLED-RUN-01; widened to the
+/// selected Library's whole workflow set, DEL-02-02 AC-014). The compiled
+/// manifest names every bundled package, its files and its revision, and this
+/// digest pins that manifest: changing any shipped byte changes the generated
+/// manifest and so requires a reviewed change here. Only a package this
+/// manifest names, resolved from this App's own installed resources with bytes
+/// that hash to the manifest's revision, runs without A15. The constant claims
+/// no published release, shipped history or qualification.
 pub const SELECTED_BUNDLED_MANIFEST_SHA256: &str =
-    "5eb8ab6d6259c47ef8d270597d9323f0399e2f668ff2defc37159faa05f71dc3";
-pub const SELECTED_BUNDLED_REVISION: &str =
-    "3730d84debb5d77582a0c26211a5f380cdb1a44c7e26eeb537f334db43fdd881";
+    "20a015b810abececdbf1fe3767ef443476a5aec1c768343c3db8f68daf062f63";
 /// Standing of the admitted LS-5 selection. The candidate build itself is still
 /// not a published release; that standing stays with the manifest.
 pub const BUNDLED_STANDING: &str =
@@ -174,72 +175,188 @@ pub(crate) fn installed_root() -> Option<PathBuf> {
     INSTALLED_ROOT.get().cloned()
 }
 
+/// One bundled workflow as the compiled manifest names it. Package bytes are
+/// not compiled in: they are read from the App's installed resources (or a
+/// library holding copy) and admitted only when they hash to `identity.revision`.
+pub struct ProductionEntry {
+    identity: WorkflowIdentity,
+    files: serde_json::Value,
+    listing: serde_json::Value,
+}
+impl ProductionEntry {
+    pub fn identity(&self) -> &WorkflowIdentity {
+        &self.identity
+    }
+    /// What the Library says of the workflow, for selection: description,
+    /// central, compatibility, roles, navigation, its execution companion as
+    /// the index states it, and the release paths its files name.
+    pub fn listing(&self) -> &serde_json::Value {
+        &self.listing
+    }
+}
 pub struct ProductionCatalog {
-    selection: Selection,
+    entries: BTreeMap<String, ProductionEntry>,
+    source: serde_json::Value,
 }
 impl ProductionCatalog {
-    /// The build closes both manifest and byte inputs; caller manifests cannot
-    /// confer bundle admission. Every included file participates in identity.
-    pub fn load() -> Result<Self, String> {
-        let snapshot = Snapshot::from_files(BTreeMap::from([
-            ("WORKFLOW.md".into(), PRODUCTION_WORKFLOW.to_vec()),
-            ("REVIEW-NOTES.md".into(), PRODUCTION_NOTES.to_vec()),
-        ]))?;
+    /// The build closes the manifest; caller manifests cannot confer bundle
+    /// admission. Parsed once per process: the compiled bytes never change.
+    pub fn load() -> Result<&'static Self, String> {
+        static CATALOG: std::sync::OnceLock<Result<ProductionCatalog, String>> =
+            std::sync::OnceLock::new();
+        CATALOG
+            .get_or_init(|| {
+                Self::parse(MANIFEST)
+                    .map_err(|e| format!("production bundle manifest is not admitted: {e}"))
+            })
+            .as_ref()
+            .map_err(Clone::clone)
+    }
+    pub(super) fn parse(manifest: &[u8]) -> Result<Self, String> {
         let manifest = crate::workflow_declaration::parse_unique(
-            std::str::from_utf8(MANIFEST).map_err(|e| e.to_string())?,
+            std::str::from_utf8(manifest).map_err(|e| e.to_string())?,
         )?;
-        let package = &manifest["packages"][0];
-        let expected_files: Vec<_> = snapshot.files().iter().map(|(path, bytes)|
-            serde_json::json!({"path":path,"bytes":bytes.len(),"sha256":crate::util::sha256_hex(bytes)})
-        ).collect();
-        if manifest["schema_version"] != 1
+        if manifest["schema_version"] != 2
             || manifest["release_subject"] != RELEASE_SUBJECT
             || manifest["standing"] != PRODUCTION_STANDING
             || manifest["historical_shipped_revisions"] != serde_json::json!([])
             || manifest["recognize_v3"] != false
-            || manifest["source_revision"] != "f3c0a1df5eaa86df22111e9b0dac53cbfd1bbc64"
-            || manifest["packages"].as_array().map(Vec::len) != Some(1)
-            || package["name"] != NAME
-            || package["source_root"] != "chirality-root"
-            || package["source_path"] != "workflows/coordinated-knowledge-work"
-            || package["revision_method"] != SNAPSHOT_METHOD
-            || package["revision"] != snapshot.revision()
-            || package["files"] != serde_json::json!(expected_files)
-            || !snapshot.hygiene_findings().is_empty()
+            || !manifest["source"].is_object()
         {
-            return Err("production bundle manifest does not bind admitted source bytes".into());
+            return Err("manifest header differs from the admitted release subject".into());
         }
-        let identity = snapshot.identity("bundled", RELEASE_SUBJECT, NAME, None)?;
-        Ok(Self {
-            selection: Selection {
-                registration_basis: None,
-                snapshot,
-                identity,
-                admission: SelectionAdmission::ProductionBundle {
-                    manifest_sha256: crate::util::sha256_hex(MANIFEST),
-                    release_subject: RELEASE_SUBJECT.into(),
-                    holding_library: None,
-                    bundle_root: None,
-                },
-            },
-        })
+        let mut entries = BTreeMap::new();
+        for package in manifest["packages"].as_array().ok_or("no package list")? {
+            let name = package["name"].as_str().ok_or("package without a name")?;
+            let revision = package["revision"].as_str().ok_or("package without a revision")?;
+            let files = package["files"].as_array().ok_or("package without a file list")?;
+            if package["revision_method"] != SNAPSHOT_METHOD
+                || revision.len() != 64
+                || !revision.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                || package["source_path"] != format!("workflows/{name}")
+                || !files.iter().any(|file| file["path"] == "WORKFLOW.md")
+            {
+                return Err(format!("package {name} is not bound by the manifest"));
+            }
+            let identity = WorkflowIdentity {
+                kind: "workflow".into(),
+                origin: "bundled".into(),
+                source_root: RELEASE_SUBJECT.into(),
+                name: name.into(),
+                revision: revision.into(),
+                revision_method: SNAPSHOT_METHOD.into(),
+                derived_from: None,
+            };
+            identity.validate()?;
+            let listing = serde_json::json!({
+                "description": package["description"],
+                "central": package["central"],
+                "compatibility": package["compatibility"],
+                "roles": package["roles"],
+                "navigation": package["navigation"],
+                // What the Library's index states for the method (null without
+                // an execution companion), and the release paths the package's
+                // files name that the App does not include. Neither is the
+                // declared part: nothing here feeds the requirement check.
+                "libraryExecution": package["library_execution"],
+                "libraryPathsNamed": package["library_paths_named"],
+            });
+            let entry = ProductionEntry { identity, files: package["files"].clone(), listing };
+            if entries.insert(name.to_owned(), entry).is_some() {
+                return Err(format!("package {name} is named twice"));
+            }
+        }
+        if entries.is_empty() {
+            return Err("manifest names no package".into());
+        }
+        Ok(Self { entries, source: manifest["source"].clone() })
     }
-    pub fn identity(&self) -> &WorkflowIdentity {
-        self.selection.identity()
+    /// Every bundled workflow, ordered by name.
+    pub fn entries(&self) -> impl Iterator<Item = &ProductionEntry> {
+        self.entries.values()
     }
-    pub fn select_embedded(&self) -> Selection {
-        self.selection.clone()
+    fn entry(&self, name: &str) -> Result<&ProductionEntry, String> {
+        self.entries.get(name).ok_or_else(|| "name not in production catalog".into())
+    }
+    pub fn identity(&self, name: &str) -> Result<&WorkflowIdentity, String> {
+        self.entry(name).map(ProductionEntry::identity)
+    }
+    /// The Library release the bundle was generated from: repository, tag,
+    /// commit and archive, as the manifest records them.
+    pub fn source(&self) -> &serde_json::Value {
+        &self.source
     }
     pub fn manifest(&self) -> &'static [u8] {
         MANIFEST
     }
+    /// The bytes at `package` as the named bundled workflow, or a refusal.
+    /// Every file participates: the captured files must be the manifest's
+    /// files and hash to the manifest's revision.
+    fn admit(&self, name: &str, package: &Path) -> Result<Selection, String> {
+        let entry = self.entry(name)?;
+        let snapshot = Snapshot::capture(package)
+            .map_err(|e| format!("selected revision not resolvable: {e}"))?;
+        let files: Vec<_> = snapshot.files().iter().map(|(path, bytes)|
+            serde_json::json!({"path":path,"bytes":bytes.len(),"sha256":crate::util::sha256_hex(bytes)})
+        ).collect();
+        if snapshot.revision() != entry.identity.revision
+            || entry.files != serde_json::json!(files)
+            || !snapshot.hygiene_findings().is_empty()
+        {
+            return Err("revision not verified".into());
+        }
+        Ok(Selection {
+            registration_basis: None,
+            snapshot,
+            identity: entry.identity.clone(),
+            admission: SelectionAdmission::ProductionBundle {
+                manifest_sha256: crate::util::sha256_hex(MANIFEST),
+                release_subject: RELEASE_SUBJECT.into(),
+                holding_library: None,
+                bundle_root: None,
+            },
+        })
+    }
+    /// Test fixtures only: a bundled package read from the source tree the
+    /// build bundles, as an unresolved candidate (no bundle root, not runnable).
+    #[cfg(test)]
+    pub fn select_source(&self, name: &str) -> Selection {
+        let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/production_workflows");
+        self.admit(name, &source.join(name)).unwrap()
+    }
 
-    /// WR LS-5 / TT-1 / TX-1: the closed bundled-run admission. Admits only the
-    /// selected subject above, resolved by `select_bundle_package` from exactly
-    /// this App's recorded installed root (never the embedded copy, a library
-    /// holding copy, a copy at another root, a development or registered
-    /// selection). Bytes and location are rechecked at use by `verify_store`;
-    /// this check alone grants no file authority.
+    /// The run guide's reading of one entry of the bundle at `root`: whether
+    /// `select_bundle_package` resolves it now. The listing is read on every
+    /// host tick, so a package's verification is kept while its files' sizes
+    /// and modification times are unchanged. This is a listing aid only:
+    /// selection, preparation and sending always read and hash the bytes.
+    pub fn listed_admission(&self, root: &Path, name: &str) -> Result<(), String> {
+        type Listed = std::collections::HashMap<PathBuf, (Vec<FileFacts>, Result<(), String>)>;
+        static LISTED: std::sync::OnceLock<std::sync::Mutex<Listed>> = std::sync::OnceLock::new();
+        let verify = || self.select_bundle_package(root, name).map(|_| ());
+        let package = root.join(name);
+        let mut facts = Vec::new();
+        if file_facts(&package, &mut facts).is_err() {
+            return verify();
+        }
+        facts.sort();
+        let mut listed = LISTED.get_or_init(Default::default).lock().unwrap_or_else(|e| e.into_inner());
+        match listed.get(&package) {
+            Some((seen, result)) if *seen == facts => result.clone(),
+            _ => {
+                let result = verify();
+                listed.insert(package, (facts, result.clone()));
+                result
+            }
+        }
+    }
+
+    /// WR LS-5 / TT-1 / TX-1: the closed bundled-run admission. Admits only a
+    /// package the compiled manifest names, resolved by `select_bundle_package`
+    /// from exactly this App's recorded installed root (never a library holding
+    /// copy, a copy at another root, a development or registered selection).
+    /// Bytes and location are rechecked at use by `verify_store`; this check
+    /// alone grants no file authority.
     pub fn bundled_run_admission(selection: &Selection) -> Result<&Path, String> {
         let SelectionAdmission::ProductionBundle {
             manifest_sha256,
@@ -254,11 +371,10 @@ impl ProductionCatalog {
         if crate::util::sha256_hex(MANIFEST) != SELECTED_BUNDLED_MANIFEST_SHA256
             || manifest_sha256 != SELECTED_BUNDLED_MANIFEST_SHA256
             || release_subject != RELEASE_SUBJECT
-            || &selection.identity != catalog.identity()
-            || selection.identity.revision != SELECTED_BUNDLED_REVISION
-            || selection.snapshot.revision != SELECTED_BUNDLED_REVISION
+            || catalog.identity(&selection.identity.name).ok() != Some(&selection.identity)
+            || selection.snapshot.revision != selection.identity.revision
         {
-            return Err("bundled subject is not the selected App v4 bundled workflow input".into());
+            return Err("bundled subject is not a workflow of this App's bundled manifest".into());
         }
         match installed_root() {
             Some(installed) if installed.as_path() == root.as_path() => Ok(root),
@@ -273,14 +389,11 @@ impl ProductionCatalog {
         root: &Path,
         name: &str,
     ) -> Result<ProductionBundlePackage, String> {
-        if name != self.identity().name {
-            return Err("name not in production catalog".into());
-        }
+        self.entry(name)?;
         verify_bundle_manifest(root)?;
         let package = root.join(name);
         crate::storage::check_path(&package)?;
-        self.selection.verify_store(&package)?;
-        let mut selection = self.selection.clone();
+        let mut selection = self.admit(name, &package)?;
         if let SelectionAdmission::ProductionBundle { bundle_root, .. } = &mut selection.admission {
             *bundle_root = Some(root.into());
         }
@@ -295,13 +408,10 @@ impl ProductionCatalog {
         library_root: &Path,
         name: &str,
     ) -> Result<ProductionHoldingCopy, String> {
-        if name != self.identity().name {
-            return Err("name not in production catalog".into());
-        }
+        self.entry(name)?;
         verify_unregistered_slot(library_root, name)?;
         let package = library_root.join(".chirality/workflows").join(name);
-        self.selection.verify_store(&package)?;
-        let mut selection = self.selection.clone();
+        let mut selection = self.admit(name, &package)?;
         if let SelectionAdmission::ProductionBundle {
             holding_library, ..
         } = &mut selection.admission
@@ -314,6 +424,19 @@ impl ProductionCatalog {
             package,
         })
     }
+}
+/// Path, kind, size and modification time of one entry beneath a package.
+type FileFacts = (PathBuf, bool, u64, Option<std::time::SystemTime>);
+fn file_facts(folder: &Path, out: &mut Vec<FileFacts>) -> std::io::Result<()> {
+    for entry in std::fs::read_dir(folder)? {
+        let path = entry?.path();
+        let meta = std::fs::symlink_metadata(&path)?;
+        out.push((path.clone(), meta.is_dir(), meta.len(), meta.modified().ok()));
+        if meta.is_dir() {
+            file_facts(&path, out)?;
+        }
+    }
+    Ok(())
 }
 pub(super) fn verify_unregistered_slot(library_root: &Path, name: &str) -> Result<(), String> {
     if !library_root.is_absolute() || !library_root.is_dir() {
@@ -375,7 +498,7 @@ impl ProductionBundlePackage {
         self.selection.verify_store(&self.package)
     }
 }
-pub(super) fn verify_bundle_manifest(root: &Path) -> Result<(), String> {
+pub(crate) fn verify_bundle_manifest(root: &Path) -> Result<(), String> {
     if !root.is_absolute() || !root.is_dir() {
         return Err("fixed existing bundle root required".into());
     }

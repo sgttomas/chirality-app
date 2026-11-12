@@ -497,3 +497,12 @@ for (const replacement of ['draft choice', 'library']) test(`a queued Continue r
     }
   }
 });
+
+// Review round 2 of pull request 241: a reply that resolves with a limit was summarised as plain success.
+test('a drafts folder the App could not read is said in the guide', async () => {
+  const ui = await mount({host:host(), data:data({drafts:{drafts:[], limit:'drafts folder refused (invented cause); nothing outside the library is listed'}})});
+  assert.match(region(ui.c, 'Make a workflow from your work').textContent, /The App couldn't read this library's drafts: drafts folder refused \(invented cause\); nothing outside the library is listed/);
+  await ui.rerender({data:data({drafts:{drafts:[], limit:null}})});
+  assert.doesNotMatch(region(ui.c, 'Make a workflow from your work').textContent, /couldn't read this library's drafts/);
+  await ui.close();
+});
