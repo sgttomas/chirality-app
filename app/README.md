@@ -855,10 +855,17 @@ implemented behavior and qualification limits.
     currently unsigned and unchained; cold reads restore no conversation or
     role authority.
 
-27. **Refresh fleet records** rebuilds the file-based coordination workspace
-    for each undertaking: the selected graph, outstanding returns and review
-    ownership, recorded integration, selected work and waiting causes. It reads
-    the fixed `.chirality/fleet/` folder and writes nothing. Agents and the
+27. **Delegated work**, in the workspace navigation, rebuilds the file-based
+    coordination workspace for each undertaking: the selected graph, selected
+    work with its state and waiting causes, outstanding returns with review
+    ownership and returned files, and recorded integration. The same view shows
+    the decision packages with the control that opens the act control. It
+    reads `read_fleet_records` and `decision_view` when it is shown and again
+    10 seconds after each read ends while it stays shown, never two reads at
+    once and none while hidden; **Read again now** reads at once. It says when
+    it last read and what kept that read from being complete, and a failed read
+    replaces the earlier reading rather than leaving it shown. It reads the
+    fixed `.chirality/fleet/` folder and writes nothing. Agents and the
     person continue to author the source records with their file tools.
     New `current_graph` selectors use `graphContent.method` =
     `chirality.app.exact-bytes.sha256/v1` and `graphContent.value` = the
@@ -870,7 +877,7 @@ implemented behavior and qualification limits.
     needs and current native execution remain unknown without their required
     evidence. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
-    available beside the derived views.
+    available beside the derived views, under the view's **Source records**.
 
 ## Modules
 

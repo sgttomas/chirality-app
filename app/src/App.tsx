@@ -2,7 +2,7 @@ import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
-import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
+import { DelegatedWorkView, useDelegatedWork, actName } from "./DelegatedWork";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
@@ -1459,11 +1459,11 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
     {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
     {(view?.rows ?? []).map((row: Json) => <article key={row.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>{row.package} — {row.actRequested} — {row.state}</h3>
+      <h3>{row.package} — {actName(row.actRequested)} — {row.state}</h3>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
       <p>Subject: {(row.subject ?? []).join("; ")} · Purpose: {row.purpose} · Scope: {row.scope ?? "—"} · File: {row.packageFile}</p>
-      <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><b>{a.id}</b> {a.statement} — {(a.consequences ?? []).join("; ")}</li>)}</ul>
+      <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><b>{a.id}</b> {a.statement} — {(a.consequences ?? []).length > 0 ? a.consequences.join("; ") : "no consequence stated"}</li>)}</ul>
       {row.state === "ambiguous current standing" && <p>Current recorded standing is ambiguous. No current act is selected from these claims; this row does not establish a pending human act. The act control retains its current package and offer checks.</p>}
       {row.decision && claim(row.decision)}
       {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>{contender.act}</h5>{claim(contender)}</article>)}</div>}
@@ -1476,15 +1476,6 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
 }
 
 export function App() {
-  const [fleet, setFleet] = useState<FleetPacket | null>(null);
-  const [fleetError, setFleetError] = useState("");
-  const [fleetBusy, setFleetBusy] = useState(false);
-  const refreshFleet = async () => {
-    setFleetBusy(true); setFleetError("");
-    try { setFleet(await readFleetPacket(command => invoke<FleetPacket>(command))); }
-    catch (error) { setFleet(null); setFleetError(String(error)); }
-    finally { setFleetBusy(false); }
-  };
   const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
   const readRoutes = async () => {
     setRouteRead(s => routeReadTransition(s, {type: "start"}));
@@ -1835,6 +1826,7 @@ export function App() {
     taskViewRef.current = next;
     flushSync(() => setTaskView(next));
   }), []);
+  const delegated = useDelegatedWork(taskView === "delegated", command => invoke(command));
   const [composerOffer, setComposerOffer] = useState<ComposerOffer | null>(null);
   const composerOfferSequence = useRef(0);
   // A guide's "show the conversation": the person's explicit navigation selects
@@ -2612,6 +2604,9 @@ export function App() {
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
+        <div id="view-delegated" data-workspace-view="delegated" className="workspace-view workspace-view-narrow" hidden={taskView !== "delegated"}>
+          <DelegatedWorkView read={delegated.read} readNow={() => { void delegated.readNow(); }} decisionPackages={decisions => <DecisionPackagesPanel view={decisions} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={delegated.readNow} continueRecording={async () => { await act("continue_decision_recording"); await delegated.readNow(); }} openControl={openControl}/>}/>
+        </div>
         <div id="view-history" data-workspace-view="history" className="workspace-view workspace-view-narrow" hidden={taskView !== "history"}>
           <WorkspaceDisclosure id="workspace-history" title="History and recovery" description="Read prior conversations and inspect recovery custody" open>
             <RecoveryCustodyPanel key={JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation])} modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} nativeHistoryGeneration={host?.nativeHistory?.generation ?? null} read={() => invoke("read_recovery_custody", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null })} readRequests={(cursor: Json) => invoke("read_recovery_request_history", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, cursor: cursor ?? null })} retry={(threadId: string) => invoke("recovery_retry", { modeHomeClass: host?.homeRouting?.activeModeHomeClass, generation: host?.generation ?? null, threadId })}/>
@@ -2631,10 +2626,9 @@ export function App() {
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-records" title="Records and Fleet" description="Project records, capability bindings and cross-source records">
             <RecordsStorePanel store={host?.recordsStore} act={act}/>
-          <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }}/>
   <RecordsCapabilityBindings host={host}/>
           </WorkspaceDisclosure>
-          <WorkspaceDisclosure id="workspace-evidence" title="Connectors and examination" description="Supplied observations, connector routes and decision packages">
+          <WorkspaceDisclosure id="workspace-evidence" title="Connectors and examination" description="Supplied observations and connector routes">
             <ConnectorSourcePanel availability={host?.connectorRouteAvailability} command={(name, args) => invoke(name, args)}/>
         <ConnectorRoutePanel availability={host?.connectorRouteAvailability} state={routeRead} onRead={readRoutes}/>
   <ExternalObservationPanel data={host?.externalObservation} select={async () => {
@@ -2657,7 +2651,6 @@ export function App() {
               setHost(await invoke("host_status"));
           }
       }}/>
-  <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl}/>
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-diagnostics" title="Host diagnostics" description="Source identities, role supply, native envelopes and recovery details">
             <section><h2>Codex host</h2>

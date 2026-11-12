@@ -51,6 +51,10 @@ code_paths:
 # app/src-tauri/schemas/checkpoint-record-entries.schema.json is DEL-02-03's. Its decisionPackageFile
 # definition enforces the decision package this scope defines; the rest of the file is DEL-02-03's.
 - app/src/FleetRecordsPanel.tsx
+- app/src/DelegatedWork.tsx
+# DailyWorkspace.tsx is shared with DEL-02-02 and DEL-01-04. Here: the navigation entry for the
+# delegated-work view.
+- app/src/DailyWorkspace.tsx
 # runtime_session.rs, lib.rs and App.tsx are shared. Here: the read of the decision packages, the
 # decision view command, the decision packages panel and the mounting of both panels.
 - app/src-tauri/src/runtime_session.rs

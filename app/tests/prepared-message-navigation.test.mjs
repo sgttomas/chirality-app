@@ -469,7 +469,7 @@ test('daily workspace keeps A/C/B/D, exact composer, chooser, global draft and l
  const send=deferred();await mounted({send:()=>send.promise},async ui=>{
   await followWorkspaceLink(ui.c,'Choose a new conversation');assert.equal(disclosureOpen(byId(ui.c,'workspace-start')),true);await ui.editChoice('Unsent new-conversation model');await toggleDisclosure(ui.c,'workspace-start',false);await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Edited daily-workspace message');await ui.change(labelled(original,'select','Send to '),key('D'));await ui.choose('A');
   const review=region(ui.c,'Content named by an open native confirmation');const tools=byId(ui.c,'workspace-tools');assert.ok(tools);const panels=tools.querySelectorAll(e=>e.localName==='details'&&e.getAttribute('class')==='workspace-disclosure');assert.ok(panels.length);
-  const filePanel=byId(ui.c,'file-acts');const name=elements(byId(ui.c,'workspace-evidence'),'input').find(e=>e.parentNode.textContent.startsWith('Your name on acts'));
+  const filePanel=byId(ui.c,'file-acts');const name=elements(byId(ui.c,'view-delegated'),'input').find(e=>e.parentNode.textContent.startsWith('Your name on acts'));
   await toggleDisclosure(ui.c,'workspace-files',true);const scope=labelled(filePanel,'input','Scope ');await ui.change(scope,'Unsent file-review scope');
   await toggleDisclosure(ui.c,'workspace-evidence',true);await ui.change(name,'Unsent local name');const before=ui.calls.length;
   for(const panel of panels){await toggleDisclosure(ui.c,panel.getAttribute('id'),true);await toggleDisclosure(ui.c,panel.getAttribute('id'),false);}
