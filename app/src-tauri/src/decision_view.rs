@@ -19,8 +19,8 @@ const PERSON_WORDING: &str = "identity not verified";
 /// Row states. The two incomplete states are never a decision or a pending
 /// request: an act log that could bear on the row was not fully read.
 pub(crate) const PENDING: &str = "pending — awaiting the person's decision";
-pub(crate) const DECIDED_INCOMPLETE: &str = "decided as far as read; act records incomplete";
-pub(crate) const PENDING_INCOMPLETE: &str = "pending as far as read; act records incomplete";
+pub(crate) const DECIDED_INCOMPLETE: &str = "act records incomplete; a deciding act was read";
+pub(crate) const PENDING_INCOMPLETE: &str = "act records incomplete; no deciding act was read";
 
 pub fn person_label(p: &Value) -> String {
     let names: Vec<&str> = ["displayName", "osAccount", "codexAccount", "hostActor"]

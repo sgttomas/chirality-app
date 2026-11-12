@@ -297,6 +297,11 @@ fn decision_view_row_with_an_unread_act_line_is_not_plainly_decided() {
     std::fs::write(f.store().join("acts/20-unreadable.jsonl"), b"{\"kind\":\"human_act\",\n").unwrap();
     let row = f.row("rec:r1");
     assert_eq!(row["state"], DECIDED_INCOMPLETE, "{row}");
+    // The row says first that the reading is incomplete, and its state is
+    // neither of the two plain ones.
+    let state = row["state"].as_str().unwrap();
+    assert!(state.starts_with("act records incomplete"), "{row}");
+    assert!(state != "decided" && state != PENDING, "{row}");
     assert_eq!(row["decision"]["act"], "rec:a1", "the act is still shown");
     assert!(row["limits"].to_string().contains("act records not fully read: records-store:acts/20-unreadable.jsonl"), "{row}");
 }
@@ -309,5 +314,10 @@ fn decision_view_row_with_a_torn_act_log_is_not_plainly_pending() {
     std::fs::write(f.store().join("acts/10-torn.jsonl"), b"{\"format\":\"chirality.rs.record\"").unwrap();
     let row = f.row("rec:r1");
     assert_eq!(row["state"], PENDING_INCOMPLETE, "{row}");
+    // The row says first that the reading is incomplete, and its state is
+    // neither of the two plain ones.
+    let state = row["state"].as_str().unwrap();
+    assert!(state.starts_with("act records incomplete"), "{row}");
+    assert!(state != "decided" && state != PENDING, "{row}");
     assert!(row["limits"].to_string().contains("10-torn.jsonl"), "{row}");
 }
