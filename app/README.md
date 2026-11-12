@@ -888,7 +888,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/records_index.rs`, `records_query.rs`, `records_index_tests.rs` | RS §13.8 derived SQLite query cache: disk-backed identities and positions, streamed rebuilding, authoritative line revalidation, and source-scan fallback; cache metadata is disposable |
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `records_continuity.rs`, `records_continuity_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
-| `src-tauri/src/records_store.rs`, `records_store_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
+| `src-tauri/src/records_store.rs`, `records_store_lines.rs`, `records_store_witness.rs`, `records_store_tests.rs`, `records_store_lines_tests.rs`, `records_store_witness_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records with the store's witness of it, the appender and shared reading of the store's own line files, and the host status `recordsStore` |
 | `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload and prior administration snapshot, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
 | `src-tauri/src/records_retention.rs`, `records_retention_tests.rs`, `resources/runtime_core/records-administration.entry.schema.json` | Native close/reopen, legal hold/release and recorded disposal after verified export; surviving administrative evidence, stable write admission and activity leases, truthful partial-failure recovery |
 | `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
@@ -1317,7 +1317,25 @@ the originals left unchanged and no longer read. A copy carries only the
 trust of the folder it came from. A library's own act log in the project is
 library evidence, never part of the project's record set. The override
 `CHIRALITY_RECORDS_STORE` is read only by development and test builds, and a
-store inside the project or a Codex home is refused. The host status (`recordsStore`)
+store inside the project or a Codex home is refused. The store's own line
+files (`roots.jsonl`, the registry of project folders; each project's
+`imports.jsonl`; and `legacy-imports.jsonl`, the store's witness of legacy
+imports, written before any copy and kept outside every project's subtree)
+are appended so that an append never changes the meaning of earlier bytes
+(`src-tauri/src/records_store_lines.rs`): a new file is put in place whole,
+and a fragment left by an interrupted append is closed with the byte 0x1E,
+which no JSON line contains, and named by a
+`chirality.records-store.unread-line` line before the next append or at
+startup; its bytes are kept and never read. A complete line that cannot be
+read and does not end in that mark leaves the file not read whole: reading
+continues, the limit is shown, nothing more is appended to it, and the App
+does not repair it. The witness begins with a store this build creates (or,
+in an older store, at the first startup, registration or import) and is
+backfilled once from each readable account. Development note: a project that
+existed before the witness began, with no witness line and no import account
+showing an import, reads "origin not established" for good, and nothing in it
+reads as the person's decision; exit criterion 5 must therefore be observed in
+a project created after the witness began. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
 The records-store panel offers **Export project records**, choosing a parent

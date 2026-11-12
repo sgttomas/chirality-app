@@ -110,6 +110,22 @@ impl Read {
             Err(not_read_whole(path, &self.limits))
         }
     }
+    /// The readable lines, for a reader that accepts nothing more than the
+    /// store's own recovery adds: the file is whole and complete, and every
+    /// line it does not read is a closed fragment named exactly once (no
+    /// partial or unnamed line, no naming line that sets nothing aside, no
+    /// empty line). Anything else is refused.
+    pub(crate) fn require_settled(self, bytes: &[u8], path: &Path) -> Result<Vec<Value>, String> {
+        let empty_line = bytes.starts_with(b"\n") || bytes.windows(2).any(|w| w == b"\n\n");
+        if !self.whole || !self.limits.is_empty() || empty_line {
+            let mut limits = self.limits;
+            if empty_line {
+                limits.push("an empty line".into());
+            }
+            return Err(not_read_whole(path, &limits));
+        }
+        Ok(self.values)
+    }
     /// The bytes that close and name every fragment, written before an
     /// append (empty when there is nothing to close or name). Every prefix of
     /// them, if a write of them is cut short, is recovered by the next one.

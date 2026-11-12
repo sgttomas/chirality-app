@@ -53,6 +53,11 @@ pub(crate) mod package;
 pub(crate) mod custody;
 #[path = "records_store_lines.rs"]
 pub(crate) mod lines;
+#[path = "records_store_witness.rs"]
+pub(crate) mod witness;
+// The witness reader, for other code to use (the Delegation lane's decision reader).
+#[allow(unused_imports)]
+pub(crate) use witness::{legacy_import_origin, LegacyOrigin};
 
 /// The explicit store location for tests and development.
 pub const OVERRIDE_ENV: &str = "CHIRALITY_RECORDS_STORE";
@@ -492,14 +497,28 @@ pub(crate) enum AppendStop {
     BeforeSync,
 }
 #[cfg(test)]
-thread_local! { static APPEND_STOP: std::cell::Cell<Option<AppendStop>> = const { std::cell::Cell::new(None) }; }
+thread_local! {
+    static APPEND_STOP: std::cell::Cell<Option<AppendStop>> = const { std::cell::Cell::new(None) };
+    static APPEND_SKIP: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
 /// Stops this thread's next store line write at `stop` (an interruption).
 #[cfg(test)]
 pub(crate) fn interrupt_append_for_test(stop: Option<AppendStop>) {
+    interrupt_append_after_for_test(0, stop);
+}
+/// Lets `skip` store line writes on this thread complete, then stops the next at `stop`.
+#[cfg(test)]
+pub(crate) fn interrupt_append_after_for_test(skip: usize, stop: Option<AppendStop>) {
+    APPEND_SKIP.with(|c| c.set(skip));
     APPEND_STOP.with(|c| c.set(stop));
 }
 #[cfg(test)]
 fn append_stop() -> Option<AppendStop> {
+    APPEND_STOP.with(|c| c.get())?;
+    if APPEND_SKIP.with(|c| c.get()) > 0 {
+        APPEND_SKIP.with(|c| c.set(c.get() - 1));
+        return None;
+    }
     APPEND_STOP.with(|c| c.take())
 }
 /// A new store line file, whole or not at all.
@@ -568,7 +587,8 @@ fn recover_file(path: &Path) -> Result<Option<String>, String> {
 }
 /// Once at startup, under the store lock: every fragment in the store's line
 /// files (the registry, each project's import account and the legacy import
-/// witness) is closed and named. A store not yet created is left alone. Returns what was left as it was.
+/// witness) is closed and named, and the witness of legacy imports is begun
+/// if it has not been (`witness`). A store not yet created is left alone. Returns what was left as it was.
 pub fn recover_at_startup() -> Result<Vec<String>, String> {
     let configured = current()?;
     if !configured.root.join("store.json").exists() {
@@ -578,6 +598,7 @@ pub fn recover_at_startup() -> Result<Vec<String>, String> {
     let _lock = store_lock(&store)?;
     let mut left = Vec::new();
     left.extend(recover_file(&store.join("roots.jsonl"))?);
+    left.extend(recover_file(&store.join(witness::WITNESS_FILE))?);
     let projects = store.join("projects");
     let mut dirs: Vec<PathBuf> = match std::fs::read_dir(&projects) {
         Ok(rd) => rd.filter_map(|e| e.ok().map(|e| e.path())).collect(),
@@ -596,6 +617,7 @@ pub fn recover_at_startup() -> Result<Vec<String>, String> {
         }
         left.extend(recover_file(&path)?);
     }
+    left.extend(witness::begin(&store)?);
     Ok(left)
 }
 /// The readable lines of a store line file (the shared reading), or the
@@ -837,6 +859,9 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
     let record = dir.join("project.json");
     if !record.exists() {
         crate::records_retention::check_write(&dir)?;
+        // The witness of legacy imports begins before any project is created
+        // after it, so such a project is known to have been created after it.
+        witness::begin(store)?;
         crate::storage::create_json(&record, &json!({"format":PROJECT_FORMAT,"formatVersion":VERSION,"projectId":project,"createdAt":now_rfc3339(),"how":how}))?;
     }
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":root,"at":now_rfc3339(),"how":how}))
@@ -1412,6 +1437,11 @@ pub fn import(root: &Path) -> Result<Value, String> {
     // during which (and if it is interrupted) readers keep reading the store.
     let store_held = store_holds(&dir);
     let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
+    // The store's witness of this import, outside the project's subtree,
+    // before the account's "started" line and before any copy.
+    let project = attachment.project.clone().ok_or("nothing imported: no project identity")?;
+    let witnessed: Vec<witness::WitnessedFile> = pending.iter().map(|(file, sha, bytes, _)| witness::WitnessedFile { copy: file.copy.clone(), length: bytes.len() as u64, sha256: sha.clone() }).collect();
+    witness::record(&store, &project, &id, &witnessed)?;
     append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
         "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
         "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;

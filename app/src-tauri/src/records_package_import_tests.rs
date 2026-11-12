@@ -478,3 +478,35 @@ fn package_import_registry_write_emits_no_raw_record_separator() {
     assert!(!registry.contains(&lines::MARK));
     assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
 }
+
+/// A registry that already holds a closed and named fragment when an import
+/// begins: the import freezes those bytes as its original prefix, and every
+/// reading of them (the frozen-prefix comparison, the discovery of its own
+/// intents from the frozen bytes, the root association) sets the fragment
+/// aside and ignores its naming line.
+#[test]
+fn package_import_reads_a_registry_holding_a_named_fragment_before_it_began() {
+    let f = Fixture::new();
+    let store = opened().unwrap().0;
+    let path = store.join("roots.jsonl");
+    let other = json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":"chirality-project:invented-other","root":f.base.join("elsewhere"),"at":"2026-11-12T00:00:00.000Z","how":"registered"});
+    let mut bytes = std::fs::read(&path).unwrap_or_default();
+    bytes.extend(serde_json::to_vec(&other).unwrap());
+    bytes.extend(b"\n{\"format\":\"chirality.records-store.root\",\"projectId\":\"");
+    std::fs::write(&path, &bytes).unwrap();
+    *ROOTS.lock().unwrap() = None;
+    recover_at_startup().unwrap();
+    let closed = std::fs::read(&path).unwrap();
+    assert_eq!(lines::read(&closed, &path).set_aside.len(), 1);
+    let plan = f.plan();
+    assert_eq!(plan.intent.roots_original, closed, "the frozen prefix holds the named fragment");
+    STOP.with(|s| *s.borrow_mut() = Some("roots"));
+    assert!(apply(plan, &actor(), &observed()).is_err());
+    UNCERTAIN.lock().unwrap().remove(&f.dir());
+    let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+    apply(retry, &actor(), &observed()).unwrap();
+    assert!(require_complete(&f.dir()).is_ok());
+    assert_eq!(status(&f.root)["state"], "complete");
+    assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
+    assert!(roots(&store).unwrap().iter().all(|r| r["format"] == ROOT_FORMAT));
+}

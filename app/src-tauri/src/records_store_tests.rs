@@ -9,6 +9,7 @@ use serde_json::json;
 
 mod publication { include!("records_store_publication_tests.rs"); }
 mod safe_append { include!("records_store_lines_tests.rs"); }
+mod legacy_witness { include!("records_store_witness_tests.rs"); }
 
 fn folder(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
