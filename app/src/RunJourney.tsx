@@ -40,9 +40,9 @@ const REFUSAL_WORDS: { exact: string; commands: string[]; words: string }[] = [
 const refusalWords = (command: string, reply: string): string | undefined => REFUSAL_WORDS.find(row => row.exact === reply && row.commands.includes(command))?.words;
 /** The host's states for a prepared run it did not send, in plain words. Each state itself says nothing was sent. What to do is the host's own text. */
 const NOT_SENT: Record<string, string> = {
-  "WR pre-send publication failed; nothing sent": "The App couldn't save the run's record.",
-  "generated supporting files changed or unavailable; nothing sent": "The copy of the workflow's supporting files that the App made for this run changed or can't be read.",
-  "selected revision source changed or unavailable; nothing sent": "The chosen workflow's stored files changed or can't be read since you prepared the run.",
+  "WR pre-send publication failed; nothing sent": "The App couldn't finish saving the run's record.",
+  "generated supporting files changed or unavailable; nothing sent": "The App couldn't verify the copy of the workflow's supporting files that this run was prepared with.",
+  "selected revision source changed or unavailable; nothing sent": "The App couldn't verify the chosen workflow for this run.",
   "workflow approval changed since preparation; nothing sent": "The App couldn't apply the same workflow approval it applied when you prepared this run.",
 };
 export type GuideOutcome = { command: string; message: string; failed?: boolean; settled?: boolean };
@@ -55,8 +55,8 @@ export function guideResultWords(outcome: GuideOutcome): { words: string; detail
     const reply = outcome.message.replace(/^Error: /, "");
     const plain = refusalWords(outcome.command, reply);
     if (plain) return { words: `Couldn't ${verb}: ${plain}`, detail: reply, failed: true };
-    // A start that failed leaves the run in a state Progress reads; what to do next is said there.
-    return { words: `Couldn't ${verb}: ${reply}${outcome.command === "workflow_send_run" ? " — see Progress for what the App knows and what to do next." : ""}`, detail: "", failed: true };
+    // Nothing is promised of Progress: a press that failed is not followed by a refresh, so Progress may be from before it.
+    return { words: `Couldn't ${verb}: ${reply}${outcome.command === "workflow_send_run" ? ". Progress may still show the state from before this press." : ""}`, detail: "", failed: true };
   }
   // The included-workflow command also serves reading one with no conversation
   // (the studio's inspection): the host says which it was in `choiceChat`.
