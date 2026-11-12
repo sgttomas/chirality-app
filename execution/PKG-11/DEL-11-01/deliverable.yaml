@@ -26,7 +26,7 @@ needs:
 - from: doc:reference/archives/ARCHIVES.md
   condition: The Git-ignored archive locations are inventoried with a recorded digest for each and
     a rule of read-only access.
-- from: external:sgttomas/chirality-library docs/thesis/ at the selected edition library-v3.3.0
+- from: external:sgttomas/chirality-library docs/thesis/ at the Library edition the App selects
   condition: The thesis is available there with its attribution.
 - from: external:checkout holding the Git-ignored archives
   condition: The checkout that holds the inventoried archives is readable.

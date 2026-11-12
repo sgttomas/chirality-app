@@ -6,7 +6,7 @@ metadata:
   surface: bootstrap
   upstream:
     source: workflows/project-setup/resources/project-entry.md
-    edition: library-v3.3.0
+    edition: library-v3.4.0
 ---
 <init-prompt>
 Resolve `REPO_ROOT` with `git rev-parse --show-toplevel`.

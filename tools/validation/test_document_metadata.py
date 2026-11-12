@@ -15,7 +15,7 @@ import pytest
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-RECEIVING = ROOT / "reference/library-v3.3.0"
+RECEIVING = ROOT / "reference/library-v3.4.0"
 MANIFEST = json.loads((RECEIVING / "MANIFEST.json").read_text())
 SCHEMA = json.loads((RECEIVING / "document-metadata.schema.json").read_text())
 VALIDATOR = Draft202012Validator(SCHEMA)
@@ -47,7 +47,7 @@ def test_maintained_document_header(path):
 
 
 def test_schema_source_identity_and_contract():
-    assert MANIFEST["commit"] == "ec3ee2d1b398eba1fb3227ccf93e2569df95bacd"
+    assert MANIFEST["commit"] == "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca"
     binding = MANIFEST["documentMetadataSchema"]
     raw = (RECEIVING / binding["path"]).read_bytes()
     assert binding["sourcePath"] == "docs/document-metadata.schema.json"
@@ -123,5 +123,5 @@ def test_reconciled_entry_documents_name_the_canonical_released_template(name):
     VALIDATOR.validate(data)
     assert data["metadata"]["upstream"] == {
         "source": "workflows/project-setup/resources/project-entry.md",
-        "edition": "library-v3.3.0",
+        "edition": "library-v3.4.0",
     }

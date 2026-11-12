@@ -40,7 +40,7 @@ or HELPS_HUMANS directly (HH). Pinned revisions are in
 
 | Source | Standing | Examined by |
 |---|---|---|
-| `docs/thesis/` (19 files) — carried forward to `foundation/thesis/`, since removed from the working tree and kept in Git history; the thesis is now maintained in the Chirality Library at `docs/thesis/` (selected edition `library-v3.3.0`) | Agent-drafted under owner direction; CITED/REVIEWED, not AUTHENTICATED; nonbinding | HH (README), T1 (all) |
+| `docs/thesis/` (19 files) — carried forward to `foundation/thesis/`, since removed from the working tree and kept in Git history; the thesis is now maintained in the Chirality Library at `docs/thesis/` (the Library edition the App selects) | Agent-drafted under owner direction; CITED/REVIEWED, not AUTHENTICATED; nonbinding | HH (README), T1 (all) |
 | `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v7.md` | Owner-directed, largely externally drafted; owner-signed authorship section; "does not establish that every practice … has been proved effective" | T2 |
 | `docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Field_Book_v1.md` | Agent abridgement for a human reader | HH, T2 |
 | `docs/alignment-manual/CHIRALITY_AGENT_USER_MANUAL_v3.md` | Agent-facing repository manual; not an App end-user guide | T2 |

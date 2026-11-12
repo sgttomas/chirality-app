@@ -30,6 +30,7 @@ code_paths:
 - reference/library-v3.0.0/**
 - reference/library-v3.1.0/**
 - reference/library-v3.3.0/**
+- reference/library-v3.4.0/**
 checks:
 # test_library_v2_1_operational_adoption.py is shared with DEL-02-04. Here: the edition-selection
 # assertions; the assertions on the packaged role set are DEL-02-04's.

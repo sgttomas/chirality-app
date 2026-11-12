@@ -1,0 +1,139 @@
+{
+  "kind": "contributor-edition-delta",
+  "repository": "https://github.com/sgttomas/chirality-library",
+  "tag": "library-v3.4.0",
+  "commit": "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca",
+  "baseCommit": "ec3ee2d1b398eba1fb3227ccf93e2569df95bacd",
+  "published_archive": {
+    "name": "chirality-library-3.4.0-source.tar",
+    "bytes": 9820160,
+    "reported_sha256": "b4f0ec20b5e9a26125a16002e95895e5171ebeb6d4e44664e400f18dfe9eb7b5",
+    "downloaded": false,
+    "local_archive_matches": true
+  },
+  "files": [
+    {
+      "path": "LICENSE.md",
+      "retainedPath": "reference/library-v3.0.0/source/LICENSE.md",
+      "gitMode": "100644",
+      "gitBlob": "6975876e98b3dc9a457ef04bdf31b4f021de2b05",
+      "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da",
+      "bytes": 1067
+    },
+    {
+      "path": "agents/registry.json",
+      "retainedPath": "reference/library-v3.0.0/source/agents/registry.json",
+      "gitMode": "100644",
+      "gitBlob": "91695767c41f86b81b094d2a99ea48e461b30a32",
+      "sha256": "e7a80028b77cd85716cb7fcd860662068768da1c497876d10ad0fc87a75ab720",
+      "bytes": 3235
+    },
+    {
+      "path": "agents/AGENT_HELP_HUMAN.md",
+      "retainedPath": "reference/library-v3.4.0/source/agents/AGENT_HELP_HUMAN.md",
+      "gitMode": "100644",
+      "gitBlob": "07a1d9e9172582a9f080a2c3845ac2687bdac9dc",
+      "sha256": "44ad1c1b6ac7c59009010a679b153907b90cb8be31e096b78ddb795c392b631a",
+      "bytes": 3357
+    },
+    {
+      "path": "agents/AGENT_HELPS_HUMANS.md",
+      "retainedPath": "reference/library-v3.3.0/source/agents/AGENT_HELPS_HUMANS.md",
+      "gitMode": "100644",
+      "gitBlob": "7bbcc2413da92d41fed6b5a315937b25fea417ea",
+      "sha256": "b2040c1368e087593df8797bf09b0d5d6003b3e2a519a546e1e134a4c2a5a58e",
+      "bytes": 3274
+    },
+    {
+      "path": "agents/AGENT_WORKING_ITEMS.md",
+      "retainedPath": "reference/library-v3.3.0/source/agents/AGENT_WORKING_ITEMS.md",
+      "gitMode": "100644",
+      "gitBlob": "d28245bc613d1312c3b978f1c32ca6112db621c3",
+      "sha256": "48ce3573fa39888b5be58edc5f103b84b4ad491a54988f914075c28fc3333ee6",
+      "bytes": 3194
+    },
+    {
+      "path": "agents/AGENT_TASK.md",
+      "retainedPath": "reference/library-v3.3.0/source/agents/AGENT_TASK.md",
+      "gitMode": "100644",
+      "gitBlob": "e7f414bf5522f5ed33ca3e8cb9d1514f42fdac39",
+      "sha256": "1b08f1580f050f1bc9f95874d644fd98f41e316f382e4eb42a4fb091efb9fb6f",
+      "bytes": 2584
+    },
+    {
+      "path": "agents/AGENT_INTERLOCUTOR.md",
+      "retainedPath": "reference/library-v3.4.0/source/agents/AGENT_INTERLOCUTOR.md",
+      "gitMode": "100644",
+      "gitBlob": "6914e6c38f7b78eb0d817f466d074ce4f9d596f2",
+      "sha256": "f62efd738ba157c1ee447fd1cf42fb3ba2a723df7c46fc53ade48f9be4f30158",
+      "bytes": 4502
+    },
+    {
+      "path": "tools/validation/validate_agent_instructions.py",
+      "retainedPath": "reference/library-v3.0.0/source/tools/validation/validate_agent_instructions.py",
+      "gitMode": "100644",
+      "gitBlob": "d82018aab06a29830fbc07aca64a338e6c9da82e",
+      "sha256": "44a0df83841c4ec23aee364b751306c83829712d14957c75dd7279b331f1758e",
+      "bytes": 8593
+    },
+    {
+      "path": "tools/validation/build_workflow_index.py",
+      "retainedPath": "reference/library-v3.0.0/source/tools/validation/build_workflow_index.py",
+      "gitMode": "100644",
+      "gitBlob": "04cee048f717207e343be362ef6623a23155dd39",
+      "sha256": "93ab1932b31f91cb6af8be1563073f75ee21e4ad101556e03d287c813acc9017",
+      "bytes": 21870
+    },
+    {
+      "path": "tools/workflow_runtime/resolve_workflow.py",
+      "retainedPath": "reference/library-v3.0.0/source/tools/workflow_runtime/resolve_workflow.py",
+      "gitMode": "100644",
+      "gitBlob": "c704a7ba6e18171234280f33ad35a5aa73f484ca",
+      "sha256": "76449008a7a7ae4eb9fc17e9f26228794e9172fb04c6ba5d8ea5f7e1a3c271d3",
+      "bytes": 17550
+    }
+  ],
+  "comparisonSources": [
+    {
+      "path": "workflows/compare-library-derivations/WORKFLOW.md",
+      "retainedPath": "reference/library-v3.4.0/source/workflows/compare-library-derivations/WORKFLOW.md",
+      "gitMode": "100644",
+      "gitBlob": "babbd94ec99b89abd363a0f0ad8c1b434e083dd0",
+      "sha256": "64ca82ee5f6fc73499de6b5a53a48b8b0feb5e5a6560f710836e6110c5c1624a",
+      "bytes": 3392
+    },
+    {
+      "path": "workflows/project-setup/resources/project-entry.md",
+      "retainedPath": "reference/library-v3.4.0/source/workflows/project-setup/resources/project-entry.md",
+      "gitMode": "100644",
+      "gitBlob": "5214ec2b4a2e3c62abc2bfed84580d4dc0c99405",
+      "sha256": "d2f1a0425806d6d5f914a5de49139376e6d233622df669e8bab2e9d6a9bec7ab",
+      "bytes": 26173
+    },
+    {
+      "path": "workflows/catalog.yaml",
+      "retainedPath": "reference/library-v3.4.0/source/workflows/catalog.yaml",
+      "gitMode": "100644",
+      "gitBlob": "c5a072ecdbeb39678adc707a0dc0d5672c770a1b",
+      "sha256": "12c1d4ea8b81af5ea80136378c3c0a2e2d1f4247eac3d94c5dad3e12b54bef85",
+      "bytes": 6886
+    },
+    {
+      "path": "docs/document-metadata.md",
+      "retainedPath": "reference/library-v3.4.0/source/docs/document-metadata.md",
+      "gitMode": "100644",
+      "gitBlob": "59dbe51c9df43418ebef0da266bde7903fd24caa",
+      "sha256": "7621a2c8e4ea6e230292f3a0ced68f7e7bb45f280d6fc1901049ce4b3bd759a6",
+      "bytes": 4748
+    }
+  ],
+  "documentMetadataSchema": {
+    "path": "document-metadata.schema.json",
+    "retainedPath": "reference/library-v3.4.0/document-metadata.schema.json",
+    "gitMode": "100644",
+    "gitBlob": "dcf4592ca0e2dda59925744397ad798ada3ba84a",
+    "sha256": "3f1a1b031192eeb712a4389661e511452a9cae4da419d3a5b6ab37af01b94f68",
+    "bytes": 2539,
+    "sourcePath": "docs/document-metadata.schema.json"
+  }
+}
