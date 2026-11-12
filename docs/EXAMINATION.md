@@ -27,7 +27,11 @@ conceptual discussion or decomposition.
 
 - **Verification** asks whether an identified build does what the PRD states.
   It uses the scenarios below, run against a named candidate, with outcomes
-  recorded as passed, failed, blocked, not run or inconclusive.
+  recorded as passed, failed, blocked, not run or inconclusive. For App 4.0.0
+  the App scenarios are carried out by agent-operated journey examination, as
+  the [release target](RELEASE_TARGET_4.0.0.md) defines it: where a scenario
+  names the person, an examining agent operates the App's shipped controls,
+  and sign-in and key entry stay the owner's.
 - **Validation** asks whether v4 is fit for the work it is meant for. It
   needs practitioners doing realistic work, and at v4.0 the principal
   practitioner is the owner. Agent-operated scenarios support verification;

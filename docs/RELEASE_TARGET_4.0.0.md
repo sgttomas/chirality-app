@@ -80,11 +80,53 @@ selection, and any specialised workspace, keep their own.
 **Fallback.** v3.0.1 stays the published fallback until the owner decides that
 v4 has replaced it.
 
-**Testing.** Agents do the development testing. The owner's own use of the
-candidate begins once Agent 0 has recommended that it is ready. The two are
-different things: agents' testing verifies behaviour, and only the owner's own
-use judges whether the product is fit for real work (DEL-09-12). A control
-operated by an agent establishes no act of the owner.
+**Testing.** The owner's words direct it: "I expect you to do thorough user
+testing via computer use and only when that's worked out the bugs and you
+think you're ready for publishing would i then use the app for testing." This
+is direction, not evidence that any criterion is met. Agents do the
+development testing. The journeys and examinations of criteria 1 to 6 and 15
+are carried out by agent-operated journey examination: an agent operates the
+built App's shipped controls through the computer-use ability native to its
+harness, as a user would. Every journey action goes through the shipped
+controls. Preparing invented fixtures, and independent observation (reading
+the supplier's actual events, inspecting records and files on disk, verifying
+an exported package without the App), are done outside the controls, and each
+record names them as such. What is ruled out is help that conceals an unusable
+control, not independent scrutiny: a second examiner or a reviewer may take
+part. Such an examination establishes that the journey can be completed
+through the shipped controls and what the App then shows and records; it is
+not evidence of how a first-time person understands the App. Each step's
+record says who operated it and by what means, and notes where completing the
+step needed knowledge the interface did not give. No criterion reads as met by
+a person when no person did it. Findings are repaired and the affected
+scenarios run again before Agent 0 recommends the candidate; a result from an
+earlier candidate is joined as the exit criteria below state.
+
+Credential acts stay the owner's: sign-in and key entry are performed by the
+owner and never by an agent, and a run that needs a signed-in App or the local
+model server follows the owner's sign-in. The first human evaluation of the
+product is the owner's own use of the candidate, which begins once Agent 0 has
+recommended that it is ready (criterion 13). The two are different things:
+agents' testing verifies behaviour, and only the owner's own use judges
+whether the product is fit for real work (DEL-09-12). A control operated by an
+agent establishes no act of the owner.
+
+The product's rule is unchanged: the App never performs for a person an act it
+reserves to a person, and only the person's own confirmation captures an act;
+an attempt by an agent tool, an MCP operation or an App rule captures nothing
+(DEL-01-04 AC-008, DEL-04-01). Apart from that rule, and as a bounded
+development-test exception, the examining agent operates the App's own
+confirmation controls (review, registration, answers to requests, quit
+confirmation) on disposable invented fixtures in a scratch library and a
+scratch records store. What those controls then capture is a synthetic
+examination artifact: it establishes no person's decision, is kept apart from
+any evidence of an actual human act, and is never reused as anyone's act.
+Where an owning scope compares a record with an act an examiner watched a
+person perform, in such an examination the record is compared with the
+confirmation the examining agent made at the control, and the examination
+inspects what the product recorded there (actor, content, scope and purpose);
+a product record that attributes such an act to an identified person is a
+finding (DEL-09-02 REQ-009).
 
 ## Exit criteria
 
@@ -106,8 +148,9 @@ the owner decide on what was actually observed.
 1. **Use an existing workflow (J1).** Through the App alone, a person sets up
    a project, selects an existing workflow, sees its source and revision,
    supplies its inputs, runs it to completion and finds the results, with real
-   execution doing useful work and without an agent interpreting or operating
-   the App's controls. Before the run the App says which of the workflow's
+   execution doing useful work, every step taken through the App's shipped
+   controls and the words it shows, and no control interpreted or operated by
+   any other means. Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
    needing none. A file the person selects as an input is sent as selected: if
@@ -118,7 +161,8 @@ the owner decide on what was actually observed.
    *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
    the agent received); DEL-01-04 AC-011 (the run text reaches Codex
    unchanged); DEL-02-03 AC-001 (the required-tool check); DEL-01-04 AC-003
-   (a selected file); DEL-09-02 AC-009 (a person observed carrying it out).
+   (a selected file); DEL-09-02 AC-009 (the journey examined on the
+   candidate through the shipped controls).
 2. **Create, save, return and reuse (J2).** Through the App alone and as one
    sequence, a person does useful work, turns it into a workflow draft,
    trials, reviews and registers it, returns to unfinished work after closing
@@ -132,7 +176,8 @@ the owner decide on what was actually observed.
    role: HELP_HUMAN is preselected and can be cleared, HELPS_HUMANS,
    WORKING_ITEMS and no role are offered, TASK is not, and the chosen role's
    guidance is added to the supplier's own instructions without replacing
-   them. In one continuous journey
+   them. Where the harness cannot enforce a role's limits, the App says so
+   and does not imply that they are enforced. In one continuous journey
    from an empty project folder, a person develops and revises a plan with the
    agent, has it carried out with real tools including one delegated sub-task,
    creates a workflow draft, trials and reviews it, registers it, runs it on
@@ -150,7 +195,9 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-001, AC-002 and AC-003; DEL-02-02 AC-004 (the
    identity a selection keeps, on the project, user and bundled origins);
-   DEL-02-04 AC-001 and AC-002 (the roles offered and the guidance supplied);
+   DEL-02-04 AC-001 and AC-002 (the roles offered and the guidance supplied)
+   and AC-003 and AC-004 (a limit the harness does not enforce shown as not
+   enforced);
    DEL-01-04 AC-008 (only the person's confirmation captures).
 4. **Requests, interruption and recovery.** Inside that journey, a turn is
    stopped while a delegated child is active, the window is closed and
@@ -166,8 +213,8 @@ the owner decide on what was actually observed.
    App does not pause or hold the run. Continued work, a tool's success, an
    interruption or a replay of history does not perform it. After quit and reopen it is the same run,
    and a later run inherits no arrival, disposition or act from it. A failure
-   is repaired or brought to the owner for disposition; it is never passed
-   over.
+   is repaired or given its disposition by Agent 0, which the owner sees in
+   the decision packet; it is never passed over.
 
    *Governed by:* DEL-09-02 AC-004 and AC-005; DEL-01-02 AC-001 to AC-006
    (window loss, interrupt, requests, acknowledgment, restart and quit);
@@ -197,7 +244,8 @@ the owner decide on what was actually observed.
    different compliant local server can be substituted through supported
    settings. The start-up connections of the App's Codex are listed, and those
    an App setting stops are absent. No credential appears in anything the App
-   wrote.
+   wrote. In the examination the owner performs the sign-in and the entry of
+   the local server's key, and agents examine what follows.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
    AC-011.
@@ -266,7 +314,9 @@ the owner decide on what was actually observed.
 13. **The owner's verdict.** After Agent 0 has recommended the candidate
     ready, the owner uses it and answers yes or no before it is published.
     What the owner uses it for, and for how long, is the owner's to choose at
-    the time. Agent 0 gives every observation the owner makes a disposition;
+    the time. With the recommendation, Agent 0 tells the owner which criteria
+    were examined by agents and that no person has yet carried out the
+    journeys. Agent 0 gives every observation the owner makes a disposition;
     that is Agent 0's responsibility and not a question returned to the owner.
     The criterion is met on yes. A yes meets this criterion only: any other
     criterion that is unmet stays unmet.
