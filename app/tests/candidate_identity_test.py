@@ -146,6 +146,86 @@ class Scratch(unittest.TestCase):
         return code, out.getvalue(), err.getvalue()
 
 
+class AncestryBinding(Scratch):
+    """What the reader requires of the directories above an examined tree, between examining one by name and opening it."""
+
+    def between_stat_and_open(self, name, act):
+        """Run act once, just before the reader opens the path component called name."""
+        real, done = os.open, []
+        def opening(path, flags, mode=0o777, *, dir_fd=None):
+            if path == name and dir_fd is not None and not done:
+                done.append(True); act()
+            return real(path, flags, mode, dir_fd=dir_fd)
+        return mock.patch.object(identify.os, 'open', opening), done
+
+    def tree(self):
+        busy = self.tmp / 'outer' / 'busy'
+        app = write_bundle(busy)
+        return busy, app
+
+    def test_an_entry_made_or_removed_in_an_ancestor_refuses_nothing(self):
+        # The hosted failure: another process writes in a shared temporary folder above the bundle.
+        for bundle in (True, False):
+            busy, app = self.tree()
+            (busy / 'theirs').write_bytes(b'x')
+            for label, act in (('made', lambda: (busy / 'other-process').mkdir()),
+                               ('removed', lambda: (busy / 'theirs').unlink())):
+                with self.subTest(bundle=bundle, change=label):
+                    patch, done = self.between_stat_and_open('busy', act)
+                    with patch, identify._open_directory(app, bundle=bundle) as fd:
+                        self.assertEqual(os.fstat(fd).st_ino, app.stat().st_ino)
+                    self.assertTrue(done)
+            shutil.rmtree(self.tmp / 'outer')
+
+    def test_a_directory_that_is_not_a_bundle_root_is_bound_the_same_way(self):
+        # A home, an export root and a supplier input's folder are opened as the last component.
+        busy, app = self.tree()
+        patch, done = self.between_stat_and_open('busy', lambda: (busy / 'other-process').mkdir())
+        with patch, identify._open_directory(busy):
+            pass
+        self.assertTrue(done)
+
+    def test_an_ancestor_replaced_or_with_changed_access_is_still_refused(self):
+        def replace(busy):
+            busy.rename(busy.with_name('moved')); busy.mkdir()
+        cases = [('replaced', replace), ('mode', lambda busy: busy.chmod(0o700)),
+                 ('group', lambda busy: os.chown(busy, -1, next(g for g in os.getgroups() if g != busy.stat().st_gid)))]
+        if hasattr(os, 'chflags'):
+            cases.append(('flags', lambda busy: os.chflags(busy, stat.UF_HIDDEN)))
+        for label, act in cases:
+            if label == 'group' and len(set(os.getgroups())) < 2:
+                continue
+            for bundle in (True, False):
+                with self.subTest(change=label, bundle=bundle):
+                    busy, app = self.tree()
+                    busy.chmod(0o755)
+                    patch, done = self.between_stat_and_open('busy', lambda: act(busy))
+                    try:
+                        with patch, self.assertRaisesRegex(ValueError, 'ancestry changed'):
+                            with identify._open_directory(app, bundle=bundle):
+                                pass
+                        self.assertTrue(done)
+                    finally:
+                        if label == 'flags': os.chflags(busy, 0)
+                        shutil.rmtree(self.tmp / 'outer')
+
+    def test_the_bundle_root_keeps_its_full_stamp(self):
+        busy, app = self.tree()
+        patch, done = self.between_stat_and_open('Test.app', lambda: (app / 'added').write_bytes(b'x'))
+        with patch, self.assertRaisesRegex(ValueError, 'ancestry changed'):
+            with identify._open_directory(app, bundle=True):
+                pass
+        self.assertTrue(done)
+
+    def test_an_ancestor_replaced_while_held_is_refused_and_one_written_in_is_not(self):
+        busy, app = self.tree()
+        with identify._open_directory(app, bundle=True):
+            (busy / 'other-process').mkdir()
+        with self.assertRaisesRegex(ValueError, 'ancestry replaced'):
+            with identify._open_directory(app, bundle=True):
+                busy.rename(busy.with_name('moved')); write_bundle(busy)
+
+
 class PortableValidation(Scratch):
     def test_validator_refuses_malformed_shapes_without_incidental_exceptions(self):
         for label, inv in malformed_inventories():

@@ -200,7 +200,14 @@ def _stamp(info):
 
 
 def _binding(info):
-    return info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid
+    """What identifies a directory and governs access to it; never its contents.
+
+    An ancestor of an examined tree (a temporary folder, a home, a build root) is
+    written by other processes: an entry made or removed there changes its times,
+    size and link count and says nothing about the tree. It is bound by this.
+    """
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            getattr(info, 'st_flags', None))
 
 
 @contextlib.contextmanager
@@ -215,13 +222,20 @@ def _open_directory(root, bundle=False):
         fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY)
         held.append(fd)
         bindings = []
-        for part in root.parts[1:]:
+        parts = root.parts[1:]
+        for index, part in enumerate(parts):
             info = os.stat(part, dir_fd=fd, follow_symlinks=False)
             if stat.S_ISLNK(info.st_mode):
                 raise ValueError('symlink in bundle root ancestry: ' + part)
             child = os.open(part, os.O_RDONLY | os.O_NOFOLLOW | os.O_DIRECTORY, dir_fd=fd)
             held.append(child)
-            if _stamp(info) != _stamp(os.fstat(child)):
+            # The directory opened must be the one just examined by name. For a bundle
+            # root that is its full stamp, as for everything inside it. For a directory
+            # above or outside the examined tree it is identity and access: its contents
+            # are other processes' to change, and a busy one must not refuse a bundle
+            # nobody touched.
+            same = _stamp if bundle and index == len(parts) - 1 else _binding
+            if same(info) != same(os.fstat(child)):
                 raise ValueError('bundle ancestry changed during identification')
             bindings.append((fd, part, child, info))
             fd = child
