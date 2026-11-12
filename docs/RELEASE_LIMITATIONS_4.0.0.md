@@ -201,7 +201,8 @@ An entry is added in the same pull request that makes the limitation standing.
   repaired from the App. If the App's record of the address a saved key was
   entered for is removed outside the App, the App refuses preparation and
   further requests and replies that could send the key in that home, and
-  offers no repair; this does not stop work already running in Codex. The protection of a saved key rests on the
+  offers no repair; this does not stop work already running in Codex, and a
+  turn that was waiting for an answer stays waiting until it is interrupted. The protection of a saved key rests on the
   files of the local model home being changed only by the App and its Codex:
   it does not survive their removal or replacement from outside while an
   earlier Codex process of that home is still running.

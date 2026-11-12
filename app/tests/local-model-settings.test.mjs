@@ -143,7 +143,7 @@ test('Save sends exactly the two typed values, and each outcome is said as what 
     await ui.press('Save local model settings…');
     assert.match(ui.c.textContent, /Saved\. Codex removed the saved key for the earlier address; enter the key again/);
     assert.match(ui.c.textContent, /Saved: server http:\/\/\[::1\]:9001\/v1 · model first-model\./);
-    assert.match(ui.c.textContent, /In use in this session: server http:\/\/127\.0\.0\.1:8000\/v1/);
+    assert.match(ui.c.textContent, /The local connection was prepared in this session with: server http:\/\/127\.0\.0\.1:8000\/v1/);
     assert.match(ui.c.textContent, /Quit and reopen the App to use the saved ones/);
     assert.equal(notified, 3);
     // A reply that is not a settings reading shows nothing new as set.
