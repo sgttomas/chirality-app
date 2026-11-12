@@ -35,6 +35,24 @@ What the launcher can see of Codex is whether a member of the App's process
 group was alive after the settle time, and nothing else: not what Codex read,
 wrote or reached. This launcher starts no Codex itself.
 
+An operating-system sandbox applied to the App from outside by the launcher was
+considered and is not used. As measured in another project, on trivial programs
+only, a deny-by-default profile is enforced and inherited by child processes,
+and applying a profile inside one is refused, so anything the App starts that
+applies a profile of its own (as the supplier's Codex does for the commands it
+runs) would fail under an outer one. The system web view's helper processes are
+services the system starts under their own profiles, outside any boundary
+placed on the application (that part was read, not measured). So this launcher
+is a statement about this project's reviewed code, not an enforced boundary.
+
+The web view: the App's configuration sets no content security policy
+(app/src-tauri/tauri.conf.json sets "csp": null and no overlay under
+app/packaging/unsigned sets one), so nothing refuses a network request made by
+script in the web view; that none is made rests on the bundled script being
+this project's reviewed code. Neither the proxy overrides nor the address
+override covers the web view: its networking is done by helper processes the
+system starts, which do not receive the launch environment.
+
 What it also does, each with its limit:
 - The homes root is dev/chirality-t3/scratch/app/homes/examination under the
   account's home (homes_root). The launcher refuses to run unless the root is
