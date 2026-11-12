@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "compatible_roles": [
+    "TASK"
+  ],
+  "tools": {
+    "capabilities": [
+      "read",
+      "write",
+      "bash",
+      "report_coordination_notice",
+      "ack_agent_update"
+    ]
+  }
+}

@@ -49,6 +49,9 @@ with the extracted release, when this folder was made.
 
 The entry documents' `metadata.upstream` names this edition: `AGENTS.md` and
 `init-prompt.md` were compared with this edition's project-entry template and
-reconciled. Packaged instruction resources and their separately pinned
-workflow assets under `app/src-tauri/resources/` keep their own source
-identities and are not changed by this selection.
+reconciled. Packaged instruction resources under
+`app/src-tauri/resources/instructions/` keep their own source identities and
+are not changed by this selection. The App's bundled workflows under
+`app/src-tauri/resources/production_workflows/` are every workflow of this
+edition, generated from the archive above by `tools/library_workflows`, which
+takes the archive's size and digest from `MANIFEST.json` here.
