@@ -71,16 +71,23 @@ export const localEndpointValid = (value: string) => {
 };
 export const localModelValid = (value: string) => /^[A-Za-z0-9._:\/@+-]{1,128}$/.test(value);
 type LocalSettingsView = { state: "unset" | "set" | "unavailable"; settings: { endpoint: string; model: string } | null; offered: { endpoint: string };
-  inForce: { endpoint: string; model: string } | null; relaunchRequired: boolean; outcome?: "saved" | "unchanged" | "cancelled"; keyRemoved?: boolean };
+  inForce: { endpoint: string; model: string } | null; relaunchRequired: boolean; outcome?: "saved" | "unchanged" | "cancelled"; keyRemoved?: boolean;
+  /** Set only when a saved key was entered for another address than the one set; `recorded` is null when the App has no record of that address. */
+  keyMismatch: { recorded: string | null } | null };
 const pair = (value: Json) => typeof value?.endpoint === "string" && typeof value?.model === "string" ? { endpoint: value.endpoint as string, model: value.model as string } : null;
 /** Only a complete reply is a settings view; anything else is shown as not read. */
 export function localSettingsFrom(value: Json): LocalSettingsView | null {
   if (!["unset", "set", "unavailable"].includes(value?.state) || typeof value?.offered?.endpoint !== "string" || typeof value?.relaunchRequired !== "boolean") return null;
   const settings = pair(value.settings);
-  if ((value.state === "set") !== !!settings) return null;
+  // A saved key entered for another address: the host reports the settings as unavailable for use,
+  // still names them, and gives the address it recorded for the key (null when it has no record).
+  const mismatch = value.reason === "key-address-mismatch";
+  if (!mismatch && value.reason != null) return null;
+  if (mismatch ? value.state !== "unavailable" || !settings || !(value.keyAddress === null || (typeof value.keyAddress === "string" && localEndpointValid(value.keyAddress) && value.keyAddress !== settings.endpoint))
+    : value.keyAddress != null || (value.state === "set") !== !!settings) return null;
   if (value.outcome !== undefined && !["saved", "unchanged", "cancelled"].includes(value.outcome)) return null;
   return { state: value.state, settings, offered: { endpoint: value.offered.endpoint }, inForce: pair(value.inForce), relaunchRequired: value.relaunchRequired,
-    outcome: value.outcome, keyRemoved: value.keyRemoved === true };
+    outcome: value.outcome, keyRemoved: value.keyRemoved === true, keyMismatch: mismatch ? { recorded: value.keyAddress } : null };
 }
 
 /** The local model server's address and model name: read at the person's press, saved only through the host's native question. */
@@ -125,7 +132,13 @@ export function LocalModelSettings({ disabled, changed }: { disabled: boolean; c
     {view && <>
       <p role="status">{view.state === "set" && view.settings ? <>Saved: server <code>{view.settings.endpoint}</code> · model <code>{view.settings.model}</code>.</>
         : view.state === "unset" ? "No local model server is set yet."
+        : view.keyMismatch && view.settings ? <>The server address now set is <code>{view.settings.endpoint}</code> · model <code>{view.settings.model}</code>. The local connection is unavailable with this address, for the reason below.</>
         : "The saved local model settings could not be read, so nothing is shown as set. The local connection is unavailable until they can be."}</p>
+      {view.keyMismatch && view.settings && (view.keyMismatch.recorded
+        ? <><p role="alert">The saved key was entered for <code>{view.keyMismatch.recorded}</code>, and the address now set is <code>{view.settings.endpoint}</code>. The App will not use that key with another address.</p>
+          <p><button disabled={disabled || busy} onClick={() => { void run("local_model_settings_save", { endpoint: view.keyMismatch!.recorded, model: view.settings!.model }); }}>Set the address back to {view.keyMismatch.recorded}…</button>{" "}
+            <small>Asks you to confirm in a native question first. The saved key is kept and the model name is not changed.</small></p></>
+        : <p role="alert">A key is saved, and the App has no record of the server address it was entered for, so it will not use that key at any address. This cannot be put right from the App.</p>)}
       {view.inForce && <p>In use in this session: server <code>{view.inForce.endpoint}</code> · model <code>{view.inForce.model}</code>.</p>}
       {view.relaunchRequired && <p role="status">The saved settings differ from those in use in this session. Quit and reopen the App to use the saved ones; until then the local connection is unavailable.</p>}
       {view.state !== "unavailable" && draft && <>

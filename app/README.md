@@ -1289,6 +1289,28 @@ retrying automatically.
 
 The App routes configured account (`H-acct`) and explicitly prepared API-key (`H-key`) homes separately. Per-home resource and metadata guards preserve existing account use when a prospective key proposal fails. Key entry and OAuth controls use native source-bound adapters; their actual OS/auth/provider journeys remain unqualified. A continued conversation without a trustworthy home-class association stays unknown and may remain hot-only. Home class is independent of model/provider choice.
 
+### A local model home made by a development build before the key's address was recorded
+
+The App records the address a local model server's key is entered for, in the
+file `key-address` beside `config.toml` in the dedicated local home (the
+folder `codex-omlx` in that build's App data folder), and uses a saved key
+only at the recorded address. A development build made before that record
+existed could leave a home that holds a key and no record; no released build
+can. Such a home is refused: the local model settings show that a key is
+saved, that the App has no record of the address it was entered for, and that
+this cannot be put right from the App. To use that home again:
+
+1. Quit the App.
+2. In that build's App data folder (under a throwaway home, the folder
+   `Library/Application Support/<identifier>` inside it), open `codex-omlx`
+   and remove the one file `auth.json`. Remove nothing else; the file holds
+   the key, so do not open, copy or print it.
+3. Open the App, prepare the local connection and enter the key again in the
+   secure field. The App writes the record before the field opens.
+
+Removing the whole `codex-omlx` folder also works and discards that home's
+local conversations.
+
 ## Storage and remaining work
 
 The App keeps a project's records in its own records store (RS §13.8;

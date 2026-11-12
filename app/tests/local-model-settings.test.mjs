@@ -32,10 +32,17 @@ async function mounted(handler, check, changed = () => {}) {
 }
 
 test('only a complete reply is a settings reading; anything else shows nothing as set', () => {
-  assert.deepEqual(localSettingsFrom(reading()), {state:'unset', settings:null, offered, inForce:null, relaunchRequired:false, outcome:undefined, keyRemoved:false});
+  assert.deepEqual(localSettingsFrom(reading()), {state:'unset', settings:null, offered, inForce:null, relaunchRequired:false, outcome:undefined, keyRemoved:false, keyMismatch:null});
   assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm')).settings.model, 'm');
   for (const bad of [null, {}, reading({state:'saved'}), reading({state:'set'}), set('http://127.0.0.1:9/v1', 'm', {state:'unset'}), reading({offered:{}}), reading({relaunchRequired:'no'}),
     reading({state:'set', settings:{endpoint:'http://127.0.0.1:9/v1'}}), reading({outcome:'written'})]) assert.equal(localSettingsFrom(bad), null, JSON.stringify(bad));
+  // A saved key entered for another address: only the host's exact shape is that reading.
+  const mismatch = over => set('http://127.0.0.1:9200/v1', 'm', {state:'unavailable', reason:'key-address-mismatch', keyAddress:'http://127.0.0.1:9100/v1', ...over});
+  assert.deepEqual(localSettingsFrom(mismatch()).keyMismatch, {recorded:'http://127.0.0.1:9100/v1'});
+  assert.deepEqual(localSettingsFrom(mismatch({keyAddress:null})).keyMismatch, {recorded:null});
+  assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm', {reason:null, keyAddress:null})).keyMismatch, null);
+  for (const bad of [mismatch({state:'set'}), mismatch({settings:null}), mismatch({keyAddress:undefined}), mismatch({keyAddress:'http://192.168.1.5:8000/v1'}), mismatch({keyAddress:'http://127.0.0.1:9200/v1'}),
+    mismatch({reason:'other'}), set('http://127.0.0.1:9/v1', 'm', {keyAddress:'http://127.0.0.1:9100/v1'}), reading({state:'unavailable', settings:{endpoint:'http://127.0.0.1:9/v1', model:'m'}})]) assert.equal(localSettingsFrom(bad), null, JSON.stringify(bad));
   // A key removal is claimed only when the host says exactly true.
   assert.equal(localSettingsFrom(set('http://127.0.0.1:9/v1', 'm', {outcome:'saved', keyRemoved:'yes'})).keyRemoved, false);
 });
@@ -124,6 +131,33 @@ test('settings that cannot be read are shown as unavailable, with no form and no
     await ui.press('Show local model settings');
     assert.match(ui.c.textContent, /Local model settings are unavailable\. Nothing was changed\./);
     assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_DIAGNOSTIC/);
+    assert.equal(ui.save(), undefined);
+  });
+});
+
+test('a saved key entered for another address: both addresses are shown, and the only offer is setting the address back', async () => {
+  const mismatch = keyAddress => set('http://127.0.0.1:9200/v1', 'org/m', {state:'unavailable', reason:'key-address-mismatch', keyAddress});
+  let notified = 0;
+  await mounted(async (command, args) => {
+    if (command === 'local_model_settings_read') return mismatch('http://127.0.0.1:9100/v1');
+    if (command === 'local_model_settings_save') return set(args.endpoint, args.model, {outcome:'saved', keyRemoved:false, reason:null, keyAddress:null});
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await ui.press('Show local model settings');
+    assert.match(ui.c.textContent, /The saved key was entered for http:\/\/127\.0\.0\.1:9100\/v1, and the address now set is http:\/\/127\.0\.0\.1:9200\/v1\. The App will not use that key with another address\./);
+    assert.doesNotMatch(ui.c.textContent, /Saved: server/, 'the address set is not shown as usable');
+    assert.equal(ui.save(), undefined, 'no other change is offered in this state');
+    assert.equal(labelled(ui.c, 'Server address '), undefined);
+    await ui.press('Set the address back to http://127.0.0.1:9100/v1…');
+    assert.deepEqual(ui.calls.at(-1), {command:'local_model_settings_save', args:{endpoint:'http://127.0.0.1:9100/v1', model:'org/m'}}, 'the recorded address and the model name already set, nothing typed');
+    assert.match(ui.c.textContent, /Saved: server http:\/\/127\.0\.0\.1:9100\/v1 · model org\/m\./);
+    assert.doesNotMatch(ui.c.textContent, /Codex removed the saved key/, 'no key removal is claimed');
+    assert.equal(notified, 1);
+  }, () => { notified++; });
+  await mounted(async () => mismatch(null), async ui => {
+    await ui.press('Show local model settings');
+    assert.match(ui.c.textContent, /the App has no record of the server address it was entered for, so it will not use that key at any address\. This cannot be put right from the App\./);
+    assert.equal(nodes(ui.c, 'button').filter(node => node.textContent.startsWith('Set the address back')).length, 0);
     assert.equal(ui.save(), undefined);
   });
 });

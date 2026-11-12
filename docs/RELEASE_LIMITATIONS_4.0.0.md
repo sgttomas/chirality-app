@@ -153,7 +153,10 @@ An entry is added in the same pull request that makes the limitation standing.
   an existing server address requires the local connection to be prepared
   first so Codex can sign out, even if no key was saved. If the local home's
   settings are changed outside the App while a key is saved, the local
-  connection is unavailable until the earlier address is set again.
+  connection is unavailable until the address the key was entered for is set
+  again, which the App offers; the address is then changed through the App.
+  If the App's record of that address is removed outside the App while a key
+  is saved, the key is not used at any address and the App offers no repair.
 - **Why:** at the selected supplier version, Codex runs conversations only on
   the provider its process started with, so account and local access use
   separate homes; the App does not reconfigure a prepared local connection in
