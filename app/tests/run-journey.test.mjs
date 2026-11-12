@@ -456,3 +456,26 @@ test('a saved desktop setup shows the project folder only when its projection ma
   }
   assert.deepEqual(ui.calls,[]);await ui.close();
 });
+
+// Only a status Codex actually reported as idle, while its process is still observed, reads as not working.
+test('an open run reads as not working only on a reported idle status of a Codex still observed', () => {
+  const run = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const reading = (row, extra = {}) => runReading(run, host({threads:row ? [{threadId:'T1', generation:g, ...row}] : [], ...extra}));
+  assert.equal(reading({status:{type:'idle'}}).title, 'Open — Codex is not working right now');
+  assert.equal(reading({status:{type:'idle'}, statusSource:{method:'thread/status/changed', receiptPosition:9}}).tone, 'idle');
+  // A status that was never reported, cannot be read, or is not one the guide knows says nothing.
+  for (const row of [{}, {status:null}, {status:{type:'notLoaded'}}, {status:{type:'invented'}}, {status:'idle'}, null]) {
+    const unknown = reading(row);
+    assert.equal(unknown.tone, 'uncertain', JSON.stringify(row)); assert.equal(unknown.title, 'Open — what Codex is doing is not known');
+    assert.doesNotMatch(unknown.title + unknown.detail, /not working|Working/);
+  }
+  const limited = reading({status:null, statusSource:{method:'thread/status/changed', receiptPosition:9, limit:'the notification does not match the pinned ThreadStatusChangedNotification; status unknown'}});
+  assert.match(limited.detail, /\(the notification does not match the pinned ThreadStatusChangedNotification; status unknown\)/);
+  // A stopped Codex: the last status seen is not a reading, whatever it was.
+  for (const [row, extra] of [[{status:null, lastObservedStatus:{type:'active', activeFlags:[]}, statusObservationEnded:true}, {}], [{status:{type:'idle'}}, {generationClosed:true}], [{status:{type:'active', activeFlags:[]}}, {generationClosed:true}], [{status:{type:'idle'}, statusObservationEnded:true}, {}]]) {
+    const stopped = reading(row, extra);
+    assert.equal(stopped.tone, 'uncertain', JSON.stringify([row, extra])); assert.equal(stopped.title, 'Open — Codex has stopped');
+    assert.match(stopped.detail, /no longer receiving from the Codex process this run was in/);
+  }
+  assert.equal(reading({status:{type:'active', activeFlags:[]}}).tone, 'working');
+});

@@ -79,9 +79,15 @@ export function runReading(run: Json, host: Json): RunReading {
     const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
     if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
+    // The status is Codex's own last report for the conversation. It is a
+    // current reading only while its Codex process is still observed; a
+    // status that was never reported, or is not one the App can read, says
+    // nothing, and is never taken for idle.
+    if (host?.generationClosed === true || thread?.statusObservationEnded === true) return { tone: "uncertain", title: "Open — Codex has stopped", detail: "The App is no longer receiving from the Codex process this run was in, so what it was doing is not known. Start Codex again under Connection & access, then continue the conversation or end the run." };
     if (thread?.status?.type === "active") return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
-    return { tone: "idle", title: "Open — Codex is not working right now", detail: "The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
+    if (thread?.status?.type === "idle") return { tone: "idle", title: "Open — Codex is not working right now", detail: "The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
+    return { tone: "uncertain", title: "Open — what Codex is doing is not known", detail: `Codex has not reported a status for this conversation that the App can read${thread?.statusSource?.limit ? ` (${text(thread.statusSource.limit)})` : ""}. The run stays open; read the conversation before deciding what to do.` };
   }
   if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
   if (status.sent === false && status.limit) return { tone: "failed", title: "Not started", detail: `${text(status.state)}: ${text(status.limit)}` };
