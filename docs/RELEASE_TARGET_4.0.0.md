@@ -60,7 +60,9 @@ selection, and any specialised workspace, keep their own.
   4.0.0; they may be worked on in support of SWBPIPE, and nothing in this
   target waits on them. App Agent 0 answers SWBPIPE's Agent 0 on the App's
   receiving side when asked. Workflows of the host origin are a separate
-  obligation, held outside 4.0.0 with it (DEL-02-02 AC-013).
+  obligation, held outside 4.0.0 with it (DEL-02-02 AC-013). The undecided
+  items of the host loop and panel contracts (DEL-05-01, DEL-05-02) are
+  decided at a host's point of need and do not gate this release.
 - **Windows.** It follows the macOS release and adds no gate to it.
 - **Domains.** It follows in a later increment and is no condition of release
   or of replacement. PEC adds no delivery prerequisite.
@@ -107,13 +109,16 @@ the owner decide on what was actually observed.
    execution doing useful work and without an agent interpreting or operating
    the App's controls. Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
-   that declares none reads as undeclared. What the agent receives is the
-   selected workflow, byte for byte. No time or step limit applies.
+   whose requirements are not declared reads as undeclared and is not shown as
+   needing none. A file the person selects as an input is sent as selected: if
+   it changes between selection and sending it is held and not sent. What the
+   agent receives is the selected workflow, byte for byte. No time or step
+   limit applies.
 
    *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
    the agent received); DEL-01-04 AC-011 (the run text reaches Codex
-   unchanged); DEL-02-03 AC-001 (the required-tool check); DEL-09-02 AC-009 (a
-   person observed carrying it out).
+   unchanged); DEL-02-03 AC-001 (the required-tool check); DEL-01-04 AC-003
+   (a selected file); DEL-09-02 AC-009 (a person observed carrying it out).
 2. **Create, save, return and reuse (J2).** Through the App alone and as one
    sequence, a person does useful work, turns it into a workflow draft,
    trials, reviews and registers it, returns to unfinished work after closing
@@ -155,11 +160,17 @@ the owner decide on what was actually observed.
    survive the closed window. At each recovery point what the App shows agrees
    with the supplier's actual events: a completed turn does not mark an active
    child done, a reply without acknowledgment is not shown as settled, and an
-   unavailable outcome is shown as unknown. A failure is repaired or brought
-   to the owner for disposition; it is never passed over.
+   unavailable outcome is shown as unknown. When a run reaches a checkpoint
+   the workflow declares, its arrival is recorded and it waits for the
+   person's act: continued work, a tool's success, an interruption or a replay
+   of history does not perform it. After quit and reopen it is the same run,
+   and a later run inherits no arrival, disposition or act from it. A failure
+   is repaired or brought to the owner for disposition; it is never passed
+   over.
 
    *Governed by:* DEL-09-02 AC-004 and AC-005; DEL-01-02 AC-001 to AC-006
-   (window loss, interrupt, requests, acknowledgment, restart and quit), with
+   (window loss, interrupt, requests, acknowledgment, restart and quit);
+   DEL-02-03 AC-002 and AC-003 (checkpoints and the run they belong to), with
    the views of that behaviour owned by DEL-01-03 and DEL-01-04.
 5. **Coordinating delegated work.** A person delegates two bounded pieces of
    work, each with a complete brief, to agents that actually run. The person
@@ -222,7 +233,8 @@ the owner decide on what was actually observed.
    *Governed by:* DEL-01-01 AC-011, which requires AC-001 to AC-010 on the
    candidate (the pin); DEL-01-06 AC-007 (the notices).
 10. **Final candidate.** The package built from the finished source contains
-    the supplier's tree and the bundled resources byte for byte. Every signed
+    the supplier's tree and the bundled resources byte for byte, and the
+    workflows it ships are every workflow of the selected Library. Every signed
     executable of the supplier's tree keeps the supplier's signature and
     entitlements. The App's own code carries the publisher identity, hardened
     runtime and a timestamp, with the entitlements its features need and no
@@ -234,7 +246,9 @@ the owner decide on what was actually observed.
     Where data written by v3.0.1 is present under the App's identity, it is
     unchanged after the package has been installed and run.
 
-    *Governed by:* DEL-01-06 AC-001, AC-002, AC-003 and AC-009.
+    *Governed by:* DEL-01-06 AC-001, AC-002, AC-003 and AC-009. That the
+    shipped workflows are the selected Library's whole set is governed by this
+    criterion as stated, with AC-001 for the inventory comparison.
 11. **Terms position.** The supplier's written position on distributing the
     offering is held with the owner's statement that it applies, and the
     candidate's offering and sign-in flow are the ones that statement covers.
@@ -245,8 +259,9 @@ the owner decide on what was actually observed.
     [`docs/RELEASE_LIMITATIONS_4.0.0.md`](RELEASE_LIMITATIONS_4.0.0.md) with
     its reason, and is stated in what a person receives with the package.
 
-    *Governed by:* DEL-01-06 AC-008, and for each limitation the deliverable
-    whose behaviour it limits.
+    *Governed by:* this criterion as stated, for the completeness of the list
+    and its reasons, which Agent 0 keeps and the owner sees with the request
+    for the verdict; DEL-01-06 AC-008 for what accompanies the package.
 13. **The owner's verdict.** After Agent 0 has recommended the candidate
     ready, the owner uses it and answers yes or no before it is published.
     What the owner uses it for, and for how long, is the owner's to choose at
@@ -273,19 +288,10 @@ Each of these decides whether the criterion named can be met, and nothing
 accepted settles it. Every other undecided item stands as its owning scope
 states it.
 
-- **Contract interpretations (criteria 3 and 4).** Whether the run record
-  holds every event the loop emits, how a turn ends when a response is cut
-  off or filtered, and whether the loop may itself refuse a call the catalog
-  marks as not exposed (DEL-05-01 TBD-004 to TBD-006), and who owns a panel's
-  network-destination surfaces (DEL-05-02 TBD-006).
 - **Tying a delegated child to its brief (criterion 5).** How a child is tied
   to its brief where the supplier exposes neither the dispatch message nor a
   mark the App can set is undecided (DEL-06-01 TBD-003), and the criterion
   needs each delegation connected to its brief.
-- **Ledger retention and deletion (criterion 4).** How long ledger entries are
-  kept and what deleting a conversation removes (DEL-01-02 TBD-002).
-- **Plugin traffic in the dedicated local home (criterion 6).** Whether it
-  follows the person's plugin setting or is always off (DEL-01-05 TBD-004).
 - **The records the App keeps (no criterion yet).** The PRD commits to where
   decisions and run records are kept, that they are append-only and report a
   changed line, and that they export as a package that verifies without the

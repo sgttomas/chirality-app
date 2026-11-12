@@ -46,18 +46,20 @@ An entry is added in the same pull request that makes the limitation standing.
   registrations there.
 - **Basis:** DEL-01-04 (keychain protection); DEL-01-06 REQ-007.
 
-### LIM-002: The keychain-held approval policy can be changed a bounded number of times
+### LIM-002: The keychain-held approval policy can be stored a bounded number of times
 
 - **Id:** LIM-002
 - **Exit criteria:** 8
-- **What is unavailable:** after 256 changes of the workflow approval policy
-  on an installation with keychain protection, the policy can no longer be
-  changed and stays as last stored.
-- **Why:** each change is kept as its own keychain item in a bounded
+- **What is unavailable:** on an installation with keychain protection, the
+  workflow approval policy can be stored 256 times in all, counting the first,
+  written when protection is set up. Saving the policy unchanged also uses
+  one. After that the policy can no longer be changed and stays as last
+  stored.
+- **Why:** each stored policy is kept as its own keychain item in a bounded
   sequence, so that an edit, deletion or replay outside the keychain cannot
   change the policy; writes past the bound are refused.
-- **What the person does instead:** nothing is needed in ordinary use, since a
-  person changes this policy rarely.
+- **What the person does instead:** nothing replaces it in 4.0.0; once the
+  allowance is used, further changes to the policy cannot be saved.
 - **Basis:** DEL-01-04 (keychain protection); DEL-02-02 (the workflow
   approval policy).
 
@@ -98,12 +100,14 @@ An entry is added in the same pull request that makes the limitation standing.
   for work and history kept there.
 - **Basis:** DEL-11-01; PRD §8 and OQ-12.
 
-### LIM-006: Standalone use only
+### LIM-006: Released and examined as a standalone application
 
 - **Id:** LIM-006
 - **Exit criteria:** 1, 2
-- **What is unavailable:** using the App's agent embedded in a host
-  application such as SWBPIPE, and Domains.
+- **What is unavailable:** assurance about the App's use with a host
+  application such as SWBPIPE, and Domains. 4.0.0 is released and examined as
+  a standalone application; its use with a host is not examined for this
+  release.
 - **Why:** a live host journey is the host's own requirement and is outside
   this release; Domains follows in a later increment.
 - **What the person does instead:** use the App standalone, with the
