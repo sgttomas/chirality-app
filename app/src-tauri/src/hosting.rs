@@ -1940,6 +1940,16 @@ impl Host {
         for turn in &mut i.conversation_turns {
             if turn["generation"] == generation { turn["observationEnded"] = json!(true); }
         }
+        // A status is the last one received. With the generation closed it is
+        // no longer a reading of what the conversation is doing, so it moves
+        // aside and the status itself reads as not known: a reader that looks
+        // only at `status` cannot take a stopped Codex for a working one.
+        for thread in &mut i.threads {
+            if thread["generation"] == generation && thread["statusObservationEnded"] != true {
+                thread["lastObservedStatus"] = thread["status"].take();
+                thread["statusObservationEnded"] = json!(true);
+            }
+        }
         json!({"unknownNoResponse": unknown, "endedUnanswered": ended})
     }
 
@@ -4085,6 +4095,18 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 }
             }
         }
+        // The supplier's own report of a conversation's status, applied as sent
+        // to the admitted row of the generation it arrived in. It admits no
+        // conversation. One that does not match the pinned type leaves the
+        // status unknown: the earlier value is no longer what Codex reports.
+        if class == "notification" && frame["method"] == "thread/status/changed" {
+            let matched = Self::validate_native_result("ThreadStatusChangedNotification", &frame["params"]);
+            for thread in i.threads.iter_mut().filter(|t| t["generation"] == gen && t["threadId"].is_string() && t["threadId"] == frame["params"]["threadId"]) {
+                thread["status"] = if matched.is_ok() { frame["params"]["status"].clone() } else { Value::Null };
+                thread["statusSource"] = json!({"method":"thread/status/changed","receiptPosition":pos});
+                if matched.is_err() { thread["statusSource"]["limit"] = json!("the notification does not match the pinned ThreadStatusChangedNotification; status unknown"); }
+            }
+        }
         if class == "notification" && matches!(frame["method"].as_str(), Some("turn/started" | "turn/completed")) {
             if let Some(thread) = frame["params"]["threadId"].as_str() {
                 Self::remember_turn(&mut i, &gen, thread, &frame["params"]["turn"], frame["method"].as_str().unwrap(), pos);
@@ -5430,6 +5452,48 @@ mod conversation_transport_tests {
         expected[0]["name"] = Value::Null;
         assert_eq!(host.snapshot()["threads"], expected);
         assert!(host.client_requests().is_empty(), "display notifications send nothing");
+    }
+
+    // The supplier's status reaches the admitted conversation of the generation
+    // it arrived in, as sent. One the pinned type does not describe leaves the
+    // status unknown, never the earlier value; a closed generation's status
+    // moves aside so that it cannot read as current.
+    #[test]
+    fn conversation_status_events_are_applied_as_sent_and_never_outlive_their_source() {
+        let host = host();
+        host.inner.0.lock().unwrap().threads[0]["status"] = json!({"type":"idle"});
+        let notify = |generation: &Value, params: Value| host.on_line(
+            &serde_json::to_vec(&json!({"method":"thread/status/changed", "params":params})).unwrap(), generation);
+        let row = || host.snapshot()["threads"][0].clone();
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"active","activeFlags":[]}}));
+        assert_eq!(row()["status"], json!({"type":"active","activeFlags":[]}));
+        assert_eq!(row()["statusSource"], json!({"method":"thread/status/changed","receiptPosition":1}));
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"active","activeFlags":["waitingOnApproval"]}}));
+        assert_eq!(row()["status"]["activeFlags"], json!(["waitingOnApproval"]));
+        let current = host.snapshot()["threads"].clone();
+        notify(&g(), json!({"threadId":"unknown", "status":{"type":"systemError"}}));
+        let mut stale = g(); stale["spawnCounter"] = json!(99);
+        notify(&stale, json!({"threadId":"thread", "status":{"type":"idle"}}));
+        assert_eq!(host.snapshot()["threads"], current, "another conversation's or another generation's status changes nothing");
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"systemError"}}));
+        assert_eq!(row()["status"], json!({"type":"systemError"}));
+        for unknown in [json!({"threadId":"thread", "status":{"type":"invented"}}), json!({"threadId":"thread", "status":{"type":"active"}}), json!({"threadId":"thread"})] {
+            notify(&g(), json!({"threadId":"thread", "status":{"type":"idle"}}));
+            assert_eq!(row()["status"], json!({"type":"idle"}));
+            notify(&g(), unknown);
+            assert_eq!(row()["status"], Value::Null, "a status the pinned type does not describe is unknown, not the earlier value");
+            assert!(row()["statusSource"]["limit"].as_str().unwrap().contains("status unknown"));
+        }
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"active","activeFlags":["waitingOnUserInput"]}}));
+        assert!(row()["statusSource"].get("limit").is_none());
+        assert!(row().get("statusObservationEnded").is_none());
+        { let mut i = host.inner.0.lock().unwrap(); Host::close_generation(&mut i); Host::close_generation(&mut i); }
+        assert_eq!(row()["status"], Value::Null);
+        assert_eq!(row()["statusObservationEnded"], true);
+        assert_eq!(row()["lastObservedStatus"], json!({"type":"active","activeFlags":["waitingOnUserInput"]}));
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"idle"}}));
+        assert_eq!(row()["status"], Value::Null, "a frame after the close is not applied");
+        assert!(host.client_requests().is_empty(), "status notifications send nothing");
     }
 
     #[test]

@@ -68,6 +68,8 @@ pub fn revision_key(reference: &Value) -> Result<String, String> {
         _ => Err("unknown revision kind".into()),
     }
 }
+/// Error notifications kept for one turn: the newest, numbered from the first received.
+const TURN_ERROR_LIMIT: usize = 32;
 /// Streamed previews keep at most this many bytes, the latest text, labelled truncated.
 const PREVIEW_LIMIT: usize = 256 * 1024;
 fn append_preview(row: &mut Value, delta: &str) {
@@ -111,6 +113,10 @@ pub struct NativeView {
     /// HOSTING §8.3: `model/rerouted` notifications received live, in receipt
     /// order (read-only observations; nothing is sent in reply).
     reroutes: Vec<Value>,
+    /// The supplier's `error` notifications received live, in receipt order,
+    /// each as sent. Codex history carries no retry notice, so these exist
+    /// only for generations this view observed.
+    turn_errors: Vec<Value>,
     /// Order in which this view first received each item; a receipt reading,
     /// not a native sequence or a claim about when Codex produced the item.
     next_order: u64,
@@ -136,6 +142,7 @@ impl NativeView {
             goals: BTreeMap::new(),
             checklist_gaps: Vec::new(),
             reroutes: Vec::new(),
+            turn_errors: Vec::new(),
             next_order: 0,
         })
     }
@@ -199,6 +206,9 @@ impl NativeView {
         for child in self.descendants.values_mut() {
             child["observationEnded"] = json!(true);
         }
+        for error in self.turn_errors.iter_mut().filter(|e| e["generation"] == *generation) {
+            error["observationEnded"] = json!(true);
+        }
         Ok(())
     }
     pub fn consume(&mut self, envelope: &Value) -> Result<(), String> {
@@ -214,6 +224,17 @@ impl NativeView {
         }
         let frame = &envelope["frame"];
         let p = &frame["params"];
+        // A frame other than another error that names an error's thread and
+        // turn was received after it: the App's own receipt fact, which says
+        // nothing about why the turn moved on.
+        if frame["method"] != "error" {
+            let turn = p.get("turnId").or_else(|| p["turn"].get("id"));
+            if let (Some(thread), Some(turn)) = (p["threadId"].as_str(), turn.and_then(Value::as_str)) {
+                for error in self.turn_errors.iter_mut().filter(|e| e["generation"] == *g && e["threadId"] == thread && e["turnId"] == turn) {
+                    error["laterFrameForTurn"] = json!(true);
+                }
+            }
+        }
         // Unknown native frames also advance the all-frame cursor. They stay
         // inspectable in hosting's unmodified ordered journal.
         match frame["method"].as_str() {
@@ -330,6 +351,27 @@ impl NativeView {
                 let field = |name: &str| text(p, name).map(str::to_owned);
                 self.reroutes.push(json!({"threadId":field("threadId")?,"turnId":field("turnId")?,"fromModel":field("fromModel")?,"toModel":field("toModel")?,
                     "reason":p["reason"],"generation":g,"receiptPosition":pos,"standing":"live-observed"}));
+            }
+            Some("error") => {
+                // 0.167.0 ErrorNotification: the supplier's report of an error
+                // in a turn and whether it will retry. Kept as sent, never
+                // reworded; a malformed one is refused.
+                let thread = text(p, "threadId")?;
+                let turn = text(p, "turnId")?;
+                let will_retry = p["willRetry"].as_bool().ok_or("missing willRetry")?;
+                if !p["error"].is_object() || !p["error"]["message"].is_string() {
+                    return Err("invalid turn error".into());
+                }
+                let same = |e: &Value| e["generation"] == *g && e["threadId"] == thread && e["turnId"] == turn;
+                let ordinal = self.turn_errors.iter().rev().find(|e| same(e)).and_then(|e| e["ordinalInTurn"].as_u64()).unwrap_or(0) + 1;
+                // The newest of a turn are kept; `ordinalInTurn` shows any gap.
+                if self.turn_errors.iter().filter(|e| same(e)).count() >= TURN_ERROR_LIMIT {
+                    if let Some(oldest) = self.turn_errors.iter().position(|e| same(e)) {
+                        self.turn_errors.remove(oldest);
+                    }
+                }
+                self.turn_errors.push(json!({"threadId":thread,"turnId":turn,"error":p["error"],"willRetry":will_retry,"generation":g,
+                    "receiptPosition":pos,"ordinalInTurn":ordinal,"laterFrameForTurn":false,"standing":"live-observed"}));
             }
             Some("thread/goal/updated") => {
                 self.goals.insert(
@@ -649,6 +691,7 @@ impl NativeView {
             "items":self.items.values().collect::<Vec<_>>(),"revisions":self.revisions,"descendants":self.descendants.values().collect::<Vec<_>>(),
             "turns":self.turns.values().collect::<Vec<_>>(),
             "modelReroutes":self.reroutes,
+            "turnErrors":self.turn_errors,
             "turnRecords":self.turns.keys().map(|(thread,turn)|json!({"threadId":thread,"turnId":turn})).collect::<Vec<_>>(),"typesPin":self.types_pin,"goals":self.goals,"checklistGaps":self.checklist_gaps,
             "limits":["Tool success is not checking, acceptance or reliance.","Parent completion says nothing about children.","Child completion, return, review and integration are not inferred.","Plan item references require this receiving home namespace; standalone cross-home export remains unsupported."]})
     }
@@ -992,6 +1035,60 @@ mod tests {
         let refused = v.consume(&json!({"generation":g(1),"position":4,"frame":{"method":"model/rerouted","params":{"threadId":"t","fromModel":"a","toModel":"b"}}}));
         assert!(refused.is_err_and(|e| e.contains("turnId")));
         assert_eq!(v.snapshot()["modelReroutes"].as_array().unwrap().len(), 1);
+    }
+    // The case observed against an unreachable model: the turn starts, an
+    // item completes, then the supplier repeats its retry notice.
+    #[test]
+    fn turn_error_notifications_are_kept_as_sent_with_their_retry_state() {
+        let mut v = view();
+        let error = json!({"message":"Reconnecting... waiting for network","additionalDetails":"Connection failed: error sending request","codexErrorInfo":{"responseStreamDisconnected":{"httpStatusCode":null}}});
+        let notice = |retry: bool| json!({"threadId":"t","turnId":"u","error":error,"willRetry":retry});
+        frame(&mut v, 1, "turn/started", json!({"threadId":"t","turn":{"id":"u","status":"inProgress"}}));
+        frame(&mut v, 2, "item/completed", json!({"threadId":"t","turnId":"u","item":{"id":"m","type":"userMessage","content":[]}}));
+        frame(&mut v, 3, "error", notice(true));
+        frame(&mut v, 4, "error", notice(true));
+        assert_eq!(v.snapshot()["turnErrors"], json!([
+            {"threadId":"t","turnId":"u","error":error,"willRetry":true,"generation":g(1),"receiptPosition":3,"ordinalInTurn":1,"laterFrameForTurn":false,"standing":"live-observed"},
+            {"threadId":"t","turnId":"u","error":error,"willRetry":true,"generation":g(1),"receiptPosition":4,"ordinalInTurn":2,"laterFrameForTurn":false,"standing":"live-observed"}]));
+        // Another conversation's frame and an error for another turn change nothing here.
+        frame(&mut v, 5, "item/started", json!({"threadId":"other","turnId":"u","item":{"id":"x","type":"agentMessage","text":""}}));
+        frame(&mut v, 6, "error", json!({"threadId":"t","turnId":"w","error":{"message":"m"},"willRetry":false}));
+        let errors = v.snapshot()["turnErrors"].clone();
+        assert!(errors.as_array().unwrap().iter().all(|e| e["laterFrameForTurn"] == false));
+        assert_eq!(errors[2]["ordinalInTurn"], 1);
+        assert_eq!(errors[2]["willRetry"], false);
+        // A later frame naming the turn marks the errors before it, and only those.
+        frame(&mut v, 7, "item/agentMessage/delta", json!({"threadId":"t","turnId":"u","itemId":"a","delta":"hi"}));
+        let errors = v.snapshot()["turnErrors"].clone();
+        assert_eq!((errors[0]["laterFrameForTurn"].clone(), errors[1]["laterFrameForTurn"].clone(), errors[2]["laterFrameForTurn"].clone()), (json!(true), json!(true), json!(false)));
+        frame(&mut v, 8, "error", notice(true));
+        assert_eq!(v.snapshot()["turnErrors"][3]["laterFrameForTurn"], false);
+        assert_eq!(v.snapshot()["turnErrors"][3]["ordinalInTurn"], 3);
+        frame(&mut v, 9, "turn/completed", json!({"threadId":"t","turn":{"id":"u","status":"failed"}}));
+        assert_eq!(v.snapshot()["turnErrors"][3]["laterFrameForTurn"], true);
+        // A malformed notice is refused and nothing is invented for it.
+        for params in [json!({"threadId":"t","turnId":"u","error":error}), json!({"threadId":"t","turnId":"u","error":"text","willRetry":true}), json!({"threadId":"t","error":error,"willRetry":true})] {
+            assert!(v.consume(&json!({"generation":g(1),"position":10,"frame":{"method":"error","params":params}})).is_err());
+        }
+        assert_eq!(v.snapshot()["turnErrors"].as_array().unwrap().len(), 4);
+        // When the generation closes the entries stay, marked as no longer observed.
+        v.close(&g(1)).unwrap();
+        assert!(v.snapshot()["turnErrors"].as_array().unwrap().iter().all(|e| e["observationEnded"] == true));
+    }
+    #[test]
+    fn turn_errors_keep_the_newest_of_a_turn_and_number_them_from_the_first() {
+        let mut v = view();
+        for n in 1..=(TURN_ERROR_LIMIT as u64 + 3) {
+            frame(&mut v, n, "error", json!({"threadId":"t","turnId":"u","error":{"message":format!("attempt {n}")},"willRetry":true}));
+        }
+        frame(&mut v, 100, "error", json!({"threadId":"t","turnId":"w","error":{"message":"other turn"},"willRetry":true}));
+        let snapshot = v.snapshot();
+        let kept: Vec<&Value> = snapshot["turnErrors"].as_array().unwrap().iter().filter(|e| e["turnId"] == "u").collect();
+        assert_eq!(kept.len(), TURN_ERROR_LIMIT);
+        assert_eq!(kept[0]["ordinalInTurn"], 4);
+        assert_eq!(kept[TURN_ERROR_LIMIT - 1]["ordinalInTurn"], TURN_ERROR_LIMIT as u64 + 3);
+        assert_eq!(kept[TURN_ERROR_LIMIT - 1]["error"]["message"], format!("attempt {}", TURN_ERROR_LIMIT + 3));
+        assert_eq!(snapshot["turnErrors"].as_array().unwrap().len(), TURN_ERROR_LIMIT + 1);
     }
     #[test]
     fn a_stale_history_page_never_overwrites_newer_live_state() {

@@ -336,3 +336,33 @@ test('a nonzero command exit stays visible outside the optional command details'
  const v=view();v.items.find(r=>r.native.id==='c-cmd').native.exitCode=7;
  const html=render(v);assert.match(html,/<p role="status">Command exited with code 7\.<\/p><details><summary>Command details/);
 });
+
+// The case observed against an unreachable model: a live turn whose only news is Codex's repeated retry notice.
+const notice=(turnId,receiptPosition,ordinalInTurn,extra={})=>({threadId:'T',turnId,error:{message:'Reconnecting... waiting for network',additionalDetails:'Connection failed: error sending request',codexErrorInfo:{responseStreamDisconnected:{httpStatusCode:null}}},willRetry:true,receiptPosition,ordinalInTurn,laterFrameForTurn:false,standing:'live-observed',...extra});
+test('a turn’s error notices show in Codex’s words with the retry state it gave',()=>{
+ const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
+ v.turnErrors=[notice('turn-3',40,1),notice('turn-3',41,2),{...notice('turn-x',42,1),threadId:'OTHER'}];
+ const html=render(v);
+ assert.match(html,/<h4>Turn 3 · inProgress<\/h4>/);
+ assert.match(html,/<div role="status" aria-label="Errors Codex reported in this turn"><p>Codex reported an error in this turn 2 times; the latest: <q>Reconnecting\.\.\. waiting for network — Connection failed: error sending request<\/q> Codex said it will retry\. The App has received nothing more for this turn since\.<\/p>/);
+ assert.match(html,/The 2 error notices as received/);
+ assert.match(html,/<li value="2">Reconnecting\.\.\. waiting for network — Connection failed: error sending request · will retry · Codex error kind <code>\{&quot;responseStreamDisconnected&quot;:\{&quot;httpStatusCode&quot;:null\}\}<\/code><small> · received at position 41<\/small><\/li>/);
+ assert.equal(html.match(/Errors Codex reported in this turn/g).length,1,'another conversation’s notice is not shown here');
+ // Later activity for the turn is said as received, never as a recovery.
+ v.turnErrors=[notice('turn-3',40,1,{laterFrameForTurn:true})];
+ const later=render(v);assert.match(later,/Codex reported an error in this turn: <q>.*<\/q> Codex said it will retry\. The App has received more for this turn since\./);
+ assert.doesNotMatch(later,/recovered|reconnected|resolved/i);
+});
+test('a final error notice alerts, and a stopped Codex or a dropped notice is said plainly',()=>{
+ const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
+ v.turnErrors=[notice('turn-3',70,34,{willRetry:false,error:{message:'stream disconnected before completion',codexErrorInfo:'other'}})];
+ const html=render(v);
+ assert.match(html,/<div role="alert" aria-label="Errors Codex reported in this turn"><p>Codex reported an error in this turn 34 times; the latest: <q>stream disconnected before completion<\/q> Codex said it will not retry\./);
+ assert.match(html,/33 earlier notices are no longer kept\./);assert.match(html,/Codex error kind <code>other<\/code>/);
+ v.turnErrors=[notice('turn-3',40,1,{observationEnded:true})];
+ assert.match(render(v),/Codex has stopped since, so the App received nothing more for this turn\./);
+ // A notice for a turn the view has nothing else for still shows, under a turn of unknown status.
+ v.turnErrors=[notice('turn-9',90,1,{willRetry:undefined})];
+ const orphan=render(v);assert.match(orphan,/status unknown<\/h4>/);assert.match(orphan,/Codex did not say whether it will retry\./);
+ assert.deepEqual(activityModel(v,'T').turns.at(-1).errors.length,1);
+});

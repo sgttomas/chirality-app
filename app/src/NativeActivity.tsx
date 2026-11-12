@@ -6,7 +6,7 @@ type Json = any;
 // Every row keeps the native item unchanged beside its display reading (TR-1);
 // nothing here infers checking, acceptance, approval, return or reliance.
 
-export type ActivityTurn = { turnId: string; native: Json | null; items: Json[]; checklists: Json[] };
+export type ActivityTurn = { turnId: string; native: Json | null; items: Json[]; checklists: Json[]; errors: Json[] };
 export type ActivityModel = { threadId: string; turns: ActivityTurn[]; goal: Json | null; checklistGaps: Json[]; children: Json[]; subtree: Json[]; parent: Json | null };
 export type ActivityLocation = { generation: Json; rootThreadId: string; threadId: string; turnId: string; itemId: string };
 export type ActivityReveal = { location: ActivityLocation; isCurrent: () => boolean };
@@ -48,15 +48,19 @@ function descendantsOf(view: Json, root: string): Json[] {
 export function activityModel(view: Json, threadId: string): ActivityModel {
   const turns = new Map<string, ActivityTurn>();
   const turnFor = (turnId: string) => {
-    if (!turns.has(turnId)) turns.set(turnId, { turnId, native: null, items: [], checklists: [] });
+    if (!turns.has(turnId)) turns.set(turnId, { turnId, native: null, items: [], checklists: [], errors: [] });
     return turns.get(turnId)!;
   };
   for (const row of list(view?.items)) if (row?.threadId === threadId) turnFor(row.turnId).items.push(row);
   // turnRecords associates each native turn with its thread; the turn itself stays in `turns`.
   for (const record of list(view?.turnRecords)) if (record?.threadId === threadId && record.turnId) turnFor(record.turnId).native = list(view?.turns).find((turn: Json) => turn?.id === record.turnId) ?? null;
   for (const revision of list(view?.revisions)) if (revision?.kind === "checklist" && revision.threadId === threadId) turnFor(revision.turnId).checklists.push(revision);
+  // The supplier's error notices for a turn, in the order received. A turn
+  // known only by such a notice is still shown, so the notice is not lost.
+  for (const error of list(view?.turnErrors)) if (error?.threadId === threadId && typeof error.turnId === "string" && error.turnId) turnFor(error.turnId).errors.push(error);
   const collected = Array.from(turns.values());
   for (const turn of collected) {
+    turn.errors.sort((a, b) => (a.receiptPosition ?? 0) - (b.receiptPosition ?? 0));
     turn.items.sort((a, b) => order(a) - order(b));
     turn.checklists.sort((a, b) => (a.ordinal ?? 0) - (b.ordinal ?? 0));
   }
@@ -396,6 +400,36 @@ export function DelegationLine({ delegation, descendants }: { delegation: Json; 
   return null;
 }
 
+/** One error notice in the supplier's own words: its message, then its details where it sent any. */
+const errorWords = (error: Json) => `${text(error?.message)}${typeof error?.additionalDetails === "string" && error.additionalDetails ? ` — ${error.additionalDetails}` : ""}`;
+
+/**
+ * The supplier's `error` notifications for one turn, as received. The words
+ * are Codex's; the App adds only what it received and when: whether Codex
+ * said it will retry, and whether anything else has arrived for the turn
+ * since. Nothing here says the turn failed, recovered or is still trying.
+ */
+export function TurnErrors({ errors, turn }: { errors: Json[]; turn: Json | null }) {
+  if (errors.length === 0) return null;
+  const latest = errors[errors.length - 1];
+  const received = typeof latest?.ordinalInTurn === "number" ? latest.ordinalInTurn : errors.length;
+  const retry = latest?.willRetry === true ? "Codex said it will retry." : latest?.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry.";
+  const since = latest?.observationEnded === true ? "Codex has stopped since, so the App received nothing more for this turn."
+    : latest?.laterFrameForTurn === true ? "The App has received more for this turn since."
+    : turn?.status === "inProgress" || turn === null ? "The App has received nothing more for this turn since." : "";
+  return <div role={latest?.willRetry === false ? "alert" : "status"} aria-label="Errors Codex reported in this turn">
+    <p>Codex reported an error in this turn{received > 1 ? ` ${received} times; the latest` : ""}: <q>{errorWords(latest?.error)}</q> {retry}{since && ` ${since}`}</p>
+    <details><summary>{errors.length === 1 ? "The error notice as received" : `The ${errors.length} error notices as received`}</summary>
+      {received > errors.length && <p><small>{received - errors.length} earlier {received - errors.length === 1 ? "notice is" : "notices are"} no longer kept.</small></p>}
+      <ol>{errors.map((entry: Json, i: number) => <li key={i} value={typeof entry?.ordinalInTurn === "number" ? entry.ordinalInTurn : i + 1}>
+        {errorWords(entry?.error)} · {entry?.willRetry === true ? "will retry" : entry?.willRetry === false ? "will not retry" : "retry not stated"}
+        {entry?.error?.codexErrorInfo != null && <> · Codex error kind <code>{typeof entry.error.codexErrorInfo === "string" ? entry.error.codexErrorInfo : JSON.stringify(entry.error.codexErrorInfo)}</code></>}
+        <small> · received at position {text(entry?.receiptPosition)}</small>
+      </li>)}</ol>
+    </details>
+  </div>;
+}
+
 export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
   const [shown, setShown] = useState<string>("");
   const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
@@ -464,6 +498,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
+      <TurnErrors errors={turn.errors} turn={turn.native} />
       {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}>
         {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
       </NativeItemCard>)}
