@@ -132,7 +132,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
   if (view.launch?.state === "home-held") return <section className="first-use" aria-label="Welcome">
     <h1>A Codex home this App uses is held</h1>
     <p className="first-use-lead" role="alert">{view.launch.reason}</p>
-    <p>Nothing operational was started. Your saved setup is unchanged; open Chirality again when the home is free.</p>
+    <p>Nothing operational was started. This launch did not change your saved setup. Quit this Chirality instance (⌘Q), then reopen it after the process holding the home has released it.</p>
   </section>;
   return <section className="first-use" aria-label="Welcome" aria-busy={busy}>
     <h1>Welcome to Chirality</h1>

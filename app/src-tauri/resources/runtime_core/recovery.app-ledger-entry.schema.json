@@ -69,7 +69,7 @@
           "$ref": "#/$defs/nonempty"
         },
         "livenessLock": {
-          "description": "0.5: present (true) when this session held its App session liveness lock beside the ledger before this entry was written. A later startup then reads the session as ended only from a free lock file that names it. Absent: a session of a build that took no lock.",
+          "description": "0.5: present (true) when this session held its App session liveness lock beside the ledger before this entry was written. A held lock refuses a later session start. Every other lock-file outcome says nothing about whether the session ended; an unrecorded end is established only by the App data custody and same-process rule. Absent: a session that declared no lock.",
           "const": true
         }
       }

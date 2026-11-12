@@ -510,7 +510,8 @@ test('a saved setup whose Codex home is held is not shown as setup being needed'
     const welcome=region(c,'Welcome');
     assert.match(welcome.textContent,/A Codex home this App uses is held/);
     assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,reason);
-    assert.match(welcome.textContent,/Nothing operational was started\. Your saved setup is unchanged; open Chirality again when the home is free\./);
+    assert.match(welcome.textContent,/Nothing operational was started\. This launch did not change your saved setup\. Quit this Chirality instance \(⌘Q\), then reopen it after the process holding the home has released it\./);
+    assert.doesNotMatch(welcome.textContent,/saved setup is unchanged|open Chirality again when/,'no claim that nobody changed it, and the quit is said');
     assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder|Set up your workspace/i,'setup is not offered or said to be needed');
     assert.equal(nodes(c,'button').length,0,'no setup action is offered');
     assert.deepEqual(calls,[]);

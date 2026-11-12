@@ -1285,6 +1285,8 @@ fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Valu
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
+    // Whatever refuses this request, an earlier refusal is no longer the latest.
+    home.host.begin_start_request();
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App quit is under way; Codex was not started".into()); }
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
@@ -2780,6 +2782,7 @@ pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session
     runtime_session::start_with_recovery(host, recovery, data, Some(&cfg.codex_home), || {
         // A refusal before Host::start is kept as the host status's last
         // start refusal too (Host::start keeps its own home refusals).
+        host.begin_start_request();
         let admitted = desktop.lock().map_err(|_|"Desktop custody unavailable".to_string()).and_then(|desktop|desktop.recheck_active());
         if let Err(reason) = admitted { host.note_start_refusal("app-startup", &cfg.codex_home, &reason); return Err(reason); }
         host.start(cfg, "app-startup")

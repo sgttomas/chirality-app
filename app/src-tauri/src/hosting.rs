@@ -1678,10 +1678,18 @@ impl Host {
     /// Keeps `reason` as the last start refusal, for `home`, of a start refused
     /// before [`Self::start`] was reached (such as a failed custody recheck).
     /// Not a lifecycle transition.
+    /// A new request to start Codex has begun: an earlier refusal no longer
+    /// describes the latest request, whatever becomes of this one. A request
+    /// refused for a reason that is not kept leaves no refusal showing, and
+    /// never an older one. Not a lifecycle transition.
+    pub(crate) fn begin_start_request(&self) {
+        self.inner.0.lock().unwrap().last_start_refusal = None;
+    }
     pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
         self.inner.0.lock().unwrap().last_start_refusal = Some(Self::start_refusal(actor, home, None, reason));
     }
     fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+        self.begin_start_request();
         // DEL-01-01/05: one App at a time on a Codex home, held while this
         // Host lives; the claim keeps the home from being taken over while
         // this start is under way. Refused before anything is spawned, and
