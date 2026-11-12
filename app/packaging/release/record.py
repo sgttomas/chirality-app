@@ -370,8 +370,8 @@ def system_run(argv):
 
 def main(argv=None, *, run=None, stdout=None, stderr=None):
     stdout, stderr = stdout or sys.stdout, stderr or sys.stderr
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    sub = parser.add_subparsers(dest='command', required=True)
+    parser = common.FixedParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = parser.add_subparsers(dest='command', required=True, parser_class=common.FixedParser)
     c = sub.add_parser('check', help='compare a package with its record')
     c.add_argument('record', help='PACKAGE_IDENTITY.json, in the folder that also holds notary/')
     c.add_argument('--dmg', required=True)

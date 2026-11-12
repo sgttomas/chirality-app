@@ -514,6 +514,13 @@ class Secrets(Base):
                 self.assertEqual(stderr, 'STOP: ' + common.REASONS['UNEXPECTED'] + '\n')
                 self.assert_clean(self.returnable(stdout, stderr))
 
+    def test_unknown_arguments_are_not_echoed(self):
+        err = io.StringIO()
+        with patch('sys.stderr', err), self.assertRaises(SystemExit):
+            owner.main(self.argv() + ['--password', 'invented-secret'], runner=self.fake, environ=ENV, host=HOST, now=NOW)
+        self.assertNotIn('invented-secret', err.getvalue())
+        self.assertIn('usage error', err.getvalue())
+
     def test_refusal_text(self):
         code, stdout, stderr = self.main(notary_profile='someone@example.com')
         self.assertEqual((code, stdout), (3, ''))

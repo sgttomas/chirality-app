@@ -396,7 +396,7 @@ def pairs(values, what):
 
 def main(argv=None, *, stdout=None, stderr=None, **kw):
     stdout, stderr = stdout or sys.stdout, stderr or sys.stderr
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = common.FixedParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     for key in ('source-root', 'revision', 'vendor', 'expected-manifest', 'pin', 'out'):
         parser.add_argument('--' + key, required=True)
     parser.add_argument('--env', action='append', metavar='KEY=VALUE', help='one of ' + ', '.join(CALLER_ENVIRONMENT))

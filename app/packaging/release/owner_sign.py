@@ -459,7 +459,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
 
 
 def parser():
-    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = common.FixedParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument('--identity', required=True, help='"Developer ID Application: <name> (<TEAMID>)" as in your keychain')
     p.add_argument('--notary-profile', required=True, help='the notarytool keychain profile name you stored')
     p.add_argument('--candidate', required=True, help='the build output folder holding CANDIDATE.json (not in /Applications or ~/Library)')

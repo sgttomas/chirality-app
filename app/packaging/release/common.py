@@ -192,6 +192,13 @@ for _number, _subject in ((7, 'the App'), (11, 'the disk image')):
     })
 
 
+class FixedParser(__import__('argparse').ArgumentParser):
+    """An argument parser whose errors never echo what was typed."""
+
+    def error(self, message):
+        self.exit(2, 'usage error: an argument is missing, repeated or unknown; see --help\n')
+
+
 class Failure(Exception):
     """A failure with a code from REASONS; its text is the fixed reason and nothing else."""
 
