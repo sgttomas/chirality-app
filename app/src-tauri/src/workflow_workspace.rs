@@ -11,9 +11,8 @@ pub mod development_catalog;
 /// Release-candidate catalog; development admission remains separate.
 pub mod production_catalog {
     pub use super::development_catalog::{
-        ProductionBundlePackage, ProductionCatalog, ProductionHoldingCopy, BUNDLED_STANDING,
-        PRODUCTION_STANDING, RELEASE_SUBJECT, SELECTED_BUNDLED_MANIFEST_SHA256,
-        SELECTED_BUNDLED_REVISION,
+        ProductionBundlePackage, ProductionCatalog, ProductionEntry, ProductionHoldingCopy,
+        BUNDLED_STANDING, PRODUCTION_STANDING, RELEASE_SUBJECT, SELECTED_BUNDLED_MANIFEST_SHA256,
     };
 }
 
