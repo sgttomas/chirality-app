@@ -133,7 +133,7 @@ def test_v3_method_selection_still_requires_explicit_interlocutor_eligibility(tm
 
 def test_active_selection_and_entry_do_not_depend_on_packaged_instructions():
     agents = (ROOT / "AGENTS.md").read_text()
-    assert "ec3ee2d1b398eba1fb3227ccf93e2569df95bacd" in agents and "library-v3.3.0" in agents
+    assert "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca" in agents and "library-v3.4.0" in agents
     assert (ROOT / "CLAUDE.md").read_bytes() == b"@AGENTS.md\n"
     prompt = (ROOT / "init-prompt.md").read_text()
     assert prompt.count("<init-prompt>") == prompt.count("</init-prompt>") == 1
@@ -225,6 +225,76 @@ def test_v3_3_delta_preserves_exact_sources_and_reuses_unchanged_readers():
 def test_v3_3_roles_and_comparison_resolve_offline_from_isolated_export(tmp_path):
     exported = tmp_path / "released-source"
     for row in [*LATEST_MANIFEST["files"], *LATEST_MANIFEST["comparisonSources"]]:
+        target = exported / row["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / row["retainedPath"], target)
+    result = subprocess.run(
+        [sys.executable, "-E", "-s", "-B", str(exported / "tools/validation/validate_agent_instructions.py"), "--json"],
+        cwd=tmp_path, capture_output=True, text=True, timeout=60,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    assert json.loads(result.stdout) == {"files_checked": 5, "errors": 0, "warnings": 0, "findings": []}
+    resolver = _load_resolver()
+    for role in ROLES:
+        selected = resolver.resolve(exported, role)
+        assert selected["context"][0]["content"].encode() == (exported / f"agents/AGENT_{role}.md").read_bytes()
+    selected = resolver.resolve(exported, "HELP_HUMAN", workflow="compare-library-derivations")
+    assert selected["methods"] == [{"source": "bundled", "sourceRootId": "chirality-root",
+                                     "kind": "workflow", "name": "compare-library-derivations"}]
+    assert selected["context"][1]["content"].encode() == (exported / "workflows/compare-library-derivations/WORKFLOW.md").read_bytes()
+    resolver.bind_write_authority(selected, None)
+    assert selected["allowed_write_targets"] == []
+
+
+SELECTED = ROOT / "reference/library-v3.4.0"
+SELECTED_MANIFEST = json.loads((SELECTED / "MANIFEST.json").read_text())
+
+
+def test_v3_4_delta_preserves_exact_sources_and_reuses_unchanged_inputs():
+    assert SELECTED_MANIFEST["commit"] == "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca"
+    assert SELECTED_MANIFEST["tag"] == "library-v3.4.0"
+    assert SELECTED_MANIFEST["baseCommit"] == LATEST_MANIFEST["commit"]
+    rows = [*SELECTED_MANIFEST["files"], *SELECTED_MANIFEST["comparisonSources"],
+            SELECTED_MANIFEST["documentMetadataSchema"]]
+    expected = {row["retainedPath"] for row in rows if row["retainedPath"].startswith("reference/library-v3.4.0/")}
+    assert {p.relative_to(ROOT).as_posix() for p in SELECTED.rglob("*") if p.is_file()} == expected | {
+        "reference/library-v3.4.0/MANIFEST.json", "reference/library-v3.4.0/README.md"
+    }
+    for row in rows:
+        path = ROOT / row["retainedPath"]
+        raw = path.read_bytes()
+        assert not path.is_symlink()
+        assert len(raw) == row["bytes"]
+        assert hashlib.sha256(raw).hexdigest() == row["sha256"]
+        assert hashlib.sha1(b"blob %d\0" % len(raw) + raw).hexdigest() == row["gitBlob"]
+        assert bool(path.stat().st_mode & stat.S_IXUSR) == (row["gitMode"] == "100755")
+    # The selection relies on the same released inputs as the previous one: no
+    # input may drop out of the manifest unnoticed, and none is added here.
+    assert [row["path"] for row in SELECTED_MANIFEST["files"]] == [row["path"] for row in LATEST_MANIFEST["files"]]
+    assert ([row["path"] for row in SELECTED_MANIFEST["comparisonSources"]]
+            == [row["path"] for row in LATEST_MANIFEST["comparisonSources"]])
+    assert SELECTED_MANIFEST["documentMetadataSchema"]["sourcePath"] == LATEST_MANIFEST["documentMetadataSchema"]["sourcePath"]
+    # An input whose released bytes did not change keeps the row, and so the
+    # retained copy, it had under the previous selection.
+    earlier = {row["path"]: row for row in [*LATEST_MANIFEST["files"], *LATEST_MANIFEST["comparisonSources"]]}
+    changed = {row["path"] for row in [*SELECTED_MANIFEST["files"], *SELECTED_MANIFEST["comparisonSources"]]
+               if row["retainedPath"].startswith("reference/library-v3.4.0/")}
+    assert changed == {
+        "agents/AGENT_HELP_HUMAN.md", "agents/AGENT_INTERLOCUTOR.md",
+        "workflows/compare-library-derivations/WORKFLOW.md",
+        "workflows/project-setup/resources/project-entry.md",
+        "workflows/catalog.yaml", "docs/document-metadata.md",
+    }
+    for row in [*SELECTED_MANIFEST["files"], *SELECTED_MANIFEST["comparisonSources"]]:
+        if row["path"] not in changed:
+            assert row == earlier[row["path"]]
+        else:
+            assert row["gitBlob"] != earlier[row["path"]]["gitBlob"]
+
+
+def test_v3_4_roles_and_comparison_resolve_offline_from_isolated_export(tmp_path):
+    exported = tmp_path / "released-source"
+    for row in [*SELECTED_MANIFEST["files"], *SELECTED_MANIFEST["comparisonSources"]]:
         target = exported / row["path"]
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(ROOT / row["retainedPath"], target)

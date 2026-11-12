@@ -6,7 +6,7 @@ metadata:
   surface: standing
   upstream:
     source: workflows/project-setup/resources/project-entry.md
-    edition: library-v3.3.0
+    edition: library-v3.4.0
 ---
 # Chirality App repository instructions
 
@@ -59,8 +59,7 @@ grant, including any limit on passing those decisions on:
   by changing the text it governs. A Type 1 decides how the work within the
   locality of its assignment is done, and takes to Agent 0 a changed
   commitment, criterion or hold and whatever reaches beyond that locality. A
-  Type 2 uses its
-  judgment within its bounded assignment and does not change objectives,
+  Type 2 uses its judgment within its bounded assignment and does not change objectives,
   commitments or holds.
 - Before deciding, look for the owner's intention in the PRD, the scopes and
   the product itself. Where it is not there, ask the owner about the
@@ -236,11 +235,13 @@ steering for the session, never from a file.
 ## The selected Library and methods
 
 Use the selected Chirality Library (the Library) edition: Chirality library
-3.3.0, tag `library-v3.3.0`, commit `ec3ee2d1b398eba1fb3227ccf93e2569df95bacd`
+3.4.0, tag `library-v3.4.0`, commit `1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca`
 of `https://github.com/sgttomas/chirality-library`. Read it from the
-release's source archive, or from an owner-selected copy of that edition
-elsewhere; do not read another revision as this edition.
-`reference/library-v3.3.0/README.md` records the archive digest and how to
+release's source archive, extracted at
+`~/dev/chirality-library-releases/library-v3.4.0` on the shared development
+host, or from an owner-selected copy of that edition elsewhere; do not read
+another revision as this edition.
+`reference/library-v3.4.0/README.md` records the archive digest and how to
 prepare an isolated export. Shared `agents/` and `workflows/` paths in this
 section resolve against that source, not this repository. Changing the
 edition is a deliberate App change. The Project Management manual the App
@@ -256,8 +257,9 @@ silently switching sources. Roles grant no host permissions.
 A method serves the INTERLOCUTOR only when that method's `compatible_roles`
 name it.
 
-Use plain prose with spaced identifiers in assignments and messages to other
-agents.
+An assignment refers only to repository files and host
+facts. Use plain prose with spaced identifiers in assignments and messages
+to other agents. Lead owner updates with the result or decision needed.
 
 The Library's own work locations, duties and Git grants do not transfer to
 this project. Shared-method consultation does not authorize changes to another
@@ -282,12 +284,17 @@ and 9.
 ## Root relationship
 
 Root measures and improves how agents deliver work across the Chirality
-projects and hosts shared services. Its agents may evaluate App from session
-telemetry, read-only; the owner reviews every finding. Root's Agent 0 and
-agents working under its assignment may change App's files within work the owner has authorised, through
-a PR here under these instructions, and tell App's Agent 0. Root may also open
-a GitHub issue for an owner-approved finding cleared for publication. Routine adherence checks of
-App's deliverables stay with App's Agent 0 under these standing instructions.
+projects and hosts shared services. Root reads session telemetry read-only, segregated by
+repository: session metadata in any repository, to attribute sessions, and
+message and tool content only for the repositories a query selects, leaving
+out a session that spans several repositories unless the owner selects it by
+name. The owner reviews every finding before it reaches this project. Root's Agent 0 and agents working under its assignment may change
+this project's files within work the owner has authorised, through a PR here
+under these instructions, this project's checks and its Git grant, and tell
+this project's Agent 0. What Root writes in a public repository is cleared
+for publication first. Root may also open an issue for an owner-approved
+finding cleared for publication. Routine adherence checks of this project's deliverables are
+run by this project's Agent 0 through a Library workflow.
 
 ## Verification and authority
 
@@ -404,11 +411,11 @@ For implementation and closeout in this repository:
 Produce the work and the minimum information
 needed to review, use or recover it. A record needs a concrete consumer,
 acceptance requirement or recovery need. Decisions edit the text they govern,
-not append registers. No routine receipts, notices, run records or handoff
-chains; never hand-maintain derived progress or lifecycle state or manufacture
+not append registers. No receipts, notices, run records, accounts of the
+work, recovery notes or handoff chains; never hand-maintain derived progress
+or lifecycle state or manufacture
 acceptance, lifecycle advancement or standing from old records. Preserve
-unrelated work and accepted historical evidence. Keep one replaceable recovery
-note only where continuity needs it. Roles and methods come from repository
+unrelated work and accepted historical evidence. Roles and methods come from repository
 files, never host-side agent definitions or harness configuration. Agents save
 no memories; durable knowledge lives in Chirality. Scratch holds evidence,
 outputs and logs, never instructions. Once work is integrated or abandoned,

@@ -549,7 +549,7 @@ are not complete product coverage or new behavioral qualification. Original
 T1–T11 and later source checking are evidence, not extra product scope.
 
 The thesis is maintained in the Chirality Library at `docs/thesis/`
-(`sgttomas/chirality-library`, selected edition `library-v3.3.0`). App may
+(`sgttomas/chirality-library`, the Library edition the App selects). App may
 export or package it from there and holds no maintained copy (owner,
 2026-11-10: "The thesis can be exported in the App that's fine, but it then
 otherwise lives in Library. Point to that version. That's what will be
