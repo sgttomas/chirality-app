@@ -132,22 +132,32 @@ An entry is added in the same pull request that makes the limitation standing.
   carries, and establish where it came from by other means.
 - **Basis:** DEL-04-03 (TBD-003; AC-009 and AC-011).
 
-### LIM-011: A local model server is set up in the App, on the same machine
+### LIM-011: A local model server is set up in the App, on the same machine, with a key
 
 - **Id:** LIM-011
 - **Exit criteria:** 6
 - **What is unavailable:** a conversation on a local provider defined in the
-  person's own Codex settings, and a conversation with a model server on
-  another machine. In the home that uses the ChatGPT account, the App's Codex
-  runs on the built-in OpenAI provider whatever default provider the person's
-  Codex settings name.
+  person's own Codex settings; a conversation with a model server on another
+  machine; and a local model server that requires no key. In the home that
+  uses the ChatGPT account, the App's Codex runs on the built-in OpenAI
+  provider whatever default provider the person's Codex settings name. In the
+  local model home, Codex's plugin traffic is always off, whatever the
+  person's Codex plugin setting. Changing the local server's address removes
+  the saved key. After a change, a conversation already started continues
+  only if the model name is unchanged, and then with the server at the new
+  address; one started with another model name cannot be continued.
 - **Why:** the supplier's Codex at the selected version runs a conversation
   only on the provider its own process was started with, so the App runs one
-  Codex for the ChatGPT account and another for the local model server. The
-  server's address is limited to the same machine because a key and the
-  conversation's content would otherwise travel off it without the
-  protections that needs.
-- **What the person does instead:** set the local server's address, model
-  name and whether it requires a key in the App's local model settings, and
-  run the model server on the same machine.
-- **Basis:** DEL-01-05 (REQ-003, AC-003, AC-005, AC-008).
+  Codex for the ChatGPT account and another, sharing nothing with the
+  person's Codex settings, for the local model server. The server's address
+  is limited to the same machine because a key and the conversation's content
+  would otherwise travel off it without the protections that needs. The key
+  is removed with the address so that a key entered for one server is never
+  sent to another. The product requirements keep a credential required for a
+  local provider in this release.
+- **What the person does instead:** set the local server's address and model
+  name in the App's local model settings, run the model server on the same
+  machine with a key, enter the key again after changing the address, and
+  start a new conversation after changing the model name.
+- **Basis:** DEL-01-05 (REQ-003, REQ-010, AC-003, AC-005, AC-008, AC-011);
+  PRD V4-APP-02.

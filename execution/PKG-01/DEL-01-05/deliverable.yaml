@@ -2,7 +2,8 @@ id: DEL-01-05
 name: Native ChatGPT sign-in and oMLX/local-provider access
 needs:
 - from: DEL-01-01
-  condition: A Codex child is started for each home with no credential in its environment; the
+  condition: A Codex child is started for each home with the nonsecret session settings this
+    deliverable specifies and no credential in its environment; the
     supplier's account, model and configuration methods and a conversation's provider selection
     are carried unchanged; and the destination Codex reports for a turn is available.
   gating: true
@@ -19,14 +20,16 @@ needs:
   when: Sign-in on the candidate
 - from: external:local model server
   condition: A local model server on the same machine serves the Responses interface at the
-    address set in the local model settings, has the model named there and, where it requires
-    one, accepts the key the person holds.
+    address set in the local model settings, has the model named there and accepts the key the
+    person holds.
   when: A local conversation and the substitution of a second server
 code_paths:
 - app/src-tauri/src/access.rs
 - app/src-tauri/src/access_settings.rs
-# access_provider.rs is shared with DEL-02-04. Here: admission of the providers Codex reports
-# from the person's settings. The use of a provider's metadata for role guidance is DEL-02-04's.
+# access_provider.rs is shared with DEL-02-04. Here: admission of the local model server's
+# provider in the dedicated local home and of the built-in provider in the account home, and
+# the providers Codex reports from the person's settings, which are identified and not offered
+# for a conversation. The use of a provider's metadata for role guidance is DEL-02-04's.
 - app/src-tauri/src/access_provider.rs
 - app/src-tauri/src/auth_rpc.rs
 - app/src-tauri/src/oauth_control.rs

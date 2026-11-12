@@ -117,7 +117,7 @@ prerequisite. PEC delivery is retired; no coordination-provider replacement is n
 | V4-ARC-01 | **Harness: Codex through the stock Codex App Server**, run from the App's own process, version-pinned, over its published protocol (JSON-RPC over stdio) | Recorded D-17/D-19 choice, retained by B-HTML 02; historical successful repairs support useful properties without proving topology-only causation |
 | V4-ARC-02 | **Shell: Tauri 2 + React + Vite**, the same stack as SWBPIPE | D-20; one packaging pipeline and one main-process language across Chirality applications (analysis §11.2–11.3) |
 | V4-ARC-03 | **No separate v3 Runtime service in the App target.** Its Node service and socket API are not carried forward as the App hosting topology | D-20 explicitly selected direct App-owned hosting. This is the chosen direction, not a claim that the retained service caused every historical failure or that a service is always wrong |
-| V4-ARC-04 | **Account and oMLX/local access through Codex**: ChatGPT sign-in and local model providers remain configured together and chosen per conversation, without a default. Credentials remain in Codex custody. A local model server is reached through a dedicated local home with its own nonsecret configuration, set by the person in the App and separate from the account home; actual oMLX compatibility remains pending. Standalone OpenAI API-key product access and its qualification commitment are omitted for this increment, while native plumbing and saved homes are retained. | D-06, D-17; current owner scope correction |
+| V4-ARC-04 | **Account and oMLX/local access through Codex**: ChatGPT sign-in and local model providers remain configured together and chosen per conversation, without a default. Credentials remain in Codex custody. A local model server is reached through a dedicated local home with its own nonsecret configuration, set by the person in the App and separate from the account home; its native implementation and actual oMLX compatibility remain pending. Standalone OpenAI API-key product access and its qualification commitment are omitted for this increment, while native plumbing and saved homes are retained. | D-06, D-17; current owner scope correction |
 | V4-ARC-05 | **Native presentation.** Codex's items — plans, tool activity, delegation, requests — are presented in their native form; protocol types are generated from the pinned Codex version, with a small hand-kept supplement for experimental fields | M-2; D-GOV-43 finding 4 (L-05) |
 
 **Properties the App must hold** (X-03–X-05; B-HTML 02/05). Source paths and
@@ -211,7 +211,8 @@ supplier direction as though it were unanswered.
   phase. This property governs a host's embedded agent; the App's own Codex
   keeps the person's Codex configuration, approval and sandbox choices,
   apart from the settings DEL-01-05 names that the App applies to its own
-  Codex process and lists for the person.
+  Codex process and lists for the person: analytics off, and in the account
+  home the built-in provider.
 - It does not block the host's interface: long parsing and model streaming
   run off the interface's main thread where the host needs it (T10 risk 4).
 - It treats truncated or malformed tool calls as failures to report, never
