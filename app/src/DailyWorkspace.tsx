@@ -13,6 +13,7 @@ export const WORKSPACE_VIEWS = [
   { id: "run", label: "Run a workflow", target: "view-run" },
   { id: "make", label: "Make a workflow", target: "view-make" },
   { id: "conversation", label: "Conversation", target: "conversation" },
+  { id: "delegated", label: "Delegated work", target: "view-delegated" },
   { id: "history", label: "History", target: "workspace-history" },
   { id: "settings", label: "Settings & tools", target: "workspace-tools" },
 ] as const;
@@ -50,7 +51,7 @@ export function revealWorkspaceTarget(id: string, focus = false): void {
   }
   target?.scrollIntoView?.({ block: "start" });
 }
-const targets = new Set(["view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
+const targets = new Set(["view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "view-delegated", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
 function revealLink(event: MouseEvent<HTMLElement>): void {
   for (let node = event.target as HTMLElement | null; node && node !== event.currentTarget; node = node.parentNode as HTMLElement | null) {
     const href = node.tagName === "A" ? node.getAttribute("href") : null;
