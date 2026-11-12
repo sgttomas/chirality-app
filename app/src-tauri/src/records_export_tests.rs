@@ -100,6 +100,46 @@ fn records_export_heads_cannot_be_substituted_even_with_rehashed_tags() {
     assert!(verify(&f.bag()).is_err_and(|e| e.contains("chain heads differ")));
 }
 
+fn standalone(bag: &Path) -> std::process::Output {
+    std::process::Command::new("python3").arg(bag.join("verify.py")).arg(bag).output().unwrap()
+}
+
+#[test]
+fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_rehashed_manifests() {
+    let f = Fixture::new();
+    f.record();
+    let log = f.record();
+    export(&f.project, &f.bag()).unwrap();
+    let unaltered = standalone(&f.bag());
+    assert!(unaltered.status.success(), "{}", String::from_utf8_lossy(&unaltered.stderr));
+    let stdout = String::from_utf8_lossy(&unaltered.stdout);
+    assert!(stdout.contains("Recomputed 1 log chains from the payload: each is whole and ends at its recorded head."), "{stdout}");
+    // Change the first line (same length, still JSON), then recompute both
+    // manifests as an alterer would. Only the chain shows the change.
+    let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
+    let rel = log.strip_prefix(&dir).unwrap().to_str().unwrap().to_owned();
+    let path = f.bag().join("data").join(&rel);
+    let bytes = std::fs::read(&path).unwrap();
+    let at = bytes.windows(7).position(|w| w == b"invente").unwrap();
+    let mut changed = bytes.clone();
+    changed[at] = b'I';
+    std::fs::write(&path, &changed).unwrap();
+    let paths = files(&f.bag().join("data"), false).unwrap().into_keys().map(|p| format!("data/{p}")).collect::<Vec<_>>();
+    std::fs::write(f.bag().join("manifest-sha256.txt"), manifest(&f.bag(), paths.into_iter()).unwrap()).unwrap();
+    std::fs::write(f.bag().join("tagmanifest-sha256.txt"), manifest(&f.bag(), TAGS.iter().map(|s| s.to_string())).unwrap()).unwrap();
+    let altered = standalone(&f.bag());
+    assert!(!altered.status.success());
+    let stderr = String::from_utf8_lossy(&altered.stderr);
+    assert!(stderr.contains(&format!("{rel}: chain broken at line 2: it links to")), "{stderr}");
+    // The App's own verification recomputes the heads and refuses it too.
+    assert!(verify(&f.bag()).is_err_and(|e| e.contains("chain heads differ")));
+    // Rewriting the chain-head tag to the broken chain still fails standalone.
+    reprofile_for_test(&f.bag());
+    let rewritten = standalone(&f.bag());
+    assert!(!rewritten.status.success());
+    assert!(String::from_utf8_lossy(&rewritten.stderr).contains("also records it broken at export"));
+}
+
 #[test]
 fn records_export_preserves_imported_interrupted_connector_evidence() {
     let f = Fixture::new();

@@ -253,7 +253,7 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
         String::from_utf8_lossy(&standalone.stderr)
     );
     assert!(String::from_utf8_lossy(&standalone.stdout)
-        .contains("not origin, chain semantics or human acts"));
+        .contains("the chains are whole, not who produced them"));
     assert!(bag.join("data/role-supply/observations.jsonl").exists());
     let heads: Value =
         serde_json::from_slice(&std::fs::read(bag.join("records-chain-heads.json")).unwrap())
@@ -348,7 +348,7 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
         String::from_utf8_lossy(&standalone.stderr)
     );
     assert!(String::from_utf8_lossy(&standalone.stdout)
-        .contains("not origin, chain semantics or human acts"));
+        .contains("the chains are whole, not who produced them"));
     let current =
         crate::records_export::matches_current(&f.directory().parent().unwrap(), &bag, false)
             .unwrap();

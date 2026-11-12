@@ -1326,9 +1326,11 @@ project store files byte for byte, with SHA-256 manifests and each copied RS
 log's chain head. Store-wide query caches and the two known owning lock controls are omitted;
 imported connector publication evidence is preserved.
 **Verify an exported package** checks inventories, hashes and RS heads again.
-The included `verify.py` checks bytes and inventories with standard Python 3,
-without the App. Exports are unsigned until App signing; byte verification
-confers no source authenticity. New packages include a protected
+The included `verify.py`, with standard Python 3 and without the App, checks
+bytes and inventories and recomputes each recorded log's chain from its lines,
+failing with the log and line where a link does not name the line before it or
+the chain does not end at its recorded head. Exports are unsigned until App
+signing; this verification confers no source authenticity. New packages include a protected
 `records-administration.json` tag, reversibly retaining each prior administrative
 event's exact UTF-8 bytes and its project identity. Legacy packages without it
 have unknown retention history and cannot satisfy disposal prerequisites.

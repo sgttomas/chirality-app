@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""Verify Chirality BagIt bytes with Python's standard library, without the App.
+"""Verify a Chirality records BagIt package with Python's standard library, without the App.
 
 Usage: python3 verify.py /path/to/bag
-This checks inventories and SHA-256, including the recorded chain-head tag.
-It does not authenticate the unsigned package or interpret human-act evidence.
+This checks the inventories and every SHA-256, including the recorded chain-head
+tag, and recomputes each payload log's chain from its lines: every line's link
+must name the SHA-256 of the line before it, and the chain must end at the head
+the package records. The package is unsigned: this shows that its bytes agree
+with its manifests and that its chains are whole, not who produced it, that no
+one rewrote it consistently, nor any human act.
 """
 import hashlib
+import json
 import os
 import stat
 from contextlib import contextmanager
@@ -14,6 +19,14 @@ import sys
 from pathlib import Path, PurePosixPath
 
 TAGS = {"bagit.txt", "bag-info.txt", "manifest-sha256.txt", "records-chain-heads.json", "verify.py"}
+HEADS = "records-chain-heads.json"
+# The chain method, the label of a torn line W-0 terminated and the logs the
+# export records a head for (record_lines.rs, records.rs, records_export.rs).
+METHOD = "chirality.rs.line.sha256/v1"
+PARTIAL = "partial entry not recovered"
+REGISTERED_COPY = "legacy/coordination.rs.jsonl"
+ROLE_LOG = "role-supply/observations.jsonl"
+WHITESPACE = frozenset(b" \t\n\x0c\r")
 
 
 def stamp(metadata):
@@ -77,7 +90,8 @@ def members(root):
 
 
 def manifest(root, name, payload):
-    seen = set()
+    """The manifest's members and their verified SHA-256, by path."""
+    seen = {}
     lines = read_bytes(root / name).decode("utf-8").split("\n")
     if lines[-1] == "":
         lines.pop()
@@ -95,11 +109,178 @@ def manifest(root, name, payload):
             raise ValueError("wrong manifest member class")
         if path in seen:
             raise ValueError("duplicate manifest member")
-        seen.add(path)
         member = root / path
         if not member.is_file() or member.is_symlink() or digest(member) != checksum.lower():
             raise ValueError("missing member or checksum mismatch")
+        seen[path] = checksum.lower()
     return seen
+
+
+def decoded(raw):
+    """The JSON object a line holds, read as the App reads it (UTF-8 only, no
+    NaN or Infinity), or None when the line is not a JSON object."""
+    def refuse(constant):
+        raise ValueError(f"not JSON: {constant}")
+    try:
+        value = json.loads(raw.decode("utf-8"), parse_constant=refuse)
+    except (UnicodeError, ValueError, RecursionError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+class Chain:
+    """One log's chain as its lines are read (record_lines.rs, Chain::step)."""
+
+    def __init__(self):
+        self.last, self.lines, self.linked, self.unchained = None, 0, False, 0
+
+    def step(self, no, raw, entry):
+        """Takes complete line `no` (from 1). `entry` is its JSON object, whose
+        link is examined, or None for a line that is counted but not read.
+        Returns why the chain is broken at this line, or None."""
+        broken = None
+        if entry is not None:
+            if "prevLine" not in entry:
+                if self.linked:
+                    broken = "it carries no chain link after linked lines"
+                else:
+                    self.unchained += 1
+            else:
+                self.linked = True
+                link = entry["prevLine"]
+                link = link if isinstance(link, dict) else {}
+                value = link.get("value") if isinstance(link.get("value"), str) else None
+                if link.get("method") != METHOD:
+                    broken = f"it names an unknown chain method {json.dumps(link.get('method'))}"
+                elif value != self.last:
+                    if self.last is None:
+                        broken = f"it links to {json.dumps(link.get('value'))}, but it is the first line of its log"
+                    elif link.get("value") is None:
+                        broken = "it starts a new chain after earlier lines"
+                    else:
+                        broken = (f"it links to {json.dumps(link.get('value'))}, "
+                                  f"but the SHA-256 of the line before it is {self.last}")
+        self.last = hashlib.sha256(raw).hexdigest()
+        self.lines += 1
+        return broken
+
+
+def torn_and_named(no, raw, following):
+    """Whether complete line `no` is a torn line that the complete line after it
+    names, by its exact length and SHA-256, as a partial entry not recovered.
+    Such a line is not a chain link: the next line links to the line before it."""
+    if not following.endswith(b"\n"):
+        return False
+    following = following[:-1]
+    try:
+        text = following.decode("utf-8")
+    except UnicodeError:
+        text = None
+    if text is not None and "\\" not in text and PARTIAL not in text:
+        return False
+    limit = decoded(following)
+    body = limit.get("body") if limit is not None else None
+    if not isinstance(body, dict) or limit.get("kind") != "evidence_limit" or body.get("label") != PARTIAL:
+        return False
+    named = body.get("subjectRef") if isinstance(body.get("subjectRef"), str) else ""
+    if named != f"line {no}; {len(raw)} bytes; sha256 {hashlib.sha256(raw).hexdigest()}":
+        return False
+    # A whole entry is read as written even when a limit names it as torn.
+    return decoded(raw[:-1] if raw.endswith(b"\r") else raw) is None
+
+
+def record_chain(data):
+    """A record log's chain and the first break in it, as (line, reason)."""
+    chain, notes, broken = Chain(), [], None
+    lines = data.split(b"\n")
+    lines.pop()  # the unclosed final part: a partial, never a line of the chain
+    for index, raw in enumerate(lines):
+        no = index + 1
+        following = lines[index + 1] + b"\n" if index + 1 < len(lines) else b""
+        if torn_and_named(no, raw, following):
+            notes.append(f"line {no} is a torn line W-0 terminated, not a chain link")
+            continue
+        if all(byte in WHITESPACE for byte in raw):
+            continue
+        why = chain.step(no, raw, decoded(raw[:-1] if raw.endswith(b"\r") else raw))
+        if why and broken is None:
+            broken = (no, why)
+    return chain, notes, broken
+
+
+def role_chain(data):
+    """The role supply log's chain: every line is a whole JSON object and linked."""
+    chain = Chain()
+    lines = data.split(b"\n")
+    if lines.pop() != b"":
+        return chain, [], (len(lines) + 1, "a torn final line")
+    for index, raw in enumerate(lines):
+        entry = decoded(raw)
+        if entry is None:
+            return chain, [], (index + 1, "it is not a readable observation")
+        why = chain.step(index + 1, raw, entry)
+        if why:
+            return chain, [], (index + 1, why)
+    return chain, [], None
+
+
+def chain_logs(payload, roles):
+    """The payload logs whose chain head the export records (records_export.rs)."""
+    return sorted(p for p in payload if p.endswith(".jsonl") and (
+        p.startswith("runs/") or p.startswith("acts/") or p == REGISTERED_COPY or (roles and p == ROLE_LOG)))
+
+
+def chains(root, payload):
+    """Recomputes each recorded log's chain from the payload and compares its head
+    with the recorded head. Returns the profile and the notes that limit no chain."""
+    heads = decoded(read_bytes(root / HEADS))
+    if heads is None or heads.get("format") != "chirality.records-export-chain-heads" or heads.get("method") != METHOD:
+        raise ValueError("unsupported chain-head tag")
+    profile = heads.get("formatVersion")
+    if profile not in ("0.1", "0.2"):
+        raise ValueError("unsupported chain-head tag profile")
+    recorded = {}
+    for item in heads.get("logs") if isinstance(heads.get("logs"), list) else [None]:
+        if not isinstance(item, dict) or not isinstance(item.get("log"), str) or not isinstance(item.get("chain"), dict):
+            raise ValueError("malformed chain-head tag entry")
+        if item["log"] in recorded:
+            raise ValueError(f"{item['log']}: chain head recorded twice")
+        recorded[item["log"]] = item["chain"]
+    names = {path[len("data/"):]: checksum for path, checksum in payload.items()}
+    expected = chain_logs(names, profile == "0.2")
+    for log in expected:
+        if log not in recorded:
+            raise ValueError(f"{log}: payload log has no recorded chain head")
+    for log in recorded:
+        if log not in names:
+            raise ValueError(f"{log}: recorded chain head names no payload log")
+        if log not in expected:
+            raise ValueError(f"{log}: recorded chain head for a file that is not a chained log")
+    notes = []
+    for log in expected:
+        head = recorded[log]
+        data = read_bytes(root / "data" / log)
+        if hashlib.sha256(data).hexdigest() != names[log]:
+            raise ValueError(f"{log}: log changed after its checksum was verified")
+        if "state" in head:
+            raise ValueError(f"{log}: recorded at export as {head['state']}: {head.get('error')}")
+        chain, log_notes, broken = (role_chain if log == ROLE_LOG else record_chain)(data)
+        recorded_broken = head.get("broken")
+        if broken is not None:
+            also = " (the recorded head also records it broken at export)" if recorded_broken else ""
+            raise ValueError(f"{log}: chain broken at line {broken[0]}: {broken[1]}{also}")
+        if recorded_broken != []:
+            raise ValueError(f"{log}: the recorded head records a broken chain: {json.dumps(recorded_broken)}")
+        if head.get("method") != METHOD or head.get("head") != chain.last or type(head.get("lines")) is not int or head.get("lines") != chain.lines:
+            raise ValueError(f"{log}: recomputed chain head {chain.last} after {chain.lines} lines "
+                             f"differs from the recorded head {head.get('head')} after {head.get('lines')} lines")
+        notes.extend(f"{log}: {note}" for note in log_notes)
+        if chain.unchained:
+            notes.append(f"{log}: unchained (legacy): {chain.unchained} lines before the chain starts carry no link"
+                         if chain.linked else f"{log}: unchained (legacy): no line carries a chain link")
+    if profile == "0.1" and ROLE_LOG in names:
+        notes.append(f"{ROLE_LOG}: legacy chain-head profile 0.1 records no head for it; its chain was not recomputed")
+    return {"profile": profile, "logs": len(expected), "notes": notes}
 
 
 def verify(root):
@@ -110,24 +291,29 @@ def verify(root):
     all_files = members(root)
     if read_bytes(root / "bagit.txt") != b"BagIt-Version: 1.0\nTag-File-Character-Encoding: UTF-8\n":
         raise ValueError("unsupported bag declaration")
-    tags = manifest(root, "tagmanifest-sha256.txt", False)
+    tags = set(manifest(root, "tagmanifest-sha256.txt", False))
     if tags not in (TAGS, TAGS | {"records-administration.json"}):
         raise ValueError("incomplete export tags")
     payload = manifest(root, "manifest-sha256.txt", True)
     file_names={name for name, metadata in all_files.items() if stat.S_ISREG(metadata[2])}
-    if file_names != payload | tags | {"tagmanifest-sha256.txt"}:
+    if file_names != set(payload) | tags | {"tagmanifest-sha256.txt"}:
         raise ValueError("package inventory differs from manifests")
+    report = chains(root, payload)
     if members(root) != all_files:
         raise ValueError("package changed during verification")
-    return len(payload), "records-administration.json" in tags
+    return len(payload), "records-administration.json" in tags, report
 
 
 if __name__ == "__main__":
     try:
-        count, administration = verify(Path(sys.argv[1]))
+        count, administration, report = verify(Path(sys.argv[1]))
         print(f"Verified {count} payload files and export tags, including the recorded chain-head tag.")
+        print(f"Recomputed {report['logs']} log chains from the payload: each is whole and ends at its recorded head.")
+        for note in report["notes"]:
+            print(f"Limit: {note}")
         print("Protected prior administration bytes included." if administration else "Administrative history unknown: legacy package has no retention snapshot.")
-        print("Unsigned: this verifies package bytes, not origin, chain semantics or human acts.")
+        print("Unsigned: this shows the bytes agree with the manifests and the chains are whole, "
+              "not who produced them, that no one rewrote the package consistently, nor any human act.")
     except (OSError, ValueError, IndexError, UnicodeError) as error:
         print(f"Verification failed: {error}", file=sys.stderr)
         sys.exit(1)
