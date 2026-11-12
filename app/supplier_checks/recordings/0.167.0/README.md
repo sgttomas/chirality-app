@@ -26,9 +26,14 @@ the facts each scenario is kept for (below).
 
 Not established by these files: what the supplier sent after the last required
 reply of a generation, and whether a provider request arrived while the stub
-provider was closing. The harness could lose either without saying so. The
-socket sample each file reports is what was sampled, every 0.25 s; it is not
-network isolation.
+provider was closing. The harness could lose either without saying so. So every
+statement below that something does not appear is a statement about the
+captured frames, up to the frame it names; none of them says the supplier did
+not send it. The same holds for what the harness wrote about itself: the events
+in each file, and the socket sample each reports (how many samples, none
+failed, no peer but the loopback stub), are the harness's own record, taken
+every 0.25 s; they are not network isolation and are not relied on as proof of
+an absence.
 
 ## What a reader must not take for the supplier's behaviour
 
@@ -45,18 +50,25 @@ network isolation.
 
 ## What each is kept for
 
-- `st5`: the supplier raises a command approval; the process group is frozen
-  before the answer is written and killed while frozen, so no acknowledgment
-  can exist, and none does; after a restart and resume nothing is re-raised.
-- `nv04`: a parent turn spawns one sub-agent and ends before the child does.
-  The spawn item carries its prompt, sender and receiver live and on every
-  history read of the parent (`thread/read`, `thread/turns/list`,
-  `thread/items/list`), before and after a restart; the child's read names its
-  parent.
+- `st5`: in generation 1 the supplier raises a command approval request
+  (`item/commandExecution/requestApproval`, supplier position 13). The
+  harness's events record that it froze the process group before writing the
+  answer and killed it while frozen. In the captured frames of generation 1,
+  which end with the App-side answer and one further App request, no
+  `serverRequest/resolved` frame appears. After the restart, in the captured
+  frames of generation 2 up to and including the reply to `thread/resume`
+  (supplier position 9), no server request appears. This file does not
+  establish that the supplier sent no acknowledgment that went uncaptured, nor
+  that it raised no request after the reply to `thread/resume`.
+- `nv04`: a parent turn spawns one sub-agent; the parent's `turn/completed` is
+  captured before the child's. The spawn item carries its prompt, sender and
+  receiver live and on every history read of the parent (`thread/read`,
+  `thread/turns/list`, `thread/items/list`), before and after a restart; the
+  child's read names its parent.
 
 A third scenario, `st5-race` (the answer written and the group killed at once),
 is not kept: its outcome is a race, not a property of the supplier, and no test
-reads it. Both outcomes were observed at 0.167.0 on that day: the acknowledgment
-arrived before the kill in six runs on a loaded host and did not in an earlier
-one. The earlier file is in this repository's history at commit e491f9ed and
+reads it. Both outcomes were recorded at 0.167.0 on that day: a
+`serverRequest/resolved` frame was captured before the kill in six runs on a
+loaded host, and none was captured in an earlier one. The earlier file is in this repository's history at commit e491f9ed and
 the later at 696f8170.
