@@ -219,8 +219,8 @@ const MAKE_COMMANDS = ["workflow_open_project_library", "workflow_observe_drafts
  * `workflow_observe_drafts`; trial, review and registration stay in the
  * existing draft list and review, where only the person's act registers.
  */
-export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation, findInHistory, outcome, viewStale = false }: {
-  data: Json; host: Json; act: Act; busy: boolean; outcome?: GuideOutcome | null; viewStale?: boolean; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
+export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation, findInHistory, outcome, viewStale = false, readFailure = null }: {
+  data: Json; host: Json; act: Act; busy: boolean; outcome?: GuideOutcome | null; viewStale?: boolean; readFailure?: string | null; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
   showConversation?: (threadId: string, target?: string) => void; findInHistory?: (hint: string) => void;
 }) {
   // Continue <draft> moves the person to its current step once it is shown,
@@ -284,7 +284,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     draftStatus.current?.scrollIntoView?.({ block: "start" });
     draftStatus.current?.focus?.({ preventScroll: true });
   }, [revealRequest]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (viewStale && !busy) return <GuideWithheld id="make-workflow" label="Make a workflow from your work" title="Make a workflow from your work" outcome={outcome} resultLabel="Make a workflow — last result" only={MAKE_COMMANDS}/>;
+  if (viewStale && !busy) return <GuideWithheld id="make-workflow" label="Make a workflow from your work" title="Make a workflow from your work" outcome={outcome} resultLabel="Make a workflow — last result" only={MAKE_COMMANDS} readFailure={readFailure}/>;
   return <section id="make-workflow" className="workflow-stage run-journey" aria-label="Make a workflow from your work" aria-busy={busy}>
     <h2>Make a workflow from your work</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {nextLine ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>

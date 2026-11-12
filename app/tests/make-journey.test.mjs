@@ -513,7 +513,7 @@ test('a drafts folder the App could not read is said in the guide, and a view th
   assert.match(region(c, 'Make a workflow from your work').textContent, /spacing-summary/);
   await render(data({drafts:{drafts:[draft]}, ...prepared}), true);
   const section = region(c, 'Make a workflow from your work');
-  assert.match(next(c) || section.textContent, /The App hasn't yet read its state again since your last press/);
+  assert.match(next(c) || section.textContent, /What this view showed may be from before your last press\. The App is not showing its steps until it has read its state again after that press/);
   assert.equal(all(section, 'button').length, 0, 'nothing is offered');
   assert.doesNotMatch(section.textContent, /spacing-summary|ready to send|not registered|Trials so far|Unfinished drafts/, 'no draft state, trial or readiness is shown as current');
   assert.ok(region(c, 'Make a workflow — last result'), 'the press\'s own result stays');

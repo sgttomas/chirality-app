@@ -258,7 +258,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text. See Progress for the run's state.", 'an unrecognised refusal stays in the App\'s words');
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text", 'an unrecognised refusal stays in the App\'s words');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
@@ -489,7 +489,7 @@ test('a refused press is said in plain words under Next only where nothing was d
     assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
   }
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
-  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /\. See Progress for the run's state\.$/);
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: refused-not-sent: turn/start generation changed before request registration", 'a failed start points nowhere: the result is also shown while Progress is withheld');
 
   const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:{name:'coordinated-knowledge-work', origin:'bundled', revision:'3730d84debb5aa'},
     newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
@@ -554,11 +554,16 @@ test('while its view may be from before the last press, the guide shows none of 
   assert.match(region(c, 'Run a workflow').textContent, /Ready to run\./);
   await render(true);
   const section = region(c, 'Run a workflow');
-  assert.match(section.textContent, /^Run a workflowNext: The App hasn't yet read its state again since your last press, so it isn't showing this view's steps/);
+  assert.match(section.textContent, /^Run a workflowNext: What this view showed may be from before your last press\. The App is not showing its steps until it has read its state again after that press; it reads again by itself\./);
+  assert.doesNotMatch(section.textContent, /The last read failed/, 'no failure is said when no read failed');
   assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested; see Progress for what happened\./, 'the press\'s own result stays');
   assert.deepEqual(all(section, 'button').map(node => node.textContent), ['Show the conversation'], 'no start, prepare, end or choice is offered');
   assert.equal(all(section, 'li').length, 0, 'none of the steps is shown');
   assert.doesNotMatch(section.textContent, /Ready to start|Ready to run|has not been sent|Nothing has been sent yet|Prepared resolve-spacing|Open —|Working/, 'nothing cached is shown as current, earlier runs included');
+  // A status read that failed since is said in the guide itself, where the person is looking.
+  await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy:false, text:'', viewStale:true, readFailure:'Error: invented status failure',
+    chooseThread:() => {}, setText:() => {}, act:async () => {}, outcome:view.outcome, showConversation:() => {}})));
+  assert.match(region(c, 'Run a workflow').textContent, /it reads again by itself\.The last read failed: Error: invented status failure/);
   // While the press is still in progress the steps stay, disabled, and its result is not yet said.
   await render(true, true);
   assert.equal(region(c, 'Run a workflow — last result'), undefined, 'no result is claimed beside steps from before the press');
