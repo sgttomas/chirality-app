@@ -42,8 +42,8 @@ thread.
 ## Posture for this phase: finishing toward App 4.0.0
 
 Development is toward the first public release of App v4, version 4.0.0 on
-macOS. The [release target](docs/RELEASE_TARGET_4.0.0.md) defines it, with the
-exit criteria that are its definition of done.
+macOS, which the [release target](docs/RELEASE_TARGET_4.0.0.md) defines with
+the exit criteria that are its definition of done.
 
 The owner's grant for the App (`sgttomas/chirality-app`): "I want you to be
 bold and take the initiative now. I delegate my decision making to you fully
@@ -51,7 +51,8 @@ but will rely upon you to be curious about what my intentions are if you
 haven't gleaned it through how the project is constructed and how meaning is
 conveyed throughout."
 
-What that means here:
+What that means here, within the extent, conditions and reservations of that
+grant:
 
 - Decisions follow perspective. Agent 0 decides what the target needs,
   including changes to scopes, criteria and holds, and records each decision
@@ -71,9 +72,9 @@ What that means here:
   independent grounds, never to fit the implementation.
 - These stay the owner's: publishing a release; licence, legal and
   professional sign-off; spending money; credentials; repository protections
-  and settings. So does the verdict on the product: the owner's own testing of
-  the candidate once Agent 0 has recommended it ready, and the decision that
-  v4 replaces v3.0.1.
+  and settings. So does the verdict on the product: the owner's own use of the
+  candidate once Agent 0 has recommended it ready, ending in the owner's yes
+  or no before it is published, and the decision that v4 replaces v3.0.1.
 
 ## How the work is organised
 
@@ -118,8 +119,8 @@ the files and say the check was unavailable.
 Correct a scope's description only when the thing being made has materially
 changed or the description is materially wrong, and correct a need the work
 showed to be wrong, missing or no longer applicable in the same pull request. A changed commitment or criterion
-is the owner's, unless an explicit delegation covers it. If a criterion looks wrong, cannot be met or no longer serves its purpose,
-do not change it, weaken its check or build around it: say what you found and
+is the owner's, unless an explicit delegation covers it. If a criterion looks wrong, cannot be met or no longer serves its purpose, and
+no explicit delegation covers it, do not change it, weaken its check or build around it: say what you found and
 what you would change, and carry on with what it does not affect; the other
 criteria stay in force. Treat an
 assumption you were given that turns out false the same way, taking it and its
