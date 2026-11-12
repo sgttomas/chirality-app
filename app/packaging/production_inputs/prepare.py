@@ -255,6 +255,10 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         src, dst = '../packaging/sqlite_notice/' + name, 'third-party-notices/sqlite-preparation/' + name
         require(src not in resources or resources[src] == dst, 'SQLite resource mapping conflict')
         resources[src] = dst
+    # The release's limitations list, byte for byte, as the bundle resource the host reads (DEL-01-06 AC-008).
+    src, dst = '../../docs/RELEASE_LIMITATIONS_4.0.0.md', 'release/LIMITATIONS.md'
+    require(src not in resources or resources[src] == dst, 'limitations resource mapping conflict')
+    resources[src] = dst
     # Bundle-visible copy of the frontend IBM Plex notice; refuse a stale index for this source.
     font_notice = load_module('production_font_notice', 'app/packaging/font_notice/check.py')
     fonts = font_notice.check(source_root)
