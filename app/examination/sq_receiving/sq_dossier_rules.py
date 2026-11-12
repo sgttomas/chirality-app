@@ -45,8 +45,11 @@ def violations(d, step_map):
         kinds = sorted(m["kind"] for m in modes)
         homes = {m["kind"]: m["home"] for m in modes}
         convs = [m["conversation_ref"] for m in modes]
-        if (kinds != ["api_key", "chatgpt_account", "local_provider"] or homes.get("api_key") != "H-key"
-                or homes.get("chatgpt_account") != "H-acct" or len(set(convs)) != 3):
+        # SQ-R3 the declared access modes (not observations): exactly the two modes, each in the
+        # home the scope defines for it, with distinct conversations. An observed difference is a
+        # failed M12 step in its result record, not a changed declaration.
+        if (kinds != ["chatgpt_account", "local_provider"] or homes.get("chatgpt_account") != "H-acct"
+                or homes.get("local_provider") != "H-omlx" or len(set(convs)) != 2):
             v.append("SQ-R3")
     # SQ-R4 a scenario outcome only once every counted step is recorded; it is their aggregate
     for s in d["scenarios"]:
