@@ -59,6 +59,9 @@ export function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPack
       {view.waiting.length === 0 && <p>No selected work item is shown for this undertaking.</p>}
       <ul>{view.waiting.map((row: Json) => <li key={row.item}>
         <p><b>{row.item}: {row.outcome}</b> — <strong>{row.category}</strong></p>
+        {row.dispatch && <p><strong>{row.dispatch.observationEnded ? "Held by a worker when last recorded" : "Held by a worker"}: {row.dispatch.lastObserved}.</strong> Child {row.dispatch.child}, started by {row.dispatch.parent}; its prompt named {row.dispatch.briefNamed}.
+          {row.dispatch.briefContentMatches ? " The brief file has the content the prompt referenced; that shows which brief was named, not that the worker read it."
+            : <strong> Mismatch: the brief file does not have the content the prompt referenced.</strong>}</p>}
         <p>Owner: {row.owner}. Next: {row.next ? (typeof row.next === "string" ? row.next : JSON.stringify(row.next)) : "not stated in the records"}.</p>
         {row.causes.length > 0 ? <><p>Causes the records give:</p><ul>{row.causes.map((cause: string, i: number) => <li key={i}>{cause}</li>)}</ul></>
           : <p>The records give no cause.</p>}

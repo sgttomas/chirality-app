@@ -51,7 +51,7 @@ test('a read sends only the two path-free read-only commands, and rendering send
   findButton(element).props.onClick();assert.equal(readNow,1,'the manual re-read is the view reader');
   assert.equal(calls.length,0);
   const reader=createDelegatedWorkReader({invoke,publish:()=>{},timers:{set:()=>'t',clear:()=>{}}});
-  await reader.readNow();
+  reader.show();await new Promise(resolve=>setImmediate(resolve));
   assert.deepEqual(calls,[['read_fleet_records'],['decision_view']]);
 });
 test('busy and failed source reads remain explicit without a fabricated empty packet',()=>{
@@ -252,7 +252,7 @@ test('a failed read is shown and clears the earlier reading', async () => {
   };
   let clock = 0;
   const reader = createDelegatedWorkReader({invoke, publish: read => published.push(read), now: () => ++clock, timers: {set: () => 't', clear() {}}});
-  await reader.readNow();
+  reader.show(); await new Promise(resolve => setImmediate(resolve));
   const good = published.at(-1);
   assert.ok(render(good).includes('U-earlier'));
   failFleet = true; failDecisions = true;
@@ -265,6 +265,36 @@ test('a failed read is shown and clears the earlier reading', async () => {
   assert.match(html, /<p role="alert">Fleet read failed: Error: fleet folder unreadable\. No earlier reading of the work and returns is shown\.<\/p>/);
   assert.match(html, /<p role="alert">Decision read failed: Error: records store locked\. No earlier reading of the decision packages is shown\.<\/p>/);
   for (const earlier of ['U-earlier', 'W-alpha', 'fl:return-beta', 'pkg:invented-choice', 'Complete fleet packet']) assert.ok(!html.includes(earlier), `${earlier} is not left looking current`);
+});
+
+test('a read asked for while hidden is not made, whatever asks for it', async () => {
+  const commands = [];
+  const reader = createDelegatedWorkReader({invoke: async command => { commands.push(command); return command === 'read_fleet_records' ? inventedPacket('U-invented') : inventedDecisions('A16'); },
+    publish() {}, timers: {set: () => 't', clear() {}}});
+  await reader.readNow();
+  assert.deepEqual(commands, [], 'before the view is shown');
+  reader.show(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(commands.length, 2, 'showing reads once');
+  reader.hide();
+  // As after "continue recording" resolves once the person has navigated away.
+  await reader.readNow();
+  assert.equal(commands.length, 2, 'a deferred continuation reads nothing while hidden');
+});
+
+test('an alternative with no consequence says so, and a held item says when it was last recorded as plainly as its state', () => {
+  const packet = inventedPacket('U-invented');
+  const row = packet.workspace.undertakings[0].waiting[0];
+  const held = (over) => ({...packet, workspace: {...packet.workspace, undertakings: [{...packet.workspace.undertakings[0], waiting: [{...row, category: 'dispatched',
+    dispatch: {child: 'invented-child', parent: 'invented-parent', briefNamed: 'brief:invented', briefContentMatches: true, observationEnded: false,
+      lastObserved: 'child last observed running as recorded 2026-11-12T09:00:00Z; nothing has been recorded of it since', ...over}}]}]}});
+  const html = render({fleet: held({}), decisions: inventedDecisions('A16')});
+  assert.match(html, /<b>alt-long<\/b> Lay the tables out long — no consequence stated/);
+  assert.match(html, /<strong>dispatched<\/strong>/);
+  assert.match(html, /<strong>Held by a worker: child last observed running as recorded 2026-11-12T09:00:00Z; nothing has been recorded of it since\.<\/strong>/);
+  assert.match(html, /not that the worker read it/);
+  assert.doesNotMatch(html, /Mismatch/);
+  const mismatch = render({fleet: held({briefContentMatches: false}), decisions: inventedDecisions('A16')});
+  assert.match(mismatch, /<strong> Mismatch: the brief file does not have the content the prompt referenced\.<\/strong>/);
 });
 
 test('a package asking for acceptance reads accept and nowhere approve', () => {

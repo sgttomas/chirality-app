@@ -48,7 +48,9 @@ export function createDelegatedWorkReader({ invoke, publish, intervalMs = DELEGA
   return {
     show() { if (shown) return; shown = true; void read(); },
     hide() { shown = false; cancel(); },
-    readNow: () => read(),
+    /** A read asked for while the view is hidden is not made, whatever asked
+     * for it; showing the view reads. */
+    readNow: () => shown ? read() : Promise.resolve(),
   };
 }
 
