@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "compatible_roles": [
+    "TASK",
+    "WORKING_ITEMS",
+    "HELPS_HUMANS"
+  ],
+  "tools": {
+    "commands": [
+      "python3 tools/scope_of_work/check_boundary_owner_resolution.py:{scope_path}/**",
+      "python3 tools/scope_of_work/validate_scope_of_work.py:{scope_path}/**",
+      "python3 tools/scope_of_work/render_scope_of_work.py:{scope_path}/**",
+      "python3 tools/scope_of_work/convert_four_documents_to_scope_of_work.py:{scope_path}/**",
+      "python3 tools/scope_of_work/finalize_scope_of_work.py:{scope_path}/**",
+      "python3 tools/scope_of_work/map_scope_of_work_claims.py:{scope_path}/**",
+      "python3 tools/scope_of_work/report_scope_of_work_parity.py:{scope_path}/**",
+      "python3 tools/scope_of_work/derive_review_checklist.py:{scope_path}/**"
+    ]
+  }
+}

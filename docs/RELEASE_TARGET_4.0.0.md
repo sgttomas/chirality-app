@@ -254,8 +254,9 @@ the owner decide on what was actually observed.
     unchanged after the package has been installed and run.
 
     *Governed by:* DEL-01-06 AC-001, AC-002, AC-003 and AC-009. That the
-    shipped workflows are the selected Library's whole set is governed by this
-    criterion as stated, with AC-001 for the inventory comparison.
+    shipped workflows are the selected Library's whole set is governed by
+    DEL-02-02 AC-014, with DEL-01-06 AC-001 for the inventory comparison on
+    the installed package.
 11. **Terms position.** The supplier's written position on distributing the
     offering is held with the owner's statement that it applies, and the
     candidate's offering and sign-in flow are the ones that statement covers.
