@@ -50,9 +50,9 @@ needs:
 - from: doc:execution/_Decomposition/Open_Issues.csv
   condition: Each undecided matter the packet carries (OI-016, OI-024) names its owner and point
     of need.
-- from: doc:execution/_Coordination/PUBLICATION_PUNCHLIST.md
-  condition: The results the publication decision rests on are listed with the deliverables that own
-    each.
+- from: doc:docs/RELEASE_TARGET_4.0.0.md
+  condition: The results the publication decision rests on are listed as exit criteria with the
+    deliverables that own each.
   when: Before the packet is put to the owner for the publication decision.
 - from: external:Owner
   condition: The owner responds to the package presented, choosing or leaving the decision open, in

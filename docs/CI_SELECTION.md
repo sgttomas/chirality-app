@@ -29,9 +29,6 @@ exact documentary paths, and all paths under the guarded declarative `execution/
 - `docs/CI_SELECTION.md`
 - `docs/OPERATING_METHOD.md`
 - `docs/user-manual/README.md`
-- `execution/_Coordination/CURRENT_EXECUTION_BASIS.md`
-- `execution/_Coordination/PUBLICATION_PUNCHLIST.md`
-- `execution/_Coordination/WINDOWS_UNDERTAKING.md`
 - `tools/deliverables/README.md`
 
 Everything else retains the existing App product verification. This includes

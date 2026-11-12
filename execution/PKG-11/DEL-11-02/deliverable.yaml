@@ -9,9 +9,10 @@ needs:
     scope and evaluation path.
   gating: true
 - from: DEL-10-01
-  condition: The execution basis names the selected editions of the manual and of the shared roles
-    and methods by release and recoverable identity, and hands over each consequence of an edition
-    or practice change for another consumer with the consumer and the source identity.
+  condition: The selection in `AGENTS.md`, with the reference folder for the selected edition, names
+    the selected editions of the manual and of the shared roles and methods by release and recoverable
+    identity, and DEL-10-01 hands over each consequence of an edition or practice change for another
+    consumer with the consumer and the source identity.
   gating: true
 - from: DEL-02-04
   condition: For each conversation the supply record shows the source and content identity of each

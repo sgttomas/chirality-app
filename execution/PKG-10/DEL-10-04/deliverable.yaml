@@ -2,8 +2,8 @@ id: DEL-10-04
 name: Project production dependency DAG
 needs:
 - from: DEL-10-01
-  condition: The execution basis identifies the accepted decomposition and the amendments it is read with,
-    so that the node inventory is taken from the accepted allocation.
+  condition: The accepted-decomposition pointer identifies the accepted decomposition and the amendments
+    it is read with, so that the node inventory is taken from the accepted allocation.
   when: Before the node inventory of a version is fixed.
   gating: true
 - from: DEL-10-02

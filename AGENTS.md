@@ -243,7 +243,9 @@ elsewhere; do not read another revision as this edition.
 `reference/library-v3.3.0/README.md` records the archive digest and how to
 prepare an isolated export. Shared `agents/` and `workflows/` paths in this
 section resolve against that source, not this repository. Changing the
-edition is a deliberate App change.
+edition is a deliberate App change. The Project Management manual the App
+applies is the copy of the Consolidated edition in that release, under
+`docs/alignment-manual/`; selecting the release selects it.
 
 Use the Library's `workflows/coordinated-knowledge-work/WORKFLOW.md` when coordinating related
 contributions, its `workflows/index.json` to select other methods, and its
@@ -274,7 +276,8 @@ projects.
 
 Session routes are ephemeral: find current sessions by listing T3 threads;
 repository lane records are not live dispatch routes. App and host boundaries
-with SWBPIPE are in `execution/_Coordination/HANDOFF_SWBPIPE_DOMAINS.md`.
+with SWBPIPE are in `docs/HOST_INTEGRATION.md` and the scopes of packages 3, 5
+and 9.
 
 ## Root relationship
 
@@ -327,7 +330,7 @@ and the PR quotes both texts and the review.
 
 ### Build and verification
 
-**Windows development.** macOS is the release baseline and leads. App Agent 0 owns shared code, schemas and design and decides changes to them; Windows work is carried by a WORKING_ITEMS agent, a Type 1 started in a new thread of its own and kept aligned by App Agent 0; it adds platform implementations at the native boundaries recorded in `execution/_Coordination/WINDOWS_UNDERTAKING.md` and does not change shared behaviour without Agent 0's agreement. Where a Windows change overlaps macOS work, the macOS work integrates first and the Windows change merges main and regenerates generated files with their generators, never by hand. A Windows change must pass the macOS checks unchanged. Local host resources go to macOS work first; Windows evidence comes from hosted Windows runners (`.github/workflows/windows-process-fixtures.yml`, `.github/workflows/windows-stop-fixtures.yml`). Coordinate through draft PRs that list the shared files they touch before editing; record agreed shared-design decisions by editing the governing text. The guest and acquisition holds are in [Continuing boundaries](#continuing-boundaries).
+**Windows development.** macOS is the release baseline and leads. App Agent 0 owns shared code, schemas and design and decides changes to them; Windows work is carried by a WORKING_ITEMS agent, a Type 1 started in a new thread of its own and kept aligned by App Agent 0; it adds platform implementations at the native boundaries recorded in `app/examination/windows_platform/README.md` and does not change shared behaviour without Agent 0's agreement. Windows work is development and investigation: it keeps one application codebase with no long-lived Windows fork, keeps macOS delivery independently finishable, broadens no macOS 4.0.0 commitment and makes no Windows shipping or support promise. It uses invented test material, runs no live model turns, accesses no private user data and does not interfere with the owner's running applications. Where a Windows change overlaps macOS work, the macOS work integrates first and the Windows change merges main and regenerates generated files with their generators, never by hand. A Windows change must pass the macOS checks unchanged. Local host resources go to macOS work first; Windows evidence comes from hosted Windows runners (`.github/workflows/windows-process-fixtures.yml`, `.github/workflows/windows-stop-fixtures.yml`). Coordinate through draft PRs that list the shared files they touch before editing; record agreed shared-design decisions by editing the governing text. The guest and acquisition holds are in [Continuing boundaries](#continuing-boundaries).
 
 `tools/ci/select_checks.py` selects checks from the committed change, as
 `docs/CI_SELECTION.md` describes. From the repository root, with full commit
@@ -437,7 +440,9 @@ Do not sign in or use credentials without the owner. After the owner's own
 sign-in, agents may run bounded development tests through the App's signed-in
 session and the local model server without asking each time. They never sign
 in, never see or handle a credential, and stop and tell Agent 0 if the session
-asks for one. Build offline by default;
+asks for one. The custom native driver chain is closed: new native control
+tooling needs an approved proposal, and native Computer Use is development
+tooling only. Build offline by default;
 downloads, including binaries and archives, require explicit permission
 identifying the file, source and size. Routine read-only inspection of public
 source code and documentation text is authorized.
@@ -457,6 +462,10 @@ this hold. Hosted CI is the current sufficient route for the P-03 fixture,
 not product App, namespace, SQLite or durability qualification. A future exact
 capability missing from hosted CI, including any cloud option, needs an owner
 decision before acquisition or spend; no cloud provisioning is authorized.
-The VS metadata integrity hold remains. Licensing, purchases, activation and
+The VS metadata integrity hold remains: the channel and catalog byte
+identities of Visual Studio disagree in the saved official metadata reads,
+which blocks acquiring or installing its payload. Resolve official matching
+metadata and trust before acquisition; do not repeat identical reads or treat
+unverified signatures as proof. Licensing, purchases, activation and
 account sign-in remain owner acts. No guest identifiers belong in repository
 files or public logs.

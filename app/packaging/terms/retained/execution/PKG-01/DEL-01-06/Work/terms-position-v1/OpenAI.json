@@ -1,0 +1,51 @@
+{
+  "format": "chirality.distribution-terms-position/v1",
+  "record_id": "APP-V4-OPENAI-TERMS-POSITION-20261030",
+  "supplier": "OpenAI",
+  "state": "applicable_position_retained",
+  "scope": {
+    "offering": "Free, locally run, open-source App using the current sign-in flow",
+    "platform": "initial macOS release",
+    "sign_in_flow": "local stock-Codex-managed account/login/start: chatgpt or chatgptDeviceCode; no SIWC migration",
+    "implementation_revision": "fdcf608fb57c4f8299c7440ffc56519314046cff",
+    "includes_first_public_distribution": true
+  },
+  "position": {
+    "kind": "official_publication",
+    "supplier": "OpenAI",
+    "source_url": "https://learn.chatgpt.com/docs/app-server#auth-endpoints",
+    "publication_or_response_date": null,
+    "retrieved_or_received_at": "2026-10-30T22:27:28.120160+00:00",
+    "captured_by": "App macOS packaging Type 1, agent recorder",
+    "content": {
+      "path": "execution/PKG-01/DEL-01-06/Work/openai-app-server-publication-20261030.json",
+      "sha256": "f923ceaad53476af7beecd3c1b03b06c72f4ca372742dfd4d833a0d7e3b070e2"
+    },
+    "full_content_sha256": "45066e6ad75795ef8ff658c9a40540efbfcc843e38bcee9d0e2cf5ea6259e343",
+    "conditions": [
+      "Continuation for an existing local or open-source application using Codex app-server authentication; owner accepts applicability to this App first public distribution.",
+      "Sign in with ChatGPT migration recommendation noted, not adopted."
+    ],
+    "exclusions": [
+      "Commercial or hosted services are excluded by the notice.",
+      "No public release approval, v3.0.1 replacement, authentication change, bundled-component licensing disposition or supplier/package qualification."
+    ],
+    "custody": "Exact HTML/text excerpts retained in the checked-in capture; full response retained at its recorded scratch path. Agent fetched; owner received/adopted/retained capture through explicit disposition; no owner HTTP retrieval or direct reply."
+  },
+  "owner_disposition": {
+    "actor": "App owner",
+    "act": "received_adopted_retained_evidence",
+    "approval": {
+      "path": "execution/PKG-01/DEL-01-06/Work/terms-position-v1/owner-disposition.json",
+      "sha256": "9bddd26b06b57b63019cdcb13039971e58949137b7e80a79302bac1c107f4b63"
+    }
+  },
+  "distribution_decision": "not_made",
+  "recorded_by": "App macOS packaging Type 1, agent recorder",
+  "recorded_at": "2026-10-30T22:40:53.755825+00:00",
+  "limits": [
+    "Recorded owner applicability for selected scope only; no legal conclusion or product-specific supplier approval.",
+    "No release authorization, authentication migration, component-notice resolution or supplier/package qualification.",
+    "PKG-v0.2 OpenAI.json and its schema retain original bytes and historical meaning; legacy readers do not consume this version."
+  ]
+}

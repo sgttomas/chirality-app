@@ -7,9 +7,9 @@ needs:
     and a preserved original reference.
   gating: true
 - from: DEL-10-01
-  condition: The execution basis names the selected edition of the manual and of the shared roles
-    and methods by release and recoverable identity, and shows no edition that was only read, and
-    no historical candidate, as selected.
+  condition: The selection in `AGENTS.md`, with the reference folder for the selected edition, names
+    the selected edition of the manual and of the shared roles and methods by release and recoverable
+    identity, and shows no edition that was only read, and no historical candidate, as selected.
   gating: true
   when: Before a selector cites a manual or method edition.
 - from: DEL-11-02
