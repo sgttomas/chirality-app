@@ -508,6 +508,40 @@ fn records_export_an_unclosed_final_part_is_a_limit_and_a_log_named_for_a_break_
     assert!(stdout.contains(&format!("  STATED by the package, not checked here: {}: line 1 was set aside by the App as invalid", rel(&named))), "{stdout}");
 }
 
+/// Review round 5, decided by App Agent 0: the text of a break at a line no
+/// read line precedes says only that it links to a value. That text is
+/// written into the package's list of breaks, and the standalone verifier
+/// compares a recorded break with the one it recomputes word for word, so
+/// the App's words and the verifier's must be the same: at the true first
+/// line, and at the line after a blank first line (the reviewer's case).
+#[test]
+fn records_export_a_break_with_no_read_line_before_it_is_worded_alike_by_the_app_and_the_verifier() {
+    let f = Fixture::new();
+    let log = f.record();
+    f.record();
+    let bytes = std::fs::read(&log).unwrap();
+    let second = bytes.split_inclusive(|b| *b == b'\n').nth(1).unwrap().to_vec();
+    // The first line removed: the line now first links to a line that is gone.
+    std::fs::write(&log, &second).unwrap();
+    // A blank first line, then the same line: the break is at line 2.
+    let blank = log.with_file_name("blank-first.jsonl");
+    std::fs::write(&blank, [b"\n".as_slice(), &second].concat()).unwrap();
+    export(&f.project, &f.bag()).unwrap();
+    let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
+    let rel = |p: &Path| p.strip_prefix(&dir).unwrap().to_str().unwrap().to_owned();
+    let verified = verify(&f.bag()).unwrap();
+    let limits: Vec<&str> = verified["logIntegrity"]["limits"].as_array().unwrap().iter().map(|l| l.as_str().unwrap()).collect();
+    let alone = standalone(&f.bag());
+    let stdout = String::from_utf8_lossy(&alone.stdout);
+    assert_eq!(alone.status.code(), Some(2), "a recorded break the verifier words differently would fail, not list a limit: {stdout}{}", String::from_utf8_lossy(&alone.stderr));
+    for (path, line) in [(&log, 1), (&blank, 2)] {
+        let begins = format!("{}: chain broken at line {line}: it links to \"", rel(path));
+        let said = limits.iter().find(|l| l.starts_with(&begins)).unwrap_or_else(|| panic!("{begins}: {verified}"));
+        assert!(said.ends_with("\"; never repaired") && !said.contains("first line"), "{said}");
+        assert!(stdout.contains(&format!("  FOUND by this verifier: {said} (the package records the same break)")), "{said}\n{stdout}");
+    }
+}
+
 /// Regenerates both manifests over the package as it stands and leaves the
 /// chain-head tag byte for byte: what someone changing a log would do.
 fn reseal_leaving_the_tag(bag: &Path) {

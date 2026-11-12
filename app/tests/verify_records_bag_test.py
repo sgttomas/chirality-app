@@ -166,7 +166,7 @@ class VerifyBagTest(unittest.TestCase):
         parts = lines.split(b"\n")[:-1]
         cases = {
             "removed": (b"\n".join([parts[0], parts[2]]) + b"\n", 2, "it links to"),
-            "reordered": (b"\n".join([parts[1], parts[0], parts[2]]) + b"\n", 1, "it links to .*, but it is the first line of its log"),
+            "reordered": (b"\n".join([parts[1], parts[0], parts[2]]) + b"\n", 1, "it links to [^,]*; never repaired"),
             "unlinked": (lines + json.dumps(entry(4, "unlinked")).encode() + b"\n", 4, "no chain link after linked lines"),
             "restarted": (lines + linked([entry(4, "restarted")]), 4, "it starts a new chain after earlier lines"),
         }

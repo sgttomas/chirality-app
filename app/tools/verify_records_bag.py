@@ -210,7 +210,7 @@ class Chain:
                 elif self.last is not None:
                     broken = f"it links to {shown(value)}, but the preceding line's identity is {self.last}; never repaired"
                 else:
-                    broken = f"it links to {shown(value)}, but it is the first line of its log; never repaired"
+                    broken = f"it links to {shown(value)}; never repaired"
         self.count(raw)
         return broken
 

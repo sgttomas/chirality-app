@@ -127,7 +127,7 @@ impl Chain {
                     Err(match (&l["value"], &self.last) {
                         (Value::Null, Some(_)) => format!("chain broken at line {no}: it starts a new chain after earlier lines; never repaired"),
                         (v, Some(last)) => format!("chain broken at line {no}: it links to {v}, but the preceding line's identity is {last}; never repaired"),
-                        (v, None) => format!("chain broken at line {no}: it links to {v}, but it is the first line of its log; never repaired"),
+                        (v, None) => format!("chain broken at line {no}: it links to {v}; never repaired"),
                     })
                 } else {
                     Ok(())
