@@ -23,7 +23,7 @@ A role is one of `HELP_HUMAN`, `HELPS_HUMANS`, `WORKING_ITEMS`, `TASK`, `none` o
 
 ## To delegate one piece of work
 
-1. **Write the brief**, one file for one work item, `briefs/<item>.json`:
+1. **Write the brief**, one file for one work item, `briefs/<item>.json`. Use only letters, digits, `.`, `_` and `-` in the file name; the App resolves no other name:
 
 ```json
 {HEADER, "kind": "brief", "body": {

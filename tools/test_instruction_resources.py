@@ -14,7 +14,7 @@ FILES = (
 )
 # The App's own instruction documents, packaged beside the bound role-set
 # payload but outside it: the role set and its source binding do not name them.
-APP_OWN = {"DELEGATION_RECORDS.md": "01047c738fd12292950341a6576663f1e61b555303f17ba547b9b9ebb6924648"}
+APP_OWN = {"DELEGATION_RECORDS.md": "80c52d8c9fb5765fb6c3ac8b66b6b601476f5f613262f9f0fdc43042b4173d4c"}
 
 
 class PackagedInstructionTests(unittest.TestCase):
