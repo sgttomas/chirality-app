@@ -256,6 +256,20 @@ runpy.run_path({peer},run_name='__main__')
                 .iter()
                 .any(|r| r["requestIdentity"] == 0)
         });
+        // Recorded frame 14, sent just before the approval request: the
+        // conversation's status as the supplier reported it, applied unchanged.
+        let sent = &self.recording["frames"][14]["frame"];
+        assert_eq!(sent["method"], "thread/status/changed");
+        assert_eq!(sent["params"]["status"]["activeFlags"], json!(["waitingOnApproval"]));
+        let row = self.home.host.snapshot()["threads"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["generation"] == self.generation && t["threadId"] == self.thread())
+            .cloned()
+            .unwrap();
+        assert_eq!(row["status"], sent["params"]["status"], "{row}");
+        assert_eq!(row["statusSource"]["method"], "thread/status/changed");
         assert!(
             self.home
                 .host
@@ -851,6 +865,22 @@ fn recorded_nv04_parent_completion_keeps_its_child_live_until_separate_completio
             .any(|t| t["id"] == child_turn && t["status"] == "inProgress"),
         "{before}"
     );
+    // Recorded frame 27: the supplier reported the parent conversation idle
+    // while its child's turn was still in progress. The parent's row carries
+    // that status as sent; it says nothing about the child.
+    let sent = &f.recording["frames"][27]["frame"];
+    assert_eq!(sent["method"], "thread/status/changed");
+    assert_eq!(sent["params"]["threadId"], f.thread());
+    let parent = f.home.host.snapshot()["threads"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["generation"] == f.generation && t["threadId"] == f.thread())
+        .cloned()
+        .unwrap();
+    assert_eq!(parent["status"], sent["params"]["status"], "{parent}");
+    assert_eq!(parent["status"], json!({"type":"idle"}));
+    assert_eq!(parent["statusSource"]["method"], "thread/status/changed");
     assert!(before["turnRecords"]
         .as_array()
         .unwrap()
