@@ -1,0 +1,2320 @@
+{
+ "format": "chirality.app-v4.supplier-capture.v2",
+ "scenario": "nv04",
+ "pin": "0.167.0",
+ "standing_note": "Exchanges recorded from the stock Codex 0.167.0 App Server by a capture harness that stands in for the App side, with a scripted loopback provider. No App candidate, no model, no sign-in; it qualifies nothing. Redacted frames never claim byte identity.",
+ "date": "2026-11-12",
+ "version_identity": {
+  "version_output": "codex-cli 0.167.0",
+  "binary_sha256": "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc",
+  "distribution": {
+   "archive_sha256": "af45ed45d940d7998809622c1c0296d3098ed7d7fad695284422c228bd454517",
+   "inventory_manifest_sha256": "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b",
+   "verified": "complete vendor tree equal to the committed expected inventory before execution"
+  },
+  "platform": {
+   "platformFamily": "unix",
+   "platformOs": "macos"
+  }
+ },
+ "app_candidate": null,
+ "app_side": "supplier_checks/capture.py",
+ "declared_capabilities": {
+  "experimentalApi": true,
+  "requestAttestation": false
+ },
+ "provider": {
+  "kind": "local loopback stub (stub_provider.py), Responses wire API, scripted invented output",
+  "requests": [
+   {
+    "index": 1,
+    "path": "/v1/responses",
+    "header_names": [
+     "accept",
+     "content-length",
+     "content-type",
+     "host",
+     "originator",
+     "session-id",
+     "thread-id",
+     "user-agent",
+     "x-client-request-id",
+     "x-codex-beta-features",
+     "x-codex-turn-metadata",
+     "x-codex-window-id"
+    ],
+    "answered_with": "spawn call",
+    "tools": [
+     "exec_command",
+     "write_stdin",
+     "request_user_input",
+     "view_image",
+     "multi_agent_v1.close_agent",
+     "multi_agent_v1.resume_agent",
+     "multi_agent_v1.send_input",
+     "multi_agent_v1.spawn_agent",
+     "multi_agent_v1.wait_agent",
+     "get_goal",
+     "create_goal",
+     "update_goal",
+     "web_search"
+    ],
+    "input_item_types": [
+     "message",
+     "message",
+     "message",
+     "message"
+    ],
+    "body": "not kept (carries instructions, environment context and identifiers)"
+   },
+   {
+    "index": 2,
+    "path": "/v1/responses",
+    "header_names": [
+     "accept",
+     "content-length",
+     "content-type",
+     "host",
+     "originator",
+     "session-id",
+     "thread-id",
+     "user-agent",
+     "x-client-request-id",
+     "x-codex-beta-features",
+     "x-codex-turn-metadata",
+     "x-codex-window-id"
+    ],
+    "answered_with": "parent final",
+    "tools": [
+     "exec_command",
+     "write_stdin",
+     "request_user_input",
+     "view_image",
+     "multi_agent_v1.close_agent",
+     "multi_agent_v1.resume_agent",
+     "multi_agent_v1.send_input",
+     "multi_agent_v1.spawn_agent",
+     "multi_agent_v1.wait_agent",
+     "get_goal",
+     "create_goal",
+     "update_goal",
+     "web_search"
+    ],
+    "input_item_types": [
+     "message",
+     "message",
+     "message",
+     "message",
+     "function_call",
+     "function_call_output"
+    ],
+    "body": "not kept (carries instructions, environment context and identifiers)"
+   },
+   {
+    "index": 3,
+    "path": "/v1/responses",
+    "header_names": [
+     "accept",
+     "content-length",
+     "content-type",
+     "host",
+     "originator",
+     "session-id",
+     "thread-id",
+     "user-agent",
+     "x-client-request-id",
+     "x-codex-beta-features",
+     "x-codex-parent-thread-id",
+     "x-codex-turn-metadata",
+     "x-codex-window-id",
+     "x-openai-subagent"
+    ],
+    "answered_with": "child held",
+    "tools": [
+     "exec_command",
+     "write_stdin",
+     "request_user_input",
+     "view_image",
+     "get_goal",
+     "create_goal",
+     "update_goal",
+     "web_search"
+    ],
+    "input_item_types": [
+     "message",
+     "message",
+     "message",
+     "message"
+    ],
+    "body": "not kept (carries instructions, environment context and identifiers)"
+   }
+  ]
+ },
+ "settings_in_effect": {
+  "approval_policy": "never",
+  "sandbox_mode": "read-only",
+  "features.plugins": false,
+  "analytics.enabled": false,
+  "environment": [
+   "CODEX_HOME",
+   "HOME",
+   "LANG",
+   "PATH",
+   "TMPDIR"
+  ],
+  "note": "scratch stand-ins, not a person's settings"
+ },
+ "socket_watch": {
+  "method": "lsof of the supplier process group every 0.25 s; a sample, not isolation",
+  "samples": 26,
+  "loopback_peers": [
+   "127.0.0.1"
+  ],
+  "non_loopback_peers": []
+ },
+ "redaction_record": {
+  "categories_replaced": {
+   "personal path": 25,
+   "host name": 4,
+   "userAgent client identity": 2,
+   "serverName": 2,
+   "installation identifier": 2
+  },
+  "markers": [
+   "<HOME>",
+   "<WORKSPACE>",
+   "<SCRATCH>",
+   "<TMP>",
+   "<USER-HOME>",
+   "<USER>",
+   "<HOST>",
+   "<VENDOR>",
+   "<REDACTED-USER-AGENT>",
+   "<REDACTED-HOST>",
+   "<REDACTED-INSTALLATION-ID>"
+  ],
+  "not_present": "no credential, token, account identifier or secret answer was used"
+ },
+ "material": "invented: pump-skid marker folder and README",
+ "events": [
+  {
+   "event": "begin",
+   "t_ms": 29.1,
+   "scenario": "nv04",
+   "pin": "0.167.0"
+  },
+  {
+   "event": "spawn",
+   "t_ms": 39.1,
+   "generation": 1
+  },
+  {
+   "event": "spawn-tool-parameters",
+   "t_ms": 395.4,
+   "parameters": [
+    "fork_context",
+    "items",
+    "message",
+    "model",
+    "reasoning_effort"
+   ],
+   "required": null
+  },
+  {
+   "event": "parent-turn-completed",
+   "t_ms": 478.2,
+   "observed": true
+  },
+  {
+   "event": "history-reads",
+   "t_ms": 8518.5,
+   "generation": 1,
+   "child_thread_known": true
+  },
+  {
+   "event": "exit",
+   "t_ms": 8946.1,
+   "generation": 1,
+   "how": "stdin",
+   "returncode": 0,
+   "group_members_left": 0
+  },
+  {
+   "event": "spawn",
+   "t_ms": 8951.5,
+   "generation": 2
+  },
+  {
+   "event": "history-reads",
+   "t_ms": 9001.7,
+   "generation": 2,
+   "child_thread_known": true
+  },
+  {
+   "event": "exit",
+   "t_ms": 9353.0,
+   "generation": 2,
+   "how": "stdin",
+   "returncode": 0,
+   "group_members_left": 0
+  }
+ ],
+ "stderr_bytes_by_generation": {
+  "1": 0,
+  "2": 0
+ },
+ "frames": [
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 1,
+   "t_ms": 42.7,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+     "clientInfo": {
+      "name": "chirality-st5-harness",
+      "title": "Chirality ST-5 capture harness",
+      "version": "0.0.0-st5"
+     },
+     "capabilities": {
+      "experimentalApi": true,
+      "requestAttestation": false
+     }
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 1,
+   "t_ms": 274.1,
+   "redacted": true,
+   "frame": {
+    "id": 1,
+    "result": {
+     "userAgent": "<REDACTED-USER-AGENT>",
+     "codexHome": "<HOME>",
+     "platformFamily": "unix",
+     "platformOs": "macos"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 2,
+   "t_ms": 274.1,
+   "redacted": true,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-HOST>",
+     "installationId": "<REDACTED-INSTALLATION-ID>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794469357418
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 2,
+   "t_ms": 274.3,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "method": "initialized"
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 3,
+   "t_ms": 274.3,
+   "redacted": true,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "thread/start",
+    "params": {
+     "cwd": "<WORKSPACE>",
+     "approvalPolicy": "never",
+     "sandbox": "read-only"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 3,
+   "t_ms": 297.8,
+   "redacted": true,
+   "frame": {
+    "id": 2,
+    "result": {
+     "thread": {
+      "id": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469357,
+      "updatedAt": 1794469357,
+      "recencyAt": 1794469357,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-42-37-01a1ceb5-676d-72b3-9b7f-7c1ece63469d.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": []
+     },
+     "model": "st5-stub-model",
+     "modelProvider": "st5_stub",
+     "serviceTier": null,
+     "disabledPluginIds": [],
+     "cwd": "<WORKSPACE>",
+     "runtimeWorkspaceRoots": [
+      "<WORKSPACE>"
+     ],
+     "instructionSources": [],
+     "approvalPolicy": "never",
+     "approvalsReviewer": "user",
+     "sandbox": {
+      "type": "readOnly",
+      "networkAccess": false
+     },
+     "activePermissionProfile": null,
+     "reasoningEffort": null,
+     "multiAgentMode": "explicitRequestOnly"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 297.9,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "turn/start",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "input": [
+      {
+       "type": "text",
+       "text": "Delegate the count."
+      }
+     ]
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 4,
+   "t_ms": 298.0,
+   "redacted": true,
+   "frame": {
+    "method": "thread/started",
+    "params": {
+     "thread": {
+      "id": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469357,
+      "updatedAt": 1794469357,
+      "recencyAt": 1794469357,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-42-37-01a1ceb5-676d-72b3-9b7f-7c1ece63469d.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": []
+     }
+    },
+    "emittedAtMs": 1794469357442
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 5,
+   "t_ms": 301.8,
+   "redacted": false,
+   "frame": {
+    "method": "warning",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+    },
+    "emittedAtMs": 1794469357445
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 6,
+   "t_ms": 302.4,
+   "redacted": false,
+   "frame": {
+    "id": 3,
+    "result": {
+     "turn": {
+      "id": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "inProgress",
+      "error": null,
+      "startedAt": null,
+      "completedAt": null,
+      "durationMs": null
+     }
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 7,
+   "t_ms": 374.1,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "status": {
+      "type": "active",
+      "activeFlags": []
+     }
+    },
+    "emittedAtMs": 1794469357518
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 8,
+   "t_ms": 374.2,
+   "redacted": false,
+   "frame": {
+    "method": "turn/started",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turn": {
+      "id": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "inProgress",
+      "error": null,
+      "startedAt": 1794469357,
+      "completedAt": null,
+      "durationMs": null
+     }
+    },
+    "emittedAtMs": 1794469357518
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 9,
+   "t_ms": 389.1,
+   "redacted": false,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "Delegate the count.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794469357533,
+      "completedAtMs": null
+     },
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "startedAtMs": 1794469357533
+    },
+    "emittedAtMs": 1794469357533
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 10,
+   "t_ms": 391.3,
+   "redacted": false,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "Delegate the count.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794469357533,
+      "completedAtMs": 1794469357533
+     },
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "completedAtMs": 1794469357533
+    },
+    "emittedAtMs": 1794469357535
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 11,
+   "t_ms": 399.1,
+   "redacted": false,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "collabAgentToolCall",
+      "id": "call_spawn_1",
+      "tool": "spawnAgent",
+      "status": "inProgress",
+      "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "receiverThreadIds": [],
+      "prompt": "st5-child-brief-marker: count the invented files.",
+      "model": "",
+      "reasoningEffort": "medium",
+      "agentsStates": {},
+      "startedAtMs": 1794469357543,
+      "completedAtMs": null
+     },
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "startedAtMs": 1794469357543
+    },
+    "emittedAtMs": 1794469357543
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 12,
+   "t_ms": 402.4,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "status": {
+      "type": "idle"
+     }
+    },
+    "emittedAtMs": 1794469357546
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 13,
+   "t_ms": 402.4,
+   "redacted": false,
+   "frame": {
+    "method": "warning",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+    },
+    "emittedAtMs": 1794469357546
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 14,
+   "t_ms": 406.4,
+   "redacted": false,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "collabAgentToolCall",
+      "id": "call_spawn_1",
+      "tool": "spawnAgent",
+      "status": "completed",
+      "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "receiverThreadIds": [
+       "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+      ],
+      "prompt": "st5-child-brief-marker: count the invented files.",
+      "model": "st5-stub-model",
+      "reasoningEffort": "medium",
+      "agentsStates": {
+       "01a1ceb5-67e7-7db3-84ea-e811874c254f": {
+        "status": "pendingInit",
+        "message": null
+       }
+      },
+      "startedAtMs": 1794469357543,
+      "completedAtMs": 1794469357546
+     },
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "completedAtMs": 1794469357546
+    },
+    "emittedAtMs": 1794469357550
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 15,
+   "t_ms": 415.3,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "status": {
+      "type": "active",
+      "activeFlags": []
+     }
+    },
+    "emittedAtMs": 1794469357559
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 16,
+   "t_ms": 415.3,
+   "redacted": false,
+   "frame": {
+    "method": "turn/started",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turn": {
+      "id": "01a1ceb5-67e9-7873-97fd-7de827654508",
+      "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "inProgress",
+      "error": null,
+      "startedAt": 1794469357,
+      "completedAt": null,
+      "durationMs": null
+     }
+    },
+    "emittedAtMs": 1794469357559
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 17,
+   "t_ms": 430.8,
+   "redacted": false,
+   "frame": {
+    "method": "thread/tokenUsage/updated",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "tokenUsage": {
+      "total": {
+       "totalTokens": 2,
+       "inputTokens": 1,
+       "cachedInputTokens": 0,
+       "cacheWriteInputTokens": 0,
+       "outputTokens": 1,
+       "reasoningOutputTokens": 0
+      },
+      "last": {
+       "totalTokens": 2,
+       "inputTokens": 1,
+       "cachedInputTokens": 0,
+       "cacheWriteInputTokens": 0,
+       "outputTokens": 1,
+       "reasoningOutputTokens": 0
+      },
+      "modelContextWindow": 258400
+     }
+    },
+    "emittedAtMs": 1794469357575
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 18,
+   "t_ms": 430.8,
+   "redacted": false,
+   "frame": {
+    "method": "account/rateLimits/updated",
+    "params": {
+     "rateLimits": {
+      "limitId": "codex",
+      "limitName": null,
+      "normalModelSlug": null,
+      "primary": null,
+      "secondary": null,
+      "credits": null,
+      "individualLimit": null,
+      "spendControlReached": null,
+      "planType": null,
+      "rateLimitReachedType": null
+     }
+    },
+    "emittedAtMs": 1794469357575
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 19,
+   "t_ms": 440.4,
+   "redacted": false,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "agentMessage",
+      "id": "msg_parent_done",
+      "text": "Parent turn done; child still working.",
+      "phase": null,
+      "memoryCitation": null,
+      "delivery": null,
+      "questions": null,
+      "startedAtMs": 1794469357584,
+      "completedAtMs": null
+     },
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "startedAtMs": 1794469357584
+    },
+    "emittedAtMs": 1794469357584
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 20,
+   "t_ms": 440.4,
+   "redacted": false,
+   "frame": {
+    "method": "item/agentMessage/delta",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "itemId": "msg_parent_done",
+     "delta": "Parent turn done; child still working."
+    },
+    "emittedAtMs": 1794469357584
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 21,
+   "t_ms": 446.4,
+   "redacted": false,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "agentMessage",
+      "id": "msg_parent_done",
+      "text": "Parent turn done; child still working.",
+      "phase": null,
+      "memoryCitation": null,
+      "delivery": null,
+      "questions": null,
+      "startedAtMs": 1794469357584,
+      "completedAtMs": 1794469357584
+     },
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "completedAtMs": 1794469357584
+    },
+    "emittedAtMs": 1794469357590
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 22,
+   "t_ms": 474.5,
+   "redacted": false,
+   "frame": {
+    "method": "thread/tokenUsage/updated",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+     "tokenUsage": {
+      "total": {
+       "totalTokens": 4,
+       "inputTokens": 2,
+       "cachedInputTokens": 0,
+       "cacheWriteInputTokens": 0,
+       "outputTokens": 2,
+       "reasoningOutputTokens": 0
+      },
+      "last": {
+       "totalTokens": 2,
+       "inputTokens": 1,
+       "cachedInputTokens": 0,
+       "cacheWriteInputTokens": 0,
+       "outputTokens": 1,
+       "reasoningOutputTokens": 0
+      },
+      "modelContextWindow": 258400
+     }
+    },
+    "emittedAtMs": 1794469357618
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 23,
+   "t_ms": 474.5,
+   "redacted": false,
+   "frame": {
+    "method": "account/rateLimits/updated",
+    "params": {
+     "rateLimits": {
+      "limitId": "codex",
+      "limitName": null,
+      "normalModelSlug": null,
+      "primary": null,
+      "secondary": null,
+      "credits": null,
+      "individualLimit": null,
+      "spendControlReached": null,
+      "planType": null,
+      "rateLimitReachedType": null
+     }
+    },
+    "emittedAtMs": 1794469357618
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 24,
+   "t_ms": 474.8,
+   "redacted": false,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1ceb5-682f-7f21-8ad6-08dc36342c77",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "st5-child-brief-marker: count the invented files.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794469357618,
+      "completedAtMs": null
+     },
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turnId": "01a1ceb5-67e9-7873-97fd-7de827654508",
+     "startedAtMs": 1794469357618
+    },
+    "emittedAtMs": 1794469357619
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 25,
+   "t_ms": 476.7,
+   "redacted": false,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1ceb5-682f-7f21-8ad6-08dc36342c77",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "st5-child-brief-marker: count the invented files.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794469357618,
+      "completedAtMs": 1794469357618
+     },
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turnId": "01a1ceb5-67e9-7873-97fd-7de827654508",
+     "completedAtMs": 1794469357618
+    },
+    "emittedAtMs": 1794469357620
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 26,
+   "t_ms": 478.1,
+   "redacted": false,
+   "frame": {
+    "method": "thread/readState/changed",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "readState": {
+      "firstUnread": {
+       "type": "turn",
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124"
+      },
+      "revision": "4b07ad89-5744-4541-933e-b1842c63b0cc"
+     }
+    },
+    "emittedAtMs": 1794469357622
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 27,
+   "t_ms": 478.2,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "status": {
+      "type": "idle"
+     }
+    },
+    "emittedAtMs": 1794469357622
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 28,
+   "t_ms": 478.2,
+   "redacted": false,
+   "frame": {
+    "method": "turn/completed",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turn": {
+      "id": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "items": [
+       {
+        "type": "agentMessage",
+        "id": "msg_parent_done",
+        "text": "Parent turn done; child still working.",
+        "phase": null,
+        "memoryCitation": null,
+        "delivery": null,
+        "questions": null,
+        "startedAtMs": 1794469357584,
+        "completedAtMs": 1794469357584
+       }
+      ],
+      "itemsView": "summary",
+      "status": "completed",
+      "error": null,
+      "startedAt": 1794469357,
+      "completedAt": 1794469357,
+      "durationMs": 173
+     }
+    },
+    "emittedAtMs": 1794469357622
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 29,
+   "t_ms": 8487.9,
+   "redacted": false,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "agentMessage",
+      "id": "msg_child",
+      "text": "Child finished counting.",
+      "phase": null,
+      "memoryCitation": null,
+      "delivery": null,
+      "questions": null,
+      "startedAtMs": 1794469365632,
+      "completedAtMs": null
+     },
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turnId": "01a1ceb5-67e9-7873-97fd-7de827654508",
+     "startedAtMs": 1794469365632
+    },
+    "emittedAtMs": 1794469365632
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 30,
+   "t_ms": 8488.0,
+   "redacted": false,
+   "frame": {
+    "method": "item/agentMessage/delta",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turnId": "01a1ceb5-67e9-7873-97fd-7de827654508",
+     "itemId": "msg_child",
+     "delta": "Child finished counting."
+    },
+    "emittedAtMs": 1794469365632
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 31,
+   "t_ms": 8489.9,
+   "redacted": false,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "agentMessage",
+      "id": "msg_child",
+      "text": "Child finished counting.",
+      "phase": null,
+      "memoryCitation": null,
+      "delivery": null,
+      "questions": null,
+      "startedAtMs": 1794469365632,
+      "completedAtMs": 1794469365632
+     },
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turnId": "01a1ceb5-67e9-7873-97fd-7de827654508",
+     "completedAtMs": 1794469365632
+    },
+    "emittedAtMs": 1794469365634
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 32,
+   "t_ms": 8508.0,
+   "redacted": false,
+   "frame": {
+    "method": "thread/tokenUsage/updated",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turnId": "01a1ceb5-67e9-7873-97fd-7de827654508",
+     "tokenUsage": {
+      "total": {
+       "totalTokens": 2,
+       "inputTokens": 1,
+       "cachedInputTokens": 0,
+       "cacheWriteInputTokens": 0,
+       "outputTokens": 1,
+       "reasoningOutputTokens": 0
+      },
+      "last": {
+       "totalTokens": 2,
+       "inputTokens": 1,
+       "cachedInputTokens": 0,
+       "cacheWriteInputTokens": 0,
+       "outputTokens": 1,
+       "reasoningOutputTokens": 0
+      },
+      "modelContextWindow": 258400
+     }
+    },
+    "emittedAtMs": 1794469365652
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 33,
+   "t_ms": 8508.1,
+   "redacted": false,
+   "frame": {
+    "method": "account/rateLimits/updated",
+    "params": {
+     "rateLimits": {
+      "limitId": "codex",
+      "limitName": null,
+      "normalModelSlug": null,
+      "primary": null,
+      "secondary": null,
+      "credits": null,
+      "individualLimit": null,
+      "spendControlReached": null,
+      "planType": null,
+      "rateLimitReachedType": null
+     }
+    },
+    "emittedAtMs": 1794469365652
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 34,
+   "t_ms": 8518.1,
+   "redacted": false,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "status": {
+      "type": "idle"
+     }
+    },
+    "emittedAtMs": 1794469365662
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 35,
+   "t_ms": 8518.2,
+   "redacted": false,
+   "frame": {
+    "method": "turn/completed",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "turn": {
+      "id": "01a1ceb5-67e9-7873-97fd-7de827654508",
+      "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+      "items": [
+       {
+        "type": "agentMessage",
+        "id": "msg_child",
+        "text": "Child finished counting.",
+        "phase": null,
+        "memoryCitation": null,
+        "delivery": null,
+        "questions": null,
+        "startedAtMs": 1794469365632,
+        "completedAtMs": 1794469365632
+       }
+      ],
+      "itemsView": "summary",
+      "status": "completed",
+      "error": null,
+      "startedAt": 1794469357,
+      "completedAt": 1794469365,
+      "durationMs": 8107
+     }
+    },
+    "emittedAtMs": 1794469365662
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 5,
+   "t_ms": 8518.3,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "thread/loaded/list",
+    "params": {}
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 36,
+   "t_ms": 8518.4,
+   "redacted": false,
+   "frame": {
+    "id": 4,
+    "result": {
+     "data": [
+      "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+     ],
+     "nextCursor": null
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 6,
+   "t_ms": 8518.5,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "thread/read",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "includeTurns": true
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 37,
+   "t_ms": 8529.9,
+   "redacted": false,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794469365674
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 38,
+   "t_ms": 8530.0,
+   "redacted": true,
+   "frame": {
+    "id": 5,
+    "result": {
+     "thread": {
+      "id": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "Delegate the count.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469357,
+      "updatedAt": 1794469357,
+      "recencyAt": 1794469357,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-42-37-01a1ceb5-676d-72b3-9b7f-7c1ece63469d.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+        "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "Delegate the count.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794469357533,
+          "completedAtMs": 1794469357533
+         },
+         {
+          "type": "collabAgentToolCall",
+          "id": "call_spawn_1",
+          "tool": "spawnAgent",
+          "status": "completed",
+          "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+          "receiverThreadIds": [
+           "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+          ],
+          "prompt": "st5-child-brief-marker: count the invented files.",
+          "model": "st5-stub-model",
+          "reasoningEffort": "medium",
+          "agentsStates": {
+           "01a1ceb5-67e7-7db3-84ea-e811874c254f": {
+            "status": "pendingInit",
+            "message": null
+           }
+          },
+          "startedAtMs": 1794469357543,
+          "completedAtMs": 1794469357546
+         },
+         {
+          "type": "agentMessage",
+          "id": "msg_parent_done",
+          "text": "Parent turn done; child still working.",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null,
+          "startedAtMs": 1794469357584,
+          "completedAtMs": 1794469357584
+         }
+        ],
+        "itemsView": "full",
+        "status": "completed",
+        "error": null,
+        "startedAt": 1794469357,
+        "completedAt": 1794469357,
+        "durationMs": 173
+       }
+      ]
+     },
+     "readState": {
+      "firstUnread": {
+       "type": "turn",
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124"
+      },
+      "revision": "4b07ad89-5744-4541-933e-b1842c63b0cc"
+     }
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 7,
+   "t_ms": 8530.0,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "method": "thread/turns/list",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "itemsView": "full"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 39,
+   "t_ms": 8530.8,
+   "redacted": false,
+   "frame": {
+    "id": 6,
+    "result": {
+     "data": [
+      {
+       "id": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "items": [
+        {
+         "type": "userMessage",
+         "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+         "clientId": null,
+         "content": [
+          {
+           "type": "text",
+           "text": "Delegate the count.",
+           "text_elements": []
+          }
+         ],
+         "startedAtMs": 1794469357533,
+         "completedAtMs": 1794469357533
+        },
+        {
+         "type": "collabAgentToolCall",
+         "id": "call_spawn_1",
+         "tool": "spawnAgent",
+         "status": "completed",
+         "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+         "receiverThreadIds": [
+          "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+         ],
+         "prompt": "st5-child-brief-marker: count the invented files.",
+         "model": "st5-stub-model",
+         "reasoningEffort": "medium",
+         "agentsStates": {
+          "01a1ceb5-67e7-7db3-84ea-e811874c254f": {
+           "status": "pendingInit",
+           "message": null
+          }
+         },
+         "startedAtMs": 1794469357543,
+         "completedAtMs": 1794469357546
+        },
+        {
+         "type": "agentMessage",
+         "id": "msg_parent_done",
+         "text": "Parent turn done; child still working.",
+         "phase": null,
+         "memoryCitation": null,
+         "delivery": null,
+         "questions": null,
+         "startedAtMs": 1794469357584,
+         "completedAtMs": 1794469357584
+        }
+       ],
+       "itemsView": "full",
+       "status": "completed",
+       "error": null,
+       "startedAt": 1794469357,
+       "completedAt": 1794469357,
+       "durationMs": 173
+      }
+     ],
+     "nextCursor": null,
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceb5-676d-72b3-9b7f-7c1ece63469d\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 8,
+   "t_ms": 8530.8,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 7,
+    "method": "thread/items/list",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 40,
+   "t_ms": 8531.2,
+   "redacted": false,
+   "frame": {
+    "id": 7,
+    "result": {
+     "data": [
+      {
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "item": {
+        "type": "userMessage",
+        "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+        "clientId": null,
+        "content": [
+         {
+          "type": "text",
+          "text": "Delegate the count.",
+          "text_elements": []
+         }
+        ],
+        "startedAtMs": 1794469357533,
+        "completedAtMs": 1794469357533
+       },
+       "startedAtMs": 1794469357533,
+       "completedAtMs": 1794469357533
+      },
+      {
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "item": {
+        "type": "collabAgentToolCall",
+        "id": "call_spawn_1",
+        "tool": "spawnAgent",
+        "status": "completed",
+        "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+        "receiverThreadIds": [
+         "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+        ],
+        "prompt": "st5-child-brief-marker: count the invented files.",
+        "model": "st5-stub-model",
+        "reasoningEffort": "medium",
+        "agentsStates": {
+         "01a1ceb5-67e7-7db3-84ea-e811874c254f": {
+          "status": "pendingInit",
+          "message": null
+         }
+        },
+        "startedAtMs": 1794469357543,
+        "completedAtMs": 1794469357546
+       },
+       "startedAtMs": 1794469357543,
+       "completedAtMs": 1794469357546
+      },
+      {
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "item": {
+        "type": "agentMessage",
+        "id": "msg_parent_done",
+        "text": "Parent turn done; child still working.",
+        "phase": null,
+        "memoryCitation": null,
+        "delivery": null,
+        "questions": null,
+        "startedAtMs": 1794469357584,
+        "completedAtMs": 1794469357584
+       },
+       "startedAtMs": 1794469357584,
+       "completedAtMs": 1794469357584
+      }
+     ],
+     "nextCursor": null,
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceb5-676d-72b3-9b7f-7c1ece63469d\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 9,
+   "t_ms": 8531.2,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 8,
+    "method": "thread/read",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "includeTurns": true
+    }
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 41,
+   "t_ms": 8532.7,
+   "redacted": false,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794469365677
+   }
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 42,
+   "t_ms": 8532.8,
+   "redacted": true,
+   "frame": {
+    "id": 8,
+    "result": {
+     "thread": {
+      "id": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "forkedFromId": null,
+      "parentThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "preview": "st5-child-brief-marker: count the invented files.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469357,
+      "updatedAt": 1794469365,
+      "recencyAt": 1794469357,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-42-37-01a1ceb5-67e7-7db3-84ea-e811874c254f.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.0",
+      "originator": "chirality-st5-harness",
+      "source": {
+       "subAgent": {
+        "thread_spawn": {
+         "parent_thread_id": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+         "depth": 1,
+         "agent_path": null,
+         "agent_nickname": "Bacon",
+         "agent_role": null
+        }
+       }
+      },
+      "canAcceptDirectInput": true,
+      "threadSource": "subagent",
+      "agentNickname": "Bacon",
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1ceb5-67e9-7873-97fd-7de827654508",
+        "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1ceb5-682f-7f21-8ad6-08dc36342c77",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "st5-child-brief-marker: count the invented files.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794469357618,
+          "completedAtMs": 1794469357618
+         },
+         {
+          "type": "agentMessage",
+          "id": "msg_child",
+          "text": "Child finished counting.",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null,
+          "startedAtMs": 1794469365632,
+          "completedAtMs": 1794469365632
+         }
+        ],
+        "itemsView": "full",
+        "status": "completed",
+        "error": null,
+        "startedAt": 1794469357,
+        "completedAt": 1794469365,
+        "durationMs": 8107
+       }
+      ]
+     },
+     "readState": null
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 1,
+   "t_ms": 8951.8,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+     "clientInfo": {
+      "name": "chirality-st5-harness",
+      "title": "Chirality ST-5 capture harness",
+      "version": "0.0.0-st5"
+     },
+     "capabilities": {
+      "experimentalApi": true,
+      "requestAttestation": false
+     }
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 1,
+   "t_ms": 9001.6,
+   "redacted": true,
+   "frame": {
+    "id": 1,
+    "result": {
+     "userAgent": "<REDACTED-USER-AGENT>",
+     "codexHome": "<HOME>",
+     "platformFamily": "unix",
+     "platformOs": "macos"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 2,
+   "t_ms": 9001.6,
+   "redacted": true,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-HOST>",
+     "installationId": "<REDACTED-INSTALLATION-ID>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794469366145
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 2,
+   "t_ms": 9001.7,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "method": "initialized"
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 3,
+   "t_ms": 9001.7,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "thread/read",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "includeTurns": true
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 3,
+   "t_ms": 9011.8,
+   "redacted": false,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794469366155
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 4,
+   "t_ms": 9011.8,
+   "redacted": true,
+   "frame": {
+    "id": 2,
+    "result": {
+     "thread": {
+      "id": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "environments": null,
+      "extra": null,
+      "sessionId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "forkedFromId": null,
+      "parentThreadId": null,
+      "preview": "Delegate the count.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469357,
+      "updatedAt": 1794469365,
+      "recencyAt": 1794469357,
+      "status": {
+       "type": "notLoaded"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-42-37-01a1ceb5-676d-72b3-9b7f-7c1ece63469d.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": null,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+        "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "Delegate the count.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794469357533,
+          "completedAtMs": 1794469357533
+         },
+         {
+          "type": "collabAgentToolCall",
+          "id": "call_spawn_1",
+          "tool": "spawnAgent",
+          "status": "completed",
+          "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+          "receiverThreadIds": [
+           "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+          ],
+          "prompt": "st5-child-brief-marker: count the invented files.",
+          "model": "st5-stub-model",
+          "reasoningEffort": "medium",
+          "agentsStates": {
+           "01a1ceb5-67e7-7db3-84ea-e811874c254f": {
+            "status": "pendingInit",
+            "message": null
+           }
+          },
+          "startedAtMs": 1794469357543,
+          "completedAtMs": 1794469357546
+         },
+         {
+          "type": "agentMessage",
+          "id": "msg_parent_done",
+          "text": "Parent turn done; child still working.",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null,
+          "startedAtMs": 1794469357584,
+          "completedAtMs": 1794469357584
+         }
+        ],
+        "itemsView": "full",
+        "status": "completed",
+        "error": null,
+        "startedAt": 1794469357,
+        "completedAt": 1794469357,
+        "durationMs": 173
+       }
+      ]
+     },
+     "readState": {
+      "firstUnread": {
+       "type": "turn",
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124"
+      },
+      "revision": "4b07ad89-5744-4541-933e-b1842c63b0cc"
+     }
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 9011.9,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "thread/turns/list",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "itemsView": "full"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 5,
+   "t_ms": 9013.6,
+   "redacted": false,
+   "frame": {
+    "id": 3,
+    "result": {
+     "data": [
+      {
+       "id": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "items": [
+        {
+         "type": "userMessage",
+         "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+         "clientId": null,
+         "content": [
+          {
+           "type": "text",
+           "text": "Delegate the count.",
+           "text_elements": []
+          }
+         ],
+         "startedAtMs": 1794469357533,
+         "completedAtMs": 1794469357533
+        },
+        {
+         "type": "collabAgentToolCall",
+         "id": "call_spawn_1",
+         "tool": "spawnAgent",
+         "status": "completed",
+         "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+         "receiverThreadIds": [
+          "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+         ],
+         "prompt": "st5-child-brief-marker: count the invented files.",
+         "model": "st5-stub-model",
+         "reasoningEffort": "medium",
+         "agentsStates": {
+          "01a1ceb5-67e7-7db3-84ea-e811874c254f": {
+           "status": "pendingInit",
+           "message": null
+          }
+         },
+         "startedAtMs": 1794469357543,
+         "completedAtMs": 1794469357546
+        },
+        {
+         "type": "agentMessage",
+         "id": "msg_parent_done",
+         "text": "Parent turn done; child still working.",
+         "phase": null,
+         "memoryCitation": null,
+         "delivery": null,
+         "questions": null,
+         "startedAtMs": 1794469357584,
+         "completedAtMs": 1794469357584
+        }
+       ],
+       "itemsView": "full",
+       "status": "completed",
+       "error": null,
+       "startedAt": 1794469357,
+       "completedAt": 1794469357,
+       "durationMs": 173
+      }
+     ],
+     "nextCursor": null,
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceb5-676d-72b3-9b7f-7c1ece63469d\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 5,
+   "t_ms": 9013.6,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "thread/items/list",
+    "params": {
+     "threadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+     "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 6,
+   "t_ms": 9014.6,
+   "redacted": false,
+   "frame": {
+    "id": 4,
+    "result": {
+     "data": [
+      {
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "item": {
+        "type": "userMessage",
+        "id": "01a1ceb5-67dc-7690-b13c-79eb2a0ad221",
+        "clientId": null,
+        "content": [
+         {
+          "type": "text",
+          "text": "Delegate the count.",
+          "text_elements": []
+         }
+        ],
+        "startedAtMs": 1794469357533,
+        "completedAtMs": 1794469357533
+       },
+       "startedAtMs": 1794469357533,
+       "completedAtMs": 1794469357533
+      },
+      {
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "item": {
+        "type": "collabAgentToolCall",
+        "id": "call_spawn_1",
+        "tool": "spawnAgent",
+        "status": "completed",
+        "senderThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+        "receiverThreadIds": [
+         "01a1ceb5-67e7-7db3-84ea-e811874c254f"
+        ],
+        "prompt": "st5-child-brief-marker: count the invented files.",
+        "model": "st5-stub-model",
+        "reasoningEffort": "medium",
+        "agentsStates": {
+         "01a1ceb5-67e7-7db3-84ea-e811874c254f": {
+          "status": "pendingInit",
+          "message": null
+         }
+        },
+        "startedAtMs": 1794469357543,
+        "completedAtMs": 1794469357546
+       },
+       "startedAtMs": 1794469357543,
+       "completedAtMs": 1794469357546
+      },
+      {
+       "turnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+       "item": {
+        "type": "agentMessage",
+        "id": "msg_parent_done",
+        "text": "Parent turn done; child still working.",
+        "phase": null,
+        "memoryCitation": null,
+        "delivery": null,
+        "questions": null,
+        "startedAtMs": 1794469357584,
+        "completedAtMs": 1794469357584
+       },
+       "startedAtMs": 1794469357584,
+       "completedAtMs": 1794469357584
+      }
+     ],
+     "nextCursor": null,
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1ceb5-676d-72b3-9b7f-7c1ece63469d\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 6,
+   "t_ms": 9014.6,
+   "redacted": false,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "thread/read",
+    "params": {
+     "threadId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+     "includeTurns": true
+    }
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 7,
+   "t_ms": 9017.5,
+   "redacted": false,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794469366161
+   }
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 8,
+   "t_ms": 9017.5,
+   "redacted": true,
+   "frame": {
+    "id": 5,
+    "result": {
+     "thread": {
+      "id": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+      "environments": null,
+      "extra": null,
+      "sessionId": "01a1ceb5-67e7-7db3-84ea-e811874c254f",
+      "forkedFromId": null,
+      "parentThreadId": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+      "preview": "st5-child-brief-marker: count the invented files.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794469357,
+      "updatedAt": 1794469365,
+      "recencyAt": 1794469357,
+      "status": {
+       "type": "notLoaded"
+      },
+      "path": "<HOME>/sessions/2026/11/12/rollout-2026-11-12T01-42-37-01a1ceb5-67e7-7db3-84ea-e811874c254f.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.167.0",
+      "originator": "chirality-st5-harness",
+      "source": {
+       "subAgent": {
+        "thread_spawn": {
+         "parent_thread_id": "01a1ceb5-676d-72b3-9b7f-7c1ece63469d",
+         "depth": 1,
+         "agent_path": null,
+         "agent_nickname": "Bacon",
+         "agent_role": null
+        }
+       }
+      },
+      "canAcceptDirectInput": null,
+      "threadSource": "subagent",
+      "agentNickname": "Bacon",
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1ceb5-67e9-7873-97fd-7de827654508",
+        "rootTurnId": "01a1ceb5-6784-7571-ab98-9f5b05e56124",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1ceb5-682f-7f21-8ad6-08dc36342c77",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "st5-child-brief-marker: count the invented files.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794469357618,
+          "completedAtMs": 1794469357618
+         },
+         {
+          "type": "agentMessage",
+          "id": "msg_child",
+          "text": "Child finished counting.",
+          "phase": null,
+          "memoryCitation": null,
+          "delivery": null,
+          "questions": null,
+          "startedAtMs": 1794469365632,
+          "completedAtMs": 1794469365632
+         }
+        ],
+        "itemsView": "full",
+        "status": "completed",
+        "error": null,
+        "startedAt": 1794469357,
+        "completedAt": 1794469365,
+        "durationMs": 8107
+       }
+      ]
+     },
+     "readState": null
+    }
+   }
+  }
+ ]
+}
