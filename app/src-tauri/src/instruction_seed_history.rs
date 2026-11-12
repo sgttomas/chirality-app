@@ -12,10 +12,19 @@ pub(crate) const SEED_FORMAT: &str = "chirality.instruction-seed-record/1";
 /// was first seeded without it.
 pub(crate) const ADDITION_FORMAT: &str = "chirality.instruction-seed-addition/1";
 const DELEGATION_ADDITION: &str = ".seed-addition-DELEGATION_RECORDS.json";
+/// The marker that a later addition was begun. It is no record of a placement.
+pub(crate) const ADDITION_BEGUN_FORMAT: &str = "chirality.instruction-seed-addition-begun/1";
+const DELEGATION_ADDITION_BEGUN: &str = ".seed-addition-DELEGATION_RECORDS.begun.json";
 
 /// The addition record of a file a later release adds to an existing store.
 pub(crate) fn addition_record(path: &str) -> Option<&'static str> {
     (path == DELEGATION_GUIDANCE_PATH).then_some(DELEGATION_ADDITION)
+}
+/// The marker written before a later-added file is made visible, and removed
+/// once its addition record is written. It claims only that the placement
+/// was begun.
+pub(crate) fn addition_begun(path: &str) -> Option<&'static str> {
+    (path == DELEGATION_GUIDANCE_PATH).then_some(DELEGATION_ADDITION_BEGUN)
 }
 
 #[derive(Deserialize)]

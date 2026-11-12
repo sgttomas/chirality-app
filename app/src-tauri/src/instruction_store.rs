@@ -209,13 +209,29 @@ pub(crate) fn seed(
     verify(&opened, &links)
 }
 
+#[cfg(test)]
+thread_local! {
+    /// Run once, just after a later-added file is made visible and before its
+    /// addition record is written, so a test can interrupt the placement there.
+    pub(crate) static AFTER_VISIBLE: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
+}
+
 /// Place, once, a file this release adds to a store first seeded without it.
 /// Nothing already in the store is opened for writing. The file is created
 /// only on affirmative evidence: the first seed record is read, valid and
 /// names the files of a store seeded without it, and no addition record for
 /// it exists. Otherwise nothing is placed and its absence is a missing file.
-/// The addition record is written once, after the file, naming it as created
-/// or, when a file was already there, as preserved.
+///
+/// Evidence comes before effect. A marker that the placement was begun is
+/// written first; then the file, written whole under a scratch name and linked
+/// into place without replacing anything; then the addition record, naming it
+/// as created or, when a file was already there, as preserved; then the marker
+/// is removed. A marker found with no addition record means an earlier
+/// placement was begun and not recorded as finished: whether the file was
+/// never made or was made and then removed by the person cannot be told, so
+/// nothing is placed. An absent file stays missing, and a present one is left
+/// as it is and recorded as preserved. The addition record governs: once it
+/// exists, a marker left beside it means nothing.
 #[cfg(unix)]
 pub(crate) fn add_later(
     root: &std::path::Path,
@@ -267,7 +283,18 @@ pub(crate) fn add_later(
         let error = std::io::Error::last_os_error();
         if error.kind() == std::io::ErrorKind::NotFound { Ok(false) } else { Err(error.to_string()) }
     };
+    let begun = seed_history::addition_begun(path)
+        .ok_or("instruction source is not one a later release adds")?;
+    let scratch = format!(".{path}.placing");
+    // Best effort: these remove only the App's own marker and scratch file.
+    let remove = |leaf: &str| {
+        if let Ok(c) = CString::new(leaf) {
+            unsafe { libc::unlinkat(dir.as_raw_fd(), c.as_ptr(), 0) };
+        }
+    };
     if exists(record_name)? {
+        // The placement was recorded as finished; a marker left behind is spent.
+        remove(begun);
         return Ok(());
     }
     // Only affirmative evidence that the store predates this file permits it:
@@ -287,16 +314,77 @@ pub(crate) fn add_later(
     if !predates {
         return Ok(());
     }
-    let entry = match open(path, libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL)? {
-        Some(mut file) => {
+    let preserved = || serde_json::json!({"created":[],"preserved":[{"path":path,"origin":"unknown"}]});
+    let entry = if exists(begun)? {
+        // Begun earlier and not recorded as finished. Nothing is placed again.
+        remove(&scratch);
+        if !exists(path)? {
+            return Ok(());
+        }
+        preserved()
+    } else {
+        let marker = serde_json::json!({"format":seed_history::ADDITION_BEGUN_FORMAT,"release":release,"path":path});
+        let mut raw = serde_json::to_vec(&marker).map_err(|e| e.to_string())?;
+        raw.push(b'\n');
+        match open(begun, libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL)? {
+            Some(mut file) => {
+                if let Err(e) = file.write_all(&raw).and_then(|_| file.sync_all()).and_then(|_| dir.sync_all()) {
+                    // Nothing has been made visible, so the marker claims nothing worth keeping.
+                    remove(begun);
+                    return Err(format!("instruction addition could not be begun: {e}"));
+                }
+            }
+            // Another start began it between the check and this one; that start places it.
+            None => return Ok(()),
+        }
+        // Until the link below, nothing is visible at the guidance path: a
+        // failure here withdraws the marker, and where that fails too the
+        // marker stands and nothing is placed later.
+        let written = (|| -> Result<Option<()>, String> {
+            // The scratch name is the App's own. One found without a marker is
+            // not known to be the App's and is left alone: nothing is placed.
+            let Some(mut file) = open(&scratch, libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL)? else {
+                return Ok(None);
+            };
             if !file.metadata().map_err(|e| e.to_string())?.is_file() {
                 return Err("created instruction source is not a regular file".into());
             }
             file.write_all(bytes).and_then(|_| file.sync_all()).map_err(|e| e.to_string())?;
-            dir.sync_all().map_err(|e| e.to_string())?;
-            serde_json::json!({"created":[{"path":path,"defaultContent":crate::role_supply::content(bytes)}],"preserved":[]})
+            Ok(Some(()))
+        })();
+        match written {
+            Ok(Some(())) => {}
+            Ok(None) => {
+                remove(begun);
+                return Ok(());
+            }
+            Err(e) => {
+                remove(&scratch);
+                remove(begun);
+                return Err(e);
+            }
         }
-        None => serde_json::json!({"created":[],"preserved":[{"path":path,"origin":"unknown"}]}),
+        // The guidance path receives the whole default or nothing, and nothing there is replaced.
+        let (from, to) = (CString::new(scratch.as_str()).map_err(|_| "NUL in instruction name")?,
+            CString::new(path).map_err(|_| "NUL in instruction name")?);
+        let linked = unsafe { libc::linkat(dir.as_raw_fd(), from.as_ptr(), dir.as_raw_fd(), to.as_ptr(), 0) };
+        let error = std::io::Error::last_os_error();
+        remove(&scratch);
+        if linked == 0 {
+            dir.sync_all().map_err(|e| e.to_string())?;
+            #[cfg(test)]
+            AFTER_VISIBLE.with(|hook| {
+                if let Some(run) = hook.borrow_mut().take() {
+                    run()
+                }
+            });
+            serde_json::json!({"created":[{"path":path,"defaultContent":crate::role_supply::content(bytes)}],"preserved":[]})
+        } else if error.kind() == std::io::ErrorKind::AlreadyExists {
+            preserved()
+        } else {
+            remove(begun);
+            return Err(error.to_string());
+        }
     };
     let record = serde_json::json!({"format":seed_history::ADDITION_FORMAT,"release":release,
         "created":entry["created"],"preserved":entry["preserved"]});
@@ -308,6 +396,7 @@ pub(crate) fn add_later(
             .map_err(|e| format!("instruction addition record publication failed: {e}"))?;
         dir.sync_all().map_err(|e| e.to_string())?;
     }
+    remove(begun);
     Ok(())
 }
 

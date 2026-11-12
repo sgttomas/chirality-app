@@ -79,6 +79,9 @@ implemented behavior and qualification limits.
    read current bytes. A file a later release adds (`DELEGATION_RECORDS.md`) is
    placed once, with its own addition record, only where the copy's readable
    seed record shows it was seeded without it; no existing file is touched.
+   The App first records that the placement was begun, writes the file whole
+   and only then makes it visible, and records it last; a placement begun and
+   not recorded as finished is never made again.
    Otherwise, and once placed, its absence is a missing file: a start in a role
    that may delegate is refused saying so, and a start with no role is not. The Rust host prepares additive native child roles
    from that frozen guidance, withholding colliding or unsupported names and
