@@ -45,7 +45,9 @@ def violations(d, step_map):
         kinds = sorted(m["kind"] for m in modes)
         homes = {m["kind"]: m["home"] for m in modes}
         convs = [m["conversation_ref"] for m in modes]
-        # SQ-R3 exactly the two modes, each in its own home, with distinct conversations
+        # SQ-R3 the declared access modes (not observations): exactly the two modes, each in the
+        # home the scope defines for it, with distinct conversations. An observed difference is a
+        # failed M12 step in its result record, not a changed declaration.
         if (kinds != ["chatgpt_account", "local_provider"] or homes.get("chatgpt_account") != "H-acct"
                 or homes.get("local_provider") != "H-omlx" or len(set(convs)) != 2):
             v.append("SQ-R3")

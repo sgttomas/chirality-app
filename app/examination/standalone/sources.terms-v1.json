@@ -3,7 +3,7 @@
     {
       "role": "step_map",
       "path": "app/examination/sq_receiving/sq.step-map.json",
-      "sha256": "sha256:1ec3e6790b07b30c1fa371cd545e88ddf86892689902a3046204667e562750ee"
+      "sha256": "sha256:c04513a8ca94a1fe9a41baf6d4f758cb33beb5a841937bd1a40f4d501c687ea8"
     },
     {
       "role": "step_operations",

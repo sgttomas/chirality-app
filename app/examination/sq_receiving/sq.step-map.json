@@ -585,13 +585,7 @@
    },
    {
     "step": "M12-5",
-    "supplier_cases": [
-     {
-      "deliverable": "DEL-01-05",
-      "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "case_id": "VC-A04"
-     }
-    ],
+    "supplier_cases": [],
     "core_loop_element": "model access",
     "v3_reference": "none",
     "stimuli": [],
