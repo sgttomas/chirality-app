@@ -85,6 +85,7 @@ checks:
 - app/tests/process-group-custody.test.mjs
 - app/src-tauri/src/hosting_build_selection_tests.rs
 - app/src-tauri/src/hosting_startup_refusal_tests.rs
+- app/src-tauri/src/release_configuration_inputs_tests.rs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/tests/validate-records.test.mjs
 - app/packaging/static_distribution/test_s1_value_model.py

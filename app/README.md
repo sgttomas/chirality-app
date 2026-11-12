@@ -172,7 +172,8 @@ implemented behavior and qualification limits.
     manual supply check; the carrier and later turns are excluded. A failed
     metadata save preserves the send and offers metadata-only retry while the
     original observation is held in this App process.
-13. Explicit App project association comes from configured `CHIRALITY_WORKSPACE`,
+13. Explicit App project association comes from the configured project (the
+    saved desktop request, or `CHIRALITY_WORKSPACE` in a development build),
     separately from native thread cwd, Codex home and workflow run. Unknown context
     produces no canonical project row. Historical project P remains intact when
     a new submission cites current Q; hot-only associations retain cold limits.
@@ -1260,11 +1261,20 @@ It never saves credentials, model/provider choices, trust or a claimed lease.
 The exact bundled supplier path and standing are shown; matching label,
 generated reference and binary bytes do not authenticate or qualify it.
 
-The existing environment route below remains complete and exclusive. Any
-startup supplier/home/project/key/shared/development input selects it, even if
-incomplete or invalid; there is no fallback or field merge from saved desktop
-requests. A compiled production successor continues to refuse without its
-installed-custody issuer, regardless of a desktop development selection.
+The environment route below is for development builds only: a development
+run (`tauri dev`) and a built bundle made without the `distribution-successor`
+feature, such as the examination candidates. In such a build it remains
+complete and exclusive. Any startup supplier/home/project/key/shared/development
+input selects it, even if incomplete or invalid; there is no fallback or field
+merge from saved desktop requests. The release configuration, built with
+`distribution-successor` and not a development run, reads none of the
+`CHIRALITY_` startup inputs (`development_inputs_admitted` in
+`src-tauri/src/lib.rs`): it starts from the saved desktop request or first-use
+setup as if they were unset, and takes its binary, homes, project and records
+location only from its own bundle and setup. It reads `CHIRALITY_RECORDS_STORE`
+and `CHIRALITY_RECORDS_VERIFY_SECS` no more than the route's names. A compiled
+production successor continues to refuse without its installed-custody issuer,
+regardless of a desktop development selection.
 
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
 `CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary
@@ -1361,8 +1371,9 @@ byte-identical copies verified by SHA-256, committed by the import's
 the originals left unchanged and no longer read. A copy carries only the
 trust of the folder it came from. A library's own act log in the project is
 library evidence, never part of the project's record set. The override
-`CHIRALITY_RECORDS_STORE` is read only by development and test builds, and a
-store inside the project or a Codex home is refused. The host status (`recordsStore`)
+`CHIRALITY_RECORDS_STORE` is read only by development and test builds (never by
+the release configuration), and a store inside the project or a Codex home is
+refused. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
 The records-store panel offers **Export project records**, choosing a parent

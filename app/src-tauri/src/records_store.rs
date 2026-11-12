@@ -166,9 +166,18 @@ pub(crate) fn bootstrap_blocked_for_test(hook: Option<Box<dyn FnOnce()>>) {
     BOOTSTRAP_BLOCKED.with(|slot| *slot.borrow_mut() = hook);
 }
 
+/// The override as `from_environment` reads it: for tests and development
+/// only. A build without debug assertions, and the release configuration,
+/// never ask for it.
+pub(crate) fn override_from(input: impl Fn(&str) -> Option<std::ffi::OsString>, is_dev: bool) -> Option<std::ffi::OsString> {
+    if !((cfg!(debug_assertions) || cfg!(test)) && crate::development_inputs_admitted(is_dev)) {
+        return None;
+    }
+    input(OVERRIDE_ENV).filter(|p| !p.is_empty())
+}
+
 fn from_environment() -> Result<Store, String> {
-    // The override is for tests and development: a release build never reads it.
-    if let Some(path) = std::env::var_os(OVERRIDE_ENV).filter(|p| (cfg!(debug_assertions) || cfg!(test)) && !p.is_empty()) {
+    if let Some(path) = override_from(|key| std::env::var_os(key), tauri::is_dev()) {
         let root = PathBuf::from(path);
         if !root.is_absolute() {
             return Err(format!("{OVERRIDE_ENV} must name an absolute folder; no records store"));

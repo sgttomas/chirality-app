@@ -187,9 +187,16 @@ pub(crate) fn chain_heads(root: &Path) -> Value {
     match role{Ok(Some(head))=>heads["logs"].as_array_mut().unwrap().push(head),Ok(None)=>{},Err(limit)=>heads["notes"].as_array_mut().unwrap().push(serde_json::json!(format!("role supply chain not established: {limit}")))}
     heads
 }
-/// Seconds between verifier passes (`CHIRALITY_RECORDS_VERIFY_SECS`).
+/// Seconds between verifier passes (`CHIRALITY_RECORDS_VERIFY_SECS` in a
+/// development build; the release configuration does not read it).
 fn verify_interval() -> u64 {
-    std::env::var("CHIRALITY_RECORDS_VERIFY_SECS").ok().and_then(|s| s.parse().ok()).unwrap_or(VERIFY_INTERVAL).max(1)
+    verify_interval_from(|key| std::env::var(key).ok(), tauri::is_dev())
+}
+pub(crate) fn verify_interval_from(input: impl Fn(&str) -> Option<String>, is_dev: bool) -> u64 {
+    if !crate::development_inputs_admitted(is_dev) {
+        return VERIFY_INTERVAL;
+    }
+    input("CHIRALITY_RECORDS_VERIFY_SECS").and_then(|s| s.parse().ok()).unwrap_or(VERIFY_INTERVAL).max(1)
 }
 fn start_verifier() {
     VERIFIER.call_once(|| {

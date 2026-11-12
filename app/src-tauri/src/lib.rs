@@ -283,9 +283,20 @@ fn probe_home() -> Result<PathBuf,String> {
     runtime_session::allocate_fresh_probe(&std::env::temp_dir())
 }
 
+/// Whether this build admits development startup inputs. The release
+/// configuration (built with distribution-successor, and not a development
+/// run) admits none.
+pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
+    is_dev || !cfg!(feature = "distribution-successor")
+}
+
 /// Complete explicit environment route; no private supplier/home path is built in.
 /// Desktop requests are a separate exclusive source, resolved before Root binding.
+/// The release configuration has no environment route and reads none of its names.
 pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
+    if !development_inputs_admitted(tauri::is_dev()) {
+        return Err("the release configuration takes no startup inputs from the environment".into());
+    }
     host_config_from_inputs(workspace, |key|std::env::var_os(key), probe_home)
 }
 
@@ -970,8 +981,14 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
 fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
+    codex_homes_from(configs, |key| std::env::var_os(key), tauri::is_dev())
+}
+/// The release configuration does not consult the development home names;
+/// the person's own `CODEX_HOME` is kept out of the records store in every build.
+fn codex_homes_from<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, input: impl Fn(&str)->Option<std::ffi::OsString>, is_dev: bool) -> Vec<PathBuf> {
     let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [cfg.codex_home.clone(), cfg.probe_home.clone()]).collect();
-    homes.extend(["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
+    let names: &[&str] = if development_inputs_admitted(is_dev) { &["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"] } else { &["CODEX_HOME"] };
+    homes.extend(names.iter().filter_map(|key| input(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
     homes.sort();
     homes.dedup();
     homes
@@ -2694,32 +2711,33 @@ fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_
 #[tauri::command(async)]
 fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
+/// The development environment route. The release configuration has none:
+/// it asks the reader for nothing and goes to the saved desktop request or
+/// first-use setup as if the environment were empty.
 fn explicit_environment_launch(
-    input: impl Fn(&str)->Option<std::ffi::OsString>, data: &Result<PathBuf,String>, resources: &Result<PathBuf,String>, is_dev: bool,
+    input: impl Fn(&str)->Option<std::ffi::OsString>, is_dev: bool,
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
+    if !development_inputs_admitted(is_dev) { return None; }
     const KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR"];
     if !KEYS.iter().any(|key|input(key).is_some()) { return None; }
     let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
-    let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
-        host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
-            if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
-                cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
-            }
-            Ok(cfg)
-        })
-    } else {
-        (|| {
-            let resources = resources.as_ref().map_err(Clone::clone)?.clone();
-            let data = data.as_ref().map_err(Clone::clone)?.clone();
-            let home = input("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
-            Ok(hosting::successor::production_config(resources, home, probe()?, workspace.clone().unwrap_or(data)))
-        })()
-    };
+    let host_config = host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
+        if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
+            cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
+        }
+        Ok(cfg)
+    });
     let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
     let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
     let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
     Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
+}
+
+/// The development records store override; the release configuration does not read it.
+fn records_override(input: impl Fn(&str)->Option<std::ffi::OsString>, is_dev: bool) -> Option<PathBuf> {
+    if !development_inputs_admitted(is_dev) { return None; }
+    input(records_store::OVERRIDE_ENV).filter(|p|!p.is_empty()).map(PathBuf::from)
 }
 
 fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
@@ -2887,7 +2905,7 @@ pub fn run() {
         .setup(move |app| {
     let data = app.path().app_data_dir().map_err(|e| e.to_string());
     let resources = app.path().resource_dir().map_err(|e|e.to_string());
-    let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
+    let environment = explicit_environment_launch(|key|std::env::var_os(key), tauri::is_dev(), probe_home);
     let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
     let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
     let desktop_startup::RootInputs { launch, data, allow_operational } = desktop.admit_root(launch, data);
@@ -2903,7 +2921,7 @@ pub fn run() {
                 let _ = app.state::<AppState>().workflows.lock().unwrap().configure_installed_bundle(resources.join(RESOURCE_WORKFLOWS));
             }
             app.manage(Mutex::new(native_waiting::Registry::default()));
-            initialize_startup_consumers(&app.state::<AppState>(), &home, data.clone(), allow_operational, tauri::is_dev(), std::env::var_os(records_store::OVERRIDE_ENV).filter(|p|!p.is_empty()).map(PathBuf::from), key_path, shared_paths);
+            initialize_startup_consumers(&app.state::<AppState>(), &home, data.clone(), allow_operational, tauri::is_dev(), records_override(|key|std::env::var_os(key), tauri::is_dev()), key_path, shared_paths);
             // OI-008: the host keeps its own records on its own tick, whether or
             // not the web view polls host_status.
             {

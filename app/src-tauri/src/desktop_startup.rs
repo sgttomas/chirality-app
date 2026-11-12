@@ -4991,8 +4991,6 @@ mod tests {
             let env = if case == "environment" {
                 crate::explicit_environment_launch(
                     |key| (key == "CHIRALITY_CODEX_BIN").then(|| "/invented/bin/codex".into()),
-                    &Ok(f.data.clone()),
-                    &Ok(f.resources.clone()),
                     true,
                     || panic!("incomplete environment"),
                 )
@@ -5269,8 +5267,6 @@ mod tests {
         drop(setup);
         let env = crate::explicit_environment_launch(
             |key| (key == "CHIRALITY_CODEX_BIN").then(|| "/invented/bin/codex".into()),
-            &Ok(f.data.clone()),
-            &Ok(f.resources.clone()),
             true,
             || panic!("incomplete environment cannot allocate probe"),
         )
@@ -5342,6 +5338,10 @@ mod tests {
         std::fs::rename(&f.shared[0], f.shared[0].with_extension("old")).unwrap();
         std::fs::write(&f.shared[0], b"replacement inode").unwrap();
         assert!(fresh.recheck().unwrap_err().contains("replaced"));
+    }
+
+    mod release_configuration_inputs {
+        include!("release_configuration_inputs_tests.rs");
     }
 
     #[test]
