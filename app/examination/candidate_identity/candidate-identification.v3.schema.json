@@ -458,21 +458,56 @@
           }
         },
         "acquisition": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "path",
-            "sha256"
-          ],
-          "properties": {
-            "path": {
-              "const": "supplier-acquisition.json"
+          "oneOf": [
+            {
+              "description": "npm platform tarball: the retained acquisition authorization record.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "path": {
+                  "const": "supplier-acquisition.json"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
             },
-            "sha256": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{64}$"
+            {
+              "description": "Supplier release package: the retained committed canonical distribution record, which states locator, size, digest and inventory. It records no acquirer or acquisition authorization, so both are stated as not recorded.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "sha256",
+                "form",
+                "acquirer",
+                "authorization"
+              ],
+              "properties": {
+                "path": {
+                  "const": "supplier-canonical-distribution.json"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "form": {
+                  "const": "chirality.supplier-canonical-assessment/1"
+                },
+                "acquirer": {
+                  "const": "not recorded"
+                },
+                "authorization": {
+                  "const": "not recorded"
+                }
+              }
             }
-          }
+          ]
         },
         "correspondence": {
           "type": "object",
@@ -484,7 +519,10 @@
           ],
           "properties": {
             "method": {
-              "const": "codex-platform-tar-files/v1"
+              "enum": [
+                "codex-platform-tar-files/v1",
+                "codex-package-tar-files/v1"
+              ]
             },
             "files": {
               "type": "integer",
@@ -493,6 +531,29 @@
             "file_manifest_sha256": {
               "type": "string",
               "pattern": "^[0-9a-f]{64}$"
+            },
+            "inventory": {
+              "description": "Release package only: the canonical distribution record's inventory, compared entry by entry with the bundled supplier tree.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "method",
+                "entries",
+                "manifest_sha256"
+              ],
+              "properties": {
+                "method": {
+                  "const": "codex-vendor-tree-v1"
+                },
+                "entries": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "manifest_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
             }
           }
         },
@@ -500,7 +561,50 @@
           "type": "string",
           "minLength": 1
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "acquisition": {
+                "required": [
+                  "form"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "correspondence": {
+                "required": [
+                  "inventory"
+                ],
+                "properties": {
+                  "method": {
+                    "const": "codex-package-tar-files/v1"
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "correspondence": {
+                "not": {
+                  "required": [
+                    "inventory"
+                  ]
+                },
+                "properties": {
+                  "method": {
+                    "const": "codex-platform-tar-files/v1"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "identified_by": {
       "type": "object",

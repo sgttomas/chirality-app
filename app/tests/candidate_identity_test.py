@@ -1,4 +1,4 @@
-"""candidate-identity-v2: portable validation and real macOS metadata regressions.
+"""candidate-identity v2/v3 and the candidate build recipe: portable validation and real macOS metadata regressions.
 
 All filesystem mutations are confined to temporary fixtures. No bundle or supplier
 is executed. On non-macOS hosts only the live-metadata tests are unavailable.
@@ -25,6 +25,8 @@ import unittest
 from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'examination' / 'candidate_identity'))
+import build_candidate  # noqa: E402
+import bundled_supplier  # noqa: E402
 import identify  # noqa: E402
 
 MAC = sys.platform == 'darwin'
@@ -894,6 +896,369 @@ class BundledCandidateRecord(GitScratch):
         for change in ({'features': []}, {'profile': 'release'}, {'signing': 'Developer ID'}):
             self.facts.write_text(json.dumps(dict(original, **change)))
             code, _, _ = self.record(); self.assertEqual(code, 2)
+
+
+def release_archive(vendor, archive, extra=None):
+    """Supplier release package layout: the tree at the archive root, no root member."""
+    with tarfile.open(archive, 'w:gz') as tar:
+        for child in sorted(Path(vendor).iterdir()):
+            tar.add(child, arcname=child.name)
+        for info, data in (extra or []):
+            tar.addfile(info, io.BytesIO(data) if data is not None else None)
+
+
+def tree_inventory(vendor):
+    vendor = Path(vendor)
+    entries = []
+    for path in sorted(vendor.rglob('*'), key=lambda q: q.relative_to(vendor).as_posix().encode()):
+        info = path.lstat()
+        entry = {'path': path.relative_to(vendor).as_posix(), 'kind': 'dir' if path.is_dir() else 'file',
+                 'mode': stat.S_IMODE(info.st_mode)}
+        if entry['kind'] == 'file':
+            entry.update(size=info.st_size, sha256=identify.sha(path.read_bytes()))
+        entries.append(entry)
+    return entries
+
+
+def distribution_record(archive, entries, pin='0.0.1'):
+    """Invented record of the committed canonical distribution form; nothing here is a real supplier."""
+    files = {e['path']: e for e in entries if e['kind'] == 'file'}
+    return {'format': bundled_supplier.DISTRIBUTION_FORM, 'pin': pin, 'source_commit': '0' * 40,
+            'archive': {'url': f'https://github.com/openai/codex/releases/download/rust-v{pin}/codex-package-aarch64-apple-darwin.tar.gz',
+                        'size': Path(archive).stat().st_size, 'sha256': identify.sha(Path(archive).read_bytes())},
+            'package_metadata': {'layoutVersion': 1, 'version': pin, 'target': 'aarch64-apple-darwin', 'entrypoint': 'bin/codex'},
+            'files': len(files), 'root_mode': 'Invented: no root directory member.',
+            'inventory': {'method': 'codex-vendor-tree-v1', 'algorithm': 'sha-256',
+                          'manifest_sha256': bundled_supplier.manifest(files), 'entries': entries},
+            'limits': ['Invented fixture record.']}
+
+
+def invented_vendor(vendor):
+    (vendor / 'bin').mkdir(parents=True)
+    (vendor / 'codex-path').mkdir()
+    (vendor / 'bin/codex').write_bytes(b'invented supplier, never executed')
+    (vendor / 'bin/codex').chmod(0o755)
+    (vendor / 'codex-path/rg').write_bytes(b'invented helper, never executed')
+    (vendor / 'codex-path/rg').chmod(0o755)
+    (vendor / 'codex-package.json').write_text('{"invented": true}\n')
+    (vendor / 'codex-package.json').chmod(0o644)
+    for d in (vendor / 'bin', vendor / 'codex-path'):
+        d.chmod(0o755)
+
+
+class ReleasePackageRecord(GitScratch):
+    """The supplier release package bound by the committed canonical distribution record's form."""
+    def setUp(self):
+        super().setUp()
+        self.app = write_bundle(self.tmp / 'build')
+        self.facts = self.tmp / 'facts.json'
+        self.facts.write_text(json.dumps({
+            'procedure': 'test', 'profile': 'debug', 'signing': 'none', 'features': ['custom-protocol'],
+            'command': ['build'], 'config_overlays': [], 'toolchain': {}, 'lockfiles': {}, 'offline': True,
+            'environment': {}, 'started_at': WHEN, 'finished_at': WHEN}))
+        self.home_patch = mock.patch.object(Path, 'home', return_value=self.home)
+        self.home_patch.start(); self.addCleanup(self.home_patch.stop)
+        self.vendor = self.app / 'Contents/Resources/codex'
+        invented_vendor(self.vendor)
+        self.archive = self.tmp / 'codex-package-aarch64-apple-darwin.tar.gz'
+        self.distribution = self.tmp / 'CANONICAL_DISTRIBUTION.json'
+        self.refresh()
+
+    def refresh(self, extra=None, change=None):
+        release_archive(self.vendor, self.archive, extra)
+        record = distribution_record(self.archive, tree_inventory(self.vendor))
+        if change:
+            change(record)
+        self.distribution.write_text(json.dumps(record, indent=1))
+
+    def record(self):
+        return self.run_tool('record', '--app', str(self.app), '--repo', str(self.repo), '--revision', 'HEAD',
+                             '--prefix', 'proj', '--export-root', str(self.export), '--build-facts', str(self.facts),
+                             '--identified-at', WHEN, '--out-dir', str(self.tmp / 'rec'),
+                             '--supplier-archive', str(self.archive), '--supplier-acquisition', str(self.distribution))
+
+    check = CandidateRecord.check
+
+    def test_release_package_identifies_and_checks_without_inventing_an_acquisition_account(self):
+        code, out, err = self.record(); self.assertEqual(code, 0, out + err)
+        record = json.loads((self.tmp / 'rec/candidate-identification.json').read_bytes())
+        supplier = record['supplier']
+        self.assertEqual(record['format'], identify.BUNDLED_FORMAT)
+        self.assertEqual(supplier['pin'], '0.0.1')
+        self.assertEqual(supplier['archive']['file'], 'codex-package-aarch64-apple-darwin.tar.gz')
+        self.assertEqual(supplier['acquisition'], {
+            'path': 'supplier-canonical-distribution.json', 'sha256': identify.sha(self.distribution.read_bytes()),
+            'form': 'chirality.supplier-canonical-assessment/1', 'acquirer': 'not recorded', 'authorization': 'not recorded'})
+        self.assertEqual(supplier['correspondence']['method'], 'codex-package-tar-files/v1')
+        self.assertEqual(supplier['correspondence']['files'], 3)
+        self.assertEqual(supplier['correspondence']['inventory']['entries'], 5)
+        self.assertEqual((self.tmp / 'rec/supplier-canonical-distribution.json').read_bytes(), self.distribution.read_bytes())
+        self.assertFalse((self.tmp / 'rec/supplier-acquisition.json').exists())
+        limits = ' '.join(record['limits'])
+        self.assertIn('no acquirer or acquisition authorization is recorded', limits)
+        self.assertNotIn('acquisition authorization/custody remains the supplied record', limits)
+        self.assertEqual(self.check()[0], 0)
+        self.archive.unlink()  # recheck uses the retained record and stored inventory only
+        self.assertEqual(self.check()[0], 0)
+        (self.vendor / 'codex-package.json').write_text('changed\n')
+        self.assertEqual(self.check()[0], 1)
+
+    def test_release_package_refusals_publish_nothing(self):
+        def entry(path, **change):
+            def apply(record):
+                next(e for e in record['inventory']['entries'] if e['path'] == path).update(change)
+            return apply
+
+        def link():
+            info = tarfile.TarInfo('codex-path/link'); info.type = tarfile.SYMTYPE; info.linkname = 'rg'
+            return [(info, None)]
+
+        def root_member():
+            info = tarfile.TarInfo('.'); info.type = tarfile.DIRTYPE; info.mode = 0o755
+            return [(info, None)]
+        cases = {
+            'archive digest': lambda: self.refresh(change=lambda r: r['archive'].update(sha256='0' * 64)),
+            'archive size': lambda: self.refresh(change=lambda r: r['archive'].update(size=r['archive']['size'] + 1)),
+            'member bytes': lambda: (self.refresh(), (self.vendor / 'bin/codex').write_bytes(b'changed')),
+            'member mode': lambda: (self.refresh(), (self.vendor / 'codex-package.json').chmod(0o755)),
+            'extra file': lambda: (self.refresh(), (self.vendor / 'extra').write_text('extra')),
+            'missing file': lambda: (self.refresh(), (self.vendor / 'codex-path/rg').unlink()),
+            'link in archive': lambda: self.refresh(extra=link()),
+            'root member': lambda: self.refresh(extra=root_member()),
+            'inventory mode': lambda: self.refresh(change=entry('codex-path', mode=0o700)),
+            'inventory size': lambda: self.refresh(change=entry('bin/codex', size=1)),
+            'inventory missing entry': lambda: self.refresh(change=lambda r: r['inventory']['entries'].pop()),
+            'unknown format': lambda: self.refresh(change=lambda r: r.update(format='example.invalid/1')),
+            'other platform': lambda: self.refresh(change=lambda r: r['archive'].update(
+                url=r['archive']['url'].replace('aarch64-apple-darwin', 'x86_64-unknown-linux-musl'))),
+            'pin differs from locator': lambda: self.refresh(change=lambda r: r.update(pin='0.0.2')),
+        }
+        original = self.tmp / 'original'; shutil.copytree(self.vendor, original)
+        for name, mutate in cases.items():
+            with self.subTest(name=name):
+                shutil.rmtree(self.vendor); shutil.copytree(original, self.vendor)
+                mutate()
+                code, out, err = self.record()
+                self.assertEqual(code, 2, name + out + err); self.assertFalse((self.tmp / 'rec').exists())
+
+    def test_release_package_recheck_refuses_altered_retained_record_and_facts(self):
+        self.assertEqual(self.record()[0], 0)
+        path = self.tmp / 'rec/candidate-identification.json'; original = path.read_bytes()
+        for name, mutate in {
+            'pin': lambda r: r['supplier'].update(pin='0.0.2'),
+            'archive digest': lambda r: r['supplier']['archive'].update(sha256='0' * 64),
+            'archive locator': lambda r: r['supplier']['archive'].update(source='https://example.invalid/claim'),
+            'acquirer': lambda r: r['supplier']['acquisition'].update(acquirer='someone'),
+            'authorization dropped': lambda r: r['supplier']['acquisition'].pop('authorization'),
+            'npm form claimed': lambda r: r['supplier']['acquisition'].update(path='supplier-acquisition.json'),
+            'correspondence method': lambda r: r['supplier']['correspondence'].update(method='codex-platform-tar-files/v1'),
+            'inventory summary': lambda r: r['supplier']['correspondence']['inventory'].update(entries=6),
+            'inventory dropped': lambda r: r['supplier']['correspondence'].pop('inventory'),
+        }.items():
+            with self.subTest(name=name):
+                r = json.loads(original); mutate(r); path.write_text(json.dumps(r))
+                self.assertEqual(self.check()[0], 2)
+        path.write_bytes(original)
+        retained = self.tmp / 'rec/supplier-canonical-distribution.json'
+        retained.write_bytes(retained.read_bytes() + b' ')
+        self.assertEqual(self.check()[0], 2)
+
+    def test_retained_record_rewritten_consistently_still_refuses_against_stored_inventory(self):
+        self.assertEqual(self.record()[0], 0)
+        retained = self.tmp / 'rec/supplier-canonical-distribution.json'
+        record = json.loads(retained.read_bytes())
+        next(e for e in record['inventory']['entries'] if e['path'] == 'codex-path')['mode'] = 0o700
+        retained.write_text(json.dumps(record))
+        path = self.tmp / 'rec/candidate-identification.json'
+        outer = json.loads(path.read_bytes())
+        outer['supplier']['acquisition']['sha256'] = identify.sha(retained.read_bytes())
+        path.write_text(json.dumps(outer))
+        code, _, err = self.check()
+        self.assertEqual(code, 2); self.assertIn('distribution record inventory', err)
+
+
+def build_schema(version):
+    schema = json.loads((Path(identify.__file__).parent / f'candidate-identification.{version}.schema.json').read_text())
+    return {'$schema': schema['$schema'], **schema['properties']['build'], '$defs': schema['$defs']}
+
+
+class CandidateBuild(Scratch):
+    """build_candidate.py planning, export, supplier extraction and facts; no node, cargo or network."""
+    def setUp(self):
+        super().setUp()
+        self.repo = self.tmp / 'repo'
+        files = {'app/package-lock.json': '{"lockfileVersion": 3}\n', 'app/src-tauri/Cargo.lock': 'version = 4\n',
+                 'app/packaging/unsigned/tauri.development.conf.json': '{"identifier": "dev.example.skeleton"}\n',
+                 'app/run.sh': '#!/bin/sh\n'}
+        for name, text in files.items():
+            (self.repo / name).parent.mkdir(parents=True, exist_ok=True)
+            (self.repo / name).write_text(text)
+        (self.repo / 'app/run.sh').chmod(0o755)
+        env = dict(os.environ, GIT_AUTHOR_NAME='Fixture', GIT_AUTHOR_EMAIL='fixture@example.invalid',
+                   GIT_COMMITTER_NAME='Fixture', GIT_COMMITTER_EMAIL='fixture@example.invalid')
+        for cmd in (['init', '-q'], ['add', '.'], ['commit', '-q', '-m', 'fixture']):
+            subprocess.run(['git', '-C', str(self.repo), *cmd], check=True, env=env)
+        self.commit = identify.git(self.repo, 'rev-parse', 'HEAD').decode().strip()
+        self.vendor = self.tmp / 'vendor'
+        invented_vendor(self.vendor)
+        self.archive = self.tmp / 'inputs/codex-package-aarch64-apple-darwin.tar.gz'
+        self.archive.parent.mkdir()
+        release_archive(self.vendor, self.archive)
+        self.record = self.tmp / 'inputs/CANONICAL_DISTRIBUTION.json'
+        self.record.write_text(json.dumps(distribution_record(self.archive, tree_inventory(self.vendor))))
+        self.environ = {'HOME': str(self.tmp), 'PATH': '/usr/bin:/bin', 'LANG': 'C',
+                        'APPLE_SIGNING_IDENTITY': 'invented', 'TAURI_SIGNING_PRIVATE_KEY': 'invented',
+                        'APPLE_ID': 'invented@example.invalid', 'CODEX_HOME': '/invented/personal'}
+
+    def plan(self, out='out', **kw):
+        return build_candidate.plan(self.repo, 'HEAD', self.tmp / out, environ=self.environ, **kw)
+
+    def test_plan_names_fresh_identifier_overlay_command_and_clean_environment(self):
+        p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
+        root = str(self.tmp / 'out')
+        self.assertEqual(p['commit'], self.commit)
+        self.assertFalse(Path(root).exists())
+        self.assertRegex(p['identifier'], r'^dev\.chirality\.app-v4\.candidate\.[0-9]{8}-' + self.commit[:8] + '-[0-9a-f]{6}$')
+        self.assertEqual(p['overlay'], {'identifier': p['identifier'], 'productName': p['product'],
+                                        'bundle': {'resources': {root + '/codex-package/': 'codex/'}}})
+        self.assertEqual(json.loads(p['overlay_bytes']), p['overlay'])
+        self.assertEqual(p['install'], ['npm', 'install', '--offline', '--no-audit', '--no-fund', '--ignore-scripts'])
+        self.assertEqual(p['build'], ['node', 'node_modules/@tauri-apps/cli/tauri.js', 'build', '--debug', '--no-sign',
+                                      '--bundles', 'app', '--features', 'custom-protocol',
+                                      '--config', 'packaging/unsigned/tauri.development.conf.json',
+                                      '--config', root + '/tauri.candidate.conf.json', '--', '--offline', '--locked'])
+        self.assertEqual(p['env'], {'HOME': str(self.tmp), 'PATH': '/usr/bin:/bin', 'LANG': 'C',
+                                    'TMPDIR': root + '/tmp', 'CARGO_TARGET_DIR': root + '/target',
+                                    'CODEX_HOME': root + '/codex-home', 'CARGO_NET_OFFLINE': 'true',
+                                    'NPM_CONFIG_OFFLINE': 'true'})
+        self.assertEqual(p['bundle'], root + '/target/debug/bundle/macos/' + p['product'] + '.app')
+        again = self.plan()
+        self.assertNotEqual(again['identifier'], p['identifier'])  # same revision, same day: distinct
+        self.assertNotIn('bundle', again['overlay'])
+        command = build_candidate.next_command(p)
+        self.assertIn('identify.py record', command)
+        self.assertIn('--supplier-acquisition ' + str(self.record), command)
+        self.assertIn('--revision ' + self.commit, command)
+
+    def test_plan_refuses_unsafe_output_roots_tags_and_half_a_supplier(self):
+        (self.tmp / 'exists').mkdir()
+        (self.tmp / 'real').mkdir(); (self.tmp / 'alias').symlink_to(self.tmp / 'real')
+        for out, kw in (('exists', {}), ('repo/app/out', {}), ('repo', {}), ('alias/out', {}), ('missing/out', {}),
+                        ('out', {'tag': 'bad tag'}), ('out', {'supplier_archive': self.archive})):
+            with self.subTest(out=out, kw=kw):
+                with self.assertRaises(ValueError):
+                    self.plan(out, **kw)
+        with self.assertRaises(ValueError):
+            build_candidate.plan(self.repo, 'HEAD', self.tmp / 'out', environ={'HOME': str(self.tmp)})
+
+    def test_names_never_collide_with_the_installed_release_app(self):
+        # The 4.0.0 package installs as Chirality.app, identifier com.chirality.app.
+        for identifier, product in (('com.chirality.app', 'Chirality App v4 (development x)'),
+                                    ('COM.CHIRALITY.APP', 'Chirality App v4 (development x)'),
+                                    ('dev.chirality.app-v4.skeleton', 'Chirality App v4 (development x)'),
+                                    ('dev.chirality.app-v4.candidate.', 'Chirality App v4 (development )'),
+                                    ('dev.chirality.app-v4.candidate.x.com.chirality.app', 'Chirality App v4 (development x)')):
+            with self.subTest(identifier=identifier):
+                with self.assertRaisesRegex(ValueError, 'development identifier'):
+                    build_candidate.check_names(identifier, product)
+        for product in ('Chirality', 'chirality', 'Chirality.app', 'Chirality App v4 (development y)'):
+            with self.subTest(product=product):
+                with self.assertRaisesRegex(ValueError, 'development product name'):
+                    build_candidate.check_names('dev.chirality.app-v4.candidate.x', product)
+        build_candidate.check_names('dev.chirality.app-v4.candidate.x', 'Chirality App v4 (development x)')
+        for tag in ('com.chirality.app', 'x.com', 'Chirality)', ') (', '-', 'a--b', 'x y', ''):
+            with self.subTest(tag=tag):
+                if tag:
+                    with self.assertRaises(ValueError):
+                        self.plan(tag=tag)
+        p = self.plan(tag='x')
+        self.assertEqual((p['identifier'], p['product']), ('dev.chirality.app-v4.candidate.x', 'Chirality App v4 (development x)'))
+        for change in ({'identifier': 'com.chirality.app'}, {'productName': 'Chirality'}):
+            with self.subTest(change=change):
+                bad = dict(p, overlay=dict(p['overlay'], **change))
+                with self.assertRaises(ValueError):
+                    build_candidate.run(bad)
+                self.assertFalse(Path(p['root']).exists())
+
+    def test_output_root_refuses_applications_and_library(self):
+        home = Path(os.path.expanduser('~'))
+        for out in (Path('/Applications/out'), home / 'Library/out', Path('/Library/out')):
+            with self.subTest(out=out):
+                with self.assertRaisesRegex(ValueError, 'output root is under'):
+                    build_candidate.output_root(out, self.repo)
+
+    def test_facts_validate_as_the_build_object_of_v2_and_v3(self):
+        from jsonschema import Draft202012Validator
+        p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
+        facts = build_candidate.facts(p, '0' * 64, {'node': 'v0.0.0-invented'}, {'app/package-lock.json': '1' * 64},
+                                      WHEN, WHEN, {'tauri_build': WHEN + '/' + WHEN})
+        for version in ('v2', 'v3'):
+            with self.subTest(version=version):
+                self.assertEqual(list(Draft202012Validator(build_schema(version)).iter_errors(facts)), [])
+        overlay = facts['config_overlays'][1]
+        self.assertEqual((overlay['path'], overlay['content']), (p['overlay_path'], p['overlay']))
+        self.assertEqual(overlay['sha256'], identify.sha(p['overlay_bytes']))
+        self.assertFalse(any(k.startswith(('APPLE', 'TAURI')) for k in facts['environment']))
+
+    def test_prepare_supplier_extracts_exactly_the_record_inventory(self):
+        tree = self.tmp / 'private/codex-package'; tree.parent.mkdir()
+        previous = os.umask(0o077)  # directory modes come from the archive, not the umask
+        try:
+            account = build_candidate.prepare_supplier(self.archive, self.record, tree)
+        finally:
+            os.umask(previous)
+        self.assertEqual(account['pin'], '0.0.1')
+        self.assertEqual(build_candidate.tree_entries(tree), bundled_supplier.comparable(
+            {e['path']: e for e in tree_inventory(self.vendor)}))
+        self.assertEqual(stat.S_IMODE(tree.stat().st_mode), 0o755)
+
+    def test_prepare_supplier_refuses_wrong_archive_links_and_differing_inventory(self):
+        def rewrite(change=None, extra=None):
+            release_archive(self.vendor, self.archive, extra)
+            record = distribution_record(self.archive, tree_inventory(self.vendor))
+            if change:
+                change(record)
+            self.record.write_text(json.dumps(record))
+        link = tarfile.TarInfo('codex-path/link'); link.type = tarfile.SYMTYPE; link.linkname = 'rg'
+        cases = {
+            'digest': lambda: rewrite(lambda r: r['archive'].update(sha256='0' * 64)),
+            'link': lambda: rewrite(extra=[(link, None)]),
+            'inventory mode': lambda: rewrite(lambda r: r['inventory']['entries'][0].update(mode=0o700)),
+            'npm form': lambda: self.record.write_text(json.dumps({'format': bundled_supplier.NPM_FORM})),
+        }
+        for index, (name, mutate) in enumerate(cases.items()):
+            with self.subTest(name=name):
+                mutate()
+                tree = self.tmp / f'private{index}/codex-package'; tree.parent.mkdir()
+                with self.assertRaises((ValueError, KeyError)):
+                    build_candidate.prepare_supplier(self.archive, self.record, tree)
+
+    def test_run_exports_verifies_and_writes_facts_with_build_steps_substituted(self):
+        p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
+        calls = []
+
+        def fake_run(command, env, cwd, log):
+            calls.append((command, env, Path(cwd)))
+            if command[0] == 'npm':
+                cli = Path(cwd) / 'node_modules/@tauri-apps/cli'; cli.mkdir(parents=True)
+                (cli / 'package.json').write_text('{"version": "0.0.0-invented"}')
+            else:
+                Path(p['bundle']).mkdir(parents=True)
+        with mock.patch.object(build_candidate, '_run', fake_run), \
+                mock.patch.object(build_candidate, '_version', lambda command, env, cwd: 'invented ' + command[-1]):
+            facts = build_candidate.run(p)
+        root = Path(p['root'])
+        self.assertEqual(stat.S_IMODE(root.stat().st_mode), 0o700)
+        self.assertEqual([c[0] for c in calls], [p['install'], p['build']])
+        self.assertTrue(all(c[1] == p['env'] and c[2] == root / 'source/app' for c in calls))
+        self.assertEqual(json.loads((root / 'build-facts.json').read_bytes()), facts)
+        self.assertEqual(facts['lockfiles']['app/src-tauri/Cargo.lock'], identify.sha(b'version = 4\n'))
+        self.assertEqual(facts['config_overlays'][0]['sha256'], identify.sha(b'{"identifier": "dev.example.skeleton"}\n'))
+        self.assertEqual(facts['toolchain']['tauri_cli'], '0.0.0-invented')
+        self.assertEqual(json.loads((root / 'tauri.candidate.conf.json').read_bytes()), p['overlay'])
+        self.assertEqual(build_candidate.tree_entries(root / 'codex-package'),
+                         bundled_supplier.comparable({e['path']: e for e in tree_inventory(self.vendor)}))
+        self.assertEqual(identify.verify_export(self.repo, self.commit, '.', root / 'source')['tracked_files_verified'], 4)
 
 
 if __name__ == '__main__':

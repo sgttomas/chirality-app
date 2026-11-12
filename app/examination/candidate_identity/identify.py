@@ -42,6 +42,11 @@ LIMITS = [
     'No examination is opened, no App is launched and no candidate qualification, replacement or acceptance follows from this record.',
     'App-data absence is historical at identification, limited to the three declared identifier-selected locations; it is not a freshness promise after launch or a census of external state.',
 ]
+SUPPLIER_LIMITS = {
+    False: 'Bundled supplier files and modes match the measured official-source archive; acquisition authorization/custody remains the supplied record, not authenticated by this tool.',
+    True: 'Bundled supplier files and modes match the measured archive and the inventory of the retained canonical distribution record, which states the archive locator, size, digest and inventory only; '
+          'no acquirer or acquisition authorization is recorded for this archive, and custody is not authenticated by this tool.',
+}
 _AFTER_FILE_READ = None  # test hook: called with the entry path after its bytes are read
 
 XATTR_NOFOLLOW = 0x0001
@@ -642,7 +647,7 @@ def make_record(args):
         record['identified_by']['supplier_tool_sha256'] = sha(Path(__file__).with_name('bundled_supplier.py').read_bytes())
         record['limits'] = [s for s in LIMITS if not s.startswith('The Codex supplier is not part')]
         record['limits'] += [
-            'Bundled supplier files and modes match the measured official-source archive; acquisition authorization/custody remains the supplied record, not authenticated by this tool.',
+            SUPPLIER_LIMITS['form' in record['supplier']['acquisition']],
             'Unsigned development candidate only: no installed-custody issuer, supplier qualification, signing, notarisation, native launch or release follows from identification.',
         ]
     else:
@@ -654,7 +659,7 @@ def make_record(args):
     out.mkdir(parents=True, exist_ok=False)
     (out / 'bundle-inventory.json').write_bytes(inventory_bytes)
     if acquisition is not None:
-        (out / 'supplier-acquisition.json').write_bytes(acquisition)
+        (out / record['supplier']['acquisition']['path']).write_bytes(acquisition)
     (out / 'candidate-identification.json').write_bytes(json.dumps(record, indent=2, ensure_ascii=False).encode() + b'\n')
     return record
 
@@ -730,8 +735,8 @@ def main(argv=None):
     p.add_argument('--export-root', required=True); p.add_argument('--build-facts', required=True)
     p.add_argument('--repository', default='sgttomas/chirality-app'); p.add_argument('--identified-at', required=True)
     p.add_argument('--out-dir', required=True)
-    p.add_argument('--supplier-archive', help='Existing official macOS arm64 platform tarball; never downloaded or executed')
-    p.add_argument('--supplier-acquisition', help='Exact acquisition record for that archive; retained with the v3 record')
+    p.add_argument('--supplier-archive', help='Existing macOS arm64 npm platform tarball or supplier release package; never downloaded or executed')
+    p.add_argument('--supplier-acquisition', help='Its npm acquisition record or committed canonical distribution record; retained with the v3 record')
     p = sub.add_parser('check'); p.add_argument('--record', required=True); p.add_argument('--app', required=True)
     args = parser.parse_args(argv)
     try:
