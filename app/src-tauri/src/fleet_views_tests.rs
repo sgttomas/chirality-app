@@ -626,3 +626,172 @@ fn fleet_views_corrections_do_not_silently_choose_conflicting_returns() {
     assert_eq!(view(&w)["queueComplete"], false);
     assert_eq!(work(view(&w), "W1")["category"], "unknown");
 }
+
+// Decision needs (DEL-06-01 Need and AC-005; DEL-06-02 AC-002). A test cannot
+// perform a person's confirmation. Each act record below is an invented claim,
+// schema-checked and written to the store's act log the way the decision
+// reader tests write theirs; it stands for the record of a person's act and
+// shows only how a need reads such a record.
+struct Decision {
+    dir: PathBuf,
+    package: PathBuf,
+    act: Value,
+}
+fn decision_fixture(f: &Fixture) -> Decision {
+    let dir = records_store::attach(&f.project, true).unwrap().dir.unwrap();
+    let bytes = include_bytes!("../../tests/fixtures/FX-DP1/project/decisions/PKG-1.json");
+    let package = f.project.join("decisions/PKG-1.json");
+    std::fs::create_dir_all(package.parent().unwrap()).unwrap();
+    std::fs::write(&package, bytes).unwrap();
+    let entries: Vec<Value> = include_str!("../../tests/fixtures/FX-DP1/records/coordination.rs.jsonl")
+        .lines()
+        .map(|l| serde_json::from_str(l).unwrap())
+        .collect();
+    let mut request = entries[0].clone();
+    request["recordId"] = json!("rec:request");
+    request["recorder"]["identity"] = json!("writer:request");
+    request["body"]["evidence"]["ref"] = json!("decisions/PKG-1.json");
+    request["body"]["evidence"]["method"] = json!(util::FILE_IDENTITY_METHOD);
+    request["body"]["evidence"]["claimedIdentity"] = json!(util::sha256_hex(bytes));
+    let mut act = entries[2].clone();
+    act["body"]["decisionActor"] = json!({"displayName":"invented person; no person's act","osAccount":"invented","identityVerified":false});
+    act["body"]["boundSubject"] = json!(["decision package rec:request"]);
+    act["body"]["boundContent"] = json!([{"method":util::FILE_IDENTITY_METHOD,"value":util::sha256_hex(bytes)}]);
+    act["body"]["relations"]["requestRef"] = json!("rec:request");
+    act_log(&dir, "00-request", &request);
+    Decision { dir, package, act }
+}
+fn act_log(dir: &Path, name: &str, entry: &Value) {
+    crate::schema_validation::bundled().unwrap().validate(entry).unwrap();
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join(format!("acts/{name}.jsonl")), serde_json::to_string(entry).unwrap() + "\n").unwrap();
+}
+fn act(d: &Decision, id: &str, alternative: &str) -> Value {
+    let mut a = d.act.clone();
+    a["recordId"] = json!(format!("rec:{id}"));
+    a["seq"] = json!(1);
+    a["recorder"]["identity"] = json!(format!("writer:{id}"));
+    a["body"]["captureEvidence"][0]["ref"] = json!(format!("cap:{id}"));
+    a["body"]["relations"]["alternativeChosen"] = json!(alternative);
+    a
+}
+fn decision_need(w: &Value) -> (String, Value) {
+    let row = work(view(w), "W4");
+    (row["category"].as_str().unwrap().to_owned(), row["needs"][0].clone())
+}
+
+#[test]
+fn fleet_views_decision_need_unknown_when_act_records_cannot_be_read() {
+    let f = Fixture::new();
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "no records store: act records absent");
+    assert!(need["why"].as_str().unwrap().contains("act records not read"), "{need}");
+    assert!(!f.root.join("store").exists(), "reading creates no records store");
+
+    let dir = records_store::attach(&f.project, true).unwrap().dir.unwrap();
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "no request record");
+    assert!(need["why"].as_str().unwrap().contains("no decision request rec:request"), "{need}");
+    assert!(!dir.join("acts").exists(), "reading creates no act log");
+
+    let d = decision_fixture(&f);
+    act_log(&d.dir, "10-act", &act(&d, "act", "ALT-2"));
+    assert_eq!(decision_need(&f.read()).1["state"], "satisfied");
+    use std::io::Write;
+    std::fs::OpenOptions::new().append(true).open(d.dir.join("acts/10-act.jsonl")).unwrap()
+        .write_all(b"{\"kind\":\n").unwrap();
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "an unreadable act line leaves the need unknown, never ready");
+    assert!(need["why"].as_str().unwrap().contains("not fully read"), "{need}");
+}
+
+#[test]
+fn fleet_views_decision_need_is_met_only_by_the_persons_recorded_act_of_the_named_kind() {
+    let f = Fixture::new();
+    let d = decision_fixture(&f);
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")), "no act recorded");
+    let why = need["why"].as_str().unwrap();
+    assert!(why.contains("no recorded act of the person of kind A16") && why.contains("rec:request") && why.contains("records-store:acts/"), "{why}");
+    assert_eq!(need["request"]["packageFile"], "decisions/PKG-1.json");
+
+    // An act of another kind citing the request decides nothing.
+    let mut other = act(&d, "other-kind", "ALT-2");
+    other["body"]["actKind"] = json!("A13");
+    other["body"]["relations"].as_object_mut().unwrap().remove("alternativeChosen");
+    act_log(&d.dir, "10-other-kind", &other);
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")));
+    assert!(need["why"].as_str().unwrap().contains("rec:other-kind: an act of kind A13"), "{need}");
+
+    // A decide act choosing an alternative the package does not name.
+    act_log(&d.dir, "20-unnamed", &act(&d, "unnamed", "ALT-9"));
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")));
+    assert!(need["why"].as_str().unwrap().contains("rec:unnamed: act not counted"), "{need}");
+
+    // The recorded act of the person: of the named kind, citing the request
+    // and choosing a named alternative. No other act is required before it.
+    act_log(&d.dir, "30-act", &act(&d, "act", "ALT-2"));
+    let w = f.read();
+    let (category, need) = decision_need(&w);
+    assert_eq!((category.as_str(), need["state"].as_str()), ("ready", Some("satisfied")), "{need}");
+    let decision = &need["decision"];
+    assert_eq!(decision["act"], "rec:act");
+    assert_eq!(decision["alternativeChosen"], "ALT-2");
+    assert!(decision["decidedBy"].as_str().unwrap().contains("identity not verified"));
+    assert_eq!(decision["decisionActor"]["displayName"], "invented person; no person's act");
+    assert_eq!(decision["recorder"]["identity"], "writer:act", "the recorder is kept apart from the actor");
+    assert_eq!(decision["scope"], d.act["body"]["scope"]);
+    assert_eq!(decision["purpose"], d.act["body"]["purpose"]);
+    assert_eq!(decision["boundContent"], d.act["body"]["boundContent"]);
+    assert_eq!(decision["lapse"], "not lapsed");
+    let why = need["why"].as_str().unwrap();
+    assert!(why.contains("act rec:act (records-store:acts/") && why.contains("seq 1"), "{why}");
+
+    // Lapse: the package file changes after the decision.
+    std::fs::write(&d.package, b"{\"edited\":true}").unwrap();
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")), "{need}");
+    let why = need["why"].as_str().unwrap();
+    assert!(why.contains("rec:act") && why.contains("lapse: lapsed") && why.contains("does not settle"), "{why}");
+    // An absent package file: the decision view reads it as lapsed (subject absent).
+    std::fs::remove_file(&d.package).unwrap();
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")));
+    assert_eq!(need["decision"]["lapse"], "lapsed (subject absent)");
+}
+
+#[test]
+fn fleet_views_unordered_decisions_leave_the_decision_need_unknown() {
+    let f = Fixture::new();
+    let d = decision_fixture(&f);
+    act_log(&d.dir, "10-first", &act(&d, "first", "ALT-1"));
+    act_log(&d.dir, "20-second", &act(&d, "second", "ALT-2"));
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")));
+    let why = need["why"].as_str().unwrap();
+    assert!(why.contains("order the records do not establish") && why.contains("rec:first") && why.contains("rec:second"), "{why}");
+}
+
+#[test]
+fn fleet_views_decision_records_changed_during_the_read_are_not_used() {
+    let f = Fixture::new();
+    let d = decision_fixture(&f);
+    act_log(&d.dir, "10-act", &act(&d, "act", "ALT-2"));
+    assert_eq!(decision_need(&f.read()).1["state"], "satisfied");
+    f.flush();
+    for changed in [d.dir.join("acts/10-act.jsonl"), d.package.clone()] {
+        super::super::AFTER_READ.with(|h| {
+            *h.borrow_mut() = Some(Box::new(move || {
+                let mut b = std::fs::read(&changed).unwrap();
+                b.push(b'\n');
+                std::fs::write(changed, b).unwrap();
+            }))
+        });
+        let packet = crate::read_fleet_records_for_workspace(Some(&f.project)).unwrap();
+        let v = view(&packet["workspace"]);
+        assert!(v["graph"].is_null() && v["waiting"] == json!([]), "no need is presented from a changed snapshot: {v}");
+        assert!(packet["limits"].to_string().contains("changed while reading"));
+    }
+}

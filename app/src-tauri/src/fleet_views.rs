@@ -119,15 +119,204 @@ fn connector(need: &Value, bytes: &[u8]) -> Value {
         "provenance":"receiving-file claim; no live connector adoption or source truth established"})
 }
 
+/// The act records as the decision view reads them, with every act log and
+/// package file it reads registered in this packet's census.
+struct DecisionRead {
+    view: Value,
+    acts: BTreeMap<String, Value>,
+}
+fn contained(reference: &str) -> bool {
+    let rel = Path::new(reference);
+    !reference.is_empty()
+        && !rel.is_absolute()
+        && rel.components().all(|p| matches!(p, Component::Normal(_)))
+}
+fn census_logs(
+    census: &mut Census,
+    dir: &Path,
+    exclude: &[std::path::PathBuf],
+    out: &mut Vec<std::path::PathBuf>,
+) -> Result<(), String> {
+    for path in census.directory(dir)? {
+        let meta = census.metadata(&path)?.ok_or("act record source disappeared")?;
+        if meta.is_dir() {
+            census_logs(census, &path, exclude, out)?;
+        } else if path.extension().is_some_and(|e| e == "jsonl") && !exclude.contains(&path) {
+            census.read(&path)?.ok_or("act log disappeared")?;
+            out.push(path);
+        }
+    }
+    Ok(())
+}
+/// Reads only. The decision view opens the configured records store, and
+/// opening a store with no identity would create one, so an absent store or
+/// identity leaves the act records unread and nothing is created.
+fn read_decisions(census: &mut Census, root: &Path) -> Result<DecisionRead, String> {
+    let configured = crate::records_store::current()?;
+    let store = configured
+        .root
+        .canonicalize()
+        .map_err(|_| "configured records store absent or unavailable; nothing created")?;
+    let identity = census
+        .read(&store.join("store.json"))?
+        .ok_or("records store identity absent; nothing created")?;
+    let identity: Value =
+        serde_json::from_slice(&identity).map_err(|_| "records store identity unreadable")?;
+    if identity["format"] != "chirality.records-store"
+        || identity["storeId"].as_str().is_none_or(str::is_empty)
+    {
+        return Err("records store identity invalid".into());
+    }
+    census.read(&store.join("roots.jsonl"))?;
+    census.read(&root.join(crate::records_store::PROJECT_LINK))?;
+    let home = crate::records_store::home(root)?;
+    if let Some(refusal) = &home.attachment.refusal {
+        return Err(format!("the project's records home is unresolved: {refusal}"));
+    }
+    if let Some(dir) = &home.attachment.dir {
+        census.read(&dir.join("imports.jsonl"))?;
+    }
+    census.metadata(&crate::storage::registered_legacy_log(root)?)?;
+    let sources = crate::storage::sources(root)?;
+    let mut logs = Vec::new();
+    for dir in &sources.walk {
+        census_logs(census, dir, &sources.exclude, &mut logs)?;
+    }
+    for file in &sources.files {
+        census.read(file)?.ok_or("act log disappeared")?;
+        logs.push(file.clone());
+    }
+    let mut acts = BTreeMap::new();
+    for path in &logs {
+        let read = crate::records::read_log_parts(path);
+        let label = crate::storage::log_label(root, path);
+        if let Some(reason) = read.limits.first().or(read.partial_tail.as_ref()) {
+            return Err(format!("act log {label} not fully read: {reason}"));
+        }
+        for entry in read.entries {
+            // Package files the decision view will read join the census, so a
+            // change to one during the read makes the whole packet unstable.
+            if entry["kind"] == "act_request" {
+                let reference = text(&entry["body"]["evidence"]["ref"]);
+                if contained(reference) {
+                    census.metadata(&root.join(reference))?;
+                }
+            }
+            if entry["kind"] == "human_act" {
+                if let Some(id) = entry["recordId"].as_str() {
+                    acts.entry(id.to_owned()).or_insert(entry.clone());
+                }
+            }
+        }
+    }
+    Ok(DecisionRead {
+        view: crate::decision_view::derive(root, &[]),
+        acts,
+    })
+}
+fn sources_text(sources: &Value) -> String {
+    let at: Vec<_> = array(sources)
+        .iter()
+        .map(|s| format!("{} seq {}", text(&s["log"]), s["seq"]))
+        .collect();
+    if at.is_empty() {
+        "source not located".into()
+    } else {
+        at.join(", ")
+    }
+}
+/// DEL-06-01 Need (decision) and REQ-004, through the decision view's reading
+/// of the request and act records; nothing here reinterprets an act.
+fn decision_need(read: &Result<DecisionRead, String>, reference: &str) -> Value {
+    let unknown = |why: String| json!({"state":"unknown","why":why});
+    let read = match read {
+        Ok(read) => read,
+        Err(reason) => {
+            return unknown(format!(
+                "act records not read ({reason}); whether an act of the person settles request {reference} is not established"
+            ))
+        }
+    };
+    let rows: Vec<_> = array(&read.view["rows"])
+        .iter()
+        .filter(|r| r["package"] == reference)
+        .collect();
+    let [row] = rows[..] else {
+        return unknown(if rows.is_empty() {
+            format!("the act records hold no decision request {reference} with alternatives; the package it names is not established")
+        } else {
+            format!("decision request {reference} has conflicting records; no package is established")
+        });
+    };
+    let request = format!(
+        "request {reference} ({}; package file {})",
+        sources_text(&row["requestSources"]),
+        text(&row["packageFile"])
+    );
+    let limits: Vec<_> = array(&row["limits"]).iter().map(text).collect();
+    let noted = if limits.is_empty() {
+        String::new()
+    } else {
+        format!("; recorded and not counted: {}", limits.join("; "))
+    };
+    let mut value = match text(&row["state"]) {
+        "decided" => {
+            let d = &row["decision"];
+            let act = d["act"].as_str().or_else(|| row["currentCandidates"][0].as_str()).unwrap_or("");
+            let lapse = text(&d["lapse"]);
+            let state = match lapse {
+                "not lapsed" => "satisfied",
+                "matches c0 again after observed lapse" => "outstanding",
+                l if l.starts_with("lapsed") => "outstanding",
+                _ => "unknown",
+            };
+            let why = format!(
+                "act {act} ({}) records {} choosing {} on {request}, recorded by {}; lapse: {lapse}{}",
+                sources_text(&d["recordSources"]),
+                text(&d["decidedBy"]),
+                text(&d["alternativeChosen"]),
+                text(&d["recordedBy"]),
+                match state {
+                    "satisfied" => "",
+                    "outstanding" => "; a lapsed decision does not settle the need",
+                    _ => "; whether the decision still holds is not established",
+                }
+            );
+            let record = read.acts.get(act);
+            let quoted = |key: &str| record.map(|r| r["body"][key].clone()).unwrap_or(Value::Null);
+            let mut value = json!({"state":state,"why":why});
+            value["decision"] = json!({"act":act,"alternativeChosen":d["alternativeChosen"],"statement":d["statement"],
+                "decisionActor":quoted("decisionActor"),"decidedBy":d["decidedBy"],
+                "recorder":record.map(|r|r["recorder"].clone()),"recordedBy":d["recordedBy"],
+                "boundContent":quoted("boundContent"),"scope":quoted("scope"),"purpose":quoted("purpose"),
+                "capturedAt":d["capturedAt"],"lapse":lapse,"recordSources":d["recordSources"],
+                "captureProvenance":d["captureProvenance"]});
+            value
+        }
+        "ambiguous current standing" => unknown(format!(
+            "several decisions on {request} whose order the records do not establish ({}){noted}",
+            array(&row["currentCandidates"]).iter().map(text).collect::<Vec<_>>().join(", ")
+        )),
+        s if s.starts_with("pending") => json!({"state":"outstanding","why":format!(
+            "no recorded act of the person of kind {} cites {request} and chooses an alternative the package names{noted}",
+            text(&row["actRequested"])
+        )}),
+        other => unknown(format!("{request} reads as {other}{noted}")),
+    };
+    value["request"] = json!({"recordId":reference,"sources":row["requestSources"],"packageFile":row["packageFile"],"actRequested":row["actRequested"]});
+    value
+}
+
 /// References are relative to the fixed Fleet folder, never arbitrary host paths.
 /// All source bytes and absent leaves join the existing whole-packet census.
 pub(super) fn read_inputs(census: &mut Census, root: &Path, graphs: &[Row]) -> Inputs {
     let mut out = Inputs::new();
+    let mut decisions = None;
     for graph in graphs {
         for item in array(&graph.record["body"]["items"]) {
             for need in array(&item["needs"]) {
                 let kind = text(&need["kind"]);
-                if !matches!(kind, "input" | "connector") {
+                if !matches!(kind, "input" | "connector" | "decision") {
                     continue;
                 }
                 let reference = text(&need["ref"]);
@@ -135,6 +324,12 @@ pub(super) fn read_inputs(census: &mut Census, root: &Path, graphs: &[Row]) -> I
                 // Connector declarations may disagree, so cache raw observations,
                 // not a conclusion derived under the first declaration.
                 if out.contains_key(&key) {
+                    continue;
+                }
+                if kind == "decision" {
+                    let read = decisions.get_or_insert_with(|| read_decisions(census, root));
+                    let observation = decision_need(read, reference);
+                    out.insert(key, Input { bytes: None, observation });
                     continue;
                 }
                 let rel = Path::new(reference);
@@ -400,7 +595,6 @@ pub(super) fn derive(
                             json!({"state":"satisfied","why":"integrated return or external result recorded","source":integrated(other).or_else(||external(other)).map(sourced)})
                         } else { json!({"state":"outstanding","why":"no integration of the current return or external result recorded"}) }
                     },
-                    "decision" => json!({"state":"unknown","why":"current human-act standing is not admitted by the Fleet reader; inspect the decision package and its provenance/lapse limits"}),
                     _ => need_input(need, inputs),
                 };
                 if incomplete && value["state"] == "satisfied" && need["kind"]=="item" {
@@ -461,7 +655,7 @@ pub(super) fn derive(
     }).collect();
     json!({"standing":"Derived file-based coordination claims, not native execution, permission, human acceptance or authority. Rebuild writes nothing.",
         "graphIdentityMethod":crate::util::FILE_IDENTITY_METHOD,"undertakings":views,
-        "limits":["Decision needs remain unknown until their current human-act standing is available; a recorded decision alone is insufficient.",
+        "limits":["A decision need reads the act records as the decision view does: satisfied only by an unlapsed recorded act of the person, of the kind the package names, citing its request and choosing an alternative it names; outstanding when there is none or the decision lapsed; unknown when the act records cannot be read, the request is not found or several decisions are unordered. The act record is a recorded claim; its native capture origin is not verified.",
             "Legacy 0.1 child observations do not establish a current native relationship. The native dispatch producer remains unavailable."]})
 }
 
