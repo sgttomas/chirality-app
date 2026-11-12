@@ -817,6 +817,19 @@ struct Imports {
 }
 fn imports(dir: &Path) -> Result<Imports, String> {
     let lines = read_lines(&dir.join("imports.jsonl"))?;
+    // The account is read only as its two written line forms of the
+    // supported version. Any other content (a value that is not an object,
+    // another format, version or event, a line without its import identity
+    // or its list of files) makes the account unknown, and unknown is an
+    // error: never "no import", never "nothing completed".
+    for (index, line) in lines.iter().enumerate() {
+        let whole = line.is_object() && line["format"] == IMPORT_FORMAT && line["formatVersion"] == VERSION
+            && line["importId"].as_str().is_some_and(|id| !id.is_empty())
+            && match line["event"].as_str() { Some("started") => line["census"].is_array(), Some("completed") => line["files"].is_array(), _ => false };
+        if !whole {
+            return Err(format!("records store unreadable: {}: its line {} is not an import line of a form this App writes", dir.join("imports.jsonl").display(), index + 1));
+        }
+    }
     let mut out = Imports { any: !lines.is_empty(), ..Imports::default() };
     let done: std::collections::HashSet<&str> = lines.iter().filter(|l| l["event"] == "completed").filter_map(|l| l["importId"].as_str()).collect();
     for line in &lines {
@@ -852,8 +865,10 @@ fn imports(dir: &Path) -> Result<Imports, String> {
 /// would read the kept originals or an empty history in its place.
 fn store_holds(dir: &Path) -> Result<bool, String> {
     let unknown = |e: String| format!("whether the records store holds this project's records is unknown, so nothing is read in its place: {e}");
-    if package::completed(dir).map_err(unknown)? { return Ok(true); }
+    // The account is read, and found whole, before anything is concluded:
+    // a completed package import does not excuse an account that cannot be read.
     let state = imports(dir).map_err(|e| unknown(format!("the project's import record is unreadable: {e}")))?;
+    if package::completed(dir).map_err(unknown)? { return Ok(true); }
     Ok(match state {
         i if i.completed => true,
         i if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,

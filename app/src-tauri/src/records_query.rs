@@ -11,6 +11,8 @@ pub(super) struct QueryDb {
     identity: (u64, u64),
     data_version: i64,
     writing: Cell<bool>,
+    /// The records store this cache was made in, when it was made in one.
+    store: Option<PathBuf>,
 }
 impl QueryDb {
     pub(super) fn open(root: &Path) -> Result<Self, String> {
@@ -22,7 +24,7 @@ impl QueryDb {
         // Created in the store this process bound, and in no folder put in
         // its place meanwhile: otherwise the file is removed and not used.
         match crate::records_store::opened_existing() {
-            Ok((bound, _)) if bound == store => Ok(db),
+            Ok((bound, _)) if bound == store => { let mut db = db; db.store = Some(store); Ok(db) }
             Ok(_) | Err(_) => Err(format!("query cache not written (the records store at {} is no longer the store this App opened); the record sources are read directly", store.display())),
         }
     }
@@ -62,14 +64,21 @@ impl QueryDb {
         match opened() {
             Ok(conn) => {
                 let data_version = conn.query_row("PRAGMA data_version", [], |r| r.get(0)).map_err(|e| e.to_string())?;
-                let mut db = Self { conn, path: path.to_path_buf(), stamp: None, identity, data_version, writing:Cell::new(false) };
+                let mut db = Self { conn, path: path.to_path_buf(), stamp: None, identity, data_version, writing:Cell::new(false), store: None };
                 db.mark().map_err(|e| e.to_string())?; Ok(db)
             }
             Err(e) => { if same_identity(path, identity) { let _ = std::fs::remove_file(path); } Err(e.to_string()) }
         }
     }
+    /// The store this cache was made in is still the one this process bound.
+    /// Nothing is read from, changed in or cleaned out of a kept cache
+    /// through a binding that has refused (a replaced store folder or
+    /// identity file): the cache is then no longer this store's.
+    fn bound(&self) -> bool {
+        self.store.as_ref().is_none_or(|store| crate::records_store::opened_existing().is_ok_and(|(root, _)| root == *store))
+    }
     pub(super) fn unchanged(&self) -> bool {
-        crate::storage::check_path(&self.path).is_ok() && self.stamp.is_some_and(|s| super::stamp_of(&self.path) == Some(s)) && same_identity(&self.path, self.identity) && self.version().is_ok_and(|v| v == self.data_version)
+        self.bound() && crate::storage::check_path(&self.path).is_ok() && self.stamp.is_some_and(|s| super::stamp_of(&self.path) == Some(s)) && same_identity(&self.path, self.identity) && self.version().is_ok_and(|v| v == self.data_version)
     }
     fn version(&self) -> rusqlite::Result<i64> { self.conn.query_row("PRAGMA data_version", [], |r| r.get(0)) }
     fn mark(&mut self) -> rusqlite::Result<()> {

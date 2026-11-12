@@ -157,6 +157,19 @@ fn control_repair_preserves_later_local_appends_and_newer_legal_hold() {
 }
 
 #[test]
+fn a_completed_package_import_does_not_excuse_an_import_account_that_cannot_be_read() {
+    // The store holding a project's records through a completed package
+    // import is not concluded before the project's import account is read
+    // and found whole.
+    let f = Fixture::new(false);
+    f.import();
+    assert!(crate::records_store::home(&f.root).is_ok());
+    std::fs::write(f.dir().join("imports.jsonl"), b"{}\n").unwrap();
+    let failed = crate::records_store::home(&f.root).map(|_| ()).unwrap_err();
+    assert!(failed.contains("unknown") && failed.contains("import record is unreadable"), "{failed}");
+}
+
+#[test]
 fn incomplete_original_import_finishes_from_retained_or_reselected_exact_package() {
     for reselect in [false, true] {
         let f = Fixture::new(false);

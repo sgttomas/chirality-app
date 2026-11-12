@@ -474,13 +474,16 @@ impl ReadLog {
             LogPlace::Fixed(path) => Ok(path.clone()),
             LogPlace::Store(root) => {
                 let path = crate::records_store::read_log_path(root).map_err(|e| format!("read log unavailable: {e}"))?;
+                // Admitted through the project's control as it exists, before
+                // anything is made: a read never re-creates a missing control.
+                drop(crate::records_retention::write_path_existing(&path).map_err(|e| format!("read log unavailable: {e}"))?);
                 crate::storage::ensure_directory(path.parent().ok_or("read log has no folder")?).map_err(|e| format!("read log unavailable: {e}"))?;
                 Ok(path)
             }
         }
     }
     fn write(path: &Path, entry: &Value) -> Result<(), String> {
-        let _admission=crate::records_retention::write_path(path)?;
+        let _admission=crate::records_retention::write_path_existing(path)?;
         static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
         let validator = VALIDATOR
             .get_or_init(|| serde_json::from_str::<Value>(LOG_SCHEMA).map_err(|e| e.to_string()).and_then(|s| jsonschema::options().offline().build(&s).map_err(|e| e.to_string())))

@@ -1321,8 +1321,10 @@ store inside the project or a Codex home is refused.
 
 The store is created (its folder and `store.json`) when the App starts, and
 otherwise only by the acts that write for the person: attaching a project with
-a newly minted identity, the imports and the identity acts. A read creates,
-locks and repairs nothing: with no store, or a folder at the store's path that
+a newly minted identity, the imports and the identity acts. A read creates
+no store, no folder, no lock file and no control, and repairs nothing (a
+reader does take a shared lock on a control that already exists, which is
+what keeps a disposal out while it reads): with no store, or a folder at the store's path that
 holds no identity, every reader says the store is not created yet and nothing
 is written there, elsewhere or in a temporary folder. Once opened, a process
 stays bound to the store's physical folder and identity file (their device and
@@ -1331,9 +1333,17 @@ path in its place, even holding a copy of `store.json`, is refused by readers
 and writers alike. So is a `store.json` replaced while the App runs, even with
 the same bytes (a restore from a backup, for example): nothing is read or
 written through it until the App is reopened, which opens the store afresh. Readers take only an admission control that already exists;
-records with no control beside them read as unavailable with that reason. A
-store whose state cannot be read (for example an unreadable import record)
-reads as unavailable, never as empty or as "no records yet". A read writes
+records with no control beside them read as unavailable with that reason
+(development note: a store written by a development build from before
+admission controls existed holds records with no control beside them, so its
+role and workflow history reads as unavailable until the App next writes to
+that project, which makes the control; no release wrote such a store). The
+records capability's own read-log write is admitted through the control that
+exists and is refused, with the read, when it is missing. A control that is
+not a regular, singly linked file is refused without waiting. A store whose
+state cannot be read reads as unavailable, never as empty or as "no records
+yet": a project's import account is read only as its two written line forms,
+and any other content in it makes the account unknown. A read writes
 only two things below an existing store: the records read log that the
 agents' records capability writes for each call (`reads/records-reads.jsonl`),
 and the derived query cache described below. The host status (`recordsStore`)

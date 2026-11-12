@@ -724,6 +724,16 @@ fn a_reader_creates_no_admission_control_and_records_without_one_are_unavailable
     let after = tree(&store);
     let added: Vec<_> = after.keys().filter(|p| !before.contains_key(*p) && !p.starts_with(store.join("indexes"))).collect();
     assert!(added.is_empty(), "{added:?}");
+    // A capability read must be recorded, and its read-log write is admitted
+    // only through a control that exists: with the whole administration
+    // folder gone it is refused, and nothing is made in its place.
+    std::fs::remove_dir_all(store.join("administration")).unwrap();
+    let before = tree(&store);
+    let refused = capability_read(&root).unwrap_err();
+    assert!(refused.contains("admission control"), "{refused}");
+    assert!(!store.join("administration").exists(), "a read re-creates no control");
+    let added: Vec<_> = tree(&store).keys().filter(|p| !before.contains_key(*p) && !p.starts_with(store.join("indexes"))).cloned().collect();
+    assert!(added.is_empty(), "{added:?}");
     // A project with nothing in the store has nothing to read and nothing to hold.
     let nothing = project_dir(&store, "chirality-project:nothing-here");
     assert!(crate::records_retention::read_path(&nothing).unwrap().is_none());
@@ -746,9 +756,19 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
     import(&imported).unwrap();
     let empty = folder("unknown-import-empty-");
     attach(&empty, true).unwrap();
-    for root in [&imported, &empty] {
+    // "Cannot be read" is a rule, not a list: the account is read only as
+    // its two written line forms of the supported version. A line that is
+    // not JSON, a value that is not an object, an empty object, an import
+    // line of another version or event, and a line without its identity or
+    // its files each make the account unknown.
+    let unknown: [&[u8]; 8] = [b"not json\n", b"{}\n", b"null\n", b"[]\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"99.0\",\"event\":\"future\"}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"future\",\"importId\":\"import:x\"}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"completed\",\"importId\":\"import:x\"}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"started\",\"census\":[]}\n"];
+    for (root, content) in [&imported, &empty].into_iter().flat_map(|root| unknown.iter().map(move |content| (root, *content))) {
         let dir = attach(root, false).unwrap().dir.unwrap();
-        std::fs::write(dir.join("imports.jsonl"), b"not json\n").unwrap();
+        std::fs::write(dir.join("imports.jsonl"), content).unwrap();
         let known = |e: &str| e.contains("unknown") && e.contains("import record is unreadable");
         let failed = home(root).unwrap_err();
         assert!(known(&failed), "{failed}");
@@ -1261,4 +1281,77 @@ fn an_original_whose_name_is_not_utf8_is_not_copied() {
 fn records_store_lines_refuse_fifo_and_final_link_without_changing_torn_tail_parsing(){
  use std::os::unix::fs::symlink;
  let own=OwnStore::new();let path=own.0.join("invented-read-lines.jsonl");let regular=b"{\"invented\":\"complete\"}\n{\"torn\":";std::fs::write(&path,regular).unwrap();assert_eq!(read_lines(&path).unwrap(),vec![json!({"invented":"complete"})],"compatibility torn-tail parsing remains unchanged");std::fs::remove_file(&path).unwrap();let c=std::ffi::CString::new(path.as_os_str().as_encoded_bytes()).unwrap();assert_eq!(unsafe{libc::mkfifo(c.as_ptr(),0o600)},0);let before=std::time::Instant::now();assert!(read_lines(&path).is_err());assert!(before.elapsed()<std::time::Duration::from_secs(1));std::fs::remove_file(&path).unwrap();let other=own.0.join("other-owned.jsonl");std::fs::write(&other,b"{\"other\":\"not returned\"}\n").unwrap();symlink(&other,&path).unwrap();assert!(read_lines(&path).is_err());assert_eq!(std::fs::read(&other).unwrap(),b"{\"other\":\"not returned\"}\n");
+}
+
+#[test]
+fn a_kept_index_cache_is_neither_changed_nor_cleaned_out_through_a_store_that_was_replaced() {
+    for replace_folder in [false, true] {
+        let own = OwnStore::new();
+        let store = own.0.clone();
+        let root = written_project("kept-cache-project-");
+        // Warm: this process's index holds its cache file in the store.
+        assert!(crate::records_index::chain_heads(&root)["discoveryLimit"].is_null());
+        let cache_of = |at: &Path| tree(&at.join("indexes"));
+        assert!(!cache_of(&store).is_empty());
+        let moved = store.with_extension("moved");
+        if replace_folder {
+            // The store folder replaced, with the kept cache's folder moved into the replacement.
+            std::fs::rename(&store, &moved).unwrap();
+            std::fs::create_dir(&store).unwrap();
+            std::fs::copy(moved.join("store.json"), store.join("store.json")).unwrap();
+            std::fs::rename(moved.join("indexes"), store.join("indexes")).unwrap();
+        } else {
+            // The identity file replaced by another holding the same bytes.
+            let bytes = std::fs::read(store.join("store.json")).unwrap();
+            std::fs::remove_file(store.join("store.json")).unwrap();
+            std::fs::write(store.join("store.json"), bytes).unwrap();
+        }
+        let before = cache_of(&store);
+        // The same process reads again through its kept index. The opening refuses,
+        let heads = crate::records_index::chain_heads(&root);
+        assert!(heads["discoveryLimit"].as_str().is_some_and(|l| l.contains("replaced")), "{replace_folder}: {heads}");
+        let _ = crate::records_index::with_index(&root, |ix| ix.limits());
+        // and the kept cache is left exactly as it was: no row removed from it,
+        assert_eq!(cache_of(&store), before, "{replace_folder}");
+        // and it is not cleaned out through the refused binding when the index is released.
+        crate::records_index::close_all();
+        assert_eq!(cache_of(&store), before, "{replace_folder}");
+        if replace_folder {
+            std::fs::remove_dir_all(&store).unwrap();
+            std::fs::rename(&moved, &store).unwrap();
+        }
+        drop(own);
+        new_process();
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[test]
+fn a_control_that_is_not_a_regular_singly_linked_file_is_refused_without_waiting() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("special-control-");
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let control = store.join("administration").join(dir.file_name().unwrap()).join(".admission.lock");
+    // A FIFO where the control stood: opening it for reading would wait for a writer for ever.
+    std::fs::remove_file(&control).unwrap();
+    let name = std::ffi::CString::new(control.as_os_str().as_encoded_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    let (send, receive) = std::sync::mpsc::channel();
+    let path = control.clone();
+    std::thread::spawn(move || { let _ = send.send(storage::lock_shared_existing(&path).map(|guard| guard.is_some())); });
+    let refused = receive.recv_timeout(std::time::Duration::from_secs(10)).expect("opening the control must not wait").unwrap_err();
+    assert!(refused.contains("not a regular, singly linked file"), "{refused}");
+    let refused = crate::role_observations::project_chain_head(&root).unwrap_err();
+    assert!(refused.contains("not a regular, singly linked file"), "{refused}");
+    // A regular control with a second link is refused too; alone, it is the control.
+    std::fs::remove_file(&control).unwrap();
+    std::fs::write(&control, b"").unwrap();
+    std::fs::hard_link(&control, control.with_extension("other")).unwrap();
+    assert!(storage::lock_shared_existing(&control).map(|guard| guard.is_some()).unwrap_err().contains("not a regular, singly linked file"));
+    std::fs::remove_file(control.with_extension("other")).unwrap();
+    assert!(storage::lock_shared_existing(&control).unwrap().is_some());
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
 }

@@ -153,11 +153,21 @@ pub fn try_lock_exclusive(path: &Path) -> Result<Option<Ownership>, String> {
 pub(crate) fn lock_shared_existing(path: &Path) -> Result<Option<Ownership>, String> {
     use std::os::unix::fs::OpenOptionsExt;
     check_path(path)?;
-    let file = match OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC).open(path) {
+    // Opened without blocking: a control replaced by a FIFO or a device must
+    // not hold a reader for ever. Only a regular, singly linked file is a
+    // control; anything else at its path is refused before any lock.
+    let file = match OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK).open(path) {
         Ok(file) => file,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(format!("owning lock: {}: {e}", path.display())),
     };
+    {
+        use std::os::unix::fs::MetadataExt;
+        let meta = file.metadata().map_err(|e| format!("owning lock: {}: {e}", path.display()))?;
+        if !meta.file_type().is_file() || meta.nlink() != 1 {
+            return Err(format!("owning lock: {} is not a regular, singly linked file; it is not this project's control and nothing is read under it", path.display()));
+        }
+    }
     if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_SH) } != 0 {
         return Err(format!("owning lock: {}", std::io::Error::last_os_error()));
     }
