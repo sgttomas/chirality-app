@@ -559,9 +559,7 @@
         }
       },
       "library_execution": null,
-      "library_paths_named": [
-        "docs/document-metadata.md"
-      ],
+      "library_paths_named": [],
       "files": [
         {
           "path": "WORKFLOW.md",
@@ -842,10 +840,7 @@
           "WORKING_ITEMS"
         ]
       },
-      "library_paths_named": [
-        "docs/thesis/06_professional_practice.md",
-        "docs/thesis/CHIRALITY_FRAMEWORK.md"
-      ],
+      "library_paths_named": [],
       "files": [
         {
           "path": "WORKFLOW.md",
@@ -1851,9 +1846,7 @@
           "WORKING_ITEMS"
         ]
       },
-      "library_paths_named": [
-        "docs/thesis/03_philosophical_framework.md"
-      ],
+      "library_paths_named": [],
       "files": [
         {
           "path": "WORKFLOW.md",
@@ -1983,7 +1976,6 @@
         ]
       },
       "library_paths_named": [
-        "docs/PRD.md",
         "tools/decomp",
         "tools/decomp/build_atomization_brief.py",
         "tools/decomp/build_source_skeleton.py",
@@ -3504,10 +3496,7 @@
         }
       },
       "library_paths_named": [
-        "README.md",
         "agents/AGENT_HELP_HUMAN.md",
-        "docs/alignment-manual/README.md",
-        "docs/document-metadata.md",
         "tools/scaffolding/scaffold_deliverable.sh",
         "tools/scaffolding/scaffold_package.sh",
         "tools/scope_of_work/validate_scope_of_work.py",
@@ -3854,9 +3843,7 @@
         }
       },
       "library_execution": null,
-      "library_paths_named": [
-        "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v9.md"
-      ],
+      "library_paths_named": [],
       "files": [
         {
           "path": "WORKFLOW.md",
@@ -4366,10 +4353,7 @@
           "WORKING_ITEMS"
         ]
       },
-      "library_paths_named": [
-        "docs/PRD.md",
-        "docs/alignment-manual/Project_Management_for_Human_Agent_Teams_Consolidated_v9.md"
-      ],
+      "library_paths_named": [],
       "files": [
         {
           "path": "WORKFLOW.md",

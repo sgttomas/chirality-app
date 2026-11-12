@@ -159,24 +159,26 @@ def test_generated_tree_is_the_release_packages_byte_for_byte(tmp_path):
     assert bundle.verify_tree(output) == ["alpha: files differ from the manifest", "not in the manifest: gamma/WORKFLOW.md"]
 
 
-def test_named_paths_are_release_paths_outside_the_app_and_nothing_else(tmp_path):
+def test_named_paths_are_library_tool_skill_and_role_paths_and_nothing_else(tmp_path):
     recorded = json.loads(built(tmp_path, FILES)[bundle.MANIFEST_NAME])
     alpha, beta = recorded["packages"]
     assert alpha["library_paths_named"] == [
         # The path a package file gives, not the skill's bare name in prose.
         ".agents/skills/researcher/SKILL.md",
-        # A relative link resolved from the naming file, anywhere in the release.
-        "README.md",
         "agents/AGENT_TASK.md",
-        "docs/guide.md",
         # A folder of the release, and a file under a prefix or before `:*`.
         "tools/check",
         "tools/check/run.py",
     ]
-    # Not counted: a path absent from the release (tools/absent.py), a path of
-    # this package (resources/note.md, tools/local.py), another bundled
-    # workflow (../beta/WORKFLOW.md), and the rest of a URL (docs/PRD.md).
+    # Not counted: a document, by link or by path (docs/guide.md, README.md,
+    # docs/PRD.md); a path absent from the release (tools/absent.py); a path
+    # of this package (resources/note.md, tools/local.py); another bundled
+    # workflow (../beta/WORKFLOW.md); and the rest of a URL.
     assert beta["library_paths_named"] == []
+    # A relative link is resolved from the file that names it.
+    linked = {**FILES, "workflows/beta/WORKFLOW.md": b"---\nname: beta\n---\n[run](../../tools/check/run.py) [doc](../../docs/PRD.md) docs/PRD.md\n"}
+    beta = json.loads(built(tmp_path, linked)[bundle.MANIFEST_NAME])["packages"][1]
+    assert beta["library_paths_named"] == ["tools/check/run.py"]
 
 
 def test_a_release_the_app_would_not_admit_is_refused(tmp_path):

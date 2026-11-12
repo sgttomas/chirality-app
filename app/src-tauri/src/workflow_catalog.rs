@@ -128,7 +128,7 @@ const MANIFEST: &[u8] = include_bytes!("../resources/production_workflows/MANIFE
 /// that hash to the manifest's revision, runs without A15. The constant claims
 /// no published release, shipped history or qualification.
 pub const SELECTED_BUNDLED_MANIFEST_SHA256: &str =
-    "9d2d34d9031886d858c5cef0207df4992d989b3e9ec48dfe82b44fb122a4dafa";
+    "20a015b810abececdbf1fe3767ef443476a5aec1c768343c3db8f68daf062f63";
 /// Standing of the admitted LS-5 selection. The candidate build itself is still
 /// not a published release; that standing stays with the manifest.
 pub const BUNDLED_STANDING: &str =

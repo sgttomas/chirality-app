@@ -64,23 +64,28 @@ and for each package:
 - the Library's own account of it from the index: description, navigation,
   compatible roles, and `library_execution`, the package's optional execution
   companion as the index states it, or `null` when the package has none;
-- `library_paths_named`: the paths of the release that the package's files
-  name and the App does not include.
+- `library_paths_named`: the Library tool, skill and role paths that the
+  package's files name. The App includes none of them.
 
 Neither `library_execution` nor `library_paths_named` is the App's declared
 part (DEL-02-01), and neither is given to the requirement check. An empty
 tool list in `library_execution` does not mean the workflow needs no tools.
 
-A path is counted in `library_paths_named` only when it exists in the release
-archive, as a file or a folder, and is neither in the package itself nor in
-another bundled workflow. It is read in two forms: a relative link, resolved
-from the file that names it; and a path written from the Library's root under
-`tools/`, `.agents/skills/`, `agents/` or `docs/`, after any prefix such as
-`$INSTRUCTION_ROOT/`. A skill or tool named without a path is not counted,
-and neither is the rest of a URL. The list says what the text names, not what
-a run needs. A path a workflow means in the person's own project is counted
-when the same path exists in the release: `docs/PRD.md` is listed for two
-workflows for that reason.
+A path is counted in `library_paths_named` only when it is under `tools/`,
+`.agents/skills/` or `agents/` and exists in the release archive, as a file
+or a folder. It is read in two forms: a relative link, resolved from the file
+that names it; and a path written from the Library's root, after any prefix
+such as `$INSTRUCTION_ROOT/`. A path of the package itself is not counted. A
+skill or tool named without a path is not counted, and neither is the rest of
+a URL. The list says what the text names, not what a run needs.
+
+Document paths (`docs/`, the Library's `README.md`) are deliberately not
+recorded. A workflow can name a path that it means in the person's own
+project and that also exists in the release: two workflows name `docs/PRD.md`
+as the project's file to write. No mechanical rule separates the two, and
+telling a person that such a workflow depends on the Library's file would be
+false. The field therefore holds only what a workflow's steps cannot do
+without.
 
 ## Checks
 

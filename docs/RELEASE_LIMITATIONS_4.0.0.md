@@ -121,12 +121,12 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What is unavailable:** the App includes every workflow of Chirality
   Library 3.4.0 as its method text and gives a selected workflow to the agent
   exactly as the Library wrote it. It does not include the rest of the
-  Library. Some workflows name the Library's tools, a skill, role files or
-  documents, and the steps that use them cannot be done from the App alone.
-  Reading every file of each of the 71 packages for paths that exist in the
-  Library release, 43 name a Library tool and a few name a role file, a skill
-  or a Library document; a tool or skill named in words without its path is
-  not counted. These are counts of what the text names, not of what a run
+  Library. Some workflows name the Library's tools, a skill or role files,
+  and the steps that use them cannot be done from the App alone. Reading
+  every file of each of the 71 packages for tool, skill and role paths that
+  exist in the Library release, 43 name a Library tool and a few name a role
+  file or a skill; a tool or skill named in words without its path is not
+  counted. These are counts of what the text names, not of what a run
   requires: the Library does not state, for a workflow, which of the tools it
   names are required and which are optional, conditional or historical. No
   workflow declares its required tools in the App's form, so before a run

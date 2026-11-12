@@ -47,10 +47,9 @@ OS_ENTRIES = {
 }
 
 
-# Where a path written from the Library's root may point: its tools, skills,
-# role files and documents. A path written as a relative link is resolved from
-# the file that names it and may point anywhere in the release.
-LIBRARY_ROOTS = ("tools/", ".agents/skills/", "agents/", "docs/")
+# What a workflow's steps cannot do without: the Library's tools, skills and
+# role files. Document paths are deliberately not recorded (see the README).
+LIBRARY_ROOTS = ("tools/", ".agents/skills/", "agents/")
 PATH_TOKEN = re.compile(r"[A-Za-z0-9_.\-/]+")
 
 
@@ -104,19 +103,17 @@ def check_package(name: str, files: dict[str, bytes]) -> None:
             raise BundleError(f"{name}: operating-system entry {path!r}")
 
 
-def library_paths_named(
-    name: str, package: dict[str, bytes], release: set[str], bundled: set[str]
-) -> list[str]:
-    """The release paths this package's files name that are outside the App.
+def library_paths_named(name: str, package: dict[str, bytes], release: set[str]) -> list[str]:
+    """The Library tool, skill and role paths this package's files name.
 
-    A path counts only when it exists in the release archive, as a file or a
-    folder, and is neither in this package nor in another bundled workflow.
-    It is read two ways and no other: a relative link, resolved from the file
-    that names it; and a path written from the Library's root under one of
-    LIBRARY_ROOTS, after any prefix (`$INSTRUCTION_ROOT/tools/...`). A name
-    that is not a path (a skill or tool named in prose, a Python module) is
-    not counted, and neither is the rest of a URL. This says what the text
-    names; it does not say what a run needs.
+    A path counts only when it is under one of LIBRARY_ROOTS and exists in the
+    release archive, as a file or a folder. It is read two ways and no other:
+    a relative link, resolved from the file that names it; and a path written
+    from the Library's root, after any prefix (`$INSTRUCTION_ROOT/tools/...`).
+    A path of this package itself is not counted. A name that is not a path
+    (a skill or tool named in prose, a Python module) is not counted, and
+    neither is the rest of a URL. This says what the text names; it does not
+    say what a run needs.
     """
     inside = set(package)
     for path in package:
@@ -124,10 +121,8 @@ def library_paths_named(
         inside.update("/".join(parts[:i]) for i in range(1, len(parts)))
     named: set[str] = set()
 
-    def outside_the_app(path: str) -> bool:
-        parts = path.split("/")
-        in_a_package = parts[0] == "workflows" and len(parts) > 1 and parts[1] in bundled
-        return path in release and not in_a_package
+    def counted(path: str) -> bool:
+        return path.startswith(LIBRARY_ROOTS) and path in release
 
     for source, data in package.items():
         try:
@@ -146,14 +141,14 @@ def library_paths_named(
                 continue
             if token.startswith("../"):
                 target = posixpath.normpath(posixpath.join(folder, token))
-                if not target.startswith("../") and "/" in target + "/" and outside_the_app(target):
+                if counted(target):
                     named.add(target)
                 continue
             parts = token.split("/")
             for start in range(len(parts) - 1):
                 candidate = "/".join(parts[start:])
                 if candidate.startswith(LIBRARY_ROOTS):
-                    if outside_the_app(candidate):
+                    if counted(candidate):
                         named.add(candidate)
                     break
     return sorted(named, key=lambda p: p.encode("utf-8"))
@@ -264,8 +259,8 @@ def build(files: dict[str, bytes], selection: dict) -> dict[str, bytes]:
             # It is not the App's declared part, and an empty tool list there
             # does not mean the workflow needs none.
             "library_execution": method.get("execution"),
-            # What the package's files name in the release outside the App.
-            "library_paths_named": library_paths_named(name, package, release, set(names)),
+            # The Library tool, skill and role paths the package's files name.
+            "library_paths_named": library_paths_named(name, package, release),
             "files": [
                 {"path": path, "bytes": len(package[path]), "sha256": sha256(package[path])}
                 for path in sorted(package, key=lambda p: p.encode("utf-8"))
