@@ -844,6 +844,10 @@ fn a_live_session_is_given_no_endings_restart_facts_adoption_or_run_limit_by_ano
     // (One App at a time on a home would refuse this start; its hold is set
     // aside here so that the withholding is shown on its own.)
     f.home.host.home_holds.lock().unwrap().clear();
+    // So is the home's process lock, which the first session's Codex holds: its file is taken
+    // out of the home, and the second start makes and takes a new one. (The lock is the file;
+    // app/README.md states that limit.)
+    std::fs::remove_file(f.cfg.codex_home.join(crate::native_local_provider::PROCESS_LOCK)).unwrap();
     second.start(&f.cfg, "second session").unwrap();
     let second = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, second, Ok(f.cfg.clone())).unwrap());
     assert_eq!(crate::host_tick::recovery_tick_home(&second), 0, "no recovery read of the live session's conversation");
@@ -918,7 +922,8 @@ fn a_second_host_on_one_home_in_one_process_is_refused_until_the_first_is_gone()
     };
     assert_eq!(ready["state"], "ready");
     let _ = second.stop("fixture", "test ended");
-    assert!(std::fs::read_dir(root.join("account")).unwrap().next().is_none(), "nothing created inside the home");
+    let inside: Vec<_> = std::fs::read_dir(root.join("account")).unwrap().map(|e| e.unwrap().file_name()).collect();
+    assert_eq!(inside, vec![std::ffi::OsString::from(crate::native_local_provider::PROCESS_LOCK)], "the App's one lock file and nothing else is created inside the home");
     let _ = std::fs::remove_dir_all(root);
 }
 
@@ -1090,8 +1095,23 @@ fn a_host_on_a_home_another_process_holds_is_refused_until_that_process_is_kille
     assert_eq!(initializes(&root), 1, "no second Codex on the home");
     assert_eq!(unsafe { libc::kill(child.id() as i32, libc::SIGKILL) }, 0);
     child.wait().unwrap();
-    let ready = host.start(&cfg, "after the first App was killed").unwrap();
+    // The killed App's hold on the home went with its process. The Codex it started can outlive
+    // it for a time and holds the home's process lock until it has ended: until then the start
+    // is refused for that reason and no other, and starts nothing.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let ready = loop {
+        match host.start(&cfg, "after the first App was killed") {
+            Ok(ready) => break ready,
+            Err(e) => {
+                assert_eq!(e, crate::home_hold::PROCESS_HELD);
+                assert_eq!(initializes(&root), 1, "no second Codex while the first has not ended");
+                assert!(Instant::now() < deadline, "the killed App's Codex never ended");
+                std::thread::sleep(Duration::from_millis(20));
+            }
+        }
+    };
     assert_eq!(ready["state"], "ready");
+    assert_eq!(initializes(&root), 2);
     let _ = host.stop("fixture", "test ended");
     let _ = std::fs::remove_dir_all(root);
 }

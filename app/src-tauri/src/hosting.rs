@@ -758,6 +758,11 @@ pub struct Host {
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Option<Arc<process_group_custody::OwnedProcess>>>,
     retired_processes: Mutex<Vec<Arc<process_group_custody::OwnedProcess>>>,
+    /// The home's process lock an admitted start attempt holds until its child is spawned, with
+    /// that attempt's number. Kept here, not on the start call's stack, so that a Stop which
+    /// cancels the attempt before anything is spawned releases the lock at once: a new attempt
+    /// is then not refused by this Host's own cancelled one, whose call may still be unwinding.
+    pending_process_lock: Mutex<Option<(u64, std::fs::File)>>,
     probe_processes: Mutex<Vec<(u64, Arc<process_group_custody::OwnedProcess>)>>,
     quit_fence: std::sync::atomic::AtomicBool,
     /// DEL-01-02: this App session's liveness lock, shared with the App
@@ -901,6 +906,7 @@ impl Host {
             stdin: Mutex::new(None),
             child: Mutex::new(None),
             retired_processes: Mutex::new(Vec::new()),
+            pending_process_lock: Mutex::new(None),
             probe_processes: Mutex::new(Vec::new()),
             quit_fence: std::sync::atomic::AtomicBool::new(false),
             session_liveness: Mutex::new(None),
@@ -1820,6 +1826,17 @@ impl Host {
             self.lt(&mut i, id, "start-requested", "verifying", json!({"actor": actor}));
             i.start_attempt
         };
+        // Admitted: the lock is this attempt's until its child is spawned, or until the attempt
+        // ends or is cancelled without one, whichever comes first.
+        struct PendingProcessLock<'a> { host: &'a Host, attempt: u64 }
+        impl Drop for PendingProcessLock<'_> {
+            fn drop(&mut self) {
+                let mut slot = self.host.pending_process_lock.lock().unwrap_or_else(|e| e.into_inner());
+                if slot.as_ref().is_some_and(|(held_by, _)| *held_by == self.attempt) { *slot = None; }
+            }
+        }
+        *self.pending_process_lock.lock().unwrap() = Some((attempt, process_lock));
+        let _pending_process_lock = PendingProcessLock { host: self, attempt };
         // Admitted: this Host keeps the hold (one per home; a second of the
         // same home is dropped, the first still holding it).
         { let mut holds = self.home_holds.lock().unwrap(); if !holds.iter().any(|kept| kept.same_as(&hold)) { holds.push(hold); } }
@@ -1973,6 +1990,22 @@ impl Host {
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=home_identity(&cfg.codex_home);
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
+        // The lock this attempt took at its start. Stop cannot cancel an attempt between its last
+        // admission check and this point (it waits on the source gate held across both), so the
+        // lock is still this attempt's; were it not, nothing is spawned.
+        let process_lock = {
+            let mut slot = self.pending_process_lock.lock().unwrap();
+            match slot.take() {
+                Some((held_by, file)) if held_by == attempt => Some(file),
+                other => { *slot = other; None }
+            }
+        };
+        let Some(process_lock) = process_lock else {
+            let mut i = self.inner.0.lock().unwrap();
+            let failure = "the home's process lock was no longer held by this start attempt; native source not spawned";
+            self.lt(&mut i, "LT-08", "spawn-failed", "halted-after-repeated-failure", json!({"failure": failure, "failureCount": 1}));
+            return Err(failure.into());
+        };
         {
             use std::os::fd::AsRawFd;
             let fd = process_lock.as_raw_fd();
@@ -4712,6 +4745,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 let revoked=i.start_attempt.checked_add(1).ok_or("start attempt exhausted; cancellation not recorded")?;
                 let record=json!({"actor":actor,"reason":reason,"outstandingEntryHandling":"left-to-end-with-process","endingMeans":"close-input"});
                 i.start_attempt=revoked;i.start_admission=None;
+                // Nothing was spawned: the cancelled attempt's process lock is released now, not
+                // when its call has finished unwinding.
+                drop(self.pending_process_lock.lock().unwrap_or_else(|e| e.into_inner()).take());
                 i.successor_terminal_pending=false;i.successor_publication_sequence=0;
                 i.successor_reference=None;i.successor_lt09_reference=None;i.successor_lt09_installed=false;
                 i.successor_artifact_error=Some("start attempt cancelled before child installation; no terminal artifact".into());

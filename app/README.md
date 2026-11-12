@@ -1350,7 +1350,11 @@ free lock does not show they have ended; hooks and the notifier program of the
 person's own Codex settings inherit, so one of those left running holds the
 home until it ends. The App's census and settlement of the process groups it
 started are unchanged and are what Quit and the home hold rest on. A build
-before this lock takes none and is not excluded by it.
+before this lock takes none and is not excluded by it. The lock is the file:
+if the lock file is removed or replaced in the home while a Codex holds it, a
+later start makes and takes a new file and is not excluded by that earlier
+process. A Stop that cancels a start before anything is spawned releases that
+start's lock at once.
 
 Relaunch. The holds and the process lock have no wait and no retry, and
 process exit is the reliable final release. A deliberate relaunch by the App itself would have to
