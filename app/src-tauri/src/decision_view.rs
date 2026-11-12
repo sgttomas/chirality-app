@@ -987,6 +987,7 @@ pub(crate) fn derive_from(
             "requests": request_ids,
             "correctedRequests": corrected_requests,
             "packageFile": file_ref,
+            "packageIdentity": {"method": requested.method, "value": requested.value},
             "actRequested": b["actKind"],
             "subject": b["subject"],
             "purpose": b["purpose"],

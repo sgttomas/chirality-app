@@ -691,7 +691,7 @@ fn fleet_views_decision_need_unknown_when_act_records_cannot_be_read() {
     let dir = records_store::attach(&f.project, true).unwrap().dir.unwrap();
     let (category, need) = decision_need(&f.read());
     assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "no request record");
-    assert!(need["why"].as_str().unwrap().contains("no decision request rec:request"), "{need}");
+    assert!(need["why"].as_str().unwrap().contains("rec:request names no decision request"), "{need}");
     assert!(!dir.join("acts").exists(), "reading creates no act log");
 
     let d = decision_fixture(&f);
@@ -794,4 +794,129 @@ fn fleet_views_decision_records_changed_during_the_read_are_not_used() {
         assert!(v["graph"].is_null() && v["waiting"] == json!([]), "no need is presented from a changed snapshot: {v}");
         assert!(packet["limits"].to_string().contains("changed while reading"));
     }
+}
+
+#[test]
+fn fleet_views_package_swapped_in_during_the_read_never_settles_the_need() {
+    // The real package changed after the decision, so the decision has lapsed.
+    // A concurrent writer swaps a decoy folder holding the decided bytes into
+    // the package's place for the moment it is read, then swaps the real one back.
+    let f = Fixture::new();
+    let d = decision_fixture(&f);
+    act_log(&d.dir, "10-act", &act(&d, "act", "ALT-2"));
+    // The package sits one folder below decisions/, so the swap changes only
+    // the package's own ancestry.
+    let decided = std::fs::read(&d.package).unwrap();
+    let deep = f.project.join("decisions/deep/PKG-1.json");
+    std::fs::create_dir_all(deep.parent().unwrap()).unwrap();
+    std::fs::write(&deep, b"{\"edited\":\"after the decision\"}").unwrap();
+    let mut request: Value = serde_json::from_slice(&std::fs::read(d.dir.join("acts/00-request.jsonl")).unwrap()).unwrap();
+    request["body"]["evidence"]["ref"] = json!("decisions/deep/PKG-1.json");
+    act_log(&d.dir, "00-request", &request);
+    let (_, need) = decision_need(&f.read());
+    assert_eq!(need["state"], "outstanding", "{need}");
+    f.flush();
+    let folder = deep.parent().unwrap().to_owned();
+    let real = folder.with_file_name("deep-real");
+    let mut swapped = false;
+    super::DECISION_READ.with(|h| {
+        *h.borrow_mut() = Some(Box::new(move |point| {
+            if point == "before-package" && !swapped {
+                std::fs::rename(&folder, &real).unwrap();
+                std::fs::create_dir(&folder).unwrap();
+                std::fs::write(folder.join("PKG-1.json"), &decided).unwrap();
+                swapped = true;
+            } else if point == "after-derive" && swapped {
+                std::fs::remove_dir_all(&folder).unwrap();
+                std::fs::rename(&real, &folder).unwrap();
+                swapped = false;
+            }
+        }))
+    });
+    let packet = crate::read_fleet_records_for_workspace(Some(&f.project)).unwrap();
+    super::DECISION_READ.with(|h| *h.borrow_mut() = None);
+    let v = view(&packet["workspace"]);
+    let w4 = v["waiting"].as_array().unwrap().iter().find(|r| r["item"] == "W4");
+    if let Some(row) = w4 {
+        assert_ne!(row["needs"][0]["state"], "satisfied", "{row}");
+        assert_ne!(row["category"], "ready", "{row}");
+    }
+}
+
+#[test]
+fn fleet_views_decision_need_named_by_the_package_file_path() {
+    // The App's guidance tells an agent to name the package file it can see.
+    let f = Fixture::new();
+    let path_need = |f: &mut Fixture, reference: &str| {
+        f.graph["body"]["items"][3]["needs"][0] = json!({"kind":"decision","ref":reference});
+        f.select();
+        decision_need(&f.read())
+    };
+    let mut f = f;
+    let d = decision_fixture(&f);
+    // A package file with no request recorded for it yet.
+    std::fs::write(f.project.join("decisions/order.json"), b"{\"invented\":\"order package\"}").unwrap();
+    let (category, need) = path_need(&mut f, "decisions/order.json");
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")), "{need}");
+    assert!(need["why"].as_str().unwrap().contains("decisions/order.json has not yet been recorded as a request"), "{need}");
+    // A path that names no file, and one that is not contained.
+    for reference in ["decisions/absent.json", "../decisions/PKG-1.json", "/etc/hosts"] {
+        let (category, need) = path_need(&mut f, reference);
+        assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "{reference}: {need}");
+    }
+    // A link is not followed.
+    std::os::unix::fs::symlink(&d.package, f.project.join("decisions/linked.json")).unwrap();
+    let (_, need) = path_need(&mut f, "decisions/linked.json");
+    assert_eq!(need["state"], "unknown", "{need}");
+    // The recorded request's package: outstanding with no act, then satisfied.
+    let (category, need) = path_need(&mut f, "decisions/PKG-1.json");
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")), "{need}");
+    let why = need["why"].as_str().unwrap();
+    assert!(why.contains("package file decisions/PKG-1.json") && why.contains("rec:request"), "{why}");
+    act_log(&d.dir, "10-act", &act(&d, "act", "ALT-2"));
+    let (category, need) = path_need(&mut f, "decisions/PKG-1.json");
+    assert_eq!((category.as_str(), need["state"].as_str()), ("ready", Some("satisfied")), "{need}");
+    // Lapse is judged on the file's current content.
+    std::fs::write(&d.package, b"{\"edited\":true}").unwrap();
+    let (_, need) = path_need(&mut f, "decisions/PKG-1.json");
+    assert_eq!(need["state"], "outstanding", "{need}");
+    assert!(need["why"].as_str().unwrap().contains("lapse: lapsed"), "{need}");
+}
+
+#[test]
+fn fleet_views_decision_need_by_path_reconciles_several_requests_for_one_file() {
+    let mut f = Fixture::new();
+    let d = decision_fixture(&f);
+    // A second request for the same file and content, answered the other way.
+    let mut second: Value = serde_json::from_slice(&std::fs::read(d.dir.join("acts/00-request.jsonl")).unwrap()).unwrap();
+    second["recordId"] = json!("rec:request-again");
+    act_log(&d.dir, "01-request-again", &second);
+    act_log(&d.dir, "10-act", &act(&d, "act", "ALT-2"));
+    let mut other = act(&d, "other", "ALT-1");
+    other["body"]["relations"]["requestRef"] = json!("rec:request-again");
+    other["body"]["boundSubject"] = json!(["decision package rec:request-again"]);
+    act_log(&d.dir, "20-other", &other);
+    f.graph["body"]["items"][3]["needs"][0] = json!({"kind":"decision","ref":"decisions/PKG-1.json"});
+    f.select();
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("unknown", Some("unknown")), "{need}");
+    assert!(need["why"].as_str().unwrap().contains("order the records do not establish"), "{need}");
+}
+
+#[test]
+fn fleet_views_decision_matching_again_after_a_recorded_lapse_stays_outstanding() {
+    let f = Fixture::new();
+    let d = decision_fixture(&f);
+    let a = act(&d, "act", "ALT-2");
+    act_log(&d.dir, "10-act", &a);
+    // An invented recorded lapse observation: the package changed, then
+    // returned to the decided content.
+    act_log(&d.dir, "20-lapse", &json!({"format":"chirality.rs.record","formatVersion":"0.1","recordId":"rec:lapse","kind":"act_lapsed",
+        "recorder":{"role":"App writer","identity":"writer:lapse"},"context":{"surface":"App"},"seq":1,"writtenAt":"invented",
+        "body":{"act":{"recordId":"rec:act","actKind":"A16","capturedAt":a["body"]["captureTime"],"capturingSurface":"app_act_control"},
+            "state":"lapsed","referents":a["body"]["boundSubject"],"c0":a["body"]["boundContent"][0],
+            "c1":{"method":util::FILE_IDENTITY_METHOD,"value":"changed-invented"},"time":"invented"}}));
+    let (category, need) = decision_need(&f.read());
+    assert_eq!((category.as_str(), need["state"].as_str()), ("waiting", Some("outstanding")), "{need}");
+    assert_eq!(need["decision"]["lapse"], "matches c0 again after observed lapse");
 }

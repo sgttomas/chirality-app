@@ -867,14 +867,21 @@ implemented behavior and qualification limits.
     Missing, changed or duplicate selections never fall back to an older graph.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. A
-    decision need names an act request and is read from the act records as the
-    decision view reads them: satisfied only by an unlapsed recorded act of the
-    person, of the kind the package names, that cites the request and chooses
-    an alternative the package names; outstanding when there is no such act or
-    the decision lapsed; unknown when the act records cannot be read (including
-    when no records store with its identity exists), the request is not found,
-    or several decisions are unordered. The act logs and package files join the
-    same snapshot check. Current native execution remains unknown without its
+    decision need names either an act request's record identity or the decision
+    package file's project-relative path (the form the App's guidance gives
+    agents, for example `project/decisions/order.json`), and is read from the
+    act records as the decision view reads them: satisfied only by an unlapsed
+    act of the person in this installation's records store, of the kind the
+    package names, that cites the package's request and chooses an alternative
+    the package names; outstanding when there is no such act, the package file
+    is not yet recorded as a request, or the decision lapsed; unknown when the
+    act records cannot be read (including when no records store with its
+    identity exists), the reference names neither a request nor a file, or
+    several decisions on the package are unordered. An act read from the
+    project folder, a package import or a legacy import is listed as a claim
+    and decides nothing. The act logs and each package file are read once
+    through the same snapshot check, with the package's folders. Current native
+    execution remains unknown without its
     required evidence. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
