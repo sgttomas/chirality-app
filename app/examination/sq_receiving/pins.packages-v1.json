@@ -22,9 +22,9 @@
     "app/examination/admission/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
     "app/examination/support_identity/binding.canonical.v1.schema.json": "95ab4a2e79d49d2a269fa20c4be2d385b8693c1c3de18c40416dcfd433b8ea27",
     "app/examination/support_identity/publication-declaration.v1.json": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
-    "app/examination/sq_receiving/sq_dossier_rules.py": "6b81772704cf947de170da9706e0d70a6c0872385a0c1b23be8a4bbdaca6e00c",
-    "app/examination/sq_receiving/sq.dossier.schema.json": "16f7f2325e7d51424f9e0ec34e782dca150fd6fd96a5a98c7e2272e9088f95a6",
-    "app/examination/sq_receiving/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee",
+    "app/examination/sq_receiving/sq_dossier_rules.py": "55ec8568a9b0ef0d208864c8b31389eac65f84b0108188786841326cd0e0e3dc",
+    "app/examination/sq_receiving/sq.dossier.schema.json": "277255676e720d88d3f311b881a2e09f2afc0545d930460bce089a11a6daa73e",
+    "app/examination/sq_receiving/sq.step-map.json": "c04513a8ca94a1fe9a41baf6d4f758cb33beb5a841937bd1a40f4d501c687ea8",
     "app/packaging/static_distribution/check.py": "745ef83c395c89c61ed87e3536129a7399f50565b5281caf93192462916e673a",
     "app/packaging/static_distribution/sources.json": "e419a89fbc5456e0aa2ad66c33b950d77e9e2a600ea58dd9835a1961a2a9a7dc",
     "app/packaging/successor/check.py": "368c0f556cba998c970148c4a7ad31ddd558aae621e190036a2cfd322d243ba3",
@@ -61,7 +61,7 @@
   },
   "predecessor": {
     "path": "app/examination/sq_receiving/pins.terms-v1.json",
-    "sha256": "54934854051dc8a2e73d2732cd9fc05091efa946d42ebe120e6474cad56e734d"
+    "sha256": "7de6475699006b2251dd4c8b75c1fd97611cd5a923a4a1c1de0024a548c87414"
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",
