@@ -113,3 +113,17 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** use the App standalone, with the
   workflows it ships and those the person registers.
 - **Basis:** DEL-09-07 and DEL-09-11 (held outside 4.0.0); PRD §8.
+
+### LIM-007: Records packages and log checkpoints are unsigned
+
+- **Id:** LIM-007
+- **Exit criteria:** 15
+- **What is unavailable:** a signature on an exported records package, and a
+  signed checkpoint over a records log. A package verifies as unaltered
+  against its own manifest and chain heads; it does not show which
+  installation produced it. A log shows an edit only where the links after
+  the edited line were not recomputed.
+- **Why:** no key is chosen to sign log checkpoints and export manifests.
+- **What the person does instead:** verify a package with the verifier it
+  carries, and establish where it came from by other means.
+- **Basis:** DEL-04-03 (TBD-003; AC-009 and AC-011).
