@@ -19,8 +19,8 @@ needs:
     its limit) are reported with the conversation, turn and Codex session each belongs to, the
     order in which they were received, how many were accepted for the turn, what Codex said of
     retrying, whether a later frame naming the turn was received and whether the App's receiving
-    ended; and each turn the host holds is reported with its conversation and the status last
-    reported for it.
+    ended; and each turn the host holds is reported with its conversation and the status Codex
+    last reported for it.
   gating: true
 - from: DEL-01-04
   condition: The act control captures a registration the person performs, for one draft, one
