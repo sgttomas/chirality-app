@@ -59,7 +59,8 @@ selection, and any specialised workspace, keep their own.
   v4. DEL-09-07 and DEL-09-11, which examine that journey, are held outside
   4.0.0; they may be worked on in support of SWBPIPE, and nothing in this
   target waits on them. App Agent 0 answers SWBPIPE's Agent 0 on the App's
-  receiving side when asked.
+  receiving side when asked. Workflows of the host origin are held outside
+  4.0.0 with it.
 - **Windows.** It follows the macOS release and adds no gate to it.
 - **Domains.** It follows in a later increment and is no condition of release
   or of replacement. PEC adds no delivery prerequisite.
@@ -70,8 +71,9 @@ selection, and any specialised workspace, keep their own.
   as v4. Because 4.0.0 keeps the existing production identifier, a person's
   existing data under that identity is preserved: nothing imports, resets or
   reseals it.
-- **Improvements beyond these criteria.** They are not part of this release's
-  definition of done.
+- **Work beyond the PRD's commitments.** It is not part of this release's
+  definition of done. A capability the PRD commits to is, unless this section
+  names it.
 
 **Fallback.** v3.0.1 stays the published fallback until the owner decides that
 v4 has replaced it.
@@ -89,9 +91,9 @@ acceptance criteria that govern it. The named criteria are what is met; the
 description narrows none of them.
 
 Every result names the candidate it was observed on: an App source revision, a
-build identity and the supplier pin. Criteria 1 to 6 may be observed on an
+build identity and the supplier pin. Criteria 1 to 7 may be observed on an
 identified development build, because they concern how the App behaves and
-looks. Criteria 7 and 9 are observed on the installed, signed package, because
+looks. Criteria 8 and 10 are observed on the installed, signed package, because
 they concern that package. A merged change, a source check or a component pass
 is a step toward a criterion and does not meet it. A result observed on an
 earlier candidate is joined to the final one only with an assessment that
@@ -125,10 +127,12 @@ the owner decide on what was actually observed.
    selected. Each act is recorded as the person performed it, and where the
    act was not performed (the control left unconfirmed, the agent claiming it,
    a tool reporting success, an act of another kind) the App shows it as not
-   performed. This is the condition under which v4 may replace v3.0.1 (PRD §8,
-   V4-REP-01), and it is also a condition of publishing.
+   performed. Together with criterion 4, this is the condition under which v4
+   may replace v3.0.1 (PRD §8, V4-REP-01), and it is also a condition of
+   publishing.
 
-   *Governed by:* DEL-09-02 AC-001, AC-002 and AC-003.
+   *Governed by:* DEL-09-02 AC-001, AC-002 and AC-003; DEL-02-02 AC-004 (the
+   identity a selection keeps; the host origin is held outside 4.0.0).
 4. **Requests, interruption and recovery.** Inside that journey, a turn is
    stopped while a delegated child is active, the window is closed and
    reopened with a request waiting, one request is denied and a later one
@@ -142,7 +146,20 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-004 and AC-005, with the behaviour observed
    owned by DEL-01-02, DEL-01-03 and DEL-01-04.
-5. **Access.** A person signs in with their ChatGPT account, and the account
+5. **Coordinating delegated work.** A person delegates two bounded pieces of
+   work, each with a complete brief, to agents that actually run. The person
+   follows them on the undertaking's work graph, examines what they return
+   from the return queue, and decides one matter from a decision package; the
+   decision is recorded as the person made it and from nothing else. Through
+   a change of basis and an interruption, the App keeps apart what is ready,
+   what waits and why, what a worker still holds and what has returned and
+   awaits review. After the App is closed and reopened, the views are rebuilt
+   from the files and show the same ownership, results, waiting causes,
+   reviewed and integrated history and pending decisions, with a missing
+   observation shown as unknown.
+
+   *Governed by:* DEL-09-05 AC-001 to AC-007.
+6. **Access.** A person signs in with their ChatGPT account, and the account
    view shows the account Codex reports. The App offers no standalone OpenAI
    API-key entry. The ChatGPT account and a local model server are configured
    together. A new conversation has no model until the person chooses. One
@@ -157,17 +174,17 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
    AC-011.
-6. **Visual design.** A person meeting the App's views in J1 and J2 finds that
+7. **Visual design.** A person meeting the App's views in J1 and J2 finds that
    they share one visual form, drawn from v3.0.1 as installed, that they are
    consistent with one another, and that nothing reads as unfinished or out of
    place. Function and interaction are designed for v4 and are App Agent 0's
    to decide; the reference fixes the form, not v3's tools or behaviour. An
    examiner who did not build the views compares them with the reference on
    the build the journeys are observed on. Whether the App feels good to use
-   is the owner's verdict (criterion 12), not this comparison.
+   is the owner's verdict (criterion 13), not this comparison.
 
    *Governed by:* DEL-02-02 AC-012.
-7. **Installed custody and keychain protection.** On the installed, signed
+8. **Installed custody and keychain protection.** On the installed, signed
    package, the App verifies its own Codex before running it and refuses a
    tree that differs from the expected identity. The person's act "Protect
    registered workflows with your keychain" enrols the key and stores the
@@ -176,10 +193,9 @@ the owner decide on what was actually observed.
    this, because the act needs the signed installed identity.
 
    *Governed by:* DEL-01-04 AC-009 (the act and its result); DEL-01-01 AC-006
-   (the installed check); DEL-02-02 AC-004, for admission of a registered
-   revision under the approval policy with a verifying keychain seal;
-   DEL-01-06 AC-002 (the signed identity it relies on).
-8. **Supplier and notices.** The supplier pin the candidate is built with is
+   (the installed check); DEL-02-02 AC-004 (admission of a registered
+   revision under the approval policy); DEL-01-06 AC-002 (the signed identity it relies on).
+9. **Supplier and notices.** The supplier pin the candidate is built with is
    qualified: it is the newest Codex version that had passed a version-advance
    check when the candidate was built, and the supplier-hosting criteria hold
    on the candidate at that pin. Every component shipped in the package has
@@ -188,31 +204,31 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-01-01 AC-011, which requires AC-001 to AC-010 on the
    candidate (the pin); DEL-01-06 AC-007 (the notices).
-9. **Final candidate.** The package built from the finished source contains
-   the supplier's tree and the bundled resources byte for byte. Every signed
-   executable of the supplier's tree keeps the supplier's signature and
-   entitlements. The App's own code carries the publisher identity, hardened
-   runtime and a timestamp, with the entitlements its features need and no
-   debugging entitlement, and any provisioning profile names the same
-   identity. The bundle is notarized and stapled, and its identity record
-   states what an independent reading of the package finds. From a quarantined
-   download the operating system accepts it without an override, and it
-   installs and launches through to a Codex child reported ready and verified.
+10. **Final candidate.** The package built from the finished source contains
+    the supplier's tree and the bundled resources byte for byte. Every signed
+    executable of the supplier's tree keeps the supplier's signature and
+    entitlements. The App's own code carries the publisher identity, hardened
+    runtime and a timestamp, with the entitlements its features need and no
+    debugging entitlement, and any provisioning profile names the same
+    identity. The bundle is notarized and stapled, and its identity record
+    states what an independent reading of the package finds. From a quarantined
+    download the operating system accepts it without an override, and it
+    installs and launches through to a Codex child reported ready and verified.
 
-   *Governed by:* DEL-01-06 AC-001, AC-002 and AC-003.
-10. **Terms position.** The supplier's written position on distributing the
+    *Governed by:* DEL-01-06 AC-001, AC-002 and AC-003.
+11. **Terms position.** The supplier's written position on distributing the
     offering is held with the owner's statement that it applies, and the
     candidate's offering and sign-in flow are the ones that statement covers.
     A changed offering or sign-in flow reads as unresolved.
 
     *Governed by:* DEL-01-06 AC-004 and AC-005.
-11. **Limitations.** Every limitation the release carries is listed in
+12. **Limitations.** Every limitation the release carries is listed in
     [`docs/RELEASE_LIMITATIONS_4.0.0.md`](RELEASE_LIMITATIONS_4.0.0.md) with
     its reason, and is stated in what a person receives with the package.
 
     *Governed by:* DEL-01-06 AC-008, and for each limitation the deliverable
     whose behaviour it limits.
-12. **The owner's verdict.** After Agent 0 has recommended the candidate
+13. **The owner's verdict.** After Agent 0 has recommended the candidate
     ready, the owner uses it and answers yes or no before it is published.
     What the owner uses it for, and for how long, is the owner's to choose at
     the time. Agent 0 gives every observation the owner makes a disposition;
@@ -222,7 +238,7 @@ the owner decide on what was actually observed.
 
     *Governed by:* this criterion as stated; DEL-09-12 holds the record of the
     owner's use, the answer and the dispositions (AC-007).
-13. **Decision packet.** The owner has, for the final candidate, the owning
+14. **Decision packet.** The owner has, for the final candidate, the owning
     deliverable's result for each criterion above, the release limitations and
     the continuing obligations, with every unrun, failed, blocked or limited
     result shown as such. Publication and replacement are put as two separate
@@ -233,35 +249,24 @@ the owner decide on what was actually observed.
 
 ## Open choices
 
-These decide whether a criterion is met, and nothing accepted settles them.
-The list is held to that; every other undecided item stands as its owning
-scope states it.
+Each of these decides whether the criterion named can be met, and nothing
+accepted settles it. Every other undecided item stands as its owning scope
+states it.
 
-- **Visual design (criterion 6).** No scope holds an acceptance criterion for
-  it, and none names what is compared with the reference or who judges the
-  comparison.
-- **Contract interpretations (criteria 3 and 4).** Whether the undecided items
-  of the loop, act, record and panel contracts (DEL-05-01, DEL-04-01,
-  DEL-04-03, DEL-05-02) must be decided before publication.
+- **Contract interpretations (criteria 3 and 4).** Whether the run record
+  holds every event the loop emits, how a turn ends when a response is cut
+  off or filtered, and whether the loop may itself refuse a call the catalog
+  marks as not exposed (DEL-05-01 TBD-004 to TBD-006), and who owns a panel's
+  network-destination surfaces (DEL-05-02 TBD-006).
 - **Ledger retention and deletion (criterion 4).** How long ledger entries are
-  kept and what deleting a conversation removes (DEL-01-02).
-- **Plugin traffic in the dedicated local home (criterion 5).** Whether it
-  follows the person's plugin setting or is always off (DEL-01-05).
-- **Keychain qualification on the installed package (criterion 7).** Whether
-  DEL-09-02 also carries a criterion for it beside DEL-01-04's (DEL-09-02).
-- **A host's library (criteria 1 and 2).** How a host's library is listed and
-  how a host workflow reaches the App is undecided (DEL-02-02). It bears on
-  the journeys only if host-origin selection is offered in the released
-  interface.
-- **What replacing the fallback changes once 4.0.0 is published, and first
-  adopters, continuing obligations and ending coexistence (criterion 13).**
-  The packet carries them as undecided (DEL-11-03, DEL-11-01); they are
-  choices for adoption and retirement, not conditions of publishing.
+  kept and what deleting a conversation removes (DEL-01-02 TBD-002).
+- **Plugin traffic in the dedicated local home (criterion 6).** Whether it
+  follows the person's plugin setting or is always off (DEL-01-05 TBD-004).
 
 ## What stays the owner's
 
 - Publishing the release, including the decision to distribute it publicly.
-- The verdict on the product (criterion 12), and replacing v3.0.1.
+- The verdict on the product (criterion 13), and replacing v3.0.1.
 - Licence, legal and professional sign-off: the statement that the supplier's
   terms position applies to the offering, and professional approval of and
   reliance on any result.
