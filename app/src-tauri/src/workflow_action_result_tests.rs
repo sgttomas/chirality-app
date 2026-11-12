@@ -237,3 +237,72 @@ fn workflow_action_actual_create_result_precedes_explicit_draft_observation() {
         })
     );
 }
+
+// A press's context check meets other readers of the history context: the
+// status read and the host's ticks hold it for a moment at a time.
+fn press_fixture() -> (Fixture, Arc<HomeSession>, Mutex<WorkflowRootSession>, crate::workflow_selection::Context) {
+    let fixture = Fixture::new();
+    let home = Arc::new(
+        HomeSession::new(
+            crate::home_resources::HomeClass::Account,
+            Arc::new(crate::hosting::Host::new()),
+            Err("fixture: no native supplier contact".into()),
+        )
+        .unwrap(),
+    );
+    let root = Mutex::new(WorkflowRootSession::default());
+    let status = action_result_status(&root, &home);
+    let context = serde_json::from_value(action_result_args(&status, "unused")["context"].clone()).unwrap();
+    (fixture, home, root, context)
+}
+
+#[test]
+fn workflow_press_waits_for_a_passing_history_reader() {
+    let (_fixture, home, _root, context) = press_fixture();
+    let (held, wait_held) = std::sync::mpsc::channel();
+    let reader = {
+        let home = home.clone();
+        std::thread::spawn(move || {
+            let guard = home.history.lock().unwrap();
+            held.send(()).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            drop(guard);
+        })
+    };
+    wait_held.recv().unwrap();
+    // Held at the press: the check looks again and passes once the reader is done.
+    assert_eq!(context.verify_home(&home).map(|chat| chat.is_none()), Ok(true));
+    reader.join().unwrap();
+}
+
+#[test]
+fn workflow_press_releases_root_for_a_status_read_that_holds_history() {
+    let (_fixture, home, root, context) = press_fixture();
+    let root = Arc::new(root);
+    let calls = std::sync::atomic::AtomicUsize::new(0);
+    let reader = Mutex::new(None);
+    let active = || {
+        // The second call is made with Root held. A reader shaped like
+        // host_status arrives then: it holds history and waits for Root.
+        if calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) == 1 {
+            let (held, wait_held) = std::sync::mpsc::channel();
+            let (home, root) = (home.clone(), root.clone());
+            *reader.lock().unwrap() = Some(std::thread::spawn(move || {
+                let history = home.history.lock().unwrap();
+                held.send(()).unwrap();
+                let workflows = root.lock().unwrap();
+                drop(workflows);
+                drop(history);
+            }));
+            wait_held.recv().unwrap();
+        }
+        home.clone()
+    };
+    let (guard, current, chat) = crate::workflow_selection::lock_root(&root, &context, &active).unwrap();
+    assert!(Arc::ptr_eq(&current, &home));
+    assert!(chat.is_none());
+    drop(guard);
+    reader.lock().unwrap().take().unwrap().join().unwrap();
+    // Root was given up once for the reader, and the check was made again.
+    assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 4);
+}

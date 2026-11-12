@@ -2095,7 +2095,7 @@ fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:St
     workflow_context_home(&state,&context)?;
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
     let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active())?;root.verify_library_context(&context)?;
     root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
     // WR SQ-D D-2: the opened library's drafts are listed at once.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
@@ -2159,7 +2159,7 @@ fn workflow_follow_newer_revision(state:State<'_,AppState>,selection_ref:String,
 #[tauri::command(async)]
 fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
     let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active())?;root.verify_library_context(&context)?;
     root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
     // The library is open either way; a listing that cannot run now says so in the list.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
@@ -2168,7 +2168,7 @@ fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selec
 #[tauri::command(async)]
 fn workflow_observe_drafts(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
     let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active())?;root.verify_library_context(&context)?;
     root.observe_drafts(&view["items"])
 }
 /// WR ME-1: explicitly refresh the opened library's file entries. No native
@@ -2287,8 +2287,8 @@ fn workflow_review_draft(state:State<'_,AppState>,name:String)->Result<Value,Str
 #[tauri::command]
 fn workflow_create_draft(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
     let home=workflow_context_home(&state,&context)?;
-    let mut root=state.workflows.lock().unwrap();
-    let chat=context.verify_home(&home)?;workflow_context_home(&state,&context)?;
+    let (mut root,current,chat)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active())?;
+    if !Arc::ptr_eq(&home,&current) {return Err("Workflow App home source changed; refresh the displayed choice".into());}
     root.verify_choice_context(&context,chat.as_ref())?;root.verify_library_context(&context)?;
     root.create_selected_draft(chat.as_ref(),&name)
 }
@@ -2401,7 +2401,9 @@ fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Val
     let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
     let view=crate::host_tick::receive_view(&home); // as workflow_end_run
     if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The successor target differs from the displayed workflow chat; nothing ended".into());}
-    let mut root=state.workflows.lock().unwrap();let chat=context.verify_home(&home)?.ok_or("Choose a workflow chat")?;workflow_context_home(&state,&context)?;root.verify_choice_context(&context,Some(&chat))?;
+    let (mut root,current,chat)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active())?;
+    if !Arc::ptr_eq(&home,&current) {return Err("Workflow App home source changed; refresh the displayed choice".into());}
+    let chat=chat.ok_or("Choose a workflow chat")?;root.verify_choice_context(&context,Some(&chat))?;
     let next=root.end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
     drop(root);
     let started=runtime_session::start_workflow_run(&state.workflows,&next);

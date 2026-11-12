@@ -4794,9 +4794,7 @@ impl WorkflowRootSession {
     ) -> Result<T, String> {
         let home = active_home();
         context.verify_home(&home)?;
-        let mut root = workflows.lock().unwrap();
-        let current = active_home();
-        context.verify_home(&current)?;
+        let (mut root, current, _) = crate::workflow_selection::lock_root(workflows, context, &active_home)?;
         if !std::sync::Arc::ptr_eq(&home, &current) {
             return Err("Workflow App home source changed; no library operation performed".into());
         }
