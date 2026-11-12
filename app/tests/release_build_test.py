@@ -448,6 +448,22 @@ class ReleaseBuild(unittest.TestCase):
         return args
 
 
+class InfoPlistKeys(unittest.TestCase):
+    """Of the same kind as round 4 finding 1: the App's Info.plist with a key twice is refused, not read as the last."""
+
+    def test_a_key_twice_is_refused(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app = Path(temp) / common.APP_NAME
+            (app / 'Contents').mkdir(parents=True)
+            raw = fx.info_plist(CFBundleIdentifier='com.example.other')
+            twice = raw.replace(b'<key>CFBundleName</key>', b'<key>CFBundleIdentifier</key><string>com.chirality.app</string><key>CFBundleName</key>')
+            (app / 'Contents/Info.plist').write_bytes(twice)
+            with self.assertRaises(ValueError):
+                common.read_info_plist(app)
+            (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
+            self.assertEqual(common.read_info_plist(app)[1]['CFBundleIdentifier'], 'com.chirality.app')
+
+
 class PrivateFolderGuard(unittest.TestCase):
     """The test-process guard of release_fixtures: a convention that helps keep the rule that no tool, test or
     agent of ours opens, lists or walks the private folder. It is not an enforcement; its limits are in its docstring.

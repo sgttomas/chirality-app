@@ -306,7 +306,7 @@ class PrivateWriter:
 
 def read_info_plist(app):
     raw = (Path(app) / 'Contents/Info.plist').read_bytes()
-    value = plistlib.loads(raw)
+    value = plistlib.loads(raw, dict_type=prepare.UniquePlistDict)  # a key twice is refused, never resolved to the last
     require(isinstance(value, dict), 'Info.plist is not a dictionary')
     return raw, value
 
