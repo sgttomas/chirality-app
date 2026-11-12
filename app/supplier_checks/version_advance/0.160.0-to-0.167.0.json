@@ -601,7 +601,7 @@
    {
     "path": "app/supplier_checks/version_advance/0.160.0-to-0.167.0.dispositions.json",
     "role": "dispositions",
-    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    "sha256": "dbc14c2b25c0202bb65c5d54ed43abe4ccd5398805897150cf802cfb2de0a8ee"
    }
   ]
  },
@@ -4701,13 +4701,7 @@
  },
  "to": "0.167.0",
  "verdict": {
-  "disposed_findings": [],
-  "dispositions": [],
-  "dispositions_naming_no_finding": [],
-  "reasons": [
-   "58 finding(s) without a disposition"
-  ],
-  "undisposed_findings": [
+  "disposed_findings": [
    "VA-041c82928a9b",
    "VA-0a2cb14a8acb",
    "VA-0a47561bb95a",
@@ -4767,6 +4761,417 @@
    "VA-f83b66242af8",
    "VA-fc55d5e5fafa"
   ],
-  "verdict": "returned for decision"
+  "dispositions": [
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "Account gains a gcp variant and an optional workspaceName. The App keeps the account type only for apiKey and chatgpt and redacts any other. Change: v2/Account (definition changed, reached by reference): /oneOf/1 removed; /oneOf/1 added; /oneOf/3 added.",
+    "finding": "VA-3ac3be9e60d4",
+    "group": "D",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: account/read: the App keeps the account type apiKey or chatgpt and redacts any other type: app/src-tauri/src/auth_rpc.rs:278-286; account/updated only invalidates the last reading: app/src-tauri/src/runtime_session.rs:206-211; no occurrence of planType, workspaceName or gcp outside tests MessagePhase: the App tests phase == final_answer and treats any other phase as not final: app/src-tauri/src/hosting_request_event_join.rs:458, app/src-tauri/src/connector_answer_only.rs:214; the view prints other phases as text: app/src/NativeActivity.tsx:216 MessagePhase is also reached through thread/resume history, which the App never sends (group E)"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "MessagePhase gains partial_answer. The App requires phase equal to final_answer, so a partial answer is treated as not final, the safe side; the activity view shows it by its raw name. Change: v2/MessagePhase (definition changed, reached by reference): /description changed; /oneOf/1 removed; /oneOf/1 added; /oneOf/2 added.",
+    "finding": "VA-dc2115d82aa7",
+    "group": "D",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: account/read: the App keeps the account type apiKey or chatgpt and redacts any other type: app/src-tauri/src/auth_rpc.rs:278-286; account/updated only invalidates the last reading: app/src-tauri/src/runtime_session.rs:206-211; no occurrence of planType, workspaceName or gcp outside tests MessagePhase: the App tests phase == final_answer and treats any other phase as not final: app/src-tauri/src/hosting_request_event_join.rs:458, app/src-tauri/src/connector_answer_only.rs:214; the view prints other phases as text: app/src/NativeActivity.tsx:216 MessagePhase is also reached through thread/resume history, which the App never sends (group E)"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. A new definition reached only through the image generation item, which the App renders generically and whose fields it does not read. Change: v2/ImageGenerationInputImage (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-d34ef1515e68",
+    "group": "G1",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: ThreadItem (carries the earlier imageGeneration and type-object findings): the App reads item id and type: app/src-tauri/src/native_items.rs:360-362; it renders imageGeneration through the generic branch: app/src/NativeActivity.tsx:268-270, and shows the raw item: :330; for subAgentActivity it reads agentThreadId, kind and agentPath, not model or reasoningEffort: app/src-tauri/src/native_history.rs:930-933, app/src-tauri/src/hosting_child_roles.rs:19-21; item-level times as in group C; no occurrence of generationId or inputImages outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. Carries the earlier decision on audio input (a file id as an alternative to a URL), which stands: the App sends text input only and reads no audio field. Change: v2/UserInput (definition changed, reached by reference): /oneOf/3/anyOf added; /oneOf/3/properties/url removed; /oneOf/3/required/1 removed.",
+    "finding": "VA-dfdddd5f6c55",
+    "group": "G2",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: UserInput (carries the earlier audio findings): the App sends text input only (as in group E) and shows received user messages' content through UserMessage: app/src/NativeActivity.tsx:214; no audio input or fileId reader outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. Carries the earlier decision on image generation items (fileId without result) and on ThreadItem being typed as an object, which stands, plus optional model and reasoningEffort on sub-agent activity items, generationId and inputImages, none of which the App reads; it renders image generation through its generic branch. Change: v2/ThreadItem (definition changed, reached by reference): /description added; /oneOf/11/properties/model added; /oneOf/11/properties/reasoningEffort added; /oneOf/15/anyOf added; /oneOf/15/description added; /oneOf/15/properties/generationId added; /oneOf/15/properties/inputImages added; /oneOf/15/properties/result removed; /oneOf/15/required/1 removed; /properties added; /type added.",
+    "finding": "VA-467da9abf223",
+    "group": "G1",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: ThreadItem (carries the earlier imageGeneration and type-object findings): the App reads item id and type: app/src-tauri/src/native_items.rs:360-362; it renders imageGeneration through the generic branch: app/src/NativeActivity.tsx:268-270, and shows the raw item: :330; for subAgentActivity it reads agentThreadId, kind and agentPath, not model or reasoningEffort: app/src-tauri/src/native_history.rs:930-933, app/src-tauri/src/hosting_child_roles.rs:19-21; item-level times as in group C; no occurrence of generationId or inputImages outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. Only a description changed. Change: v2/CyberAccessProgram (definition changed, reached by reference): /description changed.",
+    "finding": "VA-2fbf46528f63",
+    "group": "F",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: description is an annotation and does not change what validates; no occurrence of cyberAccessProgram in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ApplicationRequirements (definition changed, reached by reference): /properties/storage added.",
+    "finding": "VA-cc442c62f8dc",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ApplicationStorageRequirements (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-7e335b14416f",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/BrowserUseExtensionRequirements (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-8084ea37ff3d",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/BrowserUseRequirements (definition changed, reached by reference): /properties/extension added.",
+    "finding": "VA-26120bae5c96",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ConfigRequirements (definition changed, reached by reference): /properties/otel added.",
+    "finding": "VA-0a47561bb95a",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ConfigRequirementsReadResponse (definition changed, root): /properties/supportsIndependentSpeedModes added.",
+    "finding": "VA-187f6979bc52",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ManagedHooksRequirements (definition changed, reached by reference): /properties/PostModelRequest added; /properties/PreModelRequest added.",
+    "finding": "VA-d60cea38e9eb",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/NetworkRequirements (definition changed, reached by reference): /properties/domains/description changed; /properties/reviewDomains added; /properties/unixSockets/description changed.",
+    "finding": "VA-55811cd3d07e",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/OtelExporter (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-5f69c696c1d0",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/OtelHttpProtocol (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-041c82928a9b",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/OtelRequirements (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-b5f7ae164ec0",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/OtelTlsConfig (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-1afbdd96a8ab",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/OtelToolResultLogConfig (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-e103bef5fad5",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields of the configuration requirements it receives, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/RequestHeader (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-5b9e839475cd",
+    "group": "A",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: app/src-tauri/src/auth_rpc.rs:298 keeps only requirements.allowedLoginMethods from the result for its record app/src-tauri/src/auth_rpc.rs:395 reads requirements.cliAuthCredentialsStore app/src-tauri/src/access_provider.rs:1100 the request is sent with empty params no occurrence of otel, storage requirements, extension requirements, PreModelRequest, PostModelRequest, reviewDomains or supportsIndependentSpeedModes in app/src-tauri/src or app/src outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields on thread and turn results, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/MisalignmentErrorDetails (definition changed, reached by reference): /properties/reviewTarget added.",
+    "finding": "VA-5c054b240fba",
+    "group": "B",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: no occurrence of rootTurnId or reviewTarget in app/src-tauri/src or app/src outside tests readState occurs only as the App's own fields, unrelated to the supplier's: app/src-tauri/src/trace_receiving.rs:63 and app/src/App.tsx:1418 thread rows are built from named fields of the thread (id, name, preview ...): app/src-tauri/src/hosting.rs:2583"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields on thread and turn results, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ThreadListResponse (definition changed, root): /properties/readStates added.",
+    "finding": "VA-d99dc1d5b2a6",
+    "group": "B",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: no occurrence of rootTurnId or reviewTarget in app/src-tauri/src or app/src outside tests readState occurs only as the App's own fields, unrelated to the supplier's: app/src-tauri/src/trace_receiving.rs:63 and app/src/App.tsx:1418 thread rows are built from named fields of the thread (id, name, preview ...): app/src-tauri/src/hosting.rs:2583"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields on thread and turn results, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ThreadReadResponse (definition changed, root): /properties/readState added.",
+    "finding": "VA-111aef55fadd",
+    "group": "B",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: no occurrence of rootTurnId or reviewTarget in app/src-tauri/src or app/src outside tests readState occurs only as the App's own fields, unrelated to the supplier's: app/src-tauri/src/trace_receiving.rs:63 and app/src/App.tsx:1418 thread rows are built from named fields of the thread (id, name, preview ...): app/src-tauri/src/hosting.rs:2583"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields on thread and turn results, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ThreadReadState (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-bee2db9d27d9",
+    "group": "B",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: no occurrence of rootTurnId or reviewTarget in app/src-tauri/src or app/src outside tests readState occurs only as the App's own fields, unrelated to the supplier's: app/src-tauri/src/trace_receiving.rs:63 and app/src/App.tsx:1418 thread rows are built from named fields of the thread (id, name, preview ...): app/src-tauri/src/hosting.rs:2583"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields on thread and turn results, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/ThreadUnreadPosition (definition added, reached by reference): new definition, reached by reference.",
+    "finding": "VA-a42935aa4dd6",
+    "group": "B",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: no occurrence of rootTurnId or reviewTarget in app/src-tauri/src or app/src outside tests readState occurs only as the App's own fields, unrelated to the supplier's: app/src-tauri/src/trace_receiving.rs:63 and app/src/App.tsx:1418 thread rows are built from named fields of the thread (id, name, preview ...): app/src-tauri/src/hosting.rs:2583"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The App does not read the new fields on thread and turn results, validates received frames against the acting pin's own schema, and delivers received items natively. Change: v2/Turn (definition changed, reached by reference): /properties/rootTurnId added.",
+    "finding": "VA-831c937680de",
+    "group": "B",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: no occurrence of rootTurnId or reviewTarget in app/src-tauri/src or app/src outside tests readState occurs only as the App's own fields, unrelated to the supplier's: app/src-tauri/src/trace_receiving.rs:63 and app/src/App.tsx:1418 thread rows are built from named fields of the thread (id, name, preview ...): app/src-tauri/src/hosting.rs:2583"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: InitializeCapabilities (definition changed, reached by reference): /properties/requiredHumanApproval added.",
+    "finding": "VA-f749e5dac5f7",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/AdditionalContextEntry (definition changed, reached by reference): /properties/name added.",
+    "finding": "VA-796fd35170ef",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/ContentItem (definition changed, reached by reference): /oneOf/2/anyOf added; /oneOf/2/description added; /oneOf/2/properties/audio_url removed; /oneOf/2/required/0 removed; /oneOf/3/properties/annotations added; /oneOf/3/properties/logprobs added.",
+    "finding": "VA-e8c771a5c7ba",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/ResponseItem (definition changed, reached by reference): /oneOf/0 removed; /oneOf/3 removed; /oneOf/4 removed; /oneOf/5 removed; /oneOf/7 removed; /oneOf/10 removed; /oneOf/11 removed; /oneOf/0 added; /oneOf/1 added; /oneOf/4 added; /oneOf/5 added; /oneOf/6 added; /oneOf/8 added; /oneOf/11 added; /oneOf/12 added.",
+    "finding": "VA-d9f54c4adbb2",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/ThreadForkParams (definition changed, root): /properties/attachToSource added; /properties/experimentalDisablePredictionMcp added; /properties/experimentalPredictionMode added.",
+    "finding": "VA-f83b66242af8",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/ThreadListParams (definition changed, root): /properties/attachedToThreadId added; /properties/excludedThreadIds added.",
+    "finding": "VA-0a2cb14a8acb",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/TurnStartParams (definition changed, root): /properties/cyberAccessProgram/description changed; /properties/parentTurnId added; /properties/responsesapiClientMetadata/description changed; /properties/responsesapiClientMetadataPatch added; /properties/rootTurnId added.",
+    "finding": "VA-e10bed200ae7",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/TurnSteerParams (definition changed, root): /properties/responsesapiClientMetadata/description changed; /properties/responsesapiClientMetadataPatch added.",
+    "finding": "VA-d9851b0a2f09",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The change is to something the App sends, in a field or variant the App does not send. Change: v2/TurnToolOutput (definition changed, reached by reference): /properties/retain added.",
+    "finding": "VA-6b53e5672608",
+    "group": "E",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: turn/start and turn/steer are sent with threadId, input, and expectedTurnId and clientUserMessageId where applicable: app/src-tauri/src/hosting.rs:2703-2704; input is text items and prepared attachments: app/src-tauri/src/hosting.rs:2702, :3737 and app/src-tauri/src/attachments.rs:391; so no parentTurnId, rootTurnId, responsesapiClientMetadataPatch, additionalContext or tool outputs are sent thread/fork is sent with threadId and deferGoalContinuation (plus cwd on the local route): app/src-tauri/src/hosting.rs:2550, app/src-tauri/src/role_lifecycle.rs:593, app/src-tauri/src/access_provider.rs:1107 thread/list is sent with sortDirection and cursor only: app/src-tauri/src/native_history.rs:537-540 initialize declares exactly experimentalApi, requestAttestation and explicitGatewayOauth: app/src-tauri/src/hosting.rs:1793 thread/resume is sent as exactly threadId, excludeTurns and cwd, never with history: app/src-tauri/src/access_provider.rs:1110, app/src-tauri/src/hosting.rs:2495 ContentItem carries the earlier input_audio findings; the App sends no audio and reads no audio_url or file_id: no occurrence of input_audio, audio_url or file_id outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The error information changed form and gained values; nothing in the App names codexErrorInfo or those values. Change: v2/CodexErrorInfo (definition changed, reached by reference): /anyOf added; /oneOf removed.",
+    "finding": "VA-8ce4cd8e317f",
+    "group": "G3",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: CodexErrorInfo (oneOf became anyOf; new values modelNotFound and policyCapacityUnavailable; a new catch-all alternative of type string or object): no occurrence of codexErrorInfo, modelNotFound or policyCapacityUnavailable outside tests"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed nv04 notification item/completed: new key paths $.params.item.completedAtMs, $.params.item.startedAtMs.",
+    "finding": "VA-3d573781f4aa",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed nv04 notification item/started: new key paths $.params.item.completedAtMs, $.params.item.startedAtMs.",
+    "finding": "VA-e42768335ba9",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed nv04 notification turn/completed: new key paths $.params.turn.items[].completedAtMs, $.params.turn.items[].startedAtMs, $.params.turn.rootTurnId.",
+    "finding": "VA-4e041a73814e",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed nv04 notification turn/started: new key paths $.params.turn.rootTurnId.",
+    "finding": "VA-d5af994767a9",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed nv04 reply to turn/start: new key paths $.result.turn.rootTurnId.",
+    "finding": "VA-c745a7ba7958",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5 notification item/completed: new key paths $.params.item.completedAtMs, $.params.item.startedAtMs.",
+    "finding": "VA-dedb431a9ac8",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5 notification item/started: new key paths $.params.item.completedAtMs, $.params.item.startedAtMs.",
+    "finding": "VA-e7aa905698b0",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5 notification turn/started: new key paths $.params.turn.rootTurnId.",
+    "finding": "VA-29470a8fd881",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5 reply to thread/read: new key paths $.result.readState, $.result.readState.firstUnread, $.result.readState.revision, $.result.thread.turns[].items[].completedAtMs, $.result.thread.turns[].items[].startedAtMs, $.result.thread.turns[].rootTurnId.",
+    "finding": "VA-3cffc35b2389",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5 reply to thread/resume: new key paths $.result.thread.turns[].items[].completedAtMs, $.result.thread.turns[].items[].startedAtMs, $.result.thread.turns[].rootTurnId.",
+    "finding": "VA-a4c2216a193f",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5 reply to thread/turns/list: new key paths $.result.data[].items[].completedAtMs, $.result.data[].items[].startedAtMs, $.result.data[].rootTurnId.",
+    "finding": "VA-e0901bc42ce3",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5 reply to turn/start: new key paths $.result.turn.rootTurnId.",
+    "finding": "VA-7115b012ab3d",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5-race notification item/completed: new key paths $.params.item.completedAtMs, $.params.item.startedAtMs.",
+    "finding": "VA-5595982e1da6",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5-race notification item/started: new key paths $.params.item.completedAtMs, $.params.item.startedAtMs.",
+    "finding": "VA-bae3eedc28ad",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5-race notification turn/started: new key paths $.params.turn.rootTurnId.",
+    "finding": "VA-7f5d6a23eb08",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5-race reply to thread/read: new key paths $.result.readState, $.result.readState.firstUnread, $.result.readState.revision, $.result.thread.turns[].items[].completedAtMs, $.result.thread.turns[].items[].startedAtMs, $.result.thread.turns[].rootTurnId.",
+    "finding": "VA-fc55d5e5fafa",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5-race reply to thread/resume: new key paths $.result.thread.turns[].items[].completedAtMs, $.result.thread.turns[].items[].startedAtMs, $.result.thread.turns[].rootTurnId.",
+    "finding": "VA-a4b8017e7a35",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5-race reply to thread/turns/list: new key paths $.result.data[].items[].completedAtMs, $.result.data[].items[].startedAtMs, $.result.data[].rootTurnId.",
+    "finding": "VA-c5ddcbb4eb10",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "No consumer effect. The recorded frames carry new fields the App does not read; it reads the notification-level times that existed at 0.160.0. Change: recorded shape changed st5-race reply to turn/start: new key paths $.result.turn.rootTurnId.",
+    "finding": "VA-a5b3f06e52cb",
+    "group": "C",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: the App reads notification-level params.completedAtMs and params.startedAtMs, which existed at 0.160.0, not the new item-level fields: app/src-tauri/src/checkpoint_recorder.rs:450, :467 and app/src-tauri/src/hosting_request_event_join.rs:455 no occurrence of rootTurnId outside tests; readState as in group B"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "PlanType gains sci and sci_plus. Nothing in the App reads the plan type. Change: v2/PlanType (definition changed, reached by reference): /enum/17 added; /enum/18 added.",
+    "finding": "VA-360b324c7460",
+    "group": "D",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: account/read: the App keeps the account type apiKey or chatgpt and redacts any other type: app/src-tauri/src/auth_rpc.rs:278-286; account/updated only invalidates the last reading: app/src-tauri/src/runtime_session.rs:206-211; no occurrence of planType, workspaceName or gcp outside tests MessagePhase: the App tests phase == final_answer and treats any other phase as not final: app/src-tauri/src/hosting_request_event_join.rs:458, app/src-tauri/src/connector_answer_only.rs:214; the view prints other phases as text: app/src/NativeActivity.tsx:216 MessagePhase is also reached through thread/resume history, which the App never sends (group E)"
+   },
+   {
+    "decided_by": "App Agent 0 (decision of 2026-11-12)",
+    "decision": "The App refuses a humanCommand approval as unsupported and applies no ordinary command or session grant to it. The supplier's new approval kind is not adopted in 4.0.0. Change: CommandExecutionApprovalKind (definition changed, reached by reference): /enum removed; /oneOf added; /type removed.",
+    "finding": "VA-aeecd12b7334",
+    "group": "G4",
+    "where_recorded": "Decided by App Agent 0 on 2026-11-12 and recorded in pull request 234 of sgttomas/chirality-app. Made by reading the consumers at the lines cited, in app/src-tauri/src and app/src outside tests, at revision 4bb28164cdd372a715a1f5ff2094e3d28ac0bd81; a later change to those consumers is not covered by this disposition. Evidence: CommandExecutionApprovalKind (a plain enum became a oneOf of the old enum and humanCommand): the App refuses a humanCommand approval as unsupported and never applies an ordinary grant: app/src-tauri/src/native_requests.rs:389-397"
+   },
+   {
+    "decided_by": "owner (decision of 2026-11-09)",
+    "decision": "Codex 0.167 removed namespaceTools and the provider gate on tool namespaces. Delegation reads present when multiAgentVersion and the effective features.multi_agent allow it; a legacy namespaceTools echo is ignored. Change: v2/ModelProviderCapabilitiesReadResponse (definition changed, root): /properties/namespaceTools removed; /required/1 removed.",
+    "finding": "VA-7285d2da1dd8",
+    "group": "G5",
+    "where_recorded": "Git commit 7e2145b821ce5dd36d89ab0c80ebfe1bb76e176c (\"Read delegation as present at Codex 0.167 when model and configuration allow it\"); execution/PKG-01/DEL-01-01/Work/CODEX_0.167_UPGRADE.md as it stood at 8560ac2e^, section \"Generated protocol and consumer deltas\"; implemented in app/src-tauri/src/delegation_availability.rs. App Agent 0 confirmed on 2026-11-12 that the owner's decision stands for this change."
+   }
+  ],
+  "dispositions_naming_no_finding": [],
+  "reasons": [],
+  "undisposed_findings": [],
+  "verdict": "passed"
  }
 }
