@@ -12,6 +12,16 @@ impl Fixture {
         records_store::use_store_for_test(Some(Ok(store.clone())));
         Self {root,project,store}
     }
+    /// The store is given but not created, as before the App's start.
+    fn not_started() -> Self {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("fleet-reader-").unwrap());
+        let project = root.join("project");
+        std::fs::create_dir_all(&project).unwrap();
+        let store = records_store::Store {root:root.join("store"),placement:records_store::Placement::Test,limits:vec![]};
+        records_store::use_store_not_started_for_test(Some(Ok(store.clone())));
+        records_store::restore_configured_for_test(records_store::configured_for_test());
+        Self {root,project,store}
+    }
     fn attached(&self) -> PathBuf { records_store::attach(&self.project,true).unwrap().dir.unwrap() }
     fn project_log(&self) -> PathBuf { self.project.join(FOLDER).join(LOG) }
     fn put(&self, path: &Path, bytes: &[u8]) {
@@ -78,7 +88,7 @@ fn fleet_reader_native_adapter_full_response() {
 #[test]
 fn fleet_reader_never_initializes_an_absent_empty_or_unlinked_store() {
     for initialized in [false,true] {
-        let f=Fixture::new();
+        let f=Fixture::not_started();
         if initialized {std::fs::create_dir_all(&f.store.root).unwrap();}
         f.put(&f.project_log(),&f.row("fl:unlinked","fixture-status"));
         let before=inventory(&f.root);let view=f.read();

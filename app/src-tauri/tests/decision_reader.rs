@@ -37,8 +37,17 @@ fn claim(base: &Value, id: &str, alternative: &str) -> Value {
     a["body"]["relations"]["alternativeChosen"] = json!(alternative);
     a
 }
+/// The project's act logs in this installation's records store, where the
+/// App's writer keeps them; only acts there can decide a package.
+fn acts(root: &Path) -> std::path::PathBuf {
+    chirality_app_v4_lib::records_store::attach(root, true)
+        .unwrap()
+        .dir
+        .unwrap()
+        .join("acts")
+}
 fn write(root: &Path, name: &str, entries: &[Value]) {
-    let dir = root.join(".chirality/records/acts");
+    let dir = acts(root);
     std::fs::create_dir_all(&dir).unwrap();
     for e in entries {
         schema_validation::bundled().unwrap().validate(e).unwrap();
@@ -79,7 +88,7 @@ fn actual_ab_ba_unordered_claims_and_lapse_attribution_are_invariant() {
             &[if swap { a.clone() } else { b.clone() }],
         );
         write(&ws, "30-lapse", &[lapse(&a)]);
-        let before = std::fs::read(ws.join(".chirality/records/acts/10-first.jsonl")).unwrap();
+        let before = std::fs::read(acts(&ws).join("10-first.jsonl")).unwrap();
         let r = row(&ws);
         assert_eq!(r["state"], "ambiguous current standing");
         assert!(r["decision"].is_null());
@@ -100,7 +109,7 @@ fn actual_ab_ba_unordered_claims_and_lapse_attribution_are_invariant() {
             .contains("not verified"));
         assert_eq!(
             before,
-            std::fs::read(ws.join(".chirality/records/acts/10-first.jsonl")).unwrap()
+            std::fs::read(acts(&ws).join("10-first.jsonl")).unwrap()
         );
     }
 }
@@ -307,7 +316,7 @@ fn correction_without_reason_is_nonconformant_and_keeps_original() {
     correction["corrects"] = original["recordId"].clone();
     write(&ws, "10-original", &[original.clone()]);
     std::fs::write(
-        ws.join(".chirality/records/acts/20-invalid.jsonl"),
+        acts(&ws).join("20-invalid.jsonl"),
         serde_json::to_string(&correction).unwrap() + "\n",
     )
     .unwrap();
@@ -393,7 +402,7 @@ fn matching_forgeable_markers_in_different_logs_never_create_global_or_native_au
     }
     write(&ws, "10-a", &[a]);
     write(&ws, "20-b", &[b]);
-    let before = std::fs::read(ws.join(".chirality/records/acts/10-a.jsonl")).unwrap();
+    let before = std::fs::read(acts(&ws).join("10-a.jsonl")).unwrap();
     let r = row(&ws);
     assert_eq!(r["state"], "ambiguous current standing");
     assert!(r["decision"].is_null());
@@ -408,7 +417,7 @@ fn matching_forgeable_markers_in_different_logs_never_create_global_or_native_au
     assert!(!ws.join(".chirality/captures").exists());
     assert_eq!(
         before,
-        std::fs::read(ws.join(".chirality/records/acts/10-a.jsonl")).unwrap()
+        std::fs::read(acts(&ws).join("10-a.jsonl")).unwrap()
     );
 }
 #[test]

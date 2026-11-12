@@ -66,15 +66,12 @@ fn actual_general_log_chain_preserves_all_immutable_claims_and_connects_decision
         json!(["rec:synthetic:fix2"])
     );
     assert_eq!(v["claims"][0]["correctedBy"], json!(["rec:synthetic:fix"]));
+    // The decision view selects the records that bear on decision requests
+    // before relating them; general history is left to the general reader.
     let connected = derive(&root, &["general.jsonl".into()]);
-    assert_eq!(
-        connected["recordCorrections"]["claims"][0]["record"],
-        rows[0]
-    );
-    assert_eq!(
-        group(&connected["recordCorrections"], "rec:synthetic:original")["currentCandidates"],
-        json!(["rec:synthetic:fix2"])
-    );
+    assert_eq!(connected["readScope"]["entriesRead"], 3);
+    assert_eq!(connected["readScope"]["decisionRecords"], 0);
+    assert_eq!(connected["recordCorrections"]["claims"], json!([]));
     assert_eq!(std::fs::read(path).unwrap(), before);
 }
 #[test]

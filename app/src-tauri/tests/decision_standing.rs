@@ -197,12 +197,16 @@ fn historical_test_value_bytes_and_method_remain_unchanged() {
     let log = src.join("records/coordination.rs.jsonl");
     let before = std::fs::read(&log).unwrap();
     let view = derive(&src, &["records/coordination.rs.jsonl"]);
+    // Read in place from a project folder: the act is a project-file claim and
+    // decides nothing; the historical request identity is not relabelled.
+    assert!(view["rows"][0]["decision"].is_null());
+    assert_eq!(view["rows"][0]["claims"][0]["origin"], "project-file claim");
+    assert!(view["rows"][0]["limits"][0]
+        .as_str()
+        .unwrap()
+        .contains("historical identities are not relabelled"));
     assert_eq!(
-        view["rows"][0]["decision"]["lapse"],
-        "unknown (incomparable)"
-    );
-    assert_eq!(
-        view["rows"][0]["decision"]["standingComparison"]["bound"]["method"],
+        records::read_log(&log).0[2]["body"]["boundContent"][0]["method"],
         util::LEGACY_FILE_IDENTITY_METHOD
     );
     assert_eq!(std::fs::read(log).unwrap(), before);

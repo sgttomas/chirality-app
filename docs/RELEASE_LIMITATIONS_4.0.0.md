@@ -161,3 +161,27 @@ An entry is added in the same pull request that makes the limitation standing.
   resources they need and their licence notices, and point the agent at them
   in the conversation. The whole Library is not needed for this.
 - **Basis:** DEL-02-02 (AC-014, TBD-005); DEL-02-03 (the requirement check).
+
+### LIM-013: "Decided" rests on the App's records folder, not on a verified capture
+
+- **Id:** LIM-013
+- **Exit criteria:** 5, 15
+- **What is unavailable:** a check that a decision the App shows as decided
+  was captured at its own act control. A conforming act record in this
+  installation's project records subtree, outside imported parts, can make a
+  package read as decided and, where the decision is not lapsed, satisfy a
+  work item's decision need. The App does not verify that a record in that
+  folder was captured at its act control. So a record file placed in the App's
+  data folder by another program is not distinguished from the person's own
+  recorded act. An act record in the project folder, in an imported package,
+  or in a legacy-imported copy that the import account names is shown as a
+  claim and decides nothing.
+- **Why:** the decision view reads act records without resolving their
+  capture evidence or verifying its seal.
+- **What the person does instead:** the App's data folder is what the word
+  "decided" rests on, and a record placed there by anything other than the
+  App is not told apart from the App's own. Where a decision matters, decide
+  it at the App's act control and check that the row names the actor, the
+  alternative chosen and the capture time expected.
+- **Basis:** DEL-06-02 (Decision row; AC-004); DEL-04-03 (Record authority;
+  REQ-010); DEL-01-04 (the act control and its capture seal).

@@ -6,6 +6,7 @@ use super::*;
 use crate::records::{self, APP_WRITER};
 use crate::storage;
 use serde_json::json;
+use std::collections::BTreeMap;
 
 mod publication { include!("records_store_publication_tests.rs"); }
 
@@ -281,6 +282,110 @@ fn a_project_kept_in_another_store_and_an_unreadable_link_attach_nothing() {
     assert_eq!(std::fs::read(broken.join(PROJECT_LINK)).unwrap(), b"not json");
     assert!(listed(&roots(&opened().unwrap().0).unwrap(), broken.to_str().unwrap()).is_empty());
     let _ = (std::fs::remove_dir_all(&root), std::fs::remove_dir_all(&broken));
+}
+
+// ---- A read writes nothing ----
+
+/// Every entry below `dir`, with each file's bytes (a folder: None).
+fn tree(dir: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
+    let mut out = BTreeMap::new();
+    let mut todo = vec![dir.to_path_buf()];
+    while let Some(at) = todo.pop() {
+        for entry in std::fs::read_dir(&at).unwrap() {
+            let path = entry.unwrap().path();
+            if std::fs::symlink_metadata(&path).unwrap().is_dir() { out.insert(path.clone(), None); todo.push(path); }
+            else { out.insert(path.clone(), Some(std::fs::read(&path).unwrap())); }
+        }
+    }
+    out
+}
+/// The store's own readers, as the status view, the decision view, the
+/// records index and the package status reach them.
+fn read_everything(root: &Path) -> Vec<Result<(), String>> {
+    vec![
+        opened().map(|_| ()),
+        opened_existing().map(|_| ()),
+        attach(root, false).map(|_| ()),
+        home(root).map(|_| ()),
+        // Connector accounts of a folder with no link are read in place when
+        // there is no store: that is an answer only if it says so and names
+        // no store folder.
+        route_accounts_place(root, false).and_then(|place| if place.store_dir.is_some() { Ok(()) } else { Err(format!("no store root: {}", place.location)) }),
+        read_log_path(root).map(|_| ()),
+        store_root().map(|_| ()).ok_or_else(|| "no store root".to_string()),
+        (status(Some(root))["state"] == "available").then_some(()).ok_or_else(|| status(Some(root))["error"].to_string()),
+        storage::discover(root).map(|_| ()),
+    ]
+}
+
+#[test]
+fn a_read_of_a_store_that_does_not_exist_creates_nothing_and_says_so() {
+    let base = folder("unborn-base-");
+    let root = folder("unborn-project-");
+    let absent = base.join("store");
+    use_store_not_started_for_test(Some(Ok(Store { root: absent.clone(), placement: Placement::Override, limits: vec![] })));
+    for (index, outcome) in read_everything(&root).into_iter().enumerate() {
+        let refused = outcome.err().unwrap_or_else(|| panic!("reader {index} answered for a store that does not exist"));
+        assert!(refused.contains("not created yet") || refused.contains("no store root") || refused.contains("records store unavailable"), "{refused}");
+    }
+    assert!(!absent.exists(), "no reader created the store folder");
+    assert_eq!(status(None)["state"], "unavailable", "a store that could not be opened is never shown as available");
+    // An existing but empty folder: no identity and no bootstrap lock appear.
+    std::fs::create_dir(&absent).unwrap();
+    for outcome in read_everything(&root) { assert!(outcome.is_err()); }
+    assert!(tree(&absent).is_empty(), "{:?}", tree(&absent).keys());
+    assert!(tree(&root).is_empty(), "nothing written in the project either");
+    assert!(storage::read_all(&root).1.iter().any(|l| l.contains("not created yet")) || storage::read_all(&root).0.is_empty());
+    // The App's start, or a writer, creates it; then the same readers read it.
+    create_at_startup().unwrap();
+    assert!(absent.join("store.json").is_file());
+    assert!(opened().is_ok() && attach(&root, false).unwrap().how == "none");
+    use_store_for_test(None);
+    for p in [base, root] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn a_read_through_a_store_alias_redirected_mid_way_writes_nothing_and_never_follows_it() {
+    use std::os::unix::fs::symlink;
+    let base = folder("alias-base-");
+    let root = folder("alias-project-");
+    let (real, empty, alias) = (base.join("real"), base.join("empty"), base.join("alias"));
+    std::fs::create_dir(&real).unwrap();
+    std::fs::create_dir(&empty).unwrap();
+    symlink(&real, &alias).unwrap();
+    use_store_for_test(Some(Ok(Store { root: alias.clone(), placement: Placement::Override, limits: vec![] })));
+    records::append_project(&root, None, "writer:alias", "evidence_limit", &APP_WRITER, body("in the real store")).unwrap();
+    let (opened_root, store_id) = opened().unwrap();
+    assert_eq!(opened_root, real);
+    assert_eq!(storage::read_all(&root).0.len(), 1);
+    let before = tree(&real);
+    // Warm: this process opened the store. The alias now names an empty folder.
+    std::fs::remove_file(&alias).unwrap();
+    symlink(&empty, &alias).unwrap();
+    for outcome in read_everything(&root) { outcome.unwrap(); }
+    assert_eq!(opened().unwrap(), (real.clone(), store_id.clone()), "still bound to the physical store it opened");
+    assert_eq!(storage::read_all(&root).0.len(), 1, "and reads its records there");
+    assert!(tree(&empty).is_empty(), "nothing written through the redirected alias: {:?}", tree(&empty).keys());
+    // Cold: another process (no opened store) reads through the redirected
+    // alias. It finds no store there, refuses, and creates nothing.
+    use_store_not_started_for_test(Some(Ok(Store { root: alias.clone(), placement: Placement::Override, limits: vec![] })));
+    *OPENED.lock().unwrap() = None;
+    *ROOTS.lock().unwrap() = None;
+    for outcome in read_everything(&root) {
+        let refused = outcome.unwrap_err();
+        assert!(refused.contains("not created yet") || refused.contains("no store root"), "{refused}");
+    }
+    assert!(tree(&empty).is_empty(), "no identity, lock or folder created by a read: {:?}", tree(&empty).keys());
+    assert_eq!(status(Some(&root))["state"], "unavailable", "never shown as an empty, healthy store");
+    // The redirect is not healed by reading; nothing in the real store changed
+    // apart from what its own readers keep (compared file by file).
+    let after = tree(&real);
+    for (path, bytes) in &before { assert_eq!(after.get(path), Some(bytes), "{}", path.display()); }
+    let added: Vec<_> = after.keys().filter(|p| !before.contains_key(*p)).collect();
+    assert!(added.is_empty(), "files created in the store by reads: {added:?}");
+    use_store_for_test(None);
+    *OPENED.lock().unwrap() = None;
+    for p in [base, root] { let _ = std::fs::remove_dir_all(p); }
 }
 
 // ---- Existing records: explicit import ----

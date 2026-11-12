@@ -6,6 +6,9 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {loadSrc} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
+// The decision panel's cases run from this listed file, so that `npm test` and the hosted
+// steps run them without a change to the test script, whose bytes the notices basis pins.
+import './decision-packages-panel.test.mjs';
 const {FleetRecordsPanel,readFleetPacket}=loadSrc('FleetRecordsPanel');
 let packet;
 test('native selected-workspace adapter response is presented in full with provenance and limits',()=>{
@@ -89,7 +92,7 @@ test('actual native workspace reconstructs returns and waiting identically in se
   const html=renderToStaticMarkup(React.createElement(FleetRecordsPanel,{packet:{...packet,workspace:first},error:'',busy:false,refresh:()=>{}}));
   assert.match(html,/Fleet coordination workspace/);assert.match(html,/Current graph/);assert.match(html,/fl:graph/);
   assert.match(html,/Return-review queue/);assert.match(html,/Selected work and waiting causes/);
-  assert.match(html,/integration recorded/);assert.match(html,/Owner: executor/);assert.match(html,/current human-act standing/);
+  assert.match(html,/integration recorded/);assert.match(html,/Owner: executor/);assert.match(html,/decision rec:request: unknown/);
   assert.match(html,/Reconstruction limits/);assert.match(html,/no dispatch observed/);
 });
 
