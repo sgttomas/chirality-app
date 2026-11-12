@@ -3,6 +3,7 @@ import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { cleanTrialAnchor } from "./TrialComposer";
+import { GuideResult, type GuideOutcome } from "./RunJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackDoubtsFor, bringBackHeld, bringBackSendBlock, doubtDestination, endBringBack, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -217,8 +218,8 @@ function nextFor(draft: Json): { words: string; href: string; link: string } {
  * `workflow_observe_drafts`; trial, review and registration stay in the
  * existing draft list and review, where only the person's act registers.
  */
-export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation, findInHistory }: {
-  data: Json; host: Json; act: Act; busy: boolean; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
+export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPreparedMessage, showConversation, findInHistory, outcome }: {
+  data: Json; host: Json; act: Act; busy: boolean; outcome?: GuideOutcome | null; offerComposer: (threadKey: string, text: string) => void; openPreparedMessage?: (item: PreparedMessage) => void;
   showConversation?: (threadId: string, target?: string) => void; findInHistory?: (hint: string) => void;
 }) {
   // Continue <draft> moves the person to its current step once it is shown,
@@ -285,6 +286,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   return <section id="make-workflow" className="workflow-stage run-journey" aria-label="Make a workflow from your work" aria-busy={busy}>
     <h2>Make a workflow from your work</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {nextLine ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>
+    <GuideResult label="Make a workflow — last result" outcome={outcome} only={["workflow_open_project_library", "workflow_observe_drafts", "workflow_review_draft", "workflow_trial_prepare", "workflow_trial_bring_back"]}/>
     <ol className="run-journey-steps">
       <li><h3>Where you did the work</h3>
         {conversations.length ? <label>Conversation with the work <select value={conversation} disabled={!canAct} onChange={event => setConversation(event.target.value)}>
@@ -308,6 +310,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       </li>
       <li><h3>Find, try and register it</h3>
         <button disabled={!canAct || !active} onClick={() => { if (canAct && active) void act("workflow_observe_drafts", {}); }}>Look for drafts in this library</button>
+        {typeof data?.drafts?.limit === "string" && data.drafts.limit && <p role="note">The App couldn't read this library's drafts: {data.drafts.limit}</p>}
         {existingDraft && step ? (() => { const next = step; return <div className="run-journey-state" aria-label="Draft status">
           <p ref={draftStatus} tabIndex={-1} role="status" aria-label="Draft state"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}
