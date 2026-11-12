@@ -20,7 +20,9 @@ steps performed at the act control, and the preparation's
 journey must say: who operated it and by what means, what was done outside the
 App's controls, what the App's window did not give, what the examination could
 not perceive or operate, and any intervention. J1-4 and J2-7 carry planned
-parts that each keep their own outcome.
+parts that each keep their own outcome and need native evidence; J1-4, J1-5 and
+J2-7 name the observations their outcome rests on (the changed file, and the
+two byte comparisons for each run-start turn), each with its expected result.
 The invented inventory rows are input material for future substantive tool
 work and new-input reuse; no workflow is authored or registered by this tool.
 

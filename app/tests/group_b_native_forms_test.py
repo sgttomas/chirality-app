@@ -31,7 +31,12 @@ class NativeForms(unittest.TestCase):
         self.assertEqual([s['scenario'] for s in self.plan['scenarios'][3:]], ['J1', 'J2'])
         for scenario in self.plan['scenarios'][3:]:
             text = forms.generate(self.plan, scenario['scenario'])
-            table = [line for line in text.splitlines() if line.startswith('| ')]
+            steps_part, observations_part = text.split('## Required observations')
+            table = [line for line in steps_part.splitlines() if line.startswith('| ')]
+            self.assertEqual(forms.JOURNEY_COLUMNS[1], 'Outcome (pass, fail, blocked, not-run, inconclusive)')
+            observed = [line for line in observations_part.split('## Close')[0].splitlines() if line.startswith('| ')][1:]
+            self.assertEqual(observed, ['| ' + ' | '.join([s['step'], o['id'], o['kind'], o['expected']]) + ' | | | | |'
+                                        for s in scenario['steps'] for o in s.get('required_observations', [])])
             self.assertEqual(table[0], '| ' + ' | '.join(forms.JOURNEY_COLUMNS) + ' |')
             for column in ('Operator', 'Means', 'Outside the controls', 'Interface gaps', 'Examination limits', 'Interventions'):
                 self.assertTrue(any(c.startswith(column) for c in forms.JOURNEY_COLUMNS), column)

@@ -121,8 +121,16 @@ class StandalonePreparationTest(unittest.TestCase):
         self.assertIn('"Allow disk records" and "Require verified approval"', j2['steps'][6]['source_action_observation'][0])
         self.assertEqual([p['part'] for p in j1['steps'][3]['parts']], ['supplied-as-selected', 'changed-file-held'])
         self.assertNotIn('where the changed-file condition is arranged', j1['steps'][3]['source_action_observation'][0])
-        self.assertEqual({s['step']: s['outside_controls_required'] for s in j1['steps'] + j2['steps'] if 'outside_controls_required' in s},
-                         {'J1-4': ['preparation'], 'J1-5': ['independent_observation'], 'J2-7': ['independent_observation']})
+        self.assertEqual({s['step']: [(o['id'], o['kind'], o['expected']) for o in s['required_observations']]
+                          for s in j1['steps'] + j2['steps'] if 'required_observations' in s},
+                         {'J1-4': [('file-changed-after-selection', 'preparation', 'arranged')],
+                          'J1-5': [('run-turn-matches-run-text', 'independent_observation', 'equal'),
+                                   ('workflow-body-matches-stored-file', 'independent_observation', 'equal')],
+                          'J2-7': [(p + '/' + c, 'independent_observation', 'equal')
+                                   for p in ('allow-disk-records', 'require-verified-approval')
+                                   for c in ('run-turn-matches-run-text', 'workflow-body-matches-stored-file')]})
+        self.assertTrue(all(p['needs_native'] for s in j1['steps'] + j2['steps'] for p in s.get('parts', [])))
+        self.assertIn({'deliverable': 'DEL-02-02', 'criterion': 'AC-010'}, j1['steps'][2]['governing_criteria'])
         for index, step in ((4, j1['steps'][4]), (6, j2['steps'][6])):
             self.assertIn('two comparisons', step['source_action_observation'][1])
         self.assertIn('recorded under J1-5', j1['steps'][1]['source_action_observation'][0])
@@ -130,7 +138,9 @@ class StandalonePreparationTest(unittest.TestCase):
         self.assertIn({'deliverable': 'DEL-02-02', 'criterion': 'AC-009'}, j2['steps'][2]['governing_criteria'])
         self.rejects(lambda p: p['scenarios'][4]['steps'][6]['parts'].pop())
         self.rejects(lambda p: p['scenarios'][3]['steps'][3].pop('parts'))
-        self.rejects(lambda p: p['scenarios'][3]['steps'][4].pop('outside_controls_required'))
+        self.rejects(lambda p: p['scenarios'][3]['steps'][4].pop('required_observations'))
+        self.rejects(lambda p: p['scenarios'][4]['steps'][6]['parts'][1].update(needs_native=False))
+        self.rejects(lambda p: p['scenarios'][3]['steps'][4]['required_observations'][0].update(expected='differs'))
         self.rejects(lambda p: p['scenarios'][4]['steps'][4].pop('act_control'))
         self.rejects(lambda p: p['scenarios'][4]['steps'][6].update(session='first'))
         self.rejects(lambda p: p['scenarios'][3]['steps'][0]['governing_criteria'].pop())
@@ -146,6 +156,8 @@ class StandalonePreparationTest(unittest.TestCase):
         self.assertIn('examination_limits', need['step_operation'])
         self.assertIn('actor', need['step_operation']['interventions'])
         self.assertIn('attempted', need['basis_from'])
+        self.assertIn('SQ-R18', need['outcome_rule'])
+        self.assertEqual(need['step_operation']['observations']['status'], ['made', 'not_made'])
         self.assertEqual(need['basis'], ['person_observed', 'agent_operated', 'not_established'])
         self.assertIn('journey_operation', [item['id'] for item in self.plan['missing_inputs']])
         self.rejects(lambda p: p.pop('journey_record_requirements'))

@@ -162,7 +162,7 @@ def check(selection_path, expected):
     expected_steps = {(s['scenario'], st['step']): st for s in dossier['scenarios'] for st in s['steps'] if st['state'] == 'recorded'}
     require(set(mapped) == set(expected_steps), 'recorded step mapping mismatch')
     direct = set(mapped.values())
-    step_parts = {m['step']: m.get('parts', []) for steps in step_map['scenarios'].values() for m in steps}
+    step_defs = {m['step']: m for steps in step_map['scenarios'].values() for m in steps}
     candidate = selected['candidate']
     for key, slot in mapped.items():
         value = record(slot, 'result')
@@ -186,12 +186,11 @@ def check(selection_path, expected):
             if operation['means'] == 'not_through_app_controls':
                 # The result format has no way to say the step was not done through the App's controls.
                 unsupported.append('journey step not through the App controls: ' + slot)
-        planned = [p['part'] for p in step_parts.get(key[1], [])]
-        if planned:
-            # A planned part is carried with its own outcome; it cannot be left out or set aside.
-            require(sorted(p['part'] for p in value.get('parts', [])) == sorted(planned) and
-                    not {p['part'] for p in value.get('parts_not_applicable', [])} & set(planned),
-                    'planned journey parts missing or declared not applicable')
+        if key[0] in sq.JOURNEYS:
+            # SQ-R18 with the result: the stated outcome must be one the step's facts permit,
+            # judged against the step's definition, its planned parts and their native evidence.
+            require(st['outcome'] in sq.permitted_outcomes(step_defs.get(key[1]), st, value),
+                    'journey step outcome not permitted by its recorded facts (SQ-R18)')
         require(value['run_basis'] == 'candidate', 'direct result is not candidate basis')
         app = value['subject'].get('app_candidate', {})
         require(all(app.get(k) == candidate[k] for k in ('revision', 'build_identity')) and

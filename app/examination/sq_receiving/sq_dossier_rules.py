@@ -1,10 +1,14 @@
-"""SQ-v0.2 dossier rules a schema cannot express (SQ-R1 to SQ-R17).
+"""SQ-v0.2 dossier rules a schema cannot express (SQ-R1 to SQ-R13 and SQ-R18; SQ-R14 to SQ-R17 retired into SQ-R18).
 
 Call after schema validation, with the step map the dossier is read against.
 These inspect declared facts, not their truth.
 """
 SCENARIOS = ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12"]
 JOURNEYS = ["J1", "J2"]
+NATIVE = {"native_development", "native_packaged"}
+# The closed results of a required observation, by its kind; the first is the one a definition expects.
+OBSERVATION_RESULTS = {"preparation": ("arranged", "not_arranged"),
+                       "independent_observation": ("equal", "differs")}
 NOT_CLAIMED = {"joined_host_witness", "replacement", "public_release", "retirement",
                "professional_reliance", "practitioner_validation"}
 
@@ -116,22 +120,11 @@ def violations(d, step_map):
         # SQ-R13 the journey's basis is the one its attempted steps give (journey_basis)
         if s.get("basis") != journey_basis(tried):
             v.append("SQ-R13")
-        for st in tried:
-            op = st.get("operation", {})
-            # SQ-R14 a journey action not done through the App's controls is never a passed step
-            if op.get("means") == "not_through_app_controls" and st["outcome"] == "pass":
-                v.append("SQ-R14")
-            # SQ-R15 what the App's window did not give a user fails the step; it cannot pass
-            if op.get("interface_gaps") and st["outcome"] == "pass":
-                v.append("SQ-R15")
-            # SQ-R16 what the examination could not perceive or operate leaves the step unpassed
-            if op.get("examination_limits") and st["outcome"] == "pass":
-                v.append("SQ-R16")
-            # SQ-R17 a passed step lists each outside-the-controls kind its map requires (the
-            # preparation or independent observation the step's observation rests on)
-            need = set(ms.get(st["step"], {}).get("outside_controls_required", []))
-            if st["outcome"] == "pass" and need - {x["kind"] for x in op.get("outside_controls", [])}:
-                v.append("SQ-R17")
+        # SQ-R18 a recorded journey step states only an outcome its structured facts permit
+        # (permitted_outcomes; it retired SQ-R14 to SQ-R17)
+        for st in s["steps"]:
+            if st["state"] == "recorded" and st["outcome"] not in permitted_outcomes(ms.get(st["step"]), st):
+                v.append("SQ-R18")
     return sorted(set(v))
 
 
@@ -157,3 +150,73 @@ def journey_basis(tried):
     if ops and all(op and by_person_alone(op) for op in ops):
         return "person_observed"
     return "not_established"
+
+
+
+def permitted_outcomes(definition, step, result=None):
+    """SQ-R18: the outcomes a recorded J1 or J2 step may state, from its structured facts.
+
+    `definition` is the step's step-map entry, `step` the dossier step and `result` its EXP result
+    record where the caller has it (the receivers do; the dossier rules alone do not, and then the
+    planned parts are judged by the receivers). Everything that could waive a requirement is read
+    from the definition, never from what the recorder sets. Malformed facts permit nothing.
+
+    The checks guarantee that no stated outcome is accepted that the structured facts do not
+    permit, and no more. They do not judge prose.
+    """
+    attempted_outcomes = frozenset(ATTEMPTED)
+    if definition is None:
+        return frozenset()
+    planned = {p["part"]: p for p in definition.get("parts", [])}
+    if result is not None:
+        # Every planned part is carried with its own outcome, none set aside or marked not native.
+        parts = {p["part"]: p for p in result.get("parts", [])}
+        set_aside = {p["part"] for p in result.get("parts_not_applicable", [])}
+        if (set(parts) != set(planned) or len(parts) != len(result.get("parts", [])) or set_aside & set(planned)
+                or any(planned[n].get("needs_native") and parts[n].get("needs_native") is False for n in parts)):
+            return frozenset()
+    op = step.get("operation")
+    # 1. Not attempted: no one operated it.
+    if op is None:
+        return frozenset({"not-run"})
+    required = {o["id"]: o for o in definition.get("required_observations", [])}
+    recorded = {}
+    for o in op.get("observations", []):
+        defined = required.get(o["id"])
+        if defined is None or o["id"] in recorded:
+            return frozenset()
+        if o["status"] == "made" and o.get("result") not in OBSERVATION_RESULTS[defined["kind"]]:
+            return frozenset()
+        recorded[o["id"]] = o
+    contradicted = unresolved = False
+    for oid, defined in required.items():
+        o = recorded.get(oid)
+        if o is None or o["status"] != "made":
+            unresolved = True                       # not made: the step could not be evaluated
+        elif o["result"] != defined["expected"]:
+            if defined["kind"] == "independent_observation":
+                contradicted = True                 # made, and what the App did differs: not met
+            else:
+                unresolved = True                   # a preparation not arranged stops the step
+    if result is not None:
+        route = result["configuration"]["route"]["kind"]
+        for name, part in parts.items():
+            # EXP-R4's evidence rule, applied because the definition marks the part native
+            native = {e.get("route", route) for e in part.get("evidence", [])} & NATIVE
+            if part["outcome"] == "fail":
+                contradicted = True
+            elif part["outcome"] != "pass" or (planned[name].get("needs_native") and not native):
+                unresolved = True
+    # 2. An interface gap is an interface failure.
+    if op["interface_gaps"]:
+        return frozenset({"fail"})
+    # A contradicted observation or a failed part: evaluated and not met.
+    if contradicted:
+        return frozenset({"fail"})
+    # 3. An examination limit, or anything unresolved: stopped (blocked) or insufficient (inconclusive).
+    if op["examination_limits"] or unresolved:
+        return frozenset({"blocked", "inconclusive"})
+    # 4. Everything the definition requires holds; pass needs the App's own controls as well.
+    if op["means"] == "not_through_app_controls":
+        return attempted_outcomes - {"pass"}
+    return attempted_outcomes

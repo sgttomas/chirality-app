@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-09-02:standalone-dossier:0.2",
   "title": "Standalone qualification dossier (DEL-09-02 SQ-v0.2 §5; OUT-002; PROPOSED)",
-  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R17 in app/examination/sq_receiving/sq_dossier_rules.py.",
+  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R13 and SQ-R18 in app/examination/sq_receiving/sq_dossier_rules.py (SQ-R14…SQ-R17 retired into SQ-R18).",
   "type": "object",
   "required": ["record_kind", "format", "record_id", "support_revision", "case_definition", "candidate", "integration_owner", "examiner", "scenarios", "handoff", "currency", "date"],
   "additionalProperties": false,
@@ -138,18 +138,38 @@
     },
     "operation": {
       "type": "object",
-      "description": "Who operated a J1 or J2 step and by what means, kept apart from what was done outside the App's controls, from what the App's window did not give, and from what the examination itself could not perceive or operate. Present on a recorded J1 or J2 step whose outcome shows an attempt (pass, fail, blocked, inconclusive) and absent on a not-run or unrecorded step (SQ-R12). Blocked means attempted and stopped by a stated precondition or dependency (DEL-09-01), so a blocked step carries the operation of whoever began the attempt, by the means that attempt used, even when it stopped before any control was operated; a step that no one began is not run. These are the examiner's observations of the step as it was carried out, not a plan; only identities are declarations, as the actor or the session that ran the agent states them.",
-      "required": ["operator", "means", "outside_controls", "interface_gaps", "examination_limits", "interventions"],
+      "description": "Who operated a J1 or J2 step and by what means, kept apart from what was done outside the App's controls, from what the App's window did not give, and from what the examination itself could not perceive or operate. Present on a recorded J1 or J2 step whose outcome shows an attempt (pass, fail, blocked, inconclusive) and absent on a not-run or unrecorded step (SQ-R12). Blocked means attempted and stopped by a stated precondition or dependency (DEL-09-01), so a blocked step carries the operation of whoever began the attempt, by the means that attempt used, even when it stopped before any control was operated; a step that no one began is not run. These are the examiner's observations of the step as it was carried out, not a plan; only identities are declarations, as the actor or the session that ran the agent states them. The step's stated outcome is not an independent assertion: SQ-R18 (permitted_outcomes in sq_dossier_rules.py) permits only the outcomes these facts and the step's definition in the step map allow, and the receivers apply it again with the step's result record. The checks guarantee that no stated outcome is accepted that the structured facts do not permit, and no more. They do not judge prose: whether an intervention filed as kind other was really an explanation, whether a difficulty written in free text belongs in a list, whether the evidence referenced shows what it is said to show. Those are the independent reviewer's under DEL-09-02 VER-007, whose evaluation row says the record-format checks guard only against change. The checker is a guard, not the evidence.",
+      "required": ["operator", "means", "observations", "outside_controls", "interface_gaps", "examination_limits", "interventions"],
       "additionalProperties": false,
       "properties": {
         "operator": { "$ref": "#/$defs/actor" },
         "means": {
           "enum": ["app_controls_by_hand", "app_controls_by_computer_use", "not_through_app_controls"],
-          "description": "The App's shipped controls by the person's own hand; the App's shipped controls through harness computer use; or not through the App's controls, which cannot pass (SQ-R14)."
+          "description": "The App's shipped controls by the person's own hand; the App's shipped controls through harness computer use; or not through the App's controls, which cannot pass (SQ-R18)."
+        },
+        "observations": {
+          "type": "array",
+          "description": "Each required observation the step's definition names (step map required_observations), by identifier: made or not made, and when made its result from the closed set for its kind (a preparation: arranged or not_arranged; an independent observation: equal or differs) and a reference to its evidence. One missing is not made. A note may stand beside them; no check reads it.",
+          "items": {
+            "type": "object",
+            "required": ["id", "status"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "status": { "enum": ["made", "not_made"] },
+              "result": { "enum": ["arranged", "not_arranged", "equal", "differs"] },
+              "evidence": { "type": "string", "pattern": "\\S" },
+              "note": { "type": "string", "minLength": 1 }
+            },
+            "allOf": [
+              { "if": { "properties": { "status": { "const": "made" } } }, "then": { "required": ["result", "evidence"] } },
+              { "if": { "properties": { "status": { "const": "not_made" } } }, "then": { "not": { "required": ["result"] } } }
+            ]
+          }
         },
         "outside_controls": {
           "type": "array",
-          "description": "What was done outside the App's controls for this step, apart from the journey action; allowed for any operator. A passed step lists each kind its step map entry requires (SQ-R17).",
+          "description": "Anything else done outside the App's controls for this step, apart from the journey action and from its required observations; allowed for any operator. Free text: no check reads it.",
           "items": {
             "type": "object",
             "required": ["kind", "what"],
@@ -162,17 +182,17 @@
         },
         "interface_gaps": {
           "type": "array",
-          "description": "What the App's window did not give a user in this step: a term unexplained, a next action missing, a state unclear, an engineering record that had to be read. Empty when none. A step with any cannot pass (SQ-R15); it is an interface failure.",
+          "description": "What the App's window did not give a user in this step: a term unexplained, a next action missing, a state unclear, an engineering record that had to be read. Empty when none. A step with any is an interface failure and may state only fail (SQ-R18).",
           "items": { "type": "string", "minLength": 1 }
         },
         "examination_limits": {
           "type": "array",
-          "description": "What the operator or its tool could not perceive or operate in this step: a native dialog the tool cannot see, a control it cannot press, focus lost to another window. Empty when none. A step with any cannot pass (SQ-R16); it is not an interface failure, so the step is blocked (stopped by it) or inconclusive (its evidence left insufficient), not failed on that ground alone. An operator that cannot tell whether the App or the examination fell short lists it here and records the step inconclusive.",
+          "description": "What the operator or its tool could not perceive or operate in this step: a native dialog the tool cannot see, a control it cannot press, focus lost to another window. Empty when none. It is not an interface failure: with no interface gap, a step with any may state only blocked (stopped by it) or inconclusive (its evidence left insufficient), unless a required observation contradicted what was expected or a part failed, when it states fail (SQ-R18). An operator that cannot tell whether the App or the examination fell short lists it here and records the step inconclusive.",
           "items": { "type": "string", "minLength": 1 }
         },
         "interventions": {
           "type": "array",
-          "description": "Every intervention in the step by anyone other than its operator, with the role in which they acted (examiner, another agent, another person) and who they were (VER-009, VER-010). An agent that operated a control makes the journey agent-operated; anyone else who operated a control, or anyone who explained one, keeps it from being a person observed; an intervention of kind other changes no basis but stays listed (SQ-R13).",
+          "description": "Every intervention in the step by anyone other than its operator, with the role in which they acted (examiner, another agent, another person) and who they were (VER-009, VER-010). An agent that operated a control makes the journey agent-operated; anyone else who operated a control, or anyone who explained one, keeps it from being a person observed; an intervention of kind other, which is anything but operating or explaining a control, changes no basis but stays listed (SQ-R13).",
           "items": {
             "type": "object",
             "required": ["by", "actor", "kind", "what"],
@@ -180,7 +200,7 @@
             "properties": {
               "by": { "enum": ["examiner", "agent", "other_person"], "description": "The role in which the actor intervened; an examiner may be a person or an agent." },
               "actor": { "$ref": "#/$defs/actor" },
-              "kind": { "enum": ["operated_control", "explained_control", "other"] },
+              "kind": { "enum": ["operated_control", "explained_control", "other"], "description": "other excludes operating or explaining a control." },
               "what": { "type": "string", "minLength": 1 }
             },
             "allOf": [

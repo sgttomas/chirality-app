@@ -22,9 +22,9 @@
     "app/examination/admission/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
     "app/examination/support_identity/binding.canonical.v1.schema.json": "95ab4a2e79d49d2a269fa20c4be2d385b8693c1c3de18c40416dcfd433b8ea27",
     "app/examination/support_identity/publication-declaration.v1.json": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
-    "app/examination/sq_receiving/sq_dossier_rules.py": "0f309c1c68540adb36d746bc5792b35843d19f73e470d789601f04185be3556b",
-    "app/examination/sq_receiving/sq.dossier.schema.json": "1d9cd3137d8e6a40b7e8d4e461bbadb7af4cd27c119c28e057fcbb6ea9f3ac31",
-    "app/examination/sq_receiving/sq.step-map.json": "c77a38e387f6effe0b0d5827cf9c69fc5d159b8e6056234621eebdda3d80a41c",
+    "app/examination/sq_receiving/sq_dossier_rules.py": "7f90d8360d85765c051c99caae91eb179497679a4a86a680faac1945f69b6c1e",
+    "app/examination/sq_receiving/sq.dossier.schema.json": "2280c51e9794ad2f0878b5eca77667a588aeda735744cc5c709ceeaf9cc59783",
+    "app/examination/sq_receiving/sq.step-map.json": "10c84dc7c8c581d57a76b50ea92672086fcc06e97fc89ef40281e37b141f1476",
     "app/packaging/static_distribution/check.py": "745ef83c395c89c61ed87e3536129a7399f50565b5281caf93192462916e673a",
     "app/packaging/static_distribution/sources.json": "e419a89fbc5456e0aa2ad66c33b950d77e9e2a600ea58dd9835a1961a2a9a7dc",
     "app/packaging/successor/check.py": "368c0f556cba998c970148c4a7ad31ddd558aae621e190036a2cfd322d243ba3",
@@ -56,12 +56,12 @@
     "app/packaging/terms/terms-position.v1.schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
     "app/examination/package_receiving/sources.package-v1.json": "b6f755986a7c248b4e7f242c9768107321405a7617c92e41571ebb597200f162",
     "app/examination/package_receiving/adapter.py": "dd32097f5979c8eb11b7a3dc2baad120c31f5997f7eb2ecdcc959a1b9a721107",
-    "app/examination/sq_receiving/worker_packages.py": "3fa6cf08ccad372960811870b88259a2d8d8c42a35bc9ce2cee92b0d1b8fb8a4",
+    "app/examination/sq_receiving/worker_packages.py": "dfdb962a3c69b36c92e8c6e151a4833531fc50083a63686362563cc11442bb4e",
     "app/src-tauri/resources/distribution-successor/lifecycle-transitions.s1.json": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
   },
   "predecessor": {
     "path": "app/examination/sq_receiving/pins.terms-v1.json",
-    "sha256": "ea3e2de986eac0279e90122329b22c5fb0deae06044e749a95b52b76c36e449d"
+    "sha256": "8c074f3280a24d3ed4d3784496ec24858eaa2c7e95b6c779d32cec03f0835d9c"
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",

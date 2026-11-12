@@ -79,7 +79,7 @@ class SQDossierRules(unittest.TestCase):
                               ('DEL-01-04', 'AC-003'), ('DEL-02-03', 'AC-001')}, cited)
 
     def test_valid_dossiers_pass_schema_and_every_rule(self):
-        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-0%d' % n for n in range(1, 9)])
+        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-%02d' % n for n in range(1, 12)])
         for dossier in self.valid:
             with self.subTest(record=dossier['record_id']):
                 self.assertEqual([s['scenario'] for s in dossier['scenarios']],
@@ -94,7 +94,7 @@ class SQDossierRules(unittest.TestCase):
             for step in journey['steps']:
                 self.assertEqual(step['operation']['operator']['kind'], 'agent')
                 self.assertEqual(step['operation']['means'], 'app_controls_by_computer_use')
-        # Its J1-3 recorded what the App's window did not give, so it fails rather than passes (SQ-R15).
+        # Its J1-3 recorded what the App's window did not give, so it fails rather than passes (SQ-R18).
         j1 = next(s for s in dossier['scenarios'] if s['scenario'] == 'J1')
         self.assertEqual((j1['steps'][2]['outcome'], j1['outcome']), ('fail', 'fail'))
         self.assertTrue(j1['steps'][2]['operation']['interface_gaps'])
@@ -107,7 +107,7 @@ class SQDossierRules(unittest.TestCase):
         probe = copy.deepcopy(person)
         step = next(s for s in probe['scenarios'] if s['scenario'] == 'J2')['steps'][0]
         step['operation']['means'] = 'not_through_app_controls'
-        self.assertEqual(self.violations(probe), ['SQ-R13', 'SQ-R14'])
+        self.assertEqual(self.violations(probe), ['SQ-R13', 'SQ-R18'])
         step['outcome'] = 'blocked'
         next(s for s in probe['scenarios'] if s['scenario'] == 'J2').update(basis='not_established', outcome='blocked')
         self.assertEqual(self.violations(probe), [])
@@ -122,7 +122,7 @@ class SQDossierRules(unittest.TestCase):
         self.assertNotIn('operation', later)
         probe = copy.deepcopy(dossier)
         next(s for s in probe['scenarios'] if s['scenario'] == 'J2')['steps'][5]['outcome'] = 'pass'
-        self.assertIn('SQ-R16', self.violations(probe))
+        self.assertIn('SQ-R18', self.violations(probe))
         # A journey with no attempted step is not established, and stating otherwise is refused.
         planned = copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-01'))
         self.assertEqual({s['basis'] for s in planned['scenarios'] if s['scenario'] in self.rules.JOURNEYS}, {'not_established'})
@@ -176,15 +176,90 @@ class SQDossierRules(unittest.TestCase):
 
     def test_schema_valid_rule_violations_are_detected(self):
         self.assertEqual({item['rule'] for item in self.rule_violations},
-                         {'SQ-R%d' % n for n in range(1, 18)} - {'SQ-R10'})
+                         {'SQ-R%d' % n for n in range(1, 14)} - {'SQ-R10'} | {'SQ-R18'})
         for item in self.rule_violations:
             with self.subTest(record=item['record']['record_id'], rule=item['rule']):
                 self.assertEqual([e.message for e in self.validator.iter_errors(item['record'])], [])
                 self.assertIn(item['rule'], self.violations(item['record']))
-        # Each journey refusal shows its own rule alone.
+        # Each journey refusal shows its own rule alone. An operation on a step not attempted, or none on a
+        # step attempted, also leaves the stated outcome unpermitted, so SQ-R12 always comes with SQ-R18.
         for item in self.rule_violations:
-            if item['rule'] in ['SQ-R%d' % n for n in range(11, 18)]:
+            if item['rule'] in ('SQ-R11', 'SQ-R13', 'SQ-R18'):
                 self.assertEqual(self.violations(item['record']), [item['rule']], item['why'])
+            if item['rule'] == 'SQ-R12':
+                self.assertEqual(self.violations(item['record']), ['SQ-R12', 'SQ-R18'], item['why'])
+        self.assertFalse({'SQ-R14', 'SQ-R15', 'SQ-R16', 'SQ-R17'} & {i['rule'] for i in self.rule_violations})
+
+    def test_permitted_outcomes_over_a_table_of_cases(self):
+        allowed = self.rules.permitted_outcomes
+        J15 = next(s for s in self.journey_steps if s['step'] == 'J1-5')
+        J27 = next(s for s in self.journey_steps if s['step'] == 'J2-7')
+        J11 = next(s for s in self.journey_steps if s['step'] == 'J1-1')
+        def op(observations=(), gaps=(), limits=(), means='app_controls_by_hand'):
+            return {'operation': {'operator': {'kind': 'person', 'identity': 'T'}, 'means': means,
+                                  'observations': list(observations), 'outside_controls': [], 'interface_gaps': list(gaps),
+                                  'examination_limits': list(limits), 'interventions': []}}
+        def made(oid, result='equal'):
+            return {'id': oid, 'status': 'made', 'result': result, 'evidence': 'T'}
+        both = [made('run-turn-matches-run-text'), made('workflow-body-matches-stored-file')]
+        ALL, NOT_PASS, STOPPED = {'pass', 'fail', 'blocked', 'inconclusive'}, {'fail', 'blocked', 'inconclusive'}, {'blocked', 'inconclusive'}
+        def result(*parts):
+            return {'configuration': {'route': {'kind': 'native_development'}},
+                    'parts': [dict(part=n, expectation='T', outcome=o, needs_native=nn,
+                                   evidence=[{'ref': 'T', 'provenance': 'test_definition', 'route': r}] if r else [])
+                              for n, o, r, nn in parts]}
+        ADR, RVA = 'allow-disk-records', 'require-verified-approval'
+        j27_obs = [made(p + '/' + c) for p in (ADR, RVA) for c in ('run-turn-matches-run-text', 'workflow-body-matches-stored-file')]
+        cases = [
+            ('not attempted', J11, {}, None, {'not-run'}),
+            ('nothing required, controls', J11, op(), None, ALL),
+            ('not through the controls', J11, op(means='not_through_app_controls'), None, NOT_PASS),
+            ('interface gap', J11, op(gaps=['T']), None, {'fail'}),
+            ('interface gap and a limit', J11, op(gaps=['T'], limits=['T']), None, {'fail'}),
+            ('examination limit', J11, op(limits=['T']), None, STOPPED),
+            ('both comparisons equal', J15, op(both), None, ALL),
+            ('a comparison differs', J15, op([both[0], made('workflow-body-matches-stored-file', 'differs')]), None, {'fail'}),
+            ('a comparison differs beside a limit', J15, op([made('run-turn-matches-run-text', 'differs'), both[1]], limits=['T']), None, {'fail'}),
+            ('a comparison not made', J15, op([both[0], {'id': 'workflow-body-matches-stored-file', 'status': 'not_made'}]), None, STOPPED),
+            ('a comparison missing', J15, op(both[:1]), None, STOPPED),
+            ('an unknown observation', J15, op(both + [made('invented')]), None, set()),
+            ('a result outside its kind', J15, op([made('run-turn-matches-run-text', 'arranged'), both[1]]), None, set()),
+            ('J2-7 both parts native', J27, op(j27_obs), result((ADR, 'pass', 'native_development', True), (RVA, 'pass', 'native_packaged', True)), ALL),
+            ('J2-7 a part on replay only', J27, op(j27_obs), result((ADR, 'pass', 'seam_replay', True), (RVA, 'pass', 'native_development', True)), STOPPED),
+            ('J2-7 a part with no evidence', J27, op(j27_obs), result((ADR, 'pass', None, True), (RVA, 'pass', 'native_development', True)), STOPPED),
+            ('J2-7 a part marked not native', J27, op(j27_obs), result((ADR, 'pass', 'native_development', False), (RVA, 'pass', 'native_development', True)), set()),
+            ('J2-7 one part blocked', J27, op(j27_obs[:2]), result((ADR, 'pass', 'native_development', True), (RVA, 'blocked', None, True)), STOPPED),
+            ('J2-7 a part failed', J27, op(j27_obs), result((ADR, 'fail', 'native_development', True), (RVA, 'pass', 'native_development', True)), {'fail'}),
+            ('J2-7 a part missing', J27, op(j27_obs), result((ADR, 'pass', 'native_development', True)), set()),
+            ('J2-7 not run keeps its parts', J27, {}, result((ADR, 'not-run', None, True), (RVA, 'not-run', None, True)), {'not-run'}),
+            ('J2-7 not run without its parts', J27, {}, result((ADR, 'not-run', None, True)), set()),
+            ('no definition', None, op(), None, set()),
+        ]
+        for name, definition, step, res, expected in cases:
+            with self.subTest(case=name):
+                self.assertEqual(set(allowed(definition, step, res)), expected)
+
+    def test_the_dossier_rules_judge_journey_outcomes_through_the_one_function(self):
+        dossier = next(d for d in self.valid if d['record_id'] == 'SQ-EX-03')
+        original = self.rules.permitted_outcomes
+        self.rules.permitted_outcomes = lambda *args: frozenset()
+        try:
+            self.assertEqual(self.violations(dossier), ['SQ-R18'])
+        finally:
+            self.rules.permitted_outcomes = original
+        self.assertEqual(self.violations(dossier), [])
+
+    def test_new_examples_each_show_one_outcome_fact(self):
+        by = {d['record_id']: d for d in self.valid}
+        def step(record, name):
+            return next(st for s in by[record]['scenarios'] for st in s['steps'] if st['step'] == name)
+        self.assertEqual(step('SQ-EX-09', 'J1-5')['outcome'], 'fail')
+        self.assertEqual([o['result'] for o in step('SQ-EX-09', 'J1-5')['operation']['observations']], ['differs', 'equal'])
+        self.assertEqual(step('SQ-EX-10', 'J1-5')['outcome'], 'blocked')
+        self.assertEqual([o['status'] for o in step('SQ-EX-10', 'J1-5')['operation']['observations']], ['made', 'not_made'])
+        self.assertEqual(step('SQ-EX-11', 'J2-7')['outcome'], 'blocked')
+        self.assertEqual({o['id'].split('/')[0]: o['status'] for o in step('SQ-EX-11', 'J2-7')['operation']['observations']},
+                         {'allow-disk-records': 'made', 'require-verified-approval': 'not_made'})
 
     def test_paired_st4_probes_at_j2_are_not_masked(self):
         # Paired probes prevent another stimulus or rule failure from masking omission.

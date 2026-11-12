@@ -36,10 +36,24 @@ isolation or authenticated filesystem custody.
 A J1 or J2 step's result names its step and no scenario, since the result
 format admits only V4-EXM scenarios. Its native route method must name the
 operator the dossier records: person_operated for a person, ui_automation for
-an agent. A step recorded as not done through the App's controls is reported as
-an unsupported join, because the result format cannot say so. A step with
-planned parts must carry each in its result's parts, none declared not
-applicable. The report carries each journey's basis beside its outcomes.
+an agent. `selection_consistent` means the selected files agree with each other;
+a join the result format cannot express truthfully, such as a step recorded as
+not done through the App's controls, is reported through `coverage` as
+unsupported. The report carries each journey's basis beside its outcomes.
+
+A journey step's stated outcome is not an independent assertion. One function,
+`permitted_outcomes` in `sq_dossier_rules.py`, returns the outcomes a step's
+structured facts permit; the dossier rules call it as SQ-R18 and both workers
+call it again with the step's result record, so planned parts and their native
+evidence are judged from the step map's definition. SQ-R18 retired SQ-R14 to
+SQ-R17, whose numbers are not reused. The checks guarantee that no stated
+outcome is accepted that the structured facts do not permit, and no more. They
+do not judge prose: whether an intervention filed as kind other was really an
+explanation, whether a difficulty written in free text belongs in a list,
+whether the evidence referenced shows what it is said to show. Those are the
+independent reviewer's under DEL-09-02 VER-007, whose evaluation row says the
+record-format checks guard only against change. The checker is a guard, not
+the evidence.
 
 In a selection, `review.results` is an object
 mapping direct result slots to their full subject/configuration/criterion basis;

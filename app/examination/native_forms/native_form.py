@@ -72,7 +72,7 @@ def generate(plan, case, root=ROOT):
 
 
 JOURNEYS = ('J1', 'J2')
-JOURNEY_COLUMNS = ['Step', 'Time (local, with offset)',
+JOURNEY_COLUMNS = ['Step', 'Outcome (pass, fail, blocked, not-run, inconclusive)', 'Time (local, with offset)',
                    'Operator (person, or agent: provider, model, session)',
                    'Means (app_controls_by_hand, app_controls_by_computer_use, not_through_app_controls)',
                    'Journey action done', 'Observed',
@@ -104,6 +104,12 @@ def journey_form(plan, case, scenario, fingerprint):
     for s in scenario['steps']:
         lines.append('| ' + s['step'] + ' |' + blank)
         lines += ['| ' + s['step'] + ' part ' + p['part'] + ' |' + blank for p in s.get('parts', [])]
+    lines += ['', '## Required observations', '',
+              'Kind and expected result are the definition; status, result and evidence are blank until observed.', '',
+              '| Step | Observation | Kind | Expected | Status (made, not_made) | Result | Evidence reference | Note |',
+              '|---|---|---|---|---|---|---|---|']
+    lines += ['| ' + ' | '.join([s['step'], o['id'], o['kind'], o['expected']]) + ' | | | | |'
+              for s in scenario['steps'] for o in s.get('required_observations', [])]
     lines += ['', '## Close', '', '- Steps not reached and why: __________',
               '- Examiner statement that rows were written during the run, not reconstructed: __________', '',
               'The statement above is blank; generation does not attest contemporaneous recording.',
@@ -113,7 +119,8 @@ def journey_form(plan, case, scenario, fingerprint):
               'failed, not run or inconclusive. Preparation and independent observation are listed apart from the journey',
               "action. An interface gap (what the App's window did not give) fails the step; an examination limit (what",
               'the operator or its tool could not perceive or operate) leaves it blocked or inconclusive; an operator that',
-              'cannot tell which it was records inconclusive. Each planned part has its own row and outcome.',
+              'cannot tell which it was records inconclusive. Each planned part has its own row and outcome, and each',
+              'required observation its status, result and evidence. The outcome is the one these facts permit (SQ-R18).',
               'One step operated by an agent or through computer use, or in which an agent operated a control, makes the',
               'journey agent_operated; person_observed needs every attempted step operated by a person by their own hand',
               "through the App's shipped controls with no control operated or explained by anyone else.",
@@ -128,9 +135,9 @@ def journey_form(plan, case, scenario, fingerprint):
             lines.append('Session: ' + step['session'])
         if 'act_control' in step:
             lines.append('At the act control: ' + step['act_control'])
-        if 'outside_controls_required' in step:
-            lines.append('Required outside the controls: ' + ', '.join(step['outside_controls_required']))
-        lines += ['Planned part ' + p['part'] + ': ' + p['expectation'] for p in step.get('parts', [])]
+        lines += ['Planned part ' + p['part'] + ' (native evidence): ' + p['expectation'] for p in step.get('parts', [])]
+        lines += ['Required observation ' + o['id'] + ' (' + o['kind'] + ', expected ' + o['expected'] + '): ' + o['what']
+                  for o in step.get('required_observations', [])]
         lines += ['- ' + text for text in step['source_action_observation']]
         lines.append('')
     lines += ['Full prerequisites, record requirements and missing inputs remain in the source-bound preparation.',

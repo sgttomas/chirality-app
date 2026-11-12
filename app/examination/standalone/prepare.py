@@ -28,17 +28,25 @@ JOURNEY_RECORD_REQUIREMENTS = {
         'operator': {'kind': ['person', 'agent'], 'identity': 'required',
                      'agent_requires': ['provider', 'model', 'session']},
         'means': ['app_controls_by_hand', 'app_controls_by_computer_use', 'not_through_app_controls'],
+        'observations': {'status': ['made', 'not_made'],
+                         'result': {'preparation': ['arranged', 'not_arranged'],
+                                    'independent_observation': ['equal', 'differs']},
+                         'evidence': 'a reference, required when made'},
         'outside_controls': ['preparation', 'independent_observation'],
         'interface_gaps': "What the App's window did not give a user; empty when none; a step with any cannot pass.",
-        'examination_limits': 'What the operator or its tool could not perceive or operate; empty when none; a '
-                              'step with any cannot pass and is blocked or inconclusive, not failed on that ground '
-                              'alone; an operator that cannot tell which it was records inconclusive.',
+        'examination_limits': 'What the operator or its tool could not perceive or operate; empty when none; not '
+                              'an interface failure; an operator that cannot tell which it was records inconclusive.',
         'interventions': {'by': ['examiner', 'agent', 'other_person'], 'actor': 'person or agent, identified',
                           'kind': ['operated_control', 'explained_control', 'other']},
     },
     'not_through_app_controls_can_pass': False,
     'planned_parts': 'A step with planned parts records each part with its own outcome in its result; none is '
-                     'left out or declared not applicable, and the step passes only if every part passes.',
+                     'left out, declared not applicable or marked as not needing native evidence.',
+    'outcome_rule': 'SQ-R18: a step states only an outcome its structured facts permit. Not attempted: not-run. '
+                    'An interface gap: fail. A required observation that differs, or a failed part: fail. An '
+                    'examination limit, a required observation not made or a preparation not arranged, or a part '
+                    'not passed on native evidence: blocked or inconclusive. Otherwise pass, fail, blocked or '
+                    "inconclusive, and pass only through the App's controls.",
     'basis': ['person_observed', 'agent_operated', 'not_established'],
     'basis_from': 'attempted steps only; none attempted is not_established',
     'person_observed_only_when': "every attempted step was operated by a person by their own hand through the "

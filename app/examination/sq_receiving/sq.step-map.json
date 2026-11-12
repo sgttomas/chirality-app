@@ -655,6 +655,10 @@
      {
       "deliverable": "DEL-09-02",
       "criterion": "AC-009"
+     },
+     {
+      "deliverable": "DEL-02-02",
+      "criterion": "AC-010"
      }
     ],
     "stimuli": [],
@@ -682,15 +686,23 @@
     "parts": [
      {
       "part": "supplied-as-selected",
-      "expectation": "What the App shows as supplied; a file selected as an input is sent as selected"
+      "expectation": "What the App shows as supplied; a file selected as an input is sent as selected",
+      "needs_native": true
      },
      {
       "part": "changed-file-held",
-      "expectation": "A file selected as an input and changed between selection and sending is held and not sent"
+      "expectation": "A file selected as an input and changed between selection and sending is held and not sent",
+      "needs_native": true
      }
     ],
-    "outside_controls_required": [
-     "preparation"
+    "required_observations": [
+     {
+      "id": "file-changed-after-selection",
+      "part": "changed-file-held",
+      "kind": "preparation",
+      "what": "The file selected as an input is changed after selection and before sending, outside the App's controls",
+      "expected": "arranged"
+     }
     ]
    },
    {
@@ -725,8 +737,19 @@
     "stimuli": [],
     "counts": true,
     "act_control": "when_required",
-    "outside_controls_required": [
-     "independent_observation"
+    "required_observations": [
+     {
+      "id": "run-turn-matches-run-text",
+      "kind": "independent_observation",
+      "what": "The run-start turn the supplier's history returns, compared with the composed run text",
+      "expected": "equal"
+     },
+     {
+      "id": "workflow-body-matches-stored-file",
+      "kind": "independent_observation",
+      "what": "The composed run text's workflow body, compared with the stored workflow file",
+      "expected": "equal"
+     }
     ]
    },
    {
@@ -882,15 +905,44 @@
     "parts": [
      {
       "part": "allow-disk-records",
-      "expectation": "Under \"Allow disk records\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them"
+      "expectation": "Under \"Allow disk records\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them",
+      "needs_native": true
      },
      {
       "part": "require-verified-approval",
-      "expectation": "Under \"Require verified approval\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them"
+      "expectation": "Under \"Require verified approval\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them",
+      "needs_native": true
      }
     ],
-    "outside_controls_required": [
-     "independent_observation"
+    "required_observations": [
+     {
+      "id": "allow-disk-records/run-turn-matches-run-text",
+      "part": "allow-disk-records",
+      "kind": "independent_observation",
+      "what": "The run-start turn the supplier's history returns, compared with the composed run text, for the run under \"Allow disk records\"",
+      "expected": "equal"
+     },
+     {
+      "id": "allow-disk-records/workflow-body-matches-stored-file",
+      "part": "allow-disk-records",
+      "kind": "independent_observation",
+      "what": "The composed run text's workflow body, compared with the stored workflow file, for the run under \"Allow disk records\"",
+      "expected": "equal"
+     },
+     {
+      "id": "require-verified-approval/run-turn-matches-run-text",
+      "part": "require-verified-approval",
+      "kind": "independent_observation",
+      "what": "The run-start turn the supplier's history returns, compared with the composed run text, for the run under \"Require verified approval\"",
+      "expected": "equal"
+     },
+     {
+      "id": "require-verified-approval/workflow-body-matches-stored-file",
+      "part": "require-verified-approval",
+      "kind": "independent_observation",
+      "what": "The composed run text's workflow body, compared with the stored workflow file, for the run under \"Require verified approval\"",
+      "expected": "equal"
+     }
     ]
    }
   ]

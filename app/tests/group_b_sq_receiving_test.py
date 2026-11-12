@@ -185,7 +185,7 @@ class SQReceivingTests(unittest.TestCase):
         # A truthful blocked step operated by a person's own hand is received as consistent.
         st=self.jstep('J2-1');st['outcome']='blocked'
         st['operation']={'operator':{'kind':'person','identity':'INVENTED person operating'},'means':'app_controls_by_hand',
-                         'outside_controls':[],'interface_gaps':[],'examination_limits':[],'interventions':[]}
+                         'observations':[],'outside_controls':[],'interface_gaps':[],'examination_limits':[],'interventions':[]}
         j2=next(s for s in self.dossier['scenarios'] if s['scenario']=='J2');j2.update(outcome='blocked',basis='person_observed')
         v=self.value('result-J2-1');v['outcome']='blocked';v.pop('not_run_because');v['blocked_by']='INVENTED unmet prerequisite'
         self.schema_valid(v);self.save('result-J2-1',v)
@@ -209,21 +209,83 @@ class SQReceivingTests(unittest.TestCase):
         self.assertEqual(planned,['supplied-as-selected','changed-file-held'])
         self.assertEqual([p['part'] for p in self.value('result-J2-7')['parts']],['allow-disk-records','require-verified-approval'])
         v=self.value('result-J1-4');v['parts'].pop();self.schema_valid(v);self.save('result-J1-4',v)
-        self.refused('planned journey parts missing or declared not applicable')
+        self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
 
     def test_planned_part_cannot_be_declared_not_applicable(self):
         v=self.value('result-J2-7');gone=v['parts'].pop()
         v['parts_not_applicable']=[{'part':gone['part'],'reason':'INVENTED keychain protection unavailable','declared_in':{'case_definition':'INVENTED-SQ-CASE-DEFINITION','identity':'sha256:'+'0'*64}}]
         self.schema_valid(v);self.save('result-J2-7',v)
-        self.refused('planned journey parts missing or declared not applicable')
+        self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
 
     def test_a_blocked_part_cannot_yield_a_passed_step(self):
         st=self.jstep('J1-4');st['outcome']='pass'
-        st['operation']['outside_controls']=[{'kind':'preparation','what':'INVENTED selected file changed after selection'}]
+        st['operation']['observations']=[{'id':'file-changed-after-selection','status':'made','result':'arranged','evidence':'INVENTED changed file'}]
         v=self.value('result-J1-4');v['outcome']='pass';v.pop('blocked_by')
         v['parts'][0].update(outcome='pass');v['parts'][0].pop('blocked_by')
         self.schema_valid(v);self.save('result-J1-4',v)
         self.refused('EXP-R1')
+
+    def run_j2_7(self, route='native_development', needs_native=True, second='pass'):
+        # J2-7 attempted by a person's own hand: one run-start turn under each approval policy.
+        rules=self.consumer_rules()
+        st=self.jstep('J2-7');parts=['allow-disk-records','require-verified-approval']
+        observations=[]
+        for part in parts:
+            for check in ('run-turn-matches-run-text','workflow-body-matches-stored-file'):
+                made=part==parts[0] or second=='pass'
+                observations.append({'id':part+'/'+check,'status':'made','result':'equal','evidence':'INVENTED '+part+' '+check}
+                                    if made else {'id':part+'/'+check,'status':'not_made'})
+        v=self.value('result-J2-7');v.pop('not_run_because')
+        for part in v['parts']:
+            part.pop('not_run_because');part['needs_native']=needs_native
+            if needs_native is None: part.pop('needs_native')
+            if part['part']==parts[0] or second=='pass':
+                part.update(outcome='pass',evidence=[{'ref':'INVENTED run under '+part['part'],'provenance':'test_definition','route':route}])
+            else:
+                part.update(outcome='blocked',blocked_by='INVENTED keychain protection unavailable on this candidate')
+        v['outcome']=rules.aggregate([p['outcome'] for p in v['parts']])
+        if v['outcome']=='blocked': v['blocked_by']='INVENTED keychain protection unavailable on this candidate'
+        st.update(outcome=v['outcome'],operation={'operator':{'kind':'person','identity':'INVENTED person operating'},
+                  'means':'app_controls_by_hand','observations':observations,'outside_controls':[],'interface_gaps':[],
+                  'examination_limits':[],'interventions':[]})
+        j2=next(s for s in self.dossier['scenarios'] if s['scenario']=='J2')
+        j2.update(basis='person_observed',outcome=rules.aggregate([x['outcome'] for x in j2['steps']]))
+        self.schema_valid(v);self.save('result-J2-7',v)
+
+    def consumer_rules(self):
+        return module('sq_rules_for_receiving_test', APP/'examination/sq_receiving/sq_dossier_rules.py')
+
+    def test_j2_7_passed_on_native_evidence_is_received(self):
+        self.run_j2_7();r=self.check();self.assertTrue(r['selection_consistent'],r);self.assertEqual(r['coverage'],'complete')
+        self.assertEqual(r['reported_outcomes']['result-J2-7'],'pass')
+
+    def test_a_passed_part_without_native_evidence_is_refused(self):
+        # The result leaves needs_native unstated, so DEL-09-01's EXP-R4 is not engaged by the result;
+        # the definition's mark is what refuses (SQ-R18).
+        for kwargs in ({'route':'seam_replay','needs_native':None},{'route':'interface_webkit','needs_native':None},{'needs_native':False}):
+            with self.subTest(**kwargs):
+                self.setUp();self.run_j2_7(**kwargs)
+                self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
+        # Stated as needing native evidence, EXP-R4 refuses it first.
+        self.setUp();self.run_j2_7(route='seam_replay');self.refused('EXP-R4')
+        self.setUp();self.run_j2_7(needs_native=None)
+        v=self.value('result-J2-7')
+        for part in v['parts']: part['evidence']=[]
+        self.save('result-J2-7',v)
+        self.refused('journey step outcome not permitted by its recorded facts (SQ-R18)')
+
+    def test_one_policy_blocked_leaves_j2_7_blocked_and_not_passed(self):
+        self.run_j2_7(second='blocked');r=self.check();self.assertTrue(r['selection_consistent'],r)
+        self.assertEqual(r['reported_outcomes']['result-J2-7'],'blocked')
+        # The record cannot state pass: its result's parts aggregate to blocked (EXP-R1) and its facts permit no pass.
+        self.jstep('J2-7')['outcome']='pass';self.refused('outcome mismatch')
+
+    def test_both_receivers_and_the_dossier_rules_call_the_one_outcome_function(self):
+        import ast
+        for name in ('worker.py','worker_packages.py','sq_dossier_rules.py'):
+            tree=ast.parse((APP/'examination/sq_receiving'/name).read_text())
+            called={n.func.attr if isinstance(n.func,ast.Attribute) else getattr(n.func,'id',None) for n in ast.walk(tree) if isinstance(n,ast.Call)}
+            self.assertIn('permitted_outcomes',called,name)
 
     def test_dossier_without_a_journey_refused(self):
         slots={'result-'+st['step'] for s in self.dossier['scenarios'] if s['scenario']=='J2' for st in s['steps']}
