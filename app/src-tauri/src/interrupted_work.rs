@@ -23,6 +23,16 @@ use serde_json::{json, Value};
 
 const STANDING: &str = "Conversations of this home whose last record from the App session before this one is a turn in progress, how that session's end is recorded, and what the App's recovery reads of Codex's history said of that turn in this App process. Reading back resumes nothing and resends nothing.";
 
+/// The home a status reply is the status of, said in the reply itself: its
+/// mode class, the App-owned home code and the physical home (null where not
+/// established). The window shows a reading as a home's only when the reply,
+/// the active home and any running generation all name that same home.
+pub(crate) fn status_home(home: &HomeSession) -> Value {
+    json!({"modeHomeClass": home.class().as_str(),
+        "home": crate::stop_records::home_class(home.class().as_str()),
+        "physicalHome": home.host_config.as_ref().ok().map(crate::hosting::physical_home)})
+}
+
 /// The reading for `home`, the home `host_status` is the status of. Takes
 /// from under the Host lock only a handle on the held ledger entries, then
 /// one lookup per restart fact of this home; the ledger scan runs outside it.

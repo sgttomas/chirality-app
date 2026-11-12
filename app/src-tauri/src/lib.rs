@@ -738,6 +738,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // What the session before this one last recorded as a turn in progress in
     // this home, and what recovery read of it (interrupted_work.rs).
     s["interruptedWork"] = interrupted_work::read_home(&home);
+    s["statusHome"] = interrupted_work::status_home(&home);
     if let Err(e) = &home.host_config {
         s["configurationProblem"] = json!(e);
     }

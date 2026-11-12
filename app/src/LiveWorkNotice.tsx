@@ -1,3 +1,4 @@
+import { appHome } from "./CodexControls";
 import { answerable, hostRequests, requestThread } from "./RequestCards";
 import { conversationLabel } from "./presentation";
 type Json = any;
@@ -59,14 +60,32 @@ export function conversationStateSentence(state: ConversationState, name: string
 }
 
 /**
- * The entries of `interruptedWork` that are this home's: each must name the
- * App-owned home and the physical home the reading itself names. An entry of
- * any other home, or a reading with either identity missing, gives nothing.
+ * The home this status is established to be the status of, or null. The
+ * reply names its own home (`statusHome`); that must be the active home the
+ * routing reports and the App-owned home of that class, and, when a Codex
+ * generation is reported, the physical home that generation runs in. Any of
+ * them missing or disagreeing establishes no home.
+ */
+export function shownHome(host: Json): { home: string; physicalHome: string } | null {
+  const named = host?.statusHome;
+  if (typeof named?.modeHomeClass !== "string" || typeof named?.home !== "string" || typeof named?.physicalHome !== "string") return null;
+  if (host?.homeRouting?.activeModeHomeClass !== named.modeHomeClass || appHome(named.modeHomeClass) !== named.home) return null;
+  if (host?.generation != null && host.generation?.home !== named.physicalHome) return null;
+  return { home: named.home, physicalHome: named.physicalHome };
+}
+
+/**
+ * The entries of `interruptedWork` that are the shown home's: the reading
+ * and each entry must name the App-owned home and the physical home this
+ * status is established to be of. A reading of any other home, or shown
+ * beside a status whose home is not established, gives nothing: no outcome
+ * and no offer.
  */
 export function interruptedEntries(host: Json): Json[] {
+  const shown = shownHome(host);
   const work = host?.interruptedWork;
-  if (typeof work?.home !== "string" || typeof work?.physicalHome !== "string") return [];
-  return list(work.conversations).filter((entry: Json) => entry?.home === work.home && entry?.physicalHome === work.physicalHome && typeof entry?.threadId === "string");
+  if (!shown || work?.home !== shown.home || work?.physicalHome !== shown.physicalHome) return [];
+  return list(work.conversations).filter((entry: Json) => entry?.home === shown.home && entry?.physicalHome === shown.physicalHome && typeof entry?.threadId === "string");
 }
 
 /** A conversation loaded now in this home's current generation that is the entry's conversation, or undefined. */
@@ -96,7 +115,9 @@ export function interruptedTurnWords(turn: Json): string {
   let words: string;
   if (current?.reading === "read" && status) words = reported(status, false);
   else if (current?.reading === "not-in-history") words = "When the App read Codex's history, that turn was not in it; what became of it is unknown.";
-  else if (current?.reading === "not-read") words = "The App has not read that turn back from Codex.";
+  else if (current?.reading === "not-read") words = turn?.earlier || current.attempts > 0
+    ? "The latest recovery attempt has not completed a read of this turn."
+    : "The App has not read that turn back from Codex.";
   else if (current?.reading === "unavailable") words = `The App could not read it back from Codex${typeof current.reason === "string" && current.reason ? ` (${current.reason})` : ""}; what became of it is unknown.`;
   else if (current?.reading === "turn-not-named") words = "The App read the conversation back from Codex, but that read did not name this turn; what became of it is unknown.";
   else words = "What became of it is not established.";
@@ -136,8 +157,8 @@ export function LiveWorkNotice({ host, showConversation, findInHistory }: { host
   const live = current.map((thread: Json) => ({ thread, state: conversationState(host, thread) })).filter(row => row.state);
   const interrupted = interruptedEntries(host);
   if (live.length === 0 && interrupted.length === 0) return null;
-  return <section aria-label="Work in progress and interrupted work" role="status">
-    {live.length > 0 && <ul aria-label="Conversations with work in progress">{live.map(({ thread, state }) => <li key={String(thread.threadId)}>
+  return <section aria-label="Conversation status and interrupted work" role="status">
+    {live.length > 0 && <ul aria-label="Conversation status">{live.map(({ thread, state }) => <li key={String(thread.threadId)}>
       {conversationStateSentence(state, conversationLabel(host, thread))}{" "}
       {showConversation && <button onClick={() => showConversation(thread.threadId)}>Show it</button>}
     </li>)}</ul>}

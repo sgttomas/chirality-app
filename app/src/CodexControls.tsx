@@ -10,8 +10,9 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const text = (v: unknown) => (v === null || v === undefined ? "" : typeof v === "string" ? v : JSON.stringify(v));
 const list = (v: unknown): Json[] => (Array.isArray(v) ? v : []);
 
-/** The App-owned home (REC H-acct / H-key) for an ACCESS home class. */
-export const appHome = (cls: unknown): string | undefined => (cls === "account" ? "H-acct" : cls === "api-key" ? "H-key" : undefined);
+/** The App-owned home (REC H-acct / H-key / H-omlx) for an ACCESS home class. */
+export const appHome = (cls: unknown): string | undefined =>
+  (cls === "account" ? "H-acct" : cls === "api-key" ? "H-key" : cls === "local-provider" ? "H-omlx" : undefined);
 
 /** The App's stop label for a turn. First the newest stop-request record
  *  (REC SR, read back from the App ledger after a relaunch) for the turn in
@@ -78,8 +79,9 @@ export function StopOutcome({ outcome }: { outcome: Json }) {
 export function CodexProcessControls({ host, busy, act }: { host: Json; busy: boolean; act: (command: string, args: Record<string, unknown>) => void }) {
   const state = host?.state;
   const running = !!host?.generation && !!state && !["absent", "stopped", "refused", "stopping"].includes(state);
-  // The host accepts a start only when no Codex process of this home is held.
-  const startable = !state || ["absent", "stopped", "refused"].includes(state);
+  // The host accepts a start only when no Codex process of this home is held,
+  // and a start names its home: an unread state or an unresolved home offers none.
+  const startable = ["absent", "stopped", "refused"].includes(state) && typeof host?.homeRouting?.activeModeHomeClass === "string";
   const stops = host?.codexStops;
   const outcomes = list(stops?.outcomes);
   const latest = outcomes[outcomes.length - 1];

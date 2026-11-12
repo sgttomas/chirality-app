@@ -17,7 +17,8 @@ const outcome={action:'Stop Codex',state:'stopped',confirmedAt:'2026-10-10T00:00
   historyNote:'A turn still live at the stop: Codex may write into its history that the user interrupted the turn on purpose. That note comes from this stop.',
   records:"Recorded in the App's recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process; the stop still proceeds. The outcome panel itself is kept in this App process only.",start:null,conversations:null};
 const stops=outcomes=>({outcomes,stopWaitLimitSeconds:10,records:outcome.records});
-const render=(host,act=()=>{})=>renderToStaticMarkup(React.createElement(CodexProcessControls,{host,busy:false,act}));
+// A status names its active home; a host given here without one is given the account home.
+const render=(host,act=()=>{})=>renderToStaticMarkup(React.createElement(CodexProcessControls,{host:host&&{homeRouting:{activeModeHomeClass:'account'},...host},busy:false,act}));
 
 test('Stop and Restart ask first and are offered only while Codex runs',()=>{
   const ready=render({state:'ready',generation:g,codexStops:stops([])});
@@ -56,7 +57,7 @@ test('each host state offers exactly the controls the host accepts from it',()=>
   for(const state of STATES) for(const generation of [g,null]){
     const html=render({state,generation,codexStops:stops([])});
     const enabled=label=>new RegExp(`<button>${label}</button>`).test(html);
-    const start=state===undefined||['absent','stopped','refused'].includes(state);
+    const start=['absent','stopped','refused'].includes(state);
     const stop=!!generation&&!['absent','stopped','refused','stopping',undefined].includes(state);
     const at=`${state} ${generation?'with':'without'} a generation`;
     assert.equal(enabled('Start Codex'),start,`${at}: Start`);
@@ -64,6 +65,18 @@ test('each host state offers exactly the controls the host accepts from it',()=>
     assert.equal(enabled('Restart Codex…'),stop,`${at}: Restart`);
     assert.equal(exited.test(html),state==='exited-unexpectedly'&&!!generation,`${at}: the unexpected-exit sentence`);
     assert.equal(halted.test(html),state==='halted-after-repeated-failure'&&!!generation,`${at}: the failed-start sentence`);
+  }
+});
+
+// A start names its home and is accepted only from a known state: with the status not read, or
+// the active home not reported, no control is offered at all.
+test('Start Codex is not offered on an unread status or an unresolved home',()=>{
+  const none=html=>assert.equal((html.match(/disabled=""/g)??[]).length,3,html.slice(0,200));
+  none(render(null));none(render(undefined));none(render({codexStops:stops([])}));
+  for(const state of ['absent','stopped','refused']){
+    none(render({state,generation:null,homeRouting:undefined,codexStops:stops([])}));
+    none(render({state,generation:null,homeRouting:{},codexStops:stops([])}));
+    assert.match(render({state,generation:null,homeRouting:{activeModeHomeClass:'local-provider'},codexStops:stops([])}),/<button>Start Codex<\/button>/);
   }
 });
 
@@ -146,6 +159,13 @@ test('stop-request records label turns first and read back after a relaunch (REC
   // The ledger is App-wide: a row of the other home does not label this home's turn.
   assert.equal(stopLabel(undefined,'thread','t1',requests,appHome('account')).label,'interrupted by the person');
   assert.equal(stopLabel(undefined,'thread','t1',requests,appHome('api-key')),null);
+  // The local-provider home has its own App-owned code: its lookup is filtered like the others, so
+  // equal ids in another home never label its turn, and its own row does.
+  assert.equal(appHome('local-provider'),'H-omlx');
+  assert.equal(stopLabel(undefined,'thread','t1',requests,appHome('local-provider')),null,'the account home\u2019s row is not the local home\u2019s');
+  const localRows={...requests,records:requests.records.map(r=>({...r,home:'H-omlx'}))};
+  assert.equal(stopLabel(undefined,'thread','t1',localRows,appHome('local-provider')).label,'interrupted by the person');
+  assert.equal(stopLabel(undefined,'thread','t1',localRows,appHome('account')),null);
   assert.equal(appHome('other'),undefined);
 });
 // The App's pause of sends during Stop Codex, and the interrupt and selection

@@ -427,7 +427,8 @@ const LW=loadSrc('LiveWorkNotice');
 const G={appSession:'s2',home:'app-home:aaaa',spawnCounter:1};
 const lthread=(threadId,extra={})=>({generation:G,threadId,model:'m',...extra});
 const applied=status=>({status,statusSource:{method:'thread/status/changed',receiptPosition:9}});
-const lhost=(threads,extra={})=>({state:'ready',generation:G,threads,...extra});
+const HOME={modeHomeClass:'account',home:'H-acct',physicalHome:'app-home:aaaa'};
+const lhost=(threads,extra={})=>({state:'ready',generation:G,homeRouting:{activeModeHomeClass:'account'},statusHome:HOME,threads,...extra});
 const renderNotice=h=>renderToStaticMarkup(React.createElement(LW.LiveWorkNotice,{host:h,showConversation(){},findInHistory(){}}));
 const asks=(threadId,extra={})=>({generation:G,state:'outstanding',classification:'known-answerable',originClass:'codex',nativeParameters:{threadId},...extra});
 
@@ -462,7 +463,7 @@ test('a stopped or replaced Codex establishes no state',()=>{
 test('each state renders as one complete sentence with a way to show the conversation',()=>{
  const html=renderNotice(lhost([lthread('a',applied({type:'active',activeFlags:[]})),lthread('b',applied({type:'idle'})),lthread('c',applied({type:'systemError'})),
   lthread('d',applied({type:'active',activeFlags:['waitingOnUserInput']})),lthread('e',applied({type:'idle'}))],{serverRequests:[asks('e')]}));
- assert.match(html,/<section aria-label="Work in progress and interrupted work" role="status">/);
+ assert.match(html,/<section aria-label="Conversation status and interrupted work" role="status">/);
  assert.match(html,/<li>Conversation 1 · m is working\. <button>Show it<\/button><\/li>/);
  assert.match(html,/<li>Codex reported a system error in Conversation 3 · m\. <button>Show it<\/button><\/li>/);
  assert.match(html,/<li>Codex reports Conversation 4 · m is waiting for an approval or an answer; the request appears in the conversation once the App has received it\. <button>Show it<\/button><\/li>/);
@@ -502,7 +503,11 @@ test('the latest read is the current one; an earlier read stays an earlier read,
  assert.equal(W({current:{reading:'read',codexStatus:'inProgress'}}),'When the App read Codex\'s history, it listed that turn as in progress; whether it finished is unknown.');
  assert.equal(W({current:{reading:'not-in-history'}}),'When the App read Codex\'s history, that turn was not in it; what became of it is unknown.');
  assert.equal(W({current:{reading:'unavailable',reason:'Codex did not answer'}}),'The App could not read it back from Codex (Codex did not answer); what became of it is unknown.');
- assert.equal(W({current:{reading:'not-read',attempts:2}}),'The App has not read that turn back from Codex.');
+ // Attempts begun and none completed: said of the latest attempt, never "not read" beside an earlier read.
+ assert.equal(W({current:{reading:'not-read',attempts:2}}),'The latest recovery attempt has not completed a read of this turn.');
+ assert.equal(W({current:{reading:'not-read',attempts:0}}),'The App has not read that turn back from Codex.');
+ assert.equal(W({current:{reading:'not-read',attempts:2},earlier:{reading:'read',codexStatus:'completed'}}),
+  "The latest recovery attempt has not completed a read of this turn. An earlier read of Codex's history reported that turn as completed.");
  assert.equal(W({current:{reading:'turn-not-named'}}),'The App read the conversation back from Codex, but that read did not name this turn; what became of it is unknown.');
  // A later failed read after an earlier success.
  const later=W({current:{reading:'unavailable',attempt:2,reason:'no answer'},earlier:{reading:'read',codexStatus:'completed',attempt:1}});
@@ -536,11 +541,36 @@ test('two homes with equal conversation and turn ids: nothing of the other home 
  assert.match(html,/<strong>Conversation 1 · m<\/strong>.*could not read it back from Codex \(no answer\).*<button>Show it<\/button>/s);
  assert.doesNotMatch(html,/completed|failed/);
  assert.match(LW.interruptedTurnNote(mixed,G,'t','u'),/could not read it back from Codex \(no answer\)/);
- // A loaded conversation of another physical home is not this entry's conversation.
+ // A reading beside a generation of another physical home is not established to be the shown home's:
+ // no outcome, no label, and no History offer (which would search the home being shown).
  const elsewhere=lhost([{...loaded,generation:{...G,home:'app-home:bbbb'}}],{generation:{...G,home:'app-home:bbbb'},interruptedWork:work(own)});
- const apart=renderNotice(elsewhere);
- assert.match(apart,/a conversation \(<code>t<\/code>\)/);assert.match(apart,/<button>Find it in History<\/button>/);assert.doesNotMatch(apart,/Show it/);
+ assert.equal(renderNotice(elsewhere),'');
  assert.equal(LW.interruptedTurnNote(elsewhere,{...G,home:'app-home:bbbb'},'t','u'),null);
+ // The same for a status that names no home, names another class than the active home, or whose
+ // reading is another home's than the status says it is of.
+ for(const [why,extra] of [
+  ['the reply names no home',{statusHome:undefined}],
+  ['the reply names no physical home',{statusHome:{...HOME,physicalHome:null}}],
+  ['the active home is another class',{homeRouting:{activeModeHomeClass:'api-key'}}],
+  ['no active home is reported',{homeRouting:undefined}],
+  ['the reply\u2019s class and App-owned home disagree',{statusHome:{...HOME,home:'H-key'}}],
+  ['the status is the key home\u2019s and the reading the account home\u2019s',{homeRouting:{activeModeHomeClass:'api-key'},statusHome:{modeHomeClass:'api-key',home:'H-key',physicalHome:'app-home:aaaa'}}],
+ ]){
+  const odd=lhost([loaded],{interruptedWork:work(own),...extra});
+  assert.equal(LW.shownHome(odd)===null||LW.shownHome(odd).home!=='H-acct',true,why);
+  assert.equal(renderNotice(odd),'',why);assert.equal(LW.interruptedTurnNote(odd,G,'t','u'),null,why);
+ }
+ // Before Codex is started there is no generation: the reply's own home, agreeing with the active
+ // home, is what establishes it, and the conversation is offered in History, not shown as loaded.
+ const before=lhost([],{state:'absent',generation:null,interruptedWork:work(own)});
+ assert.deepEqual(LW.shownHome(before),{home:'H-acct',physicalHome:'app-home:aaaa'});
+ assert.match(renderNotice(before),/a conversation \(<code>t<\/code>\).*could not read it back from Codex \(no answer\).*<button>Find it in History<\/button>/s);
+ assert.doesNotMatch(renderNotice(before),/Show it/);
+ // The local-provider home is a home like the others.
+ const local=lhost([],{state:'absent',generation:null,homeRouting:{activeModeHomeClass:'local-provider'},statusHome:{modeHomeClass:'local-provider',home:'H-omlx',physicalHome:'app-home:cccc'},
+  interruptedWork:{home:'H-omlx',physicalHome:'app-home:cccc',conversations:[{...own,home:'H-omlx',physicalHome:'app-home:cccc'}]}});
+ assert.match(renderNotice(local),/could not read it back from Codex \(no answer\)/);
+ assert.equal(renderNotice({...local,interruptedWork:work(own)}),'','the account home\u2019s reading is not the local home\u2019s');
  // A reading that names no home shows nothing as this home's.
  assert.equal(renderNotice(lhost([loaded],{interruptedWork:{conversations:[own]}})),'');
  assert.deepEqual(LW.interruptedEntries(lhost([],{interruptedWork:{home:'H-acct',conversations:[own]}})),[]);

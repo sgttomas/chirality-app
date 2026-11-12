@@ -318,8 +318,10 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     let before = told(&relaunched);
     let physical = crate::hosting::physical_home(&f.cfg);
     assert_eq!((before["home"].as_str(), before["physicalHome"].as_str()), (Some("H-acct"), Some(physical.as_str())));
+    // The status reply names the same home as the home it is the status of.
+    assert_eq!(crate::interrupted_work::status_home(&relaunched), json!({"modeHomeClass":"account","home":"H-acct","physicalHome":physical}));
     assert_eq!(before["conversations"], json!([{"threadId":"thread","home":"H-acct","physicalHome":physical,"sourceGeneration":f.first,
-        "priorSession":restart[0]["priorSession"],"priorSessionEnd":"ended-without-record","lastRecordedState":"observation-lost","lostBeforeSessionEnd":"supplier-exit",
+        "priorSession":f.first["appSession"],"priorSessionEnd":"ended-without-record","lastRecordedState":"observation-lost","lostBeforeSessionEnd":"supplier-exit",
         "turns":[{"turnId":"turn-1","current":{"reading":"not-read","attempts":0}}]}]), "Codex ended before the App session did; the record says so: {before}");
     assert_eq!(crate::host_tick::recovery_tick_home(&relaunched), 3, "thread/read and two turn pages");
     let after = told(&relaunched)["conversations"][0]["turns"][0].clone();
@@ -478,17 +480,21 @@ fn an_unanswered_read_is_unavailable_and_a_retry_while_not_ready_waits_for_ready
 
 /// An earlier session's request that takes no transition here keeps the
 /// ledger's persistence reading (it is not taken into this process).
-/// The other order of the same relaunch: the App ends with Codex still
-/// running, so no loss reached the ledger before the session ended. The
-/// reading says what the ledger holds, a turn in progress, and states nothing
-/// about Codex having ended. (In the cv19 test above the loss row is waited
-/// for; without that wait either order can occur, and each reads as recorded.)
+/// The other order of the same relaunch, simulated: a ledger whose last record
+/// for the conversation is a turn in progress, as an App that ended with Codex
+/// still running would leave it. The reading says what the ledger holds and
+/// states nothing about Codex having ended. This is not a killed-App journey:
+/// the first session's Host and its stand-in Codex stay alive in this process,
+/// and only the reading of that ledger state is under test. (In the cv19 test
+/// above the loss row is waited for; without that wait either order can occur,
+/// and each reads as recorded.)
 #[test]
 fn cv19_relaunch_with_no_loss_recorded_reads_only_the_turn_last_recorded_in_progress() {
     let f = Fixture::new();
     f.live_work();
     f.until("the live turn in the ledger", || f.states().last().map(String::as_str) == Some("turn-live"));
-    // The App ends here, Codex running: that session writes nothing more.
+    // Stand-in for the App ending here with Codex running: the first session
+    // is left as it is and writes nothing more to the ledger in this test.
     let relaunched = Fixture::session(&f.root, &f.cfg);
     let told = crate::interrupted_work::read_home(&relaunched);
     let entry = &told["conversations"][0];
