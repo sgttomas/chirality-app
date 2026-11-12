@@ -699,7 +699,8 @@ fn prepare_inner(
     if root.canonicalize().map_err(|e| e.to_string())? != root {
         return Err("select the physical project folder".into());
     }
-    let (store, store_id) = opened()?;
+    // The person's import may be the first thing this installation records.
+    let (store, store_id) = created()?;
     require_native_actor(actor)?;
     identity::require_root(&store, root)?;
     let linked=match read_link(root){Link::Present{project,store}=>Some((project,store)),_ if restoring=>None,_=>return Err("package import requires this folder's existing readable project identity link; resolve its identity first".into())};
