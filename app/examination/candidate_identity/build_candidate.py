@@ -1,45 +1,46 @@
 #!/usr/bin/env python3
 """Build one unsigned debug development App candidate for identification (DEL-09-01).
 
-Exports a named revision into a new private output root and verifies the export;
-when given a supplier release package and its canonical distribution record,
-verifies the archive and extracts its tree for bundling; builds offline by the
-route in app/packaging/unsigned/README.md with a fresh development identifier;
-and writes the build facts that identify.py record consumes. It does not run the
-identification, launch, sign or download anything, and never executes the supplier.
+Exports a named revision, verifies the export, optionally verifies a supplier
+release package against its canonical distribution record and extracts it for
+bundling, builds offline by the route in app/packaging/unsigned/README.md with a
+fresh development identifier, and writes the build facts that identify.py
+record consumes. It does not run the identification, launch, sign or download,
+and does not execute the supplier.
 
-Its own writes go inside the caller's new output root: the root is created
-through a held descriptor of its checked parent and held open for the run, and
-each place the script writes is re-checked against it by device and inode, with
-no symlink on the way, immediately before it is written and at each step
-boundary. The build runs with a private HOME (npm's cache, logs and
-configuration inside it, update notifier off), a private CARGO_HOME, TMPDIR,
-CODEX_HOME and target. The caller's prepared offline caches (an npm cache and a
-cargo home) are read-only inputs copied into the root; the toolchain is reached
-through the node and Rust toolchain bin folders, never rustup's shims. The
-output root may not be, by identity, under the repository, /Applications,
-/Library, /System or the user's Library or Applications folders.
+What it guarantees:
+1. It writes into a new directory it creates, disjoint by filesystem identity
+   from its inputs (the repository, the npm cache and cargo home inputs, the
+   supplier archive and record, the node and Rust toolchain folders): no
+   existing ancestor of the output root is an input or inside one, and no input
+   is inside the output root.
+2. It accepts a build only when the bundle output folder holds exactly the
+   planned development bundle and that bundle passes validation against the
+   plan; otherwise it writes no build facts and prints nothing.
+3. A development bundle's identifier, names and file name are judged by one
+   rule shared with identification (identify.judge_development_bundle), which
+   refuses the release identity: com.chirality.app, the name Chirality and the
+   file name Chirality.app.
 
-The purpose of these checks is that a build cannot land in the wrong place by
-mistake, alias or a leftover link. They are not a filesystem snapshot or a
-hostile concurrent-writer isolation service: they do not confine npm, cargo or
-the Tauri command, a process that replaces a path while one of them runs can
-still redirect that tool's writes, and system tools that ignore HOME and TMPDIR
-are not covered. No operating-system write restriction is applied. Run it only
-in a location the caller controls.
+It also refuses known reserved locations as the output root (listed in
+RESERVED_LOCATIONS, not exhaustive), and it sets every writable location of the
+build tools' environment inside the output root (private HOME, npm cache, logs
+and configuration, CARGO_HOME, TMPDIR, CODEX_HOME, target), re-checking them by
+device and inode between steps. The npm cache and cargo home inputs are copied
+in and the build uses the copies; the toolchain is reached through its own bin
+folders.
 
-The finished build is accepted only after the bundle is validated against the
-plan (identifier, names, executable, packaged resources and the supplier
-entrypoint); otherwise no build facts are written and nothing is printed.
-
-The 4.0.0 package installs as Chirality.app with identifier com.chirality.app
-in place of the owner's v3.0.1, so a development build may only carry an
-identifier under dev.chirality.app-v4.candidate. and a product name of the form
-"Chirality App v4 (development <tag>)"; anything else refuses.
+Limit: these checks are not a filesystem snapshot or a hostile concurrent-writer
+isolation service. They do not confine npm, cargo or the Tauri command; a
+process that replaces a path while one of them runs can redirect that tool's
+writes, and system tools that ignore HOME and TMPDIR are not covered. No
+operating-system write restriction is applied. Run it only in a location the
+caller controls.
 """
 import argparse
 import contextlib
 from datetime import datetime, timezone
+from xml.parsers.expat import ExpatError
 import hashlib
 import json
 import os
@@ -64,26 +65,24 @@ import identify  # noqa: E402
 DEV_OVERLAY = 'packaging/unsigned/tauri.development.conf.json'
 INSTALL = ['npm', 'install', '--offline', '--no-audit', '--no-fund', '--ignore-scripts']
 LOCKFILES = ('app/package-lock.json', 'app/src-tauri/Cargo.lock')
-PASSED = ('LANG', 'LC_ALL', 'USER', 'LOGNAME')  # never signing variables, never the caller's home or caches
+PASSED = ('LANG', 'LC_ALL', 'USER', 'LOGNAME')  # carried from the caller; no signing variables, home or cache locations
 SYSTEM_PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
-FORBIDDEN = ('/Applications', '/Library', '/System')
+RESERVED_LOCATIONS = ('/Applications', '/Library', '/System')  # a courtesy list, not exhaustive; plus each home's Library and Applications
 INPUTS = ('node_bin', 'rust_bin', 'npm_cache', 'cargo_home')
 WRITABLE_FILES = ('NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG')
 WRITABLE = ('HOME', 'TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'CODEX_HOME',
             'NPM_CONFIG_CACHE', 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR') + WRITABLE_FILES
 TAG = re.compile(r'[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*')  # no dots, spaces or parentheses
 PREFIX = 'dev.chirality.app-v4.candidate.'
-RELEASED = ('com.chirality.app', 'Chirality')  # the 4.0.0 package's identifier and product name
 
 
-def check_names(identifier, product):
-    """Refuse anything that could collide with the installed release App."""
-    tag = identifier[len(PREFIX):] if identifier.startswith(PREFIX) else ''
-    if not TAG.fullmatch(tag) or identifier.lower() == RELEASED[0]:
-        raise ValueError('development identifier must be ' + PREFIX + '<tag>: ' + repr(identifier))
-    if product.strip().lower() in (RELEASED[1].lower(), RELEASED[1].lower() + '.app') \
-            or product != f'Chirality App v4 (development {tag})':
-        raise ValueError('development product name must be "Chirality App v4 (development <tag>)": ' + repr(product))
+def planned_names(tag):
+    """The identifier and product name this script plans; judged by identification's shared rule."""
+    if not isinstance(tag, str) or not TAG.fullmatch(tag):
+        raise ValueError('tag must be letters and digits, optionally joined by single hyphens')
+    identifier, product = PREFIX + tag, f'Chirality App v4 (development {tag})'
+    identify.judge_development_bundle(identifier, product + '.app', (product, product))
+    return identifier, product
 
 
 def sha(data):
@@ -105,29 +104,54 @@ def _ancestry(path):
     return [(_ident(p), p) for p in (path, *path.parents)]
 
 
-def _forbidden(repo_top):
+def reserved_locations():
     homes = sorted({os.path.expanduser('~'), pwd.getpwuid(os.getuid()).pw_dir})
-    found = {}
-    for place in (repo_top, *FORBIDDEN, *(os.path.join(h, n) for h in homes for n in ('Library', 'Applications'))):
-        with contextlib.suppress(FileNotFoundError):
-            found.setdefault(_ident(place), place)
-    return found
+    return [*RESERVED_LOCATIONS, *(os.path.join(h, n) for h in homes for n in ('Library', 'Applications'))]
 
 
-def output_root(out, repo_top):
-    """A new path whose ancestry has no symlink and, by identity, no forbidden place."""
+def refuse_reserved(root, chain):
+    """Courtesy refusal of known locations (listed, not exhaustive), whether or not each exists yet."""
+    ancestors = {ident for ident, _ in chain}
+    planned = os.path.normpath(str(root)).lower()
+    for place in reserved_locations():
+        try:
+            matched = _ident(place) in ancestors
+        except FileNotFoundError:  # not there yet: compare the normalised path, case-insensitively
+            listed = os.path.normpath(place).lower()
+            matched = planned == listed or planned.startswith(listed + '/')
+        if matched:
+            raise ValueError(f'output root is inside the reserved location {place} (a listed location; the list is not exhaustive)')
+
+
+def disjoint(root, inputs, chain, root_id=None):
+    """Invariant 1: the output root and every input are disjoint by filesystem identity, in both directions."""
+    ancestors = {ident for ident, _ in chain}
+    root = Path(root)
+    root_ids = {tuple(root_id)} if root_id else ({_ident(root)} if os.path.lexists(root) else set())
+    for name, path in inputs.items():
+        real = os.path.realpath(path)
+        if _ident(real) in ancestors:
+            raise ValueError(f'output root is inside the {name} input: {path}')
+        if root == Path(real) or root in Path(real).parents or root_ids & {ident for ident, _ in _ancestry(real)}:
+            raise ValueError(f'the {name} input is inside the output root: {path}')
+
+
+def output_root(out, inputs):
+    """A new path whose ancestry has no symlink, disjoint from the inputs and outside the reserved list."""
     root = Path(os.path.abspath(out))
     for ancestor in reversed(root.parents):
         if os.path.islink(ancestor):
             raise ValueError('symlink in output root ancestry: ' + str(ancestor))
+    deepest = root
+    while not os.path.lexists(deepest):
+        deepest = deepest.parent
+    chain = _ancestry(deepest)
+    refuse_reserved(root, chain)
+    disjoint(root, inputs, chain)
     if os.path.lexists(root):
         raise ValueError('output root already exists: ' + str(root))
     if not root.parent.is_dir():
         raise ValueError('output root parent is not a directory: ' + str(root.parent))
-    forbidden = _forbidden(repo_top)
-    for ident, place in _ancestry(root.parent):
-        if ident in forbidden:
-            raise ValueError(f'output root is inside {forbidden[ident]} (reached as {place})')
     return root
 
 
@@ -193,7 +217,7 @@ DEFAULTS = {
 
 
 def default_inputs(environ, keys=INPUTS):
-    """Defaults for the named inputs only: toolchain folders and standard offline caches, found without running anything."""
+    """Defaults for the named inputs: toolchain folders and standard offline caches, found without running anything."""
     home = environ.get('HOME') or os.path.expanduser('~')
     return {key: DEFAULTS[key](environ, home) for key in keys}
 
@@ -223,13 +247,14 @@ def plan(repo, revision, out, supplier_archive=None, supplier_record=None, tag=N
     repo = Path(os.path.abspath(repo))
     top = identify.git(repo, 'rev-parse', '--show-toplevel').decode().strip()
     commit = identify.git(repo, 'rev-parse', '--verify', revision + '^{commit}').decode().strip()
-    root = output_root(out, top)
+    input_paths = {'repository': top, 'npm cache': inputs['npm_cache'], 'cargo home': inputs['cargo_home'],
+                   'node toolchain': inputs['node_bin'], 'Rust toolchain': inputs['rust_bin']}
+    if supplier_archive:
+        input_paths.update({'supplier archive': os.path.abspath(supplier_archive),
+                            'supplier record': os.path.abspath(supplier_record)})
+    root = output_root(out, input_paths)
     tag = tag or f"{(today or datetime.now(timezone.utc)):%Y%m%d}-{commit[:8]}-{secrets.token_hex(3)}"
-    if not isinstance(tag, str) or not TAG.fullmatch(tag):
-        raise ValueError('tag must be letters and digits, optionally joined by single hyphens')
-    identifier = PREFIX + tag
-    product = f'Chirality App v4 (development {tag})'
-    check_names(identifier, product)
+    identifier, product = planned_names(tag)
     overlay = {'identifier': identifier, 'productName': product}
     supplier = None
     if supplier_archive:
@@ -250,7 +275,7 @@ def plan(repo, revision, out, supplier_archive=None, supplier_record=None, tag=N
              '--features', 'custom-protocol', '--config', DEV_OVERLAY, '--config', str(overlay_path),
              '--', '--offline', '--locked']
     return {'repo': str(repo), 'commit': commit, 'root': str(root), 'parent_id': list(_ident(root.parent)),
-            'repo_top': top, 'source': str(root / 'source'),
+            'input_paths': input_paths, 'source': str(root / 'source'),
             'tag': tag, 'identifier': identifier, 'product': product, 'supplier': supplier, 'inputs': inputs,
             'overlay': overlay, 'overlay_bytes': json.dumps(overlay, indent=2).encode() + b'\n',
             'overlay_path': str(overlay_path), 'env': env, 'install': INSTALL, 'build': build,
@@ -291,7 +316,7 @@ def export(repo, commit, source):
 
 
 def copy_input(source, target, root, root_id):
-    """A writable copy (clone where the filesystem offers it) of a read-only input; links refuse."""
+    """A writable copy (clone where the filesystem offers it) of an input; links refuse."""
     contained(root, root_id, target)
     if subprocess.run(['cp', '-c', '-R', str(source), str(target)], capture_output=True).returncode:
         shutil.rmtree(target, ignore_errors=True)
@@ -311,13 +336,11 @@ def create_root(p):
         info = os.fstat(parent)
         if [info.st_dev, info.st_ino] != list(p['parent_id']):
             raise ValueError('output root parent replaced since planning: ' + str(root.parent))
-        forbidden = _forbidden(p['repo_top'])
-        current = os.dup(parent)
+        chain, current = [], os.dup(parent)
         try:
             while True:  # the held parent's real ancestry, walked by '..' from the descriptor
                 here = os.fstat(current)
-                if (here.st_dev, here.st_ino) in forbidden:
-                    raise ValueError('output root parent is inside ' + forbidden[(here.st_dev, here.st_ino)])
+                chain.append(((here.st_dev, here.st_ino), None))
                 up = os.open('..', os.O_RDONLY | os.O_DIRECTORY, dir_fd=current)
                 above = os.fstat(up)
                 os.close(current)
@@ -326,12 +349,19 @@ def create_root(p):
                     break
         finally:
             os.close(current)
+        refuse_reserved(root, chain)
+        disjoint(root, p['input_paths'], chain)
         os.mkdir(root.name, 0o700, dir_fd=parent)
         fd = os.open(root.name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
     finally:
         os.close(parent)
-    os.fchmod(fd, 0o700)
-    held = os.fstat(fd)
+    try:
+        os.fchmod(fd, 0o700)
+        held = os.fstat(fd)
+        disjoint(root, p['input_paths'], chain, root_id=(held.st_dev, held.st_ino))
+    except BaseException:
+        os.close(fd)
+        raise
     return fd, (held.st_dev, held.st_ino)
 
 
@@ -378,8 +408,8 @@ def prepare_environment(p, root_id):
             copied.append(name)
     create_file(root, root_id, root / 'cargo-home/config.toml', b'[net]\noffline = true\n')
     return {'node_bin': inputs['node_bin'], 'rust_bin': inputs['rust_bin'],
-            'npm_cache_input': os.path.join(inputs['npm_cache'], '_cacache') + ' (read only; copied into the output root)',
-            'cargo_home_input': f"{inputs['cargo_home']}: {', '.join(copied)} (read only; copied into the output root)"}
+            'npm_cache_input': os.path.join(inputs['npm_cache'], '_cacache') + ' (input; the build uses a copy in the output root)',
+            'cargo_home_input': f"{inputs['cargo_home']}: {', '.join(copied)} (input; the build uses a copy in the output root)"}
 
 
 def _regular(path):
@@ -414,7 +444,7 @@ def tree_entries(root):
 
 
 def prepare_supplier(archive, record, tree):
-    """Verify the archive and every member header against the record, then extract into tree; never executed."""
+    """Verify the archive and every member header against the record, then extract into tree; nothing is executed."""
     with _regular(record) as stream:
         raw = stream.read(1_048_577)
     if len(raw) > 1_048_576:
@@ -484,8 +514,11 @@ def _part(root, root_id, path, what):
 
 
 def validate_bundle(p, root_id):
-    """The bundle the build produced, checked against the plan before anything reports it."""
+    """Invariant 2: the bundle output folder holds exactly the planned bundle, which matches the plan."""
     root, bundle = Path(p['root']), Path(p['bundle'])
+    folder = contained(root, root_id, bundle.parent)
+    if not os.path.isdir(folder) or os.path.islink(folder) or sorted(os.listdir(folder)) != [bundle.name]:
+        raise ValueError('bundle output folder does not hold exactly the planned bundle: ' + str(folder))
     plist_path, _ = _part(root, root_id, bundle / 'Contents/Info.plist', 'Info.plist')
     with _regular(plist_path) as stream:
         plist = plistlib.loads(stream.read(1 << 20))
@@ -494,8 +527,7 @@ def validate_bundle(p, root_id):
     identifier, name, display = (plist.get(k) for k in ('CFBundleIdentifier', 'CFBundleName', 'CFBundleDisplayName'))
     if not all(isinstance(v, str) for v in (identifier, name, display)):
         raise ValueError('bundle identifier or names missing')
-    check_names(identifier, name)
-    check_names(identifier, display)
+    identify.judge_development_bundle(identifier, bundle.name, (name, display))
     if (identifier, name, display) != (p['identifier'], p['product'], p['product']):
         raise ValueError('bundle identifier or names differ from the plan: ' + identifier)
     executable = plist.get('CFBundleExecutable')
@@ -516,9 +548,12 @@ def validate_bundle(p, root_id):
 
 
 def run(p):
-    """Build facts are written only after both steps exit 0, the lockfiles are unchanged and the bundle is validated."""
+    """Build facts are written after both steps exit 0, the lockfiles are unchanged and validate_bundle accepts the bundle."""
     root, source = Path(p['root']), Path(p['source'])
-    check_names(p['overlay']['identifier'], p['overlay']['productName'])
+    identify.judge_development_bundle(p['overlay']['identifier'], p['overlay']['productName'] + '.app',
+                                      (p['overlay']['productName'],))
+    if (p['overlay']['identifier'], p['overlay']['productName']) != (p['identifier'], p['product']):
+        raise ValueError('overlay identity differs from the plan')
     if json.loads(p['overlay_bytes']) != p['overlay']:
         raise ValueError('overlay bytes differ from the planned overlay')
     started, phases = now(), {}
@@ -582,20 +617,22 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--repo', required=True, help='this repository')
     parser.add_argument('--revision', required=True, help='revision to build, resolved to a full commit')
-    parser.add_argument('--out', required=True, help='new output root outside the repository; created private')
-    parser.add_argument('--supplier-archive', help='existing supplier release package; never downloaded or executed')
+    parser.add_argument('--out', required=True, help='new output root, created private; disjoint from every input and '
+                        'not a listed reserved location (the list is not exhaustive); run only where you control the location')
+    parser.add_argument('--supplier-archive', help='existing supplier release package; not downloaded or executed by this script')
     parser.add_argument('--supplier-record', help='its committed canonical distribution record')
     parser.add_argument('--tag', help='identifier tag (default: UTC date, short commit and random suffix)')
     parser.add_argument('--node-bin', help='folder holding node and npm (default: from PATH)')
     parser.add_argument('--rust-bin', help="Rust toolchain bin folder (default: from PATH or rustup's default toolchain)")
-    parser.add_argument('--npm-cache', help='prepared npm cache, read only and copied (default: $NPM_CONFIG_CACHE or ~/.npm)')
-    parser.add_argument('--cargo-home', help='prepared cargo home, read only; registry copied (default: $CARGO_HOME or ~/.cargo)')
+    parser.add_argument('--npm-cache', help='prepared npm cache, copied in (default: $NPM_CONFIG_CACHE or ~/.npm)')
+    parser.add_argument('--cargo-home', help='prepared cargo home; its registry is copied in (default: $CARGO_HOME or ~/.cargo)')
     args = parser.parse_args(argv)
     try:
         p = plan(args.repo, args.revision, args.out, args.supplier_archive, args.supplier_record, args.tag,
                  inputs={k: getattr(args, k) for k in INPUTS})
         run(p)
-    except (ValueError, KeyError, OSError, subprocess.CalledProcessError, tarfile.TarError, plistlib.InvalidFileException) as error:
+    except (ValueError, KeyError, OSError, subprocess.CalledProcessError, tarfile.TarError,
+            plistlib.InvalidFileException, ExpatError) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
     print(json.dumps({'root': p['root'], 'commit': p['commit'], 'identifier': p['identifier'], 'bundle': p['bundle']}, indent=2))

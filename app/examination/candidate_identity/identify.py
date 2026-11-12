@@ -26,7 +26,10 @@ METHOD = 'chirality.app.bundle-tree.sha256/v2'
 FORMAT = 'chirality.app-v4.candidate-identification/v2'
 BUNDLED_FORMAT = 'chirality.app-v4.candidate-identification/v3'
 INVENTORY_FORMAT = 'chirality.app-v4.bundle-inventory/v2'
-DEVELOPMENT_PREFIX = 'dev.chirality.app-v4.'  # never the release identifier com.chirality.app
+DEVELOPMENT_PREFIX = 'dev.chirality.app-v4.'
+RELEASE_IDENTIFIER = 'com.chirality.app'  # the 4.0.0 package's identity, refused on this route
+RELEASE_NAME = 'chirality'
+RELEASE_BUNDLE_NAME = 'chirality.app'
 XATTR_ALLOWLIST = ('com.apple.provenance',)
 KINDS = ('dir', 'file', 'symlink')
 MAX_LINK_HOPS = 32
@@ -73,6 +76,26 @@ if sys.platform == 'darwin':  # bundle metadata is read through the macOS libc i
     _libc.acl_free.argtypes = [ctypes.c_void_p]
     _libc.acl_valid.argtypes = [ctypes.c_void_p]
     _libc.acl_valid.restype = ctypes.c_int
+
+
+def judge_development_bundle(identifier, bundle_name, names=()):
+    """The one rule for a development bundle's observed identity on route native_development.
+
+    The identifier is under DEVELOPMENT_PREFIX and is not the release identifier;
+    no bundle name (CFBundleName, CFBundleDisplayName) is the release name
+    Chirality; the bundle's file name is not Chirality.app. Names compare
+    case-insensitively after trimming. build_candidate.py, record and check call
+    this on what they observe; absent names are not judged.
+    """
+    if not isinstance(identifier, str) or not identifier.startswith(DEVELOPMENT_PREFIX) \
+            or identifier.strip().lower() == RELEASE_IDENTIFIER:
+        raise ValueError('route native_development identifies unpackaged development builds only; bundle identifier '
+                         'must be under ' + DEVELOPMENT_PREFIX + ': ' + repr(identifier))
+    if not isinstance(bundle_name, str) or bundle_name.strip().lower() == RELEASE_BUNDLE_NAME:
+        raise ValueError('a development bundle is not named Chirality.app: ' + repr(bundle_name))
+    for name in names:
+        if name is not None and (not isinstance(name, str) or name.strip().lower() == RELEASE_NAME):
+            raise ValueError('a development bundle does not carry the release name Chirality: ' + repr(name))
 
 
 def _require_macos():
@@ -595,6 +618,8 @@ def bundle_metadata(root, inv):
     _check_name(name)
     identifier = plist.get('CFBundleIdentifier')
     _check_identifier(identifier)
+    judge_development_bundle(identifier, Path(os.path.abspath(root)).name,
+                             (plist.get('CFBundleName'), plist.get('CFBundleDisplayName')))
     for field in ('CFBundleShortVersionString', 'CFBundleVersion'):
         if field in plist:
             value = plist[field]
@@ -690,9 +715,7 @@ def validate_record(record):
         raise ValueError('candidate key does not derive from revision and build identity')
     if record['source']['revision'] != record['app_candidate']['revision']:
         raise ValueError('source and candidate revisions differ')
-    if not record['bundle']['identifier'].startswith(DEVELOPMENT_PREFIX):
-        raise ValueError('route native_development identifies unpackaged development builds only; bundle identifier '
-                         'must be under ' + DEVELOPMENT_PREFIX + ': ' + record['bundle']['identifier'])
+    judge_development_bundle(record['bundle']['identifier'], record['bundle']['name'])
     if record['app_data']['present_at_identification']:
         raise ValueError('App data already present; the candidate would not start fresh: ' + ', '.join(record['app_data']['present_at_identification']))
     if record['app_data'] != app_data_declaration(record['bundle']['identifier']):

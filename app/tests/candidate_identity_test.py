@@ -631,6 +631,42 @@ class CandidateRecord(GitScratch):
         code, out, _ = self.check(); self.assertEqual(code, 1)
         self.assertIn('Contents/Resources/instructions/AGENTS.md', json.loads(out)['changed'])
 
+    def test_shared_development_bundle_rule(self):
+        judge = identify.judge_development_bundle
+        for args in (('com.chirality.app', 'X.app'), ('COM.CHIRALITY.APP', 'X.app'), ('dev.example.x', 'X.app'),
+                     ('dev.chirality.app-v4x.y', 'X.app'), (None, 'X.app'),
+                     ('dev.chirality.app-v4.x', 'Chirality.app'), ('dev.chirality.app-v4.x', 'chirality.app'),
+                     ('dev.chirality.app-v4.x', ' Chirality.app '),
+                     ('dev.chirality.app-v4.x', 'X.app', ('Chirality',)), ('dev.chirality.app-v4.x', 'X.app', (None, 'chirality')),
+                     ('dev.chirality.app-v4.x', 'X.app', ('Chirality ',)), ('dev.chirality.app-v4.x', 'X.app', (' CHIRALITY', None))):
+            with self.subTest(args=args):
+                with self.assertRaises(ValueError):
+                    judge(*args)
+        for identifier, name in (('dev.chirality.app-v4.candidate.20261112-4bb28164', 'Chirality App v4 (development 20261112-4bb28164)'),
+                                 ('dev.chirality.app-v4.skeleton', 'Chirality App v4 (development candidate)')):
+            judge(identifier, name + '.app', (name, name))
+        judge('dev.chirality.app-v4.x', 'Test.app', (None, None))
+
+    def test_record_and_check_refuse_release_names_on_a_development_identifier(self):
+        os.rename(self.app, self.app.with_name('Chirality.app')); self.app = self.app.with_name('Chirality.app')
+        code, out, err = self.record()
+        self.assertEqual(code, 2, out + err); self.assertIn('Chirality.app', err); self.assertFalse((self.tmp / 'rec').exists())
+        os.rename(self.app, self.app.with_name('Test.app')); self.app = self.app.with_name('Test.app')
+        self.assertEqual(self.record()[0], 0)
+        os.rename(self.app, self.app.with_name('Chirality.app')); self.app = self.app.with_name('Chirality.app')
+        code, out, err = self.check()
+        self.assertEqual(code, 2, out + err); self.assertIn('Chirality.app', err)
+        os.rename(self.app, self.app.with_name('Test.app')); self.app = self.app.with_name('Test.app')
+        self.assertEqual(self.check()[0], 0)
+        shutil.rmtree(self.tmp / 'rec')
+        plist = plistlib.loads((self.app / 'Contents/Info.plist').read_bytes())
+        for key in ('CFBundleName', 'CFBundleDisplayName'):
+            with self.subTest(key=key):
+                (self.app / 'Contents/Info.plist').write_bytes(plistlib.dumps(dict(plist, **{key: 'Chirality'})))
+                code, out, err = self.record()
+                self.assertEqual(code, 2, out + err); self.assertIn('release name Chirality', err)
+                self.assertFalse((self.tmp / 'rec').exists())
+
     def test_record_route_refuses_identifiers_outside_development(self):
         # The release package's identifier can never be identified as an unpackaged development build.
         for identifier in ('com.chirality.app', 'dev.example.other', 'DEV.CHIRALITY.APP-V4.x', 'dev.chirality.app-v4x.y'):
@@ -1213,33 +1249,58 @@ class CandidateBuild(Scratch):
         self.assertEqual((root / 'npm-cache/_cacache/index-v5/marker').read_bytes(), b'invented cache entry')
         self.assertFalse((root / 'npm-cache/_cacache/index-v5/marker').samefile(self.caller / '.npm/_cacache/index-v5/marker'))
 
-    def test_names_never_collide_with_the_installed_release_app(self):
-        # The 4.0.0 package installs as Chirality.app, identifier com.chirality.app.
-        for identifier, product in (('com.chirality.app', 'Chirality App v4 (development x)'),
-                                    ('COM.CHIRALITY.APP', 'Chirality App v4 (development x)'),
-                                    ('dev.chirality.app-v4.skeleton', 'Chirality App v4 (development x)'),
-                                    ('dev.chirality.app-v4.candidate.', 'Chirality App v4 (development )'),
-                                    ('dev.chirality.app-v4.candidate.x.com.chirality.app', 'Chirality App v4 (development x)')):
-            with self.subTest(identifier=identifier):
-                with self.assertRaisesRegex(ValueError, 'development identifier'):
-                    build_candidate.check_names(identifier, product)
-        for product in ('Chirality', 'chirality', 'Chirality.app', 'Chirality App v4 (development y)'):
-            with self.subTest(product=product):
-                with self.assertRaisesRegex(ValueError, 'development product name'):
-                    build_candidate.check_names('dev.chirality.app-v4.candidate.x', product)
-        build_candidate.check_names('dev.chirality.app-v4.candidate.x', 'Chirality App v4 (development x)')
+    def test_plan_tags_and_overlay_identity_are_judged_by_the_shared_rule(self):
         for tag in ('com.chirality.app', 'x.com', 'Chirality)', ') (', '-', 'a--b', 'x y'):
             with self.subTest(tag=tag):
                 with self.assertRaises(ValueError):
                     self.plan(tag=tag)
         p = self.plan(tag='x')
         self.assertEqual((p['identifier'], p['product']), ('dev.chirality.app-v4.candidate.x', 'Chirality App v4 (development x)'))
-        for change in ({'identifier': 'com.chirality.app'}, {'productName': 'Chirality'}):
+        for change in ({'identifier': 'com.chirality.app'}, {'productName': 'Chirality'},
+                       {'identifier': 'dev.chirality.app-v4.candidate.y'}):
             with self.subTest(change=change):
                 bad = dict(p, overlay=dict(p['overlay'], **change))
                 with self.assertRaises(ValueError):
                     build_candidate.run(bad)
                 self.assertFalse(Path(p['root']).exists())
+
+    def test_output_root_is_disjoint_from_every_input(self):
+        kw = {'supplier_archive': self.archive, 'supplier_record': self.record}
+        (self.tmp / 'npm-alias').symlink_to(self.caller / '.npm')
+        cases = {'repository': 'repo/app/out', 'npm cache': 'caller-home/.npm/_cacache/out',
+                 'cargo home registry': 'caller-home/.cargo/registry/out', 'node toolchain': 'caller-home/toolchain/node-bin/out',
+                 'Rust toolchain': 'caller-home/toolchain/rust-bin/out', 'symlinked route to the npm cache': 'npm-alias/_cacache/out',
+                 'a root that would contain the archive': 'inputs'}
+        if (self.tmp / 'CALLER-HOME').exists():
+            cases.update({'case variant of the npm cache': 'CALLER-HOME/.NPM/_cacache/out',
+                          'case variant of the repository': 'REPO/app/out'})
+        for name, out in cases.items():
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    self.plan(out=out, **kw)
+                if name != 'a root that would contain the archive':
+                    self.assertFalse((self.tmp / out).exists())
+        with self.assertRaisesRegex(ValueError, 'supplier archive input is inside the output root'):
+            self.plan(out='inputs', **kw)
+        self.plan(out='inputs/beside-the-archive', **kw)  # the folder holding the archive is not an input
+
+    def test_no_input_is_inside_the_created_root(self):
+        p = self.plan()
+        root = Path(p['root'])
+        fd, root_id = build_candidate.create_root(p); self.addCleanup(os.close, fd)
+        (root / 'planted-input').write_bytes(b'invented')
+        with self.assertRaisesRegex(ValueError, 'inside the output root'):
+            build_candidate.disjoint(root, {'planted': str(root / 'planted-input')}, [], root_id=root_id)
+
+    def test_absent_reserved_home_folders_refuse_as_root_and_as_ancestor(self):
+        home = self.tmp / 'invented-home'; home.mkdir()
+        with mock.patch.dict(os.environ, {'HOME': str(home)}):
+            for out in ('invented-home/Applications', 'invented-home/Library/out', 'invented-home/applications',
+                        'invented-home/LIBRARY/Caches/out'):
+                with self.subTest(out=out):
+                    with self.assertRaisesRegex(ValueError, 'reserved location'):
+                        build_candidate.output_root(self.tmp / out, {'repository': str(self.repo)})
+                    self.assertFalse((self.tmp / out).exists())
 
     def test_plan_refuses_unsafe_output_roots_tags_inputs_and_half_a_supplier(self):
         (self.tmp / 'exists').mkdir()
@@ -1263,9 +1324,9 @@ class CandidateBuild(Scratch):
         if not variant.parent.exists():
             self.skipTest('the test filesystem is case-sensitive, so a case variant names a different place')
         with self.assertRaisesRegex(ValueError, 'output root is inside'):
-            build_candidate.output_root(variant, self.repo)
+            build_candidate.output_root(variant, {'repository': str(self.repo)})
         with self.assertRaisesRegex(ValueError, 'output root is inside'):
-            build_candidate.output_root(self.tmp / 'Repo/App/out', self.repo)
+            build_candidate.output_root(self.tmp / 'Repo/App/out', {'repository': str(self.repo)})
 
     def test_output_root_refuses_reserved_roots_and_their_case_variants(self):
         # Paths only: output_root reads metadata and creates nothing.
@@ -1280,7 +1341,7 @@ class CandidateBuild(Scratch):
                 continue
             with self.subTest(out=out):
                 with self.assertRaisesRegex(ValueError, 'output root is inside'):
-                    build_candidate.output_root(out, self.repo)
+                    build_candidate.output_root(out, {'repository': str(self.repo)})
                 self.assertFalse(out.exists())
 
     def test_a_path_inside_the_root_pointing_outside_refuses(self):
@@ -1375,9 +1436,11 @@ class CandidateBuild(Scratch):
                     build_candidate.prepare_supplier(self.archive, self.record, tree)
                 self.assertFalse(tree.exists(), name)
 
-    def write_built_bundle(self, p, identifier=None, name=None, executable=True, empty=False):
+    def write_built_bundle(self, p, identifier=None, name=None, executable=True, empty=False, extra=None, plist=None):
         bundle = Path(p['bundle'])
         bundle.mkdir(parents=True)
+        if extra:
+            extra(bundle.parent)
         if empty:
             return
         name = name or p['product']
@@ -1395,6 +1458,8 @@ class CandidateBuild(Scratch):
             (bundle / 'Contents/Resources/codex/bin').mkdir(parents=True)
             (bundle / 'Contents/Resources/codex/bin/codex').write_bytes(b'invented supplier, never run')
             (bundle / 'Contents/Resources/codex/bin/codex').chmod(0o755)
+        if plist:
+            plist(bundle / 'Contents/Info.plist')
 
     def fake_steps(self, p, build_ok=True, bundle=True, after_install=None, **built):
         calls = []
@@ -1422,14 +1487,22 @@ class CandidateBuild(Scratch):
         return code, out.getvalue(), err.getvalue(), calls
 
     def test_bundle_is_validated_against_the_plan_before_anything_reports_it(self):
+        def release_bundle(folder):
+            (folder / 'Chirality.app/Contents').mkdir(parents=True)
+            (folder / 'Chirality.app/Contents/Info.plist').write_bytes(plistlib.dumps(
+                {'CFBundleIdentifier': 'com.chirality.app', 'CFBundleName': 'Chirality', 'CFBundleDisplayName': 'Chirality'}))
         cases = {
             'empty bundle': ({'empty': True}, 'Info.plist'),
-            'production identifier': ({'identifier': 'com.chirality.app'}, 'development identifier'),
-            'production name': ({'name': 'Chirality'}, 'development product name'),
+            'production identifier': ({'identifier': 'com.chirality.app'}, 'development builds only'),
+            'production name': ({'name': 'Chirality'}, 'release name Chirality'),
             'other development identifier': ({'identifier': 'dev.chirality.app-v4.candidate.other',
                                               'name': 'Chirality App v4 (development other)'}, 'differ from the plan'),
             'missing executable': ({'executable': False}, 'executable missing'),
             'bundle path before the build': ({'after_install': 'stale'}, 'exists before the build step'),
+            'release bundle beside the planned one': ({'extra': release_bundle}, 'exactly the planned bundle'),
+            'plain file beside the planned one': ({'extra': lambda d: (d / 'notes.txt').write_text('x')}, 'exactly the planned bundle'),
+            'folder beside the planned one': ({'extra': lambda d: (d / 'other').mkdir()}, 'exactly the planned bundle'),
+            'truncated plist': ({'plist': lambda f: f.write_bytes(f.read_bytes()[:40])}, 'ExpatError'),
         }
         for index, (name, (steps, reason)) in enumerate(cases.items()):
             with self.subTest(name=name):
@@ -1443,6 +1516,17 @@ class CandidateBuild(Scratch):
                 self.assertFalse((Path(p['root']) / 'build-facts.json').exists())
                 if name == 'bundle path before the build':
                     self.assertEqual([c[0][0] for c in calls], ['npm'])  # the build step never ran
+
+    def test_builder_judges_the_observed_bundle_with_identifications_rule(self):
+        p = self.plan(supplier_archive=self.archive, supplier_record=self.record)
+        fd, root_id = build_candidate.create_root(p); self.addCleanup(os.close, fd)
+        self.write_built_bundle(p)
+        with mock.patch.object(identify, 'judge_development_bundle', wraps=identify.judge_development_bundle) as judge:
+            build_candidate.validate_bundle(p, root_id)
+        judge.assert_called_once_with(p['identifier'], Path(p['bundle']).name, (p['product'], p['product']))
+        with mock.patch.object(identify, 'judge_development_bundle', side_effect=ValueError('shared rule refused')):
+            with self.assertRaisesRegex(ValueError, 'shared rule refused'):
+                build_candidate.validate_bundle(p, root_id)
 
     def test_parent_replaced_between_plan_and_creation_refuses(self):
         parent = self.tmp / 'parent'; parent.mkdir()
@@ -1502,8 +1586,8 @@ class CandidateBuild(Scratch):
         self.assertEqual(facts['lockfiles']['app/src-tauri/Cargo.lock'], identify.sha(b'version = 4\n'))
         self.assertEqual(facts['config_overlays'][0]['sha256'], identify.sha(b'{"identifier": "dev.example.skeleton"}\n'))
         self.assertEqual(facts['toolchain']['tauri_cli'], '0.0.0-invented')
-        self.assertEqual(facts['toolchain']['npm_cache_input'], self.inputs['npm_cache'] + '/_cacache (read only; copied into the output root)')
-        self.assertEqual(facts['toolchain']['cargo_home_input'], self.inputs['cargo_home'] + ': registry (read only; copied into the output root)')
+        self.assertEqual(facts['toolchain']['npm_cache_input'], self.inputs['npm_cache'] + '/_cacache (input; the build uses a copy in the output root)')
+        self.assertEqual(facts['toolchain']['cargo_home_input'], self.inputs['cargo_home'] + ': registry (input; the build uses a copy in the output root)')
         self.assertEqual((root / 'cargo-home/registry/cache/marker').read_bytes(), b'invented crate')
         self.assertEqual(json.loads((root / 'tauri.candidate.conf.json').read_bytes()), p['overlay'])
         self.assertEqual(build_candidate.tree_entries(root / 'codex-package'),
