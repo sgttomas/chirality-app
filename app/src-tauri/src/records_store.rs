@@ -498,6 +498,32 @@ fn roots(store: &Path) -> Result<Vec<Value>, String> {
     *cache = Some((path, 0, stamp, lines.clone()));
     Ok(lines)
 }
+/// What every attachment says while the roots registry's last line is unread.
+const REGISTRY_TORN: &str = "the records store's registry of project folders (roots.jsonl) was not read whole: its last line is incomplete and was not read, and its bytes are kept as found. That line may change which folder a project belongs to, so records are only read, from what its complete lines record; nothing is written, minted, adopted or restored for any project until it is resolved";
+/// Whether `<store>/roots.jsonl` ends in an incomplete line, which `roots`
+/// does not read. Read only, and the bytes are never changed here.
+fn roots_torn(store: &Path) -> Result<bool, String> {
+    let path = store.join("roots.jsonl");
+    let mut f = match std::fs::File::open(&path) {
+        Ok(f) => f,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(format!("records store unreadable: roots.jsonl: {e}")),
+    };
+    let len = f.metadata().map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?.len();
+    if len == 0 { return Ok(false); }
+    use std::io::{Seek, SeekFrom};
+    f.seek(SeekFrom::Start(len - 1)).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?;
+    let mut last = [0u8; 1];
+    f.read_exact(&mut last).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?;
+    Ok(last[0] != b'\n')
+}
+/// Refuses an act that would append to the roots registry while its last
+/// line is incomplete: appending would close that line and change what it
+/// reads as. The tail's bytes are kept exactly.
+fn require_roots_whole(store: &Path) -> Result<(), String> {
+    if roots_torn(store)? { return Err(format!("{REGISTRY_TORN}; nothing changed")); }
+    Ok(())
+}
 /// The project identities `root` is a current root of, by the roots record.
 fn listed(lines: &[Value], root: &str) -> Vec<String> {
     let mut current: BTreeMap<String, bool> = BTreeMap::new();
@@ -585,11 +611,15 @@ pub struct Attachment {
     /// The person's acts that resolve the fault, of "restore-link", "adopt"
     /// and "new-identity" (`records_store_identity`). Only these are offered.
     pub resolutions: Vec<&'static str>,
+    /// Set when the store's registry of project folders was not read whole
+    /// (its last line is incomplete): this attachment rests on its complete
+    /// lines only. Shown on every attachment while it stands.
+    pub registry: Option<String>,
 }
 impl Attachment {
     pub fn view(&self) -> Value {
         json!({"root":self.root.display().to_string(),"projectId":self.project,"how":self.how,"limits":self.limits,"refusal":self.refusal,"recordedHere":self.recorded,
-            "fault":self.fault,"linkedIdentity":self.linked,"resolutions":self.resolutions})
+            "fault":self.fault,"linkedIdentity":self.linked,"resolutions":self.resolutions,"registry":self.registry})
     }
 }
 
@@ -612,7 +642,9 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     let at = canonical.to_str().ok_or("project folder is not Unicode; no project identity")?.to_owned();
     let listed = listed(&lines, &at);
     let link = read_link(&canonical);
-    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None, fault: None, linked: None, resolutions: vec![] };
+    let torn = roots_torn(&store)?;
+    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None, fault: None, linked: None, resolutions: vec![],
+        registry: torn.then(|| REGISTRY_TORN.to_owned()) };
     // Other folders the store records for `project` whose own link still names it.
     let held_elsewhere = |project: &str| -> Vec<String> {
         roots_of(&lines, project).into_iter().filter(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if p == project)).collect()
@@ -632,6 +664,16 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             if held_elsewhere(project).is_empty() { out.resolutions.push("adopt"); }
         }
         out.resolutions.push("new-identity");
+        return Ok(out);
+    }
+    // The incomplete last line may be exactly this folder's registration (or
+    // its release): a folder the complete lines do not associate is not
+    // known, and nothing is minted, registered or adopted beside it.
+    if torn && listed.is_empty() {
+        out.refusal = Some(format!("association not known; not attached: {REGISTRY_TORN}, and its complete lines record no project for this folder; nothing is read, written, minted or adopted for it"));
+        out.how = "unattached";
+        out.fault = Some("association not known");
+        if let Link::Present { project, .. } = &link { out.linked = Some(project.clone()); }
         return Ok(out);
     }
     match (&link, listed.first()) {
@@ -748,6 +790,9 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             }
         }
     }
+    // While the registry's last line is unread no identity act can succeed
+    // (`adopt`, `new_identity` and `restore_link` refuse): none is offered.
+    if torn { out.resolutions.clear(); }
     if let Some(dir) = out.dir.as_deref() {
         let retention = crate::records_retention::view(dir);
         match retention["disposition"].as_str() {
@@ -938,6 +983,7 @@ pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
 /// Whether the project's store folder may be written now: no import is
 /// incomplete, and no project records wait for one.
 fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
+    require_roots_whole(dir.parent().and_then(Path::parent).ok_or("project store absent")?)?;
     crate::records_retention::check_write(dir)?;
     let current=attach(root,false)?;
     if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err("project root association changed; stale queued writer refused".into());}
@@ -1451,6 +1497,7 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     let (store, store_id) = opened()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    require_roots_whole(&store)?;
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let lines = roots(&store)?;
@@ -1520,6 +1567,7 @@ pub fn new_identity(root: &Path) -> Result<Value, String> {
     let (store, store_id) = opened()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    require_roots_whole(&store)?;
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let prior = listed(&roots(&store)?, &at);
@@ -1549,6 +1597,7 @@ pub fn restore_link(root: &Path) -> Result<Value, String> {
     let (store, store_id) = opened()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    require_roots_whole(&store)?;
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let listed = listed(&roots(&store)?, &at);
@@ -1574,6 +1623,7 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
         Err(e) => return vec![e],
     };
     let mut notes = home.attachment.limits.clone();
+    notes.extend(home.attachment.registry.clone());
     if home.attachment.dir.as_deref().is_some_and(|d|crate::records_retention::terminal(d).unwrap_or(false)){notes.push("Records disposed or disposal incomplete; only surviving administration and export evidence remain. Retained project originals are not read or re-imported.".into());}
     if let Some(refusal) = &home.attachment.refusal {
         notes.push(refusal.clone());
@@ -1640,6 +1690,15 @@ pub fn status(project: Option<&Path>) -> Value {
         (Ok(s), Err(e)) => json!({"state":"unavailable","configured":s.root.display().to_string(),"placement":s.placement.label(),"error":e,"recording":"refused; no fallback"}),
         (Err(e), _) => json!({"state":"unavailable","error":e,"recording":"refused; no fallback"}),
     };
+    // The registry of project folders not read whole is said at the store
+    // level too, whether or not a project is open.
+    if let Ok((root, _)) = opened() {
+        match roots_torn(&root) {
+            Ok(false) => {}
+            Ok(true) => out["registry"] = json!(REGISTRY_TORN),
+            Err(e) => out["registry"] = json!(e),
+        }
+    }
     if let Some(root) = project {
         out["packageImport"] = package::status(root);
         out["project"] = match home(root) {

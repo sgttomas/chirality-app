@@ -502,6 +502,9 @@ fn context(
         _ => return Err("retention action is unavailable for the current project state (legal hold blocks disposal)".into()),
     }
     let attachment = records_store::attach(project, false)?;
+    if let Some(registry) = &attachment.registry {
+        return Err(format!("{registry}; nothing changed"));
+    }
     if attachment.refusal.is_some()
         || !attachment.limits.is_empty()
         || attachment.dir.as_deref() != Some(dir)

@@ -438,6 +438,84 @@ fn an_adoption_stopped_after_its_release_lines_is_offered_to_the_person_to_compl
     let _ = (std::fs::remove_dir_all(&after), std::fs::remove_dir_all(&unknown));
 }
 
+/// Review round 2, finding 7, as App Agent 0 decided it: an incomplete last
+/// line of the roots registry is said on every attachment and in status, its
+/// bytes are kept exactly, records are read from what the complete lines
+/// associate, and nothing is written, minted, adopted or restored.
+#[test]
+fn a_torn_roots_registry_reads_from_its_complete_lines_and_writes_nothing() {
+    let _store = OwnStore::new();
+    let known = folder("torn-known-");
+    records::append_project(&known, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&known, false).unwrap().project.unwrap();
+    let store = opened().unwrap().0;
+    let registry = store.join("roots.jsonl");
+    // An incomplete line, as an interrupted append leaves it.
+    let mut torn = std::fs::read(&registry).unwrap();
+    torn.extend_from_slice(br#"{"format":"chirality.records-store.root","formatVersion":"0.1","projectId":"chirality-project:torn-fixture","root":"#);
+    std::fs::write(&registry, &torn).unwrap();
+    // The associated folder reads, with the limit, and is not writable.
+    let a = attach(&known, false).unwrap();
+    assert_eq!(a.project.as_deref(), Some(p.as_str()));
+    assert!(a.view()["registry"].as_str().is_some_and(|r| r.contains("was not read whole")), "{a:?}");
+    assert!(a.resolutions.is_empty());
+    assert_eq!(storage::read_all(&known).0.len(), 1, "P's records are read");
+    let view = status(Some(&known));
+    assert!(view["registry"].as_str().is_some_and(|r| r.contains("was not read whole")), "{view}");
+    assert!(view["project"]["attachment"]["registry"].as_str().is_some(), "{view}");
+    assert!(view["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str().is_some_and(|n| n.contains("was not read whole"))), "{view}");
+    let refused = records::append_project(&known, None, "writer:p", "evidence_limit", &APP_WRITER, body("not while torn")).unwrap_err();
+    assert!(refused.contains("was not read whole"), "{refused}");
+    let supplier = crate::records_retention::activity(&known).err().expect("no supplier admitted");
+    assert!(supplier.contains("was not read whole"), "{supplier}");
+    for act in [restore_link(&known), new_identity(&known), adopt(&known)] {
+        let e = act.unwrap_err();
+        assert!(e.contains("was not read whole"), "{e}");
+    }
+    // A folder its complete lines do not associate: association not known,
+    // nothing minted, linked or registered.
+    let unknown = folder("torn-unknown-");
+    let b = attach(&unknown, true).unwrap();
+    assert_eq!((b.how, b.fault), ("unattached", Some("association not known")), "{b:?}");
+    assert!(b.refusal.as_deref().is_some_and(|r| r.contains("was not read whole")) && b.resolutions.is_empty() && b.dir.is_none());
+    assert!(records::append_project(&unknown, None, "writer:b", "evidence_limit", &APP_WRITER, body("not minted")).is_err());
+    assert!(!unknown.join(PROJECT_LINK).exists(), "no identity minted");
+    assert_eq!(status(Some(&unknown))["project"]["reading"], "nothing from the records store (association not known)");
+    for act in [new_identity(&unknown), adopt(&unknown)] { assert!(act.is_err()); }
+    assert_eq!(storage::read_all(&known).0.len(), 1, "nothing written for P");
+    assert_eq!(std::fs::read(&registry).unwrap(), torn, "the registry's bytes, torn tail included, are kept exactly");
+    let _ = (std::fs::remove_dir_all(&known), std::fs::remove_dir_all(&unknown));
+}
+
+/// Review round 2, finding 1, case (b), as containment: with P's activity
+/// held (a supplier or a record waiting to be written), P's moved folder is
+/// not adopted elsewhere, so a write for the old path is refused there and
+/// nothing is minted under another identity.
+#[test]
+fn a_moved_project_is_not_adopted_while_its_activity_is_held() {
+    let before = folder("held-before-");
+    records::append_project(&before, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&before, false).unwrap().project.unwrap();
+    let held = crate::records_retention::activity(&before).unwrap().expect("P's activity lease");
+    let after = before.with_file_name(format!("{}-moved", before.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&before, &after).unwrap();
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let refused = adopt(&after).unwrap_err();
+    assert!(refused.contains(&format!("project {p}")) && refused.contains("is still in use") && refused.ends_with("nothing changed"), "{refused}");
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "nothing released or registered");
+    // The old path made again: a write kept for it is refused, nothing minted.
+    std::fs::create_dir_all(&before).unwrap();
+    assert!(records::append_project(&before, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's waiting entry")).is_err());
+    assert!(!before.join(PROJECT_LINK).exists(), "no identity minted at the old path");
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before);
+    drop(held);
+    std::fs::remove_dir_all(&before).unwrap();
+    assert_eq!(adopt(&after).unwrap()["projectId"], p.as_str());
+    assert_eq!(storage::read_all(&after).0.len(), 1, "P's history");
+    let _ = std::fs::remove_dir_all(&after);
+}
+
 #[test]
 fn a_copied_project_is_duplicated_and_attaches_nothing_until_it_gets_its_own_identity() {
     let original = folder("dup-original-");

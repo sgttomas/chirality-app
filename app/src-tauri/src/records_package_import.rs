@@ -406,13 +406,16 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
     if owns(dir) {
         return Ok(());
     }
-    let Some(root) = root_for_dir(dir) else {
-        return Ok(());
-    };
     let store = dir
         .parent()
         .and_then(Path::parent)
         .ok_or("project store absent")?;
+    // While the roots registry's last line is unread, no binding read from
+    // its complete lines is written through (records_store::REGISTRY_TORN).
+    require_roots_whole(store)?;
+    let Some(root) = root_for_dir(dir) else {
+        return Ok(());
+    };
     let here = listed(
         &roots(store)?,
         root.to_str().ok_or("project root is not UTF-8")?,

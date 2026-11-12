@@ -12,6 +12,7 @@ const IDENTITY_FAULTS: Record<string, string> = {
   "another store": "This project’s records were kept in another records store, so nothing is attached here.",
   "link names another store": "This folder’s project file names another records store than this one, so its records are not attached.",
   "no folder recorded": "The records store holds the project this folder’s file names and has no folder recorded for it, so its records are not attached here yet.",
+  "association not known": "The records store’s list of project folders was not read whole, and what it could read records no project for this folder, so nothing is attached here.",
 };
 
 /** RS §13.8 "Project identity": only the acts the host says resolve this
@@ -68,6 +69,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
       ? <p>Store: {String(store.root)} ({String(store.placement)}).</p>
       : <p role="alert">No records store: {String(store.error)}. Nothing is recorded; there is no fallback.</p>}
     {(store.limits ?? []).map((l: string) => <p key={l} role="note">{l}</p>)}
+    {store.registry && <p role="alert">{String(store.registry)}</p>}
     {project && <>
       <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
       {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}

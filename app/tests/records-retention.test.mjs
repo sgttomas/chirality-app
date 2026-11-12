@@ -262,3 +262,40 @@ test('native repairReason explains capability refusal or package selection witho
   assert.equal(html.split('Repeated repair diagnostic.').length-1,1);
  }
 });
+
+// Review round 2, finding 4: no control is offered whose current precondition
+// cannot hold.
+test('Finish package import is offered only when the host says its preparation can hold',()=>{
+ for (const [canFinish,offered] of [[true,true],[false,false],[undefined,false],['true',false]]){
+  const value=store({closed:false,legalHold:false,disposition:'kept'});
+  value.packageImport={state:'incomplete',importId:'invented-import',canFinish,finishReason:canFinish===false?'This import belongs to the project folder /invented/elsewhere; finish it from there.':null};
+  const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{}}));
+  if (offered) assert.match(html,/>Finish package import</,String(canFinish));
+  else assert.doesNotMatch(html,/Finish package import/,String(canFinish));
+  if (canFinish===false) assert.match(html,/finish it from there/);
+ }
+});
+test('Finish disposal is not offered while the folder is unattached; restoring the project file is',()=>{
+ for (const disposition of ['disposal incomplete','completion durability uncertain']){
+  const value=store({closed:true,legalHold:false,disposition});
+  value.project.attachment={projectId:null,refusal:'link changed; not attached',limits:[],fault:'link changed',resolutions:['restore-link','adopt','new-identity'],recordedHere:'invented-P',linkedIdentity:'invented-Q'};
+  const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{}}));
+  assert.doesNotMatch(html,/>Finish disposal</,disposition);
+  assert.match(html,/can be finished once this folder is attached to its records again; restore the project file first/,disposition);
+  assert.match(html,RESTORE,disposition);
+ }
+});
+// Review round 2, findings 6 and 7.
+test('an interrupted adoption and an unknown association say so and offer only what can succeed',()=>{
+ const kept=store(undefined);
+ kept.project.reading="records kept in the records store under the identity this folder's file names, not attached to this folder";
+ kept.project.attachment={projectId:null,refusal:'records kept, not attached',limits:[],fault:'no folder recorded',resolutions:['adopt'],linkedIdentity:'invented-Q'};
+ const one=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:kept,act:async()=>{}}));
+ assert.match(one,/holds the project this folder’s file names/);assert.match(one,/reading records kept in the records store/);assert.match(one,ADOPT);assert.doesNotMatch(one,/no records yet/);
+ const unknown=store(undefined);
+ unknown.registry='the records store’s registry of project folders (roots.jsonl) was not read whole';
+ unknown.project.attachment={projectId:null,refusal:'association not known; not attached',limits:[],fault:'association not known',resolutions:[],registry:unknown.registry};
+ const two=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:unknown,act:async()=>{}}));
+ assert.match(two,/was not read whole/);
+ assert.doesNotMatch(two,RESTORE);assert.doesNotMatch(two,ADOPT);assert.doesNotMatch(two,FRESH);
+});
