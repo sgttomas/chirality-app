@@ -258,7 +258,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text — see Progress for what the App knows and what to do next.", 'an unrecognised refusal stays in the App\'s words');
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text. Progress may still show the state from before this press.", 'an unrecognised refusal stays in the App\'s words');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
@@ -489,7 +489,7 @@ test('a refused press is said in plain words under Next only where nothing was d
     assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
   }
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
-  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /see Progress for what the App knows and what to do next\.$/);
+  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /\. Progress may still show the state from before this press\.$/);
 
   const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:{name:'coordinated-knowledge-work', origin:'bundled', revision:'3730d84debb5aa'},
     newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
@@ -505,11 +505,11 @@ test('a prepared run the host did not send says what happened in plain words and
   const ui = await mount({host:host(), data:data({selections:selected(), runs:[unsent('WR pre-send publication failed; nothing sent', 'nothing written: no records store', 'Retry publishes the same original records; sending stays a separate once-only step')]}), thread:'T1'});
   const section = region(ui.c, 'Run a workflow');
   assert.match(section.textContent, /Next: The run didn't start\. Progress says why and what to do\./);
-  assert.equal(region(ui.c, 'Run progress').textContent.split(' Start the run')[0].replace(/^Not started\./, '').trim().startsWith("Nothing was sent. The App couldn't save the run's record. What the App says to do: Retry publishes the same original records; sending stays a separate once-only step. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store"), true);
+  assert.equal(region(ui.c, 'Run progress').textContent.split(' Start the run')[0].replace(/^Not started\./, '').trim().startsWith("Nothing was sent. The App couldn't finish saving the run's record. What the App says to do: Retry publishes the same original records; sending stays a separate once-only step. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store"), true);
   assert.ok(button(ui.c, 'Start the run'), 'the prepared run can be started again');
   for (const [state, what] of [
-    ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The copy of the workflow's supporting files that the App made for this run changed or can't be read\./],
-    ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The chosen workflow's stored files changed or can't be read since you prepared the run\./],
+    ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the copy of the workflow's supporting files that this run was prepared with\./],
+    ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the chosen workflow for this run\./],
     ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. The App couldn't apply the same workflow approval it applied when you prepared this run\./],
   ]) {
     await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause', 'invented host recovery text')]})});
