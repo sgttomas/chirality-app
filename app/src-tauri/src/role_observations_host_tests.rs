@@ -248,6 +248,8 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
         count
     }
     let count = count_role_records(&store);
+    // The original App's process has ended (one App at a time on this data).
+    host.release_process_holds_for_test();
     let cold_host = Arc::new(Host::new());
     cold_host.configure_recovery(ledger).unwrap();
     let cold_generation = {

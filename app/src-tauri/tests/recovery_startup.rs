@@ -104,6 +104,8 @@ fn malformed_tail_is_a_limit_of_the_import_and_the_file_is_never_written() {
     assert_eq!(entries.len(), 2, "the import and this session's start; the torn tail is no entry");
     assert_eq!(entries[1]["previousSessionEnd"], "ended-without-record");
     // A later App start reads the database; the file is not imported twice.
+    // The earlier App session has ended (one App at a time on this data).
+    drop(host);
     let next = Host::new();
     let startup = Mutex::new(RecoveryStartup::default());
     start_with_recovery(&next, &startup, Ok(&root), None, || Ok(())).unwrap();

@@ -13,6 +13,11 @@ mod startup_request_tests;
 #[path = "recovery_store.rs"]
 pub(crate) mod store;
 
+/// Startup refused because an earlier session without an end record still holds its liveness lock.
+pub(crate) const STILL_RUNNING: &str = "Another App session is still running with this App data. This session did not start on its history: nothing was written to it and nothing is inferred about the running session";
+/// Startup refused because an earlier session's liveness could not be checked.
+pub(crate) const NOT_CHECKED: &str = "Whether an earlier App session is still running could not be checked, so it is not treated as ended. This session did not start on its history: nothing was written to it and nothing is inferred about that session";
+
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
     VALIDATOR
@@ -292,6 +297,9 @@ pub struct RecoveryLedger {
     legacy: Value,
     namespaces:Option<Arc<NativeNamespaceBindings>>,
     startup_requires_reopen: bool,
+    /// The database's last sequence number as this ledger last read or wrote
+    /// it; a session start is refused when another writer has moved it.
+    high: i64,
 }
 pub(crate) struct PreparedNamespaceBinding<'a>{ledger:&'a mut RecoveryLedger,binding:Arc<NativeNamespaceBindings>}
 impl PreparedNamespaceBinding<'_>{pub(crate) fn commit(self){self.ledger.namespaces=Some(self.binding);}}
@@ -316,14 +324,16 @@ impl RecoveryLedger {
         let exists=std::fs::symlink_metadata(&database).is_ok();
         // Masked: a refused entry's content (it may bear a payload) is never echoed into the import's recorded limit.
         let validate=|entry:&Value|validator()?.validate(entry).map_err(|e|format!("{} at {}",e.masked(),e.instance_path()));
-        let (store,current,legacy)=if exists||legacy_file.is_some(){
+        let (store,current,legacy,high)=if exists||legacy_file.is_some(){
             let mut store=store::Store::open(&database,true,legacy_file.is_some())?;
             let legacy=match legacy_file.as_mut(){Some(file)=>store.import_legacy(&path,file,&validate)?,None=>Value::Null};
+            // Read before the entries: a later append by another writer moves it.
+            let high=store.high_water()?;
             let current=store.current_entries(&validate)?;
-            (Some(store),current,legacy)
-        }else{(None,Vec::new(),Value::Null)};
+            (Some(store),current,legacy,high)
+        }else{(None,Vec::new(),Value::Null,0)};
         let currency=current.iter().map(store::currency).collect();
-        Ok(Self { path, database, store, current: Arc::new(current), currency, legacy, namespaces, startup_requires_reopen: false })
+        Ok(Self { path, database, store, current: Arc::new(current), currency, legacy, namespaces, startup_requires_reopen: false, high })
     }
     pub(crate) fn preflight_namespaces(&self,binding:&Arc<NativeNamespaceBindings>)->Result<(),String>{
         Self::preflight_path(&self.path,binding)
@@ -351,6 +361,11 @@ impl RecoveryLedger {
     /// Entries that must stand together, recorded in one transaction: all of
     /// them, or none (DEL-01-02 §7). Each is validated before anything is written.
     pub(crate) fn append_batch(&mut self, entries: Vec<Value>) -> Result<(), String> {
+        self.append_batch_guarded(entries, false)
+    }
+    /// [`Self::append_batch`]; when `unchanged`, refused with nothing recorded
+    /// if another writer appended since this ledger last read or wrote.
+    fn append_batch_guarded(&mut self, entries: Vec<Value>, unchanged: bool) -> Result<(), String> {
         if self.startup_requires_reopen {
             return Err("recovery startup append was not confirmed; reopen the ledger before writing".into());
         }
@@ -367,7 +382,8 @@ impl RecoveryLedger {
             // First creation of a known new ledger.
             self.store = Some(store::Store::open(&self.database, true, false)?);
         }
-        self.store.as_mut().expect("opened above").insert_batch(&entries)?;
+        let expected = unchanged.then_some(self.high);
+        self.high = self.store.as_mut().expect("opened above").insert_batch_after(&entries, expected)?;
         self.hold(entries);
         Ok(())
     }
@@ -407,7 +423,32 @@ impl RecoveryLedger {
         }
         result
     }
+    /// Every inference this startup draws about an earlier session (its
+    /// listed requests' endings, its stop requests' closing, the previous
+    /// session's end, and from them the restart facts, the adoption of its
+    /// unsettled conversations and the run limits) reads "no end record" as
+    /// "ended". That holds only for a session whose liveness lock is free or
+    /// absent ([`crate::session_liveness`]). When any earlier session without
+    /// an end record is still running, or that could not be checked, this
+    /// session does not start on the ledger: nothing is written and nothing
+    /// is inferred.
+    fn earlier_sessions_ended(&self, session: &str) -> Result<(), String> {
+        use crate::session_liveness::{probe, Liveness};
+        let ended: std::collections::BTreeSet<&str> = self.current.iter()
+            .filter(|e| e["kind"] == "session_ended").filter_map(|e| e["session"].as_str()).collect();
+        let mut seen = std::collections::BTreeSet::new();
+        for earlier in self.current.iter().filter(|e| e["kind"] == "session_started").filter_map(|e| e["session"].as_str()) {
+            if earlier == session || ended.contains(earlier) || !seen.insert(earlier) { continue; }
+            match probe(&self.path, earlier) {
+                Liveness::Absent | Liveness::Free => {}
+                Liveness::Held => return Err(STILL_RUNNING.into()),
+                Liveness::Unknown(reason) => return Err(format!("{NOT_CHECKED} ({reason})")),
+            }
+        }
+        Ok(())
+    }
     fn start_session_inner(&mut self, session: &str, candidate: &str) -> Result<(), String> {
+        self.earlier_sessions_ended(session)?;
         if let Some(last) = self.current.iter().rev().find(|e| e["kind"] == "session_started") {
             if last["session"] == session {
                 if last["candidate"] != candidate || self.current.iter().any(|e| e["kind"] == "session_ended" && e["session"] == session) {
@@ -419,6 +460,7 @@ impl RecoveryLedger {
                 // ledger imported from an earlier build's JSON Lines file.
                 self.close_earlier_listed_requests(session)?;
                 self.close_earlier_stop_requests(session);
+                crate::session_liveness::sweep(&self.path);
                 return Ok(());
             }
         }
@@ -458,15 +500,17 @@ impl RecoveryLedger {
         let (pending, _) = startup_request_closures(&self.current, session);
         let mut batch = vec![entry];
         batch.extend(pending);
-        self.append_batch(batch).map_err(|e| format!("session start and its RQ-06 request endings not confirmed: {e}"))?;
+        // Guarded: the liveness read above holds only for the entries read.
+        self.append_batch_guarded(batch, true).map_err(|e| format!("session start and its RQ-06 request endings not confirmed: {e}"))?;
         self.close_earlier_stop_requests(session);
+        crate::session_liveness::sweep(&self.path);
         Ok(())
     }
     /// RQ-06 for requests an earlier session left listed, as one batch. A later
     /// session marker never makes those earlier listed requests live.
     fn close_earlier_listed_requests(&mut self, session: &str) -> Result<(), String> {
         let (pending, _) = startup_request_closures(&self.current, session);
-        self.append_batch(pending).map_err(|e| format!("RQ-06 request ending not confirmed: {e}"))
+        self.append_batch_guarded(pending, true).map_err(|e| format!("RQ-06 request ending not confirmed: {e}"))
     }
     /// AS-02 / SQ-R R-2: SR-08 for each stop request an earlier session left
     /// sent with no final status (its generation is closed). Best effort: a

@@ -28,6 +28,11 @@ const SUPPLIER: &str = "bundled-owner-use-development";
 /// App-owned settings created only by the explicit new-settings setup: a new
 /// leaf per setup, beside (never inside) the protected App-data domains.
 const SETTINGS: &str = "shared-settings";
+/// What a person is told when another App holds this App data (DEL-01-02).
+pub(crate) const ALREADY_RUNNING: &str = "Chirality is already running with this data: it is already in use by another Chirality App. Nothing was started or changed here. Use the Chirality window that is already open, or quit that App first and then open Chirality again.";
+fn already_running(reason: &str) -> bool {
+    reason.contains(ALREADY_RUNNING)
+}
 
 /// Same lossless tagged native path representation used by attachments. Display
 /// strings are presentation only; native picker paths never round-trip through them.
@@ -232,9 +237,13 @@ impl DirectoryLease {
             );
         }
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+            let error = std::io::Error::last_os_error();
+            // Held elsewhere: another App. Any other failure is not "free".
+            if matches!(error.raw_os_error(), Some(code) if code == libc::EWOULDBLOCK || code == libc::EAGAIN) {
+                return Err(ALREADY_RUNNING.into());
+            }
             return Err(format!(
-                "desktop profile/home is already in use or custody unavailable (no wait): {}",
-                std::io::Error::last_os_error()
+                "desktop profile/home custody unavailable, so it is not treated as free (no wait): {error}"
             ));
         }
         let lease = Self {
@@ -272,6 +281,9 @@ impl Drop for DirectoryLease {
 struct ReceivingSource {
     file: File,
     reference: Reference,
+    /// The account home's inode lock, shared in this process with the Host
+    /// that starts Codex on the same home (one holder per role).
+    _hold: crate::home_hold::HomeHold,
 }
 /// Native entry metadata only: do not follow a receiving link or read content.
 /// A stable missing/broken/conflicting entry remains its admitted source limit.
@@ -318,15 +330,14 @@ impl ReceivingSource {
             .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC)
             .open(path)
             .map_err(|e| e.to_string())?;
+        // No native lock file is created. Hold the actual receiving directory
+        // inode exclusively for this process, independently of profile custody.
+        let hold = crate::home_hold::hold_receiving(&file)?;
         let result = Self {
             file,
             reference: reference.clone(),
+            _hold: hold,
         };
-        // No native lock file is created. Hold the actual receiving directory
-        // inode exclusively for this process, independently of profile custody.
-        if unsafe { libc::flock(result.file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
-            return Err(format!("account home already has a participating owner or custody is unavailable (no wait): {}", std::io::Error::last_os_error()));
-        }
         result.recheck()?;
         Ok(result)
     }
@@ -357,13 +368,6 @@ impl ReceivingSource {
         ];
         self.recheck()?;
         Ok(entries)
-    }
-}
-impl Drop for ReceivingSource {
-    fn drop(&mut self) {
-        unsafe {
-            libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
-        }
     }
 }
 
@@ -632,6 +636,18 @@ impl Launch {
             source: "explicit environment (exclusive)",
         }
     }
+    /// Another App holds this App data: nothing operational starts.
+    fn already_running() -> Self {
+        Self {
+            workspace: None,
+            host_config: Err(ALREADY_RUNNING.into()),
+            key_path: None,
+            shared_paths: [None, None, None],
+            bootstrap: None,
+            namespaces: None,
+            source: "another Chirality App holds this App data",
+        }
+    }
     fn setup(reason: String) -> Self {
         Self {
             workspace: None,
@@ -711,6 +727,24 @@ impl DesktopSetup {
     ) -> RootInputs {
         self.admitted = None;
         if launch.source == "explicit environment (exclusive)" {
+            // One App at a time holds an App data directory, on this route as
+            // on the saved one: before the ledger opens or anything is written.
+            if let Ok(data) = &environment_data {
+                if let Err(reason) = self.hold_environment_data(data) {
+                    let refused = already_running(&reason);
+                    self.launch_state = if refused {
+                        json!({"state":"already-running","reason":ALREADY_RUNNING,"operationalData":"not admitted; nothing started or changed"})
+                    } else {
+                        json!({"state":"environment","reason":format!("App data could not be held, so nothing was started: {reason}"),"operationalData":"not admitted"})
+                    };
+                    let reason = if refused { ALREADY_RUNNING.to_string() } else { format!("App data could not be held, so nothing was started: {reason}") };
+                    return RootInputs {
+                        launch: if refused { Launch::already_running() } else { Launch { host_config: Err(reason.clone()), workspace: None, key_path: None, shared_paths: [None, None, None], bootstrap: None, namespaces: None, source: "explicit environment (App data not held)" } },
+                        data: Err(format!("App operational data not admitted: {reason}")),
+                        allow_operational: false,
+                    };
+                }
+            }
             // Preserve the complete legacy route, including its independently
             // configured records override when App-data itself is unavailable.
             return RootInputs {
@@ -753,6 +787,18 @@ impl DesktopSetup {
                     allow_operational: true,
                 }
             }
+            Err(reason) if already_running(&reason) => {
+                self.receiving = None;
+                self.requested = None;
+                self.loaded_profile = None;
+                self.admitted = None;
+                self.launch_state = json!({"state":"already-running","reason":ALREADY_RUNNING,"operationalData":"not admitted; nothing started or changed"});
+                RootInputs {
+                    launch: Launch::already_running(),
+                    data: Err(format!("Desktop operational data not admitted: {ALREADY_RUNNING}")),
+                    allow_operational: false,
+                }
+            }
             Err(reason) => {
                 self.receiving = None;
                 self.requested = None;
@@ -789,10 +835,26 @@ impl DesktopSetup {
                 self.requested = None;
                 self.loaded_profile = None;
                 self.admitted = None;
+                if already_running(&reason) {
+                    self.launch_state = json!({"state":"already-running","reason":ALREADY_RUNNING});
+                    return Launch::already_running();
+                }
                 self.launch_state = json!({"state":"setup-required","reason":reason});
                 Launch::setup(reason)
             }
         }
+    }
+    /// The environment route's App data hold: the same directory-inode lease
+    /// the saved route takes, kept for the life of this setup (the process).
+    pub(crate) fn hold_environment_data(&mut self, data: &Path) -> Result<(), String> {
+        storage::check_path(data)?;
+        if self.lease.is_none() {
+            if !data.try_exists().map_err(|e| format!("App data unavailable: {e}"))? {
+                protected_directory(data)?;
+            }
+            self.lease = Some(DirectoryLease::acquire(data)?);
+        }
+        self.lease.as_ref().unwrap().recheck()
     }
     fn acquire(&mut self) -> Result<(), String> {
         let data = self.data.as_ref().map_err(Clone::clone)?;
@@ -908,6 +970,11 @@ impl DesktopSetup {
         probe: impl FnOnce() -> Result<PathBuf, String>,
     ) -> Result<Launch, String> {
         let data = self.data.as_ref().map_err(Clone::clone)?.clone();
+        // One App at a time holds this App data, with or without a saved
+        // request. The lease creates nothing; absent data has nothing to hold.
+        if self.lease.is_none() && data.try_exists().map_err(|e| e.to_string())? {
+            self.lease = Some(DirectoryLease::acquire(&data)?);
+        }
         // No request => no automatic home preparation or supplier work.
         if !data.join(PROFILE).try_exists().map_err(|e| e.to_string())? {
             return Err("No explicit desktop request saved".into());
@@ -5487,9 +5554,12 @@ mod tests {
                 .is_null());
             assert_eq!(home.host.snapshot()["state"], "absent");
             assert!(home.host.snapshot()["generation"].is_null());
+            // Another holder of this App data is another App: it says so
+            // (DEL-01-02, one App at a time); every other refusal is setup.
             assert_eq!(
                 desktop.lock().unwrap().view()["launch"]["state"],
-                "setup-required"
+                if case == "profile-owner" { "already-running" } else { "setup-required" },
+                "{case}"
             );
             // Metadata preview is still a setup-only capability, with no
             // operational root admitted or active owner replaced.
@@ -5780,6 +5850,145 @@ mod tests {
             .contains("already in use"));
     }
 
+    /// Every directory and file under `root`, each file with its bytes and
+    /// each link with its target: the App data, byte for byte.
+    fn tree(root: &Path) -> Vec<(PathBuf, Option<Vec<u8>>)> {
+        fn walk(at: &Path, out: &mut Vec<(PathBuf, Option<Vec<u8>>)>) {
+            for entry in std::fs::read_dir(at).unwrap() {
+                let path = entry.unwrap().path();
+                let meta = std::fs::symlink_metadata(&path).unwrap();
+                if meta.file_type().is_symlink() {
+                    let target = std::fs::read_link(&path).unwrap();
+                    out.push((path, Some(target.into_os_string().into_vec())));
+                } else if meta.is_dir() {
+                    out.push((path.clone(), None));
+                    walk(&path, out);
+                } else {
+                    out.push((path.clone(), Some(std::fs::read(&path).unwrap())));
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(root, &mut out);
+        out.sort();
+        out
+    }
+    /// A second App process on `data`, on `route`, through the same startup
+    /// as `run` up to where Codex would start ([`second_app_peer`]).
+    fn second_app(route: &str, data: &Path, resources: &Path) -> std::process::Output {
+        std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "desktop_startup::tests::second_app_peer", "--nocapture", "--test-threads=1"])
+            .env(
+                "CHIRALITY_SECOND_APP_FIXTURE",
+                json!({"route":route,"data":data,"resources":resources}).to_string(),
+            )
+            .output()
+            .unwrap()
+    }
+    fn assert_second_app_refused(route: &str, data: &Path, resources: &Path) {
+        let out = second_app(route, data, resources);
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        assert!(
+            out.status.success() && stdout.contains("SECOND_APP_REFUSED"),
+            "{route}: {stdout}\n{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+    }
+
+    #[test]
+    fn second_app_peer() {
+        let Ok(fixture) = std::env::var("CHIRALITY_SECOND_APP_FIXTURE") else {
+            return;
+        };
+        let fixture: Value = serde_json::from_str(&fixture).unwrap();
+        let data = PathBuf::from(fixture["data"].as_str().unwrap());
+        let resources = PathBuf::from(fixture["resources"].as_str().unwrap());
+        let environment = fixture["route"] == "environment";
+        let variables = json!({"CHIRALITY_APP_DATA":data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":data.join("invented-environment-home"),"CHIRALITY_ALLOW_UNVERIFIED":"1"});
+        let input = |key: &str| {
+            environment
+                .then(|| variables[key].as_str().map(std::ffi::OsString::from))
+                .flatten()
+        };
+        // The environment route names its App data; the platform's is not used.
+        let platform = if environment { PathBuf::from("/invented/platform-app-data") } else { data.clone() };
+        let (desktop, inputs) = crate::admitted_startup(input, Ok(platform), Ok(resources), true, || {
+            panic!("a second App allocates no probe home")
+        });
+        assert!(!inputs.allow_operational);
+        assert!(inputs.data.is_err());
+        assert_eq!(inputs.launch.host_config.as_ref().unwrap_err(), ALREADY_RUNNING);
+        assert!(inputs.launch.workspace.is_none());
+        let view = desktop.view();
+        assert_eq!(view["launch"]["state"], "already-running");
+        assert_eq!(view["launch"]["reason"], ALREADY_RUNNING);
+        // The rest of startup as `run` performs it: nothing operational starts.
+        let RootInputs { launch, data, allow_operational } = inputs;
+        let (key, shared) = (launch.key_path.clone(), launch.shared_paths.clone());
+        let (state, home) = crate::freeze_startup_state(launch, Arc::new(Mutex::new(desktop)), Value::Null);
+        crate::initialize_startup_consumers(&state, &home, data, allow_operational, true, None, key, shared);
+        assert!(home.host_config.is_err(), "no Codex start is reachable");
+        assert_eq!(home.host.snapshot()["state"], "absent");
+        assert_eq!(home.recovery_startup.lock().unwrap().snapshot()["state"], "initialization-failed");
+        assert!(state.workspace.is_none());
+        println!("SECOND_APP_REFUSED");
+    }
+
+    /// DEL-01-02: one App at a time holds an App data directory. With a first
+    /// App holding it (saved route, its recovery ledger started), a second App
+    /// process on the saved route and one on the environment route each start
+    /// nothing operational and leave the ledger and the App data unchanged.
+    #[test]
+    fn a_second_app_on_held_app_data_starts_nothing_and_changes_nothing_on_either_route() {
+        let f = Fixture::new();
+        let mut setup = f.setup();
+        f.prepare(&mut setup, true);
+        drop(setup);
+        let (first, inputs) = crate::admitted_startup(|_| None, Ok(f.data.clone()), Ok(f.resources.clone()), true, || f.probe());
+        assert!(inputs.allow_operational);
+        std::fs::create_dir_all(f.data.join("runtime")).unwrap();
+        let ledger_path = f.data.join("runtime/recovery.ledger.jsonl");
+        let host = Arc::new(Host::new());
+        host.configure_recovery(ledger_path.clone()).unwrap();
+        let ledger = || crate::recovery::stored_entries(&ledger_path);
+        let (entries, files) = (ledger(), tree(&f.data));
+        assert_eq!(entries.len(), 1, "the first App's session start");
+        for route in ["saved", "environment"] {
+            assert_second_app_refused(route, &f.data, &f.resources);
+            assert_eq!(ledger(), entries, "{route}: ledger entries unchanged");
+            assert_eq!(tree(&f.data), files, "{route}: App data unchanged byte for byte");
+        }
+        drop(host);
+        drop(first);
+        // Once the first App has gone, the next one on the same data is admitted.
+        let (_next, inputs) = crate::admitted_startup(|_| None, Ok(f.data.clone()), Ok(f.resources.clone()), true, || f.probe());
+        assert!(inputs.allow_operational);
+    }
+
+    /// The same with the first App on the environment route, which names its
+    /// App data (`CHIRALITY_APP_DATA`); a second App on either route is refused,
+    /// and a run naming a different App data is not.
+    #[test]
+    fn an_environment_route_app_holds_its_named_app_data_against_both_routes() {
+        let f = Fixture::new();
+        let named = |data: PathBuf| move |key: &str| (key == crate::APP_DATA_ENV).then(|| data.clone().into_os_string());
+        let (first, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        assert!(inputs.allow_operational, "the environment route keeps its own errors");
+        assert_eq!(first.view()["launch"]["state"], "environment");
+        let files = tree(&f.data);
+        for route in ["saved", "environment"] {
+            assert_second_app_refused(route, &f.data, &f.resources);
+            assert_eq!(tree(&f.data), files, "{route}: App data unchanged byte for byte");
+        }
+        let other = f.root.join("other-app-data");
+        let (_other, inputs) = crate::admitted_startup(named(other.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        assert!(inputs.allow_operational, "parallel runs that name their own App data are not refused");
+        assert!(other.is_dir());
+        drop(first);
+        let (_again, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        assert!(inputs.allow_operational);
+    }
+
     #[test]
     fn mounted_setup_packets() {
         let f = Fixture::new();
@@ -5876,6 +6085,12 @@ mod tests {
                 .allow_operational
         );
         let q_view = fresh_q.view();
+        // A second App on data this one holds: its own native view.
+        let mut second = keep.setup();
+        let launch = second.resolve(None, true, || panic!("a second App on held data allocates no probe"));
+        assert!(!second.admit_root(launch, Ok(keep.data.clone())).allow_operational);
+        let already_running = second.view();
+        drop(second);
         let none_preview = fresh_q.preview_project(None).unwrap();
         let none_saved = fresh_q
             .prepare_and_save(none_preview["token"].as_str().unwrap())
@@ -5889,7 +6104,7 @@ mod tests {
         let retained = json!({"initial":retain_initial,"preview":retain_preview,"saved":retain_saved,"conflict":conflict,"supersededError":superseded,"freshQ":q_view,"nonePreview":none_preview,"noneSaved":none_saved,"project":native_path_identity(&q),"currentProject":native_path_identity(&keep.project)});
         println!(
             "DESKTOP_SETUP_PACKETS={}",
-            json!({"newSettings":{"preview":new_settings_preview,"saved":new_settings_saved,"project":native_path_identity(&fresh_use.project)},"retained":retained,"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
+            json!({"alreadyRunning":already_running,"newSettings":{"preview":new_settings_preview,"saved":new_settings_saved,"project":native_path_identity(&fresh_use.project)},"retained":retained,"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
         );
     }
 

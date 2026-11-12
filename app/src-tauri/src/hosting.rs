@@ -596,6 +596,8 @@ pub struct AppRuntimeCustody {
     recovery_path:Option<PathBuf>,
     end_observation:Mutex<Option<Value>>,
     terminal_publication:Arc<TerminalPublicationController>,
+    /// The session's liveness lock, kept while any of its homes' Hosts lives.
+    liveness:Option<Arc<crate::session_liveness::Hold>>,
 }
 impl AppRuntimeCustody {
     pub(crate) fn close_distribution_publication(&self) { self.terminal_publication.lock_state().closing=true; }
@@ -738,6 +740,14 @@ pub struct Host {
     retired_processes: Mutex<Vec<Arc<process_group_custody::OwnedProcess>>>,
     probe_processes: Mutex<Vec<(u64, Arc<process_group_custody::OwnedProcess>)>>,
     quit_fence: std::sync::atomic::AtomicBool,
+    /// DEL-01-02: this App session's liveness lock, shared with the App
+    /// custody of the session's other homes.
+    session_liveness: Mutex<Option<Arc<crate::session_liveness::Hold>>>,
+    /// DEL-01-01/05: this Host's identity in the process's home holds, the
+    /// homes it holds, and its starts in progress (none may take a home over).
+    hold_id: usize,
+    home_holds: Mutex<Vec<crate::home_hold::HomeHold>>,
+    home_starting: Arc<std::sync::atomic::AtomicUsize>,
     #[cfg(test)]
     before_quit_stop: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
@@ -795,6 +805,10 @@ pub struct Host {
     before_s1_lt09_publish: Mutex<Option<Box<dyn FnOnce() + Send>>>,
 }
 
+impl crate::home_hold::HoldOwner for Host {
+    fn may_have_child(&self) -> bool { self.may_have_child_now() }
+}
+
 impl Default for Host {
     fn default() -> Self {
         Self::new()
@@ -829,6 +843,10 @@ impl Host {
             retired_processes: Mutex::new(Vec::new()),
             probe_processes: Mutex::new(Vec::new()),
             quit_fence: std::sync::atomic::AtomicBool::new(false),
+            session_liveness: Mutex::new(None),
+            hold_id: crate::home_hold::next_id(),
+            home_holds: Mutex::new(Vec::new()),
+            home_starting: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             #[cfg(test)]
             before_quit_stop: Mutex::new(None),
             records_activity: Mutex::new(None),
@@ -1036,12 +1054,12 @@ impl Host {
         if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}
             if !i.home.is_empty()&&i.spawn_counter>0{let mut counters=self.spawn_counters.lock().unwrap();let current=counters.entry(i.home.clone()).or_default();*current=(*current).max(i.spawn_counter);}
             (i.app_session.clone(),i.recovery.clone(),i.recovery_initialization_error.clone().or_else(||i.recovery_error.clone()).or_else(||if i.recovery.is_none(){Some("original App ledger unavailable; pointer history memory-only/unverified".into())}else{None}),i.recovery_path.clone())};
-        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None),terminal_publication:Arc::new(TerminalPublicationController::default())});*cached=Some(Arc::clone(&custody));Ok(custody)
+        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None),terminal_publication:Arc::new(TerminalPublicationController::default()),liveness:self.session_liveness.lock().unwrap().clone()});*cached=Some(Arc::clone(&custody));Ok(custody)
     }
     pub fn new_with_app_custody(custody:Arc<AppRuntimeCustody>)->Result<Self,String>{
         let writer=Arc::clone(&custody.writer);let _writer=writer.lock().unwrap();if custody.end_observation.lock().unwrap().is_some(){return Err("App session end already observed; no new home source in this App session".into());}
         let recovery=custody.ledger.as_ref().map(|ledger|ledger.lock().unwrap().observation());let mut host=Self::new();host.recovery_writer=Arc::clone(&custody.writer);host.spawn_counters=Arc::clone(&custody.counters);host.submission_contexts=Arc::clone(&custody.contexts);
-        {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}
+        {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}*host.session_liveness.lock().unwrap()=custody.liveness.clone();
         custody.sources.lock().unwrap().push(AppRecoverySource{inner:Arc::downgrade(&host.inner),queue:Arc::clone(&host.inner.0.lock().unwrap().pending_recovery)});*host.runtime_custody.lock().unwrap()=Some(Arc::clone(&custody));Ok(host)
     }
     /// Safely retained source observation; no ledger lock/IO under Inner.
@@ -1060,7 +1078,49 @@ impl Host {
         if self.runtime_custody.lock().unwrap().is_some(){return Err("App custody already adopted; no second recovery ledger/session initialization".into());}
         let _writer=self.recovery_writer.lock().unwrap();if self.runtime_custody.lock().unwrap().is_some(){return Err("App custody adopted while waiting; no second recovery initialization".into());}let session={let mut i=self.inner.0.lock().unwrap();if i.state!="absent"{return Err("recovery must be configured before supplier start".into());}
         if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}i.recovery_path=Some(path.clone());i.app_session.clone()};
-        let opened=(||{let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path,binding)?,None=>RecoveryLedger::open(path)?};ledger.start_session(&session,"chirality-app-v4-unqualified")?;Ok::<_,String>(ledger)})();let ledger=match opened{Ok(ledger)=>ledger,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;Ok(())
+        // DEL-01-02: this session's liveness lock is taken after the ledger
+        // opens and before its session_started entry is written, and kept
+        // while this Host and the App custody it shares live.
+        let opened=(||{let liveness=crate::session_liveness::directory(&path);if let Some(binding)=&namespaces{binding.guard_domains(&[liveness])?;}
+            let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path.clone(),binding)?,None=>RecoveryLedger::open(path.clone())?};
+            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session(&session,"chirality-app-v4-unqualified")?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
+    }
+    /// Test model of this App session's process having ended, for a test that
+    /// still reads through this Host afterwards: only its liveness lock is
+    /// released, as the kernel releases it (the file stays, free).
+    #[cfg(test)]
+    pub(crate) fn release_session_lock_for_test(&self) {
+        if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
+    }
+    /// Test model of this Host's process ending: what it had queued reaches
+    /// its ledger, it writes nothing after, and its session liveness lock and
+    /// home holds are released as the kernel releases them for a killed
+    /// process (the liveness file stays, free). The Host object stays.
+    #[cfg(test)]
+    pub(crate) fn release_process_holds_for_test(&self) {
+        {
+            let _writer = self.recovery_writer.lock().unwrap();
+            self.drain_recovery_owned();
+            self.inner.0.lock().unwrap().recovery = None;
+        }
+        if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
+        self.home_holds.lock().unwrap().clear();
+    }
+    /// Whether this Host may still have a Codex child on a home it holds:
+    /// `true` unless it is certainly idle; state that cannot be read at once
+    /// counts as busy, never as idle.
+    fn may_have_child_now(&self)->bool{
+        let Ok(i)=self.inner.0.try_lock() else{return true;};
+        if !matches!(i.state.as_str(),"absent"|"stopped"|"refused"|"halted-after-repeated-failure"|"exited-unexpectedly"){return true;}
+        drop(i);
+        let Ok(child)=self.child.try_lock() else{return true;};
+        if child.as_ref().is_some_and(|c|!c.settled()){return true;}
+        drop(child);
+        let Ok(retired)=self.retired_processes.try_lock() else{return true;};
+        if retired.iter().any(|p|!p.settled()){return true;}
+        drop(retired);
+        let Ok(probes)=self.probe_processes.try_lock() else{return true;};
+        probes.iter().any(|(_,p)|!p.settled())
     }
 
     /// Snapshot then all later frames in receipt order. Detach is simply ceasing
@@ -1549,6 +1609,12 @@ impl Host {
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+        // DEL-01-01/05: one App at a time on a Codex home, held while this
+        // Host lives; the claim keeps the home from being taken over while
+        // this start is under way. Refused before anything is spawned.
+        let owner: std::sync::Weak<dyn crate::home_hold::HoldOwner> = Arc::downgrade(self) as std::sync::Weak<dyn crate::home_hold::HoldOwner>;
+        let (hold, _start_claim) = crate::home_hold::claim_host(&cfg.codex_home, self.hold_id, owner, &self.home_starting)?;
+        if let Some(hold) = hold { self.home_holds.lock().unwrap().push(hold); }
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
         let attempt = {
@@ -5983,6 +6049,7 @@ mod conversation_transport_tests {
         use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};
         let(host,g,root,owner,selections)=context_fixture();let p=Context::known("P",AppProjectSource::ConfiguredDirectory).unwrap();
         host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();
+        host.release_process_holds_for_test();
         let successor=Arc::new(Host::new());successor.configure_recovery(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap();
         let next={let mut i=successor.inner.0.lock().unwrap();let next=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=next.clone();i.state="ready".into();i.threads.push(json!({"generation":next,"threadId":"thread"}));next};
         successor.observe_conversation_project(&next,"thread",Some("H-acct"),&p).unwrap();

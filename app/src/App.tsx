@@ -2424,7 +2424,8 @@ export function App() {
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
-  const setupRequired = host?.desktopSetup?.launch?.state === "setup-required";
+  // Another App holding this data shows the same focused surface, with its reason.
+  const setupRequired = host?.desktopSetup?.launch?.state === "setup-required" || host?.desktopSetup?.launch?.state === "already-running";
   return (<DailyWorkspace>
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         <div hidden={setupRequired}>

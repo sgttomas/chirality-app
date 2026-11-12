@@ -503,6 +503,18 @@ test('first use: a later project edit or no-project supersedes an in-flight Brow
     });
   }
 });
+test('a second App on data another App holds says so in plain words and offers no setup',async()=>{
+  const view=packet.alreadyRunning;
+  assert.equal(view.launch.state,'already-running');
+  await mountedWelcome(view,()=>assert.fail('no IPC while another App holds this data'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/Chirality is already running/);
+    assert.match(welcome.textContent,/Nothing was started or changed here/);
+    assert.match(welcome.textContent,/Use the Chirality window that is already open, or quit that App first/);
+    assert.equal(nodes(c,'button').length,0,'no setup action is offered');
+    assert.deepEqual(calls,[]);
+  });
+});
 test('the mounted App shows only the welcome while setup is required and keeps confirmation content visible',async()=>{
   const host={state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}};
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);

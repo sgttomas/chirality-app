@@ -38,6 +38,14 @@ code_paths:
 - app/src-tauri/src/app_quit.rs
 - app/src-tauri/src/codex_stop.rs
 - app/src-tauri/src/stop_records.rs
+# One App at a time on the App data: each App session's liveness lock beside the ledger, read
+# before any startup inference about an earlier session.
+- app/src-tauri/src/session_liveness.rs
+# desktop_startup.rs and lib.rs are shared. Here: the App data hold on both launch routes and
+# the "already running" refusal before the ledger opens.
+- app/src-tauri/src/desktop_startup.rs
+- app/src-tauri/src/lib.rs
+- app/src/FirstUse.tsx
 # native_requests.rs is shared with DEL-01-04. Here: custody of outstanding requests and the
 # summaries kept of them. Answer validation and decline forms are DEL-01-04's.
 - app/src-tauri/src/native_requests.rs
@@ -69,6 +77,9 @@ checks:
 - app/src-tauri/src/stop_records_host_tests.rs
 - app/src-tauri/src/execution_custody_tests.rs
 - app/src-tauri/src/hosting_recovery_reads_tests.rs
+- app/src-tauri/src/session_liveness_tests.rs
+- app/src-tauri/src/desktop_startup.rs
+- app/tests/desktop-setup.test.mjs
 - app/examination/windows_platform/verify_results.py
 - app/examination/windows_platform/test_driver.py
 - app/examination/windows_platform/run_hosted_fixture.py

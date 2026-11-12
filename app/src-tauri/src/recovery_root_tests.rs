@@ -182,6 +182,8 @@ fn recovery_root_actual_source_queue_durable_reopen_remains_pointer_only() {
     assert_eq!(associations[0]["generation"], f.generation);
     Host::close_generation(&mut f.host.inner.0.lock().unwrap());
     f.host.flush_recovery_observations();
+    // The earlier App's process has ended (one App at a time on this data).
+    f.host.release_process_holds_for_test();
     let next = Arc::new(Host::new());
     next.configure_recovery(f.root.join("ledger.jsonl"))
         .unwrap();
@@ -300,6 +302,8 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
     row["lastObservedExecution"]["liveTurn"] = json!("not-a-legacy-association");
     ledger.append(row.clone()).unwrap();
     let prefix = crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));
+    // The earlier App's process has ended (one App at a time on this data).
+    f.host.release_process_holds_for_test();
     let next = Arc::new(Host::new());
     next.configure_recovery(f.root.join("ledger.jsonl"))
         .unwrap();

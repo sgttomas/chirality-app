@@ -303,6 +303,8 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     // The App ends without a record; the relaunched App has its own session.
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.release_process_holds_for_test();
     // Many turns since: the lost turn is on the second page of history.
     f.history(json!([{"id":"turn-3","status":"completed"},{"id":"turn-2","status":"completed"},{"id":"turn-1","status":"failed"}]));
     f.set("history-pages", "2");
@@ -334,6 +336,7 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     assert_eq!(f.states().last().unwrap(), "indexed");
     // A third session finds nothing left to recover.
     let _ = relaunched.host.stop("fixture", "test relaunch");
+    relaunched.host.release_process_holds_for_test();
     let third_start_wire = f.wire().len();
     let third = Fixture::session(&f.root, &f.cfg);
     // Ready establishes the Host's handshake write, not the peer's log append.
@@ -360,6 +363,8 @@ fn cv19_relaunch_over_an_imported_json_lines_ledger_reads_as_over_the_database()
     f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.release_process_holds_for_test();
     f.history(json!([{"id":"turn-3","status":"completed"},{"id":"turn-2","status":"completed"},{"id":"turn-1","status":"failed"}]));
     f.set("history-pages", "2");
     // The same earlier session, as an earlier build's JSON Lines ledger elsewhere.
@@ -468,6 +473,8 @@ fn relaunch_without_a_final_status_leaves_the_ledger_stop_request_reading_unchan
     f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.release_process_holds_for_test();
     f.history(json!([{"id":"turn-1","status":"inProgress"}]));
     let relaunched = Fixture::session(&f.root, &f.cfg);
     let record = |home: &HomeSession| home.host.snapshot()["stopRequests"]["records"][0].clone();
@@ -512,6 +519,8 @@ fn relaunch_sr09_reaches_an_earlier_sent_request_behind_a_later_unsent_one() {
     f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.release_process_holds_for_test();
     // A later request for the same turn that was never sent, as SR-03 records it.
     let sent = f.ledger().into_iter().rev().find(|e| e["kind"] == "stop_request").unwrap()["record"].clone();
     let generation = crate::recovery::generation_from_ref(sent["generation"].as_str().unwrap()).unwrap();
@@ -766,4 +775,175 @@ fn a_prepared_reply_waiting_for_the_frame_writer_ends_unanswered_without_io() {
     assert_eq!(after_restart, hot, "cold history retains the actual closed source without synthesizing an unanswered RQ-06 or a write result");
     let final_row = after_restart.last().unwrap();
     assert_eq!(final_row["state"], "closed");assert_eq!(final_row["transition"], "RQ-04");assert_eq!(final_row["replyWrite"], "not-attempted");assert_eq!(final_row["acknowledgment"], "not-observed");assert_eq!(final_row["context"], "supplier-exit");
+}
+
+/// A root with the fixture peer and its configuration; no Host started.
+fn peer_root() -> (PathBuf, HostConfig) {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("home-hold-peer-").unwrap());
+    for name in ["account", "probe"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
+    let peer = root.join("peer.py");
+    std::fs::write(&peer, PEER).unwrap();
+    std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut cfg = HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(2);
+    (root, cfg)
+}
+fn initializes(root: &std::path::Path) -> usize {
+    std::fs::read_to_string(root.join("wire.jsonl")).unwrap_or_default().lines().filter(|l| l.contains("\"initialize\"")).count()
+}
+
+/// DEL-01-02: while an App session lives (its liveness lock held), another
+/// session's startup on the same ledger draws no inference about it: no
+/// RQ-06 ending for its listed request, no SR-08 for its in-flight stop
+/// request, no restart fact for its live turn, no adoption or recovery read
+/// of its conversation and no run limit. Nothing is written. Once its lock is
+/// free, the same startup records exactly what it records for a session from
+/// before locks existed.
+#[test]
+fn a_live_session_is_given_no_endings_restart_facts_adoption_or_run_limit_by_another_startup() {
+    let f = Fixture::new();
+    f.live_work();
+    f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
+    // The first App session lives on with its Codex: its own facts settle.
+    f.until("the first session's request, sent stop request and live turn are recorded", || {
+        f.home.host.flush_recovery_observations();
+        let rows = f.ledger();
+        rows.iter().any(|e| e["kind"] == "register_entry_summary" && e["state"] == "listed")
+            && rows.iter().any(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent")
+            && rows.iter().any(|e| e["kind"] == "conversation_index" && e["lastObservedExecution"]["state"] == "turn-live" && !e["lastObservedExecution"]["openItems"].as_array().unwrap().is_empty())
+    });
+    let path = f.root.join("recovery.ledger.jsonl");
+    let first_session = f.first["appSession"].as_str().unwrap().to_owned();
+    assert_eq!(crate::session_liveness::probe(&path, &first_session), crate::session_liveness::Liveness::Held);
+    let before = f.ledger();
+    // Another session's startup on the same ledger.
+    let second = Arc::new(Host::new());
+    let refused = second.configure_recovery(path.clone()).unwrap_err();
+    assert!(refused.contains(crate::recovery::STILL_RUNNING), "{refused}");
+    assert_eq!(f.ledger(), before, "no ending, closure or session start written");
+    let view = second.recovery_custody().snapshot();
+    assert!(view["restartEvents"].as_array().unwrap().is_empty(), "no restart fact");
+    assert!(view["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains(crate::recovery::STILL_RUNNING))), "the withheld inference is a limit: {view}");
+    // Even with Codex running on the same home, nothing is adopted or read.
+    // (One App at a time on a home would refuse this start; its hold is set
+    // aside here so that the withholding is shown on its own.)
+    f.home.host.home_holds.lock().unwrap().clear();
+    second.start(&f.cfg, "second session").unwrap();
+    let second = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, second, Ok(f.cfg.clone())).unwrap());
+    assert_eq!(crate::host_tick::recovery_tick_home(&second), 0, "no recovery read of the live session's conversation");
+    assert!(second.host.recovery_custody().snapshot()["live"]["observations"].as_array().unwrap().is_empty(), "nothing adopted");
+    let limits = crate::run_restart::startup(&[Arc::clone(&second)], Some(&f.root));
+    assert!(limits["outcomes"].as_array().unwrap().is_empty(), "no run limit: {limits}");
+    assert!(!limits["limits"].as_array().unwrap().is_empty(), "the run limit writer says why: {limits}");
+    assert_eq!(f.ledger(), before);
+    let _ = second.host.stop("fixture", "second session ended");
+    // Once the first session's process has gone, today's reading, exactly.
+    // (Modelled as the kernel ends it: its queued facts reach the ledger first.)
+    f.home.host.release_process_holds_for_test();
+    let base = f.ledger().len();
+    std::fs::copy(f.root.join("recovery.ledger.sqlite"), f.root.join("before-locks.ledger.sqlite")).unwrap();
+    assert_eq!(crate::session_liveness::probe(&path, &first_session), crate::session_liveness::Liveness::Free);
+    let started = |ledger: PathBuf| {
+        let mut ledger = crate::recovery::RecoveryLedger::open(ledger).unwrap();
+        ledger.start_session("app-session:relaunch", "chirality-app-v4-unqualified").unwrap();
+        // Times differ between two startups; everything else must not.
+        fn timeless(value: &mut Value) {
+            match value {
+                Value::Object(map) => { map.retain(|key, _| key != "at" && !key.ends_with("At")); map.values_mut().for_each(timeless); }
+                Value::Array(items) => items.iter_mut().for_each(timeless),
+                _ => {}
+            }
+        }
+        let mut rows = ledger.recorded_entries().as_array().unwrap()[base..].to_vec();
+        rows.iter_mut().for_each(timeless);
+        rows
+    };
+    let today = started(f.root.join("before-locks.ledger.jsonl"));
+    let now = started(path.clone());
+    assert_eq!(now, today, "the same entries as for a session without a lock file");
+    assert_eq!(now[0]["previousSessionEnd"], "ended-without-record");
+    assert_eq!(now[0]["previousSession"], first_session.as_str());
+    assert!(now.iter().any(|e| e["transition"] == "RQ-06"), "the listed request's ending: {now:?}");
+    assert!(now.iter().any(|e| e["kind"] == "stop_request"), "the stop request's closing: {now:?}");
+}
+
+/// DEL-01-01/05: two Hosts on one Codex home in one process: the second
+/// start is refused and spawns nothing; once the first has stopped and is
+/// dropped, the second starts.
+#[test]
+fn a_second_host_on_one_home_in_one_process_is_refused_until_the_first_is_gone() {
+    let (root, cfg) = peer_root();
+    let first = Arc::new(Host::new());
+    first.start(&cfg, "first").unwrap();
+    let second = Arc::new(Host::new());
+    let refused = second.start(&cfg, "second").unwrap_err();
+    assert!(refused.contains("already started on this home"), "{refused}");
+    assert_eq!(second.snapshot()["state"], "absent", "nothing spawned or recorded");
+    assert_eq!(initializes(&root), 1, "one Codex on the home");
+    // The same home under another spelling is the same home.
+    let mut alias = cfg.clone();
+    std::os::unix::fs::symlink(root.join("account"), root.join("account-alias")).unwrap();
+    alias.codex_home = root.join("account-alias");
+    assert!(second.start(&alias, "second").is_err());
+    let generation = first.snapshot()["generation"].clone();
+    first.stop_scoped(&generation, "fixture", "first ended").unwrap();
+    drop(first);
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let ready = loop {
+        match second.start(&cfg, "second") {
+            Ok(ready) => break ready,
+            Err(e) => { assert!(Instant::now() < deadline, "{e}"); std::thread::sleep(Duration::from_millis(20)); }
+        }
+    };
+    assert_eq!(ready["state"], "ready");
+    let _ = second.stop("fixture", "test ended");
+    assert!(std::fs::read_dir(root.join("account")).unwrap().next().is_none(), "nothing created inside the home");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The child half: a Host ready on the given home, alive until killed.
+#[test]
+fn home_host_peer_process() {
+    let Some(root) = std::env::var_os("CHIRALITY_HOME_HOST_PEER") else { return; };
+    let root = PathBuf::from(root);
+    let mut cfg = HostConfig::new(root.join("peer.py"), root.join("account"), root.join("probe"), root.clone());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(2);
+    let host = Arc::new(Host::new());
+    host.start(&cfg, "peer process").unwrap();
+    println!("READY");
+    std::io::Write::flush(&mut std::io::stdout()).unwrap();
+    let mut line = String::new();
+    let _ = std::io::stdin().read_line(&mut line);
+}
+
+/// Across processes, with different App data (no ledger at all here): a
+/// home another App's Host holds is refused with the plain reason and spawns
+/// nothing; once that App is killed (SIGKILL) a Host starts on it.
+#[test]
+fn a_host_on_a_home_another_process_holds_is_refused_until_that_process_is_killed() {
+    use std::io::BufRead;
+    let (root, cfg) = peer_root();
+    let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "hosting::recovery_reads::tests::home_host_peer_process", "--nocapture", "--test-threads=1"])
+        .env("CHIRALITY_HOME_HOST_PEER", &root)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut lines = std::io::BufReader::new(child.stdout.take().unwrap()).lines();
+    // libtest prints "test <name> ... " before the body, without a newline.
+    while !lines.next().expect("peer process reported").unwrap().ends_with("READY") {}
+    let host = Arc::new(Host::new());
+    assert_eq!(host.start(&cfg, "second App").unwrap_err(), crate::home_hold::IN_USE);
+    assert_eq!(host.snapshot()["state"], "absent");
+    assert_eq!(initializes(&root), 1, "no second Codex on the home");
+    assert_eq!(unsafe { libc::kill(child.id() as i32, libc::SIGKILL) }, 0);
+    child.wait().unwrap();
+    let ready = host.start(&cfg, "after the first App was killed").unwrap();
+    assert_eq!(ready["state"], "ready");
+    let _ = host.stop("fixture", "test ended");
+    let _ = std::fs::remove_dir_all(root);
 }

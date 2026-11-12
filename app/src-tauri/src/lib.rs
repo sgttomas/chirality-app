@@ -53,6 +53,8 @@ pub mod home_resources;
 mod native_local_provider;
 mod native_secure_entry;
 mod desktop_startup;
+mod home_hold;
+mod session_liveness;
 mod desktop_setup_confirmation;
 mod main_window;
 mod provider_endpoint_confirmation;
@@ -2668,12 +2670,48 @@ fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_
 #[tauri::command(async)]
 fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
+/// The environment route's App data directory, named explicitly. Without it
+/// the route uses the App's own data directory for its identifier, which every
+/// development run that keeps the committed identifier shares; one App at a
+/// time holds an App data directory, so parallel runs each name their own.
+pub(crate) const APP_DATA_ENV: &str = "CHIRALITY_APP_DATA";
+/// Any of these selects the environment route; its inputs are then exclusive.
+const ENVIRONMENT_KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR", APP_DATA_ENV];
+fn environment_selected(input: impl Fn(&str)->Option<std::ffi::OsString>) -> bool {
+    ENVIRONMENT_KEYS.iter().any(|key|input(key).is_some())
+}
+/// The startup admission `run` performs before any operational consumer:
+/// the App data directory (named by [`APP_DATA_ENV`] or the platform's), the
+/// launch route, and one App at a time on that data on either route. On the
+/// environment route the hold is taken before its probe home is allocated.
+pub(crate) fn admitted_startup(
+    input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
+    probe: impl Fn()->Result<PathBuf,String>,
+) -> (desktop_startup::DesktopSetup, desktop_startup::RootInputs) {
+    let data = environment_app_data(&input).unwrap_or(platform_data);
+    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
+    let refused = environment_selected(&input) && data.as_ref().is_ok_and(|data| desktop.hold_environment_data(data).is_err());
+    let environment = explicit_environment_launch(&input, &data, &resources, is_dev, || if refused { Err("no probe home allocated: this App data is not held".into()) } else { probe() });
+    let launch = desktop.resolve(environment, is_dev, &probe);
+    let inputs = desktop.admit_root(launch, data);
+    (desktop, inputs)
+}
+/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`.
+fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Option<Result<PathBuf,String>> {
+    let value = input(APP_DATA_ENV).filter(|v| !v.is_empty())?;
+    let path = PathBuf::from(value);
+    Some(if path.is_absolute() && !path.components().any(|c| matches!(c, std::path::Component::ParentDir | std::path::Component::CurDir)) {
+        Ok(path)
+    } else {
+        Err(format!("{APP_DATA_ENV} must be an absolute path without . or .. components"))
+    })
+}
+
 fn explicit_environment_launch(
     input: impl Fn(&str)->Option<std::ffi::OsString>, data: &Result<PathBuf,String>, resources: &Result<PathBuf,String>, is_dev: bool,
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
-    const KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR"];
-    if !KEYS.iter().any(|key|input(key).is_some()) { return None; }
+    if !environment_selected(&input) { return None; }
     let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
         host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
@@ -2859,12 +2897,8 @@ pub fn run() {
             let _ = window.minimize();
         })
         .setup(move |app| {
-    let data = app.path().app_data_dir().map_err(|e| e.to_string());
     let resources = app.path().resource_dir().map_err(|e|e.to_string());
-    let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
-    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
-    let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
-    let desktop_startup::RootInputs { launch, data, allow_operational } = desktop.admit_root(launch, data);
+    let (desktop, desktop_startup::RootInputs { launch, data, allow_operational }) = admitted_startup(|key|std::env::var_os(key), app.path().app_data_dir().map_err(|e| e.to_string()), resources.clone(), tauri::is_dev(), probe_home);
     let host_config = launch.host_config.clone();
     let key_path = launch.key_path.clone();
     let shared_paths = launch.shared_paths.clone();

@@ -587,6 +587,8 @@ for line in sys.stdin:
         assert_eq!(entry["actor"]["identity"], "R · OS account r");
         crate::recovery::RecoveryLedger::open(f.ledger()).unwrap();
         // Relaunch: a new App session reads the stop outcome from the ledger alone.
+        // The earlier App's process has ended (one App at a time on this data).
+        f.home.host.release_process_holds_for_test();
         let relaunched = Host::new();
         relaunched.configure_recovery(f.ledger()).unwrap();
         let back = relaunched.snapshot()["stopRequests"]["records"].as_array().unwrap().iter().find(|r| r["turnId"] == "turn-1").unwrap().clone();

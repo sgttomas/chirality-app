@@ -1221,6 +1221,18 @@ incomplete or invalid; there is no fallback or field merge from saved desktop
 requests. A compiled production successor continues to refuse without its
 installed-custody issuer, regardless of a desktop development selection.
 
+One App at a time holds an App data directory and each Codex home it starts
+Codex on, on this route as on the saved one. A second App on the same App data
+starts nothing (no Codex, no recovery ledger, no record) and shows "Chirality is
+already running with this data"; a second Host on a home another App holds is
+refused. Every committed configuration uses the identifier
+`dev.chirality.app-v4.skeleton`, so development runs that do not name their App
+data share one directory and only the first of them starts. To run in parallel,
+give each run its own `CHIRALITY_APP_DATA` (an absolute path; it is created if
+missing, and setting it alone selects this route) and its own
+`CHIRALITY_CODEX_HOME`. Tests construct their state in their own scratch
+folders and need neither.
+
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
 `CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary
 hash is a development assertion. Full qualified distribution identity is absent,

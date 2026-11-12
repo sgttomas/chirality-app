@@ -157,8 +157,10 @@ fn a_ledger_that_refuses_the_write_is_visible_and_the_stop_still_proceeds() {
     let row = &snapshot["stopRequests"]["records"][0];
     assert!(row["persistence"].as_str().unwrap().starts_with("not yet written to the App ledger"), "{row}");
     assert!(snapshot["recoveryPersistenceError"].is_string(), "the failure is visible");
-    // Never relocated: nothing was written anywhere else.
-    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 2);
+    // Never relocated: nothing was written anywhere else (beside the ledger and
+    // its database there is only this session's liveness directory).
+    let liveness = crate::session_liveness::directory(&path);
+    assert_eq!(std::fs::read_dir(&root).unwrap().filter(|e| e.as_ref().unwrap().path() != liveness).count(), 2);
     std::fs::remove_dir(&database).unwrap();
     std::fs::rename(&saved, &database).unwrap();
     host.flush_recovery_observations();
