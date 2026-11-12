@@ -20,7 +20,7 @@
   },
   "dossier": {
     "path": "dossier.json",
-    "sha256": "5ab5eaf5da0a2ae9742f62e742de8cfdc1befbcc4aa99759ae3cf5da6fa750bf"
+    "sha256": "31a3cd703557aeef4352ab41c21d9a4110635129d4dbcec4eebd6a152261a27a"
   },
   "case_definition": {
     "ref": "INVENTED-SQ-CASE-DEFINITION",

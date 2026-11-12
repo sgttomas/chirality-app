@@ -51,7 +51,8 @@ class SQDossierRules(unittest.TestCase):
                 # An added step is not counted and gives its reason.
                 self.assertEqual(not step['counts'], step['step'].endswith('R'))
                 self.assertTrue(step['counts'] or step.get('added_reason'))
-                self.assertTrue(step['supplier_cases'])
+                # M12-2's API-key cases were removed with that mode; no case for the local key survives.
+                self.assertEqual(not step['supplier_cases'], step['step'] == 'M12-2')
         cited = [case['case_id'] for step in self.steps for case in step['supplier_cases']]
         self.assertNotIn('VC-AAC-04', cited)
         for step in self.step_map['scenarios']['V4-EXM-11']:
@@ -67,7 +68,7 @@ class SQDossierRules(unittest.TestCase):
                 self.assertEqual(self.violations(dossier), [])
 
     def test_invalid_dossiers_are_refused_by_the_schema(self):
-        self.assertEqual(len(self.invalid), 8)
+        self.assertEqual(len(self.invalid), 9)
         for item in self.invalid:
             with self.subTest(record=item['record']['record_id'], why=item['why']):
                 self.assertTrue(list(self.validator.iter_errors(item['record'])))
@@ -99,6 +100,22 @@ class SQDossierRules(unittest.TestCase):
             with self.subTest(produced=produced, outcome=outcome):
                 self.assertEqual([e.message for e in self.validator.iter_errors(probe)], [])
                 self.assertEqual(self.violations(probe), expected)
+
+    def test_run_b_accepts_the_two_modes_and_refuses_a_third(self):
+        two = copy.deepcopy(self.valid[0])
+        modes = next(s for s in two['scenarios'] if s['scenario'] == 'V4-EXM-12')['access_modes']
+        self.assertEqual([(m['kind'], m['home']) for m in modes],
+                         [('chatgpt_account', 'H-acct'), ('local_provider', 'H-omlx')])
+        self.assertEqual([e.message for e in self.validator.iter_errors(two)], [])
+        self.assertEqual(self.violations(two), [])
+        # A three-mode dossier with standalone API-key access in H-key is refused by the schema and SQ-R3.
+        three = next(item['record'] for item in self.invalid if item['record']['record_id'] == 'SQ-INV-09')
+        self.assertTrue(list(self.validator.iter_errors(three)))
+        self.assertIn('SQ-R3', self.violations(three))
+        # A third mode of an admitted kind is schema-valid and refused by SQ-R3.
+        extra = next(item for item in self.rule_violations if item['record']['record_id'] == 'SQ-RV-13')
+        self.assertEqual(len(next(s for s in extra['record']['scenarios'] if s['scenario'] == 'V4-EXM-12')['access_modes']), 3)
+        self.assertEqual(self.violations(extra['record']), ['SQ-R3'])
 
     def test_a_cited_case_outside_the_step_map_is_refused(self):
         dossier = copy.deepcopy(self.valid[0])

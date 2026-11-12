@@ -103,8 +103,8 @@
             "required": ["kind", "home", "conversation_ref"],
             "additionalProperties": false,
             "properties": {
-              "kind": { "enum": ["chatgpt_account", "api_key", "local_provider"] },
-              "home": { "enum": ["H-acct", "H-key"] },
+              "kind": { "enum": ["chatgpt_account", "local_provider"] },
+              "home": { "enum": ["H-acct", "H-omlx"] },
               "conversation_ref": { "type": "string", "minLength": 1 }
             }
           }

@@ -3,15 +3,15 @@
   "sources": [
     {
       "path": "app/examination/standalone/prepare.py",
-      "sha256": "53c7f3364035661a114870bc0a91247b9d93d2cab6ad81dadbcf6587488fb14f"
+      "sha256": "0efaa93bc35d4c256881f0c43825fb4a998b7a0f101d7eba6d2c756767a4c318"
     },
     {
       "path": "app/examination/standalone/sources.terms-v1.json",
-      "sha256": "e28c3b23c615eb90f641278c994396ecdf114d1dddf40e5b22882ee38169c4ac"
+      "sha256": "3e00842ded3b40ad4fafc5cf0492192df02150d04f00ba65eb7ee74fff98ea26"
     },
     {
       "path": "app/examination/standalone/missing-inputs.json",
-      "sha256": "8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356"
+      "sha256": "a6bcd62151a467fa1ee7eee07e4138870582d2b9b04bc6fde8fcfa9a0e78556b"
     },
     {
       "path": "app/examination/standalone/invented-inputs.json",

@@ -6,13 +6,13 @@
     "app/examination/admission/sources.json": "d4aa53492349915110941f42a09271c1bd0999831efa540cdcf948a5b706ede0",
     "app/examination/check.py": "3c1a6d2e6d65724478b597c8d0f1ade0d06231b398a14267c91f30e28985f79a",
     "app/examination/native_forms/native_form.py": "11702c4d01223bb8ab1964c72eaae1b13e119f3e7cdaa9abc564a3931a9c180d",
-    "app/examination/native_forms/sources.terms-v1.json": "82e327c2842df188c54322710c2b142be5507e4f5cdeda39b174ec47ae30a4c1",
+    "app/examination/native_forms/sources.terms-v1.json": "3b712745e0256be2517b47535ff529c97b040ba64170bb4912636a96135977ce",
     "app/examination/rules.py": "ceba713f1c1439855eecd60ef02dc1dd6e68e373916281e5e1ca5d8cb10b0cfc",
     "app/examination/sources.json": "ee430815e87c3b2759bdd5511dd18cb2ef14ed4d2ef14f1b084e972dcc7a6bf7",
     "app/examination/standalone/invented-inputs.json": "2de946a4884b77e3c8d38b793967b5355f3a3876b4b32f2231d54c9aadfafe24",
-    "app/examination/standalone/missing-inputs.json": "8cf382f03184657c99255b3aed5d6cf9dca34f913f3c0a312f0f2e36fd8f2356",
-    "app/examination/standalone/prepare.py": "53c7f3364035661a114870bc0a91247b9d93d2cab6ad81dadbcf6587488fb14f",
-    "app/examination/standalone/sources.terms-v1.json": "e28c3b23c615eb90f641278c994396ecdf114d1dddf40e5b22882ee38169c4ac",
+    "app/examination/standalone/missing-inputs.json": "a6bcd62151a467fa1ee7eee07e4138870582d2b9b04bc6fde8fcfa9a0e78556b",
+    "app/examination/standalone/prepare.py": "0efaa93bc35d4c256881f0c43825fb4a998b7a0f101d7eba6d2c756767a4c318",
+    "app/examination/standalone/sources.terms-v1.json": "3e00842ded3b40ad4fafc5cf0492192df02150d04f00ba65eb7ee74fff98ea26",
     "app/examination/support_identity/binding.v1.schema.json": "b5e5baca25c90e53fdaf3f685f531eb84fb921ac8e31b6cb0c782ff68fd05394",
     "app/examination/support_identity/canonical-pins.terms-v1.json": "8cd96d1d0af27f255fbacdce3501a3250b09d423f815cc8646bb8b57ad88494b",
     "app/examination/support_identity/canonical.py": "c6b3941e7aab985f9ad1df74aab5fc231fa0fb7d11df56e0126a0d4d8fe9e951",
@@ -24,8 +24,8 @@
     "app/examination/admission/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
     "app/examination/support_identity/binding.canonical.v1.schema.json": "95ab4a2e79d49d2a269fa20c4be2d385b8693c1c3de18c40416dcfd433b8ea27",
     "app/examination/support_identity/publication-declaration.v1.json": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
-    "app/examination/sq_receiving/sq.step-map.json": "92715980d84ea32caff43c35b865db4c3d93322075f7ff92c1362109f85b50ee",
-    "app/examination/standalone/step-operations.json": "8b5a4b84d75490dcfb23595992faf862a37c8092ebb6b1a564c2e17ca7b7d05a"
+    "app/examination/sq_receiving/sq.step-map.json": "1ec3e6790b07b30c1fa371cd545e88ddf86892689902a3046204667e562750ee",
+    "app/examination/standalone/step-operations.json": "0a691a4461058866ef1e899c9c7516c9d2c96b353c61e5117c1c2f27eb01fa23"
   },
   "fixture_roles": {
     "revision_1_workflow": {

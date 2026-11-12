@@ -512,20 +512,9 @@
       "step": "M12-2",
       "state": "awaiting_input",
       "counts": true,
-      "supplier_cases": [
-       {
-        "deliverable": "DEL-01-05",
-        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-        "case_id": "VC-A02"
-       },
-       {
-        "deliverable": "DEL-01-02",
-        "file": "EXECUTION_AND_RECOVERY.md",
-        "case_id": "VC-R-15"
-       }
-      ],
+      "supplier_cases": [],
       "core_loop_element": "model access",
-      "v3_reference": "none (v3 had no API-key mode)",
+      "v3_reference": "none (v3 had no local model server)",
       "missing_input": "identified App candidate (DEP-09-02-022)"
      },
      {
@@ -601,14 +590,9 @@
       "conversation_ref": "ILLUSTRATIVE conv A"
      },
      {
-      "kind": "api_key",
-      "home": "H-key",
-      "conversation_ref": "ILLUSTRATIVE conv B"
-     },
-     {
       "kind": "local_provider",
-      "home": "H-acct",
-      "conversation_ref": "ILLUSTRATIVE conv C"
+      "home": "H-omlx",
+      "conversation_ref": "ILLUSTRATIVE conv B"
      }
     ]
    }
@@ -1145,20 +1129,9 @@
       "step": "M12-2",
       "state": "planned",
       "counts": true,
-      "supplier_cases": [
-       {
-        "deliverable": "DEL-01-05",
-        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-        "case_id": "VC-A02"
-       },
-       {
-        "deliverable": "DEL-01-02",
-        "file": "EXECUTION_AND_RECOVERY.md",
-        "case_id": "VC-R-15"
-       }
-      ],
+      "supplier_cases": [],
       "core_loop_element": "model access",
-      "v3_reference": "none (v3 had no API-key mode)"
+      "v3_reference": "none (v3 had no local model server)"
      },
      {
       "step": "M12-3",
@@ -1229,14 +1202,9 @@
       "conversation_ref": "ILLUSTRATIVE conv A"
      },
      {
-      "kind": "api_key",
-      "home": "H-key",
-      "conversation_ref": "ILLUSTRATIVE conv B"
-     },
-     {
       "kind": "local_provider",
-      "home": "H-acct",
-      "conversation_ref": "ILLUSTRATIVE conv C"
+      "home": "H-omlx",
+      "conversation_ref": "ILLUSTRATIVE conv B"
      }
     ]
    }
@@ -1861,20 +1829,9 @@
       "step": "M12-2",
       "state": "recorded",
       "counts": true,
-      "supplier_cases": [
-       {
-        "deliverable": "DEL-01-05",
-        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-        "case_id": "VC-A02"
-       },
-       {
-        "deliverable": "DEL-01-02",
-        "file": "EXECUTION_AND_RECOVERY.md",
-        "case_id": "VC-R-15"
-       }
-      ],
+      "supplier_cases": [],
       "core_loop_element": "model access",
-      "v3_reference": "none (v3 had no API-key mode)",
+      "v3_reference": "none (v3 had no local model server)",
       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
       "outcome": "pass"
      },
@@ -1955,14 +1912,9 @@
       "conversation_ref": "ILLUSTRATIVE conv A"
      },
      {
-      "kind": "api_key",
-      "home": "H-key",
-      "conversation_ref": "ILLUSTRATIVE conv B"
-     },
-     {
       "kind": "local_provider",
-      "home": "H-acct",
-      "conversation_ref": "ILLUSTRATIVE conv C"
+      "home": "H-omlx",
+      "conversation_ref": "ILLUSTRATIVE conv B"
      }
     ],
     "outcome": "pass"
@@ -2588,20 +2540,9 @@
       "step": "M12-2",
       "state": "recorded",
       "counts": true,
-      "supplier_cases": [
-       {
-        "deliverable": "DEL-01-05",
-        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-        "case_id": "VC-A02"
-       },
-       {
-        "deliverable": "DEL-01-02",
-        "file": "EXECUTION_AND_RECOVERY.md",
-        "case_id": "VC-R-15"
-       }
-      ],
+      "supplier_cases": [],
       "core_loop_element": "model access",
-      "v3_reference": "none (v3 had no API-key mode)",
+      "v3_reference": "none (v3 had no local model server)",
       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
       "outcome": "pass"
      },
@@ -2682,14 +2623,9 @@
       "conversation_ref": "ILLUSTRATIVE conv A"
      },
      {
-      "kind": "api_key",
-      "home": "H-key",
-      "conversation_ref": "ILLUSTRATIVE conv B"
-     },
-     {
       "kind": "local_provider",
-      "home": "H-acct",
-      "conversation_ref": "ILLUSTRATIVE conv C"
+      "home": "H-omlx",
+      "conversation_ref": "ILLUSTRATIVE conv B"
      }
     ],
     "outcome": "pass"
@@ -3315,20 +3251,9 @@
       "step": "M12-2",
       "state": "recorded",
       "counts": true,
-      "supplier_cases": [
-       {
-        "deliverable": "DEL-01-05",
-        "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-        "case_id": "VC-A02"
-       },
-       {
-        "deliverable": "DEL-01-02",
-        "file": "EXECUTION_AND_RECOVERY.md",
-        "case_id": "VC-R-15"
-       }
-      ],
+      "supplier_cases": [],
       "core_loop_element": "model access",
-      "v3_reference": "none (v3 had no API-key mode)",
+      "v3_reference": "none (v3 had no local model server)",
       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
       "outcome": "pass"
      },
@@ -3409,14 +3334,9 @@
       "conversation_ref": "ILLUSTRATIVE conv A"
      },
      {
-      "kind": "api_key",
-      "home": "H-key",
-      "conversation_ref": "ILLUSTRATIVE conv B"
-     },
-     {
       "kind": "local_provider",
-      "home": "H-acct",
-      "conversation_ref": "ILLUSTRATIVE conv C"
+      "home": "H-omlx",
+      "conversation_ref": "ILLUSTRATIVE conv B"
      }
     ],
     "outcome": "pass"
