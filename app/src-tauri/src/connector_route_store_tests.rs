@@ -1356,3 +1356,58 @@ fn a_writer_waiting_behind_an_import_that_did_not_complete_writes_nothing() {
     let reader = ProjectRouteStore::open(&p).unwrap();
     assert_eq!(reader.discover().accounts.len(), 1, "only the first account");
 }
+/// DEL-04-03 AC-008 / REQ-007: an account store kept from before the project's
+/// link stopped agreeing reads and writes nothing until the person resolves
+/// it; the same store then reads what it read before.
+#[test]
+fn a_kept_account_store_refuses_while_the_link_disagrees_and_reads_again_once_restored() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let data = account("ra:link-fixture");
+    let reference = store.write(&data).unwrap();
+    assert_eq!(store.resolve(&reference).unwrap().account, data);
+    assert_eq!(store.discover().accounts.len(), 1);
+    let accounts = store.accounts_directory();
+    let names = || {
+        let mut v: Vec<_> = fs::read_dir(&accounts).unwrap().map(|e| e.unwrap().file_name()).collect();
+        v.sort();
+        v
+    };
+    let before = names();
+    let link_path = p.join(crate::records_store::PROJECT_LINK);
+    let link: Value = serde_json::from_slice(&fs::read(&link_path).unwrap()).unwrap();
+    let mut changed = link.clone();
+    changed["projectId"] = json!("chirality-project:forged-fixture");
+    let mut other_store = link.clone();
+    other_store["storeId"] = json!("records-store:another-fixture");
+    for (case, replacement, expected) in [
+        ("changed", Some(changed), "link changed; not attached"),
+        ("missing", None, "link missing; not attached"),
+        ("another store", Some(other_store), "another"),
+    ] {
+        match &replacement {
+            Some(v) => fs::write(&link_path, serde_json::to_vec(v).unwrap()).unwrap(),
+            None => fs::remove_file(&link_path).unwrap(),
+        }
+        let read = store.resolve(&reference).unwrap_err();
+        assert!(read.detail.contains(expected), "{case}: {read}");
+        let discovery = store.discover();
+        assert!(discovery.accounts.is_empty() && !discovery.enumeration_complete, "{case}: {discovery:?}");
+        assert!(discovery.issues.iter().any(|i| i.detail.contains(expected)), "{case}: {discovery:?}");
+        let write = store.write(&account("ra:while-link-disagrees")).unwrap_err();
+        assert!(write.detail.contains(expected), "{case}: {write}");
+        assert_eq!(names(), before, "{case}: nothing written");
+        crate::records_store::restore_link(&p).unwrap();
+        assert_eq!(store.resolve(&reference).unwrap().account, data, "{case}: the same store reads again");
+        assert_eq!(store.discover().accounts.len(), 1, "{case}");
+    }
+    // Moved: the folder is no longer at the path the store was opened for.
+    let moved = scratch.0.join("moved");
+    fs::rename(&p, &moved).unwrap();
+    assert!(store.resolve(&reference).is_err());
+    let discovery = store.discover();
+    assert!(discovery.accounts.is_empty() && !discovery.enumeration_complete, "moved: {discovery:?}");
+    assert!(store.write(&account("ra:while-moved")).is_err());
+    assert_eq!(names(), before, "moved: nothing written");
+}

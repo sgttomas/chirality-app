@@ -748,6 +748,25 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     Ok(out)
 }
 
+/// For a handle bound earlier to the store folder `bound`: `root` must be
+/// attached now, cleanly, to that same folder. Whatever stands between the
+/// folder and its records refuses with the attachment's own text; a check
+/// that cannot be made refuses. Nothing is minted, written or re-associated.
+pub(crate) fn require_attached(root: &Path, bound: &Path) -> Result<(), String> {
+    let now = attach(root, false)?;
+    if let Some(refusal) = now.refusal {
+        return Err(refusal);
+    }
+    if let Some(fault) = now.fault {
+        return Err(format!("{fault}; not attached: {}", now.limits.join("; ")));
+    }
+    match now.dir {
+        Some(dir) if dir == bound => Ok(()),
+        Some(_) => Err(format!("the project's records association changed: {} is now attached to project {}, not to the records this handle was opened for; nothing read or written", now.root.display(), now.project.unwrap_or_default())),
+        None => Err(format!("the project's records association changed: the records store no longer attaches {} to the records this handle was opened for; nothing read or written", now.root.display())),
+    }
+}
+
 /// The store's identity record for `project` (once) and a roots line.
 fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), String> {
     let dir = project_dir(store, project);

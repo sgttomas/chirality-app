@@ -439,7 +439,10 @@ fn listing_refuses_symlinks_and_follows_the_pinned_project() {
     let a = pending(&p);
     p.publish(&a).unwrap();
     assert_eq!(p.list_references().unwrap(), vec![a.reference().to_owned()]);
-    // The path is replaced after open: names still come from the pinned directory.
+    // The path is replaced after open (the project moved, another folder put
+    // at its path). DEL-04-03 AC-008: a project found at another folder is not
+    // attached until the person resolves it, so the kept handle lists nothing,
+    // neither the replacement's names nor the moved project's records.
     let moved = f.0.with_extension("moved");
     std::fs::rename(&f.0, &moved).unwrap();
     std::fs::create_dir_all(f.0.join(".chirality/records/workflow")).unwrap();
@@ -448,9 +451,12 @@ fn listing_refuses_symlinks_and_follows_the_pinned_project() {
         b"{}",
     )
     .unwrap();
-    assert_eq!(p.list_references().unwrap(), vec![a.reference().to_owned()]);
+    let replaced = p.list_references().unwrap_err();
+    assert!(replaced.contains("not attached"), "{replaced}");
     std::fs::remove_dir_all(&f.0).unwrap();
     std::fs::rename(&moved, &f.0).unwrap();
+    // The project back at its folder: the same handle lists its records again.
+    assert_eq!(p.list_references().unwrap(), vec![a.reference().to_owned()]);
 }
 // V9 J3 note: PublishedText is sealed. Outside this module no type can name
 // sealed::Sealed, so only the impls in this file exist; this guard fails if the
@@ -661,4 +667,56 @@ fn bundled_publication_requires_this_apps_installed_root_and_rechecks_at_publish
     let published = publication.publish(&p).unwrap();
     assert_eq!(published.selection_record().body()["standing"], "bundled");
     assert_eq!(published.selection_record().body()["identity"]["origin"], "bundled");
+}
+/// DEL-04-03 AC-008 / REQ-007: a handle that read the project's records keeps
+/// its binding but reads and writes nothing while the project's link is
+/// changed, missing, names another store, or the folder is moved; once the
+/// person restores the link the same handle reads what it read before.
+#[test]
+fn a_kept_handle_refuses_while_the_link_disagrees_and_reads_again_once_restored() {
+    let f = Fixture::new();
+    let p = f.store();
+    let a = pending(&p);
+    let reference = a.reference().to_owned();
+    let first = p.publish(&a).unwrap();
+    assert_eq!(p.resolve(&reference).unwrap().bytes(), first.bytes());
+    assert_eq!(p.list_references().unwrap(), vec![reference.clone()]);
+    let link_path = f.0.join(crate::records_store::PROJECT_LINK);
+    let link: Value = serde_json::from_slice(&std::fs::read(&link_path).unwrap()).unwrap();
+    let mut changed = link.clone();
+    changed["projectId"] = json!("chirality-project:forged-fixture");
+    let mut other_store = link.clone();
+    other_store["storeId"] = json!("records-store:another-fixture");
+    for (case, replacement, expected) in [
+        ("changed", Some(changed), "link changed; not attached"),
+        ("missing", None, "link missing; not attached"),
+        ("another store", Some(other_store), "not attached"),
+    ] {
+        match &replacement {
+            Some(v) => std::fs::write(&link_path, serde_json::to_vec(v).unwrap()).unwrap(),
+            None => std::fs::remove_file(&link_path).unwrap(),
+        }
+        match p.resolve(&reference) {
+            Err(ResolutionError::Unreadable(e)) => assert!(e.contains(expected), "{case}: {e}"),
+            other => panic!("{case}: read through the kept handle: {other:?}"),
+        }
+        let listed = p.list_references().unwrap_err();
+        assert!(listed.contains(expected), "{case}: {listed}");
+        let write = p.publish(&pending(&p)).unwrap_err();
+        assert!(write.contains(expected) || write.contains("association changed"), "{case}: {write}");
+        crate::records_store::restore_link(&f.0).unwrap();
+        assert_eq!(p.resolve(&reference).unwrap().bytes(), first.bytes(), "{case}: the same handle reads again");
+        assert_eq!(p.list_references().unwrap(), vec![reference.clone()], "{case}: nothing was written while refused");
+    }
+    // Moved: the folder is no longer at the path the handle was bound to.
+    let moved = f.0.with_file_name(format!("{}-moved", f.0.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&f.0, &moved).unwrap();
+    let read = p.resolve(&reference);
+    let listed = p.list_references();
+    let write = p.publish(&pending(&p));
+    std::fs::rename(&moved, &f.0).unwrap();
+    assert!(matches!(read, Err(ResolutionError::Unreadable(_))), "moved: {read:?}");
+    assert!(listed.is_err(), "moved: {listed:?}");
+    assert!(write.is_err(), "moved: {:?}", write.map(|r| r.reference().to_owned()));
+    assert_eq!(p.list_references().unwrap(), vec![reference.clone()], "moved: nothing was written while refused");
 }

@@ -1055,3 +1055,85 @@ fn records_retention_export_defaults_are_owner_only_under_a_permissive_umask() {
     crate::records_export::verify(&bag).unwrap();
     modes(&bag); // Imported/existing-package verification changes no modes.
 }
+/// DEL-04-03 AC-008 / REQ-007: a capture destination and a read-log path
+/// resolved while the project was attached are not written once its link
+/// names another identity, names another store or is missing: nothing appears
+/// under the old subtree until the person restores the link.
+#[test]
+fn records_retention_a_write_resolved_before_the_link_changed_is_refused_until_the_link_is_restored() {
+    fn listing(dir: &Path) -> Vec<(PathBuf, u64)> {
+        let mut out = Vec::new();
+        let mut stack = vec![dir.to_path_buf()];
+        while let Some(at) = stack.pop() {
+            for entry in std::fs::read_dir(&at).unwrap() {
+                let entry = entry.unwrap();
+                let meta = std::fs::symlink_metadata(entry.path()).unwrap();
+                if meta.is_dir() {
+                    stack.push(entry.path());
+                }
+                out.push((entry.path(), if meta.is_dir() { 0 } else { meta.len() }));
+            }
+        }
+        out.sort();
+        out
+    }
+    fn refusal(result: Result<(), storage::CapturePublicationFailure>) -> String {
+        match result {
+            Ok(()) => panic!("the capture was published"),
+            Err(storage::CapturePublicationFailure::DefinitelyNotPublished(e)) => e,
+            Err(storage::CapturePublicationFailure::PublicationUncertain(e)) => panic!("publication attempted: {e}"),
+        }
+    }
+    const STALE: &str = "project root association changed; stale queued write refused";
+    let f = Fixture::new();
+    let project = f.project.clone();
+    let dir = records_store::attach(&project, false).unwrap().dir.unwrap();
+    // Resolved while attached.
+    let captures = storage::write_capture_dir(&project).unwrap();
+    let capture = captures.join(format!("{}.json", storage::key("cap:link-fixture")));
+    let pending = captures.join("pending").join(format!("{}.json", storage::key("cap:link-fixture")));
+    let read_log = records_store::read_log_path(&project).unwrap();
+    storage::ensure_directory(read_log.parent().unwrap()).unwrap();
+    let capability = crate::records_access::RecordsCapability::at(&project, read_log.clone()).unwrap();
+    let call = |n: u64| crate::records_access::Call {
+        app_session: "app-session:fixture".into(), generation: "g:fixture".into(), request: json!(n),
+        thread: "thread".into(), turn: "turn".into(), call: format!("call-{n}"), arguments: json!({"operation":"list_runs"}),
+    };
+    let cwd = project.to_str().unwrap().to_owned();
+    assert_eq!(capability.answer(&call(1), Some(&cwd))["success"], true);
+    let logged = std::fs::read(&read_log).unwrap();
+    assert!(!logged.is_empty());
+    let value = json!({"captureId":"cap:link-fixture","actKind":"A16","fixture":"invented"});
+    let link_path = project.join(records_store::PROJECT_LINK);
+    let link: Value = serde_json::from_slice(&std::fs::read(&link_path).unwrap()).unwrap();
+    let mut changed = link.clone();
+    changed["projectId"] = json!("chirality-project:forged-fixture");
+    let mut other_store = link.clone();
+    other_store["storeId"] = json!("records-store:another-fixture");
+    let before = listing(&dir);
+    for (n, (case, replacement, expected)) in [
+        ("changed", Some(changed), "names project chirality-project:forged-fixture"),
+        ("another store", Some(other_store), "names another records store (records-store:another-fixture)"),
+        ("missing", None, "is missing"),
+    ].into_iter().enumerate() {
+        match &replacement {
+            Some(v) => std::fs::write(&link_path, serde_json::to_vec(v).unwrap()).unwrap(),
+            None => std::fs::remove_file(&link_path).unwrap(),
+        }
+        let e = refusal(storage::create_capture_json(&capture, &value));
+        assert!(e.contains(STALE) && e.contains(expected), "{case}: {e}");
+        let e = storage::create_json(&pending, &json!({"capture":value})).unwrap_err();
+        assert!(e.contains(STALE) && e.contains(expected), "{case}: {e}");
+        let answer = capability.answer(&call(10 + n as u64), Some(&cwd));
+        assert_eq!(answer["success"], false, "{case}: {answer}");
+        assert_eq!(std::fs::read(&read_log).unwrap(), logged, "{case}: the read is not recorded under the old subtree");
+        assert_eq!(listing(&dir), before, "{case}: nothing appears under the old subtree");
+        records_store::restore_link(&project).unwrap();
+    }
+    // Restored: the same resolved paths are written.
+    storage::create_capture_json(&capture, &value).map_err(|_| "capture refused after restore").unwrap();
+    storage::create_json(&pending, &json!({"capture":value})).unwrap();
+    assert!(capture.is_file() && pending.is_file());
+    assert_eq!(capability.answer(&call(20), Some(&cwd))["success"], true);
+    assert!(std::fs::read(&read_log).unwrap().len() > logged.len());
+}

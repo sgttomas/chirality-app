@@ -682,7 +682,17 @@ mod platform {
         pub fn resolved_project(&self) -> &Path {
             &self.root
         }
+        /// Accounts kept in the records store are read and written only while
+        /// the project is still attached, cleanly, to the store folder they
+        /// were opened in (RS §13.8). The binding is kept, never reassociated:
+        /// once the person resolves the link, the same store works again.
+        fn check_association(&self) -> Result<()> {
+            let Some(dir) = &self.store_dir else { return Ok(()) };
+            crate::records_store::require_attached(&self.root, dir)
+                .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))
+        }
         fn check_root(&self) -> Result<()> {
+            self.check_association()?;
             if self.anchor != self.root {
                 let project = open_path(&self.root).map_err(|e| {
                     StoreError::new(
@@ -792,6 +802,7 @@ mod platform {
                 }
                 let check_project = || -> Result<()> {
                     // Keep original errors, unlike the legacy compare wrapper.
+                    self.check_association()?;
                     let current = open_path(&self.anchor)?;
                     if identity(&current)? != self.root_identity {
                         return Err(StoreError::new(

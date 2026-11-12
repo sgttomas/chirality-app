@@ -219,10 +219,15 @@ impl ProjectRecords {
         })
     }
     fn read_admission(&self)->Result<Option<crate::storage::Ownership>,String>{
-        // A previously resolved reader belongs to that original store identity,
-        // even if another folder now stands at the project path. Consult its
-        // retention state without reassociating through the replacement path.
-        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){return crate::records_retention::read_path(&dir.path);}
+        // A previously resolved reader belongs to that original store identity
+        // and is never reassociated. It reads only while the project path is
+        // still attached, cleanly, to that same store folder (RS §13.8: a
+        // changed, missing or moved link attaches nothing until the person
+        // resolves it); the binding is kept, so it reads again once they do.
+        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){
+            crate::records_store::require_attached(&self.root,&dir.path)?;
+            return crate::records_retention::read_path(&dir.path);
+        }
         let attachment=crate::records_store::attach(&self.root,false)?;
         match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir),None if attachment.refusal.is_some()=>Err(attachment.refusal.unwrap()),None=>Ok(None)}
     }

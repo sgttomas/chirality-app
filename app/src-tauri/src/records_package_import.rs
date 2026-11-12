@@ -421,13 +421,40 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
         &roots(store)?,
         root.to_str().ok_or("project root is not UTF-8")?,
     );
-    if here.len() != 1
-        || project_dir(store, &here[0]) != dir
-        || !matches!(read_link(&root), Link::Present { .. })
-    {
-        return Err("project root association changed; stale queued write refused".into());
+    const STALE: &str = "project root association changed; stale queued write refused";
+    if here.len() != 1 || project_dir(store, &here[0]) != dir {
+        return Err(format!(
+            "{STALE}: the records store records {} for {}, not this folder's project",
+            if here.is_empty() { "no project".to_owned() } else { here.join(", ") },
+            root.display()
+        ));
     }
-    Ok(())
+    // The link must agree with the store on both identities, as attach
+    // requires; a link that cannot be read, or a store identity that cannot
+    // be read, refuses.
+    let store_id = {
+        let bytes = retention::read_plain(&store.join("store.json"))
+            .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
+        let v: Value = serde_json::from_slice(&bytes)
+            .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
+        v["storeId"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| format!("{STALE}: this store's identity names none"))?
+    };
+    match read_link(&root) {
+        Link::Present { project, store: linked } if project == here[0] && linked == store_id => Ok(()),
+        Link::Present { project, .. } if project != here[0] => Err(format!(
+            "{STALE}: project file {PROJECT_LINK} names project {project}, and the records store records project {} at {}",
+            here[0],
+            root.display()
+        )),
+        Link::Present { store: linked, .. } => Err(format!(
+            "{STALE}: project file {PROJECT_LINK} names another records store ({linked}), not this one ({store_id})"
+        )),
+        Link::Absent => Err(format!("{STALE}: project file {PROJECT_LINK} is missing at {}", root.display())),
+        Link::Unreadable(e) => Err(format!("{STALE}: project file {PROJECT_LINK} is unreadable ({e})")),
+    }
 }
 
 pub(crate) fn require_root(root: &Path) -> Result<(), String> {
