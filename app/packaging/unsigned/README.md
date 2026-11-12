@@ -44,7 +44,7 @@ omissions. Bind source and artifact hashes and preserve the actual commands.
 | P0 Contents/MacOS | Current App debug executable | Production resource feature; development artifact |
 | P1 Contents/Resources/codex | Explicit approved cached vendor tree | Content comparison only; qualification pin not selected here |
 | P2 Contents/Resources/workflows | Full resources/production_workflows tree including MANIFEST.json | Candidate inventory; LS-5/LS-8 not runnable |
-| P3 Contents/Resources/instructions | Full instructions tree including roles.json and ROLE_SET_SOURCE_BINDING.json | Exact received candidate role content; no release default decision |
+| P3 Contents/Resources/instructions | Full instructions tree including roles.json and ROLE_SET_SOURCE_BINDING.json | Exact received candidate role content; HELP_HUMAN preselected for 4.0.0 (DEL-02-04 TBD-004) |
 | P4 Contents/Info.plist | Tauri generated metadata | Existing skeleton identifier/version; minimum macOS 15.0 remains proposed |
 
 The product label is Chirality App v4 (development candidate), version 0.0.0,

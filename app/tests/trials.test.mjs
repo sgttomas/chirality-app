@@ -72,7 +72,8 @@ test('removing the trial card calls only workflow_trial_cancel',()=>{
 });
 
 const roles=JSON.parse(readFileSync(new URL('../src-tauri/resources/instructions/roles.json',import.meta.url),'utf8')).roles;
-const roleSet={available:true,roles,defaultRole:null,conversationRoles:['HELP_HUMAN','HELPS_HUMANS','WORKING_ITEMS']};
+// As role_set_metadata() gives it: the default is the row the shipped set marks.
+const roleSet={available:true,roles,defaultRole:roles.find(r=>r.default_for_new_chat===true)?.name??null,conversationRoles:['HELP_HUMAN','HELPS_HUMANS','WORKING_ITEMS']};
 const entries=[{value:'chatgpt-account',label:'ChatGPT account'}];
 const clean=(over={})=>pending({kind:'clean',authoring:null,delegation:null,runInForce:null,draftChanged:null,message:'Inputs for this trial: …',...over});
 const choice=(over={})=>({model:'',modelProvider:'',entryId:'',role:'',roleTouched:false,...over});
@@ -93,9 +94,13 @@ test('the clean trial panel offers the conversation roles and a model, and stays
   assert.equal(buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai'}),s.act),'Send')[0].props.disabled,true,'no entry, no send');
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',role:'HELPS_HUMANS'}),s.act),'Send')[0].props.onClick();
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account'}),s.act),'Send')[0].props.onClick();
-  assert.deepEqual(s.calls,[
-    ['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:null,role:'HELPS_HUMANS',personText:'my inputs'}],
-    ['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:null,role:null,personText:'my inputs'}]]);
+  // The release's preselection left untouched, then the same role chosen by the person.
+  buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',role:roleSet.defaultRole}),s.act),'Send')[0].props.onClick();
+  buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',role:roleSet.defaultRole,roleTouched:true}),s.act),'Send')[0].props.onClick();
+  const sent=(role,preselected)=>['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:null,role,preselected,personText:'my inputs'}];
+  assert.equal(roleSet.defaultRole,'HELP_HUMAN','the fixture follows the shipped role set');
+  assert.deepEqual(s.calls,[sent('HELPS_HUMANS',false),sent(null,false),sent('HELP_HUMAN',true),sent('HELP_HUMAN',false)],
+    'a clean trial says whether its role was the preselection or the person\'s choice, as an ordinary start does');
 });
 
 test('a clean trial whose conversation started but whose message was not sent is retried in that conversation',()=>{
