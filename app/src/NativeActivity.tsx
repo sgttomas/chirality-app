@@ -438,7 +438,7 @@ export function TurnErrors({ errors, turn }: { errors: Json[]; turn: Json | null
   </div>;
 }
 
-export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
+export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, restartNoteFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; restartNoteFor?: (threadId: string, turnId: string) => string | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
   const [shown, setShown] = useState<string>("");
   const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
   const revision = useRef(0);
@@ -505,6 +505,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       <details><summary>Turn source and timing</summary><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></details>
       {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
+      {restartNoteFor?.(target, text(turn.turnId)) && <p role="note"><small>{restartNoteFor(target, text(turn.turnId))}</small></p>}
       {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
       <TurnErrors errors={turn.errors} turn={turn.native} />
       {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}>

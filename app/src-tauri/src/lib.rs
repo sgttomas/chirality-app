@@ -83,6 +83,7 @@ pub mod child_roles;
 mod native_child_guidance;
 mod instruction_store;
 pub(crate) mod run_offers;
+mod interrupted_work;
 pub(crate) mod run_restart;
 pub mod runtime_session;
 mod waiting_requests;
@@ -734,6 +735,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
         .map(access::ConversationSelection::snapshot)
         .map_or(Value::Null, |v| v);
     s["recoveryInitialization"] = home.recovery_startup.lock().unwrap().snapshot();
+    // What the session before this one left with a turn live, from the host's own custody view.
+    s["interruptedWork"] = interrupted_work::read(&home.host.recovery_custody().snapshot());
     if let Err(e) = &home.host_config {
         s["configurationProblem"] = json!(e);
     }

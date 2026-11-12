@@ -22,17 +22,28 @@ const render=(host,act=()=>{})=>renderToStaticMarkup(React.createElement(CodexPr
 test('Stop and Restart ask first and are offered only while Codex runs',()=>{
   const ready=render({state:'ready',generation:g,codexStops:stops([])});
   assert.ok(ready.includes('Stop Codex…')&&ready.includes('Restart Codex…')&&ready.includes('Start Codex'));
-  assert.equal((ready.match(/disabled=""/g)??[]).length,0);
+  // The host accepts a start only from absent, stopped or refused (hosting.rs Host::start), so Start is not offered while Codex runs.
+  assert.equal((ready.match(/disabled=""/g)??[]).length,1);assert.match(ready,/<button disabled="">Start Codex<\/button>/);
   assert.ok(ready.includes('Stop Codex and Restart Codex ask first'));
   assert.ok(ready.includes('with no time limit')&&ready.includes('<b>Keep Codex running</b> (the default) and Cancel change nothing'));
   assert.ok(ready.includes('waits up to 10 s')&&ready.includes('no workflow run ends')&&ready.includes('continues no conversation until you choose <b>Continue selected conversation</b>'));
   assert.ok(ready.includes('your operational choice, not a recorded act'));
   assert.ok(ready.includes('Recorded in the App&#x27;s recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent'),'what is recorded, and where, is stated');
   assert.ok(ready.includes('The outcome panel itself is kept in this App process only.'));
-  for(const state of ['stopped','absent','refused','stopping']){
+  for(const state of ['stopped','absent','refused']){
     const html=render({state,generation:g,codexStops:stops([])});
     assert.equal((html.match(/disabled=""/g)??[]).length,2,`${state}: Stop and Restart unavailable, Start available`);
+    assert.match(html,/<button>Start Codex<\/button>/);
   }
+  assert.equal((render({state:'stopping',generation:g,codexStops:stops([])}).match(/disabled=""/g)??[]).length,3,'nothing is offered while a stop is under way');
+});
+
+test('after Codex ends unexpectedly the controls say which one starts it again',()=>{
+  const html=render({state:'exited-unexpectedly',generation:g,generationClosed:true,codexStops:stops([])});
+  assert.match(html,/<button disabled="">Start Codex<\/button>/,'the host refuses a start from this state, so it is not offered');
+  assert.match(html,/<button>Stop Codex…<\/button>/);assert.match(html,/<button>Restart Codex…<\/button>/);
+  assert.match(html,/<p role="status">Codex ended unexpectedly, so Start Codex is not available yet\. Choose <b>Restart Codex…<\/b> to start it again, or <b>Stop Codex…<\/b> to settle the ended process first; nothing is sent to it either way\.<\/p>/);
+  assert.doesNotMatch(render({state:'ready',generation:g,codexStops:stops([])}),/ended unexpectedly/);
 });
 
 // Stop and Restart wiring is exercised in conversation-panel.test.mjs (mounted).

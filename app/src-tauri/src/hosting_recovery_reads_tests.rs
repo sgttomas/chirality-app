@@ -310,7 +310,11 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     let wire = f.wire().len();
     let restart = relaunched.host.recovery_custody().snapshot()["restartEvents"].clone();
     assert_eq!(restart[0]["priorSessionEnd"], "ended-without-record");
+    // What the window is told: before the read, the turn is not yet read back, never an outcome.
+    let told = |home: &HomeSession| crate::interrupted_work::read(&home.host.recovery_custody().snapshot())["conversations"].clone();
+    assert_eq!(told(&relaunched), json!([{"threadId":"thread","home":"H-acct","priorSession":restart[0]["priorSession"],"priorSessionEnd":"ended-without-record","turns":[{"turnId":"turn-1","reading":"not-read-yet"}]}]));
     assert_eq!(crate::host_tick::recovery_tick_home(&relaunched), 3, "thread/read and two turn pages");
+    assert_eq!(told(&relaunched)[0]["turns"], json!([{"turnId":"turn-1","reading":"read","codexStatus":"failed"}]), "then Codex's own status for that turn, as its history reported it");
     // The relaunched session's own handshake can still be arriving; everything else
     // written after the relaunch is the recovery reads.
     let reads: Vec<String> = f.wire()[wire..].iter().map(|w| w["method"].as_str().unwrap().to_owned())

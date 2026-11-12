@@ -379,3 +379,11 @@ test('a turn last seen in progress is not headed in progress once Codex has stop
  assert.doesNotMatch(html,/<h4>Turn 3 · inProgress<\/h4>/);
  assert.match(html,/<h4>Turn 1 · interrupted<\/h4>/,'an observed end stays as observed');assert.match(html,/<h4>Turn 2 · completed<\/h4>/);
 });
+
+test('a turn an earlier App session left live carries the note the host supplies, and no other turn does',()=>{
+ const note=(thread,turn)=>thread==='T'&&turn==='turn-1'?'This turn was in progress when the App last ran; the App ended without a normal quit. Codex\'s history now reports that turn as interrupted. Nothing was resumed or resent.':null;
+ const html=renderToStaticMarkup(React.createElement(NativeActivityView,{view:view(),threadId:'T',restartNoteFor:note}));
+ assert.equal(html.match(/This turn was in progress when the App last ran/g).length,1);
+ assert.match(html,/<h4>Turn 1 · interrupted<\/h4>.*?<p role="note"><small>This turn was in progress when the App last ran; the App ended without a normal quit\./s);
+ assert.doesNotMatch(render(view()),/when the App last ran/);
+});
