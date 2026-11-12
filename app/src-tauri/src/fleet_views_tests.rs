@@ -699,7 +699,10 @@ fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observat
     assert_eq!(held["category"], "dispatched");
     let cause = held["causes"].as_array().unwrap().iter().filter_map(Value::as_str).find(|c| c.contains("child-a")).unwrap().to_owned();
     assert!(cause.contains("invented-parent") && cause.contains("no child status recorded") && cause.contains("has the content the prompt referenced"), "{cause}");
+    assert_eq!(held["dispatch"]["briefContentMatches"], true);
+    assert_eq!((&held["dispatch"]["child"], &held["dispatch"]["observationEnded"]), (&json!("child-a"), &json!(false)));
     assert_eq!(work(v, "W3")["category"], "ready", "a dispatch tied to its brief qualifies no other item");
+    assert!(work(v, "W3")["dispatch"].is_null());
     assert_eq!(v["queue"], json!([]), "a dispatch is not a return");
     f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed")]);
     let w = f.read();
@@ -760,4 +763,5 @@ fn fleet_views_a_project_line_naming_the_app_or_a_child_tied_to_no_brief_never_r
     let w = f.read();
     assert_eq!(work(view(&w), "W1")["category"], "dispatched");
     assert!(work(view(&w), "W1")["causes"].to_string().contains("does not have the content the prompt referenced"));
+    assert_eq!(work(view(&w), "W1")["dispatch"]["briefContentMatches"], false, "the mismatch is its own field, not only a sentence");
 }

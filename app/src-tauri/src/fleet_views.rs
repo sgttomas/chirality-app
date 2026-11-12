@@ -483,6 +483,9 @@ pub(super) fn derive(
             } else {
                 category="ready";causes.push(if brief.is_some(){"inputs satisfied; brief prepared; no dispatch observed"}else{"inputs satisfied; no dispatch observed"}.into());
             }
+            // The recorded dispatch that holds this item, in a form a view can
+            // show without reading the cause text; a mismatch is its own field.
+            let mut held = Value::Null;
             // Historical 0.1 facts remain source-recorded statements. They never
             // identify a current native conversation, role, home or active child.
             if done.is_none() && ret.is_none() {
@@ -502,6 +505,9 @@ pub(super) fn derive(
                     let (observed, ended) = delegation.observed(dispatch);
                     let same_bytes = brief.is_some_and(|b| dispatch["body"]["association"]["briefContent"]["value"] == crate::util::sha256_hex(&b.bytes));
                     category = if ended { "unknown" } else { "dispatched" };
+                    held = json!({"child":dispatch["body"]["child"]["threadId"],"parent":dispatch["body"]["parent"]["threadId"],
+                        "association":dispatch["body"]["association"]["state"],"briefNamed":item["brief"],
+                        "briefContentMatches":same_bytes,"lastObserved":observed,"observationEnded":ended,"dispatchesForBrief":for_brief.len()});
                     causes.push(format!("App observed dispatch of child {} by {}; its spawn prompt named {} ({}); {observed}{}",
                         text(&dispatch["body"]["child"]["threadId"]), text(&dispatch["body"]["parent"]["threadId"]), text(&item["brief"]),
                         if same_bytes { "the brief file has the content the prompt referenced" } else { "the brief file does not have the content the prompt referenced" },
@@ -519,7 +525,7 @@ pub(super) fn derive(
             let qualified=category=="ready" && (unassociated>0 || untrusted);
             if qualified { category="ready (qualified)";causes.insert(0,"child observations without a usable brief/dispatch association; a dispatch for this item may be unrecorded".into()); }
             waiting.push(json!({"item":id,"outcome":item["outcome"],"owner":actor(&item["owner"]),"category":category,
-                "readinessQualified":qualified,"causes":causes,"needs":needs,"next":item["next"],"writeScope":item["writeScope"],
+                "readinessQualified":qualified,"causes":causes,"dispatch":held,"needs":needs,"next":item["next"],"writeScope":item["writeScope"],
                 "sources":{"graph":sourced(graph),"return":ret.map(sourced),"review":review.map(sourced),"done":done.map(sourced)}}));
         }
         result["graph"]=json!(graph.id());result["revision"]=graph.record["body"]["revision"].clone();
