@@ -1,0 +1,8 @@
+[
+ {
+  "finding": "VA-55c4af314319",
+  "decided_by": "owner (decision of 2026-11-09)",
+  "decision": "Codex 0.167 removed namespaceTools and the provider gate on tool namespaces (openai/codex PR 50447). Delegation reads present when multiAgentVersion is v1/v2 and the effective configuration does not set features.multi_agent = false; those two stay missing. A capabilities-read failure is a note only, and a legacy namespaceTools echo is ignored.",
+  "where_recorded": "Git commit 7e2145b821ce5dd36d89ab0c80ebfe1bb76e176c (\"Read delegation as present at Codex 0.167 when model and configuration allow it\"); execution/PKG-01/DEL-01-01/Work/CODEX_0.167_UPGRADE.md as it stood at 8560ac2e^ (removed by 8560ac2e), section \"Generated protocol and consumer deltas\", row \"Provider capabilities removes namespaceTools\"; implemented in app/src-tauri/src/delegation_availability.rs"
+ }
+]

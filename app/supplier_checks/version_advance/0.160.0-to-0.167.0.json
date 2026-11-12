@@ -1,0 +1,3795 @@
+{
+ "findings": [
+  {
+   "detail": "anyOf constraint added",
+   "id": "VA-1b2b3f1f51e2",
+   "involves": [
+    "v2/ContentItem"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/ContentItem/oneOf[type=input_audio]/anyOf"
+  },
+  {
+   "detail": "property removed (kept only in the alternative AudioUrlContentItem)",
+   "id": "VA-1d60a389db1f",
+   "involves": [
+    "v2/ContentItem"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/ContentItem/oneOf[type=input_audio]/properties/audio_url"
+  },
+  {
+   "detail": "anyOf constraint added",
+   "id": "VA-29d72d5dbe0e",
+   "involves": [
+    "v2/ThreadItem"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/ThreadItem/oneOf[type=imageGeneration]/anyOf"
+  },
+  {
+   "detail": "property removed",
+   "id": "VA-55c4af314319",
+   "involves": [
+    "v2/ModelProviderCapabilitiesReadResponse"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/ModelProviderCapabilitiesReadResponse/properties/namespaceTools"
+  },
+  {
+   "detail": "anyOf constraint added",
+   "id": "VA-5828157b0cc3",
+   "involves": [
+    "v2/UserInput"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/UserInput/oneOf[type=audio]/anyOf"
+  },
+  {
+   "detail": "property removed (kept only in the alternative UrlUserInput)",
+   "id": "VA-5c51fd66435f",
+   "involves": [
+    "v2/UserInput"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/UserInput/oneOf[type=audio]/properties/url"
+  },
+  {
+   "detail": "type narrowed (type constraint added; every alternative already had this type)",
+   "id": "VA-7e115daac8ba",
+   "involves": [
+    "v2/ThreadItem"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/ThreadItem/type"
+  },
+  {
+   "detail": "property removed (kept only in the alternative ResultThreadItem)",
+   "id": "VA-cec1f20de3f4",
+   "involves": [
+    "v2/ThreadItem"
+   ],
+   "kind": "schema change (breaking)",
+   "subject": "v2/ThreadItem/oneOf[type=imageGeneration]/properties/result"
+  }
+ ],
+ "format": "chirality.app-v4.version-advance.v1",
+ "from": "0.160.0",
+ "inputs": {
+  "missing": [],
+  "problems": [],
+  "read": [
+   {
+    "note": "digest of the relied-on method map; file bytes are not pinned so that the result changes only when what the App relies on changes",
+    "path": "app/src-tauri/src",
+    "role": "host source (identity of what was derived from it)",
+    "sha256": "c2e9a41a9ec016f886765a2ba69a38f14990251775f9c22bd0630a2205876040"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.160.0/MANIFEST.sha256",
+    "role": "generator output manifest at 0.160.0",
+    "sha256": "411ea5d47035908768562eecfed33f16e2cb3de944c84c96fd8e70ca7086b8be"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.160.0/SUPPLEMENT.json",
+    "role": "supplement at 0.160.0",
+    "state": "absent, read as empty"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.160.0/codex_app_server_protocol.schemas.json",
+    "role": "generated schema bundle at 0.160.0",
+    "sha256": "7243ba241962af92ca60581f1a81808ebda4212a800f8b205f54703bcfd508c5"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.160.0/codex_app_server_protocol.v2.schemas.json",
+    "role": "generated v2 schema bundle at 0.160.0",
+    "sha256": "e77b7d1436a78f431a74b2cb263a862e92ae40d70411bc63835b47ab2168827c"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.167.0/MANIFEST.sha256",
+    "role": "generator output manifest at 0.167.0",
+    "sha256": "353ab01c4d92b18c8939c985ea1a8529e70a8d8ee58c8f9818545a13ed5dcc51"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.167.0/SUPPLEMENT.json",
+    "role": "supplement at 0.167.0",
+    "state": "absent, read as empty"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.167.0/codex_app_server_protocol.schemas.json",
+    "role": "generated schema bundle at 0.167.0",
+    "sha256": "486c7c8daa5dc7f3ab2a1fb56de5316804caf7a4210fda1dc28d3f0f4e90cfe1"
+   },
+   {
+    "path": "app/src-tauri/resources/supplier/0.167.0/codex_app_server_protocol.v2.schemas.json",
+    "role": "generated v2 schema bundle at 0.167.0",
+    "sha256": "b1e5d17224b9d9732b5976012438ba78e2cf7e418b67f8f8a5f5cffe301b875d"
+   },
+   {
+    "path": "app/supplier_checks/recordings/0.167.0/nv04.recording.json",
+    "role": "recording nv04 at 0.167.0",
+    "sha256": "83db12ade29806c7b0c4f33b77eece17e4a218a6f55a7ae50cf2c58da4124155"
+   },
+   {
+    "path": "app/supplier_checks/recordings/0.167.0/st5-race.recording.json",
+    "role": "recording st5-race at 0.167.0",
+    "sha256": "0a2b03fc7b6a9a92a551fe988d3794098311254b204bf663c52155f600ac9d44"
+   },
+   {
+    "path": "app/supplier_checks/recordings/0.167.0/st5.recording.json",
+    "role": "recording st5 at 0.167.0",
+    "sha256": "6cfd8d60c75282478e29ff383589d7b6c768bed55cd36f4b9a6bacb87b079b2e"
+   },
+   {
+    "path": "app/supplier_checks/recordings/nv04.recording.json",
+    "role": "recording nv04 at 0.160.0",
+    "sha256": "ae917be77e6c06de4c3367eed6f6a37f0975a1749049244c457eeb14cc91dbbc"
+   },
+   {
+    "path": "app/supplier_checks/recordings/st5-race.recording.json",
+    "role": "recording st5-race at 0.160.0",
+    "sha256": "fea1bbb51069c5b97bf5776caad8ae6bff772f011a56c275057ec547de70edc1"
+   },
+   {
+    "path": "app/supplier_checks/recordings/st5.recording.json",
+    "role": "recording st5 at 0.160.0",
+    "sha256": "fa6add9819d96506d99073ec75a8298a2dbb6f44436d5252393536e5b6606717"
+   },
+   {
+    "path": "app/supplier_checks/version_advance/0.160.0-to-0.167.0.dispositions.json",
+    "role": "dispositions",
+    "sha256": "7f9a90fb220028abcfc876f0cb456934145ae190cabd04b486a8bc3899016ec2"
+   }
+  ]
+ },
+ "not_requiring_decision": {
+  "additive": [
+   {
+    "change": "alternative added",
+    "class": "additive",
+    "involves": [
+     "v2/Account"
+    ],
+    "path": "v2/Account/oneOf[type=gcp]"
+   },
+   {
+    "change": "alternative added",
+    "class": "additive",
+    "involves": [
+     "v2/CodexErrorInfo"
+    ],
+    "path": "v2/CodexErrorInfo/anyOf[type=[\"string\",\"object\"]]"
+   },
+   {
+    "change": "alternative added",
+    "class": "additive",
+    "involves": [
+     "v2/MessagePhase"
+    ],
+    "path": "v2/MessagePhase/oneOf[enum=\"partial_answer\"]"
+   },
+   {
+    "change": "alternative added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=additional_tools]"
+   },
+   {
+    "change": "enum value added",
+    "class": "additive",
+    "involves": [
+     "v2/CodexErrorInfo"
+    ],
+    "path": "v2/CodexErrorInfo/anyOf[enum of \"string\"]/enum/\"modelNotFound\""
+   },
+   {
+    "change": "enum value added",
+    "class": "additive",
+    "involves": [
+     "v2/CodexErrorInfo"
+    ],
+    "path": "v2/CodexErrorInfo/anyOf[enum of \"string\"]/enum/\"policyCapacityUnavailable\""
+   },
+   {
+    "change": "enum value added",
+    "class": "additive",
+    "involves": [
+     "v2/PlanType"
+    ],
+    "path": "v2/PlanType/enum/\"sci\""
+   },
+   {
+    "change": "enum value added",
+    "class": "additive",
+    "involves": [
+     "v2/PlanType"
+    ],
+    "path": "v2/PlanType/enum/\"sci_plus\""
+   },
+   {
+    "change": "new alternative (the previous form is kept as one alternative)",
+    "class": "additive",
+    "involves": [
+     "CommandExecutionApprovalKind"
+    ],
+    "path": "CommandExecutionApprovalKind"
+   },
+   {
+    "change": "oneOf became anyOf (an instance may now match several alternatives)",
+    "class": "additive",
+    "involves": [
+     "v2/CodexErrorInfo"
+    ],
+    "path": "v2/CodexErrorInfo"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "InitializeCapabilities"
+    ],
+    "path": "InitializeCapabilities/properties/requiredHumanApproval"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/Account"
+    ],
+    "path": "v2/Account/oneOf[type=chatgpt]/properties/workspaceName"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/AdditionalContextEntry"
+    ],
+    "path": "v2/AdditionalContextEntry/properties/name"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ApplicationRequirements"
+    ],
+    "path": "v2/ApplicationRequirements/properties/storage"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/BrowserUseRequirements"
+    ],
+    "path": "v2/BrowserUseRequirements/properties/extension"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ConfigRequirements"
+    ],
+    "path": "v2/ConfigRequirements/properties/otel"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ConfigRequirementsReadResponse"
+    ],
+    "path": "v2/ConfigRequirementsReadResponse/properties/supportsIndependentSpeedModes"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ContentItem"
+    ],
+    "path": "v2/ContentItem/oneOf[type=output_text]/properties/annotations"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ContentItem"
+    ],
+    "path": "v2/ContentItem/oneOf[type=output_text]/properties/logprobs"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ManagedHooksRequirements"
+    ],
+    "path": "v2/ManagedHooksRequirements/properties/PostModelRequest"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ManagedHooksRequirements"
+    ],
+    "path": "v2/ManagedHooksRequirements/properties/PreModelRequest"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/MisalignmentErrorDetails"
+    ],
+    "path": "v2/MisalignmentErrorDetails/properties/reviewTarget"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/NetworkRequirements"
+    ],
+    "path": "v2/NetworkRequirements/properties/reviewDomains"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=custom_tool_call]/properties/encrypted_content"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=function_call]/properties/encrypted_content"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=function_call]/properties/status"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=image_generation_call]/properties/encrypted_content"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=local_shell_call]/properties/encrypted_content"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=message]/properties/encrypted_content"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=message]/properties/status"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=tool_search_call]/properties/encrypted_content"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ResponseItem"
+    ],
+    "path": "v2/ResponseItem/oneOf[type=web_search_call]/properties/encrypted_content"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadForkParams"
+    ],
+    "path": "v2/ThreadForkParams/properties/attachToSource"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadForkParams"
+    ],
+    "path": "v2/ThreadForkParams/properties/experimentalDisablePredictionMcp"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadForkParams"
+    ],
+    "path": "v2/ThreadForkParams/properties/experimentalPredictionMode"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/oneOf[type=imageGeneration]/properties/generationId"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/oneOf[type=imageGeneration]/properties/inputImages"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/oneOf[type=subAgentActivity]/properties/model"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/oneOf[type=subAgentActivity]/properties/reasoningEffort"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/properties/completedAtMs"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/properties/startedAtMs"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadListParams"
+    ],
+    "path": "v2/ThreadListParams/properties/attachedToThreadId"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadListParams"
+    ],
+    "path": "v2/ThreadListParams/properties/excludedThreadIds"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadListResponse"
+    ],
+    "path": "v2/ThreadListResponse/properties/readStates"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/ThreadReadResponse"
+    ],
+    "path": "v2/ThreadReadResponse/properties/readState"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/Turn"
+    ],
+    "path": "v2/Turn/properties/rootTurnId"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/TurnStartParams"
+    ],
+    "path": "v2/TurnStartParams/properties/parentTurnId"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/TurnStartParams"
+    ],
+    "path": "v2/TurnStartParams/properties/responsesapiClientMetadataPatch"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/TurnStartParams"
+    ],
+    "path": "v2/TurnStartParams/properties/rootTurnId"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/TurnSteerParams"
+    ],
+    "path": "v2/TurnSteerParams/properties/responsesapiClientMetadataPatch"
+   },
+   {
+    "change": "optional property added",
+    "class": "additive",
+    "involves": [
+     "v2/TurnToolOutput"
+    ],
+    "path": "v2/TurnToolOutput/properties/retain"
+   }
+  ],
+  "documentation_only": [
+   {
+    "after": "A thread item and its recorded lifecycle times. The payload stays flat on the wire.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/description"
+   },
+   {
+    "after": "Canonical managed network permission map.",
+    "before": "Canonical network permission map for `experimental_network`.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/NetworkRequirements"
+    ],
+    "path": "v2/NetworkRequirements/properties/domains/description"
+   },
+   {
+    "after": "Canonical managed unix socket permission map.",
+    "before": "Canonical unix socket permission map for `experimental_network`.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/NetworkRequirements"
+    ],
+    "path": "v2/NetworkRequirements/properties/unixSockets/description"
+   },
+   {
+    "after": "Classifies assistant text as commentary, a partial answer, or a terminal answer.\n\nProviders do not emit this consistently, so callers must treat `None` as \"phase unknown\" and keep compatibility behavior for legacy models.",
+    "before": "Classifies an assistant message as interim commentary or final answer text.\n\nProviders do not emit this consistently, so callers must treat `None` as \"phase unknown\" and keep compatibility behavior for legacy models.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/MessagePhase"
+    ],
+    "path": "v2/MessagePhase/description"
+   },
+   {
+    "after": "EXPERIMENTAL - Request an authorized cyber program for this turn. Omission preserves automatic behavior. This does not grant access.",
+    "before": "EXPERIMENTAL - Request a workspace-authorized cyber program for this turn. Omission preserves automatic behavior. This does not grant access.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/TurnStartParams"
+    ],
+    "path": "v2/TurnStartParams/properties/cyberAccessProgram/description"
+   },
+   {
+    "after": "Either inline generated-image data or its durable attachment-store identity.\n\n`File` must remain first so rollouts written during the migration, which contain both an empty `result` and a `fileId`, retain the file reference when deserialized.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/ThreadItem"
+    ],
+    "path": "v2/ThreadItem/oneOf[type=imageGeneration]/description"
+   },
+   {
+    "after": "Inline audio data or an uploaded file loaded by the Responses API.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/ContentItem"
+    ],
+    "path": "v2/ContentItem/oneOf[type=input_audio]/description"
+   },
+   {
+    "after": "Optional metadata to enrich Codex's ResponsesAPI turn metadata. Replaces unprotected client-provided entries when supplied; an empty map clears them.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+    "before": "Optional metadata to enrich Codex's ResponsesAPI turn metadata.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/TurnStartParams"
+    ],
+    "path": "v2/TurnStartParams/properties/responsesapiClientMetadata/description"
+   },
+   {
+    "after": "Optional metadata to enrich Codex's ResponsesAPI turn metadata. Replaces unprotected client-provided entries when supplied; an empty map clears them.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+    "before": "Optional metadata to enrich Codex's ResponsesAPI turn metadata.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/TurnSteerParams"
+    ],
+    "path": "v2/TurnSteerParams/properties/responsesapiClientMetadata/description"
+   },
+   {
+    "after": "Requested cyber treatment for an OpenAI model turn. Authorization and model-tier restrictions remain server-owned.",
+    "before": "Requested cyber treatment for a ChatGPT-authenticated Codex turn. Authorization and model-tier restrictions remain server-owned.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/CyberAccessProgram"
+    ],
+    "path": "v2/CyberAccessProgram/description"
+   },
+   {
+    "after": "The assistant's declared terminal answer text for the current turn.",
+    "before": "The assistant's terminal answer text for the current turn.",
+    "change": "description changed",
+    "class": "documentation only",
+    "involves": [
+     "v2/MessagePhase"
+    ],
+    "path": "v2/MessagePhase/oneOf[enum=\"final_answer\"]/description"
+   }
+  ],
+  "rule": "additive and documentation-only changes to relied-on elements need no decision because a receiver must accept unknown enum values and extra fields and a sender is not obliged to send new optional fields"
+ },
+ "recorded_exchanges": {
+  "nv04": {
+   "frames": {
+    "0.160.0": 40,
+    "0.167.0": 65
+   },
+   "mechanism": {
+    "0.160.0": {
+     "context": {
+      "spawn_items_in_history_reads": 0,
+      "spawn_items_live": 2
+     },
+     "observed": {
+      "history_reads_carry_prompt": null,
+      "parent_turn_completed_before_child": true,
+      "spawn_item_carries_prompt": true
+     }
+    },
+    "0.167.0": {
+     "context": {
+      "spawn_items_in_history_reads": 6,
+      "spawn_items_live": 2
+     },
+     "observed": {
+      "history_reads_carry_prompt": true,
+      "parent_turn_completed_before_child": true,
+      "spawn_item_carries_prompt": true
+     }
+    },
+    "expected": {
+     "parent_turn_completed_before_child": true,
+     "spawn_item_carries_prompt": true
+    },
+    "involves": [
+     "item/completed",
+     "item/started",
+     "thread/items/list",
+     "thread/read",
+     "thread/turns/list",
+     "turn/completed"
+    ]
+   },
+   "sequence": {
+    "0.160.0": [
+     "g1 app->codex request initialize",
+     "g1 codex->app reply initialize",
+     "g1 codex->app notification remoteControl/status/changed",
+     "g1 app->codex notification initialized",
+     "g1 app->codex request thread/start",
+     "g1 codex->app reply thread/start",
+     "g1 codex->app notification thread/started",
+     "g1 app->codex request turn/start",
+     "g1 codex->app notification warning",
+     "g1 codex->app reply turn/start",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification warning",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/tokenUsage/updated",
+     "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/agentMessage/delta",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/tokenUsage/updated",
+     "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/completed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/agentMessage/delta",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/tokenUsage/updated",
+     "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/completed",
+     "g1 app->codex request thread/loaded/list",
+     "g1 codex->app reply thread/loaded/list"
+    ],
+    "0.167.0": [
+     "g1 app->codex request initialize",
+     "g1 codex->app reply initialize",
+     "g1 codex->app notification remoteControl/status/changed",
+     "g1 app->codex notification initialized",
+     "g1 app->codex request thread/start",
+     "g1 codex->app reply thread/start",
+     "g1 app->codex request turn/start",
+     "g1 codex->app notification thread/started",
+     "g1 codex->app notification warning",
+     "g1 codex->app reply turn/start",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification warning",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification thread/tokenUsage/updated",
+     "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/agentMessage/delta",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/tokenUsage/updated",
+     "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/readState/changed",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/completed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/agentMessage/delta",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/tokenUsage/updated",
+     "g1 codex->app notification account/rateLimits/updated",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/completed",
+     "g1 app->codex request thread/loaded/list",
+     "g1 codex->app reply thread/loaded/list",
+     "g1 app->codex request thread/read",
+     "g1 codex->app notification deprecationNotice",
+     "g1 codex->app reply thread/read",
+     "g1 app->codex request thread/turns/list",
+     "g1 codex->app reply thread/turns/list",
+     "g1 app->codex request thread/items/list",
+     "g1 codex->app reply thread/items/list",
+     "g1 app->codex request thread/read",
+     "g1 codex->app notification deprecationNotice",
+     "g1 codex->app reply thread/read",
+     "g2 app->codex request initialize",
+     "g2 codex->app reply initialize",
+     "g2 codex->app notification remoteControl/status/changed",
+     "g2 app->codex notification initialized",
+     "g2 app->codex request thread/read",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app reply thread/read",
+     "g2 app->codex request thread/turns/list",
+     "g2 codex->app reply thread/turns/list",
+     "g2 app->codex request thread/items/list",
+     "g2 codex->app reply thread/items/list",
+     "g2 app->codex request thread/read",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app reply thread/read"
+    ]
+   },
+   "sequence_differences": [
+    {
+     "from": [],
+     "op": "insert",
+     "to": [
+      "g1 app->codex request turn/start"
+     ]
+    },
+    {
+     "from": [
+      "g1 app->codex request turn/start"
+     ],
+     "op": "delete",
+     "to": []
+    },
+    {
+     "from": [],
+     "op": "insert",
+     "to": [
+      "g1 codex->app notification thread/status/changed",
+      "g1 codex->app notification turn/started"
+     ]
+    },
+    {
+     "from": [
+      "g1 codex->app notification thread/status/changed",
+      "g1 codex->app notification turn/started"
+     ],
+     "op": "delete",
+     "to": []
+    },
+    {
+     "from": [],
+     "op": "insert",
+     "to": [
+      "g1 codex->app notification item/started",
+      "g1 codex->app notification item/completed",
+      "g1 codex->app notification thread/readState/changed"
+     ]
+    },
+    {
+     "from": [
+      "g1 codex->app notification item/started",
+      "g1 codex->app notification item/completed"
+     ],
+     "op": "delete",
+     "to": []
+    },
+    {
+     "from": [],
+     "op": "insert",
+     "to": [
+      "g1 app->codex request thread/read",
+      "g1 codex->app notification deprecationNotice",
+      "g1 codex->app reply thread/read",
+      "g1 app->codex request thread/turns/list",
+      "g1 codex->app reply thread/turns/list",
+      "g1 app->codex request thread/items/list",
+      "g1 codex->app reply thread/items/list",
+      "g1 app->codex request thread/read",
+      "g1 codex->app notification deprecationNotice",
+      "g1 codex->app reply thread/read",
+      "g2 app->codex request initialize",
+      "g2 codex->app reply initialize",
+      "g2 codex->app notification remoteControl/status/changed",
+      "g2 app->codex notification initialized",
+      "g2 app->codex request thread/read",
+      "g2 codex->app notification deprecationNotice",
+      "g2 codex->app reply thread/read",
+      "g2 app->codex request thread/turns/list",
+      "g2 codex->app reply thread/turns/list",
+      "g2 app->codex request thread/items/list",
+      "g2 codex->app reply thread/items/list",
+      "g2 app->codex request thread/read",
+      "g2 codex->app notification deprecationNotice",
+      "g2 codex->app reply thread/read"
+     ]
+    }
+   ],
+   "shape_differences": {
+    "notification item/completed": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.item.completedAtMs",
+      "$.params.item.startedAtMs"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "notification item/started": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.item.completedAtMs",
+      "$.params.item.startedAtMs"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "notification turn/completed": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.turn.items[].completedAtMs",
+      "$.params.turn.items[].startedAtMs",
+      "$.params.turn.rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "notification turn/started": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.turn.rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to turn/start": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.turn.rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    }
+   },
+   "shape_groups_compared": [
+    "notification account/rateLimits/updated",
+    "notification item/agentMessage/delta",
+    "notification item/completed",
+    "notification item/started",
+    "notification remoteControl/status/changed",
+    "notification thread/started",
+    "notification thread/status/changed",
+    "notification thread/tokenUsage/updated",
+    "notification turn/completed",
+    "notification turn/started",
+    "notification warning",
+    "reply to initialize",
+    "reply to thread/loaded/list",
+    "reply to thread/start",
+    "reply to turn/start"
+   ],
+   "shape_groups_only_from": [],
+   "shape_groups_only_to": [
+    "notification deprecationNotice",
+    "notification thread/readState/changed",
+    "reply to thread/items/list",
+    "reply to thread/read",
+    "reply to thread/turns/list"
+   ],
+   "validation_against_to": {
+    "0.160.0": {
+     "counts": {
+      "notifications": {
+       "checked": 31,
+       "valid": 31
+      },
+      "server_requests": {
+       "checked": 0,
+       "valid": 0
+      }
+     },
+     "failures": []
+    },
+    "0.167.0": {
+     "counts": {
+      "notifications": {
+       "checked": 37,
+       "valid": 37
+      },
+      "server_requests": {
+       "checked": 0,
+       "valid": 0
+      }
+     },
+     "failures": []
+    }
+   }
+  },
+  "st5": {
+   "frames": {
+    "0.160.0": 35,
+    "0.167.0": 35
+   },
+   "mechanism": {
+    "0.160.0": {
+     "context": {
+      "supplier_frames_after_answer_in_generation_1": 0
+     },
+     "observed": {
+      "acknowledged": false,
+      "answer_written": true,
+      "approval_request_raised": true,
+      "frozen_before_answer": true,
+      "re_raised_after_resume": false
+     }
+    },
+    "0.167.0": {
+     "context": {
+      "supplier_frames_after_answer_in_generation_1": 0
+     },
+     "observed": {
+      "acknowledged": false,
+      "answer_written": true,
+      "approval_request_raised": true,
+      "frozen_before_answer": true,
+      "re_raised_after_resume": false
+     }
+    },
+    "expected": {
+     "acknowledged": false,
+     "answer_written": true,
+     "approval_request_raised": true,
+     "frozen_before_answer": true,
+     "re_raised_after_resume": false
+    },
+    "involves": [
+     "item/commandExecution/requestApproval",
+     "serverRequest/resolved",
+     "thread/resume"
+    ]
+   },
+   "sequence": {
+    "0.160.0": [
+     "g1 app->codex request initialize",
+     "g1 codex->app reply initialize",
+     "g1 codex->app notification remoteControl/status/changed",
+     "g1 app->codex notification initialized",
+     "g1 app->codex request thread/start",
+     "g1 codex->app reply thread/start",
+     "g1 codex->app notification thread/started",
+     "g1 app->codex request turn/start",
+     "g1 codex->app notification warning",
+     "g1 codex->app reply turn/start",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app request item/commandExecution/requestApproval",
+     "g1 app->codex reply item/commandExecution/requestApproval",
+     "g1 app->codex request thread/turns/list",
+     "g2 app->codex request initialize",
+     "g2 codex->app reply initialize",
+     "g2 codex->app notification remoteControl/status/changed",
+     "g2 app->codex notification initialized",
+     "g2 app->codex request thread/read",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app reply thread/read",
+     "g2 app->codex request thread/turns/list",
+     "g2 codex->app reply thread/turns/list",
+     "g2 app->codex request thread/loaded/list",
+     "g2 codex->app reply thread/loaded/list",
+     "g2 app->codex request thread/resume",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app notification thread/status/changed",
+     "g2 codex->app reply thread/resume",
+     "g2 codex->app notification thread/goal/cleared"
+    ],
+    "0.167.0": [
+     "g1 app->codex request initialize",
+     "g1 codex->app reply initialize",
+     "g1 codex->app notification remoteControl/status/changed",
+     "g1 app->codex notification initialized",
+     "g1 app->codex request thread/start",
+     "g1 codex->app reply thread/start",
+     "g1 codex->app notification thread/started",
+     "g1 app->codex request turn/start",
+     "g1 codex->app notification warning",
+     "g1 codex->app reply turn/start",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app request item/commandExecution/requestApproval",
+     "g1 app->codex reply item/commandExecution/requestApproval",
+     "g1 app->codex request thread/turns/list",
+     "g2 app->codex request initialize",
+     "g2 codex->app reply initialize",
+     "g2 codex->app notification remoteControl/status/changed",
+     "g2 app->codex notification initialized",
+     "g2 app->codex request thread/read",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app reply thread/read",
+     "g2 app->codex request thread/turns/list",
+     "g2 codex->app reply thread/turns/list",
+     "g2 app->codex request thread/loaded/list",
+     "g2 codex->app reply thread/loaded/list",
+     "g2 app->codex request thread/resume",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app notification thread/status/changed",
+     "g2 codex->app reply thread/resume",
+     "g2 codex->app notification thread/goal/cleared"
+    ]
+   },
+   "sequence_differences": [],
+   "shape_differences": {
+    "notification item/completed": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.item.completedAtMs",
+      "$.params.item.startedAtMs"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "notification item/started": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.item.completedAtMs",
+      "$.params.item.startedAtMs"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "notification turn/started": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.turn.rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to thread/read": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.readState",
+      "$.result.readState.firstUnread",
+      "$.result.readState.revision",
+      "$.result.thread.turns[].items[].completedAtMs",
+      "$.result.thread.turns[].items[].startedAtMs",
+      "$.result.thread.turns[].rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to thread/resume": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.thread.turns[].items[].completedAtMs",
+      "$.result.thread.turns[].items[].startedAtMs",
+      "$.result.thread.turns[].rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to thread/turns/list": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.data[].items[].completedAtMs",
+      "$.result.data[].items[].startedAtMs",
+      "$.result.data[].rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to turn/start": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.turn.rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    }
+   },
+   "shape_groups_compared": [
+    "notification deprecationNotice",
+    "notification item/completed",
+    "notification item/started",
+    "notification remoteControl/status/changed",
+    "notification thread/goal/cleared",
+    "notification thread/started",
+    "notification thread/status/changed",
+    "notification turn/started",
+    "notification warning",
+    "reply to initialize",
+    "reply to thread/loaded/list",
+    "reply to thread/read",
+    "reply to thread/resume",
+    "reply to thread/start",
+    "reply to thread/turns/list",
+    "reply to turn/start",
+    "server request item/commandExecution/requestApproval"
+   ],
+   "shape_groups_only_from": [],
+   "shape_groups_only_to": [],
+   "validation_against_to": {
+    "0.160.0": {
+     "counts": {
+      "notifications": {
+       "checked": 14,
+       "valid": 14
+      },
+      "server_requests": {
+       "checked": 1,
+       "valid": 1
+      }
+     },
+     "failures": []
+    },
+    "0.167.0": {
+     "counts": {
+      "notifications": {
+       "checked": 14,
+       "valid": 14
+      },
+      "server_requests": {
+       "checked": 1,
+       "valid": 1
+      }
+     },
+     "failures": []
+    }
+   }
+  },
+  "st5-race": {
+   "frames": {
+    "0.160.0": 35,
+    "0.167.0": 35
+   },
+   "mechanism": {
+    "0.160.0": {
+     "context": {
+      "supplier_frames_after_answer_in_generation_1": 0
+     },
+     "observed": {
+      "acknowledged": false,
+      "answer_written": true,
+      "approval_request_raised": true,
+      "re_raised_after_resume": false
+     }
+    },
+    "0.167.0": {
+     "context": {
+      "supplier_frames_after_answer_in_generation_1": 0
+     },
+     "observed": {
+      "acknowledged": false,
+      "answer_written": true,
+      "approval_request_raised": true,
+      "re_raised_after_resume": false
+     }
+    },
+    "expected": {
+     "answer_written": true,
+     "approval_request_raised": true,
+     "re_raised_after_resume": false
+    },
+    "involves": [
+     "item/commandExecution/requestApproval",
+     "serverRequest/resolved",
+     "thread/resume"
+    ]
+   },
+   "sequence": {
+    "0.160.0": [
+     "g1 app->codex request initialize",
+     "g1 codex->app reply initialize",
+     "g1 codex->app notification remoteControl/status/changed",
+     "g1 app->codex notification initialized",
+     "g1 app->codex request thread/start",
+     "g1 codex->app reply thread/start",
+     "g1 codex->app notification thread/started",
+     "g1 app->codex request turn/start",
+     "g1 codex->app notification warning",
+     "g1 codex->app reply turn/start",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app request item/commandExecution/requestApproval",
+     "g1 app->codex reply item/commandExecution/requestApproval",
+     "g1 app->codex request thread/turns/list",
+     "g2 app->codex request initialize",
+     "g2 codex->app reply initialize",
+     "g2 codex->app notification remoteControl/status/changed",
+     "g2 app->codex notification initialized",
+     "g2 app->codex request thread/read",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app reply thread/read",
+     "g2 app->codex request thread/turns/list",
+     "g2 codex->app reply thread/turns/list",
+     "g2 app->codex request thread/loaded/list",
+     "g2 codex->app reply thread/loaded/list",
+     "g2 app->codex request thread/resume",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app notification thread/status/changed",
+     "g2 codex->app reply thread/resume",
+     "g2 codex->app notification thread/goal/cleared"
+    ],
+    "0.167.0": [
+     "g1 app->codex request initialize",
+     "g1 codex->app reply initialize",
+     "g1 codex->app notification remoteControl/status/changed",
+     "g1 app->codex notification initialized",
+     "g1 app->codex request thread/start",
+     "g1 codex->app reply thread/start",
+     "g1 codex->app notification thread/started",
+     "g1 app->codex request turn/start",
+     "g1 codex->app notification warning",
+     "g1 codex->app reply turn/start",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification turn/started",
+     "g1 codex->app notification item/started",
+     "g1 codex->app notification item/completed",
+     "g1 codex->app notification thread/status/changed",
+     "g1 codex->app notification item/started",
+     "g1 codex->app request item/commandExecution/requestApproval",
+     "g1 app->codex reply item/commandExecution/requestApproval",
+     "g1 app->codex request thread/turns/list",
+     "g2 app->codex request initialize",
+     "g2 codex->app reply initialize",
+     "g2 codex->app notification remoteControl/status/changed",
+     "g2 app->codex notification initialized",
+     "g2 app->codex request thread/read",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app reply thread/read",
+     "g2 app->codex request thread/turns/list",
+     "g2 codex->app reply thread/turns/list",
+     "g2 app->codex request thread/loaded/list",
+     "g2 codex->app reply thread/loaded/list",
+     "g2 app->codex request thread/resume",
+     "g2 codex->app notification deprecationNotice",
+     "g2 codex->app notification thread/status/changed",
+     "g2 codex->app reply thread/resume",
+     "g2 codex->app notification thread/goal/cleared"
+    ]
+   },
+   "sequence_differences": [],
+   "shape_differences": {
+    "notification item/completed": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.item.completedAtMs",
+      "$.params.item.startedAtMs"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "notification item/started": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.item.completedAtMs",
+      "$.params.item.startedAtMs"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "notification turn/started": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.params.turn.rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to thread/read": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.readState",
+      "$.result.readState.firstUnread",
+      "$.result.readState.revision",
+      "$.result.thread.turns[].items[].completedAtMs",
+      "$.result.thread.turns[].items[].startedAtMs",
+      "$.result.thread.turns[].rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to thread/resume": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.thread.turns[].items[].completedAtMs",
+      "$.result.thread.turns[].items[].startedAtMs",
+      "$.result.thread.turns[].rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to thread/turns/list": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.data[].items[].completedAtMs",
+      "$.result.data[].items[].startedAtMs",
+      "$.result.data[].rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    },
+    "reply to turn/start": {
+     "no_longer_in_every_frame": [],
+     "paths_only_after": [
+      "$.result.turn.rootTurnId"
+     ],
+     "paths_only_before": [],
+     "types_changed": []
+    }
+   },
+   "shape_groups_compared": [
+    "notification deprecationNotice",
+    "notification item/completed",
+    "notification item/started",
+    "notification remoteControl/status/changed",
+    "notification thread/goal/cleared",
+    "notification thread/started",
+    "notification thread/status/changed",
+    "notification turn/started",
+    "notification warning",
+    "reply to initialize",
+    "reply to thread/loaded/list",
+    "reply to thread/read",
+    "reply to thread/resume",
+    "reply to thread/start",
+    "reply to thread/turns/list",
+    "reply to turn/start",
+    "server request item/commandExecution/requestApproval"
+   ],
+   "shape_groups_only_from": [],
+   "shape_groups_only_to": [],
+   "validation_against_to": {
+    "0.160.0": {
+     "counts": {
+      "notifications": {
+       "checked": 14,
+       "valid": 14
+      },
+      "server_requests": {
+       "checked": 1,
+       "valid": 1
+      }
+     },
+     "failures": []
+    },
+    "0.167.0": {
+     "counts": {
+      "notifications": {
+       "checked": 14,
+       "valid": 14
+      },
+      "server_requests": {
+       "checked": 1,
+       "valid": 1
+      }
+     },
+     "failures": []
+    }
+   }
+  }
+ },
+ "relied_on": {
+  "definitions": [
+   "AdditionalPermissionProfile",
+   "ApplyPatchApprovalParams",
+   "ApplyPatchApprovalResponse",
+   "ChatgptAuthTokensRefreshParams",
+   "ChatgptAuthTokensRefreshReason",
+   "ChatgptAuthTokensRefreshResponse",
+   "ClientInfo",
+   "CommandExecutionApprovalDecision",
+   "CommandExecutionApprovalKind",
+   "CommandExecutionRequestApprovalParams",
+   "CommandExecutionRequestApprovalResponse",
+   "CurrentTimeReadParams",
+   "CurrentTimeReadResponse",
+   "DynamicToolCallParams",
+   "DynamicToolCallResponse",
+   "ExecCommandApprovalParams",
+   "ExecCommandApprovalResponse",
+   "FileChange",
+   "FileChangeApprovalDecision",
+   "FileChangeRequestApprovalParams",
+   "FileChangeRequestApprovalResponse",
+   "GrantedPermissionProfile",
+   "InitializeCapabilities",
+   "InitializeParams",
+   "InitializeResponse",
+   "McpElicitationArrayType",
+   "McpElicitationBooleanSchema",
+   "McpElicitationBooleanType",
+   "McpElicitationConstOption",
+   "McpElicitationEnumSchema",
+   "McpElicitationLegacyTitledEnumSchema",
+   "McpElicitationMultiSelectEnumSchema",
+   "McpElicitationNumberSchema",
+   "McpElicitationNumberType",
+   "McpElicitationObjectType",
+   "McpElicitationPrimitiveSchema",
+   "McpElicitationSchema",
+   "McpElicitationSingleSelectEnumSchema",
+   "McpElicitationStringFormat",
+   "McpElicitationStringSchema",
+   "McpElicitationStringType",
+   "McpElicitationTitledEnumItems",
+   "McpElicitationTitledMultiSelectEnumSchema",
+   "McpElicitationTitledSingleSelectEnumSchema",
+   "McpElicitationUntitledEnumItems",
+   "McpElicitationUntitledMultiSelectEnumSchema",
+   "McpElicitationUntitledSingleSelectEnumSchema",
+   "McpServerElicitationAction",
+   "McpServerElicitationRequestParams",
+   "McpServerElicitationRequestResponse",
+   "NetworkApprovalContext",
+   "NetworkPolicyAmendment",
+   "NetworkPolicyRuleAction",
+   "ParsedCommand",
+   "PermissionGrantScope",
+   "PermissionsRequestApprovalParams",
+   "PermissionsRequestApprovalResponse",
+   "ReviewDecision",
+   "ToolRequestUserInputAnswer",
+   "ToolRequestUserInputOption",
+   "ToolRequestUserInputParams",
+   "ToolRequestUserInputQuestion",
+   "ToolRequestUserInputResponse",
+   "v2/AbsolutePathBuf",
+   "v2/Account",
+   "v2/AccountLoginCompletedNotification",
+   "v2/AccountRoutingOverride",
+   "v2/AccountUpdatedNotification",
+   "v2/ActivePermissionProfile",
+   "v2/AdditionalContextEntry",
+   "v2/AdditionalContextKind",
+   "v2/AdditionalFileSystemPermissions",
+   "v2/AdditionalNetworkPermissions",
+   "v2/AgentMessageDelivery",
+   "v2/AgentMessageDeltaNotification",
+   "v2/AgentMessageInputContent",
+   "v2/AgentPath",
+   "v2/AllowDenyRequirement",
+   "v2/AnalyticsConfig",
+   "v2/AppToolApproval",
+   "v2/ApplicationNetworkRequirements",
+   "v2/ApplicationRequirements",
+   "v2/ApplicationStorageRequirements",
+   "v2/ApprovalsReviewer",
+   "v2/AppsConfig",
+   "v2/AppsDefaultConfig",
+   "v2/AskForApproval",
+   "v2/AsyncUserInputQuestion",
+   "v2/AuthMode",
+   "v2/AuthRecoveryNotification",
+   "v2/AutoCompactTokenLimitScope",
+   "v2/AutoReviewRequirements",
+   "v2/BrowserUseAccessApprovalLifetime",
+   "v2/BrowserUseConfig",
+   "v2/BrowserUseExtensionRequirements",
+   "v2/BrowserUseOriginPolicy",
+   "v2/BrowserUseOriginPolicyConfig",
+   "v2/BrowserUseRequirements",
+   "v2/ByteRange",
+   "v2/CancelLoginAccountParams",
+   "v2/CancelLoginAccountResponse",
+   "v2/CancelLoginAccountStatus",
+   "v2/CapabilityRootLocation",
+   "v2/CliAuthCredentialsStoreMode",
+   "v2/CodexErrorInfo",
+   "v2/CollabAgentState",
+   "v2/CollabAgentStatus",
+   "v2/CollabAgentTool",
+   "v2/CollabAgentToolCallStatus",
+   "v2/CollaborationMode",
+   "v2/CollaborationModeListParams",
+   "v2/CollaborationModeListResponse",
+   "v2/CollaborationModeMask",
+   "v2/CommandAction",
+   "v2/CommandExecutionOutputDeltaNotification",
+   "v2/CommandExecutionSource",
+   "v2/CommandExecutionStatus",
+   "v2/ComputerUseConfig",
+   "v2/ComputerUseMacosConfig",
+   "v2/ComputerUseMacosRequirements",
+   "v2/ComputerUseRequirements",
+   "v2/ComputerUseWindowsConfig",
+   "v2/ComputerUseWindowsExeConfig",
+   "v2/ComputerUseWindowsExeRequirement",
+   "v2/ComputerUseWindowsRequirements",
+   "v2/Config",
+   "v2/ConfigBatchWriteParams",
+   "v2/ConfigEdit",
+   "v2/ConfigLayer",
+   "v2/ConfigLayerMetadata",
+   "v2/ConfigLayerSource",
+   "v2/ConfigReadParams",
+   "v2/ConfigReadResponse",
+   "v2/ConfigRequirements",
+   "v2/ConfigRequirementsReadResponse",
+   "v2/ConfigValueWriteParams",
+   "v2/ConfigWarningNotification",
+   "v2/ConfigurationReasoning",
+   "v2/ConfiguredHookHandler",
+   "v2/ConfiguredHookMatcherGroup",
+   "v2/ContentItem",
+   "v2/CyberAccessProgram",
+   "v2/DeprecationNoticeNotification",
+   "v2/DesktopOnboardingEntrypoint",
+   "v2/DynamicToolCallOutputContentItem",
+   "v2/DynamicToolCallStatus",
+   "v2/DynamicToolNamespaceTool",
+   "v2/DynamicToolSpec",
+   "v2/ErrorNotification",
+   "v2/FeedbackRequirements",
+   "v2/FileSystemAccessMode",
+   "v2/FileSystemPath",
+   "v2/FileSystemSandboxEntry",
+   "v2/FileSystemSpecialPath",
+   "v2/FileUpdateChange",
+   "v2/ForcedChatgptWorkspaceIds",
+   "v2/ForcedLoginMethod",
+   "v2/FunctionCallOutputBody",
+   "v2/FunctionCallOutputContentItem",
+   "v2/GetAccountParams",
+   "v2/GetAccountResponse",
+   "v2/GitInfo",
+   "v2/GuardianWarningNotification",
+   "v2/HookPromptFragment",
+   "v2/ImageDetail",
+   "v2/ImageGenerationFailure",
+   "v2/ImageGenerationInputImage",
+   "v2/InAppBrowserRequirements",
+   "v2/InputModality",
+   "v2/InternalChatMessageMetadataPassthrough",
+   "v2/ItemCompletedNotification",
+   "v2/ItemStartedNotification",
+   "v2/LegacyAppPathString",
+   "v2/LocalShellAction",
+   "v2/LocalShellStatus",
+   "v2/LoginAccountParams",
+   "v2/LoginAccountResponse",
+   "v2/LoginAppBrand",
+   "v2/ManagedHooksRequirements",
+   "v2/McpAppDisplayMode",
+   "v2/McpAppUi",
+   "v2/McpToolCallAppContext",
+   "v2/McpToolCallError",
+   "v2/McpToolCallResult",
+   "v2/McpToolCallStatus",
+   "v2/MemoryCitation",
+   "v2/MemoryCitationEntry",
+   "v2/MergeStrategy",
+   "v2/MessagePhase",
+   "v2/MisalignmentErrorDetails",
+   "v2/MisalignmentSteer",
+   "v2/ModeKind",
+   "v2/Model",
+   "v2/ModelAccessPrograms",
+   "v2/ModelAvailabilityNux",
+   "v2/ModelListParams",
+   "v2/ModelListResponse",
+   "v2/ModelProviderCapabilitiesReadParams",
+   "v2/ModelProviderCapabilitiesReadResponse",
+   "v2/ModelRerouteReason",
+   "v2/ModelReroutedNotification",
+   "v2/ModelServiceTier",
+   "v2/ModelUpgradeInfo",
+   "v2/ModelsRequirements",
+   "v2/MultiAgentMode",
+   "v2/MultiAgentVersion",
+   "v2/NetworkAccess",
+   "v2/NetworkApprovalProtocol",
+   "v2/NetworkDomainPermission",
+   "v2/NetworkRequirements",
+   "v2/NetworkUnixSocketPermission",
+   "v2/NewThreadModelDefaults",
+   "v2/NonSteerableTurnKind",
+   "v2/OtelExporter",
+   "v2/OtelHttpProtocol",
+   "v2/OtelRequirements",
+   "v2/OtelTlsConfig",
+   "v2/OtelToolResultLogConfig",
+   "v2/PatchApplyStatus",
+   "v2/PatchChangeKind",
+   "v2/Personality",
+   "v2/PlanDeltaNotification",
+   "v2/PlanType",
+   "v2/ReasoningEffort",
+   "v2/ReasoningEffortOption",
+   "v2/ReasoningItemContent",
+   "v2/ReasoningItemReasoningSummary",
+   "v2/ReasoningSummary",
+   "v2/ReasoningSummaryTextDeltaNotification",
+   "v2/RequestHeader",
+   "v2/RequestId",
+   "v2/RequestPermissionProfile",
+   "v2/ResidencyRequirement",
+   "v2/ResponseItem",
+   "v2/ResponsesApiWebSearchAction",
+   "v2/SandboxMode",
+   "v2/SandboxPolicy",
+   "v2/SandboxWorkspaceWrite",
+   "v2/SelectedCapabilityRoot",
+   "v2/ServerRequestResolvedNotification",
+   "v2/SessionSource",
+   "v2/Settings",
+   "v2/SortDirection",
+   "v2/SubAgentActivityKind",
+   "v2/SubAgentSource",
+   "v2/TextElement",
+   "v2/TextPosition",
+   "v2/TextRange",
+   "v2/Thread",
+   "v2/ThreadActiveFlag",
+   "v2/ThreadArchiveParams",
+   "v2/ThreadArchiveResponse",
+   "v2/ThreadEnvironment",
+   "v2/ThreadExtra",
+   "v2/ThreadForkParams",
+   "v2/ThreadForkResponse",
+   "v2/ThreadGoal",
+   "v2/ThreadGoalClearedNotification",
+   "v2/ThreadGoalGetParams",
+   "v2/ThreadGoalGetResponse",
+   "v2/ThreadGoalStatus",
+   "v2/ThreadGoalUpdatedNotification",
+   "v2/ThreadHistoryMode",
+   "v2/ThreadId",
+   "v2/ThreadItem",
+   "v2/ThreadItemEntry",
+   "v2/ThreadItemsListAnchor",
+   "v2/ThreadItemsListCursor",
+   "v2/ThreadItemsListParams",
+   "v2/ThreadItemsListResponse",
+   "v2/ThreadListCwdFilter",
+   "v2/ThreadListParams",
+   "v2/ThreadListResponse",
+   "v2/ThreadLoadedListParams",
+   "v2/ThreadLoadedListResponse",
+   "v2/ThreadNameUpdatedNotification",
+   "v2/ThreadReadParams",
+   "v2/ThreadReadResponse",
+   "v2/ThreadReadState",
+   "v2/ThreadResumeInitialTurnsPageParams",
+   "v2/ThreadResumeParams",
+   "v2/ThreadResumeResponse",
+   "v2/ThreadSection",
+   "v2/ThreadSectionAppearance",
+   "v2/ThreadSetNameParams",
+   "v2/ThreadSetNameResponse",
+   "v2/ThreadSortKey",
+   "v2/ThreadSource",
+   "v2/ThreadSourceKind",
+   "v2/ThreadStartParams",
+   "v2/ThreadStartResponse",
+   "v2/ThreadStartSource",
+   "v2/ThreadStatus",
+   "v2/ThreadTurnsListParams",
+   "v2/ThreadTurnsListResponse",
+   "v2/ThreadUnarchiveParams",
+   "v2/ThreadUnarchiveResponse",
+   "v2/ThreadUnreadPosition",
+   "v2/ThreadUnsubscribeParams",
+   "v2/ThreadUnsubscribeResponse",
+   "v2/ThreadUnsubscribeStatus",
+   "v2/ToolsV2",
+   "v2/Turn",
+   "v2/TurnCompletedNotification",
+   "v2/TurnEnvironmentParams",
+   "v2/TurnError",
+   "v2/TurnInterruptParams",
+   "v2/TurnInterruptResponse",
+   "v2/TurnItemsView",
+   "v2/TurnPlanStep",
+   "v2/TurnPlanStepStatus",
+   "v2/TurnPlanUpdatedNotification",
+   "v2/TurnStartParams",
+   "v2/TurnStartResponse",
+   "v2/TurnStartedNotification",
+   "v2/TurnStatus",
+   "v2/TurnSteerParams",
+   "v2/TurnSteerResponse",
+   "v2/TurnToolOutput",
+   "v2/TurnsPage",
+   "v2/UserInput",
+   "v2/Verbosity",
+   "v2/WarningNotification",
+   "v2/WebSearchAction",
+   "v2/WebSearchContextSize",
+   "v2/WebSearchLocation",
+   "v2/WebSearchMode",
+   "v2/WebSearchToolConfig",
+   "v2/WindowsSandboxImplementation",
+   "v2/WindowsWorldWritableWarningNotification",
+   "v2/WorkspaceRouting"
+  ],
+  "files_read": 159,
+  "methods": {
+   "account/chatgptAuthTokens/refresh": [
+    "hosting.rs",
+    "native_requests.rs"
+   ],
+   "account/login/cancel": [
+    "auth_rpc.rs",
+    "hosting.rs",
+    "runtime_session.rs"
+   ],
+   "account/login/completed": [
+    "auth_rpc.rs",
+    "hosting.rs"
+   ],
+   "account/login/start": [
+    "access_provider.rs",
+    "auth_rpc.rs",
+    "hosting.rs",
+    "runtime_session.rs"
+   ],
+   "account/logout": [
+    "access_provider.rs",
+    "auth_rpc.rs",
+    "hosting.rs",
+    "runtime_session.rs"
+   ],
+   "account/read": [
+    "access_provider.rs",
+    "auth_rpc.rs",
+    "hosting.rs",
+    "runtime_session.rs"
+   ],
+   "account/updated": [
+    "hosting_observation_facts.rs",
+    "runtime_session.rs"
+   ],
+   "applyPatchApproval": [
+    "native_requests.rs"
+   ],
+   "collaborationMode/list": [
+    "access_provider.rs",
+    "hosting.rs"
+   ],
+   "config/batchWrite": [
+    "hosting.rs",
+    "provider_endpoint.rs"
+   ],
+   "config/read": [
+    "access_provider.rs",
+    "hosting.rs"
+   ],
+   "config/value/write": [
+    "hosting.rs"
+   ],
+   "configRequirements/read": [
+    "access_provider.rs",
+    "auth_rpc.rs",
+    "hosting.rs",
+    "runtime_session.rs"
+   ],
+   "configWarning": [
+    "provider_create.rs"
+   ],
+   "currentTime/read": [
+    "hosting.rs",
+    "native_requests.rs"
+   ],
+   "deprecationNotice": [
+    "provider_create.rs"
+   ],
+   "error": [
+    "access_provider.rs",
+    "attachment_custody.rs",
+    "auth_rpc.rs",
+    "connector_materialization.rs",
+    "connector_route_view.rs",
+    "connector_source.rs",
+    "hosting.rs",
+    "hosting_child_roles.rs",
+    "hosting_continuation_context.rs",
+    "hosting_handoff_send.rs",
+    "hosting_observer_rebuild.rs",
+    "hosting_recovery_reads.rs",
+    "hosting_request_event_join.rs",
+    "lib.rs",
+    "native_conversation_links.rs",
+    "native_history.rs",
+    "native_requests.rs",
+    "oauth_control.rs",
+    "provider_create.rs",
+    "provider_endpoint.rs",
+    "record_lines.rs",
+    "records_store.rs",
+    "recovery.rs",
+    "role_lifecycle.rs",
+    "role_observations.rs",
+    "role_supply.rs",
+    "runtime_session.rs",
+    "stop_records.rs",
+    "trial_flows.rs",
+    "workflow_trial_transcript.rs"
+   ],
+   "execCommandApproval": [
+    "native_requests.rs"
+   ],
+   "guardianWarning": [
+    "provider_create.rs"
+   ],
+   "initialize": [
+    "access_provider.rs",
+    "hosting.rs"
+   ],
+   "initialized": [
+    "hosting.rs"
+   ],
+   "item/agentMessage/delta": [
+    "native_items.rs"
+   ],
+   "item/commandExecution/outputDelta": [
+    "native_items.rs"
+   ],
+   "item/commandExecution/requestApproval": [
+    "native_requests.rs"
+   ],
+   "item/completed": [
+    "hosting.rs",
+    "hosting_child_roles.rs",
+    "hosting_request_event_join.rs",
+    "native_items.rs"
+   ],
+   "item/fileChange/requestApproval": [
+    "native_requests.rs"
+   ],
+   "item/permissions/requestApproval": [
+    "native_requests.rs"
+   ],
+   "item/plan/delta": [
+    "native_items.rs"
+   ],
+   "item/reasoning/summaryTextDelta": [
+    "native_items.rs"
+   ],
+   "item/started": [
+    "checkpoint_recorder.rs",
+    "hosting.rs",
+    "native_items.rs"
+   ],
+   "item/tool/call": [
+    "hosting.rs",
+    "native_requests.rs"
+   ],
+   "item/tool/requestUserInput": [
+    "checkpoint_recorder.rs",
+    "native_requests.rs"
+   ],
+   "mcpServer/elicitation/request": [
+    "checkpoint_recorder.rs",
+    "native_requests.rs",
+    "runtime_session.rs"
+   ],
+   "model/list": [
+    "hosting.rs"
+   ],
+   "model/rerouted": [
+    "native_items.rs"
+   ],
+   "modelProvider/authRecoveryCompleted": [
+    "auth_rpc.rs"
+   ],
+   "modelProvider/authRecoveryStarted": [
+    "auth_rpc.rs"
+   ],
+   "modelProvider/capabilities/read": [
+    "access_provider.rs",
+    "hosting.rs"
+   ],
+   "serverRequest/resolved": [
+    "hosting.rs",
+    "hosting_observation_facts.rs",
+    "native_requests.rs"
+   ],
+   "thread/archive": [
+    "access_provider.rs"
+   ],
+   "thread/fork": [
+    "access_provider.rs",
+    "hosting.rs",
+    "native_conversation_links.rs",
+    "records_continuity.rs",
+    "role_lifecycle.rs",
+    "runtime_session.rs"
+   ],
+   "thread/goal/cleared": [
+    "native_items.rs"
+   ],
+   "thread/goal/get": [
+    "access_provider.rs",
+    "hosting.rs",
+    "native_history.rs",
+    "native_items.rs",
+    "runtime_session.rs"
+   ],
+   "thread/goal/updated": [
+    "native_items.rs"
+   ],
+   "thread/items/list": [
+    "access_provider.rs",
+    "hosting.rs",
+    "native_history.rs",
+    "native_items.rs",
+    "runtime_session.rs",
+    "trial_flows.rs",
+    "workflow_record_store.rs"
+   ],
+   "thread/list": [
+    "access_provider.rs",
+    "hosting.rs",
+    "native_history.rs",
+    "runtime_session.rs"
+   ],
+   "thread/loaded/list": [
+    "access_provider.rs"
+   ],
+   "thread/name/set": [
+    "access_provider.rs"
+   ],
+   "thread/name/updated": [
+    "hosting.rs"
+   ],
+   "thread/read": [
+    "access_provider.rs",
+    "execution_custody.rs",
+    "hosting.rs",
+    "hosting_child_roles.rs",
+    "hosting_observer_rebuild.rs",
+    "hosting_recovery_reads.rs",
+    "native_history.rs",
+    "native_items.rs",
+    "runtime_session.rs"
+   ],
+   "thread/resume": [
+    "access_provider.rs",
+    "hosting.rs",
+    "hosting_child_roles.rs",
+    "native_history.rs",
+    "role_lifecycle.rs",
+    "runtime_session.rs"
+   ],
+   "thread/start": [
+    "access_provider.rs",
+    "hosting.rs",
+    "hosting_call_custody.rs",
+    "native_conversation_links.rs",
+    "records_continuity.rs",
+    "role_lifecycle.rs",
+    "role_supply.rs",
+    "runtime_session.rs"
+   ],
+   "thread/turns/list": [
+    "access_provider.rs",
+    "hosting.rs",
+    "hosting_observer_rebuild.rs",
+    "hosting_recovery_reads.rs",
+    "native_history.rs",
+    "native_items.rs",
+    "runtime_session.rs",
+    "trial_flows.rs"
+   ],
+   "thread/unarchive": [
+    "access_provider.rs"
+   ],
+   "thread/unsubscribe": [
+    "access_provider.rs"
+   ],
+   "turn/completed": [
+    "hosting.rs",
+    "hosting_observation_facts.rs",
+    "hosting_request_event_join.rs",
+    "native_items.rs",
+    "runtime_session.rs"
+   ],
+   "turn/interrupt": [
+    "access_provider.rs",
+    "hosting.rs"
+   ],
+   "turn/plan/updated": [
+    "native_items.rs"
+   ],
+   "turn/start": [
+    "access_provider.rs",
+    "hosting.rs",
+    "hosting_handoff_send.rs",
+    "hosting_request_event_join.rs",
+    "role_record_source.rs",
+    "runtime_session.rs",
+    "workflow_learning_pointers.rs"
+   ],
+   "turn/started": [
+    "hosting.rs",
+    "hosting_observation_facts.rs",
+    "native_items.rs",
+    "runtime_session.rs"
+   ],
+   "turn/steer": [
+    "access_provider.rs",
+    "hosting.rs"
+   ],
+   "warning": [
+    "act_control.rs",
+    "provider_create.rs",
+    "runtime_session.rs"
+   ],
+   "windows/worldWritableWarning": [
+    "provider_create.rs"
+   ]
+  },
+  "rule": "a protocol method is relied on when its exact name appears as a Rust string literal in the host source outside files ending _tests.rs and outside modules gated by #[cfg(test)] or #[cfg(all(test, ...))]; a definition is relied on when it is reachable by $ref, at either pin, from the params of a relied-on client request or notification, from that request's response definition, or from the params and response of a relied-on server request or the params of a relied-on server notification; a response definition is <Name>Response for params <Name>Params, else the method's segments in PascalCase followed by Response, in the same namespace",
+  "unmapped_responses": [
+   {
+    "method": "account/logout",
+    "params": null,
+    "pin": "0.160.0"
+   },
+   {
+    "method": "account/logout",
+    "params": null,
+    "pin": "0.167.0"
+   },
+   {
+    "method": "config/batchWrite",
+    "params": "v2/ConfigBatchWriteParams",
+    "pin": "0.160.0"
+   },
+   {
+    "method": "config/batchWrite",
+    "params": "v2/ConfigBatchWriteParams",
+    "pin": "0.167.0"
+   },
+   {
+    "method": "config/value/write",
+    "params": "v2/ConfigValueWriteParams",
+    "pin": "0.160.0"
+   },
+   {
+    "method": "config/value/write",
+    "params": "v2/ConfigValueWriteParams",
+    "pin": "0.167.0"
+   }
+  ]
+ },
+ "rules": {
+  "additive_rule": "additive and documentation-only changes to relied-on elements need no decision because a receiver must accept unknown enum values and extra fields and a sender is not obliged to send new optional fields",
+  "classification": {
+   "additive": "a new optional property, a new enum value, a new alternative (anyOf/oneOf member, or the previous form kept as one alternative), a widened type (a type added to the type set, a lower bound lowered or removed, an upper bound raised or removed, a format, enum, allOf member or items constraint removed, additionalProperties opened)",
+   "alternatives": "anyOf/oneOf/allOf members are matched by their method or type discriminator, their $ref, a single enum value, a bare type, their title, or else their exact content",
+   "breaking": "a removed property, enum value or alternative, a narrowed or changed type (a type removed or replaced, a reference to a different definition, a form replaced, a constraint added or tightened, additionalProperties closed), a newly required property",
+   "documentation only": "only description, title or $schema differ",
+   "unclassified": "anything else, including a property that is no longer required, a changed default, a changed format and any other keyword; never counted as additive"
+  },
+  "findings": "a breaking or unclassified schema change, a removed method or definition, a standing change, a failed validation, a removed or retyped recorded key path or a changed or unobservable mechanism that involves a relied-on method or definition; its id is VA- and the first 12 hex digits of the SHA-256 of its kind, subject and detail",
+  "relied_on": "a protocol method is relied on when its exact name appears as a Rust string literal in the host source outside files ending _tests.rs and outside modules gated by #[cfg(test)] or #[cfg(all(test, ...))]; a definition is relied on when it is reachable by $ref, at either pin, from the params of a relied-on client request or notification, from that request's response definition, or from the params and response of a relied-on server request or the params of a relied-on server notification; a response definition is <Name>Response for params <Name>Params, else the method's segments in PascalCase followed by Response, in the same namespace",
+  "shape": "per scenario and per supplier notification, server request and reply to a request made at both pins: the set of key paths with their JSON value types and whether each path is present in every such frame; every scalar value is ignored (so identifiers, times, paths and text), as are array lengths, the order of array items and keys, and object keys that are UUIDs or digit strings (read as <id>)",
+  "standing": "read from MANIFEST.sha256 at file level: an element is experimental exactly when its file is in json-schema/experimental and not json-schema/stable; variants_differ says the two variants of a file present in both have different digests; ts/ lines and comment lines are not read",
+  "validation": "jsonschema Draft 7 against the to-pin bundle's ServerNotification (frames from the supplier without an id) and ServerRequest (frames from the supplier with an id and a method); formats are not asserted",
+  "verdict": "passed only when every finding has a disposition and no input was missing or unusable; otherwise returned for decision"
+ },
+ "schema": {
+  "definitions": {
+   "added": [
+    "v2/AccountSession",
+    "v2/AccountSessionWorkspace",
+    "v2/AccountSessionWorkspaceKind",
+    "v2/AccountSessionsListParams",
+    "v2/AccountSessionsResponse",
+    "v2/AccountSessionsSwitchParams",
+    "v2/AccountSessionsSwitchResponse",
+    "v2/ApplicationStorageRequirements",
+    "v2/BedrockCheckGovCloudRequirementsParams",
+    "v2/BedrockCheckGovCloudRequirementsResponse",
+    "v2/BrowserUseExtensionRequirements",
+    "v2/EnvironmentSkillsParams",
+    "v2/FeedbackSaveParams",
+    "v2/FeedbackSaveResponse",
+    "v2/GcpSetupParams",
+    "v2/GcpSetupResponse",
+    "v2/GuardianAssessmentOutcome",
+    "v2/ImageGenerationInputImage",
+    "v2/ModelProviderError",
+    "v2/OtelExporter",
+    "v2/OtelHttpProtocol",
+    "v2/OtelRequirements",
+    "v2/OtelTlsConfig",
+    "v2/OtelToolResultLogConfig",
+    "v2/RequestHeader",
+    "v2/ThreadAttachmentOwner",
+    "v2/ThreadAttachmentOwnerListParams",
+    "v2/ThreadAttachmentOwnerListResponse",
+    "v2/ThreadGoalMutationOrigin",
+    "v2/ThreadGuardianAssessment",
+    "v2/ThreadGuardianReviewParams",
+    "v2/ThreadGuardianReviewResponse",
+    "v2/ThreadItemsReadParams",
+    "v2/ThreadItemsReadResponse",
+    "v2/ThreadMemoryReadParams",
+    "v2/ThreadMemoryReadResponse",
+    "v2/ThreadPredictionRequestParams",
+    "v2/ThreadPredictionRequestResponse",
+    "v2/ThreadPredictionResult",
+    "v2/ThreadPredictionUpdatedNotification",
+    "v2/ThreadReadState",
+    "v2/ThreadReadStateChangedNotification",
+    "v2/ThreadReadStateOperation",
+    "v2/ThreadReadStateUpdateParams",
+    "v2/ThreadReadStateUpdateResponse",
+    "v2/ThreadSampleCancelParams",
+    "v2/ThreadSampleCancelResponse",
+    "v2/ThreadSampleParams",
+    "v2/ThreadSampleResponse",
+    "v2/ThreadSectionChangedNotification",
+    "v2/ThreadUnreadPosition"
+   ],
+   "changed": {
+    "ClientRequest": [
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=account/bedrock/checkGovCloudRequirements]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=account/gcp/setup]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=accountSession/list]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=accountSession/switch]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=feedback/save]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/attachmentOwner/list]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/guardianReview]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/items/read]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/memory/read]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/prediction/request]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/readState/update]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/sample/cancel]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ClientRequest/oneOf[method=thread/sample]"
+     }
+    ],
+    "CommandExecutionApprovalKind": [
+     {
+      "change": "new alternative (the previous form is kept as one alternative)",
+      "class": "additive",
+      "path": "CommandExecutionApprovalKind"
+     }
+    ],
+    "InitializeCapabilities": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "InitializeCapabilities/properties/requiredHumanApproval"
+     }
+    ],
+    "ServerNotification": [
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ServerNotification/oneOf[method=thread/prediction/updated]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ServerNotification/oneOf[method=thread/readState/changed]"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "ServerNotification/oneOf[method=thread/section/changed]"
+     }
+    ],
+    "v2/Account": [
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "v2/Account/oneOf[type=gcp]"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/Account/oneOf[type=chatgpt]/properties/workspaceName"
+     }
+    ],
+    "v2/AdditionalContextEntry": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/AdditionalContextEntry/properties/name"
+     }
+    ],
+    "v2/ApplicationRequirements": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ApplicationRequirements/properties/storage"
+     }
+    ],
+    "v2/BrowserUseRequirements": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/BrowserUseRequirements/properties/extension"
+     }
+    ],
+    "v2/CodexErrorInfo": [
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "v2/CodexErrorInfo/anyOf[type=[\"string\",\"object\"]]"
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/CodexErrorInfo/anyOf[enum of \"string\"]/enum/\"modelNotFound\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/CodexErrorInfo/anyOf[enum of \"string\"]/enum/\"policyCapacityUnavailable\""
+     },
+     {
+      "change": "oneOf became anyOf (an instance may now match several alternatives)",
+      "class": "additive",
+      "path": "v2/CodexErrorInfo"
+     }
+    ],
+    "v2/ConfigRequirements": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ConfigRequirements/properties/otel"
+     }
+    ],
+    "v2/ConfigRequirementsReadResponse": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ConfigRequirementsReadResponse/properties/supportsIndependentSpeedModes"
+     }
+    ],
+    "v2/ContentItem": [
+     {
+      "after": "Inline audio data or an uploaded file loaded by the Responses API.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/ContentItem/oneOf[type=input_audio]/description"
+     },
+     {
+      "change": "anyOf constraint added",
+      "class": "breaking",
+      "path": "v2/ContentItem/oneOf[type=input_audio]/anyOf"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ContentItem/oneOf[type=output_text]/properties/annotations"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ContentItem/oneOf[type=output_text]/properties/logprobs"
+     },
+     {
+      "change": "property removed (kept only in the alternative AudioUrlContentItem)",
+      "class": "breaking",
+      "path": "v2/ContentItem/oneOf[type=input_audio]/properties/audio_url"
+     }
+    ],
+    "v2/CyberAccessProgram": [
+     {
+      "after": "Requested cyber treatment for an OpenAI model turn. Authorization and model-tier restrictions remain server-owned.",
+      "before": "Requested cyber treatment for a ChatGPT-authenticated Codex turn. Authorization and model-tier restrictions remain server-owned.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/CyberAccessProgram/description"
+     }
+    ],
+    "v2/EnvironmentAddParams": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/EnvironmentAddParams/properties/skills"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/EnvironmentAddParams/properties/websocketRequestId"
+     }
+    ],
+    "v2/HookEventName": [
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/HookEventName/enum/\"postModelRequest\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/HookEventName/enum/\"preModelRequest\""
+     }
+    ],
+    "v2/HookMetadata": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/HookMetadata/properties/environmentId"
+     }
+    ],
+    "v2/HookRunSummary": [
+     {
+      "after": "#/definitions/v2/LegacyAppPathString",
+      "before": "#/definitions/v2/AbsolutePathBuf",
+      "change": "changed type (reference to a different definition)",
+      "class": "breaking",
+      "path": "v2/HookRunSummary/properties/sourcePath"
+     }
+    ],
+    "v2/HooksListParams": [
+     {
+      "after": "Working directories to inspect when no thread is specified. An empty list uses the session cwd.",
+      "before": "When empty, defaults to the current session working directory.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/HooksListParams/properties/cwds/description"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/HooksListParams/properties/threadId"
+     }
+    ],
+    "v2/ManagedHooksRequirements": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ManagedHooksRequirements/properties/PostModelRequest"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ManagedHooksRequirements/properties/PreModelRequest"
+     }
+    ],
+    "v2/McpServerOauthLoginCompletedNotification": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/McpServerOauthLoginCompletedNotification/properties/loginId"
+     }
+    ],
+    "v2/McpServerOauthLoginResponse": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/McpServerOauthLoginResponse/properties/loginId"
+     }
+    ],
+    "v2/McpServerStatus": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/McpServerStatus/properties/toolListMeta"
+     }
+    ],
+    "v2/MessagePhase": [
+     {
+      "after": "Classifies assistant text as commentary, a partial answer, or a terminal answer.\n\nProviders do not emit this consistently, so callers must treat `None` as \"phase unknown\" and keep compatibility behavior for legacy models.",
+      "before": "Classifies an assistant message as interim commentary or final answer text.\n\nProviders do not emit this consistently, so callers must treat `None` as \"phase unknown\" and keep compatibility behavior for legacy models.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/MessagePhase/description"
+     },
+     {
+      "after": "The assistant's declared terminal answer text for the current turn.",
+      "before": "The assistant's terminal answer text for the current turn.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/MessagePhase/oneOf[enum=\"final_answer\"]/description"
+     },
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "v2/MessagePhase/oneOf[enum=\"partial_answer\"]"
+     }
+    ],
+    "v2/MisalignmentErrorDetails": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/MisalignmentErrorDetails/properties/reviewTarget"
+     }
+    ],
+    "v2/ModelProviderCapabilitiesReadResponse": [
+     {
+      "change": "property removed",
+      "class": "breaking",
+      "path": "v2/ModelProviderCapabilitiesReadResponse/properties/namespaceTools"
+     }
+    ],
+    "v2/NetworkRequirements": [
+     {
+      "after": "Canonical managed network permission map.",
+      "before": "Canonical network permission map for `experimental_network`.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/NetworkRequirements/properties/domains/description"
+     },
+     {
+      "after": "Canonical managed unix socket permission map.",
+      "before": "Canonical unix socket permission map for `experimental_network`.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/NetworkRequirements/properties/unixSockets/description"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/NetworkRequirements/properties/reviewDomains"
+     }
+    ],
+    "v2/PlanType": [
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/PlanType/enum/\"sci\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/PlanType/enum/\"sci_plus\""
+     }
+    ],
+    "v2/ProcessExitedNotification": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ProcessExitedNotification/properties/outputDrainTimedOut"
+     }
+    ],
+    "v2/RealtimeVoice": [
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"aube\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"bubbie\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"haetsal\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"hanul\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"himari\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"leher\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"miko\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"neer\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"porto\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"rindo\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"rio\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"rivage\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"selva\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"sonna\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"tinta\""
+     },
+     {
+      "change": "enum value added",
+      "class": "additive",
+      "path": "v2/RealtimeVoice/enum/\"viola\""
+     }
+    ],
+    "v2/RealtimeVoicesList": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/RealtimeVoicesList/properties/v3"
+     }
+    ],
+    "v2/ResponseItem": [
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=additional_tools]"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=custom_tool_call]/properties/encrypted_content"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=function_call]/properties/encrypted_content"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=function_call]/properties/status"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=image_generation_call]/properties/encrypted_content"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=local_shell_call]/properties/encrypted_content"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=message]/properties/encrypted_content"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=message]/properties/status"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=tool_search_call]/properties/encrypted_content"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ResponseItem/oneOf[type=web_search_call]/properties/encrypted_content"
+     }
+    ],
+    "v2/ReviewDelivery": [
+     {
+      "change": "enum value removed",
+      "class": "breaking",
+      "path": "v2/ReviewDelivery/enum/\"detached\""
+     }
+    ],
+    "v2/ReviewStartParams": [
+     {
+      "after": "Reviews run inline on the supplied thread. Omit this field or pass `inline`. To review on a separate thread, start a thread first and use its id.",
+      "before": "Where to run the review: inline (default) on the current thread or detached on a new thread (returned in `reviewThreadId`). Detached delivery is deprecated and emits `deprecationNotice`. Use `thread/start` followed by an inline review for a separate review thread.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/ReviewStartParams/properties/delivery/description"
+     }
+    ],
+    "v2/ReviewStartResponse": [
+     {
+      "after": "The thread id supplied to `review/start`.",
+      "before": "Identifies the thread where the review runs.\n\nFor inline reviews, this is the original thread id. For detached reviews, this is the id of the new review thread.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/ReviewStartResponse/properties/reviewThreadId/description"
+     }
+    ],
+    "v2/SkillMetadata": [
+     {
+      "after": "#/definitions/v2/LegacyAppPathString",
+      "before": "#/definitions/v2/AbsolutePathBuf",
+      "change": "changed type (reference to a different definition)",
+      "class": "breaking",
+      "path": "v2/SkillMetadata/properties/path"
+     }
+    ],
+    "v2/SkillSummary": [
+     {
+      "change": "alternative added",
+      "class": "additive",
+      "path": "v2/SkillSummary/properties/path/anyOf[$ref=v2/LegacyAppPathString]"
+     },
+     {
+      "change": "alternative removed",
+      "class": "breaking",
+      "path": "v2/SkillSummary/properties/path/anyOf[$ref=v2/AbsolutePathBuf]"
+     }
+    ],
+    "v2/ThreadForkParams": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadForkParams/properties/attachToSource"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadForkParams/properties/experimentalDisablePredictionMcp"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadForkParams/properties/experimentalPredictionMode"
+     }
+    ],
+    "v2/ThreadGoalClearParams": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadGoalClearParams/properties/origin"
+     }
+    ],
+    "v2/ThreadGoalSetParams": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadGoalSetParams/properties/origin"
+     }
+    ],
+    "v2/ThreadItem": [
+     {
+      "after": "A thread item and its recorded lifecycle times. The payload stays flat on the wire.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/ThreadItem/description"
+     },
+     {
+      "after": "Either inline generated-image data or its durable attachment-store identity.\n\n`File` must remain first so rollouts written during the migration, which contain both an empty `result` and a `fileId`, retain the file reference when deserialized.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/ThreadItem/oneOf[type=imageGeneration]/description"
+     },
+     {
+      "after": "object",
+      "change": "type narrowed (type constraint added; every alternative already had this type)",
+      "class": "breaking",
+      "path": "v2/ThreadItem/type"
+     },
+     {
+      "change": "anyOf constraint added",
+      "class": "breaking",
+      "path": "v2/ThreadItem/oneOf[type=imageGeneration]/anyOf"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadItem/oneOf[type=imageGeneration]/properties/generationId"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadItem/oneOf[type=imageGeneration]/properties/inputImages"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadItem/oneOf[type=subAgentActivity]/properties/model"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadItem/oneOf[type=subAgentActivity]/properties/reasoningEffort"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadItem/properties/completedAtMs"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadItem/properties/startedAtMs"
+     },
+     {
+      "change": "property removed (kept only in the alternative ResultThreadItem)",
+      "class": "breaking",
+      "path": "v2/ThreadItem/oneOf[type=imageGeneration]/properties/result"
+     }
+    ],
+    "v2/ThreadListParams": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadListParams/properties/attachedToThreadId"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadListParams/properties/excludedThreadIds"
+     }
+    ],
+    "v2/ThreadListResponse": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadListResponse/properties/readStates"
+     }
+    ],
+    "v2/ThreadReadResponse": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadReadResponse/properties/readState"
+     }
+    ],
+    "v2/ThreadRealtimeStartParams": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadRealtimeStartParams/properties/voiceSessionId"
+     }
+    ],
+    "v2/ThreadSearchOccurrencesParams": [
+     {
+      "after": "Case-insensitive literal substring to find in visible user messages and both partial and final assistant answers.",
+      "before": "Case-insensitive literal substring to find in visible user messages and final assistant messages.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/ThreadSearchOccurrencesParams/properties/searchTerm/description"
+     }
+    ],
+    "v2/ThreadUsage": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/ThreadUsage/properties/nativeUsageUsdMicros"
+     }
+    ],
+    "v2/Turn": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/Turn/properties/rootTurnId"
+     }
+    ],
+    "v2/TurnStartParams": [
+     {
+      "after": "EXPERIMENTAL - Request an authorized cyber program for this turn. Omission preserves automatic behavior. This does not grant access.",
+      "before": "EXPERIMENTAL - Request a workspace-authorized cyber program for this turn. Omission preserves automatic behavior. This does not grant access.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/TurnStartParams/properties/cyberAccessProgram/description"
+     },
+     {
+      "after": "Optional metadata to enrich Codex's ResponsesAPI turn metadata. Replaces unprotected client-provided entries when supplied; an empty map clears them.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+      "before": "Optional metadata to enrich Codex's ResponsesAPI turn metadata.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/TurnStartParams/properties/responsesapiClientMetadata/description"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/TurnStartParams/properties/parentTurnId"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/TurnStartParams/properties/responsesapiClientMetadataPatch"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/TurnStartParams/properties/rootTurnId"
+     }
+    ],
+    "v2/TurnSteerParams": [
+     {
+      "after": "Optional metadata to enrich Codex's ResponsesAPI turn metadata. Replaces unprotected client-provided entries when supplied; an empty map clears them.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+      "before": "Optional metadata to enrich Codex's ResponsesAPI turn metadata.\n\nEntries are flattened into the JSON string sent as `client_metadata[\"x-codex-turn-metadata\"]` on ResponsesAPI HTTP and websocket requests.\n\nThey are not sent as top-level ResponsesAPI `client_metadata` keys, and reserved keys such as `session_id`, `thread_id`, `turn_id`, and `window_id` cannot be overridden.",
+      "change": "description changed",
+      "class": "documentation only",
+      "path": "v2/TurnSteerParams/properties/responsesapiClientMetadata/description"
+     },
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/TurnSteerParams/properties/responsesapiClientMetadataPatch"
+     }
+    ],
+    "v2/TurnToolOutput": [
+     {
+      "change": "optional property added",
+      "class": "additive",
+      "path": "v2/TurnToolOutput/properties/retain"
+     }
+    ],
+    "v2/UserInput": [
+     {
+      "change": "anyOf constraint added",
+      "class": "breaking",
+      "path": "v2/UserInput/oneOf[type=audio]/anyOf"
+     },
+     {
+      "change": "property removed (kept only in the alternative UrlUserInput)",
+      "class": "breaking",
+      "path": "v2/UserInput/oneOf[type=audio]/properties/url"
+     }
+    ]
+   },
+   "changed_count": {
+    "root": 4,
+    "v2": 47
+   },
+   "count_from": {
+    "root": 90,
+    "v2": 776
+   },
+   "count_to": {
+    "root": 90,
+    "v2": 827
+   },
+   "removed": [],
+   "root_names_unchanged": true
+  },
+  "method_sets": {
+   "client_notifications": {
+    "added": [],
+    "at_from": [
+     "initialized"
+    ],
+    "at_to": [
+     "initialized"
+    ],
+    "count_from": 1,
+    "count_to": 1,
+    "removed": []
+   },
+   "client_requests": {
+    "added": [
+     "account/bedrock/checkGovCloudRequirements",
+     "account/gcp/setup",
+     "accountSession/list",
+     "accountSession/switch",
+     "feedback/save",
+     "thread/attachmentOwner/list",
+     "thread/guardianReview",
+     "thread/items/read",
+     "thread/memory/read",
+     "thread/prediction/request",
+     "thread/readState/update",
+     "thread/sample",
+     "thread/sample/cancel"
+    ],
+    "at_from": [
+     "account/bedrock/discover",
+     "account/bedrock/setup",
+     "account/gatewayOAuth/cancel",
+     "account/gatewayOAuth/login",
+     "account/gatewayOAuth/read",
+     "account/login/cancel",
+     "account/login/start",
+     "account/logout",
+     "account/rateLimitResetCredit/consume",
+     "account/rateLimits/read",
+     "account/read",
+     "account/sendAddCreditsNudgeEmail",
+     "account/usage/read",
+     "account/workspaceMessages/read",
+     "app/installed",
+     "app/list",
+     "app/read",
+     "collaborationMode/list",
+     "command/exec",
+     "command/exec/resize",
+     "command/exec/terminate",
+     "command/exec/write",
+     "config/batchWrite",
+     "config/mcpServer/reload",
+     "config/read",
+     "config/value/write",
+     "configRequirements/read",
+     "environment/add",
+     "environment/info",
+     "environment/status",
+     "experimentalFeature/enablement/set",
+     "experimentalFeature/list",
+     "externalAgentConfig/detect",
+     "externalAgentConfig/import",
+     "externalAgentConfig/import/readHistories",
+     "externalAgentConfig/import/recordHistory",
+     "feedback/upload",
+     "fs/copy",
+     "fs/createDirectory",
+     "fs/getMetadata",
+     "fs/readDirectory",
+     "fs/readFile",
+     "fs/remove",
+     "fs/unwatch",
+     "fs/watch",
+     "fs/writeFile",
+     "fuzzyFileSearch",
+     "fuzzyFileSearch/sessionStart",
+     "fuzzyFileSearch/sessionStop",
+     "fuzzyFileSearch/sessionUpdate",
+     "hooks/list",
+     "initialize",
+     "marketplace/add",
+     "marketplace/remove",
+     "marketplace/upgrade",
+     "mcpServer/event/stream/start",
+     "mcpServer/event/stream/stop",
+     "mcpServer/oauth/login",
+     "mcpServer/resource/read",
+     "mcpServer/tool/call",
+     "mcpServerStatus/list",
+     "memory/reset",
+     "memory/status",
+     "mock/experimentalMethod",
+     "model/list",
+     "modelProvider/capabilities/read",
+     "permissionProfile/list",
+     "plugin/install",
+     "plugin/installed",
+     "plugin/list",
+     "plugin/read",
+     "plugin/reconcile",
+     "plugin/search",
+     "plugin/share/checkout",
+     "plugin/share/delete",
+     "plugin/share/list",
+     "plugin/share/save",
+     "plugin/share/updateTargets",
+     "plugin/skill/read",
+     "plugin/uninstall",
+     "process/kill",
+     "process/resizePty",
+     "process/spawn",
+     "process/writeStdin",
+     "project/create",
+     "project/delete",
+     "project/import",
+     "project/list",
+     "project/move",
+     "project/read",
+     "project/update",
+     "remoteControl/client/list",
+     "remoteControl/client/revoke",
+     "remoteControl/disable",
+     "remoteControl/enable",
+     "remoteControl/pairing/start",
+     "remoteControl/pairing/status",
+     "remoteControl/status/read",
+     "review/start",
+     "rollout/compress",
+     "server/diagnostics",
+     "skills/config/write",
+     "skills/extraRoots/set",
+     "skills/list",
+     "thread/approveGuardianDeniedAction",
+     "thread/archive",
+     "thread/attachment/add",
+     "thread/attachment/list",
+     "thread/attachment/remove",
+     "thread/backgroundTerminals/clean",
+     "thread/backgroundTerminals/list",
+     "thread/backgroundTerminals/terminate",
+     "thread/compact/start",
+     "thread/decrement_elicitation",
+     "thread/delete",
+     "thread/fork",
+     "thread/goal/clear",
+     "thread/goal/get",
+     "thread/goal/set",
+     "thread/increment_elicitation",
+     "thread/inject_items",
+     "thread/items/list",
+     "thread/list",
+     "thread/loaded/list",
+     "thread/memoryMode/set",
+     "thread/metadata/update",
+     "thread/name/set",
+     "thread/queue/add",
+     "thread/queue/delete",
+     "thread/queue/list",
+     "thread/queue/reorder",
+     "thread/queue/start",
+     "thread/queue/update",
+     "thread/read",
+     "thread/realtime/appendAudio",
+     "thread/realtime/appendSpeech",
+     "thread/realtime/appendText",
+     "thread/realtime/listVoices",
+     "thread/realtime/start",
+     "thread/realtime/stop",
+     "thread/resume",
+     "thread/revert",
+     "thread/search",
+     "thread/searchOccurrences",
+     "thread/section/move",
+     "thread/settings/update",
+     "thread/shellCommand",
+     "thread/start",
+     "thread/timeline/list",
+     "thread/turns/list",
+     "thread/unarchive",
+     "thread/unsubscribe",
+     "threadSection/create",
+     "threadSection/delete",
+     "threadSection/list",
+     "threadSection/update",
+     "turn/interrupt",
+     "turn/settings/update",
+     "turn/start",
+     "turn/steer",
+     "userVerification/cancel",
+     "userVerification/delete",
+     "userVerification/enroll",
+     "userVerification/status",
+     "userVerification/verify",
+     "windowsSandbox/readiness",
+     "windowsSandbox/setupStart"
+    ],
+    "at_to": [
+     "account/bedrock/checkGovCloudRequirements",
+     "account/bedrock/discover",
+     "account/bedrock/setup",
+     "account/gatewayOAuth/cancel",
+     "account/gatewayOAuth/login",
+     "account/gatewayOAuth/read",
+     "account/gcp/setup",
+     "account/login/cancel",
+     "account/login/start",
+     "account/logout",
+     "account/rateLimitResetCredit/consume",
+     "account/rateLimits/read",
+     "account/read",
+     "account/sendAddCreditsNudgeEmail",
+     "account/usage/read",
+     "account/workspaceMessages/read",
+     "accountSession/list",
+     "accountSession/switch",
+     "app/installed",
+     "app/list",
+     "app/read",
+     "collaborationMode/list",
+     "command/exec",
+     "command/exec/resize",
+     "command/exec/terminate",
+     "command/exec/write",
+     "config/batchWrite",
+     "config/mcpServer/reload",
+     "config/read",
+     "config/value/write",
+     "configRequirements/read",
+     "environment/add",
+     "environment/info",
+     "environment/status",
+     "experimentalFeature/enablement/set",
+     "experimentalFeature/list",
+     "externalAgentConfig/detect",
+     "externalAgentConfig/import",
+     "externalAgentConfig/import/readHistories",
+     "externalAgentConfig/import/recordHistory",
+     "feedback/save",
+     "feedback/upload",
+     "fs/copy",
+     "fs/createDirectory",
+     "fs/getMetadata",
+     "fs/readDirectory",
+     "fs/readFile",
+     "fs/remove",
+     "fs/unwatch",
+     "fs/watch",
+     "fs/writeFile",
+     "fuzzyFileSearch",
+     "fuzzyFileSearch/sessionStart",
+     "fuzzyFileSearch/sessionStop",
+     "fuzzyFileSearch/sessionUpdate",
+     "hooks/list",
+     "initialize",
+     "marketplace/add",
+     "marketplace/remove",
+     "marketplace/upgrade",
+     "mcpServer/event/stream/start",
+     "mcpServer/event/stream/stop",
+     "mcpServer/oauth/login",
+     "mcpServer/resource/read",
+     "mcpServer/tool/call",
+     "mcpServerStatus/list",
+     "memory/reset",
+     "memory/status",
+     "mock/experimentalMethod",
+     "model/list",
+     "modelProvider/capabilities/read",
+     "permissionProfile/list",
+     "plugin/install",
+     "plugin/installed",
+     "plugin/list",
+     "plugin/read",
+     "plugin/reconcile",
+     "plugin/search",
+     "plugin/share/checkout",
+     "plugin/share/delete",
+     "plugin/share/list",
+     "plugin/share/save",
+     "plugin/share/updateTargets",
+     "plugin/skill/read",
+     "plugin/uninstall",
+     "process/kill",
+     "process/resizePty",
+     "process/spawn",
+     "process/writeStdin",
+     "project/create",
+     "project/delete",
+     "project/import",
+     "project/list",
+     "project/move",
+     "project/read",
+     "project/update",
+     "remoteControl/client/list",
+     "remoteControl/client/revoke",
+     "remoteControl/disable",
+     "remoteControl/enable",
+     "remoteControl/pairing/start",
+     "remoteControl/pairing/status",
+     "remoteControl/status/read",
+     "review/start",
+     "rollout/compress",
+     "server/diagnostics",
+     "skills/config/write",
+     "skills/extraRoots/set",
+     "skills/list",
+     "thread/approveGuardianDeniedAction",
+     "thread/archive",
+     "thread/attachment/add",
+     "thread/attachment/list",
+     "thread/attachment/remove",
+     "thread/attachmentOwner/list",
+     "thread/backgroundTerminals/clean",
+     "thread/backgroundTerminals/list",
+     "thread/backgroundTerminals/terminate",
+     "thread/compact/start",
+     "thread/decrement_elicitation",
+     "thread/delete",
+     "thread/fork",
+     "thread/goal/clear",
+     "thread/goal/get",
+     "thread/goal/set",
+     "thread/guardianReview",
+     "thread/increment_elicitation",
+     "thread/inject_items",
+     "thread/items/list",
+     "thread/items/read",
+     "thread/list",
+     "thread/loaded/list",
+     "thread/memory/read",
+     "thread/memoryMode/set",
+     "thread/metadata/update",
+     "thread/name/set",
+     "thread/prediction/request",
+     "thread/queue/add",
+     "thread/queue/delete",
+     "thread/queue/list",
+     "thread/queue/reorder",
+     "thread/queue/start",
+     "thread/queue/update",
+     "thread/read",
+     "thread/readState/update",
+     "thread/realtime/appendAudio",
+     "thread/realtime/appendSpeech",
+     "thread/realtime/appendText",
+     "thread/realtime/listVoices",
+     "thread/realtime/start",
+     "thread/realtime/stop",
+     "thread/resume",
+     "thread/revert",
+     "thread/sample",
+     "thread/sample/cancel",
+     "thread/search",
+     "thread/searchOccurrences",
+     "thread/section/move",
+     "thread/settings/update",
+     "thread/shellCommand",
+     "thread/start",
+     "thread/timeline/list",
+     "thread/turns/list",
+     "thread/unarchive",
+     "thread/unsubscribe",
+     "threadSection/create",
+     "threadSection/delete",
+     "threadSection/list",
+     "threadSection/update",
+     "turn/interrupt",
+     "turn/settings/update",
+     "turn/start",
+     "turn/steer",
+     "userVerification/cancel",
+     "userVerification/delete",
+     "userVerification/enroll",
+     "userVerification/status",
+     "userVerification/verify",
+     "windowsSandbox/readiness",
+     "windowsSandbox/setupStart"
+    ],
+    "count_from": 167,
+    "count_to": 180,
+    "removed": []
+   },
+   "server_notifications": {
+    "added": [
+     "thread/prediction/updated",
+     "thread/readState/changed",
+     "thread/section/changed"
+    ],
+    "at_from": [
+     "account/gatewayOAuth/changed",
+     "account/login/completed",
+     "account/rateLimits/updated",
+     "account/updated",
+     "app/list/updated",
+     "autoApprovalReview/strictReviewRequired",
+     "command/exec/outputDelta",
+     "configWarning",
+     "deprecationNotice",
+     "error",
+     "externalAgentConfig/import/completed",
+     "externalAgentConfig/import/progress",
+     "fs/changed",
+     "fuzzyFileSearch/sessionCompleted",
+     "fuzzyFileSearch/sessionUpdated",
+     "guardianWarning",
+     "hook/completed",
+     "hook/started",
+     "item/agentMessage/delta",
+     "item/autoApprovalReview/completed",
+     "item/autoApprovalReview/started",
+     "item/commandExecution/outputDelta",
+     "item/commandExecution/terminalInteraction",
+     "item/completed",
+     "item/fileChange/outputDelta",
+     "item/fileChange/patchUpdated",
+     "item/mcpToolCall/progress",
+     "item/plan/delta",
+     "item/reasoning/summaryPartAdded",
+     "item/reasoning/summaryTextDelta",
+     "item/reasoning/textDelta",
+     "item/started",
+     "mcpServer/event/stream/notification",
+     "mcpServer/oauthLogin/completed",
+     "mcpServer/startupStatus/updated",
+     "model/rerouted",
+     "model/safetyBuffering/updated",
+     "model/verification",
+     "modelProvider/authRecoveryCompleted",
+     "modelProvider/authRecoveryStarted",
+     "process/exited",
+     "process/outputDelta",
+     "project/changed",
+     "remoteControl/status/changed",
+     "serverRequest/resolved",
+     "skills/changed",
+     "thread/archived",
+     "thread/attachment/updated",
+     "thread/closed",
+     "thread/compacted",
+     "thread/deleted",
+     "thread/environment/connected",
+     "thread/environment/disconnected",
+     "thread/goal/cleared",
+     "thread/goal/updated",
+     "thread/name/updated",
+     "thread/project/updated",
+     "thread/queue/changed",
+     "thread/realtime/closed",
+     "thread/realtime/error",
+     "thread/realtime/item/completed",
+     "thread/realtime/item/started",
+     "thread/realtime/item/transcript/delta",
+     "thread/realtime/itemAdded",
+     "thread/realtime/outputAudio/delta",
+     "thread/realtime/sdp",
+     "thread/realtime/started",
+     "thread/realtime/transcript/delta",
+     "thread/realtime/transcript/done",
+     "thread/reverted",
+     "thread/settings/updated",
+     "thread/started",
+     "thread/status/changed",
+     "thread/tokenUsage/updated",
+     "thread/unarchived",
+     "turn/completed",
+     "turn/diff/updated",
+     "turn/moderationMetadata",
+     "turn/plan/updated",
+     "turn/started",
+     "warning",
+     "windows/worldWritableWarning",
+     "windowsSandbox/setupCompleted"
+    ],
+    "at_to": [
+     "account/gatewayOAuth/changed",
+     "account/login/completed",
+     "account/rateLimits/updated",
+     "account/updated",
+     "app/list/updated",
+     "autoApprovalReview/strictReviewRequired",
+     "command/exec/outputDelta",
+     "configWarning",
+     "deprecationNotice",
+     "error",
+     "externalAgentConfig/import/completed",
+     "externalAgentConfig/import/progress",
+     "fs/changed",
+     "fuzzyFileSearch/sessionCompleted",
+     "fuzzyFileSearch/sessionUpdated",
+     "guardianWarning",
+     "hook/completed",
+     "hook/started",
+     "item/agentMessage/delta",
+     "item/autoApprovalReview/completed",
+     "item/autoApprovalReview/started",
+     "item/commandExecution/outputDelta",
+     "item/commandExecution/terminalInteraction",
+     "item/completed",
+     "item/fileChange/outputDelta",
+     "item/fileChange/patchUpdated",
+     "item/mcpToolCall/progress",
+     "item/plan/delta",
+     "item/reasoning/summaryPartAdded",
+     "item/reasoning/summaryTextDelta",
+     "item/reasoning/textDelta",
+     "item/started",
+     "mcpServer/event/stream/notification",
+     "mcpServer/oauthLogin/completed",
+     "mcpServer/startupStatus/updated",
+     "model/rerouted",
+     "model/safetyBuffering/updated",
+     "model/verification",
+     "modelProvider/authRecoveryCompleted",
+     "modelProvider/authRecoveryStarted",
+     "process/exited",
+     "process/outputDelta",
+     "project/changed",
+     "remoteControl/status/changed",
+     "serverRequest/resolved",
+     "skills/changed",
+     "thread/archived",
+     "thread/attachment/updated",
+     "thread/closed",
+     "thread/compacted",
+     "thread/deleted",
+     "thread/environment/connected",
+     "thread/environment/disconnected",
+     "thread/goal/cleared",
+     "thread/goal/updated",
+     "thread/name/updated",
+     "thread/prediction/updated",
+     "thread/project/updated",
+     "thread/queue/changed",
+     "thread/readState/changed",
+     "thread/realtime/closed",
+     "thread/realtime/error",
+     "thread/realtime/item/completed",
+     "thread/realtime/item/started",
+     "thread/realtime/item/transcript/delta",
+     "thread/realtime/itemAdded",
+     "thread/realtime/outputAudio/delta",
+     "thread/realtime/sdp",
+     "thread/realtime/started",
+     "thread/realtime/transcript/delta",
+     "thread/realtime/transcript/done",
+     "thread/reverted",
+     "thread/section/changed",
+     "thread/settings/updated",
+     "thread/started",
+     "thread/status/changed",
+     "thread/tokenUsage/updated",
+     "thread/unarchived",
+     "turn/completed",
+     "turn/diff/updated",
+     "turn/moderationMetadata",
+     "turn/plan/updated",
+     "turn/started",
+     "warning",
+     "windows/worldWritableWarning",
+     "windowsSandbox/setupCompleted"
+    ],
+    "count_from": 83,
+    "count_to": 86,
+    "removed": []
+   },
+   "server_requests": {
+    "added": [],
+    "at_from": [
+     "account/chatgptAuthTokens/refresh",
+     "applyPatchApproval",
+     "attestation/generate",
+     "currentTime/read",
+     "execCommandApproval",
+     "item/commandExecution/requestApproval",
+     "item/fileChange/requestApproval",
+     "item/permissions/requestApproval",
+     "item/tool/call",
+     "item/tool/requestUserInput",
+     "mcpServer/elicitation/request"
+    ],
+    "at_to": [
+     "account/chatgptAuthTokens/refresh",
+     "applyPatchApproval",
+     "attestation/generate",
+     "currentTime/read",
+     "execCommandApproval",
+     "item/commandExecution/requestApproval",
+     "item/fileChange/requestApproval",
+     "item/permissions/requestApproval",
+     "item/tool/call",
+     "item/tool/requestUserInput",
+     "mcpServer/elicitation/request"
+    ],
+    "count_from": 11,
+    "count_to": 11,
+    "removed": []
+   }
+  },
+  "standing": {
+   "changed": [],
+   "elements_added": [
+    {
+     "element": "v2/AccountSessionsListParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/AccountSessionsResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/AccountSessionsSwitchParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/AccountSessionsSwitchResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/BedrockCheckGovCloudRequirementsParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/BedrockCheckGovCloudRequirementsResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/FeedbackSaveParams",
+     "standing": "stable"
+    },
+    {
+     "element": "v2/FeedbackSaveResponse",
+     "standing": "stable"
+    },
+    {
+     "element": "v2/GcpSetupParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/GcpSetupResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ModelProviderError",
+     "standing": "stable"
+    },
+    {
+     "element": "v2/ThreadAttachmentOwnerListParams",
+     "standing": "stable"
+    },
+    {
+     "element": "v2/ThreadAttachmentOwnerListResponse",
+     "standing": "stable"
+    },
+    {
+     "element": "v2/ThreadGuardianReviewParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadGuardianReviewResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadItemsReadParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadItemsReadResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadMemoryReadParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadMemoryReadResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadPredictionRequestParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadPredictionRequestResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadPredictionUpdatedNotification",
+     "standing": "stable"
+    },
+    {
+     "element": "v2/ThreadReadStateChangedNotification",
+     "standing": "stable"
+    },
+    {
+     "element": "v2/ThreadReadStateUpdateParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadReadStateUpdateResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadSampleCancelParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadSampleCancelResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadSampleParams",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadSampleResponse",
+     "standing": "experimental"
+    },
+    {
+     "element": "v2/ThreadSectionChangedNotification",
+     "standing": "stable"
+    }
+   ],
+   "elements_removed": [],
+   "experimental_parts_changed": []
+  },
+  "v2_bundle_differs_from_main_bundle": {
+   "0.160.0": [],
+   "0.167.0": []
+  }
+ },
+ "supplement": {
+  "at_from": [],
+  "at_to": [],
+  "in_generated_output_at_to": {}
+ },
+ "to": "0.167.0",
+ "verdict": {
+  "disposed_findings": [
+   "VA-55c4af314319"
+  ],
+  "dispositions": [
+   {
+    "decided_by": "owner (decision of 2026-11-09)",
+    "decision": "Codex 0.167 removed namespaceTools and the provider gate on tool namespaces (openai/codex PR 50447). Delegation reads present when multiAgentVersion is v1/v2 and the effective configuration does not set features.multi_agent = false; those two stay missing. A capabilities-read failure is a note only, and a legacy namespaceTools echo is ignored.",
+    "finding": "VA-55c4af314319",
+    "where_recorded": "Git commit 7e2145b821ce5dd36d89ab0c80ebfe1bb76e176c (\"Read delegation as present at Codex 0.167 when model and configuration allow it\"); execution/PKG-01/DEL-01-01/Work/CODEX_0.167_UPGRADE.md as it stood at 8560ac2e^ (removed by 8560ac2e), section \"Generated protocol and consumer deltas\", row \"Provider capabilities removes namespaceTools\"; implemented in app/src-tauri/src/delegation_availability.rs"
+   }
+  ],
+  "dispositions_naming_no_finding": [],
+  "input_problems": 0,
+  "missing_inputs": 0,
+  "undisposed_findings": [
+   "VA-1b2b3f1f51e2",
+   "VA-1d60a389db1f",
+   "VA-29d72d5dbe0e",
+   "VA-5828157b0cc3",
+   "VA-5c51fd66435f",
+   "VA-7e115daac8ba",
+   "VA-cec1f20de3f4"
+  ],
+  "verdict": "returned for decision"
+ }
+}

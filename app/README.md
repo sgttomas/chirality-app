@@ -1161,6 +1161,33 @@ including unknown acknowledgment after process loss and a delegated child
 outliving its parent. This is development verification; the existing C1 EXP
 records remain capture-only and no candidate qualification is claimed.
 
+## Advancing the supplier pin
+
+A pin advance is deliberate (DEL-01-01 REQ-006). Its steps are maintained tools
+under `supplier_checks/`, run from `app/`; none signs in, uses a model or reads a
+person's Codex home, and fetching a release archive is not among them (a
+download needs the owner's permission naming the file, source and size).
+
+1. `intake.py archive` checks a release archive's size and SHA-256 against the
+   published values, extracts regular files and directories only, and writes the
+   distribution record (`CANONICAL_DISTRIBUTION.json`).
+2. `intake.py generate` compares the vendor tree with that record, then runs the
+   supplier's generators and writes the manifest and the two compiled bundles.
+3. `capture.py` records the `st5`, `st5-race` and `nv04` exchanges from the stock
+   App Server with a scripted loopback provider, after the same tree comparison,
+   and samples the supplier's sockets. Recordings are kept under
+   `supplier_checks/recordings/<pin>/` and are made once, not regenerated.
+4. `version_advance.py compare --from <prior> --to <new>` compares generated
+   schema, supplement and recorded exchanges, derives what the App relies on from
+   the host source, and gives a verdict: `passed` only when every finding that
+   touches what the App relies on has a disposition citing a recorded decision.
+   A finding without one is `returned for decision`; the tool never decides.
+   Results and their authored dispositions are in `supplier_checks/version_advance/`.
+
+For a version that is not the pin, steps 1 to 3 write outside the repository and
+steps 2 to 4 take those locations as arguments. A passed comparison is not
+qualification of the pin (DEL-01-01 AC-011).
+
 ## Group B offline examination support
 
 `examination/check.py` checks EXP result and PKG identity files and their explicit
