@@ -147,8 +147,16 @@ pub fn current() -> Result<Store, String> {
         return store;
     }
     let store = from_environment();
-    let mut slot = STORE.write().unwrap_or_else(|p| p.into_inner());
-    slot.get_or_insert(store).clone()
+    let chosen = STORE.write().unwrap_or_else(|p| p.into_inner()).get_or_insert(store).clone();
+    // A test build's own default store is created when it is first taken, as
+    // the App creates its store when it starts: tests' readers create
+    // nothing either.
+    #[cfg(test)]
+    if chosen.as_ref().is_ok_and(|s| s.placement == Placement::Test) {
+        static CREATED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+        if !CREATED.swap(true, std::sync::atomic::Ordering::SeqCst) { let _ = created(); }
+    }
+    chosen
 }
 
 #[cfg(test)]
@@ -157,6 +165,17 @@ thread_local! { static TEST_STORE: std::cell::RefCell<Option<Result<Store, Strin
 /// without changing the store other tests use.
 #[cfg(test)]
 pub(crate) fn use_store_for_test(store: Option<Result<Store, String>>) {
+    let given = store.as_ref().is_some_and(|s| s.is_ok());
+    TEST_STORE.with(|s| *s.borrow_mut() = store);
+    // As the App creates its store when it starts, before any reader asks
+    // for it: a test's own store exists once it is given. Readers create
+    // nothing, in tests as in the App.
+    if given { let _ = created(); }
+}
+/// A test's own store on this thread without the App's start: the store is
+/// not created (tests of what a reader does when no store exists yet).
+#[cfg(test)]
+pub(crate) fn use_store_not_started_for_test(store: Option<Result<Store, String>>) {
     TEST_STORE.with(|s| *s.borrow_mut() = store);
 }
 #[cfg(test)]
@@ -321,9 +340,30 @@ fn bootstrap_lock(root: &Path) -> Result<crate::storage::Ownership, String> {
     crate::storage::lock(&path)
 }
 
-/// Opens the store: creates its folder and identity once, and returns its
-/// canonical root and identity. An unreadable store is an error.
+/// The store as it exists: its canonical root and identity. Never creates,
+/// locks or repairs anything, so every reader can call it: where the store's
+/// folder or identity is absent or unreadable it is an error that says so. A
+/// process that has opened the store stays bound to that physical folder and
+/// identity; a configured alias redirected afterwards is not followed.
 fn opened() -> Result<(PathBuf, String), String> {
+    open(false)
+}
+/// `opened`, for a caller outside this module that compares the store it is
+/// about to read with one it inspected.
+pub(crate) fn opened_existing() -> Result<(PathBuf, String), String> {
+    open(false)
+}
+/// Opens the store for writing, creating its folder and identity once. Only
+/// the App's start and the entry points that write for the person call it
+/// (`attach` with `mint`, the imports and the identity acts).
+fn created() -> Result<(PathBuf, String), String> {
+    open(true)
+}
+/// The App creates its store when it starts, before any reader asks for it.
+pub fn create_at_startup() -> Result<(), String> {
+    created().map(|_| ())
+}
+fn open(create: bool) -> Result<(PathBuf, String), String> {
     let store = current()?;
     {
         let cached = OPENED.lock().unwrap_or_else(|p| p.into_inner());
@@ -338,6 +378,9 @@ fn opened() -> Result<(PathBuf, String), String> {
         }
     }
     if !store.root.exists() {
+        if !create {
+            return Err(format!("records store not created yet: {} does not exist; a read creates nothing", store.root.display()));
+        }
         // Each created folder and its link in the existing parent are synced
         // (ensure_directory), on the folder's physical path.
         crate::storage::ensure_directory(&resolve_lexically(&store.root)).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
@@ -367,6 +410,10 @@ fn opened() -> Result<(PathBuf, String), String> {
         // identity needs no writable bootstrap control and may be read before
         // the publisher's final cleanup-directory sync or return, as before.
         Ok(Some(id)) => (id, None),
+        // A read never takes the bootstrap lock (it would create it) and
+        // never publishes an identity: the store is not there to read.
+        Ok(None) if !create => return Err(format!("records store not created yet: {} holds no store identity; a read creates nothing", root.display())),
+        Err(e) if !create => return Err(e),
         _ => {
             // Missing/unreadable identity may be another opener's in-flight
             // create-once publication. Wait, then repeat the SAME strict read;
@@ -582,7 +629,7 @@ impl Attachment {
 /// link whose identity the store does not know yet is registered; without it
 /// nothing is written. `Err` only when the store or the root is unavailable.
 pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
-    let (store, store_id) = opened()?;
+    let (store, store_id) = if mint { created()? } else { opened()? };
     // The physical project folder only: an alias (symlink) is refused, never
     // resolved into another folder's identity.
     crate::storage::check_path(root)?;
@@ -1061,7 +1108,7 @@ pub(crate) struct AccountsPlace {
 pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPlace, String> {
     // As `home`: with no store, a folder with no link is read in place and
     // written nowhere; a linked project with the store unavailable is an error.
-    let store = match opened() {
+    let store = match if mint { created() } else { opened() } {
         Ok((store, _)) => store,
         Err(e) if !mint && read_link(root) == Link::Absent && root.is_dir() => {
             return Ok(AccountsPlace {
@@ -1196,7 +1243,7 @@ fn read_stable(path: &Path, census: &Value) -> Result<(Vec<u8>, std::fs::Metadat
 /// that changed since an interrupted import started is reported. Originals
 /// are not changed.
 pub fn import(root: &Path) -> Result<Value, String> {
-    let (store, _) = opened()?;
+    let (store, _) = created()?;
     let attachment = attach(root, true)?;
     let dir = attachment.dir.clone().ok_or_else(|| format!("nothing imported: {}", attachment.refusal.clone().unwrap_or_default()))?;
     let _store = store_lock(&store)?;
@@ -1349,7 +1396,7 @@ pub const IMPORT_STANDING: &str = "Byte-identical copies verified by SHA-256; th
 /// The person confirms this folder is the project its link names (moved, or
 /// kept in another store): the store records this folder as one of its roots.
 pub fn adopt(root: &Path) -> Result<Value, String> {
-    let (store, store_id) = opened()?;
+    let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
     package::require_root(&canonical)?;
@@ -1382,7 +1429,7 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
 /// whose link was copied in): the folder is released from any identity the
 /// store records for it, and a new one is minted and linked.
 pub fn new_identity(root: &Path) -> Result<Value, String> {
-    let (store, store_id) = opened()?;
+    let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
     package::require_root(&canonical)?;
@@ -1404,7 +1451,7 @@ pub fn new_identity(root: &Path) -> Result<Value, String> {
 /// The person restores a missing, changed or unreadable project file to the
 /// identity the store records for this folder.
 pub fn restore_link(root: &Path) -> Result<Value, String> {
-    let (store, store_id) = opened()?;
+    let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
     package::require_root(&canonical)?;
