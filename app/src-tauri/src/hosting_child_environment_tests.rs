@@ -6,8 +6,58 @@ use super::*;
 use std::collections::BTreeMap;
 use std::os::unix::fs::PermissionsExt;
 
-const WRAPPER: [&str; 2] = ["CODEX_MANAGED_PACKAGE_ROOT", "CODEX_MANAGED_BY_NPM"];
-const CA: &str = "CODEX_CA_CERTIFICATE";
+/// The decided removals, held here as this test's own literals and not read
+/// from the host's table: each name with the class code the record gives it.
+/// Every expectation below comes from these lists; the host's table is compared
+/// with them once, in `the_hosts_table_is_the_decided_list`.
+pub(super) const DECIDED: [(&str, &str); 24] = [
+    ("OPENAI_API_KEY", "credential-custody/credential-variable"),
+    ("CODEX_API_KEY", "credential-custody/credential-variable"),
+    ("CODEX_ACCESS_TOKEN", "credential-custody/credential-variable"),
+    ("OPENAI_ORG_ID", "credential-custody/credential-variable"),
+    ("OPENAI_PROJECT_ID", "credential-custody/credential-variable"),
+    ("AZURE_OPENAI_API_KEY", "credential-custody/credential-variable"),
+    ("ANTHROPIC_API_KEY", "credential-custody/credential-variable"),
+    ("CODEX_AUTH", "credential-custody/credential-bearing"),
+    ("CODEX_CONNECTORS_TOKEN", "credential-custody/credential-bearing"),
+    ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", "credential-custody/credential-bearing"),
+    ("CODEX_GUARDIAN_DECISIONS_API_KEY", "credential-custody/credential-bearing"),
+    ("CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN", "credential-custody/credential-bearing"),
+    ("CODEX_APP_SERVER_LOGIN_ISSUER", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_APP_SERVER_LOGIN_CLIENT_ID", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_AUTHAPI_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_REFRESH_TOKEN_URL_OVERRIDE", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_REVOKE_TOKEN_URL_OVERRIDE", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_AGENT_IDENTITY_AUTHAPI_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_AGENT_IDENTITY_JWKS_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_APP_SERVER_CHATGPT_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_SQLITE_HOME", "home-separation"),
+    ("CODEX_ROLLOUT_TRACE_ROOT", "home-separation"),
+    ("CODEX_PLUGIN_METRICS_OUTPUT", "home-separation"),
+    ("CODEX_TUI_SESSION_LOG_PATH", "home-separation"),
+];
+/// The names whose values a configuration record treats as secret: the earlier
+/// seven credential variables and the five credential-bearing names.
+const DECIDED_SECRET: [&str; 12] = [
+    "OPENAI_API_KEY",
+    "CODEX_API_KEY",
+    "CODEX_ACCESS_TOKEN",
+    "OPENAI_ORG_ID",
+    "OPENAI_PROJECT_ID",
+    "AZURE_OPENAI_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "CODEX_AUTH",
+    "CODEX_CONNECTORS_TOKEN",
+    "CODEX_GITHUB_PERSONAL_ACCESS_TOKEN",
+    "CODEX_GUARDIAN_DECISIONS_API_KEY",
+    "CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN",
+];
+/// Neither set nor removed; only its presence is recorded.
+const PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
+/// Removed only by the successor plan.
+pub(super) const WRAPPER: [&str; 2] = ["CODEX_MANAGED_PACKAGE_ROOT", "CODEX_MANAGED_BY_NPM"];
+/// Decided as kept, and a name on no list: neither may be removed.
+const KEPT: [&str; 2] = ["CODEX_CA_CERTIFICATE", "CODEX_EXEC_SERVER_URL"];
 const VISIBLE: &str = "CHIRALITY_SYNTHETIC_VISIBLE";
 const DUMP: &str = "CHIRALITY_CHILD_ENV_DUMP";
 const EXPECT: &str = "CHIRALITY_CHILD_ENV_EXPECT_PRESENCE";
@@ -17,10 +67,18 @@ const INNER: &str = "hosting::child_environment_tests::child_environment_inner_o
 fn canary(name: &str) -> String {
     format!("SYNTHETIC-CANARY-{name}-not-a-real-value")
 }
-/// Every name the parent sets to a canary: the listed removals, the successor
-/// wrapper settings, and the variables that must pass through.
+pub(super) fn decided_names() -> impl Iterator<Item = &'static str> {
+    DECIDED.iter().map(|(name, _)| *name)
+}
+fn sorted<'a>(names: impl IntoIterator<Item = &'a str>) -> Vec<&'a str> {
+    let mut names: Vec<_> = names.into_iter().collect();
+    names.sort();
+    names
+}
+/// Every name the parent sets to a canary: the decided removals, the successor
+/// wrapper settings, the kept names and the presence-only name.
 fn canary_names() -> Vec<&'static str> {
-    removed_environment_names().chain(WRAPPER).chain([CA, RECORDED_PRESENCE_ONLY]).collect()
+    decided_names().chain(WRAPPER).chain(KEPT).chain([PRESENCE_ONLY]).collect()
 }
 
 /// Runs the inner test in a fresh test process whose own (parent) environment
@@ -37,7 +95,7 @@ fn child_environment_lacks_removed_names_and_keeps_the_rest_on_every_start_path(
             cmd.env(name, canary(name));
         }
         if !present {
-            cmd.env_remove(RECORDED_PRESENCE_ONLY);
+            cmd.env_remove(PRESENCE_ONLY);
         }
         // The dump location is itself an unrelated inherited variable.
         cmd.env(VISIBLE, "ordinary").env(DUMP, &dump).env(EXPECT, if present { "present" } else { "absent" });
@@ -101,59 +159,53 @@ fn child_environment_inner_observed_on_every_start_path() {
     let expect = std::env::var(EXPECT).expect("run through the outer test");
     let present = expect == "present";
     for name in canary_names() {
-        if name != RECORDED_PRESENCE_ONLY {
+        if name != PRESENCE_ONLY {
             assert_eq!(std::env::var(name).unwrap(), canary(name), "parent canary {name}");
         }
     }
-    assert_eq!(std::env::var_os(RECORDED_PRESENCE_ONLY).is_some(), present);
+    assert_eq!(std::env::var_os(PRESENCE_ONLY).is_some(), present);
     for successor in [false, true] {
         let stand = Stand::new(successor);
         let host = Arc::new(Host::new());
         host.start(&stand.cfg, "fixture").unwrap();
         let snapshot = host.snapshot();
         let path = if successor { "successor" } else { "ordinary" };
-        let mut expected_removed: Vec<&str> = removed_environment_names().collect();
-        if successor {
-            expected_removed.extend(WRAPPER);
-        }
+        let expected: Vec<(&str, &str)> = DECIDED.iter().copied().chain(WRAPPER.iter().filter(|_| successor).map(|name| (*name, "launcher-wrapper"))).collect();
         let dumps: BTreeMap<_, _> = ["probe", "server"].into_iter().map(|kind| (kind, stand.dump(kind))).collect();
         for (kind, env) in &dumps {
-            for name in &expected_removed {
+            for (name, _) in &expected {
                 assert!(!env.contains_key(*name), "{path} {kind}: {name} reached the child");
             }
-            for (name, _) in REMOVED_ENVIRONMENT.iter().filter(|(_, c)| *c == RemovalClass::CredentialVariable) {
-                assert!(!env.contains_key(*name), "{path} {kind}: earlier credential name {name} reached the child");
+            for name in KEPT {
+                assert_eq!(env.get(name), Some(&canary(name)), "{path} {kind}: {name} not kept");
             }
-            assert_eq!(env.get(CA), Some(&canary(CA)), "{path} {kind}: {CA} not kept");
             assert_eq!(env.get(VISIBLE).map(String::as_str), Some("ordinary"), "{path} {kind}: unrelated variable not kept");
-            assert_eq!(env.get(RECORDED_PRESENCE_ONLY), present.then(|| canary(RECORDED_PRESENCE_ONLY)).as_ref(), "{path} {kind}: presence-only variable changed");
+            assert_eq!(env.get(PRESENCE_ONLY), present.then(|| canary(PRESENCE_ONLY)).as_ref(), "{path} {kind}: presence-only variable changed");
             if !successor {
                 for name in WRAPPER {
                     assert_eq!(env.get(name), Some(&canary(name)), "ordinary {kind}: {name} is removed only by the successor plan");
                 }
             }
         }
-        // The record names exactly what the app-server child lacks among the
-        // names the parent set, and nothing else.
+        // The record names exactly the decided removals, and exactly what the
+        // app-server child lacks among the names the parent set.
         let server = &dumps["server"];
-        let observed: Vec<&str> = canary_names().into_iter().filter(|n| std::env::var_os(n).is_some() && !server.contains_key(*n)).collect();
+        let observed = sorted(canary_names().into_iter().filter(|n| std::env::var_os(n).is_some() && !server.contains_key(*n)));
         let conf = &snapshot["configurationIdentity"];
         let recorded: Vec<&str> = conf["removedEnvironment"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
-        assert_eq!(recorded, expected_removed, "{path}: recorded list");
-        let mut a = recorded.clone();
-        a.sort();
-        let mut b = observed.clone();
-        b.sort();
-        assert_eq!(a, b, "{path}: recorded removals differ from the child's observed environment");
+        assert_eq!(sorted(recorded.iter().copied()), sorted(expected.iter().map(|(name, _)| *name)), "{path}: recorded list is not the decided list");
+        assert_eq!(sorted(recorded.iter().copied()), observed, "{path}: recorded removals differ from the child's observed environment");
         let classes = conf["removedEnvironmentClasses"].as_array().unwrap();
         assert_eq!(classes.len(), recorded.len());
         for (entry, name) in classes.iter().zip(&recorded) {
             assert_eq!(entry["name"], *name);
-            let class = REMOVED_ENVIRONMENT.iter().find(|(n, _)| n == name).map(|(_, c)| *c).unwrap_or(RemovalClass::LauncherWrapper);
-            assert_eq!(entry["class"], class.code(), "{path}: class of {name}");
+            let class = expected.iter().find(|(n, _)| n == name).map(|(_, class)| *class).unwrap();
+            assert_eq!(entry["class"], class, "{path}: class of {name}");
             assert!(entry["reason"].as_str().unwrap().contains("by name"));
         }
-        assert_eq!(conf["inheritedEnvironmentPresence"][RECORDED_PRESENCE_ONLY]["inAppEnvironmentAtStart"], expect.as_str());
+        let presence = conf["inheritedEnvironmentPresence"].as_object().unwrap();
+        assert_eq!(presence.keys().collect::<Vec<_>>(), [PRESENCE_ONLY]);
+        assert_eq!(presence[PRESENCE_ONLY]["inAppEnvironmentAtStart"], expect.as_str());
         assert_eq!(snapshot["versionIdentity"]["configurationIdentity"], *conf);
         let text = serde_json::to_string(&snapshot).unwrap();
         assert!(!text.contains("SYNTHETIC-CANARY"), "{path}: a canary value was recorded");
@@ -162,31 +214,35 @@ fn child_environment_inner_observed_on_every_start_path() {
     println!("{DONE}");
 }
 
+/// The one place the host's table is read: it must be the decided list, name
+/// for name and class for class, with the decided redactions and presence name.
 #[test]
-fn removal_classes_and_secret_redactions_are_by_name() {
-    let earlier = ["OPENAI_API_KEY", "CODEX_API_KEY", "CODEX_ACCESS_TOKEN", "OPENAI_ORG_ID", "OPENAI_PROJECT_ID", "AZURE_OPENAI_API_KEY", "ANTHROPIC_API_KEY"];
-    let names: Vec<_> = removed_environment_names().collect();
-    assert_eq!(&names[..7], &earlier, "the earlier seven stay removed, first and in order");
-    let mut unique = names.clone();
-    unique.sort();
-    unique.dedup();
-    assert_eq!(unique.len(), names.len());
-    assert_eq!(names.len(), 24);
-    for kept in [CA, RECORDED_PRESENCE_ONLY, "CODEX_EXEC_SERVER_URL"] {
-        assert!(!names.contains(&kept), "{kept} must not be removed");
+fn the_hosts_table_is_the_decided_list() {
+    assert_eq!(sorted(decided_names()).windows(2).filter(|pair| pair[0] == pair[1]).count(), 0, "a decided name is listed twice");
+    let mut table: Vec<(&str, &str)> = REMOVED_ENVIRONMENT.iter().map(|(name, class)| (*name, class.code())).collect();
+    table.sort();
+    let mut decided = DECIDED.to_vec();
+    decided.sort();
+    assert_eq!(table, decided);
+    assert_eq!(sorted(removed_environment_names()), sorted(decided_names()));
+    assert_eq!(sorted(secret_environment_names()), sorted(DECIDED_SECRET));
+    for name in DECIDED_SECRET {
+        let class = DECIDED.iter().find(|(n, _)| *n == name).unwrap().1;
+        assert!(class == "credential-custody/credential-variable" || class == "credential-custody/credential-bearing", "{name}");
     }
-    let secret = secret_environment_names();
-    for name in earlier {
-        assert!(secret.contains(&name), "existing redaction {name} kept");
-    }
-    for (name, class) in REMOVED_ENVIRONMENT {
-        assert_eq!(secret.contains(name), matches!(class, RemovalClass::CredentialVariable | RemovalClass::CredentialBearing), "{name}");
+    assert_eq!(DECIDED.iter().filter(|(_, class)| class.starts_with("credential-custody/credential-")).count(), DECIDED_SECRET.len());
+    assert_eq!(RECORDED_PRESENCE_ONLY, PRESENCE_ONLY);
+    for name in KEPT.into_iter().chain([PRESENCE_ONLY]).chain(WRAPPER) {
+        assert!(!removed_environment_names().any(|listed| listed == name), "{name} must not be on the host's list");
     }
     let (plain, classes) = removed_environment_record(&WRAPPER);
-    assert_eq!(plain.len(), 26);
-    assert_eq!(classes[25]["class"], "launcher-wrapper");
-    for absent in [false, true] {
-        let record = presence_only_record(!absent);
-        assert_eq!(record[RECORDED_PRESENCE_ONLY]["inAppEnvironmentAtStart"], if absent { "absent" } else { "present" });
+    assert_eq!(sorted(plain.iter().copied()), sorted(decided_names().chain(WRAPPER)));
+    for name in WRAPPER {
+        let entry = classes.iter().find(|entry| entry["name"] == name).unwrap();
+        assert_eq!(entry["class"], "launcher-wrapper");
+    }
+    for present in [true, false] {
+        let record = presence_only_record(present);
+        assert_eq!(record[PRESENCE_ONLY]["inAppEnvironmentAtStart"], if present { "present" } else { "absent" });
     }
 }

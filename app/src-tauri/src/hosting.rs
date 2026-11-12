@@ -1801,13 +1801,14 @@ impl Host {
         args.push("app-server".into());
         let executable = prepared.as_ref().map(|p| &p.plan.executable).unwrap_or(&cfg.codex_bin);
         let mut cmd = Command::new(executable);
-        if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
         cmd.args(&args)
             .current_dir(&cfg.cwd)
             .env("CODEX_HOME", &cfg.codex_home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped()); // owning spawn applies process_group(0)
+        // Last, after every `env` set here, so no listed name is set after its removal.
+        if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
         remove_inherited_environment(&mut cmd);
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));

@@ -2,9 +2,10 @@ id: DEL-01-05
 name: Native ChatGPT sign-in and oMLX/local-provider access
 needs:
 - from: DEL-01-01
-  condition: A Codex child is started for each home with no credential in its environment; the
-    supplier's account, model and configuration methods and a conversation's provider selection
-    are carried unchanged; and the destination Codex reports for a turn is available.
+  condition: A Codex child is started for each home with no credential in its environment and
+    without the inherited variables the host removes by name; the supplier's account, model and
+    configuration methods and a conversation's provider selection are carried unchanged; and the
+    destination Codex reports for a turn is available.
   gating: true
 - from: DEL-01-01
   condition: The embedding protocol qualification on the identified candidate and what Codex

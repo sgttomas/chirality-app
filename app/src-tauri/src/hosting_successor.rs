@@ -327,11 +327,12 @@ fn short(sha: &Value) -> String {
 }
 fn probe(plan: &LaunchPlan, cfg: &HostConfig, run: impl FnOnce(&mut Command, Duration) -> Result<String, String>) -> Result<String, String> {
     let mut command = Command::new(&plan.executable);
-    configure(&mut command, plan);
     for flag in &cfg.session_flags { command.args(["-c", flag]); }
     command.arg("--version").env("CODEX_HOME", &cfg.probe_home)
         .current_dir(&cfg.probe_home).stdin(Stdio::null())
         .stdout(Stdio::piped()).stderr(Stdio::piped());
+    // Last, after every `env` set here, so no listed name is set after its removal.
+    configure(&mut command, plan);
     run(&mut command, cfg.probe_wait_limit)
 }
 
@@ -760,9 +761,12 @@ for line in sys.stdin:
         let mut cmd = Command::new("unused");
         configure(&mut cmd, &plan);
         let env: std::collections::HashMap<_, _> = cmd.get_envs().collect();
-        for name in removed_environment_names().chain(plan.removed) {
-            assert_eq!(env.get(std::ffi::OsStr::new(name)), Some(&None));
+        // The decided names and the wrapper settings, from the test's own lists.
+        use crate::hosting::child_environment_tests::{decided_names, WRAPPER};
+        for name in decided_names().chain(WRAPPER) {
+            assert_eq!(env.get(std::ffi::OsStr::new(name)), Some(&None), "{name}");
         }
+        assert_eq!(env.len(), 1 + decided_names().count() + WRAPPER.len(), "configure touches PATH and the listed names only");
         assert_eq!(
             env[std::ffi::OsStr::new("PATH")].unwrap(),
             std::ffi::OsStr::new(&plan.path)
