@@ -544,20 +544,9 @@
    },
    {
     "step": "M12-2",
-    "supplier_cases": [
-     {
-      "deliverable": "DEL-01-05",
-      "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "case_id": "VC-A02"
-     },
-     {
-      "deliverable": "DEL-01-02",
-      "file": "EXECUTION_AND_RECOVERY.md",
-      "case_id": "VC-R-15"
-     }
-    ],
+    "supplier_cases": [],
     "core_loop_element": "model access",
-    "v3_reference": "none (v3 had no API-key mode)",
+    "v3_reference": "none (v3 had no local model server)",
     "stimuli": [],
     "counts": true
    },
@@ -596,13 +585,7 @@
    },
    {
     "step": "M12-5",
-    "supplier_cases": [
-     {
-      "deliverable": "DEL-01-05",
-      "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
-      "case_id": "VC-A04"
-     }
-    ],
+    "supplier_cases": [],
     "core_loop_element": "model access",
     "v3_reference": "none",
     "stimuli": [],
