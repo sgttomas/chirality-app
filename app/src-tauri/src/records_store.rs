@@ -815,27 +815,56 @@ struct Imports {
     /// Originals the latest completed import refused, with its reason.
     refused: HashMap<String, String>,
 }
+/// One line of a project's import account, as a form the App has written:
+/// a "started" line (its census), a "completed" line (its files and
+/// conflicts), or the single-line form the first store builds wrote for a
+/// completed import, which carries no event. `None` for anything else.
+fn import_line(line: &Value) -> Option<&'static str> {
+    let text = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty());
+    let file = |f: &Value| f.is_object() && text(&f["original"]) && text(&f["copy"]) && text(&f["sha256"]) && f["bytes"].as_u64().is_some();
+    let conflict = |c: &Value| c.is_object() && text(&c["original"]) && c["reason"].is_string();
+    let all = |list: &Value, each: &dyn Fn(&Value) -> bool| list.as_array().is_some_and(|items| items.iter().all(each));
+    if !line.is_object() || line["format"] != IMPORT_FORMAT || line["formatVersion"] != VERSION || !text(&line["importId"]) {
+        return None;
+    }
+    let completed = || all(&line["files"], &file) && all(&line["conflicts"], &conflict);
+    match line.get("event").map(Value::as_str) {
+        Some(Some("started")) if all(&line["census"], &file) => Some("started"),
+        Some(Some("completed")) if completed() => Some("completed"),
+        // Written before imports had a "started" line: one line per completed import.
+        None if completed() => Some("completed"),
+        _ => None,
+    }
+}
 fn imports(dir: &Path) -> Result<Imports, String> {
-    let lines = read_lines(&dir.join("imports.jsonl"))?;
-    // The account is read only as its two written line forms of the
-    // supported version. Any other content (a value that is not an object,
-    // another format, version or event, a line without its import identity
-    // or its list of files) makes the account unknown, and unknown is an
-    // error: never "no import", never "nothing completed".
-    for (index, line) in lines.iter().enumerate() {
-        let whole = line.is_object() && line["format"] == IMPORT_FORMAT && line["formatVersion"] == VERSION
-            && line["importId"].as_str().is_some_and(|id| !id.is_empty())
-            && match line["event"].as_str() { Some("started") => line["census"].is_array(), Some("completed") => line["files"].is_array(), _ => false };
-        if !whole {
-            return Err(format!("records store unreadable: {}: its line {} is not an import line of a form this App writes", dir.join("imports.jsonl").display(), index + 1));
+    // The account is read whole, and only as line forms the App has written.
+    // Any other content makes it unknown, and unknown is an error: an
+    // unclosed last line, a blank line, a line that is not JSON, a value
+    // that is not an object, another format, version or event, a line
+    // without its import identity, or a census, file or conflict entry that
+    // is not one. Never "no import", never "nothing completed".
+    let path = dir.join("imports.jsonl");
+    let unknown = |why: String| format!("records store unreadable: {}: {why}", path.display());
+    let bytes = match std::fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return Err(unknown(e.to_string())),
+        Ok(_) => crate::records_retention::read_plain(&path).map_err(unknown)?,
+    };
+    let mut lines: Vec<(Value, &'static str)> = Vec::new();
+    if !bytes.is_empty() {
+        let Some(body) = bytes.strip_suffix(b"\n") else { return Err(unknown("its last line is not closed".into())) };
+        for (index, raw) in body.split(|b| *b == b'\n').enumerate() {
+            let line: Value = serde_json::from_slice(raw).map_err(|e| unknown(format!("its line {} is not JSON ({e})", index + 1)))?;
+            let Some(event) = import_line(&line) else { return Err(unknown(format!("its line {} is not an import line of a form this App has written", index + 1))) };
+            lines.push((line, event));
         }
     }
     let mut out = Imports { any: !lines.is_empty(), ..Imports::default() };
-    let done: std::collections::HashSet<&str> = lines.iter().filter(|l| l["event"] == "completed").filter_map(|l| l["importId"].as_str()).collect();
-    for line in &lines {
-        match line["event"].as_str() {
-            Some("started") if !done.contains(line["importId"].as_str().unwrap_or_default()) => out.incomplete = Some(line.clone()),
-            Some("completed") => {
+    let done: std::collections::HashSet<&str> = lines.iter().filter(|(_, event)| *event == "completed").filter_map(|(l, _)| l["importId"].as_str()).collect();
+    for (line, event) in &lines {
+        match *event {
+            "started" if !done.contains(line["importId"].as_str().unwrap_or_default()) => out.incomplete = Some(line.clone()),
+            "completed" => {
                 out.completed = true;
                 out.incomplete = None;
                 for file in line["files"].as_array().into_iter().flatten() {

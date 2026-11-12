@@ -756,12 +756,15 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
     import(&imported).unwrap();
     let empty = folder("unknown-import-empty-");
     attach(&empty, true).unwrap();
-    // "Cannot be read" is a rule, not a list: the account is read only as
-    // its two written line forms of the supported version. A line that is
-    // not JSON, a value that is not an object, an empty object, an import
-    // line of another version or event, and a line without its identity or
-    // its files each make the account unknown.
-    let unknown: [&[u8]; 8] = [b"not json\n", b"{}\n", b"null\n", b"[]\n",
+    // "Cannot be read" is a rule, not a list: the account is read whole, and
+    // only as line forms the App has written. A line that is not JSON, a
+    // value that is not an object, an empty object, an import line of
+    // another version or event, a line without its identity or its files, a
+    // file entry that is not one, a blank line, and a last line that is not
+    // closed each make the account unknown.
+    let unknown: [&[u8]; 13] = [b"not json\n", b"{}\n", b"null\n", b"[]\n", b"null", b"{\"format\":", b"\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"completed\",\"importId\":\"import:review\",\"files\":[null]}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"importId\":\"import:review\",\"files\":[],\"conflicts\":[7]}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"99.0\",\"event\":\"future\"}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"future\",\"importId\":\"import:x\"}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"completed\",\"importId\":\"import:x\"}\n",
@@ -778,7 +781,8 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
             ("role", crate::role_observations::project_chain_head(root).map(|_| ())),
             ("workflow", crate::workflow_workspace::publication::ProjectRecords::open(root).and_then(|p| p.source_binding().map(|_| ())))] {
             let e = e.unwrap_err();
-            assert!(known(&e) || e.contains("import state is unknown"), "{what}: {e}");
+            // (The export's own refusal of an unclosed last line keeps its existing words.)
+            assert!(known(&e) || e.contains("import state is unknown") || e.contains("import state has an unclosed final line"), "{what}: {e}");
         }
         // Never an empty or in-place history: the read and the views say why.
         let (entries, limits) = storage::read_all(root);
@@ -1351,6 +1355,55 @@ fn a_control_that_is_not_a_regular_singly_linked_file_is_refused_without_waiting
     assert!(storage::lock_shared_existing(&control).map(|guard| guard.is_some()).unwrap_err().contains("not a regular, singly linked file"));
     std::fs::remove_file(control.with_extension("other")).unwrap();
     assert!(storage::lock_shared_existing(&control).unwrap().is_some());
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn the_single_line_form_the_first_store_builds_wrote_for_an_import_is_read_as_completed() {
+    // Before imports had a "started" line, a completed import was one line
+    // with no event (main at 0237b6b3). It is a form the App wrote: read, not
+    // rewritten, and the store's copies govern as after any completed import.
+    let own = OwnStore::new();
+    let root = legacy_project();
+    import(&root).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let lines = read_lines(&dir.join("imports.jsonl")).unwrap();
+    let started = lines.iter().find(|l| l["event"] == "started").unwrap();
+    let mut earlier = lines.iter().find(|l| l["event"] == "completed").unwrap().clone();
+    for member in ["event", "censusChanged"] { earlier.as_object_mut().unwrap().remove(member); }
+    earlier["root"] = started["root"].clone();
+    earlier["method"] = started["method"].clone();
+    let mut bytes = serde_json::to_vec(&earlier).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(dir.join("imports.jsonl"), &bytes).unwrap();
+    assert!(home(&root).unwrap().store_mode);
+    assert!(storage::read_all(&root).1.is_empty(), "{:?}", storage::read_all(&root).1);
+    assert_eq!(std::fs::read(dir.join("imports.jsonl")).unwrap(), bytes, "not rewritten");
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn a_capability_read_makes_only_its_read_logs_own_folder_and_nothing_above_it() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("read-log-leaf-");
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    // The read's own folder is the one thing made, beneath a subtree that exists.
+    capability_read(&root).unwrap();
+    assert!(dir.join("reads/records-reads.jsonl").is_file());
+    // The project's subtree gone while its admission control still stands:
+    // the read is refused, and the subtree is not made again to hold its log.
+    let moved = dir.with_extension("moved");
+    std::fs::rename(&dir, &moved).unwrap();
+    let before = tree(&store);
+    assert!(capability_read(&root).is_err());
+    let added: Vec<_> = tree(&store).keys().filter(|p| !before.contains_key(*p) && !p.starts_with(store.join("indexes"))).cloned().collect();
+    assert!(added.is_empty(), "{added:?}");
+    std::fs::rename(&moved, &dir).unwrap();
     drop(own);
     new_process();
     let _ = std::fs::remove_dir_all(root);
