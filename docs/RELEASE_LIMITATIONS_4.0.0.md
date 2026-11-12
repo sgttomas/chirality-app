@@ -186,4 +186,3 @@ An entry is added in the same pull request that makes the limitation standing.
   alternative chosen and the capture time expected.
 - **Basis:** DEL-06-02 (Decision row; AC-004); DEL-04-03 (Record authority;
   REQ-010); DEL-01-04 (the act control and its capture seal).
-||||||| 6aa00e4b
