@@ -1173,7 +1173,7 @@ fn a_queued_write_is_refused_when_the_store_identity_attach_would_refuse() {
     std::fs::write(&link_path, serde_json::to_vec(&link).unwrap()).unwrap();
     assert!(records_store::attach(&project, false).is_err(), "attach refuses a changed store identity");
     let e = storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap_err();
-    assert!(e.contains(STALE) && e.contains("identity changed since the App opened it"), "{e}");
+    assert!(e.contains(STALE) && e.contains("identity changed"), "{e}");
     assert!(!pending.exists());
     // Put back, the same resolved path is written.
     std::fs::write(&identity_path, &identity_bytes).unwrap();

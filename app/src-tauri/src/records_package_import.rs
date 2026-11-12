@@ -444,14 +444,15 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
             .as_str()
             .map(str::to_owned)
             .ok_or_else(|| format!("{STALE}: this store's identity names none"))?;
-        let opened = OPENED.lock().unwrap_or_else(|p| p.into_inner()).as_ref()
-            .filter(|(_, root, _)| root == store)
-            .map(|(_, _, id)| id.clone());
-        match opened {
-            Some(known) if known == id => id,
-            Some(known) => return Err(format!("{STALE}: this store's identity changed since the App opened it ({known}, now {id}); no silent reassociation")),
-            None => return Err(format!("{STALE}: the App has not opened the records store at {}", store.display())),
+        // The store attach opens, with the identity it holds for it.
+        let (opened_root, known) = opened().map_err(|e| format!("{STALE}: {e}"))?;
+        if opened_root != store {
+            return Err(format!("{STALE}: the records store at {} is not the one the App has open ({})", store.display(), opened_root.display()));
         }
+        if known != id {
+            return Err(format!("{STALE}: this store's identity changed since the App opened it ({known}, now {id}); no silent reassociation"));
+        }
+        id
     };
     match read_link(&root) {
         Link::Present { project, store: linked } if project == here[0] && linked == store_id => Ok(()),
