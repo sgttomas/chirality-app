@@ -821,7 +821,11 @@ impl Host {
             .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
         Ok(view)
     }
-    /// Non-authoritative current observation revision for the ordinary chooser.
+    /// Non-authoritative current observation revision for the ordinary chooser:
+    /// the latest private configuration read of this folder, absent after an
+    /// App configuration write. Other reads of the folder (the model list, the
+    /// delegation signals) do not change it; admission is checked separately
+    /// against every read (`check_provider_read`).
     /// This is generated source metadata, never a private configuration value.
     pub(crate) fn configured_provider_revision(&self, generation: &Value, cwd: &str) -> Value {
         let i = self.inner.0.lock().unwrap();
@@ -831,7 +835,7 @@ impl Host {
         {
             return Value::Null;
         }
-        i.provider_read_revisions
+        i.provider_observation_revisions
             .get(cwd)
             .filter(|(g, _)| g == generation)
             .map(|(_, revision)| json!(revision))

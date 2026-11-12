@@ -1808,6 +1808,52 @@ fn access_provider_unrelated_folder_read_preserves_original_source_admission() {
         .unwrap();
     assert_eq!(peer.frame()["params"]["cwd"], "/invented/work");
 }
+/// DEL-01-05 new-conversation chooser: a provider observation, and a row chosen
+/// from it, stay current across a read that is not a private configuration
+/// read of the folder (the model list and the delegation signals send one).
+/// Admission is unchanged: the same read still supersedes an older proof.
+#[test]
+fn access_provider_chooser_revision_follows_private_reads_and_admission_follows_every_read() {
+    let mut peer = Peer::new("home");
+    peer.answer(config(json!({"anonymous":local()})));
+    let shown = peer
+        .host
+        .configured_provider_read_within(&peer.g, "/invented/work", &project_scope(), Duration::from_millis(30))
+        .unwrap();
+    peer.frame();
+    let revision = shown["scope"]["readRevision"].clone();
+    assert!(revision.is_string());
+    assert_eq!(peer.host.configured_provider_revision(&peer.g, "/invented/work"), revision);
+    peer.answer(config(json!({"anonymous":local()})));
+    let proof = peer.read("local-provider", "anonymous").unwrap();
+    peer.frame();
+    let admitted = peer.host.configured_provider_revision(&peer.g, "/invented/work");
+    assert_ne!(admitted, revision, "a private read is a newer observation");
+    // The model list and delegation transport: config/read of the same folder, not private.
+    let other = peer
+        .host
+        .request_begin_scoped(
+            "config/read",
+            json!({"cwd":"/invented/work","includeLayers":false}),
+            json!({"kind":"person-directed","name":"synthetic model list"}),
+            false,
+            Some(&peer.g),
+        )
+        .unwrap();
+    assert_eq!(peer.frame()["params"], json!({"cwd":"/invented/work","includeLayers":false}));
+    peer.host.on_line(
+        &serde_json::to_vec(&json!({"id":other.request_id(),"result":{"config":{},"origins":{}}})).unwrap(),
+        &peer.g,
+    );
+    assert_eq!(peer.host.configured_provider_revision(&peer.g, "/invented/work"), admitted, "the chooser's revision is unchanged");
+    assert!(peer.host.thread_start_with_access_dispatch(&proof, "guidance").is_err(), "the older admission proof is still superseded");
+    // Another generation, or a stopped source, has no revision.
+    let mut next = peer.g.clone();
+    next["spawnCounter"] = json!(2);
+    assert!(peer.host.configured_provider_revision(&next, "/invented/work").is_null());
+    assert!(peer.host.configured_provider_revision(&peer.g, "/invented/other").is_null());
+    peer.safe();
+}
 #[test]
 fn access_provider_delegation_config_read_invalidates_only_its_known_folder() {
     let mut peer = Peer::new("home");

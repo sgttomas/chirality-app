@@ -1797,6 +1797,11 @@ export function App() {
         || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
           && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
       setHost(latest);
+      // A row chosen from an earlier read in this home stays chosen when this
+      // read still lists it; otherwise it stays retired.
+      const chosen = providerRowChoice.current, choice = choiceRef.current;
+      if (chosen && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
+        && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
     } catch {
       if (current()) setProviderObservationMessage("Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
@@ -1818,6 +1823,22 @@ export function App() {
   const fixedLocal = localRoute(localView, host);
   const entryCompatible = startEntries(host).some(entry => entry.value === entryId) && (homeClass === "account"
     || (homeClass === LOCAL_MODE && !!fixedLocal && model === fixedLocal.model && modelProvider === fixedLocal.providerId));
+  // Why the provider row chosen earlier no longer counts, and what restores it.
+  const rowChoiceNote = !rowChoiceStale ? "" : providerObservationCurrent
+    ? `Provider ${modelProvider} is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`
+    : providerReading ? "Reading configured local providers…"
+    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again: the choice is kept if ${modelProvider} is still listed.`;
+  // The first thing that keeps Start unavailable, in the order a person meets it.
+  const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
+    : startPending ? "Starting the conversation…"
+    : homePending ? "Changing the connection…"
+    : providerReading ? "Reading configured local providers…"
+    : endpointBusy ? "A provider change is in progress."
+    : !modelProvider.trim() ? "Choose how this conversation connects (step 1)."
+    : !model.trim() ? "Choose a model (step 2)."
+    : !entryCompatible ? (homeClass === "account" ? "Choose an access entry under “Advanced: enter IDs yourself”." : "This choice does not belong to the connection in use. Choose again in step 1.")
+    : rowChoiceStale ? rowChoiceNote
+    : "";
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, updateThreadKey] = useState<string>("");
@@ -2538,7 +2559,8 @@ export function App() {
               <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close endpoint editor</button>
               <p role="status">{endpointEditor.message}</p>
             </section>}
-            {(rowChoiceStale || (providerObservation && !providerObservationCurrent)) && <p role="status">Configured provider observation superseded or source unavailable. Read again, or explicitly enter a manual provider and access entry. Start always reads current configuration again.</p>}
+            {rowChoiceStale ? <p role="status">{rowChoiceNote} Start always reads the current configuration again.</p>
+              : providerObservation && !providerObservationCurrent && <p role="status">The provider list shown before is out of date: the configuration was read again or the connection changed. Read configured local providers to see it again.</p>}
           </div>
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
@@ -2553,7 +2575,8 @@ export function App() {
           <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
           <p>
-            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending || providerReading || endpointBusy || rowChoiceStale}>Start thread</button>
+            <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
+            {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}
           </p>
           <a href="#workspace-connection">Set up access or start Codex</a>
         </WorkspaceDisclosure>
