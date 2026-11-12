@@ -225,6 +225,23 @@ fn native_links_torn_unknown_duplicate_and_conflicting_logs_refuse_without_repai
         assert!(!project.exists());
     }
 }
+/// Review round 4 of the read-never-creates change: an import account that
+/// exists and is empty is unknown here as it is to the store's own reader,
+/// and a publication is withheld; only an account that is not there is no
+/// import.
+#[test]
+fn native_links_an_import_account_that_exists_and_is_empty_withholds_publication() {
+    let f = Fixture::new();
+    let imports = f.scope.dir.path.join("imports.jsonl");
+    assert!(!imports.exists());
+    assert!(check_import_source(&f.scope.dir.path).is_ok(), "an account that is not there is no import");
+    f.put(&imports, b"");
+    let withheld = check_import_source(&f.scope.dir.path).unwrap_err();
+    assert!(withheld.contains("exists and is empty") && withheld.contains("publication withheld"), "{withheld}");
+    std::fs::remove_file(&imports).unwrap();
+    assert!(check_import_source(&f.scope.dir.path).is_ok());
+}
+
 #[test]
 fn native_links_pipe_link_hardlink_and_parent_replacement_refuse() {
     for mode in ["pipe", "link", "hardlink", "parent"] {
