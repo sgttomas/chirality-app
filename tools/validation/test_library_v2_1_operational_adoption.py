@@ -361,12 +361,18 @@ def test_interlocutor_write_needs_explicit_targets_and_host_permission(brief, po
 
 def test_operational_roster_is_compatible():
     # AGENTS.md states the roster as relationship -> role texts: Agent 0 is
-    # type 0, and "Type n" is type n. Every registry role must appear once,
-    # under the relationship that matches its registry type.
+    # type 0, and "Type n" is type n. Every entry of a relationship cell must be
+    # one backticked role name, so nothing in a cell goes unread; every registry
+    # role must appear once, under the relationship that matches its type.
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     table = re.findall(r"^\| (Agent 0|Type [12]) \| (.+?) \|$", agents, re.MULTILINE)
-    pairs = [(role, "0" if relationship == "Agent 0" else relationship[-1])
-             for relationship, cell in table for role in re.findall(r"`([A-Z_]+)`", cell)]
+    assert [relationship for relationship, _ in table] == ["Agent 0", "Type 1", "Type 2"]
+    pairs = []
+    for relationship, cell in table:
+        for entry in cell.split(","):
+            role = re.fullmatch(r"\s*`([A-Z_]+)`\s*", entry)
+            assert role, f"unreadable roster entry under {relationship}: {entry!r}"
+            pairs.append((role.group(1), "0" if relationship == "Agent 0" else relationship[-1]))
     assert len(pairs) == len(dict(pairs))
     assert dict(pairs) == {name: str(cfg["type"]) for name, cfg in REGISTRY["roles"].items()}
 

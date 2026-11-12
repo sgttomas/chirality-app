@@ -127,8 +127,8 @@ does not affect; the other criteria stay in force. Treat an
 assumption you were given that turns out false the same way, taking it and its
 consequence to whoever integrates your work.
 
-`<query>` is `python3 -m tools.deliverables --project .`, run from this repository's
-root with Python 3 and PyYAML.
+Work at this repository root. `<query>` is
+`python3 -m tools.deliverables --project .`, run with Python 3 and PyYAML.
 [`tools/deliverables/README.md`](tools/deliverables/README.md) gives the other
 queries (`impact`, `check`, `dag-diff`). Consult `docs/PRD.md` and its
 companions for requirements and interfaces involved in this slice, not as a
