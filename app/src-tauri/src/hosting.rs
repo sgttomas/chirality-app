@@ -172,7 +172,7 @@ fn assessment_preflight(cfg: &HostConfig) -> Result<Option<crate::distribution_p
 /// what removing it changes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum RemovalClass {
-    /// Named credential variables removed since ACCESS CR-7 (no credential variable).
+    /// Provider credential variables by their well-known names (the first seven since ACCESS CR-7).
     CredentialVariable,
     /// Credential custody: a credential-bearing name.
     CredentialBearing,
@@ -195,7 +195,7 @@ impl RemovalClass {
     }
     fn reason(self) -> &'static str {
         match self {
-            Self::CredentialVariable => "Removed by name for credential custody: a credential variable named since ACCESS CR-7.",
+            Self::CredentialVariable => "Removed by name for credential custody: a provider credential variable, listed by its well-known name. The name is what is known; what any program does with the variable is not claimed.",
             Self::CredentialBearing => "Removed by name for credential custody: a credential-bearing name. The name is known to exist; what the variable does is not claimed.",
             Self::SignInOrTokenRefresh => "Removed by name for credential custody: a name for sign-in or token refresh. The name is known to exist; what the variable does is not claimed.",
             Self::HomeSeparation => "Removed by name for the separation of the App's Codex homes: a name for a state location. The name is known to exist; what the variable does is not claimed.",
@@ -227,6 +227,7 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
         ("OPENAI_PROJECT_ID", CredentialVariable),
         ("AZURE_OPENAI_API_KEY", CredentialVariable),
         ("ANTHROPIC_API_KEY", CredentialVariable),
+        ("ANTHROPIC_AUTH_TOKEN", CredentialVariable),
         ("CODEX_AUTH", CredentialBearing),
         ("CODEX_CONNECTORS_TOKEN", CredentialBearing),
         ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", CredentialBearing),
@@ -253,7 +254,7 @@ pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOT
 pub(crate) fn removed_environment_names() -> impl Iterator<Item = &'static str> {
     REMOVED_ENVIRONMENT.iter().map(|(name, _)| *name)
 }
-/// The `secret_redactions` names: today's seven plus the credential-bearing names.
+/// The `secret_redactions` names: the credential variables and the credential-bearing names.
 pub(crate) fn secret_environment_names() -> Vec<&'static str> {
     REMOVED_ENVIRONMENT.iter().filter(|(_, class)| class.secret()).map(|(name, _)| *name).collect()
 }

@@ -10,7 +10,7 @@ use std::os::unix::fs::PermissionsExt;
 /// from the host's table: each name with the class code the record gives it.
 /// Every expectation below comes from these lists; the host's table is compared
 /// with them once, in `the_hosts_table_is_the_decided_list`.
-pub(super) const DECIDED: [(&str, &str); 24] = [
+pub(super) const DECIDED: [(&str, &str); 25] = [
     ("OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_ACCESS_TOKEN", "credential-custody/credential-variable"),
@@ -18,6 +18,7 @@ pub(super) const DECIDED: [(&str, &str); 24] = [
     ("OPENAI_PROJECT_ID", "credential-custody/credential-variable"),
     ("AZURE_OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("ANTHROPIC_API_KEY", "credential-custody/credential-variable"),
+    ("ANTHROPIC_AUTH_TOKEN", "credential-custody/credential-variable"),
     ("CODEX_AUTH", "credential-custody/credential-bearing"),
     ("CODEX_CONNECTORS_TOKEN", "credential-custody/credential-bearing"),
     ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", "credential-custody/credential-bearing"),
@@ -36,9 +37,10 @@ pub(super) const DECIDED: [(&str, &str); 24] = [
     ("CODEX_PLUGIN_METRICS_OUTPUT", "home-separation"),
     ("CODEX_TUI_SESSION_LOG_PATH", "home-separation"),
 ];
-/// The names whose values a configuration record treats as secret: the earlier
-/// seven credential variables and the five credential-bearing names.
-const DECIDED_SECRET: [&str; 12] = [
+/// The names whose values a configuration record treats as secret: the eight
+/// credential variables (the class is well-known provider credential names,
+/// finite and by name) and the five credential-bearing names.
+const DECIDED_SECRET: [&str; 13] = [
     "OPENAI_API_KEY",
     "CODEX_API_KEY",
     "CODEX_ACCESS_TOKEN",
@@ -46,6 +48,7 @@ const DECIDED_SECRET: [&str; 12] = [
     "OPENAI_PROJECT_ID",
     "AZURE_OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
+    "ANTHROPIC_AUTH_TOKEN",
     "CODEX_AUTH",
     "CODEX_CONNECTORS_TOKEN",
     "CODEX_GITHUB_PERSONAL_ACCESS_TOKEN",
