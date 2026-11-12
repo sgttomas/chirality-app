@@ -27,6 +27,7 @@ def member(name, data=b"", mode=0o644, kind=tarfile.REGTYPE, link=""):
 
 def plain_members():
     return [member("bin", mode=0o755, kind=tarfile.DIRTYPE), member("bin/codex", b"\xcf\xfa\xed\xfe main", 0o755),
+            member("codex-path", mode=0o755, kind=tarfile.DIRTYPE),
             member("codex-package.json", json.dumps({"version": PIN, "entrypoint": "bin/codex",
                                                      "pathDir": "codex-path"}).encode())]
 
@@ -55,7 +56,8 @@ class ArchiveIntake(unittest.TestCase):
         record = self.take(plain_members())
         self.assertEqual((record["pin"], record["files"], record["macho_files"]), (PIN, 2, 1))
         self.assertEqual([(e["path"], e["kind"], e["mode"]) for e in record["inventory"]["entries"]],
-                         [("bin", "dir", 0o755), ("bin/codex", "file", 0o755), ("codex-package.json", "file", 0o644)])
+                         [("bin", "dir", 0o755), ("bin/codex", "file", 0o755), ("codex-package.json", "file", 0o644),
+                          ("codex-path", "dir", 0o755)])
         written = json.loads((self.base / "out/supplier" / PIN / "CANONICAL_DISTRIBUTION.json").read_bytes())
         self.assertEqual(written, record)
         vendor = self.base / "out/vendor"
@@ -89,6 +91,28 @@ class ArchiveIntake(unittest.TestCase):
                     self.take(plain_members() + [extra])
                 self.assertFalse((self.base / "outside").exists())
                 self.assertFalse((self.base / "out").exists())
+
+    def test_metadata_may_name_only_members_of_the_inventory(self):
+        for field, value in (("entrypoint", "../not-in-inventory"), ("entrypoint", "/bin/sh"),
+                             ("entrypoint", "bin/absent"), ("entrypoint", "bin"), ("entrypoint", "bin/./codex"),
+                             ("pathDir", "bin/codex"), ("pathDir", ".."), ("execServer", "../outside"),
+                             ("resourcesDir", "codex-package.json")):
+            with self.subTest(field=field, value=value):
+                self.tearDown()
+                self.setUp()
+                members = plain_members()[:2] + [member("codex-path", mode=0o755, kind=tarfile.DIRTYPE)]
+                metadata = {"version": PIN, "entrypoint": "bin/codex", "pathDir": "codex-path"}
+                metadata[field] = value
+                with self.assertRaisesRegex(intake.Refused, "not a (file|dir) of the verified inventory"):
+                    self.take(members + [member("codex-package.json", json.dumps(metadata).encode())])
+                self.assertFalse((self.base / "out").exists())
+
+    def test_a_refused_intake_removes_unwritable_extracted_directories(self):
+        members = [member("bin", mode=0o555, kind=tarfile.DIRTYPE), member("bin/codex", b"main", 0o755),
+                   member("codex-package.json", json.dumps({"version": "0.0.1"}).encode())]
+        with self.assertRaises(intake.Refused):
+            self.take(members)
+        self.assertFalse((self.base / "out").exists())
 
     def test_metadata_naming_another_version_refuses(self):
         with self.assertRaisesRegex(intake.Refused, "not 9.9.8"):

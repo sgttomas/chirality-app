@@ -148,9 +148,64 @@ def vendor_differences(vendor, inventory):
     return sorted(differences)
 
 
+METADATA_MEMBERS = {"entrypoint": "file", "execServer": "file", "pathDir": "dir", "resourcesDir": "dir"}
+
+
+def metadata_members(record):
+    """The package metadata's paths, each admitted only as a member of the record's own inventory.
+
+    Returns {field: relative path}. A path that is absolute, has a `.` or `..` part, or is not an
+    inventory member of the expected kind refuses, so nothing the metadata says can name a path
+    outside the tree the inventory describes.
+    """
+    members = {entry["path"]: entry for entry in record["inventory"]["entries"]}
+    admitted = {}
+    for field, kind in METADATA_MEMBERS.items():
+        value = record["package_metadata"].get(field)
+        if value is None and field not in ("entrypoint", "pathDir"):
+            continue
+        parts = value.split("/") if isinstance(value, str) else [""]
+        entry = members.get(value) if isinstance(value, str) else None
+        if (not isinstance(value, str) or value.startswith("/") or any(part in ("", ".", "..") for part in parts)
+                or entry is None or entry["kind"] != kind):
+            raise Refused("package metadata %s %r is not a %s of the verified inventory" % (field, value, kind))
+        if field == "entrypoint" and not entry["mode"] & 0o100:
+            raise Refused("package metadata entrypoint %r is not executable in the inventory" % value)
+        admitted[field] = value
+    return admitted
+
+
+def admitted_path(vendor, record, field):
+    """Resolve one metadata path at the moment of use, or refuse.
+
+    The path must still be a member of the inventory, every component beneath the vendor root must
+    be a real directory or file and not a link, the result must lie inside the vendor root, and a
+    file's bytes must still equal the inventory's digest.
+    """
+    relative = metadata_members(record)[field]
+    root = os.path.realpath(vendor)
+    path = root
+    for part in relative.split("/"):
+        path = os.path.join(path, part)
+        if os.path.islink(path):
+            raise Refused("%s passes through a link: %s" % (field, relative))
+    if os.path.realpath(path) != path or os.path.commonpath([root, path]) != root or path == root:
+        raise Refused("%s does not resolve inside the verified tree: %s" % (field, relative))
+    entry = next(entry for entry in record["inventory"]["entries"] if entry["path"] == relative)
+    status = os.lstat(path)
+    if entry["kind"] == "dir":
+        if not stat.S_ISDIR(status.st_mode):
+            raise Refused("%s is no longer a directory: %s" % (field, relative))
+    elif (not stat.S_ISREG(status.st_mode) or stat.S_IMODE(status.st_mode) != entry["mode"]
+          or status.st_size != entry["size"] or sha256_file(path) != entry["sha256"]):
+        raise Refused("%s no longer equals the verified inventory: %s" % (field, relative))
+    return path
+
+
 def verified_vendor(vendor, pin, resources=None):
     """Return (record, entrypoint, path directory) or refuse; nothing is executed here."""
     record = expected_distribution(pin, resources)
+    metadata_members(record)
     vendor = os.path.realpath(vendor)
     if not os.path.isdir(vendor):
         raise Refused("the vendor tree is not a directory")
@@ -158,8 +213,37 @@ def verified_vendor(vendor, pin, resources=None):
     if differences:
         raise Refused("the vendor tree differs from the expected %s inventory: %s%s" % (
             pin, "; ".join(differences[:6]), "; %d more" % (len(differences) - 6) if len(differences) > 6 else ""))
-    metadata = record["package_metadata"]
-    return record, os.path.join(vendor, metadata["entrypoint"]), os.path.join(vendor, metadata["pathDir"])
+    return record, admitted_path(vendor, record, "entrypoint"), admitted_path(vendor, record, "pathDir")
+
+
+def kill_group(group):
+    """SIGKILL a process group that may already be gone.
+
+    A group whose members have all exited and await reaping answers EPERM on macOS, and a reaped
+    one answers ESRCH; both mean there is nothing left to kill.
+    """
+    try:
+        os.killpg(group, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def socket_peers(group, run=subprocess.run):
+    """Remote addresses of the process group's internet sockets, or None when no sample could be taken.
+
+    lsof exits 1 with no output when nothing matches, which is a taken sample with no socket. Any
+    other failure, or output on its error stream, is not a sample.
+    """
+    result = run(["/usr/sbin/lsof", "-n", "-P", "-a", "-i", "-g", str(group)], capture_output=True, text=True)
+    rows = result.stdout.splitlines()[1:]
+    if result.stderr.strip() or result.returncode not in (0, 1) or (result.returncode == 1 and rows):
+        return None
+    peers = []
+    for line in rows:
+        peer = re.search(r"->\[?([0-9a-fA-F:.]+)\]?:\d+", line)
+        if peer:
+            peers.append(peer.group(1))
+    return peers
 
 
 class Generation:
@@ -183,7 +267,8 @@ class Generation:
                                   "t_ms": self.h.elapsed(), "raw": raw})
 
     def start(self):
-        self.proc = subprocess.Popen([self.h.binary, "app-server"], cwd=self.h.work, env=self.h.environment(),
+        binary = self.h.admitted_binary()
+        self.proc = subprocess.Popen([binary, "app-server"], cwd=self.h.work, env=self.h.environment(),
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                      start_new_session=True)
         self.pgid = os.getpgid(self.proc.pid)
@@ -227,7 +312,18 @@ class Generation:
         self.next_id += 1
         request_id = self.next_id
         self.send({"jsonrpc": "2.0", "id": request_id, "method": method, "params": params})
-        return self.wait(lambda: self.results.get(request_id), timeout)
+        reply = self.wait(lambda: self.results.get(request_id), timeout)
+        if reply is None:
+            # A reply that never came is an observation that was not made: no recording is written.
+            raise Refused("no reply to %s in generation %d (stop reason %r)" % (method, self.number, self.h.stop_reason))
+        return reply
+
+    def result(self, method, params, timeout=60):
+        """A request the script cannot continue without: an error reply refuses."""
+        reply = self.request(method, params, timeout)
+        if "result" not in reply:
+            raise Refused("%s was answered with an error in generation %d" % (method, self.number))
+        return reply["result"]
 
     def wait(self, predicate, timeout):
         end = time.monotonic() + timeout
@@ -242,21 +338,21 @@ class Generation:
                 self.cv.wait(min(left, 0.2))
 
     def initialize(self):
-        reply = self.request("initialize", {"clientInfo": CLIENT, "capabilities": CAPABILITIES})
-        if not reply or "result" not in reply:
-            raise Refused("initialize failed (return code %r)" % (self.proc.poll(),))
-        if os.path.realpath(reply["result"].get("codexHome") or "") != self.h.home:
+        result = self.result("initialize", {"clientInfo": CLIENT, "capabilities": CAPABILITIES})
+        if os.path.realpath(result.get("codexHome") or "") != self.h.home:
             raise Refused("the supplier reports a Codex home that is not the scratch home")
         self.send({"jsonrpc": "2.0", "method": "initialized"})
-        return reply["result"]
+        return result
 
 
 class Harness:
-    def __init__(self, binary, codex_path, out, child_hold):
-        self.binary, self.codex_path, self.child_hold = binary, codex_path, child_hold
+    def __init__(self, vendor, record, out, child_hold):
+        self.vendor, self.record, self.child_hold = os.path.realpath(vendor), record, child_hold
+        self.binary = admitted_path(self.vendor, record, "entrypoint")
+        self.codex_path = admitted_path(self.vendor, record, "pathDir")
         self.frames, self.events, self.provider_log, self.gens = [], [], [], []
         self.stderr, self.stop_reason, self.started = {}, None, time.monotonic()
-        self.socket_samples, self.loopback_peers = 0, set()
+        self.socket_samples, self.failed_samples, self.loopback_peers = 0, 0, set()
         self.out = os.path.realpath(out)
         os.makedirs(self.out, exist_ok=True)
         self.scratch = os.path.realpath(tempfile.mkdtemp(prefix="supplier-capture-"))
@@ -266,6 +362,11 @@ class Harness:
             os.makedirs(folder)
         with open(os.path.join(self.work, "README.md"), "w") as handle:
             handle.write("Invented pump-skid example workspace (ST-5 capture).\n")
+
+    def admitted_binary(self):
+        """The entrypoint, admitted again immediately before each execution."""
+        admitted_path(self.vendor, self.record, "pathDir")
+        return admitted_path(self.vendor, self.record, "entrypoint")
 
     def environment(self):
         return {"HOME": self.user_home, "CODEX_HOME": self.home, "TMPDIR": self.tmp,
@@ -280,24 +381,35 @@ class Harness:
         self.events.append(record)
         sys.stderr.write("[%8.1f] %s %s\n" % (record["t_ms"], kind, json.dumps(fields)[:300]))
 
+    def stop(self, generation, reason):
+        if not self.stop_reason:
+            self.stop_reason = reason
+            self.event("STOP", reason=reason)
+        kill_group(generation.pgid)
+
     def watch_sockets(self, done):
         while not done.is_set():
             for generation in list(self.gens):
                 if generation.proc.poll() is not None:
                     continue
-                listing = subprocess.run(["/usr/sbin/lsof", "-n", "-P", "-a", "-i", "-g", str(generation.pgid)],
-                                         capture_output=True, text=True).stdout
+                try:
+                    peers = socket_peers(generation.pgid)
+                except OSError as error:
+                    peers = None
+                    detail = type(error).__name__
+                else:
+                    detail = "lsof reported an error"
+                if peers is None:
+                    if generation.proc.poll() is None:  # a group that ended mid-sample is not a failed watch
+                        self.failed_samples += 1
+                        self.stop(generation, "the socket watch could not take a sample (%s)" % detail)
+                    continue
                 self.socket_samples += 1
-                for line in listing.splitlines()[1:]:
-                    peer = re.search(r"->\[?([0-9a-fA-F:.]+)\]?:\d+", line)
-                    if not peer:
-                        continue
-                    if peer.group(1) in ("127.0.0.1", "::1"):
-                        self.loopback_peers.add(peer.group(1))
-                    elif not self.stop_reason:
-                        self.stop_reason = "non-loopback socket: " + peer.group(1)
-                        self.event("STOP", reason=self.stop_reason)
-                        os.killpg(generation.pgid, signal.SIGKILL)
+                for peer in peers:
+                    if peer in ("127.0.0.1", "::1"):
+                        self.loopback_peers.add(peer)
+                    else:
+                        self.stop(generation, "non-loopback socket: " + peer)
             done.wait(0.25)
 
     def write_config(self, port):
@@ -306,29 +418,26 @@ class Harness:
 
     def gen(self):
         generation = Generation(self, len(self.gens) + 1)
+        generation.start()  # the watcher sees a generation only once its process exists
         self.gens.append(generation)
-        generation.start()
         return generation
 
     def end(self, generation, how):
         if how == "stdin":
             generation.proc.stdin.close()
         else:
-            os.killpg(generation.pgid, getattr(signal, how))
+            kill_group(generation.pgid)
         try:
             code = generation.proc.wait(timeout=15)
         except subprocess.TimeoutExpired:
-            os.killpg(generation.pgid, signal.SIGKILL)
+            kill_group(generation.pgid)
             code = generation.proc.wait()
         generation.eof.wait(5)
         time.sleep(0.3)
         groups = subprocess.run(["/bin/ps", "-axo", "pgid="], capture_output=True, text=True).stdout.split()
         left = groups.count(str(generation.pgid))
         if left:
-            try:
-                os.killpg(generation.pgid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+            kill_group(generation.pgid)
         self.event("exit", generation=generation.number, how=how, returncode=code, group_members_left=left)
 
 
@@ -400,9 +509,9 @@ def scenario_st5(h, freeze):
     h.write_config(provider.port)
     g1 = h.gen()
     init = g1.initialize()
-    thread_id = g1.request("thread/start", {"cwd": h.work, "approvalPolicy": APPROVAL,
-                                           "sandbox": SANDBOX})["result"]["thread"]["id"]
-    g1.request("turn/start", {"threadId": thread_id, "input": [{"type": "text", "text": PROMPT}]})
+    thread_id = g1.result("thread/start", {"cwd": h.work, "approvalPolicy": APPROVAL,
+                                          "sandbox": SANDBOX})["thread"]["id"]
+    g1.result("turn/start", {"threadId": thread_id, "input": [{"type": "text", "text": PROMPT}]})
     request = g1.wait(lambda: next((r for r in g1.server_requests
                                     if r["method"] == "item/commandExecution/requestApproval"), None), 60)
     if not request:
@@ -456,20 +565,24 @@ def scenario_nv04(h):
     h.write_config(provider.port)
     g1 = h.gen()
     init = g1.initialize()
-    parent = g1.request("thread/start", {"cwd": h.work, "approvalPolicy": "never",
-                                        "sandbox": SANDBOX})["result"]["thread"]["id"]
-    started = g1.request("turn/start", {"threadId": parent, "input": [{"type": "text", "text": "Delegate the count."}]})
-    turn = started["result"]["turn"]["id"]
+    parent = g1.result("thread/start", {"cwd": h.work, "approvalPolicy": "never", "sandbox": SANDBOX})["thread"]["id"]
+    turn = g1.result("turn/start", {"threadId": parent,
+                                    "input": [{"type": "text", "text": "Delegate the count."}]})["turn"]["id"]
     done = g1.wait(lambda: next((n for n in g1.notes if n.get("method") == "turn/completed"
                                  and n["params"].get("threadId") == parent), None), 60)
     h.event("parent-turn-completed", observed=bool(done))
-    g1.wait(lambda: next((n for n in g1.notes if n.get("method") == "turn/completed"
-                          and n["params"].get("threadId") != parent), None), h.child_hold + 20)
+    child_done = g1.wait(lambda: next((n for n in g1.notes if n.get("method") == "turn/completed"
+                                       and n["params"].get("threadId") != parent), None), h.child_hold + 20)
+    if not done or not child_done:
+        # The scenario is the parent's turn ending before the child's; without both it was not observed.
+        raise Refused("nv04 did not observe both turn completions (parent %s, child %s)" % (bool(done), bool(child_done)))
     g1.request("thread/loaded/list", {})
     receivers = [thread for n in g1.notes if n.get("method") == "item/completed"
                  and n["params"]["item"].get("type") == "collabAgentToolCall"
                  for thread in n["params"]["item"].get("receiverThreadIds") or []]
-    child = receivers[0] if receivers else None
+    if not receivers:
+        raise Refused("nv04 observed no completed spawn item naming a receiver thread")
+    child = receivers[0]
     h.event("history-reads", generation=1, child_thread_known=bool(child))
     history_reads(g1, parent, turn, child)
     h.end(g1, "stdin")
@@ -483,34 +596,62 @@ def scenario_nv04(h):
 
 
 # ---------- redaction and recording ----------
+IDENTITY_KEYS = {"userAgent": ("<REDACTED-USER-AGENT>", "userAgent client identity"),
+                 "serverName": ("<REDACTED-HOST>", "serverName"),
+                 "installationId": ("<REDACTED-INSTALLATION-ID>", "installation identifier")}
+
+
 def redactor(replacements, user, host):
-    """`replacements` is [(literal, marker)], applied longest literal first."""
+    """Return (redact, leaks, counts). `replacements` is [(literal, marker)], longest literal first.
+
+    `redact` takes a parsed frame or a string. In a parsed frame every string value and every key is
+    redacted wherever it occurs, and the value of an identity key is replaced whole, whatever the
+    frame's spacing was. `leaks(text)` names what a finished text still holds; the caller refuses.
+    """
     ordered = sorted(((literal, marker) for literal, marker in replacements if literal and len(literal) > 1),
                      key=lambda pair: len(pair[0]), reverse=True)
+    hosts = [name for name in dict.fromkeys((host, host.split(".")[0])) if name]
     counts = {}
 
     def count(category, number):
         if number:
             counts[category] = counts.get(category, 0) + number
 
-    def redact(text):
+    def word(name):
+        return re.compile(r"(?<![A-Za-z0-9_])%s(?![A-Za-z0-9_])" % re.escape(name))
+
+    def text(value):
         for literal, marker in ordered:
-            count("personal path", text.count(literal))
-            text = text.replace(literal, marker)
-        for name in (host, host.split(".")[0]):
-            if name and len(name) > 2:
-                count("host name", text.count(name))
-                text = text.replace(name, "<HOST>")
-        if user and len(user) > 2:
-            text, number = re.subn(r"\b%s\b" % re.escape(user), "<USER>", text)
+            count("personal path", value.count(literal))
+            value = value.replace(literal, marker)
+        for name in hosts:
+            value, number = word(name).subn("<HOST>", value)
+            count("host name", number)
+        if user:
+            value, number = word(user).subn("<USER>", value)
             count("user name", number)
-        for key, marker, category in (("userAgent", "<REDACTED-USER-AGENT>", "userAgent client identity"),
-                                      ("serverName", "<REDACTED-HOST>", "serverName"),
-                                      ("installationId", "<REDACTED-INSTALLATION-ID>", "installation identifier")):
-            text, number = re.subn(r'("%s":")[^"]*(")' % key, r"\g<1>%s\g<2>" % marker, text)
+        for key, (marker, category) in IDENTITY_KEYS.items():
+            value, number = re.subn(r'(\\?"%s\\?"\s*:\s*\\?")[^"\\]*(\\?")' % key, r"\g<1>%s\g<2>" % marker, value)
             count(category, number)
-        return text
-    return redact, counts
+        return value
+
+    def redact(value, key=None):
+        if isinstance(value, dict):
+            return {text(name): redact(inner, name) for name, inner in value.items()}
+        if isinstance(value, list):
+            return [redact(inner) for inner in value]
+        if isinstance(value, str):
+            if key in IDENTITY_KEYS:
+                count(IDENTITY_KEYS[key][1], 1)
+                return IDENTITY_KEYS[key][0]
+            return text(value)
+        return value
+
+    def leaks(finished):
+        found = [literal for literal, _ in ordered if literal in finished]
+        found += [name for name in hosts + ([user] if user else []) if word(name).search(finished)]
+        return found
+    return redact, leaks, counts
 
 
 def write_recording(h, scenario, pin, record, init, version, vendor):
@@ -518,20 +659,20 @@ def write_recording(h, scenario, pin, record, init, version, vendor):
         for frame in h.frames:
             handle.write(json.dumps(frame, ensure_ascii=False) + "\n")
     temp = tempfile.gettempdir()
-    redact, counts = redactor(
+    redact, leaks, counts = redactor(
         [(h.home, "<HOME>"), (h.work, "<WORKSPACE>"), (h.scratch, "<SCRATCH>"), (vendor, "<VENDOR>"),
          (os.path.realpath(temp), "<TMP>"), (temp, "<TMP>"), (os.path.expanduser("~"), "<USER-HOME>")],
         os.path.basename(os.path.expanduser("~")), socket.gethostname())
     frames = []
     for frame in h.frames:
-        text = redact(frame["raw"])
         try:
-            parsed = json.loads(text)
+            original = json.loads(frame["raw"])
         except ValueError:
-            parsed = text
+            original = frame["raw"]  # not JSON: redacted as text, and kept as the string it was
+        redacted = redact(original)
         frames.append({"generation": frame["generation"], "direction": frame["direction"],
-                       "position": frame["position"], "t_ms": frame["t_ms"], "redacted": text != frame["raw"],
-                       "frame": parsed})
+                       "position": frame["position"], "t_ms": frame["t_ms"], "redacted": redacted != original,
+                       "frame": redacted})
     requests = []
     for entry in h.provider_log:
         body = entry["body"] or {}
@@ -566,8 +707,8 @@ def write_recording(h, scenario, pin, record, init, version, vendor):
                                "environment": sorted(h.environment()),
                                "note": "scratch stand-ins, not a person's settings"},
         "socket_watch": {"method": "lsof of the supplier process group every 0.25 s; a sample, not isolation",
-                         "samples": h.socket_samples, "loopback_peers": sorted(h.loopback_peers),
-                         "non_loopback_peers": []},
+                         "samples": h.socket_samples, "failed_samples": h.failed_samples,
+                         "loopback_peers": sorted(h.loopback_peers), "non_loopback_peers": []},
         "redaction_record": {"categories_replaced": counts, "markers": MARKERS,
                              "not_present": "no credential, token, account identifier or secret answer was used"},
         "material": "invented: pump-skid marker folder and README",
@@ -577,8 +718,8 @@ def write_recording(h, scenario, pin, record, init, version, vendor):
     }
     path = os.path.join(h.out, scenario + ".recording.json")
     text = json.dumps(recording, indent=1, ensure_ascii=False) + "\n"
-    if any(local and local in text for local in (os.path.expanduser("~"), socket.gethostname(), h.scratch)):
-        raise Refused("redaction incomplete: a local string remains; nothing was written")
+    if leaks(text):
+        raise Refused("redaction incomplete: %d local strings remain; nothing was written" % len(leaks(text)))
     with open(path, "x") as handle:
         handle.write(text)
     return path
@@ -595,22 +736,22 @@ def main(argv=None):
     parser.add_argument("scenario", choices=SCENARIOS)
     args = parser.parse_args(argv)
     try:
-        record, binary, codex_path = verified_vendor(args.vendor, args.pin, args.expected_root)
+        record, _, _ = verified_vendor(args.vendor, args.pin, args.expected_root)
+        h = Harness(args.vendor, record, args.out, args.child_hold)
     except Refused as refusal:
         sys.stderr.write("refused: %s\n" % refusal)
         return 2
-    h = Harness(binary, codex_path, args.out, args.child_hold)
     done = threading.Event()
     threading.Thread(target=h.watch_sockets, args=(done,), daemon=True).start()
     try:
-        version = subprocess.run([binary, "--version"], capture_output=True, text=True, cwd=h.work,
+        version = subprocess.run([h.admitted_binary(), "--version"], capture_output=True, text=True, cwd=h.work,
                                  env=h.environment(), timeout=30).stdout.strip()
         if version != "codex-cli " + args.pin:
             raise Refused("the version label %r is not the pin" % version)
         h.event("begin", scenario=args.scenario, pin=args.pin)
         init = scenario_nv04(h) if args.scenario == "nv04" else scenario_st5(h, args.scenario == "st5")
-        if h.stop_reason:
-            raise Refused("stopped: " + h.stop_reason)
+        if h.stop_reason or h.failed_samples or not h.socket_samples:
+            raise Refused("stopped: " + (h.stop_reason or "the socket watch took no sample"))
         print(write_recording(h, args.scenario, args.pin, record, init, version, os.path.realpath(args.vendor)))
         return 0
     except Refused as refusal:
@@ -620,7 +761,7 @@ def main(argv=None):
         done.set()
         for generation in h.gens:
             if generation.proc.poll() is None:
-                os.killpg(generation.pgid, signal.SIGKILL)
+                kill_group(generation.pgid)
         shutil.rmtree(h.scratch, ignore_errors=True)
 
 
