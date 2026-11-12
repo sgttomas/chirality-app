@@ -1404,15 +1404,13 @@ The chain-head tag `records-chain-heads.json` is written in profile 0.3
 2026-11-12). Each log's head, as before, records the SHA-256 of its last
 counted line, the lines counted, whether lines carry links, the lines written
 before chaining began, and each place the chain was broken. Profile 0.3 adds,
-for every chained log: `bytes` and `sha256`, the exact length and SHA-256 of
-the log file as exported, also for a role supply log the App could not take;
-`setAside`, the numbers (from 1) of the lines the App counted in the chain
-without reading them as records, because it found them unreadable or invalid;
-`torn`, the numbers of the torn lines the App closed and set aside after an
-interrupted write (not counted); and `unclosedEnd`, the length of an unclosed
-final part or null. For a role supply log the App could not take it also
-records the `line` and `kind` of the fault that stopped it. Nothing else in a
-package changed.
+for every chained log whose file the App could read when it wrote the tag,
+`bytes` and `sha256`, the exact length and SHA-256 of the log file as
+exported, also for a role supply log the App could not take; and for every
+chained log the App took: `setAside`, the numbers (from 1) of the lines the
+App counted in the chain without reading them as records; `torn`, the numbers
+of the lines the App closed and set aside (not counted); and `unclosedEnd`,
+the length of an unclosed final part or null.
 
 What holds for a profile 0.3 package: a package altered in any chained log,
 with the tag not changed to agree, fails verification in both checkers,
