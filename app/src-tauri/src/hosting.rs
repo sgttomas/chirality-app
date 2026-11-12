@@ -275,9 +275,10 @@ struct Inner {
     source_requests: HashMap<String, SourceEvidence>,
     provider_read_revisions: HashMap<String,(Value,String)>,
     /// The latest private configuration read per folder: what the chooser's
-    /// provider and settings observations are compared with. A model list or
-    /// delegation read is not one, so it leaves a shown observation current;
-    /// `provider_read_revisions` (admission) still follows every read.
+    /// provider list is compared with, and nothing else. A model list or
+    /// delegation read is not one, so it leaves a chosen provider current;
+    /// `provider_read_revisions` (admission, the settings reading and the
+    /// native confirmations) still follows every read.
     provider_observation_revisions: HashMap<String,(Value,String)>,
     private_config_channels: Vec<Value>,
     local_provider: Option<access_provider::LocalProviderBinding>,

@@ -1797,10 +1797,11 @@ export function App() {
         || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
           && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
       setHost(latest);
-      // A row chosen from an earlier read in this home stays chosen when this
-      // read still lists it; otherwise it stays retired.
+      // A row chosen from an earlier read of this same source (home, Codex
+      // generation and project) stays chosen when this read still lists it;
+      // otherwise, and after a Codex restart, it stays retired.
       const chosen = providerRowChoice.current, choice = choiceRef.current;
-      if (chosen && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
+      if (chosen && chosen.source === source && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
         && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
     } catch {

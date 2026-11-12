@@ -821,13 +821,24 @@ impl Host {
             .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
         Ok(view)
     }
-    /// Non-authoritative current observation revision for the ordinary chooser:
-    /// the latest private configuration read of this folder, absent after an
-    /// App configuration write. Other reads of the folder (the model list, the
-    /// delegation signals) do not change it; admission is checked separately
-    /// against every read (`check_provider_read`).
+    /// Non-authoritative current revision for the settings reading and the
+    /// native confirmations: the latest configuration read of any kind that
+    /// named this folder, absent after an App configuration write.
     /// This is generated source metadata, never a private configuration value.
     pub(crate) fn configured_provider_revision(&self, generation: &Value, cwd: &str) -> Value {
+        self.read_revision(generation, cwd, false)
+    }
+    /// The same for the new-conversation chooser's provider list only: the
+    /// latest private configuration read of this folder. A model list or
+    /// delegation signals read of the folder does not change it, so the next
+    /// step of the chooser does not retire the provider just chosen. Nothing
+    /// is admitted on it: admission, the settings reading and the native
+    /// confirmations follow every read (`check_provider_read`,
+    /// `configured_provider_revision`).
+    pub(crate) fn configured_provider_observation_revision(&self, generation: &Value, cwd: &str) -> Value {
+        self.read_revision(generation, cwd, true)
+    }
+    fn read_revision(&self, generation: &Value, cwd: &str, private_reads_only: bool) -> Value {
         let i = self.inner.0.lock().unwrap();
         if i.generation != *generation
             || i.state != "ready"
@@ -835,7 +846,7 @@ impl Host {
         {
             return Value::Null;
         }
-        i.provider_observation_revisions
+        if private_reads_only { &i.provider_observation_revisions } else { &i.provider_read_revisions }
             .get(cwd)
             .filter(|(g, _)| g == generation)
             .map(|(_, revision)| json!(revision))
