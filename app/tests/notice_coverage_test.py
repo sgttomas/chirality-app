@@ -444,6 +444,47 @@ class Account(Copy):
         self.edit(texts.INPUTS, lambda v: v['library_content'][1].update(revision='d' * 40))
         with self.assertRaisesRegex(ValueError, 'another source'): self.build()
 
+    # Every bundle resource is named in the account; an unnamed mapping is open, a stale claim refuses.
+    def test_a_mapped_resource_the_account_does_not_name_is_open(self):
+        conf = 'app/src-tauri/tauri.conf.json'
+        # The mapping pull request 236 adds for the shipped limitations list.
+        self.edit(conf, lambda v: v['bundle']['resources'].update({'../../docs/RELEASE_LIMITATIONS_4.0.0.md': 'release/LIMITATIONS.md'}))
+        value = self.build()
+        row = self.row(value, 'Unnamed bundle resource release/LIMITATIONS.md')
+        self.assertEqual(row['standing'], coverage.UNCOVERED)
+        self.assertIn('Unnamed bundle resource release/LIMITATIONS.md', {o['name'] for o in value['open']})
+        # Named as the App's own content, it is covered with the App's licence as its notice.
+        self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
+            {'name': 'Release limitations list', 'accounts_for': ['release/LIMITATIONS.md'], 'note': 'invented for the test'}))
+        value = self.build()
+        self.assertEqual(self.row(value, 'Release limitations list')['standing'], coverage.COVERED)
+        self.assertNotIn('Unnamed bundle resource release/LIMITATIONS.md', {c['name'] for c in value['components']})
+
+    def test_a_claim_on_a_mapping_that_does_not_exist_refuses(self):
+        self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
+            {'name': 'Release limitations list', 'accounts_for': ['release/LIMITATIONS.md'], 'note': 'invented'}))
+        with self.assertRaisesRegex(ValueError, 'claims a mapping that does not exist'): self.build()
+
+    def test_the_vendor_tree_must_be_named(self):
+        self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'codex').pop('accounts_for'))
+        self.assertIn('Unnamed bundle resource codex/', {o['name'] for o in self.build()['open']})
+
+    def test_every_current_mapping_is_named(self):
+        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        self.assertFalse([c for c in account['components'] if c['class'] == 'resource'])
+        self.assertEqual(sorted((c['class'], c['name'], tuple(c.get('accounts_for', []))) for c in account['components']
+                                if c['class'] in ('app', 'app-asset', 'library-content', 'app-content', 'notices')),
+                         sorted([('app', 'chirality-app', ()), ('app-asset', 'App icon icons/icon.png', ()),
+                                 ('library-content', 'Chirality instructions and role set', ('instructions/',)),
+                                 ('library-content', 'Chirality Library 3.4.0 workflows', ('workflows/',)),
+                                 ('app-content', 'App distribution reference records', ('distribution-reference/',)),
+                                 ('notices', 'Third-party notices and their indexes', tuple(
+                                     next(c for c in account['components'] if c['class'] == 'notices')['accounts_for']))]))
+        conf = json.loads((ROOT / 'app/src-tauri/tauri.conf.json').read_text())['bundle']['resources']
+        fonts = json.loads((ROOT / 'app/packaging/font_notice/index.json').read_text())
+        mapped = set(conf.values()) | set(coverage.bundle.selected(ROOT / 'app', [l['path'] for l in fonts['licenses']]).values())
+        self.assertEqual(coverage.unaccounted(coverage.check(ROOT)['accounts_for'], mapped | {'codex/'}), [])
+
     def test_another_declared_pin_is_named_as_an_open_review_not_assumed(self):
         pin = texts.declared_pin(ROOT)
         hosting = self.repo / texts.HOSTING

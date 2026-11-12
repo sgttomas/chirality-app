@@ -534,7 +534,10 @@
    "supplier_tree_texts": [],
    "standing": "covered",
    "declared_license": "Apache-2.0",
-   "below_root": "Root LICENSE and NOTICE. The skill samples embedded in bin/codex and the crates compiled into the executables are their own rows."
+   "below_root": "Root LICENSE and NOTICE. The skill samples embedded in bin/codex and the crates compiled into the executables are their own rows.",
+   "accounts_for": [
+    "codex/"
+   ]
   },
   {
    "id": "codex-skill-creator-sample",

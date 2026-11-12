@@ -11,6 +11,18 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('production_input_prepare', ROOT / 'app/packaging/production_inputs/prepare.py')
 module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
 
+def named_in_account():
+    spec = importlib.util.spec_from_file_location('production_test_coverage', ROOT / 'app/packaging/notices/coverage.py')
+    coverage = importlib.util.module_from_spec(spec); spec.loader.exec_module(coverage)
+    return coverage.check(ROOT)['accounts_for']
+
+
+NAMED = named_in_account()
+_spec = importlib.util.spec_from_file_location('production_test_coverage_rule', ROOT / 'app/packaging/notices/coverage.py')
+_rule = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_rule)
+UNACCOUNTED = _rule.unaccounted
+
+
 class ProductionInputs(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
@@ -78,9 +90,11 @@ class ProductionInputs(unittest.TestCase):
         # this test is about the supplement mapping, so the coverage step is stubbed here only.
         real_load = module.load_module
         class Coverage:
+            unaccounted = staticmethod(UNACCOUNTED)
             __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
             @staticmethod
-            def check(root): return {'sha256': '0' * 64, 'counts': {}, 'open': [], 'supplier_pin': 'invented'}
+            def check(root): return {'sha256': '0' * 64, 'counts': {}, 'open': [], 'supplier_pin': 'invented',
+                                     'accounts_for': NAMED}
         def load(name, path):
             return Coverage if name == 'production_notice_coverage' else real_load(name, path)
         with patch.object(module, 'load_module', load):
@@ -122,7 +136,7 @@ class ProductionInputs(unittest.TestCase):
         self.assertNotIn('cargo_build_input', recipe)
         self.assertEqual(module.check_plan(self.output)['files'],result['files'])
         account=json.loads((self.output/'input-inventory.json').read_text())
-        self.assertEqual(len(account['tool_sha256']),5)
+        self.assertEqual(len(account['tool_sha256']),6)
         self.assertTrue(account['jsonschema_version'])
         self.assertFalse(result['build_executed']);self.assertFalse(result['signing_executed']);self.assertFalse(result['package_complete'])
     def test_explicit_cargo_input_preserves_config_bytes_and_host_target_scope(self):
@@ -408,10 +422,11 @@ class ProductionInputs(unittest.TestCase):
         real_load = module.load_module
         account = json.loads((ROOT/'app/packaging/notices/coverage.json').read_text())
         class Complete:
+            unaccounted = staticmethod(UNACCOUNTED)
             __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
             @staticmethod
             def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': account['supplier_pin'],
-                                     'supplier_distribution': account['supplier_distribution']}
+                                     'supplier_distribution': account['supplier_distribution'], 'accounts_for': NAMED}
         def load(name, path):
             return Complete if name == 'production_notice_coverage' else real_load(name, path)
         kw=self.production(); kw.pop('not_for_public_release')
@@ -422,6 +437,23 @@ class ProductionInputs(unittest.TestCase):
         inventory=json.loads((self.output/'input-inventory.json').read_text())
         self.assertFalse(inventory['notice_coverage']['describes_selected_vendor'])
         self.assertIn('notice coverage is incomplete', inventory['release_standing'])
+    def test_a_mapped_resource_the_account_does_not_name_cannot_make_a_public_plan(self):
+        # Even a complete account for the selected vendor refuses when it does not name a resource the plan maps.
+        real_load = module.load_module
+        manifest = self.kw['expected_manifest']
+        class Unnamed:
+            __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
+            unaccounted = staticmethod(UNACCOUNTED)
+            @staticmethod
+            def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': '9.9.9',
+                                     'supplier_distribution': {'manifest_sha256': manifest},
+                                     'accounts_for': [n for n in NAMED if n != 'codex/']}
+        def load(name, path):
+            return Unnamed if name == 'production_notice_coverage' else real_load(name, path)
+        kw=self.production(); kw.pop('not_for_public_release')
+        with patch.object(module, 'load_module', load):
+            with self.assertRaisesRegex(ValueError, 'bundle resource not named in the notice coverage account: codex/'): self.run_plan(**kw)
+        self.assertFalse(self.output.exists())
     def test_stale_coverage_account_refuses_before_output(self):
         path=self.source/'app/packaging/notices/coverage.json'
         value=json.loads(path.read_text()); value['counts']['covered']+=1; path.write_text(json.dumps(value))

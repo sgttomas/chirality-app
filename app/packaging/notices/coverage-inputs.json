@@ -194,5 +194,14 @@
    "added_by_commit": "657383366595de6ed43eee2d910d64debaeeba89",
    "provenance": "Added by the App's own first commit with no outside source named; the image is a 32x32 square of one solid colour (RGBA 40,60,90,255), so it carries no third-party artwork. It is the App's own asset under the App's LICENSE.md."
   }
+ ],
+ "app_resources": [
+  {
+   "name": "App distribution reference records",
+   "accounts_for": [
+    "distribution-reference/"
+   ],
+   "note": "The supplier distribution reference the App reads at run time (build selection, expected inventory, attestation and their evidence), written in this repository; the App's own content under the App's licence."
+  }
  ]
 }

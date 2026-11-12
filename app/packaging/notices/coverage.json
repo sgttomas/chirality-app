@@ -18,20 +18,20 @@
  ],
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
-  "app/packaging/notices/coverage-inputs.json": "274361d6b16097e5d6c022f94bbf4b3dd9e882fa93f532fcb05e3b59646f36b6",
-  "app/packaging/notices/coverage-review.json": "43f3341122cd9b87569b2e7fce95190a3d59ffb1e900723650ae65954e78701e",
+  "app/packaging/notices/coverage-inputs.json": "4c60159b41d4dd52dcd1afc9cc1ebbe274d1422ba4c84c81fb73cfea7372beee",
+  "app/packaging/notices/coverage-review.json": "5add5d2be107e1053c3eddff6ca9a85263b801c33c523f86ff77b8fb1731810c",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
-  "app/packaging/supplier_notices/components.json": "c51b3185a82229c1178b1f6f1edaafafa25507993bed27a8641b59e7ebbffb97",
+  "app/packaging/supplier_notices/components.json": "17897046bef35847c110a69b00c81fa3ea86d37dd7afb5de4508318731dcd251",
   "app/packaging/unsigned/tauri.notices.conf.json": "740a195677a7ac3bc190ad8ffe76c5999d89a726f5d02db72cf83d576e245347",
   "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json": "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61"
  },
  "counts": {
-  "covered": 231,
+  "covered": 233,
   "held-pending-owner-licence-reading": 1,
   "uncovered": 5,
-  "total": 237
+  "total": 239
  },
  "open": [
   {
@@ -126,6 +126,9 @@
    "class": "library-content",
    "name": "Chirality instructions and role set",
    "version": "89acac6a3983",
+   "accounts_for": [
+    "instructions/"
+   ],
    "source": {
     "repository": "https://github.com/sgttomas/chirality",
     "revision": "89acac6a3983c605820496d0d121c73bb2297706",
@@ -146,6 +149,9 @@
    "class": "library-content",
    "name": "Chirality Library 3.4.0 workflows",
    "version": "1bba3d170e7a",
+   "accounts_for": [
+    "workflows/"
+   ],
    "source": {
     "repository": "https://github.com/sgttomas/chirality-library",
     "revision": "1bba3d170e7a25bc2a04e0a4dfe77b624ea440ca",
@@ -5560,6 +5566,9 @@
    ],
    "declared_license": "Apache-2.0",
    "below_root": "Root LICENSE and NOTICE. The skill samples embedded in bin/codex and the crates compiled into the executables are their own rows.",
+   "accounts_for": [
+    "codex/"
+   ],
    "standing": "covered",
    "basis": "texts recorded at the component's own repository and revision"
   },
@@ -6737,6 +6746,85 @@
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
    "standing": "covered",
    "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+  },
+  {
+   "class": "app-content",
+   "name": "App distribution reference records",
+   "version": "0.0.0",
+   "accounts_for": [
+    "distribution-reference/"
+   ],
+   "source": {
+    "repository": "https://github.com/sgttomas/chirality-app"
+   },
+   "texts": [
+    {
+     "repository_path": "app/packaging/notices/assets/app/LICENSE.md",
+     "package_path": "third-party-notices/assets/app/LICENSE.md",
+     "size_bytes": 1067,
+     "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da"
+    }
+   ],
+   "standing": "covered",
+   "basis": "the App's own content under the App's licence; the App's LICENSE.md ships as its notice"
+  },
+  {
+   "class": "notices",
+   "name": "Third-party notices and their indexes",
+   "version": "0.0.0",
+   "accounts_for": [
+    "third-party-notices/coverage.json",
+    "third-party-notices/fonts/index.json",
+    "third-party-notices/index.json",
+    "third-party-notices/sqlite-preparation/README.md",
+    "third-party-notices/sqlite-preparation/index.json",
+    "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE",
+    "third-party-notices/transitive-index.json",
+    "third-party-notices/upstream/"
+   ],
+   "source": {
+    "note": "each licence text is named by the package_path of the component row that ships it"
+   },
+   "texts": [
+    {
+     "repository_path": "app/packaging/font_notice/index.json",
+     "package_path": "third-party-notices/fonts/index.json",
+     "size_bytes": 12817,
+     "sha256": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f"
+    },
+    {
+     "repository_path": "app/packaging/notices/index.json",
+     "package_path": "third-party-notices/index.json",
+     "size_bytes": 32147,
+     "sha256": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4"
+    },
+    {
+     "repository_path": "app/packaging/sqlite_notice/README.md",
+     "package_path": "third-party-notices/sqlite-preparation/README.md",
+     "size_bytes": 1544,
+     "sha256": "a7fd1c7a99ccd43903fe409cd1366aff1bf5bd5f6e8d310342e9d0d8fc0d20e2"
+    },
+    {
+     "repository_path": "app/packaging/sqlite_notice/index.json",
+     "package_path": "third-party-notices/sqlite-preparation/index.json",
+     "size_bytes": 1394,
+     "sha256": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b"
+    },
+    {
+     "repository_path": "app/packaging/sqlite_notice/libsqlite3-sys.LICENSE",
+     "package_path": "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE",
+     "size_bytes": 1072,
+     "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e"
+    },
+    {
+     "repository_path": "app/packaging/notices/transitive-index.json",
+     "package_path": "third-party-notices/transitive-index.json",
+     "size_bytes": 126545,
+     "sha256": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517"
+    }
+   ],
+   "standing": "covered",
+   "basis": "these are the notices: the licence texts are named by their components' rows, and the index and account files are named here; an explicitly selected upstream supplement is placed under third-party-notices/upstream/"
   }
  ],
  "supplier_members": [

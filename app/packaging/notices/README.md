@@ -138,6 +138,23 @@ Rules `coverage.py` applies, whatever the tables say:
 - **Removals.** `generate` refuses to drop a component the committed account has
   unless `removed_components` in `coverage-inputs.json` states it with a reason;
   `check --base-account FILE` applies the same rule against an earlier account.
+- **Every bundle resource is named.** The mappings are read, not listed: the
+  resources of `app/src-tauri/tauri.conf.json`, the mappings a production
+  preparation selects (`../production_inputs/bundle_resources.py`, which `prepare.py`
+  uses: both overlays, the SQLite and font notices), and the vendor tree at `codex/`.
+  Each mapping must be named by a row's `accounts_for` (a target, or a folder target
+  ending in `/`) or be the `package_path` of a text a row ships. A mapping no row
+  names becomes an uncovered "Unnamed bundle resource" row, which `--strict` names and
+  a public preparation refuses. A row that claims a mapping that does not exist
+  refuses. The App's own resource content is named in `app_resources` with the App's
+  licence as its notice. The notices name themselves: each licence text by its
+  component's row, and the index and account files by the "Third-party notices and
+  their indexes" row. `prepare.py` also requires every mapping of the final plan,
+  including the vendor tree and an explicitly selected supplement under
+  `third-party-notices/upstream/`, to be named. A change that maps a new resource adds
+  its row in the same change (pull request 236's `release/LIMITATIONS.md` needs an
+  `app_resources` entry and a review-record update). The provisioning profile is
+  placed through `bundle.macOS.files`, not as a resource, and is not named here.
 - **Bundled icons** declared in `tauri.conf.json` need a provenance entry
   (`app_assets`); one without stands uncovered.
 

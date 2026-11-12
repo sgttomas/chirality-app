@@ -2,10 +2,10 @@
  "format": "notice-coverage-review/1",
  "statement": "A statement of what the reviewer of the change examined, bound to exact content: the curated inputs (the supplier component table; the coverage inputs: owner readings, permitted texts, Library content, icon provenance, stated removals), the indexes that generators make from caches CI does not hold, and the declared pin's distribution record, whose digests the account copies. The reviewer reruns the cache-reading checks for a changed index. It is not a proof: the checks are operator-run on stable inputs, and the record's truth rests on the review of the pull request that changes it, not on the tool. A supplier pin move changes which distribution record is bound, so it updates this record in the same change.",
  "updated_by": "The independent reviewer of the pull request that changes any file listed here, after reviewing that change.",
- "reviewed_in": "pull request 243: review round 3 confirmed the 33 supplier rows (27 covered, ICU pending, 5 uncovered); round 4 to confirm the added distribution-record binding, the corrected V8 below-root text and the Library content source records",
+ "reviewed_in": "pull request 243: review round 3 confirmed the 33 supplier rows (27 covered, ICU pending, 5 uncovered); round 4 to confirm the distribution-record binding, the corrected V8 below-root text, the Library content source records, and the bundle resource accounting (app_resources, the Codex row naming codex/)",
  "files_sha256": {
-  "app/packaging/supplier_notices/components.json": "c51b3185a82229c1178b1f6f1edaafafa25507993bed27a8641b59e7ebbffb97",
-  "app/packaging/notices/coverage-inputs.json": "274361d6b16097e5d6c022f94bbf4b3dd9e882fa93f532fcb05e3b59646f36b6",
+  "app/packaging/supplier_notices/components.json": "17897046bef35847c110a69b00c81fa3ea86d37dd7afb5de4508318731dcd251",
+  "app/packaging/notices/coverage-inputs.json": "4c60159b41d4dd52dcd1afc9cc1ebbe274d1422ba4c84c81fb73cfea7372beee",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
@@ -23,6 +23,9 @@
     "app/packaging/supplier_notices/codex/NOTICE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [
+    "codex/"
+   ],
    "text_exceptions": []
   },
   {
@@ -34,6 +37,7 @@
     "app/packaging/supplier_notices/codex-skills-086ccc83/skill-creator/license.txt"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -45,6 +49,7 @@
     "app/packaging/supplier_notices/codex-skills-086ccc83/skill-installer/LICENSE.txt"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -54,6 +59,7 @@
    "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
    "texts": [],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -67,6 +73,7 @@
     "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -80,6 +87,7 @@
     "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": [
     "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
     "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
@@ -94,6 +102,7 @@
     "app/packaging/supplier_notices/pcre2-10.46/LICENCE.md"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -105,6 +114,7 @@
     "app/packaging/supplier_notices/sljit-e51eabbf/LICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -114,6 +124,7 @@
    "revision": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
    "texts": [],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -144,6 +155,7 @@
     "app/packaging/supplier_notices/v8-15.2.124.1/third_party/wasm-api/LICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -155,6 +167,7 @@
     "app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -166,6 +179,7 @@
     "app/packaging/supplier_notices/icu-d578f2e8/LICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -177,6 +191,7 @@
     "app/packaging/supplier_notices/libcxx-b16984ce/LICENSE.TXT"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -188,6 +203,7 @@
     "app/packaging/supplier_notices/libcxxabi-8f11bb1d/LICENSE.TXT"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -199,6 +215,7 @@
     "app/packaging/supplier_notices/llvm-libc-75ae50cd/LICENSE.TXT"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -208,6 +225,7 @@
    "revision": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
    "texts": [],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -217,6 +235,7 @@
    "revision": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
    "texts": [],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -226,6 +245,7 @@
    "revision": "75ae50cd48c8a9d70f552ccff040029968778da9",
    "texts": [],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -237,6 +257,7 @@
     "app/packaging/supplier_notices/highway-2607d3b5/LICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -251,6 +272,7 @@
     "app/packaging/supplier_notices/fast_float-8.2.10/LICENSE-MIT"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -264,6 +286,7 @@
     "app/packaging/supplier_notices/simdutf-7.7.0/LICENSE-MIT"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -276,6 +299,7 @@
     "app/packaging/supplier_notices/dragonbox-beeeef91/LICENSE-Boost"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -287,6 +311,7 @@
     "app/packaging/supplier_notices/fp16-782eea12/LICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -299,6 +324,7 @@
     "app/packaging/supplier_notices/abseil-cpp-20250814.1/LICENSE"
    ],
    "supplier_tree_texts": [],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -310,6 +336,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -321,6 +348,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -332,6 +360,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -343,6 +372,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -354,6 +384,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/proxy-libintl.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -365,6 +396,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/libffi.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -377,6 +409,7 @@
     "codex-resources/voice/licenses/PCRE2.md",
     "codex-resources/voice/licenses/sljit.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -388,6 +421,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/Opus.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   },
   {
@@ -399,6 +433,7 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/zlib.txt"
    ],
+   "accounts_for": [],
    "text_exceptions": []
   }
  ]
