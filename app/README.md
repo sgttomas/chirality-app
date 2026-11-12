@@ -1215,12 +1215,14 @@ source, interprets no schema and takes no dispositions.
   equal byte for byte at the two pins. If one differs it refuses: a changed
   schema needs a full comparison of what the App relies on, with dispositions,
   and none is maintained.
-- The new pin's distribution record and generation record are admitted
-  strictly, as exactly what `intake.py` writes: a closed set of keys at every
-  level (the supplier's own package metadata excepted, of which the pin, the
-  entrypoint and the path directory are checked), every value of its form, the
-  generator's health fields healthy, and every digest present and equal to the
-  thing it names.
+- The new pin's distribution record and generation record are admitted whole.
+  The check works out what `intake.py` must have written from what is
+  independently determined (the table's row for the pin, the three generated
+  files, the record's own inventory entries, and the fixed words and numbers
+  `intake.py` writes) and requires each record to equal that exactly, as
+  canonical JSON text. What nothing kept in the repository determines is
+  admitted by its form only; that closed list (`FORM_ONLY`) is in the tool and
+  in every result.
 - A supplement file at either pin refuses. The prior pin must be one for which
   a consumer analysis is kept (0.167.0, whose comparison with 0.160.0 is in
   `supplier_checks/version_advance/` with a note of what it does and does not
@@ -1232,6 +1234,18 @@ records are whole and bound to its release archive. It does not establish that
 the supplier behaves the same: the only behavioural evidence at a pin is its
 recorded exchanges, bounded as the note beside them says. It is not
 qualification of the pin (DEL-01-01 AC-011).
+
+REQ-006 requires that "the generated schema, the supplement and the recorded
+exchanges of the new pin are compared with those of the prior pin before the
+App relies on it". For an advance on the same generated basis the three parts
+are met in three places: the schema by this check's byte equality; the
+supplement by this check establishing that neither pin keeps one, or refusing;
+the recorded exchanges by the recordings kept at both pins and
+`test_recordings.py`, bounded as the note beside them says. For an advance
+whose schema changed, or where either pin keeps a supplement, nothing
+maintained meets that sentence: this check refuses, and a general comparison
+would have to be built first (see the note in
+`supplier_checks/version_advance/`).
 
 ## Group B offline examination support
 

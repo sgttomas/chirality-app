@@ -95,6 +95,7 @@ class SameBasis(unittest.TestCase):
         self.assertEqual(sorted(result["generated_files_equal_byte_for_byte"]), sorted(same_basis.GENERATED))
         self.assertEqual(sorted(result["admitted_whole"]), ["CANONICAL_DISTRIBUTION.json", "GENERATION.json"])
         self.assertTrue(any("behaves the same" in limit for limit in result["does_not_establish"]))
+        self.assertEqual(result["admitted_by_form_only_because_nothing_kept_determines_them"], same_basis.FORM_ONLY)
         self.assertEqual(result["consumer_analysis_that_carries_over"]["analysis.json"],
                          hashlib.sha256(b"invented analysis.json").hexdigest())
 
@@ -149,7 +150,23 @@ class SameBasis(unittest.TestCase):
             "a missing key": lambda r: r.pop("limits"),
             "file count zero": lambda r: r.update(files=0),
             "macho count above the files": lambda r: r.update(macho_files=99),
-            "entrypoint of kind dir": lambda r: entry(r, "bin/codex").update(kind="dir"),
+            "entrypoint a directory": lambda r: [entry(r, "bin/codex").pop("size"),
+                                                 entry(r, "bin/codex").pop("sha256"),
+                                                 entry(r, "bin/codex").update(kind="dir"),
+                                                 r["inventory"].update(manifest_sha256=same_basis.sha256(
+                                                     "".join("%s  %s\n" % (e["sha256"], e["path"])
+                                                             for e in r["inventory"]["entries"]
+                                                             if e["kind"] == "file").encode())),
+                                                 r.update(files=r["files"] - 1,
+                                                          root_mode=r["root_mode"])],
+            "file count as a float": lambda r: r.update(files=float(r["files"])),
+            "archive size as a float": lambda r: r["archive"].update(size=float(r["archive"]["size"])),
+            "an entry's size as a float": lambda r: entry(r, "codex-package.json").update(
+                size=float(entry(r, "codex-package.json")["size"])),
+            "macho count as a float": lambda r: r.update(macho_files=0.0),
+            "macho count true": lambda r: r.update(macho_files=True),
+            "other words for the root mode": lambda r: r.update(root_mode="All modes differ."),
+            "other limits": lambda r: r.update(limits=["Everything is established."]),
             "an entry's digest zeroed": lambda r: entry(r, "codex-package.json").update(sha256="0" * 64),
             "an entry's digest missing": lambda r: entry(r, "codex-package.json").pop("sha256"),
             "inventory digest null": lambda r: r["inventory"].update(manifest_sha256=None),
@@ -187,6 +204,25 @@ class SameBasis(unittest.TestCase):
             "another pin": lambda g: g.update(pin=OLD),
             "another format": lambda g: g.update(format="bad"),
             "an extra key": lambda g: g.update(official_release={}),
+            "verified says the tree differs": lambda g: g["supplier"].update(
+                verified="the vendor tree differs from the expected inventory"),
+            "network reports a failed observation": lambda g: g["environment"].update(
+                network="the socket watch could not take a sample"),
+            "other words for the homes": lambda g: g["environment"].update(homes="the person's own home"),
+            "other words for the outside note": lambda g: g["environment"]["outside_configuration"].update(note="none"),
+            "other limits": lambda g: g.update(limits=["A generated basis qualifies the pin."]),
+            "experimental bytes below the bundles": lambda g: g["variants"]["experimental"].update(bytes=1),
+            "stable bytes zero": lambda g: g["variants"]["stable"].update(bytes=0),
+            "bytes as a float": lambda g: g["variants"]["stable"].update(
+                bytes=float(g["variants"]["stable"]["bytes"])),
+            "another timeout": lambda g: g["variants"]["experimental"].update(timeout_seconds=1),
+            "file count as a float": lambda g: g["variants"]["stable"].update(
+                files=float(g["variants"]["stable"]["files"])),
+            "exit code as a float": lambda g: g["variants"]["stable"].update(exit_code=0.0),
+            "socket samples as a float": lambda g: g["variants"]["experimental"].update(socket_samples=3.0),
+            "failed samples false": lambda g: g["variants"]["experimental"].update(failed_samples=False),
+            "no ancestors checked": lambda g: g["environment"]["outside_configuration"].update(
+                working_directory_ancestors="0 checked, none holds .git or .codex"),
             "exit code 7": lambda g: g["variants"]["experimental"].update(exit_code=7),
             "exit code false": lambda g: g["variants"]["stable"].update(exit_code=False),
             "no socket samples": lambda g: g["variants"]["experimental"].update(socket_samples=0),
