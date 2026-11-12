@@ -57,29 +57,33 @@ fn receive_views(home: &HomeSession) -> (Value, Vec<Value>) {
 
 /// The record tick for one home: receive, then record checkpoint
 /// observations of its open runs. Lock order as `host_status`: runtime, then
-/// Root, then a run.
-pub(crate) fn tick_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSession>) {
+/// Root, then a run. Returns the views it recorded from, for the recorders
+/// that follow in the same tick.
+pub(crate) fn tick_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSession>) -> Vec<Value> {
     // Reconcile this home's private receipts and deliver accepted manual pages
     // once, including a genuinely late reply without web-view polling. The
     // shared helper initializes Runtime and follows runtime -> History order.
     home.reconcile_manual_history();
     let (_, recording) = receive_views(home);
-    for view in recording { record_run_observations(workflows, &view); }
+    for view in &recording { record_run_observations(workflows, view); }
+    recording
 }
 
 /// The record tick for every home the App holds.
-pub(crate) fn tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSession>) {
+pub(crate) fn tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSession>) -> Vec<(std::sync::Arc<HomeSession>, Vec<Value>)> {
     let entries = homes.lock().unwrap().entries();
-    for home in entries {
-        tick_home(&home, workflows);
-    }
+    entries.into_iter().map(|home| {
+        let views = tick_home(&home, workflows);
+        (home, views)
+    }).collect()
 }
 
 /// The App's actual record tick also observes ended project arrivals without
 /// requiring a running supplier or a web-view read.
-pub(crate) fn tick_project(homes:&Mutex<HomeRouter>,workflows:&Mutex<WorkflowRootSession>,project:Option<&std::path::Path>) {
-    tick(homes,workflows);
+pub(crate) fn tick_project(homes:&Mutex<HomeRouter>,workflows:&Mutex<WorkflowRootSession>,project:Option<&std::path::Path>) -> Vec<(std::sync::Arc<HomeSession>, Vec<Value>)> {
+    let views=tick(homes,workflows);
     if let Some(project)=project {if let Ok(mut root)=workflows.try_lock(){root.observe_ended_runs(project);}}
+    views
 }
 
 /// The trial tick for one home: the TT-9 reads due in the view as last

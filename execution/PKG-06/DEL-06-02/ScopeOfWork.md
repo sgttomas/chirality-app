@@ -42,11 +42,12 @@ Terms:
   |---|---|
   | done | an integration of its return, or an external result, is recorded |
   | returned | a return is recorded and not integrated |
+  | dispatched | a dispatch whose spawn prompt referenced the item's brief is observed, no return is recorded, and observation of the child has not ended |
   | unknown | a need cannot be established, the brief it names cannot be found, or the records were not fully read |
   | waiting | a need is outstanding, or an external owner has recorded no result |
   | ready | every need is satisfied and no dispatch, return or integration is recorded |
 
-  Unknown takes precedence over waiting. An item with a dispatch observed and no return shows what was last observed of the child, or that observation ended, and is never shown as ready or returned. A cause the records do not give is shown as not established.
+  Unknown takes precedence over waiting. An item with a dispatch observed and no return is shown as dispatched, with what was last observed of the child; once observation of that child has ended it is shown as unknown, with the cause of the end and the last status. It is never shown as ready or returned. A cause the records do not give is shown as not established.
 - **Ready, with a limit.** While a child is observed that no record ties to a brief, no row is presented as plainly ready: each ready row carries a stated limit that a dispatch for the item may be unrecorded. Ready describes file prerequisites only and grants no permission.
 - **Incomplete records.** While any coordination-log line is unread, records conflict, or the files changed during the read, no row is ready, every row that is not done is unknown, and the queue is marked incomplete. An empty or short queue is then never presented as the whole.
 - **Decision package.** A project file an agent prepares for a decision reserved to the person. It names the exact act requested, its subject, its purpose and scope, the basis that reserves the decision, and two or more alternatives, each with its consequences. It holds nothing its recorder supplies and is no record of any act. It reaches the view through the request record that cites it by path and content identity.

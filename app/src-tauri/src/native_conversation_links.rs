@@ -12,7 +12,14 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, Mutex, OnceLock},
 };
+#[path = "native_delegation_records.rs"]
+mod delegation;
 const LOG: &str = "coordination.fleet.jsonl";
+/// Kinds that record how a recording went, never a native fact of their own.
+const MECHANICAL: [&str; 2] = ["recording_limit", "recording_recovered"];
+fn is_fact(record: &Value) -> bool {
+    !MECHANICAL.contains(&record["kind"].as_str().unwrap_or(""))
+}
 const ID: &str = "urn:chirality:app-v4:del-06-01:fleet-native-links:0.2";
 pub(crate) fn validate_record(record: &Value) -> Result<(), String> {
     static SCHEMA: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
@@ -44,8 +51,16 @@ pub(crate) fn validate_record(record: &Value) -> Result<(), String> {
         {
             return Err("native relationship endpoints/method/home disagree".into());
         }
-    } else if b["originalObservationId"] == record["observationId"] {
-        return Err("mechanical observation cannot reference itself".into());
+    } else if !is_fact(record) {
+        if b["originalObservationId"] == record["observationId"] {
+            return Err("mechanical observation cannot reference itself".into());
+        }
+    } else if b["child"]["generation"]["home"] != b["nativeHome"]["homeId"]
+        || (record["kind"] == "dispatch_observed"
+            && (b["parent"]["threadId"] == b["child"]["threadId"]
+                || b["parent"]["generation"] != b["child"]["generation"]))
+    {
+        return Err("native delegation endpoints/home disagree".into());
     }
     Ok(())
 }
@@ -254,7 +269,11 @@ pub(crate) struct SourceContext {
     custody_limit: Option<String>,
 }
 pub(crate) fn freeze_source(project: Option<&Path>, home: &HomeSession) -> SourceContext {
-    let generation = home.host.snapshot()["generation"].clone();
+    freeze_at(project, home, home.host.snapshot()["generation"].clone())
+}
+/// The recording context of one generation of this home, which may already
+/// have closed: an observation is recorded for the generation it was received in.
+fn freeze_at(project: Option<&Path>, home: &HomeSession, generation: Value) -> SourceContext {
     let native_home = (|| {
         crate::recovery::generation_ref(&generation)?;
         let config = home.host_config.as_ref().map_err(Clone::clone)?;
@@ -343,8 +362,32 @@ pub(crate) struct Session {
     )>,
     recovery_limit: Option<String>,
     limits: Vec<String>,
+    delegation: delegation::State,
 }
 impl Session {
+    /// The record tick hands over each home's native views as received. What
+    /// they show of native delegation is recorded once; nothing is sent.
+    pub(crate) fn observe_delegation(&mut self, project: Option<&Path>, home: &HomeSession, views: &[Value]) {
+        let events = std::cell::OnceCell::new();
+        self.observe_delegation_views(
+            project,
+            views,
+            &mut |generation| freeze_at(project, home, generation.clone()),
+            &|generation| {
+                let ended = |state: &str| events.get_or_init(|| home.host.lifecycle_events()).iter()
+                    .any(|event| event["generation"] == *generation && event["toState"] == state);
+                if ended("exited-unexpectedly") {
+                    Some("Codex process exited unexpectedly")
+                } else if ended("stopped") {
+                    Some("Codex process stopped")
+                } else if home.host.snapshot()["generation"] != *generation {
+                    Some("cause not observed")
+                } else {
+                    None
+                }
+            },
+        );
+    }
     pub(crate) fn has_pending(&self) -> bool {
         if self
             .attempts
@@ -740,7 +783,7 @@ impl Session {
                     .cloned()
                     .flatten()
             };
-            let failures = if record["kind"] == "related_conversation" {
+            let failures = if is_fact(&record) {
                 [phase_failure(0), phase_failure(1)]
             } else {
                 [None, None]
@@ -787,7 +830,7 @@ impl Session {
         Ok(())
     }
     pub(crate) fn snapshot(&self) -> Value {
-        json!({"nativeAttempts":self.attempts.values().map(|a|json!({"generation":a.request.generation(),"requestId":a.request.request_id(),"requestRef":a.request.request_ref(),"method":a.request.attempted_frame()["method"],"factObserved":a.fact,"limit":a.limit})).collect::<Vec<_>>(),"observations":self.facts.values().map(|p|json!({"observation":if p.context.native_home.is_ok(){Some(&p.record)}else{None},"unrecordedSourceLimitedFact":if p.context.native_home.is_err(){Some(json!({"observationId":p.record["observationId"],"observedAt":p.record["observedAt"],"nativeResult":p.record["body"],"limit":p.context.native_home.as_ref().err()}))}else{None},"storeRecorded":p.store_done,"projectCopied":p.project_done,"permanentRecordingLimit":p.permanent,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>(),"quotedCopyRecovery":{"standing":"Existing stored exact lines only; no cold native observation or authority minted","limit":self.recovery_limit,"completedCopies":self.completed_copies,"copies":self.copies.values().map(|p|json!({"observationId":p.record["observationId"],"storeRecorded":p.store_done,"projectCopied":p.project_done,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>()},"pending":self.has_pending(),"limits":self.limits,"standing":"Observed native conversation relationships; recording status is separate from native operation success. No role, workflow, dispatch or work state is restored or derived."})
+        json!({"nativeAttempts":self.attempts.values().map(|a|json!({"generation":a.request.generation(),"requestId":a.request.request_id(),"requestRef":a.request.request_ref(),"method":a.request.attempted_frame()["method"],"factObserved":a.fact,"limit":a.limit})).collect::<Vec<_>>(),"observations":self.facts.values().map(|p|json!({"observation":if p.context.native_home.is_ok(){Some(&p.record)}else{None},"unrecordedSourceLimitedFact":if p.context.native_home.is_err(){Some(json!({"observationId":p.record["observationId"],"observedAt":p.record["observedAt"],"nativeResult":p.record["body"],"limit":p.context.native_home.as_ref().err()}))}else{None},"storeRecorded":p.store_done,"projectCopied":p.project_done,"permanentRecordingLimit":p.permanent,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>(),"quotedCopyRecovery":{"standing":"Existing stored exact lines only; no cold native observation or authority minted","limit":self.recovery_limit,"completedCopies":self.completed_copies,"copies":self.copies.values().map(|p|json!({"observationId":p.record["observationId"],"storeRecorded":p.store_done,"projectCopied":p.project_done,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>()},"pending":self.has_pending(),"limits":self.limits,"standing":"Observed native conversation relationships and native delegation; recording status is separate from native operation success. A recorded dispatch establishes a child and its parent only. No role, workflow or work state is restored or derived."})
     }
 }
 fn line(v: &Value) -> Result<Vec<u8>, String> {
@@ -831,14 +874,14 @@ fn settle(p: &mut Pending) {
                 } else {
                     p.project_done = true
                 };
-                if p.first_failure[phase].is_some() && p.record["kind"] == "related_conversation" {
+                if p.first_failure[phase].is_some() && is_fact(&p.record) {
                     match mechanical(p,phase,"recording_recovered","The exact original line is now proved present and synced; the earlier failed/unconfirmed callback is not changed to success.".into()){Ok(e)=>p.events.push(e),Err(reason)=>p.first_failure[phase]=Some(reason)}
                 }
             }
             Err(reason) => {
                 if p.first_failure[phase].is_none() {
                     p.first_failure[phase] = Some(reason.clone());
-                    if p.record["kind"] == "related_conversation" {
+                    if is_fact(&p.record) {
                         if let Ok(event)=mechanical(p,phase,"recording_limit",format!("Original recording callback failed or was unconfirmed: {reason}. Native operation outcome remains as originally observed.")){p.events.push(event);}
                     }
                 }

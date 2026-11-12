@@ -1,5 +1,6 @@
 //! DEL-06-01 RF facts and DEL-06-02 FV views over one stable, once-read packet.
-//! No writer, dispatch, native identity join, or human-act admission.
+//! No writer, native identity join, or human-act admission. A dispatch is read
+//! only from the App's own recorded observation and its recorded association.
 use super::{Census, LogRead, Row, FOLDER, OBSERVED};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -287,6 +288,50 @@ fn sourced(row: &Row) -> Value {
     json!({"recordId":row.id(),"source":row.source,"recorder":row.record["recorder"]})
 }
 
+const DELEGATION: [&str; 3] = ["dispatch_observed", "child_observed", "observation_ended"];
+fn child_key(record: &Value) -> String {
+    let child = &record["body"]["child"];
+    json!([child["generation"]["home"], child["threadId"]]).to_string()
+}
+/// The App's own 0.2 delegation observations, in protected order. They carry
+/// no undertaking: only a dispatch's recorded association ties it to a brief.
+struct Delegation<'a> {
+    dispatches: Vec<&'a Value>,
+    /// The last status or end of observation recorded for each child.
+    last: BTreeMap<String, &'a Value>,
+    /// Children with a status or an end recorded and no dispatch.
+    orphaned: Vec<&'a str>,
+    /// Children still observed that no record ties to a brief.
+    unassociated: usize,
+}
+impl<'a> Delegation<'a> {
+    fn read(observations: &'a [Value]) -> Self {
+        let records: Vec<&Value> = observations.iter().map(|o| &o["record"])
+            .filter(|r| r["formatVersion"] == "0.2" && DELEGATION.contains(&text(&r["kind"]))).collect();
+        let dispatches: Vec<&Value> = records.iter().copied().filter(|r| r["kind"] == "dispatch_observed").collect();
+        let mut last = BTreeMap::new();
+        for record in records.iter().copied().filter(|r| r["kind"] != "dispatch_observed") {
+            last.insert(child_key(record), record);
+        }
+        let dispatched: BTreeSet<String> = dispatches.iter().map(|d| child_key(d)).collect();
+        let ended = |key: &String| last.get(key).is_some_and(|r| r["kind"] == "observation_ended");
+        let orphans: Vec<(&String, &&Value)> = last.iter().filter(|(key, _)| !dispatched.contains(*key)).collect();
+        let unassociated = dispatches.iter().filter(|d| d["body"]["association"]["brief"].is_null() && !ended(&child_key(d))).count()
+            + orphans.iter().filter(|(key, _)| !ended(key)).count();
+        let orphaned = orphans.iter().map(|(_, r)| text(&r["body"]["child"]["threadId"])).collect();
+        Self { dispatches, last, orphaned, unassociated }
+    }
+    /// What was last recorded of a dispatched child, and whether its observation ended.
+    fn observed(&self, dispatch: &Value) -> (String, bool) {
+        match self.last.get(&child_key(dispatch)) {
+            Some(r) if r["kind"] == "observation_ended" => (format!("observation ended ({}), last recorded status {}; outcome unknown",
+                text(&r["body"]["cause"]), r["body"]["lastObserved"].as_str().unwrap_or("none")), true),
+            Some(r) => (format!("child last observed {}", text(&r["body"]["status"])), false),
+            None => ("no child status recorded".into(), false),
+        }
+    }
+}
+
 pub(super) fn derive(
     briefs: &[Row],
     graphs: &[Row],
@@ -302,6 +347,13 @@ pub(super) fn derive(
         .map(|r| text(&r.record["undertaking"]))
         .filter(|s| !s.is_empty())
         .collect();
+    let delegation = Delegation::read(observations);
+    // A project line of an App-only kind is the App's observation only where
+    // the protected copy holds the identical line.
+    let delegation_claims: Vec<&Row> = log.rows.iter()
+        .filter(|r| r.record["formatVersion"] == "0.2" && DELEGATION.contains(&r.kind())).collect();
+    let unprotected_claims = delegation_claims.iter()
+        .any(|r| !observations.iter().any(|o| array(&o["projectCounterparts"]).contains(&r.source)));
     let views: Vec<_> = undertakings.into_iter().map(|undertaking| {
         let rows: Vec<_> = log.rows.iter().filter(|r| r.record["undertaking"] == undertaking).collect();
         let (mut active, mut notes) = active(&rows, duplicates);
@@ -347,12 +399,14 @@ pub(super) fn derive(
         let observed: Vec<_> = observations.iter().filter(|o|o["record"]["formatVersion"]=="0.1" && o["record"]["undertaking"]==undertaking).map(|o|&o["record"]).collect();
         let dispatched: BTreeSet<_> = observed.iter().filter(|o|o["kind"]=="dispatch_observed").map(|o|text(&o["body"]["childThread"])).collect();
         let orphaned: BTreeSet<_> = observed.iter().filter(|o|matches!(text(&o["kind"]),"child_observed"|"observation_ended") && !dispatched.contains(text(&o["body"]["childThread"]))).map(|o|text(&o["body"]["childThread"])).collect();
-        let unassociated = observed.iter().filter(|o|o["kind"]=="dispatch_observed" && o["body"]["association"]["brief"].is_null()).count() + orphaned.len();
-        let untrusted = rows.iter().any(|r|OBSERVED.contains(&r.kind())
+        let unassociated = observed.iter().filter(|o|o["kind"]=="dispatch_observed" && o["body"]["association"]["brief"].is_null()).count() + orphaned.len()
+            + delegation.unassociated;
+        let untrusted = unprotected_claims || rows.iter().any(|r|OBSERVED.contains(&r.kind())
             && !observations.iter().any(|o|array(&o["projectCounterparts"]).contains(&r.source)));
         if incomplete { notes.push("coordination log incomplete or conflicting; non-done states are unknown and the queue is not complete".into()); }
         if untrusted { notes.push("App-named project observations lack a healthy protected counterpart; native execution is not established".into()); }
         if !orphaned.is_empty() { notes.push(format!("orphaned child observations: {}",orphaned.iter().copied().collect::<Vec<_>>().join(", "))); }
+        if !delegation.orphaned.is_empty() { notes.push(format!("child observations with no recorded dispatch: {}",delegation.orphaned.join(", "))); }
         let item_return = |id:&str| event(&active,"return_recorded",id);
         let integrated = |id:&str| item_return(id).and_then(|r|return_events(&active,"integration_recorded",id,r.id()));
         let external = |id:&str| event(&active,"external_result",id);
@@ -440,6 +494,21 @@ pub(super) fn derive(
                 } else if rows.iter().any(|r|r.kind()=="dispatch_observed" && !item["brief"].is_null() && r.record["body"]["association"]["brief"]==item["brief"]) {
                     category="unknown";causes.push("project dispatch claim lacks protected App provenance".into());
                 }
+                // The App's own observation: the item is held by a worker until a
+                // return is recorded. Nothing about the work or its outcome follows.
+                let for_brief: Vec<&Value> = delegation.dispatches.iter().copied()
+                    .filter(|d| !item["brief"].is_null() && d["body"]["association"]["brief"]==item["brief"]).collect();
+                if let Some(dispatch) = for_brief.last().copied() {
+                    let (observed, ended) = delegation.observed(dispatch);
+                    let same_bytes = brief.is_some_and(|b| dispatch["body"]["association"]["briefContent"]["value"] == crate::util::sha256_hex(&b.bytes));
+                    category = if ended { "unknown" } else { "dispatched" };
+                    causes.push(format!("App observed dispatch of child {} by {} for {} ({}); {observed}{}",
+                        text(&dispatch["body"]["child"]["threadId"]), text(&dispatch["body"]["parent"]["threadId"]), text(&item["brief"]),
+                        if same_bytes { "the brief file matches the content referenced at dispatch" } else { "the brief file is not the content referenced at dispatch" },
+                        if for_brief.len() > 1 { format!("; {} dispatches recorded for this brief, the latest shown", for_brief.len()) } else { String::new() }));
+                } else if delegation_claims.iter().any(|r| r.kind()=="dispatch_observed" && !item["brief"].is_null() && r.record["body"]["association"]["brief"]==item["brief"]) {
+                    category="unknown";causes.push("project dispatch claim lacks protected App provenance".into());
+                }
             }
             if done.is_none() {
                 for change in active.iter().filter(|r|r.kind()=="basis_changed" && array(&r.record["body"]["affectedItems"]).iter().any(|i|i==id)) {
@@ -456,13 +525,13 @@ pub(super) fn derive(
         result["graph"]=json!(graph.id());result["revision"]=graph.record["body"]["revision"].clone();
         result["selector"]=sourced(selector);result["graphSource"]=sourced(graph);
         result["currentGraphEstablished"]=json!(!incomplete);
-        result["queueComplete"]=json!(!incomplete && orphaned.is_empty() && !untrusted);
+        result["queueComplete"]=json!(!incomplete && orphaned.is_empty() && delegation.unassociated==0 && !untrusted);
         result["queue"]=json!(queue);result["waiting"]=json!(waiting);result["notes"]=json!(notes);result
     }).collect();
     json!({"standing":"Derived file-based coordination claims, not native execution, permission, human acceptance or authority. Rebuild writes nothing.",
         "graphIdentityMethod":crate::util::FILE_IDENTITY_METHOD,"undertakings":views,
         "limits":["Decision needs remain unknown until their current human-act standing is available; a recorded decision alone is insufficient.",
-            "Legacy 0.1 child observations do not establish a current native relationship. The native dispatch producer remains unavailable."]})
+            "A dispatch is shown only from the App's own recorded observation, tied to an item only by the brief its spawn prompt referenced. It establishes a child and its parent, never work done, a return, a review or an integration. Legacy 0.1 child observations do not establish a current native relationship."]})
 }
 
 #[cfg(test)]

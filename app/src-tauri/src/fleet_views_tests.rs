@@ -54,7 +54,11 @@ impl Fixture {
     fn flush(&self) {
         let mut bytes = Vec::new();
         for r in &self.log {
-            super::super::validator().unwrap().validate(r).unwrap();
+            if r["formatVersion"] == "0.2" {
+                crate::native_conversation_links::validate_record(r).unwrap();
+            } else {
+                super::super::validator().unwrap().validate(r).unwrap();
+            }
             bytes.extend(serde_json::to_vec(r).unwrap());
             bytes.push(b'\n');
         }
@@ -625,4 +629,135 @@ fn fleet_views_corrections_do_not_silently_choose_conflicting_returns() {
     let w = f.read();
     assert_eq!(view(&w)["queueComplete"], false);
     assert_eq!(work(view(&w), "W1")["category"], "unknown");
+}
+
+/// An App observation in the 0.2 form, as the App's recorder writes it.
+fn native(kind: &str, id: &str, body: Value) -> Value {
+    json!({"format":"chirality.fleet.record","formatVersion":"0.2","observationId":format!("fl:app:{id}"),"kind":kind,
+        "recorder":{"kind":"App","identity":"app-writer:local"},"observedAt":"invented time","body":body})
+}
+fn native_child(child: &str) -> Value {
+    json!({"threadId":child,"generation":{"appSession":"invented-session","home":"invented-home","spawnCounter":1}})
+}
+impl Fixture {
+    fn native_home(&self) -> Value {
+        json!({"homeId":"invented-home","root":crate::attachments::native_path_identity(&self.project),"physical":{"device":1,"inode":1}})
+    }
+    fn dispatch(&self, child: &str, association: Value) -> Value {
+        native("dispatch_observed", &format!("dispatch-{child}"), json!({"mechanism":"Codex native subagent",
+            "parent":native_child("invented-parent"),"child":native_child(child),"parentSource":"collabAgentToolCall.senderThreadId",
+            "nativeHome":self.native_home(),"spawnItem":{"threadId":"invented-parent","turnId":"turn","itemId":format!("spawn-{child}")},
+            "spawnPrompt":{"state":"not supplied"},"association":association,
+            "observation":{"source":"item/completed notification, received live","position":7},"typesPin":crate::hosting::DECLARED_PIN}))
+    }
+    fn status(&self, child: &str, status: &str) -> Value {
+        native("child_observed", &format!("status-{child}-{status}"), json!({"child":native_child(child),"status":status,
+            "statusSource":"collabAgentToolCall.agentsStates","sourceItem":{"threadId":"invented-parent","turnId":"turn","itemId":"wait"},
+            "nativeHome":self.native_home(),"typesPin":crate::hosting::DECLARED_PIN}))
+    }
+    fn ended(&self, child: &str, last: &str) -> Value {
+        native("observation_ended", &format!("ended-{child}"), json!({"child":native_child(child),"cause":"App relaunch","lastObserved":last,"nativeHome":self.native_home()}))
+    }
+    /// The store's governing copy holds exactly these lines; the project's log gets the identical lines.
+    fn observed(&mut self, rows: &[Value]) {
+        let dir = records_store::attach(&self.project, true).unwrap().dir.unwrap();
+        std::fs::create_dir_all(dir.join("fleet")).unwrap();
+        let mut bytes = Vec::new();
+        for row in rows {
+            bytes.extend(serde_json::to_vec(row).unwrap());
+            bytes.push(b'\n');
+        }
+        std::fs::write(dir.join("fleet/coordination.fleet.jsonl"), bytes).unwrap();
+        self.log.retain(|r| r["formatVersion"] != "0.2");
+        self.log.extend(rows.iter().cloned());
+    }
+    /// W1 names a prepared brief; returns the association a dispatch for it records.
+    fn briefed(&mut self) -> Value {
+        let bytes = serde_json::to_vec(&brief("brief:W1", "manager")).unwrap();
+        self.put("briefs/W1.json", &bytes);
+        self.put("inputs/style.txt", b"style");
+        self.graph["body"]["items"][0]["brief"] = json!("brief:W1");
+        self.select();
+        json!({"state":"brief referenced","brief":"brief:W1","briefFile":"briefs/W1.json",
+            "briefContent":{"method":util::FILE_IDENTITY_METHOD,"value":util::sha256_hex(&bytes)}})
+    }
+}
+
+// DEL-06-02 Waiting view: an item with a dispatch observed and no return shows
+// what was last observed of the child, or that observation ended, and is never
+// shown as ready or returned. Each expectation is that sentence, not the reader's output.
+#[test]
+fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observation_is_unknown() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    assert_eq!(work(view(&f.read()), "W1")["category"], "ready", "a prepared brief is no dispatch");
+    let dispatch = f.dispatch("child-a", association);
+    f.observed(&[dispatch.clone()]);
+    let w = f.read();
+    let v = view(&w);
+    let held = work(v, "W1");
+    assert_eq!(held["category"], "dispatched");
+    let cause = held["causes"].as_array().unwrap().iter().filter_map(Value::as_str).find(|c| c.contains("child-a")).unwrap().to_owned();
+    assert!(cause.contains("invented-parent") && cause.contains("no child status recorded") && cause.contains("matches the content referenced"), "{cause}");
+    assert_eq!(work(v, "W3")["category"], "ready", "a dispatch tied to its brief qualifies no other item");
+    assert_eq!(v["queue"], json!([]), "a dispatch is not a return");
+    f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed")]);
+    let w = f.read();
+    let held = work(view(&w), "W1");
+    assert_eq!(held["category"], "dispatched", "a child Codex reports completed is not a return");
+    assert!(held["causes"].to_string().contains("child last observed completed"));
+    assert_eq!(view(&w)["queue"], json!([]));
+    // The governing copy is only ever appended to; a rewritten one would be refused whole.
+    f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed"), f.ended("child-a", "completed")]);
+    let w = f.read();
+    let held = work(view(&w), "W1");
+    assert_eq!(held["category"], "unknown");
+    assert!(held["causes"].to_string().contains("observation ended (App relaunch), last recorded status completed; outcome unknown"));
+    assert_eq!(view(&w)["queue"], json!([]), "an ended observation is no return");
+    f.ret("fl:return", "W1");
+    let w = f.read();
+    assert_eq!(work(view(&w), "W1")["category"], "returned");
+    assert_eq!(view(&w)["queue"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn fleet_views_a_project_line_naming_the_app_or_a_child_tied_to_no_brief_never_reads_plainly() {
+    // A 0.2 dispatch in the project's log alone is its recorder's claim.
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    f.log.push(f.dispatch("forged-child", association.clone()));
+    let w = f.read();
+    let v = view(&w);
+    assert_eq!(work(v, "W1")["category"], "unknown");
+    assert!(work(v, "W1")["causes"].to_string().contains("lacks protected App provenance"));
+    assert_eq!(work(v, "W3")["category"], "ready (qualified)");
+    assert_eq!(v["queueComplete"], false);
+    drop(f);
+    // A child the App observed that no record ties to a brief: no row is plainly ready while it is observed.
+    let mut f = Fixture::new();
+    f.briefed();
+    let loose = f.dispatch("loose-child", json!({"state":"no brief reference"}));
+    f.observed(&[loose.clone()]);
+    let w = f.read();
+    assert_eq!(work(view(&w), "W1")["category"], "ready (qualified)", "an unassociated child is tied to no item");
+    assert_eq!(work(view(&w), "W3")["category"], "ready (qualified)");
+    assert_eq!(view(&w)["queueComplete"], false);
+    f.observed(&[loose.clone(), f.ended("loose-child", "running")]);
+    let w = f.read();
+    assert_eq!(work(view(&w), "W3")["category"], "ready");
+    // A status with no dispatch recorded is named, and qualifies readiness the same way.
+    let stray = [loose.clone(), f.ended("loose-child", "running"), f.status("stray-child", "running")];
+    f.observed(&stray);
+    let w = f.read();
+    assert_eq!(work(view(&w), "W3")["category"], "ready (qualified)");
+    assert!(view(&w)["notes"].to_string().contains("child observations with no recorded dispatch: stray-child"));
+    // A dispatch whose brief file is no longer the content referenced still holds the item, and says so.
+    let mut changed = association;
+    changed["briefContent"]["value"] = json!("0".repeat(64));
+    let mut rows = stray.to_vec();
+    rows.push(f.dispatch("child-b", changed));
+    f.observed(&rows);
+    let w = f.read();
+    assert_eq!(work(view(&w), "W1")["category"], "dispatched");
+    assert!(work(view(&w), "W1")["causes"].to_string().contains("is not the content referenced at dispatch"));
 }

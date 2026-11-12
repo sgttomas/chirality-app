@@ -289,10 +289,6 @@ Each of these decides whether a criterion can be met, or whether one is
 added, and nothing accepted settles it. Every other undecided item stands as
 its owning scope states it.
 
-- **Tying a delegated child to its brief (criterion 5).** How a child is tied
-  to its brief where the supplier exposes neither the dispatch message nor a
-  mark the App can set is undecided (DEL-06-01 TBD-003), and the criterion
-  needs each delegation connected to its brief.
 - **The records the App keeps (no criterion yet).** The PRD commits to where
   decisions and run records are kept, that they are append-only and report a
   changed line, and that they export as a package that verifies without the

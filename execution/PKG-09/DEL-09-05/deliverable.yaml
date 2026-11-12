@@ -5,7 +5,8 @@ needs:
   condition: A brief carries purpose, basis, context, authority and tools, write scope and expected
     return; the work graph and coordination records are files; an observed native child is recorded
     with the identities Codex reported and its association, which is a brief referenced with its
-    content identity, a brief referenced that has changed since, or no brief reference; and after
+    content identity, a brief referenced that has changed since, a brief reference not resolved,
+    or no brief reference; and after
     a changed basis and an interruption the records still give ownership, returns awaiting review
     and continuation.
   gating: true
@@ -46,5 +47,12 @@ needs:
 - from: external:DEP-005
   condition: The stock supplier is available at the pin the candidate was built with, with native
     delegation events readable.
+- from: DEL-02-04
+  condition: The guidance the App supplies to a conversation whose role may delegate has the agent
+    write each brief, the work graph and its selector, returns, reviews, integrations and the decision
+    package as files, and name each brief in the spawn prompt, so that the two delegations of the
+    fixture appear on the graph from the person's use of the App alone; no shipped guidance says
+    so yet.
+  gating: true
 code_paths: []
 checks: []

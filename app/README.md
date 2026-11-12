@@ -855,6 +855,28 @@ implemented behavior and qualification limits.
     currently unsigned and unchained; cold reads restore no conversation or
     role authority.
 
+    The host records what it observes of Codex's **native delegation** the
+    same way, in the same 0.2 format (`fleet.native-links.schema.json`), with
+    no undertaking named. A completed spawn item received live in a
+    conversation of the selected project is written once as
+    `dispatch_observed`: the home-qualified parent and child thread
+    identities, the spawn item, the content identity of the spawn prompt
+    (never its text, or that Codex supplied none) and the association. The
+    association comes only from one line of the prompt,
+    `Chirality-Brief: briefs/<file>.json sha256:<64 lowercase hex>` (path
+    relative to `.chirality/fleet/`, digest of the file's exact bytes),
+    compared with the brief file when the dispatch is recorded: brief
+    referenced, brief referenced and changed since, brief reference not
+    resolved (with the reason), or no brief reference. `child_observed` is
+    written when the status Codex reports for a child changes, and
+    `observation_ended` when the generation it was observed in closes
+    (Codex stopped or exited) or, at the next launch, for a child an earlier
+    session left unended (cause "App relaunch"). A dispatch establishes a
+    child and its parent only. A spawn seen only in Codex history, or in a
+    conversation whose folder is not the selected project, is not recorded.
+    An observation whose project has no usable records-store attachment
+    waits and is recorded once it has one.
+
 27. **Refresh fleet records** rebuilds the file-based coordination workspace
     for each undertaking: the selected graph, outstanding returns and review
     ownership, recorded integration, selected work and waiting causes. It reads
@@ -867,8 +889,11 @@ implemented behavior and qualification limits.
     Missing, changed or duplicate selections never fall back to an older graph.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. Decision
-    needs and current native execution remain unknown without their required
-    evidence. An incomplete source packet cannot produce unqualified readiness
+    needs remain unknown without their required evidence. An item whose
+    brief an App-recorded dispatch referenced, with no return recorded, reads
+    `dispatched` with the child's last recorded status, and `unknown` once
+    that child's observation ended; a child tied to no brief leaves no item
+    plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 

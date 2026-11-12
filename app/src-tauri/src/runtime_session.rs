@@ -9389,6 +9389,50 @@ for line in sys.stdin:
         let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
         assert_eq!(status["pendingBringBacks"].as_array().unwrap().len(),1);
     }
+    // DEL-06-01 AC-003: a spawn the host receives live reaches the delegation
+    // recorder through the record tick's own views, with the identities the
+    // peer reported; stopping Codex ends the child's observation with that cause.
+    #[test]
+    fn the_record_tick_hands_a_live_spawn_and_its_ended_observation_to_the_delegation_recorder(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-tick-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        let attached=crate::records_store::attach(&peer.fixture.root,true).unwrap();
+        assert!(attached.refusal.is_none()&&attached.dir.is_some(),"the invented project is attached to the invented store");
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let mut recorded=|kind:&str|{
+            let deadline=std::time::Instant::now()+Duration::from_secs(5);
+            loop{
+                for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+                links.retry(peer.project());
+                let packet=crate::read_fleet_records_for_workspace(peer.project()).unwrap();
+                let rows:Vec<Value>=packet["coordination"]["nativeDelegation"].as_array().unwrap().iter().map(|row|row["record"].clone()).collect();
+                if rows.iter().any(|row|row["kind"]==kind){return rows;}
+                assert!(std::time::Instant::now()<deadline,"{kind} recorded; limits {}",links.snapshot()["limits"]);
+                std::thread::sleep(Duration::from_millis(20));
+            }
+        };
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let rows=recorded("child_observed");
+        assert_eq!(rows.len(),2,"{rows:?}");
+        let dispatch=&rows[0]["body"];
+        assert_eq!(rows[0]["kind"],"dispatch_observed");
+        assert_eq!(dispatch["parent"],json!({"threadId":"thread","generation":g}));
+        assert_eq!(dispatch["child"],json!({"threadId":"child-old","generation":g}));
+        assert_eq!(dispatch["nativeHome"]["homeId"],g["home"]);
+        assert_eq!(dispatch["spawnItem"]["itemId"],"spawn-old");
+        assert_eq!(dispatch["spawnPrompt"],json!({"state":"not supplied"}),"the peer's spawn item carries no prompt");
+        assert_eq!(dispatch["association"],json!({"state":"no brief reference"}));
+        assert_eq!(rows[1]["body"]["status"],"running");
+        peer.home.host.stop("person:fixture","codex-stop").unwrap();
+        let rows=recorded("observation_ended");
+        assert_eq!(rows.len(),3,"{rows:?}");
+        assert_eq!(rows[2]["body"],json!({"child":{"threadId":"child-old","generation":g},"cause":"Codex process stopped","lastObserved":"running","nativeHome":dispatch["nativeHome"]}));
+    }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.
     #[test]
