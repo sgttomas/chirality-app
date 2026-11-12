@@ -418,7 +418,11 @@ The posture's delegation lifts none of these: they concern the owner's
 existing assets and acts that are the owner's, not project decisions.
 
 Use a fresh scratch Codex home for development/tests, never `~/.codex`.
-Do not sign in or use credentials without the owner. Build offline by default;
+Do not sign in or use credentials without the owner. After the owner's own
+sign-in, agents may run bounded development tests through the App's signed-in
+session and the local model server without asking each time. They never sign
+in, never see or handle a credential, and stop and tell Agent 0 if the session
+asks for one. Build offline by default;
 downloads, including binaries and archives, require explicit permission
 identifying the file, source and size. Routine read-only inspection of public
 source code and documentation text is authorized.
