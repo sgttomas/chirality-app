@@ -7,7 +7,10 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 import tempfile
+import threading
+import types
 import unittest
 from pathlib import Path
 
@@ -112,21 +115,150 @@ class VendorVerification(unittest.TestCase):
         self.assertFalse(out.exists())
 
 
+class MetadataPaths(unittest.TestCase):
+    """Nothing the package metadata says may name a path outside the verified tree."""
+
+    def setUp(self):
+        self.root = tempfile.TemporaryDirectory()
+        self.vendor = Path(os.path.realpath(self.root.name)) / "vendor"
+        (self.vendor / "bin").mkdir(parents=True)
+        (self.vendor / "codex-path").mkdir()
+        (self.vendor / "bin/codex").write_bytes(b"entry")
+        os.chmod(self.vendor / "bin/codex", 0o755)
+        (self.vendor.parent / "not-in-inventory").write_bytes(b"outside")
+        os.chmod(self.vendor.parent / "not-in-inventory", 0o755)
+        self.record = {"package_metadata": {"entrypoint": "bin/codex", "pathDir": "codex-path"}, "inventory": {
+            "entries": [{"path": "bin", "kind": "dir", "mode": 0o755},
+                        {"path": "bin/codex", "kind": "file", "mode": 0o755, "size": 5,
+                         "sha256": hashlib.sha256(b"entry").hexdigest()},
+                        {"path": "codex-path", "kind": "dir", "mode": 0o755}]}}
+
+    def tearDown(self):
+        self.root.cleanup()
+
+    def test_only_inventory_members_of_the_right_kind_are_admitted(self):
+        self.assertEqual(capture.metadata_members(self.record), {"entrypoint": "bin/codex", "pathDir": "codex-path"})
+        for field, value in (("entrypoint", "../not-in-inventory"), ("entrypoint", "/bin/sh"), ("entrypoint", "bin"),
+                             ("entrypoint", "bin/absent"), ("entrypoint", "bin/../bin/codex"), ("entrypoint", ""),
+                             ("entrypoint", None), ("entrypoint", 7), ("pathDir", "bin/codex"), ("pathDir", "."),
+                             ("pathDir", ".."), ("execServer", "../not-in-inventory"), ("resourcesDir", "bin/codex")):
+            with self.subTest(field=field, value=value):
+                record = json.loads(json.dumps(self.record))
+                record["package_metadata"][field] = value
+                with self.assertRaisesRegex(capture.Refused, "of the verified inventory"):
+                    capture.metadata_members(record)
+                with self.assertRaises(capture.Refused):
+                    capture.admitted_path(str(self.vendor), record, "entrypoint")
+
+    def test_an_entrypoint_that_is_not_executable_in_the_inventory_refuses(self):
+        self.record["inventory"]["entries"][1]["mode"] = 0o644
+        with self.assertRaisesRegex(capture.Refused, "not executable"):
+            capture.metadata_members(self.record)
+
+    def test_the_path_is_admitted_again_at_the_moment_of_use(self):
+        binary = capture.admitted_path(str(self.vendor), self.record, "entrypoint")
+        self.assertEqual(binary, str(self.vendor / "bin/codex"))
+        (self.vendor / "bin/codex").write_bytes(b"other")
+        with self.assertRaisesRegex(capture.Refused, "no longer equals"):
+            capture.admitted_path(str(self.vendor), self.record, "entrypoint")
+
+    def test_a_link_in_place_of_the_entrypoint_or_of_its_directory_refuses(self):
+        (self.vendor / "bin/codex").unlink()
+        os.symlink(self.vendor.parent / "not-in-inventory", self.vendor / "bin/codex")
+        with self.assertRaisesRegex(capture.Refused, "passes through a link"):
+            capture.admitted_path(str(self.vendor), self.record, "entrypoint")
+        (self.vendor / "bin/codex").unlink()
+        (self.vendor / "bin").rmdir()
+        os.symlink(self.vendor.parent, self.vendor / "bin")
+        with self.assertRaisesRegex(capture.Refused, "passes through a link"):
+            capture.admitted_path(str(self.vendor), self.record, "entrypoint")
+
+    def test_the_harness_refuses_metadata_that_escapes_before_anything_can_run(self):
+        self.record["package_metadata"]["entrypoint"] = "../not-in-inventory"
+        with self.assertRaises(capture.Refused):
+            capture.Harness(str(self.vendor), self.record, str(self.vendor.parent / "out"), 1.0)
+        self.assertFalse((self.vendor.parent / "out").exists())
+
+
+class SocketWatch(unittest.TestCase):
+    @staticmethod
+    def lsof(returncode, stdout="", stderr=""):
+        return lambda *args, **kwargs: types.SimpleNamespace(returncode=returncode, stdout=stdout, stderr=stderr)
+
+    def test_a_sample_is_taken_only_when_lsof_reports_cleanly(self):
+        header = "COMMAND PID PGID USER FD TYPE DEVICE SIZE/OFF NODE NAME\n"
+        row = "codex 1 1 u 9u IPv4 0x0 0t0 TCP 127.0.0.1:50000->%s:443 (ESTABLISHED)\n"
+        self.assertEqual(capture.socket_peers(1, self.lsof(1)), [])
+        self.assertEqual(capture.socket_peers(1, self.lsof(0, header)), [])
+        self.assertEqual(capture.socket_peers(1, self.lsof(0, header + row % "127.0.0.1")), ["127.0.0.1"])
+        self.assertEqual(capture.socket_peers(1, self.lsof(0, header + row % "203.0.113.7")), ["203.0.113.7"])
+        self.assertIsNone(capture.socket_peers(1, self.lsof(2)))
+        self.assertIsNone(capture.socket_peers(1, self.lsof(1, stderr="lsof: no pwd entry")))
+        self.assertIsNone(capture.socket_peers(1, self.lsof(1, header + row % "127.0.0.1")))
+
+    def test_a_failed_sample_or_a_foreign_peer_stops_the_run(self):
+        for peers, expected in ((None, "could not take a sample"), (["203.0.113.7"], "non-loopback socket")):
+            with self.subTest(peers=peers), tempfile.TemporaryDirectory() as root:
+                harness = capture.Harness.__new__(capture.Harness)
+                harness.gens, harness.events, harness.started = [], [], 0.0
+                harness.stop_reason, harness.socket_samples, harness.failed_samples = None, 0, 0
+                harness.loopback_peers = set()
+                process = subprocess.Popen(["/bin/sleep", "30"], start_new_session=True)
+                try:
+                    harness.gens.append(types.SimpleNamespace(proc=process, pgid=os.getpgid(process.pid)))
+                    done = threading.Event()
+                    original, capture.socket_peers = capture.socket_peers, lambda group: peers
+                    try:
+                        watcher = threading.Thread(target=harness.watch_sockets, args=(done,))
+                        watcher.start()
+                        process.wait(timeout=10)
+                    finally:
+                        done.set()
+                        watcher.join()
+                        capture.socket_peers = original
+                finally:
+                    if process.poll() is None:
+                        process.kill()
+                self.assertIn(expected, harness.stop_reason)
+                self.assertEqual(harness.failed_samples, 1 if peers is None else 0)
+
+
 class Redaction(unittest.TestCase):
-    def test_paths_host_user_and_identity_fields_are_replaced(self):
-        redact, counts = capture.redactor(
+    def redactor(self, user="example", host="machine.local"):
+        return capture.redactor(
             [("/Users/example/x/home", "<HOME>"), ("/Users/example/x", "<SCRATCH>"), ("/Users/example", "<USER-HOME>")],
-            "example", "machine.local")
-        text = redact(json.dumps({"codexHome": "/Users/example/x/home", "cwd": "/Users/example/x/workspace",
-                                  "other": "/Users/example/Documents", "owner": "example",
-                                  "userAgent": "client/1 (machine)", "serverName": "machine.local",
-                                  "installationId": "abc"}, separators=(",", ":")))
-        self.assertEqual(json.loads(text), {
+            user, host)
+
+    def test_paths_host_user_and_identity_values_are_replaced_wherever_they_occur(self):
+        redact, leaks, counts = self.redactor()
+        frame = {"codexHome": "/Users/example/x/home", "cwd": "/Users/example/x/workspace",
+                 "other": "/Users/example/Documents", "owner": "example", "userAgent": "client/1 (machine)",
+                 "nested": [{"serverName": "machine.local", "installationId": "invented-private-installation"}],
+                 "/Users/example/as-a-key": 1, "text": "on machine, by example; examples stay"}
+        redacted = redact(frame)
+        self.assertEqual(redacted, {
             "codexHome": "<HOME>", "cwd": "<SCRATCH>/workspace", "other": "<USER-HOME>/Documents",
-            "owner": "<USER>", "userAgent": "<REDACTED-USER-AGENT>", "serverName": "<REDACTED-HOST>",
-            "installationId": "<REDACTED-INSTALLATION-ID>"})
-        self.assertEqual(counts["personal path"], 3)
-        self.assertEqual(counts["user name"], 1)
+            "owner": "<USER>", "userAgent": "<REDACTED-USER-AGENT>",
+            "nested": [{"serverName": "<REDACTED-HOST>", "installationId": "<REDACTED-INSTALLATION-ID>"}],
+            "<USER-HOME>/as-a-key": 1, "text": "on <HOST>, by <USER>; examples stay"})
+        self.assertEqual(leaks(json.dumps(redacted)), [])
+        self.assertEqual(counts["installation identifier"], 1)
+
+    def test_identity_values_are_replaced_whatever_the_spacing_and_in_text_that_is_not_json(self):
+        redact, _, _ = self.redactor()
+        spaced = json.loads('{"installationId": "invented-private-installation", "serverName" : "host"}')
+        self.assertEqual(redact(spaced), {"installationId": "<REDACTED-INSTALLATION-ID>", "serverName": "<REDACTED-HOST>"})
+        self.assertEqual(redact('not json {"installationId" :  "invented-private-installation"}'),
+                         'not json {"installationId" :  "<REDACTED-INSTALLATION-ID>"}')
+        self.assertEqual(redact('escaped {\\"userAgent\\":\\"client\\"}'),
+                         'escaped {\\"userAgent\\":\\"<REDACTED-USER-AGENT>\\"}')
+
+    def test_short_names_are_replaced_and_anything_left_is_reported(self):
+        redact, leaks, _ = self.redactor(user="al", host="mb")
+        self.assertEqual(redact({"who": "al", "where": "mb", "word": "also male, amber"}),
+                         {"who": "<USER>", "where": "<HOST>", "word": "also male, amber"})
+        self.assertEqual(leaks("written by al on mb under /Users/example"), ["/Users/example", "mb", "al"])
+        self.assertEqual(leaks("also male, amber"), [])
 
 
 class RecordingsAtThePin(unittest.TestCase):
@@ -149,6 +281,7 @@ class RecordingsAtThePin(unittest.TestCase):
                 self.assertEqual(record["events"][0]["pin"], PIN)
                 self.assertIsNone(record["app_candidate"])
                 self.assertGreater(record["socket_watch"]["samples"], 0)
+                self.assertEqual(record["socket_watch"]["failed_samples"], 0)
                 self.assertEqual(record["socket_watch"]["non_loopback_peers"], [])
                 self.assertLessEqual(set(record["socket_watch"]["loopback_peers"]), {"127.0.0.1", "::1"})
 

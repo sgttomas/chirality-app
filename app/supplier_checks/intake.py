@@ -11,10 +11,10 @@ Two steps of a pin advance, each writing the files the repository keeps per pin 
             `supplier/<pin>/CANONICAL_DISTRIBUTION.json`. Nothing is executed.
   generate  Compare the vendor tree with that record, then run the supplier's own
             generator for the stable and the experimental variant, in the same
-            isolated environment capture.py uses and with its socket sample; write
+            isolated environment capture.py uses, sampling its sockets; write
             `supplier/<pin>/MANIFEST.sha256`, the two experimental bundles the App
-            compiles in, and `GENERATION.json`. A generator that opens any socket
-            refuses.
+            compiles in, and `GENERATION.json`. A sample that shows a socket, or
+            cannot be taken, refuses; sampling is not isolation.
 
 Usage, from `app/`:
   python3 supplier_checks/intake.py archive --archive /absolute/file.tar.gz --url URL \
@@ -119,6 +119,7 @@ def distribution_record(vendor, pin, archive_facts, source_commit=None):
         "limits": ["Static intake of a size- and digest-checked archive only.",
                    "No supplier execution, signature or trust reading, installed custody, product "
                    "qualification or notice coverage is established."]})
+    capture.metadata_members(record)  # the metadata may name only members of this inventory
     return record
 
 
@@ -139,24 +140,39 @@ def take_archive(archive, url, size, digest, pin, out, source_commit=None):
         record = distribution_record(vendor, pin, {"url": url, "size": size, "sha256": digest}, source_commit)
         os.makedirs(os.path.join(out, "supplier", pin))
         write_json(os.path.join(out, "supplier", pin, "CANONICAL_DISTRIBUTION.json"), record)
-    except BaseException:
-        shutil.rmtree(out, ignore_errors=True)  # this call made it; a refused intake leaves no tree behind
+    except BaseException as failure:
+        # This call made `out`; a refused intake leaves no tree behind. Extracted directories keep
+        # the archive's modes, which may forbid removal, so they are made writable first.
+        for folder, _, _ in os.walk(out):
+            os.chmod(folder, 0o700)
+        shutil.rmtree(out, ignore_errors=True)
+        if os.path.lexists(out):
+            raise Refused("%s; and the partial output could not be removed: %s" % (failure, out)) from None
         raise
     return record
 
 
 def run_generator(argv, environment, cwd):
-    """Run one generator pass; any socket of its process group refuses."""
+    """Run one generator pass; a sample that shows a socket, or cannot be taken, refuses.
+
+    The process group's sockets are sampled every 0.1 s. A sample is not isolation: a connection
+    shorter than the interval can be missed.
+    """
     process = subprocess.Popen(argv, cwd=cwd, env=environment, stdin=subprocess.DEVNULL,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
     group, samples, end = os.getpgid(process.pid), 0, time.monotonic() + GENERATOR_TIMEOUT
     try:
         while process.poll() is None:
             listing = subprocess.run(["/usr/sbin/lsof", "-n", "-P", "-a", "-i", "-g", str(group)],
-                                     capture_output=True, text=True).stdout
-            samples += 1
-            if listing.splitlines()[1:]:
+                                     capture_output=True, text=True)
+            rows = listing.stdout.splitlines()[1:]
+            if rows:
                 raise Refused("the generator opened a socket")
+            if listing.stderr.strip() or listing.returncode not in (0, 1):
+                if process.poll() is None:  # a group that ended mid-sample is not a failed watch
+                    raise Refused("the socket watch could not take a sample")
+                break
+            samples += 1
             if time.monotonic() > end:
                 raise Refused("the generator did not finish in %d seconds" % GENERATOR_TIMEOUT)
             time.sleep(0.1)
@@ -166,6 +182,8 @@ def run_generator(argv, environment, cwd):
             process.wait()
     if process.returncode != 0:
         raise Refused("the generator exited with %d" % process.returncode)
+    if not samples:
+        raise Refused("the socket watch took no sample of the generator")
     return samples
 
 
@@ -183,9 +201,16 @@ def generate(vendor, pin, expected_root, out):
         variants, lines = {}, []
         for variant, extra in (("experimental", ["--experimental"]), ("stable", [])):
             target = os.path.join(scratch, "generated", variant)
-            argv = [binary, "app-server", "generate-json-schema"] + extra + ["--out", target]
-            samples = run_generator(argv, environment, scratch)
+            # The entrypoint and path directory are admitted again immediately before each execution.
+            capture.admitted_path(vendor, record, "pathDir")
+            argv = [capture.admitted_path(vendor, record, "entrypoint"), "app-server", "generate-json-schema"]
+            samples = run_generator(argv + extra + ["--out", target], environment, scratch)
             files = sorted(str(path.relative_to(target)) for path in Path(target).rglob("*") if path.is_file())
+            missing = [name for name in BUNDLES if variant == "experimental" and name not in files]
+            if not files or missing:
+                # A generator that exits cleanly without its output generated nothing to record.
+                raise Refused("the %s generator pass wrote %d files%s" % (
+                    variant, len(files), "; missing " + ", ".join(missing) if missing else ""))
             rows = ["%s  json-schema/%s/%s\n" % (capture.sha256_file(os.path.join(target, name)), variant, name)
                     for name in files]
             lines += rows
@@ -195,7 +220,7 @@ def generate(vendor, pin, expected_root, out):
                 "exit_code": 0, "timeout_seconds": GENERATOR_TIMEOUT, "files": len(files),
                 "bytes": sum(os.path.getsize(os.path.join(target, name)) for name in files),
                 "manifest_sha256": hashlib.sha256("".join(rows).encode("utf-8")).hexdigest(),
-                "socket_samples": samples, "sockets_seen": 0}
+                "socket_samples": samples, "failed_samples": 0, "sockets_seen": 0}
         folder = os.path.join(out, "supplier", pin)
         os.makedirs(folder)
         manifest = "".join(lines).encode("utf-8")
@@ -215,7 +240,8 @@ def generate(vendor, pin, expected_root, out):
                          "verified": "complete vendor tree equal to the expected inventory before execution"},
             "environment": {"inherit_environment": False, "allowlist": sorted(environment),
                             "homes": "fresh private HOME, CODEX_HOME and TMPDIR; plugins and analytics off",
-                            "network": "the generator's sockets were sampled and none was seen"},
+                            "network": "the generator's sockets were sampled every 0.1 s and no sample showed "
+                                       "one; a sample is not isolation"},
             "variants": variants, "compiled_experimental_bundles": bundles,
             "manifest_sha256": hashlib.sha256(manifest).hexdigest(),
             "limits": ["One generator pass per variant; determinism is not assessed.",
