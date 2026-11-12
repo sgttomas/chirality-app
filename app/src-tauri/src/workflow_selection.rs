@@ -41,8 +41,10 @@ const HISTORY_WAIT: std::time::Duration = std::time::Duration::from_secs(3);
 const HISTORY_RETRY: std::time::Duration = std::time::Duration::from_millis(5);
 const HISTORY_BUSY: &str = "Native history context is busy; refresh the workflow choice";
 
-/// One press's wait for the history context. Every check the press makes
-/// shares it, so the press as a whole waits no longer than `HISTORY_WAIT`.
+/// One press's retry for the history context. The checks it is passed to share
+/// it, so together they retry for no longer than `HISTORY_WAIT`. It bounds
+/// only that retry: other locks a command takes, and a native picker, are
+/// outside it, and a command that opens a picker starts a second one after it.
 #[derive(Clone, Copy)]
 pub(crate) struct Wait(std::time::Instant);
 impl Wait {

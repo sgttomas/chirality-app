@@ -310,6 +310,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       </li>
       <li><h3>Find, try and register it</h3>
         <button disabled={!canAct || !active} onClick={() => { if (canAct && active) void act("workflow_observe_drafts", {}); }}>Look for drafts in this library</button>
+        {typeof data?.drafts?.limit === "string" && data.drafts.limit && <p role="note">The App couldn't read this library's drafts: {data.drafts.limit}</p>}
         {existingDraft && step ? (() => { const next = step; return <div className="run-journey-state" aria-label="Draft status">
           <p ref={draftStatus} tabIndex={-1} role="status" aria-label="Draft state"><strong>{trimmed}</strong>: {draftStateWords(existingDraft.state, existingDraft.content)}.</p>
           {list(existingDraft.findings).length > 0 && <ul aria-label="What to fix">{list(existingDraft.findings).map((finding: Json) => <li key={text(finding)}>{text(finding)}</li>)}</ul>}

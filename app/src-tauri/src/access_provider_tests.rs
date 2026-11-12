@@ -867,6 +867,9 @@ fn access_provider_configured_observation_mounted_join() {
         view["currentAppProjectContext"] = project_scope();
         view["configuredProviderReadRevision"] = peer
             .host
+            .configured_provider_observation_revision(&peer.g, "/invented/work");
+        view["providerOfferReadRevision"] = peer
+            .host
             .configured_provider_revision(&peer.g, "/invented/work");
         view
     };
@@ -1807,6 +1810,65 @@ fn access_provider_unrelated_folder_read_preserves_original_source_admission() {
         .thread_start_with_access_dispatch(&original, "guidance")
         .unwrap();
     assert_eq!(peer.frame()["params"]["cwd"], "/invented/work");
+}
+/// DEL-01-05 new-conversation chooser: a provider observation, and a row chosen
+/// from it, stay current across a read that is not a private configuration
+/// read of the folder (the model list and the delegation signals send one).
+/// Nothing else is loosened: the same read still supersedes an older admission
+/// proof and still advances the revision the settings reading and the native
+/// confirmations are compared with.
+#[test]
+fn access_provider_chooser_revision_follows_private_reads_and_admission_follows_every_read() {
+    let mut peer = Peer::new("home");
+    peer.answer(config(json!({"anonymous":local()})));
+    let shown = peer
+        .host
+        .configured_provider_read_within(&peer.g, "/invented/work", &project_scope(), Duration::from_millis(30))
+        .unwrap();
+    peer.frame();
+    let revision = shown["scope"]["readRevision"].clone();
+    assert!(revision.is_string());
+    let chooser = |peer: &Peer| peer.host.configured_provider_observation_revision(&peer.g, "/invented/work");
+    let strict = |peer: &Peer| peer.host.configured_provider_revision(&peer.g, "/invented/work");
+    assert_eq!(chooser(&peer), revision);
+    assert_eq!(strict(&peer), revision);
+    peer.answer(config(json!({"anonymous":local()})));
+    let proof = peer.read("local-provider", "anonymous").unwrap();
+    peer.frame();
+    let admitted = chooser(&peer);
+    assert_ne!(admitted, revision, "a private read is a newer observation");
+    assert_eq!(strict(&peer), admitted);
+    // The model list and delegation transport: config/read of the same folder, not private.
+    let other = peer
+        .host
+        .request_begin_scoped(
+            "config/read",
+            json!({"cwd":"/invented/work","includeLayers":false}),
+            json!({"kind":"person-directed","name":"synthetic model list"}),
+            false,
+            Some(&peer.g),
+        )
+        .unwrap();
+    assert_eq!(peer.frame()["params"], json!({"cwd":"/invented/work","includeLayers":false}));
+    peer.host.on_line(
+        &serde_json::to_vec(&json!({"id":other.request_id(),"result":{"config":{},"origins":{}}})).unwrap(),
+        &peer.g,
+    );
+    assert_eq!(chooser(&peer), admitted, "the chooser's revision is unchanged");
+    assert!(strict(&peer).is_string() && strict(&peer) != admitted, "the settings reading and the native confirmations still see the newer read");
+    assert!(peer.host.thread_start_with_access_dispatch(&proof, "guidance").is_err(), "the older admission proof is still superseded");
+    // A generation the revision was not recorded for, and a folder not read, have none.
+    let mut next = peer.g.clone();
+    next["spawnCounter"] = json!(2);
+    for accessor in [Host::configured_provider_observation_revision, Host::configured_provider_revision] {
+        assert!(accessor(&peer.host, &next, "/invented/work").is_null());
+        assert!(accessor(&peer.host, &peer.g, "/invented/other").is_null());
+    }
+    // A source that is no longer ready has none either.
+    peer.host.inner.0.lock().unwrap().state = "stopped".into();
+    assert!(chooser(&peer).is_null() && strict(&peer).is_null());
+    peer.host.inner.0.lock().unwrap().state = "ready".into();
+    peer.safe();
 }
 #[test]
 fn access_provider_delegation_config_read_invalidates_only_its_known_folder() {
