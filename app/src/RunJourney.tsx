@@ -55,8 +55,8 @@ export function guideResultWords(outcome: GuideOutcome): { words: string; detail
     const reply = outcome.message.replace(/^Error: /, "");
     const plain = refusalWords(outcome.command, reply);
     if (plain) return { words: `Couldn't ${verb}: ${plain}`, detail: reply, failed: true };
-    // Nothing is promised of Progress: a press that failed is not followed by a refresh, so Progress may be from before it.
-    return { words: `Couldn't ${verb}: ${reply}${outcome.command === "workflow_send_run" ? ". Progress may still show the state from before this press." : ""}`, detail: "", failed: true };
+    // The guide shows a result only beside a view read after the press (viewStale withholds it until then), so Progress is the run's state after it.
+    return { words: `Couldn't ${verb}: ${reply}${outcome.command === "workflow_send_run" ? ". See Progress for the run's state." : ""}`, detail: "", failed: true };
   }
   // The included-workflow command also serves reading one with no conversation
   // (the studio's inspection): the host says which it was in `choiceChat`.

@@ -258,7 +258,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text. Progress may still show the state from before this press.", 'an unrecognised refusal stays in the App\'s words');
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text. See Progress for the run's state.", 'an unrecognised refusal stays in the App\'s words');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
@@ -489,7 +489,7 @@ test('a refused press is said in plain words under Next only where nothing was d
     assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
   }
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
-  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /\. Progress may still show the state from before this press\.$/);
+  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /\. See Progress for the run's state\.$/);
 
   const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:{name:'coordinated-knowledge-work', origin:'bundled', revision:'3730d84debb5aa'},
     newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
