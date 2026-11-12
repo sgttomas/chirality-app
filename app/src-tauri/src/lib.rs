@@ -2670,15 +2670,26 @@ fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_
 #[tauri::command(async)]
 fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
-/// The environment route's App data directory, named explicitly. Without it
-/// the route uses the App's own data directory for its identifier, which every
-/// development run that keeps the committed identifier shares; one App at a
-/// time holds an App data directory, so parallel runs each name their own.
+/// The environment route's App data directory, named explicitly, for
+/// development runs only. Without it the route uses the App's own data
+/// directory for its identifier, which every development run that keeps the
+/// committed identifier shares; one App at a time holds an App data
+/// directory, so parallel development runs each name their own.
+///
+/// Read only when `tauri::is_dev()` is true, as the records-store override
+/// is. A built App does not read it: it neither selects the environment
+/// route nor moves the App's data, so nothing inherited from the environment
+/// can point an installed App at other data.
 pub(crate) const APP_DATA_ENV: &str = "CHIRALITY_APP_DATA";
 /// Any of these selects the environment route; its inputs are then exclusive.
 const ENVIRONMENT_KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR", APP_DATA_ENV];
 fn environment_selected(input: impl Fn(&str)->Option<std::ffi::OsString>) -> bool {
     ENVIRONMENT_KEYS.iter().any(|key|input(key).is_some())
+}
+/// The startup inputs as this build reads them: a build that is not a
+/// development run does not see [`APP_DATA_ENV`] at all.
+fn build_input<'a>(input: &'a impl Fn(&str)->Option<std::ffi::OsString>, is_dev: bool) -> impl Fn(&str)->Option<std::ffi::OsString> + 'a {
+    move |key| if key == APP_DATA_ENV && !is_dev { None } else { input(key) }
 }
 /// The startup admission `run` performs before any operational consumer:
 /// the App data directory (named by [`APP_DATA_ENV`] or the platform's), the
@@ -2688,6 +2699,7 @@ pub(crate) fn admitted_startup(
     input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
     probe: impl Fn()->Result<PathBuf,String>,
 ) -> (desktop_startup::DesktopSetup, desktop_startup::RootInputs) {
+    let input = build_input(&input, is_dev);
     let data = environment_app_data(&input).unwrap_or(platform_data);
     let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
     let refused = environment_selected(&input) && data.as_ref().is_ok_and(|data| desktop.hold_environment_data(data).is_err());

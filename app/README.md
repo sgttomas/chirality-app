@@ -1231,7 +1231,14 @@ data share one directory and only the first of them starts. To run in parallel,
 give each run its own `CHIRALITY_APP_DATA` (an absolute path; it is created if
 missing, and setting it alone selects this route) and its own
 `CHIRALITY_CODEX_HOME`. Tests construct their state in their own scratch
-folders and need neither.
+folders and need neither. `CHIRALITY_APP_DATA` is read only by a development
+run (`tauri dev`), as `CHIRALITY_RECORDS_STORE` is; a built App does not read
+it, so it cannot point an installed App at other data. It moves the App's own
+data only: the system web view keeps its website data and caches under
+`~/Library` in folders named for the build's bundle identifier, whatever this
+variable says, so two development runs of one build share that web view
+storage. Give a run its own identifier (a `--config` override) when that
+matters.
 
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
 `CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary

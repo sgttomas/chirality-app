@@ -5989,6 +5989,27 @@ mod tests {
         assert!(inputs.allow_operational);
     }
 
+    /// `CHIRALITY_APP_DATA` is a development input. A built App does not read
+    /// it: it stays on its own App data and its own launch route, and nothing
+    /// is created at the named path.
+    #[test]
+    fn a_built_app_does_not_read_the_app_data_input() {
+        let f = Fixture::new();
+        let elsewhere = f.root.join("named-by-the-environment");
+        let named = |data: PathBuf| move |key: &str| (key == crate::APP_DATA_ENV).then(|| data.clone().into_os_string());
+        let (built, inputs) = crate::admitted_startup(named(elsewhere.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), false, || f.probe());
+        // With no saved setup the built App is at its own first-use setup, on its own App data.
+        assert_eq!(built.view()["launch"]["state"], "setup-required", "the input alone does not select the environment route in a built App");
+        assert!(!inputs.allow_operational);
+        assert!(inputs.data.as_ref().is_err_and(|e| !e.contains("named-by-the-environment")), "{:?}", inputs.data);
+        assert!(!elsewhere.exists(), "nothing is created at the named path");
+        // The same input in a development run names the data and selects the route.
+        drop(built);
+        let (dev, inputs) = crate::admitted_startup(named(elsewhere.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        assert_eq!(inputs.data.as_deref(), Ok(elsewhere.as_path()));
+        assert_eq!(dev.view()["launch"]["state"], "environment");
+    }
+
     #[test]
     fn mounted_setup_packets() {
         let f = Fixture::new();
