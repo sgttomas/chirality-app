@@ -762,14 +762,30 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
     // another version or event, a line without its identity or its files, a
     // file entry that is not one, a blank line, and a last line that is not
     // closed each make the account unknown.
-    let unknown: [&[u8]; 13] = [b"not json\n", b"{}\n", b"null\n", b"[]\n", b"null", b"{\"format\":", b"\n",
+    let listed: [&[u8]; 13] = [b"not json\n", b"{}\n", b"null\n", b"[]\n", b"null", b"{\"format\":", b"\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"completed\",\"importId\":\"import:review\",\"files\":[null]}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"importId\":\"import:review\",\"files\":[],\"conflicts\":[7]}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"99.0\",\"event\":\"future\"}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"future\",\"importId\":\"import:x\"}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"completed\",\"importId\":\"import:x\"}\n",
         b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"started\",\"census\":[]}\n"];
-    for (root, content) in [&imported, &empty].into_iter().flat_map(|root| unknown.iter().map(move |content| (root, *content))) {
+    // Review round 4, and the neighbouring contents asked of it: an account
+    // that exists and is empty; contents in which nothing is parsed (a
+    // byte-order mark, carriage returns, a NUL, spaces, with and without a
+    // newline); and a line that IS a valid import line with something more
+    // (a byte-order mark before it, a carriage return or a space after it, a
+    // space before it, a key given twice, a byte that is not UTF-8).
+    let valid = b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"started\",\"importId\":\"import:edge\",\"census\":[]}".to_vec();
+    assert_eq!(import_line(&serde_json::from_slice(&valid).unwrap()), Some("started"), "the line the edge contents are built on is a valid one");
+    let around = |before: &[u8], after: &[u8]| [before, valid.as_slice(), after, b"\n"].concat();
+    let twice = [&valid[..valid.len() - 1], b",\"event\":\"completed\",\"files\":[],\"conflicts\":[]}\n".as_slice()].concat();
+    let not_utf8 = [&valid[..valid.len() - 2], b"\xff\"}\n".as_slice()].concat();
+    let mut unknown: Vec<Vec<u8>> = listed.iter().map(|content| content.to_vec()).collect();
+    unknown.extend([b"".to_vec(), b"\xef\xbb\xbf".to_vec(), b"\xef\xbb\xbf\n".to_vec(), b"\r".to_vec(), b"\r\n".to_vec(), b"\0".to_vec(), b"\0\n".to_vec(),
+        b" ".to_vec(), b" \n".to_vec(), b"\n\n".to_vec(),
+        around(b"\xef\xbb\xbf", b""), around(b"", b"\r"), around(b"", b" "), around(b" ", b""), around(b"\t", b"\t"), twice, not_utf8,
+        [valid.as_slice(), b"\n\n"].concat()]);
+    for (root, content) in [&imported, &empty].into_iter().flat_map(|root| unknown.iter().map(move |content| (root, content.as_slice()))) {
         let dir = attach(root, false).unwrap().dir.unwrap();
         std::fs::write(dir.join("imports.jsonl"), content).unwrap();
         let known = |e: &str| e.contains("unknown") && e.contains("import record is unreadable");
@@ -797,8 +813,77 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
         assert!(notes(root).iter().any(|n| known(n)), "{:?}", notes(root));
         assert!(capability_read(root).is_err(), "{:?}", capability_read(root));
     }
+    // The valid line alone is read (an import begun and not completed), so
+    // the refusals above are of what was added to it and of nothing else.
+    for root in [&imported, &empty] {
+        let dir = attach(root, false).unwrap().dir.unwrap();
+        std::fs::write(dir.join("imports.jsonl"), around(b"", b"")).unwrap();
+        assert!(home(root).is_ok(), "{:?}", home(root).err());
+    }
     drop(own);
     for p in [imported, empty] { let _ = std::fs::remove_dir_all(p); }
+}
+
+/// Review round 4: only an import account that is NOT THERE is "no import".
+/// One that exists and is empty is unknown, as every other unreadable
+/// account is: it cannot be told from an account emptied after an import.
+/// The reviewer's three states: a newly attached project; an imported
+/// project whose account is emptied; and an import begun, not completed,
+/// whose account is then emptied, which must not give a verified export.
+#[test]
+fn an_import_account_that_exists_and_is_empty_is_unknown_and_only_a_missing_one_is_no_import() {
+    let own = OwnStore::new();
+    let known = |e: &str| e.contains("exists and is empty") && e.contains("whether an import was begun is not known");
+    let export_to = |root: &Path| {
+        let destination = folder("empty-account-export-").join("bag");
+        let result = crate::records_export::export(root, &destination);
+        (result, destination)
+    };
+    // A newly attached project with no account: no import, as before.
+    let fresh = folder("empty-account-fresh-");
+    let dir = attach(&fresh, true).unwrap().dir.unwrap();
+    assert!(!dir.join("imports.jsonl").exists());
+    assert_eq!(status(Some(&fresh))["project"]["reading"], "no records yet");
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    assert!(known(&home(&fresh).unwrap_err()));
+    let shown = status(Some(&fresh));
+    assert_eq!(shown["project"]["state"], "unavailable", "{shown}");
+    assert_ne!(shown["project"]["reading"], "no records yet");
+    let (entries, limits) = storage::read_all(&fresh);
+    assert!(entries.is_empty() && limits.iter().any(|l| known(l)), "{limits:?}");
+    assert!(write_dir(&fresh).is_err(), "nothing is written for it either");
+    std::fs::remove_file(dir.join("imports.jsonl")).unwrap();
+    assert_eq!(status(Some(&fresh))["project"]["reading"], "no records yet", "an account that is not there is no import");
+    // An imported project: its account emptied.
+    let imported = legacy_project();
+    import(&imported).unwrap();
+    let dir = attach(&imported, false).unwrap().dir.unwrap();
+    assert_eq!(storage::read_all(&imported).0.len(), 3);
+    let account = std::fs::read(dir.join("imports.jsonl")).unwrap();
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    let (entries, limits) = storage::read_all(&imported);
+    assert!(entries.is_empty() && limits.iter().any(|l| known(l)), "the three entries are not read with no limit: {entries:?} {limits:?}");
+    assert!(export_permitted(&dir, &imported).unwrap_err().contains("import state is unknown"));
+    let (exported, destination) = export_to(&imported);
+    assert!(exported.is_err() && !destination.exists(), "no export: {exported:?}");
+    std::fs::write(dir.join("imports.jsonl"), &account).unwrap();
+    assert_eq!(storage::read_all(&imported).0.len(), 3, "with its account back, it reads as before");
+    // An import begun and not completed, then its account emptied: the
+    // reviewer's "verified export created".
+    let begun = legacy_project();
+    interrupt_import_for_test(Some(1), false);
+    let stopped = import(&begun);
+    interrupt_import_for_test(None, false);
+    assert!(stopped.unwrap_err().contains("interrupted"));
+    let dir = attach(&begun, false).unwrap().dir.unwrap();
+    assert!(std::fs::read(dir.join("imports.jsonl")).is_ok_and(|b| !b.is_empty()), "its started line is in the account");
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    assert!(known(&home(&begun).unwrap_err()));
+    let (exported, destination) = export_to(&begun);
+    assert!(exported.is_err() && !destination.exists(), "never a verified export: {exported:?}");
+    drop(own);
+    new_process();
+    for p in [fresh, imported, begun] { let _ = std::fs::remove_dir_all(p); }
 }
 
 // ---- Existing records: explicit import ----

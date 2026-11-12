@@ -805,6 +805,8 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
 struct Imports {
     /// Lines in the file at all.
     any: bool,
+    /// How many lines the account holds.
+    lines: usize,
     /// At least one import completed.
     completed: bool,
     /// The latest started import with no completion line.
@@ -843,23 +845,38 @@ fn imports(dir: &Path) -> Result<Imports, String> {
     // that is not an object, another format, version or event, a line
     // without its import identity, or a census, file or conflict entry that
     // is not one. Never "no import", never "nothing completed".
+    //
+    // Only an account that is not there is "no import". One that exists and
+    // is empty is unknown too: it cannot be told from an account emptied
+    // after an import. And a line is one JSON object and nothing else: no
+    // byte before or after it (no padding, no carriage return, no byte-order
+    // mark), valid UTF-8, and no key given twice at any depth, since a
+    // repeated key reads as its last value and the App writes none.
     let path = dir.join("imports.jsonl");
     let unknown = |why: String| format!("records store unreadable: {}: {why}", path.display());
-    let bytes = match std::fs::symlink_metadata(&path) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+    let account = match std::fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
         Err(e) => return Err(unknown(e.to_string())),
-        Ok(_) => crate::records_retention::read_plain(&path).map_err(unknown)?,
+        Ok(_) => Some(crate::records_retention::read_plain(&path).map_err(unknown)?),
     };
     let mut lines: Vec<(Value, &'static str)> = Vec::new();
-    if !bytes.is_empty() {
+    if let Some(bytes) = &account {
+        if bytes.is_empty() {
+            return Err(unknown("it exists and is empty; whether an import was begun is not known".into()));
+        }
         let Some(body) = bytes.strip_suffix(b"\n") else { return Err(unknown("its last line is not closed".into())) };
         for (index, raw) in body.split(|b| *b == b'\n').enumerate() {
-            let line: Value = serde_json::from_slice(raw).map_err(|e| unknown(format!("its line {} is not JSON ({e})", index + 1)))?;
-            let Some(event) = import_line(&line) else { return Err(unknown(format!("its line {} is not an import line of a form this App has written", index + 1))) };
+            let number = index + 1;
+            if raw.first() != Some(&b'{') || raw.last() != Some(&b'}') {
+                return Err(unknown(format!("its line {number} is not one JSON object and nothing else")));
+            }
+            let text = std::str::from_utf8(raw).map_err(|_| unknown(format!("its line {number} is not UTF-8")))?;
+            let line = crate::workflow_declaration::parse_unique(text).map_err(|e| unknown(format!("its line {number} is not JSON, or gives a key twice ({e})")))?;
+            let Some(event) = import_line(&line) else { return Err(unknown(format!("its line {number} is not an import line of a form this App has written"))) };
             lines.push((line, event));
         }
     }
-    let mut out = Imports { any: !lines.is_empty(), ..Imports::default() };
+    let mut out = Imports { any: !lines.is_empty(), lines: lines.len(), ..Imports::default() };
     let done: std::collections::HashSet<&str> = lines.iter().filter(|(_, event)| *event == "completed").filter_map(|(l, _)| l["importId"].as_str()).collect();
     for (line, event) in &lines {
         match *event {
@@ -1673,7 +1690,7 @@ pub fn status(project: Option<&Path>) -> Value {
         // never a count of nothing.
         out["project"] = match home(root).and_then(|home| {
             let census = legacy_census(&home.attachment.root)?;
-            let imports = match home.attachment.dir.as_ref() { Some(d) => read_lines(&d.join("imports.jsonl"))?.len(), None => 0 };
+            let imports = match home.attachment.dir.as_ref() { Some(d) => imports(d)?.lines, None => 0 };
             let covered = match home.attachment.dir.as_ref() { Some(d) => coverage(d)?, None => HashMap::new() };
             // §13.7 files no import has copied (all of them before the first).
             let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
