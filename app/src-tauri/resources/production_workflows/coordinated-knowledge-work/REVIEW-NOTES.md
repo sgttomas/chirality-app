@@ -26,6 +26,29 @@ The shared-reader and withdrawn-ruling incidents are reports supplied by the two
 | The coordinator reported from its 2026-10-22 session record that merge-ready returns from managers working in separate conversations waited 9–10 hours overnight: the host did not notify the coordinator, and the coordinator's session-bound timer silently did not fire. After managers were told to send each return as a short message into the coordinator's conversation, 15 of 15 returns started the coordinator's next action without the scheduled check. | Name a return route that reaches the coordinator in the assignment; keep a session-independent scheduled check only as a backstop. | One day in one host, counted from that session's own record; not a systematic measurement. The message route depends on the contributor following its assignment, which is why the backstop stays. |
 | Final object accounting risked expanding into uniform metadata and exact global logical discovery counts after content and usable traceability had been checked. | Compare proposed closure work with the actual agreed conditions; report nonmaterial limitations without creating new gates. | If the agreed outcome requires a complete logical census, an absent census remains required work. The same activity can be necessary in another undertaking. |
 
+## Adapting the recorded arrangements
+
+The persistent manager, bounded executor and separate reviewer arrangement had
+reported success in the piping corpus under the conditions above. It is an
+example of carrying contributions through repair and integration, not evidence
+that every undertaking needs those positions. Keep any independent examination
+the actual claim or project requires.
+
+The overnight-return incident supports an independent backstop for that
+message-dependent route. The blocking-dispatch example below illustrates a
+different treatment of the return problem. Select the mechanism from what the
+host actually delivers and supports; an instruction to send a message, a
+completion notice and a reliable return are different claims. If the host
+prohibits polling or timers, those operations are not available backstops.
+Neither recorded incident qualifies a different host's recovery behavior.
+
+The same distinction applies to context. A full assignment names the result,
+basis, boundaries and decision rights. Some routes also require the applicable
+rules and source context in full; others reliably deliver instructions and
+permit retrieval of identified repository resources. Establish which route is
+actually available, preserving rules that prevent silent failures. This adds
+no compulsory per-dispatch probe or new return record.
+
 ## Defaults that should change when the evidence changes
 
 **Keep the owner, but not at any cost.** Ownership preserves context and repair responsibility. Renew or transfer it when the actor cannot continue, competence is inadequate, or the scope has materially changed. Carry forward the work and its valid warrants, not an insistence on keeping a particular session alive.
