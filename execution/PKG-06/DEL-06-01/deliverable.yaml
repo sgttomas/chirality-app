@@ -38,23 +38,38 @@ needs:
   condition: A thread given TASK guidance is identified as such, with whether its no-delegation limit
     is enforced by the supplier, stated and not enforced, or not known.
   gating: false
+- from: DEL-02-04
+  condition: The guidance the App supplies to a conversation whose role may delegate tells the agent
+    to write each brief as a file in the fleet folder, to name it in the spawn prompt by the one
+    reference line the Association term defines, and to record the graph, its selector, returns,
+    reviews and integrations as fleet records; no shipped guidance says so yet.
+  gating: true
+  when: A delegation made through the App is to appear on the work graph tied to its brief
 code_paths:
 - app/src-tauri/src/fleet_records.rs
 - app/src-tauri/src/native_conversation_links.rs
+- app/src-tauri/src/native_delegation_records.rs
 - app/src-tauri/schemas/fleet.record.schema.json
 - app/src-tauri/schemas/fleet.native-links.schema.json
 # fleet_views.rs is shared with DEL-06-02. Here: current-graph selection and need-state rules;
 # queue, waiting and decision rows are DEL-06-02's, as is FleetRecordsPanel.tsx.
 - app/src-tauri/src/fleet_views.rs
-# lib.rs is shared. Here: the command that reads the selected project's fleet records, and the
-# calls that hand a fork or a continued conversation to the recorder.
+# lib.rs is shared. Here: the command that reads the selected project's fleet records, the
+# calls that hand a fork or a continued conversation to the recorder, and the record tick's
+# call that hands the native views to the delegation recorder.
 - app/src-tauri/src/lib.rs
+# host_tick.rs is shared with DEL-01-03. Here: the record tick returns the views it received.
+- app/src-tauri/src/host_tick.rs
 checks:
 - app/src-tauri/src/fleet_records_tests.rs
 # fleet_views_tests.rs is shared with DEL-06-02. Here: the cases on which graph is current and
 # on the state of each need.
 - app/src-tauri/src/fleet_views_tests.rs
 - app/src-tauri/src/native_conversation_links_tests.rs
+- app/src-tauri/src/native_delegation_records_tests.rs
+# runtime_session.rs is shared. Here: the case in which the record tick hands a live spawn and
+# its ended observation to the delegation recorder.
+- app/src-tauri/src/runtime_session.rs
 # conversation_roles_tests.rs is shared with DEL-01-04 and DEL-02-04. Here: the cases that record
 # a fork and a continued conversation as related conversations.
 - app/src-tauri/src/conversation_roles_tests.rs

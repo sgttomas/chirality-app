@@ -257,7 +257,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text. Progress may still show the state from before this press.", 'an unrecognised refusal stays in the App\'s words');
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text", 'an unrecognised refusal stays in the App\'s words');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
@@ -488,7 +488,7 @@ test('a refused press is said in plain words under Next only where nothing was d
     assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
   }
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
-  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /\. Progress may still show the state from before this press\.$/);
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: refused-not-sent: turn/start generation changed before request registration", 'a failed start points nowhere: the result is also shown while Progress is withheld');
 
   const included = {kind:'workflow', origin:'bundled', source_root:'invented-library:library-v9.9.9', name:'coordinated-knowledge-work', revision:'3730d84debb5aa', revision_method:'invented/v1', derived_from:null};
   const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:included,
@@ -556,6 +556,44 @@ test('a result line says only what the command established', () => {
   assert.equal(bundle('{"state":"selected","choiceChat":null}'), 'Opened the included workflow to read. Nothing was chosen for a conversation.', 'the studio\'s inspection with no conversation is not a choice');
   for (const reply of ['{"state":"selected"}', 'not json', '']) assert.equal(bundle(reply), 'The App accepted this. The Workflow step shows what is chosen for the conversation.', `a reply that does not say which: ${reply}`);
   assert.equal(guideResultWords({command:'workflow_open_project_library', message:'{}', failed:false, settled:true}).words, "Opened this project's workflow library.", 'opening the library is not having listed it');
+});
+
+// Review rounds 2 and 3 of pull request 241: after a start that succeeded, a
+// view from before the press read "Ready to start", "Nothing has been sent
+// yet" and offered Start again; with a marker set, other steps still showed
+// cached states as current.
+test('while its view may be from before the last press, the guide shows none of its steps and offers nothing', async () => {
+  const preparedRun = {reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{}};
+  const earlier = {reference:'run-0', conversation:'T1', home:'account', generation:{...g, spawnCounter:0}, source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}};
+  const view = {data:data({selections:selected(), runs:[preparedRun, earlier]}), outcome:{command:'workflow_send_run', message:'{"state":"native workflow-text turn observed; run opened"}', failed:false, settled:true}};
+  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
+  const render = (viewStale, busy = false) => React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy, text:'', viewStale,
+    chooseThread:() => {}, setText:() => {}, act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome, showConversation:() => {}})));
+  await render(false);
+  assert.ok(button(c, 'Start the run'), 'the view alone offers Start');
+  assert.match(region(c, 'Run a workflow').textContent, /Ready to run\./);
+  await render(true);
+  const section = region(c, 'Run a workflow');
+  assert.match(section.textContent, /^Run a workflowNext: What this view showed may be from before the App's last operation finished\. The App is not showing its steps until it has read its state again after that; it reads again by itself\./);
+  assert.doesNotMatch(section.textContent, /The last read failed/, 'no failure is said when no read failed');
+  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested\.(?! See Progress)/, 'the press\'s own result stays');
+  assert.doesNotMatch(region(c, 'Run a workflow — last result').textContent.split('What the App reported')[0], /Progress|below/, 'without its pointer to Progress, which is withheld');
+  assert.deepEqual(all(section, 'button').map(node => node.textContent), ['Show the conversation'], 'no start, prepare, end or choice is offered');
+  assert.equal(all(section, 'li').length, 0, 'none of the steps is shown');
+  assert.doesNotMatch(section.textContent, /Ready to start|Ready to run|has not been sent|Nothing has been sent yet|Prepared resolve-spacing|Open —|Working/, 'nothing cached is shown as current, earlier runs included');
+  // A status read that failed since is said in the guide itself, where the person is looking.
+  await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy:false, text:'', viewStale:true, readFailure:'Error: invented status failure',
+    chooseThread:() => {}, setText:() => {}, act:async () => {}, outcome:view.outcome, showConversation:() => {}})));
+  assert.match(region(c, 'Run a workflow').textContent, /it reads again by itself\.The last read failed: Error: invented status failure/);
+  // While the press is still in progress the steps stay, disabled, and its result is not yet said.
+  await render(true, true);
+  assert.equal(region(c, 'Run a workflow — last result'), undefined, 'no result is claimed beside steps from before the press');
+  for (const node of all(region(c, 'Run a workflow'), 'button')) if (!/Show the conversation/.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is disabled while the press is in progress`);
+  await render(false);
+  assert.ok(button(c, 'Start the run'), 'once a read started after the press is applied, the view is shown again');
+  assert.ok(region(c, 'Run a workflow — last result'));
+  assert.deepEqual(calls, []);
+  await React.act(async () => root.unmount());
 });
 
 test('a library folder the App could not list is said where the list would be', async () => {
