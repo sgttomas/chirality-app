@@ -64,7 +64,7 @@ pub fn library_pending_path(library: &Path, id: &str) -> PathBuf {
 /// The project's capture evidence folder as it is read now: the store's, or
 /// before an import the §13.7 folder in place.
 pub fn capture_dir(root: &Path) -> Result<PathBuf, String> {
-    let home = records_store::home(root)?;
+    let home = records_store::readable_home(root)?;
     Ok(match (home.store_mode, home.attachment.dir) {
         (true, Some(dir)) => dir.join("captures"),
         _ => root.join(CAPTURES),
@@ -431,7 +431,7 @@ pub(crate) struct Sources {
 /// (`records::library_record_set`) so its lines never make the project's
 /// set incomplete (U-STORE-2).
 pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
-    let home = records_store::home(root)?;
+    let home = records_store::readable_home(root)?;
     let library = library_log(root);
     check_path(&library)?;
     match (home.store_mode, home.attachment.dir) {
@@ -451,7 +451,7 @@ pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
 /// The registered legacy log as it is read now: the imported copy in the
 /// project's store subtree, or before an import the file in place.
 pub fn registered_legacy_log(root: &Path) -> Result<PathBuf,String> {
-    let home=records_store::home(root)?;
+    let home=records_store::readable_home(root)?;
     if home.store_mode {Ok(home.attachment.dir.ok_or("records store source identity unavailable")?.join(records_store::REGISTERED_COPY))}
     else{Ok(root.join(LEGACY_LOG))}
 }

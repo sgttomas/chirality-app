@@ -975,6 +975,20 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
     }
 }
 
+/// The project's records home for an ordinary reader. A refused attachment
+/// (a link missing, changed, moved or duplicated; records kept and not
+/// attached; an association not known) makes it unavailable: the files kept
+/// in the project folder are never read in the place of records the store
+/// holds and will not attach. A folder that is simply new and unlinked has
+/// no refusal and reads as before.
+pub(crate) fn readable_home(root: &Path) -> Result<Home, String> {
+    let home = home(root)?;
+    if let Some(refusal) = &home.attachment.refusal {
+        return Err(format!("project records unavailable: {refusal}; the files kept in the project folder are not read in their place"));
+    }
+    Ok(home)
+}
+
 /// The project's store folder for a write: attached (minted if new), and with
 /// no §13.7 records waiting for import. Every refusal names its cause.
 pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
@@ -1713,11 +1727,14 @@ pub fn status(project: Option<&Path>) -> Value {
                 let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
                 json!({"attachment":home.attachment.view(),
                     "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
-                    "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"}
-                        else if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
+                    // A refused attachment is said first: files kept in the
+                    // project folder are not read in the place of records the
+                    // store holds, and no import is asked for while it stands.
+                    "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
                         else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
-                        else if home.attachment.dir.is_none() && home.attachment.refusal.is_some() {"nothing from the records store (the project is not attached)"} else {"no records yet"},
-                    "importNeeded":!home.store_mode && !census.is_empty(),
+                        else if home.attachment.refusal.is_some() {"nothing from the records store (the project is not attached)"}
+                        else if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
+                    "importNeeded":home.attachment.refusal.is_none() && !home.store_mode && !census.is_empty(),
                     "legacyFiles":census.len(),"notImported":to_import,
                     "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})
             }

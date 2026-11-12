@@ -192,6 +192,29 @@ fn a_missing_changed_or_unreadable_project_file_attaches_nothing_until_the_perso
     let refused = records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("while missing")).unwrap_err();
     assert!(refused.contains("link missing; not attached"), "{refused}");
     assert_eq!(storage::read_all(&root).0.len(), 0, "the store's history is not read for a folder with no link");
+    // Nor are files kept in the project folder read in its place. An old log
+    // still in the folder is not this project's history while the store
+    // holds records for the folder that will not attach: every ordinary
+    // reader and the status say the records are unavailable, and no import
+    // is asked for.
+    let kept = root.join(".chirality/records").join(storage::log_rel(Some("run:kept"), "writer:kept"));
+    // (Written by hand, as an earlier App left it: the App's own writer refuses to write there now.)
+    assert!(records::append(&kept, "evidence_limit", &APP_WRITER, body("refused")).unwrap_err().contains("project records unavailable"));
+    std::fs::create_dir_all(kept.parent().unwrap()).unwrap();
+    let mut line = serde_json::to_vec(&records::envelope("evidence_limit", &APP_WRITER, body("kept in the project folder"), crate::util::opaque_id("rec:app:").unwrap(), 1, Some("run:kept"), Some("2026-10-01T00:00:00.000Z"))).unwrap();
+    line.push(b'\n');
+    std::fs::write(&kept, line).unwrap();
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty() && limits.iter().any(|l| l.contains("project records unavailable") && l.contains("link missing")), "{entries:?} {limits:?}");
+    for unavailable in [storage::sources(&root).map(|_| ()), storage::discover(&root).map(|_| ()), storage::capture_dir(&root).map(|_| ()), storage::registered_legacy_log(&root).map(|_| ())] {
+        assert!(unavailable.unwrap_err().contains("project records unavailable"));
+    }
+    let decisions = crate::decision_view::derive(&root, &[]);
+    assert!(decisions["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains("project records unavailable"))), "{decisions}");
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["reading"], "nothing from the records store (the project is not attached)", "{shown}");
+    assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    std::fs::remove_dir_all(root.join(".chirality/records")).unwrap();
     assert!(notes(&root).iter().any(|n| n.contains("link missing")));
     assert_eq!(status(Some(&root))["project"]["attachment"]["recordedHere"], governing.as_str());
     assert_eq!(missing.fault, Some("link missing"));
