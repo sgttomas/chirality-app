@@ -758,3 +758,40 @@ fn metadata_retry_refuses(modes:&[&str]){
         std::fs::remove_dir_all(store).unwrap();
     }
 }
+
+/// Every path below `dir` with its bytes (folders: None), leaving out the
+/// derived query cache a read may keep under the store's `indexes/`.
+fn inventory(dir: &std::path::Path) -> std::collections::BTreeMap<std::path::PathBuf, Option<Vec<u8>>> {
+    let mut out = std::collections::BTreeMap::new();
+    let mut todo = vec![dir.to_path_buf()];
+    while let Some(at) = todo.pop() {
+        for entry in std::fs::read_dir(&at).unwrap() {
+            let path = entry.unwrap().path();
+            if path.strip_prefix(dir).is_ok_and(|rel| rel.starts_with("indexes")) { continue; }
+            if std::fs::symlink_metadata(&path).unwrap().is_dir() { out.insert(path.clone(), None); todo.push(path); }
+            else { out.insert(path.clone(), Some(std::fs::read(&path).unwrap())); }
+        }
+    }
+    out
+}
+
+#[test]
+fn file_act_arrival_preview_finds_its_log_through_the_read_home_and_writes_nothing() {
+    let (peer, state, run, arrival) = fixture("A7");
+    let store = crate::records_store::store_root().unwrap();
+    // The writer made the store-wide lock when it minted the project's
+    // identity. A preview, before the person has done anything, is a read:
+    // it takes no writer admission and makes no lock again.
+    let lock = store.join(".store.lock");
+    if lock.exists() { std::fs::remove_file(&lock).unwrap(); }
+    let (store_before, project_before) = (inventory(&store), inventory(&peer.fixture.root));
+    let preview = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(preview["offer"]["actKind"], "A7", "{preview}");
+    assert!(!lock.exists(), "the preview made the store-wide writer lock");
+    assert_eq!(inventory(&store), store_before, "the preview wrote in the records store");
+    assert_eq!(inventory(&peer.fixture.root), project_before, "the preview wrote in the project");
+    // The log it found is the run's own owning log.
+    assert_eq!(crate::records::supply::run_log_for_read(&peer.fixture.root, &run).unwrap(), crate::records::supply::run_log(&peer.fixture.root, &run).unwrap());
+    drop(state);
+    drop(peer);
+}
