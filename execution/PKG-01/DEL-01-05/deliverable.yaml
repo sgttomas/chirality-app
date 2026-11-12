@@ -61,6 +61,8 @@ checks:
 - app/tests/desktop-setup.test.mjs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
+# Shared with DEL-01-01: credential and home-separation names removed from the child.
+- app/src-tauri/src/hosting_child_environment_tests.rs
 - app/tests/conversation-panel.test.mjs
 - app/tests/access-provider.test.mjs
 - app/tests/model-choice.test.mjs
