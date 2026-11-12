@@ -539,6 +539,9 @@ fn url_without_credentials(value: &Value) -> Result<(), String> {
     }
     Ok(())
 }
+/// The refusal of a cloud entry whose home's Codex does not report the built-in provider. It
+/// does not assert the cause.
+pub(crate) const BUILT_IN_PROVIDER_UNREPORTED: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/start sent";
 fn classify(
     result: &Value,
     entry: &str,
@@ -728,6 +731,11 @@ impl Host {
         if local.is_some() && self.local_superseded() { return Err(crate::native_local_provider::RELAUNCH.into()); }
         let reading = self.private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Admission)?;
         classify(&reading.config, entry, provider, local.as_ref())?;
+        // The cloud entries rest on the provider this home's Codex itself reports, not on the App's
+        // own session setting: a managed requirement is applied before that setting.
+        if matches!(entry, "chatgpt-account" | "api-key") && reading.config["config"]["model_provider"] != "openai" {
+            return Err(BUILT_IN_PROVIDER_UNREPORTED.into());
+        }
         if let Some(settings) = &local {
             crate::native_local_provider::fixed_selection(settings, entry, provider, model)?;
             self.require_local_destination(generation)?;

@@ -887,8 +887,11 @@ impl Drop for Peer {
         self.child.wait().unwrap();
     }
 }
+/// A configuration reading as an App-started account home's Codex reports it: the App starts that
+/// Codex with model_provider="openai" as a session setting, which the effective configuration
+/// reports. The local fixtures replace model_provider with the local provider.
 fn config(defs: Value) -> Value {
-    json!({"config":{"model_provider":"different-default","model_providers":defs,"developer_instructions":CANARY},"origins":{}})
+    json!({"config":{"model_provider":"openai","model_providers":defs,"developer_instructions":CANARY},"origins":{}})
 }
 fn local() -> Value {
     json!({"name":"invented anonymous","base_url":"https://example.invalid/v1","wire_api":"responses","requires_openai_auth":false,"env_key":null,"auth":null,"aws":null,"gateway_oauth":null,"experimental_bearer_token":null,"http_headers":null,"env_http_headers":null,"query_params":null})
@@ -4370,4 +4373,41 @@ fn native_local_settings_a_reply_held_across_an_address_save_is_refused_under_th
         peer.safe();
         std::fs::remove_dir_all(root).unwrap();
     }
+}
+/// DEL-01-05 account home: the cloud entries rest on the provider this home's Codex itself
+/// reports. A managed requirement is applied before the App's session setting, and Codex's
+/// configuration reading reports the provider it resolved.
+#[test]
+fn access_provider_cloud_entries_require_codex_to_report_the_built_in_provider() {
+    for entry in ["chatgpt-account", "api-key"] {
+        for case in ["no-requirement", "requirement-names-another", "not-reported", "unreadable"] {
+            let peer = Peer::new("invented-account-home");
+            let mut reading = config(json!({}));
+            match case {
+                "requirement-names-another" => {
+                    reading["config"]["model_provider"] = json!("invented-corporate-gateway");
+                    reading["config"]["model_providers"]["invented-corporate-gateway"] = local();
+                }
+                "not-reported" => { reading["config"].as_object_mut().unwrap().remove("model_provider"); }
+                _ => {}
+            }
+            if case == "unreadable" {
+                *peer.host.before_provider_wait.lock().unwrap() = Some(Box::new(|host, source| {
+                    host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"error":{"code":-32603,"message":"invented"}})).unwrap(), source.generation());
+                }));
+            } else {
+                peer.answer(reading);
+            }
+            let admitted = peer.read(entry, "openai");
+            match case {
+                "no-requirement" => assert!(admitted.is_ok(), "{entry}: nothing changes without a requirement"),
+                "unreadable" => assert!(admitted.is_err(), "{entry}: unreadable refuses"),
+                _ => assert_eq!(admitted.err().unwrap(), BUILT_IN_PROVIDER_UNREPORTED, "{entry} {case}"),
+            }
+            let methods: Vec<_> = peer.host.client_requests().iter().map(|r| r["method"].as_str().unwrap_or("").to_owned()).collect();
+            assert!(methods.iter().all(|m| m == "config/read"), "{entry} {case}: no thread/start sent: {methods:?}");
+            peer.safe();
+        }
+    }
+    assert!(!BUILT_IN_PROVIDER_UNREPORTED.contains("invented"), "names no provider and asserts no cause");
 }
