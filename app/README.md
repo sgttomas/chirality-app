@@ -1204,6 +1204,35 @@ them is not maintained; `supplier_checks/test_recordings.py` checks what the
 files themselves establish. Neither a recording nor a generated basis is
 qualification of the pin (DEL-01-01 AC-011).
 
+## Admitting a pin on the same generated basis
+
+`supplier_checks/same_basis.py --from <prior pin> --to <new pin>` is the check a
+pin advance carries (DEL-01-01 REQ-006) when the supplier's generated schema did
+not change at all. It compares bytes and admits records whole; it reads no host
+source, interprets no schema and takes no dispositions.
+
+- The three generated files (the manifest and the two compiled bundles) must be
+  equal byte for byte at the two pins. If one differs it refuses: a changed
+  schema needs a full comparison of what the App relies on, with dispositions,
+  and none is maintained.
+- The new pin's distribution record and generation record are admitted
+  strictly, as exactly what `intake.py` writes: a closed set of keys at every
+  level (the supplier's own package metadata excepted, of which the pin, the
+  entrypoint and the path directory are checked), every value of its form, the
+  generator's health fields healthy, and every digest present and equal to the
+  thing it names.
+- A supplement file at either pin refuses. The prior pin must be one for which
+  a consumer analysis is kept (0.167.0, whose comparison with 0.160.0 is in
+  `supplier_checks/version_advance/` with a note of what it does and does not
+  establish); an identical basis carries that analysis over.
+
+What an admitted result establishes is that the protocol surface, as the
+supplier generates it, is the same bytes at both pins, and that the new pin's
+records are whole and bound to its release archive. It does not establish that
+the supplier behaves the same: the only behavioural evidence at a pin is its
+recorded exchanges, bounded as the note beside them says. It is not
+qualification of the pin (DEL-01-01 AC-011).
+
 ## Group B offline examination support
 
 `examination/check.py` checks EXP result and PKG identity files and their explicit

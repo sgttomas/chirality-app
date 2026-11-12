@@ -67,6 +67,11 @@ code_paths:
 # intake.py checks and inventories a supplier release archive of a pin of its table and runs
 # the supplier's generators.
 - app/supplier_checks/intake.py
+# same_basis.py admits a pin whose generated schema is byte-identical to the prior pin's.
+- app/supplier_checks/same_basis.py
+# version_advance/ holds the 0.160.0 to 0.167.0 comparison and its authored dispositions, kept as
+# evidence with a note of how they were made, and the results same_basis.py writes.
+- app/supplier_checks/version_advance
 # recordings/<pin>/ holds exchanges recorded from the stock supplier at a pin, kept as evidence
 # with a note of how they were made; the harness that made them is not maintained.
 - app/supplier_checks/recordings
@@ -80,6 +85,8 @@ checks:
 - app/supplier_checks/test_recorded_replay.py
 - app/supplier_checks/test_recordings.py
 - app/supplier_checks/test_intake.py
+- app/supplier_checks/test_same_basis.py
+- app/supplier_checks/test_version_advance_evidence.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs
 - app/tests/process-group-custody.test.mjs
