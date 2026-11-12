@@ -207,7 +207,8 @@ impl ConversationSelection {
         if self.record["selection"]["entryId"] == "chatgpt-account" && home_kind != "account" {
             return Err("ChatGPT entry requires account home".into());
         }
-        if (home_kind=="local-provider" || self.record["selection"]["entryId"]==crate::native_local_provider::ENTRY) && (home_kind!="local-provider" || crate::native_local_provider::fixed_selection(self.record["selection"]["entryId"].as_str().unwrap_or(""),self.record["selection"]["providerId"].as_str().unwrap_or(""),self.record["selection"]["model"].as_str().unwrap_or("")).is_err()) { return Err(crate::native_local_provider::LIMIT.into()); }
+        // Shape only here; the bound Host compares the model with the local model settings in force.
+        if (home_kind=="local-provider" || self.record["selection"]["entryId"]==crate::native_local_provider::ENTRY) && (home_kind!="local-provider" || crate::native_local_provider::selection_shape(self.record["selection"]["entryId"].as_str().unwrap_or(""),self.record["selection"]["providerId"].as_str().unwrap_or(""),self.record["selection"]["model"].as_str().unwrap_or("")).is_err()) { return Err(crate::native_local_provider::LIMIT.into()); }
         self.home = Some(home_kind.into());
         self.generation = Some(generation.clone());
         self.record["state"] = json!("starting");
