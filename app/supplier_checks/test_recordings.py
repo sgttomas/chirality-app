@@ -82,11 +82,18 @@ class RecordingsAtThePin(unittest.TestCase):
                                  expected["inventory"]["manifest_sha256"])
                 self.assertEqual(record["events"][0]["pin"], PIN)
                 self.assertIsNone(record["app_candidate"])
+
+    def test_each_file_holds_the_harness_report_of_its_socket_sample_and_settings(self):
+        # These check what the file says the harness recorded about itself. The harness is not
+        # maintained and its zeros are not proof that the supplier opened no other connection.
+        for scenario in SCENARIOS:
+            with self.subTest(scenario):
+                record = recording(scenario)
                 self.assertGreater(record["socket_watch"]["samples"], 0)
-                self.assertEqual(record["socket_watch"]["failed_samples"], 0)
+                self.assertEqual(record["socket_watch"]["failed_samples"], 0, "as the file reports it")
                 self.assertEqual(sorted(record["socket_watch"]["samples_by_generation"]), ["1", "2"])
                 self.assertTrue(all(record["socket_watch"]["samples_by_generation"].values()))
-                self.assertEqual(record["socket_watch"]["non_loopback_peers"], [])
+                self.assertEqual(record["socket_watch"]["non_loopback_peers"], [], "as the file reports it")
                 settings = record["settings_in_effect"]
                 self.assertEqual(settings["environment"], ["CODEX_HOME", "HOME", "LANG", "PATH", "TMPDIR", "TZ"])
                 self.assertEqual((settings["outside_configuration"]["system_configuration_folder"],
@@ -136,15 +143,40 @@ class RecordingsAtThePin(unittest.TestCase):
                 self.assertIn("rollout-", text)
                 self.assertEqual(clock_disclosures(text), [])
 
-    def test_st5_answer_was_written_while_frozen_and_never_acknowledged_and_nothing_was_re_raised(self):
+    def test_st5_captured_frames_hold_no_acknowledgment_in_generation_1_and_no_server_request_through_the_resume_reply(self):
+        # A check of the file, not of the supplier: what the supplier sent that was not captured,
+        # or sent after the reply to thread/resume, is not established by it.
+        frames = recording("st5")["frames"]
+        raised = [row for row in frames if row["generation"] == 1 and row["direction"] == "codex->app"
+                  and row["frame"].get("method") == "item/commandExecution/requestApproval"]
+        self.assertEqual([(row["position"], "id" in row["frame"]) for row in raised], [(13, True)])
+        answers = [row for row in frames if row["generation"] == 1 and row["direction"] == "app->codex"
+                   and "method" not in row["frame"] and row["frame"].get("id") == raised[0]["frame"]["id"]]
+        self.assertEqual([row["frame"]["result"] for row in answers], [{"decision": "accept"}])
+        self.assertEqual([row for row in frames if row["generation"] == 1
+                          and row["frame"].get("method") == "serverRequest/resolved"], [],
+                         "no acknowledgment frame among the captured frames of generation 1")
+        second = [row for row in frames if row["generation"] == 2]
+        resume = next(row["frame"]["id"] for row in second if row["frame"].get("method") == "thread/resume")
+        reply = next(index for index, row in enumerate(second) if row["direction"] == "codex->app"
+                     and "method" not in row["frame"] and row["frame"].get("id") == resume)
+        self.assertEqual(second[reply]["position"], 9)
+        self.assertEqual([row for row in second[:reply + 1] if row["direction"] == "codex->app"
+                          and "method" in row["frame"] and "id" in row["frame"]], [],
+                         "no server request among the captured frames of generation 2 through the resume reply")
+
+    def test_st5_events_are_the_harness_record_of_its_own_acts_and_readings(self):
+        # What the harness wrote about what it did and saw. It is not maintained and its readings
+        # of an absence are not relied on; this checks only that the file says what the note says.
         events = {event["event"]: event for event in recording("st5")["events"]}
         names = [event["event"] for event in recording("st5")["events"]]
         self.assertEqual(events["answer-written"]["decision"], "accept")
-        # Frozen before the answer was written: no acknowledgment can exist.
         self.assertLess(names.index("process-group-frozen"), names.index("answer-written"))
-        self.assertFalse(events["acknowledgment-reading"]["serverRequest_resolved_observed"])
-        self.assertEqual(events["re-raised-request-reading"]["server_requests_after_resume"], 0)
-        self.assertFalse(events["workspace-reading-end"]["marker_folder_exists"])
+        self.assertLess(names.index("answer-written"), names.index("process-group-killed-while-frozen"))
+        self.assertFalse(events["acknowledgment-reading"]["serverRequest_resolved_observed"], "as the file reports it")
+        self.assertEqual(events["re-raised-request-reading"]["server_requests_after_resume"], 0,
+                         "as the file reports it")
+        self.assertFalse(events["workspace-reading-end"]["marker_folder_exists"], "as the file reports it")
 
     def test_nv04_spawn_item_carries_its_prompt_live_and_on_every_history_read_of_the_parent(self):
         record = recording("nv04")
