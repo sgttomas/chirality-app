@@ -97,6 +97,7 @@ code_paths:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/host_tick.rs
 - app/src/RunJourney.tsx
+- app/src/IncludedWorkflows.tsx
 - app/src/MakeJourney.tsx
 - app/src/LibraryEntries.tsx
 - app/src/WorkflowRegistrationReview.tsx
@@ -148,6 +149,7 @@ checks:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/runtime_session.rs
 - app/tests/run-journey.test.mjs
+- app/tests/included-workflows.test.mjs
 - app/tests/make-journey.test.mjs
 - app/tests/journey-navigation.test.mjs
 - app/tests/workflow-library.test.mjs

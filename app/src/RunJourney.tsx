@@ -2,7 +2,7 @@ import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { chatWorkflow, workflowAssurance } from "./workflowSelection";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
-import { IncludedWorkflows, librarySourceWords } from "./IncludedWorkflows";
+import { IncludedWorkflows, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { useEffect, useRef, useState } from "react";
 
 /** What each guide command did, in the person's words. */
@@ -258,6 +258,12 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const newer = chosen?.newerRevision;
   // A current limit (changed store, approval no longer admitted) blocks the run
   // even while the selection's standing admits it (WR §4.6, SL-4).
+  // The Library release is named only for a selection that is a catalogue
+  // entry by its whole identity; any other is described by its own source.
+  const librarySource = librarySourceWords(data?.productionCatalog?.source);
+  const chosenSource = !chosen ? "" : includedEntryOf(data?.productionCatalog, chosen) ? `included with the App${librarySource ? `, from ${librarySource}` : ""}`
+    : chosen.identity?.origin === "bundled" ? `a bundled copy${chosen.identity?.source_root ? ` (source ${text(chosen.identity.source_root)})` : ""}`
+    : `${text(chosen.identity?.origin)} library`;
   const chosenReady = chosen?.runnable === true && !chosen?.currentLimit;
   const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
   const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
@@ -292,7 +298,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
-        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosen.identity?.origin === "bundled" ? `included with the App${librarySourceWords(data?.productionCatalog?.source) ? `, from ${librarySourceWords(data?.productionCatalog?.source)}` : ""}` : `${text(chosen.identity?.origin)} library`}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
+        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
         {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}

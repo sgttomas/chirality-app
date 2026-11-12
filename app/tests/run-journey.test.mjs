@@ -490,14 +490,22 @@ test('a refused press is said in plain words under Next only where nothing was d
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
   assert.match(region(ui.c, 'Run a workflow — last result').textContent, /see Progress for what the App knows and what to do next\.$/);
 
-  const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:{name:'coordinated-knowledge-work', origin:'bundled', revision:'3730d84debb5aa'},
+  const included = {kind:'workflow', origin:'bundled', source_root:'invented-library:library-v9.9.9', name:'coordinated-knowledge-work', revision:'3730d84debb5aa', revision_method:'invented/v1', derived_from:null};
+  const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:included,
     newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
-  await ui.rerender({data:data({selections:bundled}), outcome:null});
+  const catalogue = source => ({standing:'s', ...(source ? {source} : {}), entries:[{name:included.name, revision:included.revision, identity:included, runnable:true}]});
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()}), outcome:null});
   assert.doesNotMatch(section.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
   assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, revision 3730d84debb5…\. Ready to run\./, 'source and revision of an included workflow, with no library named');
-  await ui.rerender({data:data({selections:bundled, productionCatalog:{source:{tag:'library-v9.9.9'}, entries:[]}})});
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
   assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, from Chirality Library 9\.9\.9, revision 3730d84debb5…\./);
-  await ui.rerender({data:data({selections:bundled})});
+  // Review round 1: the development holding copy also has the bundled origin, with another source root.
+  const development = [{...bundled[0], selection:{...bundled[0].selection, identity:{...included, source_root:'chirality-root', revision:'1b1733864cd8aa'}}}];
+  await ui.rerender({data:data({selections:development, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
+  const other = region(ui.c, 'Workflow chosen for this run').textContent;
+  assert.match(other, /^coordinated-knowledge-work — a bundled copy \(source chirality-root\), revision 1b1733864cd8…\./, 'a selection that is not a catalogue entry is described by its own source');
+  assert.doesNotMatch(other, /included with the App|Chirality Library/);
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()})});
   await ui.rerender({data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}}}]})});
   assert.match(section.textContent, /Newer revisions of resolve-spacing can't be checked/, 'a library workflow still says when newer revisions could not be read');
   await ui.close();
