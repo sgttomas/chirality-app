@@ -23,15 +23,25 @@ from `/` down, is opened without following a link, and every file is read throug
 opened the same way: a link at any level, a special file, a name with a line break and any entry
 it cannot list, open or read refuse the comparison; nothing is skipped. Each directory is listed
 again after its content is read, and the same names and file identities (device, inode, size,
-modification time) are required, so a change during the read refuses. Every shipped package must
+modification time) are required. A whole-tree identity snapshot of each side, the index and
+manifest included, is taken before any content is read and again after all of it, and the two
+must be equal. Index entries must have a known kind, a plain name and, for workflows, a list of
+plain relative resource paths. Every shipped package must
 carry the known revision method and the revision recomputed from its tree; an unknown or missing
 method, or another revision, refuses. Reads only; writes nothing.
+
+Limits: this is an operator-run check on stable inputs. It is built so that an observation that was
+not made, that failed, or that is incomplete cannot come out as success, and so that drift and
+mistakes are caught. It is not built to withstand a writer changing the inputs during the run (the
+snapshots catch ordinary changes, not a writer who restores identities), nor someone with write
+access forging inputs.
 """
 import argparse
 import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import stat
 import sys
 
@@ -131,6 +141,44 @@ def unchanged_since(fd, where, before):
     require(identities(fd, where) == before, f'changed while read: {where}')
 
 
+def snapshot(fd, where):
+    """One whole-tree identity snapshot: every directory's names and every entry's mode, device,
+    inode, size and modification time, keyed by relative path ('.' for the root itself). Taken
+    before any content is read and again after all of it; the two must be equal."""
+    root = os.fstat(fd)
+    found = {'.': (root.st_mode, root.st_dev, root.st_ino, root.st_size, root.st_mtime_ns)}
+    def visit(dir_fd, prefix, place):
+        for name, identity in identities(dir_fd, place).items():
+            found[prefix + name] = identity
+            if stat.S_ISDIR(identity[0]):
+                child = open_child_dir(dir_fd, name, f'{place}/{name}')
+                try:
+                    visit(child, prefix + name + '/', f'{place}/{name}')
+                finally:
+                    os.close(child)
+    visit(fd, '', where)
+    return found
+
+
+def same_snapshot(fd, where, before):
+    require(snapshot(fd, where) == before, f'changed while read: {where} (whole-tree identities differ)')
+
+
+NAME = re.compile(r'[A-Za-z0-9][A-Za-z0-9._-]*')
+KINDS = ('workflow', 'skill')
+
+
+def valid_method(m):
+    """Kind and name of the expected values; a workflow's resources a list of plain relative paths."""
+    if not (isinstance(m, dict) and m.get('kind') in KINDS and isinstance(m.get('name'), str) and NAME.fullmatch(m['name'])):
+        return False
+    resources = m.get('resources')
+    if m['kind'] == 'workflow' or 'resources' in m:
+        return (isinstance(resources, list) and all(isinstance(r, str) and r and not r.startswith('/')
+                and all(part not in ('', '.', '..') for part in r.split('/')) for r in resources))
+    return True
+
+
 def read_package(parent_fd, name, where):
     """Every file of one package folder: relative path -> bytes. Each directory traversed is
     opened without following links; any error refuses."""
@@ -176,15 +224,15 @@ def library(library_root):
     finally:
         os.close(root_fd)
     try:
-        raw_index = read_file(workflows_fd, 'index.json', 'library workflows/index.json')
+        before = snapshot(workflows_fd, 'library workflows')
+        require('index.json' in before, 'library workflows/index.json missing')
+        raw_index = read_file(workflows_fd, 'index.json', 'library workflows/index.json', before['index.json'])
         index = json.loads(raw_index)
         require(isinstance(index, dict) and index.get('schema') == INDEX_SCHEMA, 'unknown index schema')
         methods = index.get('methods')
         require(isinstance(methods, list), 'index has no methods list')
-        # No index entry is skipped: each must name its kind and name, and a workflow its resources.
-        require(all(isinstance(m, dict) and isinstance(m.get('kind'), str) and isinstance(m.get('name'), str)
-                    and (m['kind'] != 'workflow' or isinstance(m.get('resources'), list)) for m in methods),
-                'malformed index entry')
+        # No index entry is skipped or loosely accepted.
+        require(all(valid_method(m) for m in methods), 'malformed index entry')
         names = [m.get('name') for m in methods if isinstance(m, dict) and m.get('kind') == 'workflow']
         require(all(isinstance(n, str) and n and '/' not in n and n not in ('.', '..') for n in names), 'invalid workflow name in index')
         require(len(names) == len(set(names)), 'duplicate workflow name in index')
@@ -198,6 +246,7 @@ def library(library_root):
                 + ', folders only ' + json.dumps(sorted(set(folders) - set(names))))
         packages = {n: read_package(workflows_fd, n, f'library workflows/{n}') for n in sorted(names)}
         unchanged_since(workflows_fd, 'library workflows', top)
+        same_snapshot(workflows_fd, 'library workflows', before)
     finally:
         os.close(workflows_fd)
     listed = {m['name']: sorted(m['resources']) for m in methods if m['kind'] == 'workflow'}
@@ -211,7 +260,9 @@ def library(library_root):
 def shipped(workflows_dir):
     root_fd = open_dir(workflows_dir)
     try:
-        raw_manifest = read_file(root_fd, 'MANIFEST.json', 'shipped MANIFEST.json')
+        before = snapshot(root_fd, 'shipped')
+        require('MANIFEST.json' in before, 'shipped MANIFEST.json missing')
+        raw_manifest = read_file(root_fd, 'MANIFEST.json', 'shipped MANIFEST.json', before['MANIFEST.json'])
         manifest = json.loads(raw_manifest)
         require(isinstance(manifest, dict) and isinstance(manifest.get('packages'), list), 'manifest has no packages list')
         listed = {}
@@ -232,6 +283,7 @@ def shipped(workflows_dir):
                 + ', tree only ' + json.dumps(sorted(set(folders) - set(listed))))
         packages = {n: read_package(root_fd, n, f'shipped {n}') for n in sorted(listed)}
         unchanged_since(root_fd, 'shipped', top)
+        same_snapshot(root_fd, 'shipped', before)
     finally:
         os.close(root_fd)
     for name, package in listed.items():

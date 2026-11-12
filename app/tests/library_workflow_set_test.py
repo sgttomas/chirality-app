@@ -204,6 +204,65 @@ class LibrarySet(unittest.TestCase):
                 self.setUp(); edit(change)
                 self.assertRefused()
 
+    # Review round 3 probes late-*: a file added, removed or edited in a subtree already scanned,
+    # while a later file was read, once compared equal on either side.
+    def test_late_change_in_an_already_scanned_subtree_is_refused(self):
+        files = {'a/deep/first.md': b'first', 'z.md': b'last', 'WORKFLOW.md': b'# invented\n'}
+        original = tool.read_file
+        for side in ('library', 'shipped'):
+            for action in ('add', 'remove', 'edit'):
+                with self.subTest(side=side, action=action):
+                    self.base = Path(tempfile.mkdtemp(dir=self.base)).resolve()
+                    self.library, self.shipped = self.base / 'library', self.base / 'shipped'
+                    self.make_library({'alpha': files}); self.make_shipped({'alpha': files})
+                    folder = (self.library / 'workflows' if side == 'library' else self.shipped) / 'alpha'
+                    done = []
+                    def late(fd, name, where, expected=None):
+                        raw = original(fd, name, where, expected)
+                        if not done and where.startswith(side) and where.endswith('z.md'):
+                            done.append(True)
+                            if action == 'add':
+                                (folder / 'a/deep/new.md').write_bytes(b'new')
+                            elif action == 'remove':
+                                (folder / 'a/deep/first.md').unlink()
+                            else:
+                                (folder / 'a/deep/first.md').write_bytes(b'FIRST, edited')
+                        return raw
+                    with patch.object(tool, 'read_file', side_effect=late):
+                        with self.assertRaisesRegex(tool.Refused, 'changed while read'):
+                            self.run_compare()
+                    self.assertTrue(done)
+
+    def test_index_or_manifest_changed_after_it_is_read_is_refused(self):
+        original = tool.read_file
+        for target in ('index.json', 'MANIFEST.json'):
+            with self.subTest(target=target):
+                self.setUp()
+                path = self.library / 'workflows/index.json' if target == 'index.json' else self.shipped / 'MANIFEST.json'
+                def after(fd, name, where, expected=None):
+                    raw = original(fd, name, where, expected)
+                    if name == target:
+                        path.write_bytes(raw + b' ')
+                    return raw
+                with patch.object(tool, 'read_file', side_effect=after):
+                    with self.assertRaisesRegex(tool.Refused, 'changed while read'):
+                        self.run_compare()
+
+    # Review round 3, non-blocking: an empty-kind entry and a non-string resource passed.
+    def test_index_entries_are_validated_strictly(self):
+        index = self.library / 'workflows/index.json'
+        original = json.loads(index.read_bytes())
+        for label, change in (('empty kind', lambda m: m.append({'kind': '', 'name': 'x'})),
+                              ('unknown kind', lambda m: m.append({'kind': 'role', 'name': 'x'})),
+                              ('non-string resource', lambda m: m[0]['resources'].append(7)),
+                              ('escaping resource', lambda m: m[0]['resources'].append('../x')),
+                              ('empty name', lambda m: m.append({'kind': 'skill', 'name': '', 'resources': []})),
+                              ('skill with bad resources', lambda m: m.append({'kind': 'skill', 'name': 's', 'resources': 'SKILL.md'}))):
+            with self.subTest(case=label):
+                value = json.loads(json.dumps(original)); change(value['methods'])
+                index.write_text(json.dumps(value))
+                self.assertRefused()
+
     def test_index_and_folders_disagreeing_is_refused(self):
         (self.library / 'workflows/unindexed').mkdir()
         self.assertRefused()
