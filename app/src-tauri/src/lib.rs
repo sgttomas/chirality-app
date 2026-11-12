@@ -1510,13 +1510,16 @@ fn prepare_role_entry(
     development: bool,
     resource_root: impl FnOnce() -> Result<PathBuf, String>,
 ) -> Result<(role_supply::Composition, Value), String> {
-    let package = if development {
+    // An installed build names its verified packaged defaults when a guidance
+    // file is missing; a development build names none.
+    let (package, shipped) = if development {
         role_supply::bundled_role_set()?;
-        json!({"standing":"development-embedded-candidate","roleSet":role_supply::content(role_supply::BUNDLED_ROLE_SET),"releaseQualified":false})
+        (json!({"standing":"development-embedded-candidate","roleSet":role_supply::content(role_supply::BUNDLED_ROLE_SET),"releaseQualified":false}), None)
     } else {
-        runtime_session::verify_production_instructions_root(&resource_root()?)?
+        let resources = resource_root()?;
+        (runtime_session::verify_production_instructions_root(&resources)?, Some(resources))
     };
-    let composition = runtime_session::compose_role(root, role)?;
+    let composition = runtime_session::compose_role_from(root, role, shipped.as_deref())?;
     Ok((composition, package))
 }
 #[tauri::command(async)]

@@ -52,7 +52,7 @@ fn declared_history_and_reviewed_default_are_separate_inspectable_facts() {
     assert_eq!(h["status"], "declared"); assert_eq!(h["record"]["content"], content(&raw));
     assert_eq!(h["release"], "declared-old-release");
     assert_eq!(h["matchesSuppliedContent"], false);
-    let composed = super::Composition::new(&guidance, None, false).unwrap();
+    let composed = super::Composition::new(&guidance, None, None, false).unwrap();
     let record = composed.start_record("sup:history-test", "thread", "request", 1, None).unwrap();
     let schema: Value = serde_json::from_str(include_str!("../resources/workflow_role/role-supply-record.schema.json")).unwrap();
     jsonschema::options().offline().build(&schema).unwrap().validate(&record).unwrap();

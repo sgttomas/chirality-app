@@ -259,6 +259,40 @@
     },
     "carried": {
       "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "developerInstructions": {
+                "properties": {
+                  "parts": {
+                    "contains": {
+                      "properties": {
+                        "kind": {
+                          "const": "delegation-guidance"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "compositionFormat"
+            ],
+            "properties": {
+              "compositionFormat": {
+                "const": "chirality.role.compose/0.3"
+              }
+            }
+          }
+        }
+      ],
       "required": [
         "developerInstructions",
         "baseInstructions",
@@ -267,7 +301,11 @@
       "additionalProperties": false,
       "properties": {
         "compositionFormat": {
-          "const": "chirality.role.compose/0.2"
+          "enum": [
+            "chirality.role.compose/0.2",
+            "chirality.role.compose/0.3"
+          ],
+          "description": "0.2: product guidance, then the role. 0.3: the same, then the delegation guidance for a role that may delegate"
         },
         "developerInstructions": {
           "type": "object",
@@ -290,7 +328,41 @@
               "minItems": 1,
               "items": {
                 "$ref": "#/$defs/part"
-              }
+              },
+              "prefixItems": [
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "product-guidance"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "role-guidance"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                },
+                {
+                  "properties": {
+                    "kind": {
+                      "const": "delegation-guidance"
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ]
+                }
+              ],
+              "maxItems": 3,
+              "description": "In order: the product guidance, the role, the delegation guidance. Which of these a composition has follows from its format and role; the reader checks what depends on the role set (role_supply::check_structure)."
             }
           }
         },
@@ -747,6 +819,54 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "selection": {
+            "properties": {
+              "role": {
+                "enum": [
+                  "none",
+                  "TASK"
+                ]
+              }
+            },
+            "required": [
+              "role"
+            ]
+          }
+        },
+        "required": [
+          "selection"
+        ]
+      },
+      "then": {
+        "properties": {
+          "carried": {
+            "properties": {
+              "developerInstructions": {
+                "properties": {
+                  "parts": {
+                    "items": {
+                      "not": {
+                        "properties": {
+                          "kind": {
+                            "const": "delegation-guidance"
+                          }
+                        },
+                        "required": [
+                          "kind"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -776,7 +896,7 @@
         },
         "path": {
           "type": "string",
-          "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
+          "pattern": "^(AGENTS\\.md|DELEGATION_RECORDS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
         },
         "reviewedDefault": {
           "type": "object",
@@ -935,7 +1055,7 @@
         },
         "path": {
           "type": "string",
-          "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
+          "pattern": "^(AGENTS\\.md|DELEGATION_RECORDS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
         },
         "release": {
           "type": "string",
@@ -968,7 +1088,8 @@
         "kind": {
           "enum": [
             "product-guidance",
-            "role-guidance"
+            "role-guidance",
+            "delegation-guidance"
           ],
           "description": "No workflow part (R19-1, R19-7)"
         },
@@ -1013,6 +1134,34 @@
               "role"
             ]
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "delegation-guidance"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "role"
+              ]
+            },
+            "properties": {
+              "source": {
+                "properties": {
+                  "path": {
+                    "const": "DELEGATION_RECORDS.md"
+                  }
+                }
+              }
+            }
+          }
         }
       ]
     },
@@ -1048,7 +1197,7 @@
         },
         "composed": {
           "$ref": "#/$defs/contentIdentity",
-          "description": "Identity of the child's developer_instructions text (product guidance + role); it replaces the parent's for the child (OBS-2 O-4a, through an adapter)"
+          "description": "Identity of the child's developer_instructions text (product guidance + role, + delegation guidance for a child role that may delegate); it replaces the parent's for the child (OBS-2 O-4a, through an adapter)"
         },
         "file": {
           "$ref": "#/$defs/contentIdentity",

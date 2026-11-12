@@ -25,7 +25,11 @@ fn composition(role: Role) -> Composition {
         bytes,
     )
     .unwrap();
-    Composition::new(&common, Some((role, &role_doc)), role == Role::TASK).unwrap()
+    // The fixture frame stays small: synthetic delegation bytes, not the shipped text.
+    let delegation = role.may_delegate().then(|| {
+        Guidance::seeded(crate::role_supply::DELEGATION_GUIDANCE_PATH, "synthetic", b"Synthetic delegation.\n".to_vec(), b"Synthetic delegation.\n").unwrap()
+    });
+    Composition::new(&common, Some((role, &role_doc)), delegation.as_ref(), role == Role::TASK).unwrap()
 }
 fn start_result() -> Value {
     json!({"thread":{"id":"thread","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/synthetic","ephemeral":false,"modelProvider":"synthetic","preview":"synthetic","projectId":null,"sessionId":"synthetic-native","source":"appServer","status":{"type":"idle"},"turns":[],"agentRole":"WORKING_ITEMS"},"model":"synthetic","modelProvider":"synthetic","cwd":"/synthetic","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":[]})

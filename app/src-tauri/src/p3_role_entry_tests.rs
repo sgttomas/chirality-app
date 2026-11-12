@@ -85,7 +85,7 @@ fn p3_entry_task_start_is_refused_before_send_and_task_guidance_stays_for_delega
     // The shipped TASK guidance is still composed for a delegated child.
     let common = role_supply::Guidance::read_seeded(&editable, "AGENTS.md", runtime_session::INSTRUCTION_RELEASE, runtime_session::COMMON_DEFAULT).unwrap();
     let task = role_supply::Guidance::read_seeded(&editable, "agents/AGENT_TASK.md", runtime_session::INSTRUCTION_RELEASE, runtime_session::role_default(role_supply::Role::TASK)).unwrap();
-    role_supply::Composition::new(&common, Some((role_supply::Role::TASK, &task)), true).unwrap();
+    role_supply::Composition::new(&common, Some((role_supply::Role::TASK, &task)), None, true).unwrap();
     std::fs::remove_dir_all(base).unwrap();
 }
 

@@ -524,6 +524,8 @@ impl RoleLog {
             if row["carried"] != composition.carried {
                 return Err("observed carrier differs from the pinned App composition".into());
             }
+            role_supply::check_structure(&composition.carried, role_supply::recorded_role(&row["selection"]["role"])?)?;
+            crate::role_lifecycle::verify_composition_sources(composition)?;
             let payloads =
                 child(&folder, "content", true)?.ok_or("App content folder unavailable")?;
             let (composed, file) = Self::publish_bytes(&payloads, composition.text.as_bytes())?;
@@ -684,6 +686,12 @@ impl RoleLog {
             String::from_utf8(Self::payload(folder, &leaf, id, length)?).map_err(|e| e.to_string())
         };
         let composed = get(&refs["composed"])?;
+        // The parts a composition has follow from its format and role; a
+        // quoted row is read only when they do (a child row carries no
+        // selection and is checked against its own role below).
+        if let Some(selection) = row.get("selection") {
+            role_supply::check_structure(&row["carried"], role_supply::recorded_role(&selection["role"])?)?;
+        }
         let part_refs = refs["parts"].as_array().ok_or("source part refs absent")?;
         let carried = &row["carried"]["developerInstructions"];
         let metadata = carried["parts"].as_array().ok_or("carried parts absent")?;
@@ -750,29 +758,54 @@ impl RoleLog {
                     .as_array()
                     .ok_or("quoted child parts absent")?;
                 let role = child["role"].as_str().ok_or("quoted child role absent")?;
-                if metadata.len() != 2
+                role_supply::check_structure(&child["carried"], role_supply::recorded_role(&child["role"])?)?;
+                // A child whose role may delegate also carries the parent's
+                // delegation guidance as a third part (composition 0.3).
+                let delegation = metadata.len() == 3;
+                if !matches!(metadata.len(), 2 | 3)
                     || metadata[0]["kind"] != "product-guidance"
                     || metadata[0]["source"]["path"] != "AGENTS.md"
                     || metadata[1]["kind"] != "role-guidance"
                     || metadata[1]["role"] != role
                     || metadata[1]["source"]["path"] != format!("agents/AGENT_{role}.md")
+                    || delegation
+                        && (metadata[2]["kind"] != "delegation-guidance"
+                            || metadata[2]["source"]["path"]
+                                != crate::role_supply::DELEGATION_GUIDANCE_PATH)
                 {
                     return Err("quoted child role/source metadata differs".into());
                 }
                 let child_parts = bytes["parts"]
                     .as_array()
                     .ok_or("quoted child exact parts absent")?;
-                if bytes["composed"]
-                    != format!(
-                        "{}\n\n# Active role: {role}\n\n{}",
-                        child_parts[0]["text"]
+                let mut framed = format!(
+                    "{}\n\n# Active role: {role}\n\n{}",
+                    child_parts[0]["text"]
+                        .as_str()
+                        .ok_or("quoted common text absent")?,
+                    child_parts[1]["text"]
+                        .as_str()
+                        .ok_or("quoted role text absent")?
+                );
+                if delegation {
+                    framed.push_str(crate::role_supply::DELEGATION_HEADING);
+                    framed.push_str(
+                        child_parts[2]["text"]
                             .as_str()
-                            .ok_or("quoted common text absent")?,
-                        child_parts[1]["text"]
-                            .as_str()
-                            .ok_or("quoted role text absent")?
-                    )
-                {
+                            .ok_or("quoted delegation text absent")?,
+                    );
+                    let parent = row["carried"]["developerInstructions"]["parts"]
+                        .as_array()
+                        .and_then(|p| p.iter().position(|p| p["kind"] == "delegation-guidance"));
+                    if parent.is_none_or(|i| {
+                        let original = &row["carried"]["developerInstructions"]["parts"][i];
+                        ["source", "content", "length"].iter().any(|k| metadata[2][*k] != original[*k])
+                            || child_parts[2]["text"] != parts[i]["text"]
+                    }) {
+                        return Err("quoted child delegation source differs from original parent".into());
+                    }
+                }
+                if bytes["composed"] != framed {
                     return Err("quoted child framing differs".into());
                 }
 

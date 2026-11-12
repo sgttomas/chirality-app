@@ -205,7 +205,8 @@ fn explicit_fixture_role_guidance_preserves_bytes_and_refuses_primary_task() {
             b"fixture role",
         )
         .unwrap();
-        let c = Composition::new(&common, Some((role, &guide)), false);
+        let delegation = Guidance::seeded(chirality_app_v4_lib::role_supply::DELEGATION_GUIDANCE_PATH, "synthetic", b"fixture delegation".to_vec(), b"fixture delegation").unwrap();
+        let c = Composition::new(&common, Some((role, &guide)), role.may_delegate().then_some(&delegation), false);
         if role == Role::TASK {
             assert!(c.is_err());
         } else {
@@ -213,7 +214,9 @@ fn explicit_fixture_role_guidance_preserves_bytes_and_refuses_primary_task() {
             let params = c.start_params().unwrap();
             assert!(params.get("baseInstructions").is_none());
             assert!(c.text.starts_with("fixture common"));
-            assert!(c.text.ends_with("fixture role"));
+            // Every conversation role may delegate: the role document, then
+            // the delegation guidance under its own heading.
+            assert!(c.text.ends_with("fixture role\n\n# Delegation guidance\n\nfixture delegation"));
             assert_eq!(c.child_status(None, false)[0]["status"], "not-supplied");
         }
     }

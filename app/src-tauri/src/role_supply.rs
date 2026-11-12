@@ -5,8 +5,28 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 pub const CONTENT_METHOD: &str = "chirality.app.exact-bytes.sha256/v1";
+/// The App's own guidance on recording delegated work: one document, apart
+/// from the role documents and their source binding, supplied after the role
+/// document to a role that may delegate (roles.json "delegation").
+pub const DELEGATION_GUIDANCE_PATH: &str = "DELEGATION_RECORDS.md";
+/// The heading line placed before the delegation guidance in a composition.
+pub const DELEGATION_HEADING: &str = "\n\n# Delegation guidance\n\n";
+/// Product guidance, then the active role, then, for a role that may
+/// delegate, the delegation guidance. 0.2 compositions (no delegation part)
+/// stay readable as recorded.
+pub const COMPOSITION_FORMAT: &str = "chirality.role.compose/0.3";
+pub const COMPOSITION_FORMAT_0_2: &str = "chirality.role.compose/0.2";
+/// A guidance store path the App reads: the product guidance, the delegation
+/// guidance or one role document.
+pub fn guidance_path(path: &str) -> bool {
+    path == "AGENTS.md"
+        || path == DELEGATION_GUIDANCE_PATH
+        || Role::ALL
+            .iter()
+            .any(|r| path == format!("agents/AGENT_{}.md", r.name()))
+}
 #[path = "instruction_seed_history.rs"]
-mod seed_history;
+pub(crate) mod seed_history;
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub enum Role {
@@ -34,6 +54,10 @@ impl Role {
     /// It is never offered at start or in "Continue as"; this guard refuses a
     /// TASK start that reaches composition anyway.
     pub fn primary_entry(self) -> bool {
+        self != Self::TASK
+    }
+    /// Matches the role set's "delegation" value, which `RoleSet::parse` checks.
+    pub fn may_delegate(self) -> bool {
         self != Self::TASK
     }
     pub fn child_roles(self) -> &'static [Role] {
@@ -125,11 +149,7 @@ impl Guidance {
         bytes: Vec<u8>,
         default: &[u8],
     ) -> Result<Self, String> {
-        if path != "AGENTS.md"
-            && !Role::ALL
-                .iter()
-                .any(|r| path == format!("agents/AGENT_{}.md", r.name()))
-        {
+        if !guidance_path(path) {
             return Err("guidance source path not allowed".into());
         }
         if release.is_empty() || bytes.is_empty() {
@@ -145,11 +165,7 @@ impl Guidance {
         release: &str,
         default: &[u8],
     ) -> Result<Self, String> {
-        if path != "AGENTS.md"
-            && !Role::ALL
-                .iter()
-                .any(|r| path == format!("agents/AGENT_{}.md", r.name()))
-        {
+        if !guidance_path(path) {
             return Err("guidance source path not allowed".into());
         }
         let (bytes, history) = read_guidance_snapshot(root, path, || {})
@@ -223,7 +239,7 @@ fn read_guidance_snapshot(
     }
     let opened_root = directory(root)?;
     let history = (|| -> Result<(File, Metadata, Vec<u8>), &'static str> {
-        let name = CString::new(".seed-record.json").unwrap();
+        let name = CString::new(seed_history::SEED_RECORD).unwrap();
         let flags = libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_NONBLOCK | libc::O_CLOEXEC | libc::O_NOCTTY;
         let fd = unsafe { libc::openat(opened_root.as_raw_fd(), name.as_ptr(), flags) };
         if fd < 0 {
@@ -280,7 +296,7 @@ fn read_guidance_snapshot(
         Ok((file, before, raw)) => {
             let stable = (|| -> Result<bool, String> {
                 let after = file.metadata().map_err(|e| e.to_string())?;
-                let named = at(&opened_root, ".seed-record.json", false)?.metadata().map_err(|e| e.to_string())?;
+                let named = at(&opened_root, seed_history::SEED_RECORD, false)?.metadata().map_err(|e| e.to_string())?;
                 Ok(after.is_file() && named.is_file() && stamp(&before) == stamp(&after) && stamp(&after) == stamp(&named))
             })().unwrap_or(false);
             if stable { seed_history::report(&raw, path, &bytes) } else { seed_history::unknown("changed") }
@@ -306,6 +322,59 @@ fn read_guidance(root: &std::path::Path, path: &str, after_open: impl FnOnce()) 
 #[cfg(all(test, unix))]
 #[path = "role_guidance_reads_tests.rs"]
 mod guidance_reads;
+#[cfg(all(test, unix))]
+#[path = "delegation_guidance_tests.rs"]
+mod delegation_guidance;
+/// The parts a recorded composition must have for its format and role, in
+/// order. 0.2: the product guidance, then the role. 0.3: the same, then the
+/// delegation guidance exactly when the role may delegate (the role set's
+/// "delegation", which `RoleSet::parse` ties to `Role::may_delegate`). The
+/// schemas check position and kind; this checks what depends on the role.
+pub(crate) fn check_structure(carried: &Value, role: Option<Role>) -> Result<(), String> {
+    let delegation = match carried["compositionFormat"].as_str() {
+        Some(COMPOSITION_FORMAT) => role.is_some_and(Role::may_delegate),
+        Some(COMPOSITION_FORMAT_0_2) => false,
+        _ => return Err("composition format not established".into()),
+    };
+    let parts = carried["developerInstructions"]["parts"]
+        .as_array()
+        .ok_or("composition parts absent")?;
+    let mut expected = vec![("product-guidance", "AGENTS.md".to_owned(), None)];
+    if let Some(r) = role {
+        expected.push(("role-guidance", format!("agents/AGENT_{}.md", r.name()), Some(r)));
+    }
+    if delegation {
+        expected.push(("delegation-guidance", DELEGATION_GUIDANCE_PATH.to_owned(), None));
+    }
+    if parts.len() != expected.len()
+        || parts.iter().zip(&expected).any(|(p, (kind, path, r))| {
+            p["kind"] != *kind
+                || p["source"]["path"] != path.as_str()
+                || match r {
+                    Some(r) => p["role"] != json!(r),
+                    None => p.get("role").is_some(),
+                }
+        })
+    {
+        return Err("composition parts differ from its format and role".into());
+    }
+    Ok(())
+}
+/// A recorded selection's role: a role name, or "none".
+pub(crate) fn recorded_role(value: &Value) -> Result<Option<Role>, String> {
+    if value == "none" {
+        return Ok(None);
+    }
+    serde_json::from_value(value.clone()).map(Some).map_err(|_| "recorded role unknown".into())
+}
+/// Tests: the shipped delegation guidance for a role that may delegate, else none.
+#[cfg(test)]
+pub(crate) fn delegation_for_test(role: Option<Role>) -> Option<Guidance> {
+    let d = crate::runtime_session::DELEGATION_DEFAULT;
+    role.filter(|r| r.may_delegate()).map(|_| {
+        Guidance::seeded(DELEGATION_GUIDANCE_PATH, crate::runtime_session::INSTRUCTION_RELEASE, d.to_vec(), d).unwrap()
+    })
+}
 #[derive(Debug, Clone)]
 pub struct Composition {
     pub(crate) children: Vec<crate::child_roles::ChildSupply>,
@@ -316,25 +385,42 @@ pub struct Composition {
     pub role: Option<Role>,
 }
 impl Composition {
+    /// `delegation` is the delegation guidance: required for a role whose
+    /// role-set row may delegate, refused for any other selection.
     pub fn new(
         common: &Guidance,
         role: Option<(Role, &Guidance)>,
+        delegation: Option<&Guidance>,
         delegated: bool,
     ) -> Result<Self, String> {
-        Self::with_role_set(common, role, delegated, BUNDLED_ROLE_SET)
+        Self::with_role_set(common, role, delegation, delegated, BUNDLED_ROLE_SET)
     }
     pub(crate) fn with_role_set(
         common: &Guidance,
         role: Option<(Role, &Guidance)>,
+        delegation: Option<&Guidance>,
         delegated: bool,
         role_set_bytes: &[u8],
     ) -> Result<Self, String> {
-        RoleSet::parse(role_set_bytes)?;
+        let set = RoleSet::parse(role_set_bytes)?;
         if common.source["path"] != "AGENTS.md" {
             return Err("common guidance source mismatch".into());
         }
         if role.is_some_and(|(r, _)| !delegated && !r.primary_entry()) {
             return Err("TASK is a bounded executor, not a primary entry".into());
+        }
+        let may_delegate = role.is_some_and(|(r, _)| {
+            set.roles
+                .iter()
+                .any(|row| row.name == r && row.delegation == "may-delegate")
+        });
+        if may_delegate != delegation.is_some() {
+            return Err(if may_delegate {
+                "delegation guidance absent for a role that may delegate"
+            } else {
+                "delegation guidance is supplied only to a role that may delegate"
+            }
+            .into());
         }
         let mut bytes = common.bytes.clone();
         let mut parts = vec![
@@ -349,7 +435,16 @@ impl Composition {
             bytes.extend_from_slice(&g.bytes);
             parts.push(json!({"kind":"role-guidance","role":r,"source":g.source,"content":content(&g.bytes),"offset":offset,"length":g.bytes.len()}));
         }
-        let carried = json!({"compositionFormat":"chirality.role.compose/0.2","developerInstructions":{"content":content(&bytes),"byteLength":bytes.len(),"parts":parts},"baseInstructions":"not-set","nativeChildRoles":[]});
+        if let Some(d) = delegation {
+            if d.source["path"] != DELEGATION_GUIDANCE_PATH {
+                return Err("delegation guidance source mismatch".into());
+            }
+            bytes.extend_from_slice(DELEGATION_HEADING.as_bytes());
+            let offset = bytes.len();
+            bytes.extend_from_slice(&d.bytes);
+            parts.push(json!({"kind":"delegation-guidance","source":d.source,"content":content(&d.bytes),"offset":offset,"length":d.bytes.len()}));
+        }
+        let carried = json!({"compositionFormat":COMPOSITION_FORMAT,"developerInstructions":{"content":content(&bytes),"byteLength":bytes.len(),"parts":parts},"baseInstructions":"not-set","nativeChildRoles":[]});
         Ok(Self {
             children: vec![],
             child_reading: Value::Null,
@@ -359,22 +454,46 @@ impl Composition {
             role: role.map(|(r, _)| r),
         })
     }
-    pub(crate) fn compose_child(&self, role: Role, guidance: &Guidance) -> Result<Self, String> {
-        self.verify()?;
-        let part = &self.carried["developerInstructions"]["parts"][0];
-        let length = part["length"]
-            .as_u64()
-            .ok_or("common source length absent")? as usize;
-        let common = Guidance {
+    /// The parent's own bytes of a part, read once at the parent's start.
+    fn frozen_part(&self, kind: &str) -> Result<Option<Guidance>, String> {
+        let Some(part) = self.carried["developerInstructions"]["parts"]
+            .as_array()
+            .ok_or("parts absent")?
+            .iter()
+            .find(|p| p["kind"] == kind)
+        else {
+            return Ok(None);
+        };
+        let offset = part["offset"].as_u64().ok_or("source offset absent")? as usize;
+        let length = part["length"].as_u64().ok_or("source length absent")? as usize;
+        let end = offset.checked_add(length).ok_or("source range overflow")?;
+        Ok(Some(Guidance {
             bytes: self
                 .text
                 .as_bytes()
-                .get(..length)
-                .ok_or("common source range absent")?
+                .get(offset..end)
+                .ok_or("source range absent")?
                 .to_vec(),
             source: part["source"].clone(),
+        }))
+    }
+    /// A child gets the parent's product guidance and, when the child's role
+    /// may itself delegate, the parent's delegation guidance: the same bytes the
+    /// parent was supplied, never a second read.
+    pub(crate) fn compose_child(&self, role: Role, guidance: &Guidance) -> Result<Self, String> {
+        self.verify()?;
+        let common = self
+            .frozen_part("product-guidance")?
+            .ok_or("common source absent")?;
+        let delegation = if role.may_delegate() {
+            Some(
+                self.frozen_part("delegation-guidance")?
+                    .ok_or("parent delegation guidance absent")?,
+            )
+        } else {
+            None
         };
-        let mut child = Self::new(&common, Some((role, guidance)), true)?;
+        let mut child = Self::new(&common, Some((role, guidance)), delegation.as_ref(), true)?;
         child.role_set_identity = self.role_set_identity.clone();
         Ok(child)
     }

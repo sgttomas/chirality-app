@@ -31,7 +31,10 @@ fn composition(role: Option<Role>, suffix: &str) -> Composition {
         )
         .unwrap()
     });
-    Composition::new(&common, role.zip(guidance.as_ref()), true).unwrap()
+    let delegation = role.filter(|r| r.may_delegate()).map(|_| {
+        Guidance::seeded(DELEGATION_GUIDANCE_PATH, "test-release", b"Delegation text\r\n".to_vec(), b"default delegation").unwrap()
+    });
+    Composition::new(&common, role.zip(guidance.as_ref()), delegation.as_ref(), true).unwrap()
 }
 fn frame(id: u64, thread: &str) -> Value {
     json!({"id":id,"result":{"thread":{"id":thread,"cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/test/work","ephemeral":false,"modelProvider":"chosen-provider","preview":"native transcript sentinel","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":"idle"},"turns":[],"agentRole":null},
@@ -115,6 +118,8 @@ fn original_buffers_survive_real_file_edits_and_future_notice_only() {
             "agents/AGENT_HELP_HUMAN.md".into(),
             Ok(std::fs::read(tmp.0.join("agents/AGENT_HELP_HUMAN.md")).unwrap()),
         ),
+        // The delegation guidance this conversation started with, unchanged.
+        (DELEGATION_GUIDANCE_PATH.into(), Ok(b"Delegation text\r\n".to_vec())),
     ]);
     let changes = bound.changes(&current);
     assert_eq!(changes.len(), 2);
@@ -569,4 +574,39 @@ fn native_owner_settings_are_reported_without_false_base_preservation_or_config_
     );
     assert!(!e.to_string().contains("user-selected-native-base-private"));
     assert!(!e.to_string().contains("private-config-value"));
+}
+// DEL-02-04 REQ-002: a role that may delegate starts with its delegation
+// guidance as a third part. Resume and fork carry no guidance; a fork keeps
+// its source's, delegation part included; a later edit of the delegation file
+// is a future-conversation notice only.
+#[test]
+fn delegation_guidance_is_supplied_once_at_start_and_kept_by_a_fork() {
+    let bound = binding(Some(Role::HELP_HUMAN));
+    let original = bound.evidence()["binding"]["original"].clone();
+    let parts = original["parts"].as_array().unwrap();
+    assert_eq!(parts.len(), 3);
+    assert_eq!(parts[2]["path"], DELEGATION_GUIDANCE_PATH);
+    assert!(original["text"].as_str().unwrap().ends_with("\n\n# Delegation guidance\n\nDelegation text\r\n"));
+    let current = generation("home-A", 2);
+    let resume = bound.resume("home-A", current.clone(), json!(7), "req:resume").unwrap();
+    let fork = bound.fork("home-A", current.clone(), json!(8), "req:fork", "sup:fork").unwrap();
+    for params in [resume.params(), fork.params()] {
+        assert!(params.get("developerInstructions").is_none() && params.get("config").is_none());
+        assert!(check_role_inputs("thread/resume", &params).is_ok());
+    }
+    let mut response = frame(8, "new-fork");
+    response["result"]["thread"]["forkedFromId"] = json!("original-thread");
+    let inherited = fork.observe(&current, &sent_metadata(8, "thread/fork"), &response).unwrap();
+    assert_eq!(inherited.evidence()["binding"]["original"], original);
+    let mut current_files = BTreeMap::new();
+    for part in parts {
+        let path = part["path"].as_str().unwrap().to_owned();
+        current_files.insert(path, Ok(part["bytes"].as_str().unwrap().as_bytes().to_vec()));
+    }
+    assert!(bound.changes(&current_files).is_empty());
+    current_files.insert(DELEGATION_GUIDANCE_PATH.into(), Ok(b"edited later".to_vec()));
+    let notices = bound.changes(&current_files);
+    assert_eq!(notices.len(), 1);
+    assert_eq!(notices[0]["path"], DELEGATION_GUIDANCE_PATH);
+    assert_eq!(notices[0]["kind"], "changed");
 }

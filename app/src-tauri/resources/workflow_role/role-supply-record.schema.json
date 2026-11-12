@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-02-04:role-supply-record:0.2",
   "title": "Role supply record (PROPOSED, ROLE-v0.2 §6.1)",
-  "description": "One record per conversation start (thread/start, the only request that supplies role guidance) and per same-role fork (thread/fork, which inherits it). Role guidance only: product guidance + the conversation's role (R19-1, R19-7); a workflow is supplied per run by DEL-02-02's run-start text and recorded there. The record is the 'source identity supplied by the composing owner' of HOSTING §8.2 and the proposed body of RS R3 'supplied_guidance' for role guidance. Supplied is not adopted: adoption is always 'unknown'. PROPOSED; not accepted.",
+  "description": "One record per conversation start (thread/start, the only request that supplies role guidance) and per same-role fork (thread/fork, which inherits it). Role guidance only: product guidance + the conversation's role, + the delegation guidance for a role that may delegate (R19-1, R19-7); a workflow is supplied per run by DEL-02-02's run-start text and recorded there. The record is the 'source identity supplied by the composing owner' of HOSTING §8.2 and the proposed body of RS R3 'supplied_guidance' for role guidance. Supplied is not adopted: adoption is always 'unknown'. PROPOSED; not accepted.",
   "type": "object",
   "required": ["format", "formatVersion", "supplyId", "thread", "trigger", "request", "selection", "outcome", "adoption"],
   "additionalProperties": false,
@@ -46,9 +46,11 @@
     "carried": {
       "type": "object",
       "required": ["developerInstructions", "baseInstructions", "nativeChildRoles"],
+      "if": {"properties": {"developerInstructions": {"properties": {"parts": {"contains": {"properties": {"kind": {"const": "delegation-guidance"}}, "required": ["kind"]}}}}}},
+      "then": {"required": ["compositionFormat"], "properties": {"compositionFormat": {"const": "chirality.role.compose/0.3"}}},
       "additionalProperties": false,
       "properties": {
-        "compositionFormat": {"const": "chirality.role.compose/0.2"},
+        "compositionFormat": {"enum": ["chirality.role.compose/0.2", "chirality.role.compose/0.3"], "description": "0.2: product guidance, then the role. 0.3: the same, then the delegation guidance for a role that may delegate"},
         "developerInstructions": {
           "type": "object",
           "required": ["content", "byteLength", "parts"],
@@ -56,7 +58,9 @@
           "properties": {
             "content": {"$ref": "#/$defs/contentIdentity"},
             "byteLength": {"type": "integer", "minimum": 1},
-            "parts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/part"}}
+            "parts": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/part"},
+              "prefixItems": [{"properties": {"kind": {"const": "product-guidance"}}, "required": ["kind"]}, {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]}, {"properties": {"kind": {"const": "delegation-guidance"}}, "required": ["kind"]}],
+              "description": "In order: the product guidance, the role, the delegation guidance. Which of these a composition has follows from its format and role; the reader checks what depends on the role set (role_supply::check_structure)."}
           }
         },
         "baseInstructions": {"const": "not-set", "description": "R17-8: never set"},
@@ -98,7 +102,9 @@
     {"if": {"properties": {"trigger": {"const": "thread-start"}, "outcome": {"enum": ["supplied", "request-failed", "unknown-no-response"]}}, "required": ["trigger", "outcome"]},
      "then": {"required": ["carried"]}},
     {"if": {"properties": {"selection": {"properties": {"role": {"const": "none"}}}}},
-     "then": {"properties": {"carried": {"properties": {"developerInstructions": {"properties": {"parts": {"items": {"not": {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]}}}}}}}}}}
+     "then": {"properties": {"carried": {"properties": {"developerInstructions": {"properties": {"parts": {"items": {"not": {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]}}}}}}}}}},
+    {"if": {"properties": {"selection": {"properties": {"role": {"enum": ["none", "TASK"]}}, "required": ["role"]}}, "required": ["selection"]},
+     "then": {"properties": {"carried": {"properties": {"developerInstructions": {"properties": {"parts": {"items": {"not": {"properties": {"kind": {"const": "delegation-guidance"}}, "required": ["kind"]}}}}}}}}}}
   ],
   "$defs": {
     "guidanceSource": {
@@ -127,7 +133,7 @@
         },
         "path": {
           "type": "string",
-          "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
+          "pattern": "^(AGENTS\\.md|DELEGATION_RECORDS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"
         },
         "reviewedDefault": {
           "type": "object",
@@ -244,7 +250,7 @@
       "additionalProperties": false,
       "properties": {
         "store": {"enum": ["seeded-copy"]},
-        "path": {"type": "string", "pattern": "^(AGENTS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"},
+        "path": {"type": "string", "pattern": "^(AGENTS\\.md|DELEGATION_RECORDS\\.md|agents/AGENT_(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.md)$"},
         "release": {"type": "string", "minLength": 1, "description": "App release whose default was seeded"},
         "state": {"enum": ["default", "modified"]},
         "defaultContent": {"$ref": "#/$defs/contentIdentity", "description": "The shipped default's identity, for comparison"}
@@ -255,7 +261,7 @@
       "required": ["kind", "source", "content", "offset", "length"],
       "additionalProperties": false,
       "properties": {
-        "kind": {"enum": ["product-guidance", "role-guidance"], "description": "No workflow part (R19-1, R19-7)"},
+        "kind": {"enum": ["product-guidance", "role-guidance", "delegation-guidance"], "description": "No workflow part (R19-1, R19-7)"},
         "role": {"enum": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"]},
         "source": {"$ref": "#/$defs/guidanceSource"},
         "content": {"$ref": "#/$defs/contentIdentity"},
@@ -264,7 +270,9 @@
       },
       "allOf": [
         {"if": {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]},
-         "then": {"required": ["role"]}}
+         "then": {"required": ["role"]}},
+        {"if": {"properties": {"kind": {"const": "delegation-guidance"}}, "required": ["kind"]},
+         "then": {"not": {"required": ["role"]}, "properties": {"source": {"properties": {"path": {"const": "DELEGATION_RECORDS.md"}}}}}}
       ]
     },
     "childRole": {
@@ -275,7 +283,7 @@
         "role": {"enum": ["HELP_HUMAN", "HELPS_HUMANS", "WORKING_ITEMS", "TASK"]},
         "status": {"enum": ["supplied", "not-supplied"]},
         "configKeys": {"type": "array", "minItems": 1, "items": {"type": "string", "pattern": "^agents\\.(HELP_HUMAN|HELPS_HUMANS|WORKING_ITEMS|TASK)\\.(description|config_file)$"}},
-        "composed": {"$ref": "#/$defs/contentIdentity", "description": "Identity of the child's developer_instructions text (product guidance + role); it replaces the parent's for the child (OBS-2 O-4a, through an adapter)"},
+        "composed": {"$ref": "#/$defs/contentIdentity", "description": "Identity of the child's developer_instructions text (product guidance + role, + delegation guidance for a child role that may delegate); it replaces the parent's for the child (OBS-2 O-4a, through an adapter)"},
         "file": {"$ref": "#/$defs/contentIdentity", "description": "Identity of the role configuration file the key names"},
         "reason": {"enum": ["user-configuration-defines-role", "not-offered-by-role", "mechanism-not-supported-at-pin", "user-configuration-not-read"]}
       },

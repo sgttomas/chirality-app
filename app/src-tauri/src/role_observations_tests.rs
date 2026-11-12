@@ -64,8 +64,21 @@ fn composition() -> role_supply::Composition {
         b"default",
     )
     .unwrap();
-    role_supply::Composition::new(&common, Some((role_supply::Role::HELP_HUMAN, &role)), false)
+    role_supply::Composition::new(&common, Some((role_supply::Role::HELP_HUMAN, &role)), role_supply::delegation_for_test(Some(role_supply::Role::HELP_HUMAN)).as_ref(), false)
         .unwrap()
+}
+/// The same conversation as recorded before the delegation guidance: format
+/// 0.2, product guidance and role only. Older observation formats carry only
+/// this composition, and it still reads.
+fn composition_0_2() -> role_supply::Composition {
+    let c = composition();
+    let parts = c.carried["developerInstructions"]["parts"].as_array().unwrap()[..2].to_vec();
+    let end = (parts[1]["offset"].as_u64().unwrap() + parts[1]["length"].as_u64().unwrap()) as usize;
+    let text = c.text[..end].to_owned();
+    let mut carried = c.carried.clone();
+    carried["compositionFormat"] = json!("chirality.role.compose/0.2");
+    carried["developerInstructions"] = json!({"content":role_supply::content(text.as_bytes()),"byteLength":text.len(),"parts":parts});
+    role_supply::Composition::quoted(c.role, c.role_set_identity().clone(), text, carried).unwrap()
 }
 fn observation(supply: &str, outcome: &str) -> Value {
     let c = composition();
@@ -123,7 +136,7 @@ fn unknown_and_late_observations_append_without_rewriting_original() {
         std::fs::read_dir(f.directory().join("content"))
             .unwrap()
             .count(),
-        4 // composition, two source parts, and original immutable limits
+        5 // composition, three source parts (product, role, delegation), and original immutable limits
     );
 }
 // The fourth payload is bound to the same original composition; the unknown
@@ -600,7 +613,8 @@ fn contradictory_h5_and_carrier_and_duplicate_observation_ids_are_refused() {
 }
 #[test]
 fn mixed_observation_01_02_log_heads_and_export_keep_declared_schemas(){
-    let f=Fixture::new();let log=f.log();let c=composition();let mut old=observation("sup:old","supplied");old["formatVersion"]=json!("0.1");log.append(old,Some(&c)).unwrap();
+    // The 0.1 row is as written then: a 0.2 composition, before the delegation guidance.
+    let f=Fixture::new();let log=f.log();let c=composition_0_2();let mut old=observation("sup:old","supplied");old["formatVersion"]=json!("0.1");old["carried"]=c.carried.clone();log.append(old,Some(&c)).unwrap();
     let prefix=std::fs::read(f.directory().join(LOG)).unwrap();f.append(&log,"sup:current","supplied");
     assert!(std::fs::read(f.directory().join(LOG)).unwrap().starts_with(&prefix));
     let read=log.read("home",Some("thread"));assert_eq!(read["observations"].as_array().unwrap().len(),2);
@@ -716,11 +730,15 @@ fn native_children_canonical_guidance_and_publication_failure_rows_remain_readab
 fn native_children_mixed_01_02_03_preserves_previous_schema_bytes_and_rows() {
     let f = Fixture::new();
     let log = f.log();
-    let c = composition();
-    for (version, supply) in [("0.1", "sup:01"), ("0.2", "sup:02"), ("0.3", "sup:03")] {
+    let (old, c) = (composition_0_2(), composition());
+    for (version, supply) in [("0.1", "sup:01"), ("0.2", "sup:02"), ("0.3", "sup:03"), ("0.3", "sup:03-0.2")] {
         let mut row = observation(supply, "supplied");
         row["formatVersion"] = json!(version);
-        log.append(row, Some(&c)).unwrap();
+        // Rows of the older formats, and a 0.3 row, as written before the
+        // delegation guidance; then a 0.3 row with it.
+        let composition = if supply == "sup:03" { &c } else { &old };
+        row["carried"] = composition.carried.clone();
+        log.append(row, Some(composition)).unwrap();
     }
     let read = log.read("home", Some("thread"));
     assert_eq!(
@@ -730,7 +748,7 @@ fn native_children_mixed_01_02_03_preserves_previous_schema_bytes_and_rows() {
             .iter()
             .map(|r| r["record"]["formatVersion"].as_str().unwrap())
             .collect::<Vec<_>>(),
-        vec!["0.1", "0.2", "0.3"]
+        vec!["0.1", "0.2", "0.3", "0.3"]
     );
     assert!(read["observations"]
         .as_array()
@@ -782,7 +800,7 @@ fn native_children_quoted_original_limit_and_common_source_mismatches_are_unavai
                 )
                 .unwrap();
                 let changed =
-                    crate::role_supply::Composition::new(&common, Some((role, &guidance)), true)
+                    crate::role_supply::Composition::new(&common, Some((role, &guidance)), crate::role_supply::delegation_for_test(Some(role)).as_ref(), true)
                         .unwrap();
                 let composed = RoleLog::publish_bytes(&payloads, changed.text.as_bytes())
                     .unwrap()
@@ -835,5 +853,60 @@ fn native_children_quoted_original_limit_and_common_source_mismatches_are_unavai
             RoleLog::source_bytes(Some(&payloads), &bad).is_err(),
             "{case}"
         );
+    }
+}
+// DEL-02-04: a composition's parts follow from its format and role. A 0.3
+// composition for a role that may delegate without the delegation part, and a
+// no-role or TASK composition with one, are refused by the writer and by the
+// cold reader, however consistent their hashes and ranges. The schemas refuse
+// a delegation part out of place and one carried by no role or TASK; the
+// dependence on the role set is the reader's (role_supply::check_structure).
+#[test]
+fn compositions_whose_parts_do_not_follow_their_format_and_role_are_refused() {
+    let f = Fixture::new();
+    let log = f.log();
+    let old = composition_0_2();
+    let c = composition();
+    // Hash-consistent, wrongly labelled: a delegating role at 0.3 with only
+    // the product and role parts (the reviewer's case).
+    let mut short = old.clone();
+    short.carried["compositionFormat"] = json!("chirality.role.compose/0.3");
+    short.verify().unwrap();
+    let mut row = observation("sup:short", "supplied");
+    row["carried"] = short.carried.clone();
+    assert!(log.append(row, Some(&short)).is_err());
+    // The mirror: the delegation part carried by TASK or by no role.
+    for role in ["TASK", "none"] {
+        let mut row = observation("sup:mirror", "supplied");
+        row["selection"]["role"] = json!(role);
+        assert!(log.append(row, Some(&c)).is_err(), "{role}");
+    }
+    // Genuine rows of both formats are written and read.
+    let mut genuine = observation("sup:0.2", "supplied");
+    genuine["carried"] = old.carried.clone();
+    log.append(genuine, Some(&old)).unwrap();
+    f.append(&log, "sup:0.3", "supplied");
+    let read = log.read("home", Some("thread"));
+    assert_eq!(read["observations"].as_array().unwrap().len(), 2, "{read}");
+    // The cold reader refuses the same cases from bytes already on disk.
+    let (_, folder, _, _) = log.location(false).unwrap().unwrap();
+    let (rows, _, _) = RoleLog::read_lines(&folder, &f.directory()).unwrap();
+    let payloads = child(&folder, "content", false).unwrap().unwrap();
+    RoleLog::source_bytes(Some(&payloads), &rows[0]).unwrap();
+    RoleLog::source_bytes(Some(&payloads), &rows[1]).unwrap();
+    let mut relabelled = rows[0].clone();
+    relabelled["carried"]["compositionFormat"] = json!("chirality.role.compose/0.3");
+    assert!(RoleLog::source_bytes(Some(&payloads), &relabelled).is_err());
+    let mut none = rows[1].clone();
+    none["selection"]["role"] = json!("none");
+    assert!(RoleLog::source_bytes(Some(&payloads), &none).is_err());
+    let mut task = rows[1].clone();
+    task["selection"]["role"] = json!("TASK");
+    task["carried"]["developerInstructions"]["parts"][1]["role"] = json!("TASK");
+    task["carried"]["developerInstructions"]["parts"][1]["source"]["path"] = json!("agents/AGENT_TASK.md");
+    assert!(RoleLog::source_bytes(Some(&payloads), &task).is_err());
+    // The schemas refuse the mirror cases.
+    for bad in [&none, &task] {
+        assert!(validate(bad).is_err());
     }
 }

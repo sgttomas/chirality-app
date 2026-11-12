@@ -50,7 +50,7 @@ fn role_r3_composition(
             .unwrap(),
         )
     });
-    Composition::new(&common, selected.as_ref().map(|(r, g)| (*r, g)), false).unwrap()
+    Composition::new(&common, selected.as_ref().map(|(r, g)| (*r, g)), crate::role_supply::delegation_for_test(selected.as_ref().map(|(r, _)| *r)).as_ref(), false).unwrap()
 }
 fn role_r3_start(peer: &Peer, composition: &crate::role_supply::Composition) -> String {
     let home = &peer.home;
