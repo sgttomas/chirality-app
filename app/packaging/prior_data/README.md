@@ -38,9 +38,10 @@ absent before, and the counts of unchanged, changed, removed and added entries.
 The private report lists the entries and what differs in each. A changed file
 under a system-per-identifier root, an untouched prior-data folder and a folder
 4.0.0 created stay three separate findings. The tool decides nothing about
-whether a change is acceptable. It exits 1 when any recorded entry in any root
-is missing or differs, the application bundle included, and 0 otherwise; 2 is a
-refusal.
+whether a change is acceptable. The overall status is `unchanged`, exit 0, only
+when nothing at all differs. Any changed, removed or added entry in any root,
+the application bundle included, and any root that appeared or disappeared,
+gives `differences found` and exit 1. A refusal exits 2.
 
 The private record (mode 0600) keeps paths and link targets. The shareable
 summaries keep only counts, classes and digests, because names can carry

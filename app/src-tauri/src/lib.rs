@@ -2086,8 +2086,7 @@ fn active_native_view(state:&AppState)->Value {
 /// (DEL-01-06 AC-008). No view presents it yet; how a person reaches it is decided separately.
 #[tauri::command(async)]
 fn release_limitations(app:tauri::AppHandle)->Result<Value,String>{
-    let path=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join(RESOURCE_RELEASE_LIMITATIONS);
-    release_limitations::reply(&path)
+    release_limitations::reply(&app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?, RESOURCE_RELEASE_LIMITATIONS)
 }
 #[tauri::command(async)]
 fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{

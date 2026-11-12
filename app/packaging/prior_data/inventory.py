@@ -26,8 +26,10 @@ Commands:
   record  --root PATH ... --out NEW-PRIVATE-FILE --summary NEW-FILE
   compare BEFORE AFTER [--report NEW-PRIVATE-FILE]
 
-compare prints the shareable per-root summary and exits 1 when any recorded entry is missing or
-differs in any root (the application bundle included), 0 otherwise; 2 is a refusal.
+compare prints the shareable per-root summary. Its status is `unchanged` only when nothing at all
+differs: any changed, removed or added entry in any root (the application bundle included), and
+any root that appeared or disappeared, gives `differences found` and exit 1; 2 is a refusal. The
+per-root and per-class breakdown says where; which differences are acceptable is not decided here.
 
 Test it on invented trees only. Never run it on another person's home directory.
 """
@@ -44,6 +46,7 @@ ROOT = Path(__file__).resolve().parents[3]
 FORMAT = 'chirality-prior-data-inventory/v1'
 SUMMARY_FORMAT = 'chirality-prior-data-inventory-summary/v1'
 COMPARISON_FORMAT = 'chirality-prior-data-comparison/v1'
+DIFFERENT = 'differences found'
 CLASSES = ('prior-data', 'current-data', 'system-per-identifier', 'application-bundle')
 IDENTIFIER = 'com.chirality.app'   # docs/RELEASE_TARGET_4.0.0.md
 BUNDLE_NAME = 'Chirality.app'
@@ -81,6 +84,27 @@ def default_roots(home, identifier=IDENTIFIER, applications='/Applications'):
         ('application-bundle', Path(applications) / BUNDLE_NAME,
          'the installed application; 4.0.0 takes v3.0.1\'s place here, so its replacement is expected'),
     ]
+
+
+def _lstat(path):
+    """The entry's own metadata, or None only when it does not exist. Any other error refuses:
+    an unreadable ancestor never makes a root read as absent."""
+    try:
+        return os.lstat(path)
+    except FileNotFoundError:
+        return None
+    except OSError as error:
+        raise Refused(f'unreadable ancestor or entry refused ({type(error).__name__})') from error
+
+
+def _no_link_ancestry(path, what):
+    path = Path(os.path.abspath(path))
+    for parent in reversed((path, *path.parents)):
+        info = _lstat(parent)
+        if info is None:
+            break
+        require(not stat.S_ISLNK(info.st_mode), f'symbolic link in {what} refused')
+    return path
 
 
 def _identity(path):
@@ -124,13 +148,10 @@ def _hash_file(path):
 def _scan_root(path):
     """One root's identities. Raises on a link in its ancestry, an unreadable entry or a change."""
     require('\n' not in str(path) and '\r' not in str(path), 'line break in a root path refused')
-    try:
-        path = scanner.anchored(path)
-    except ValueError as error:
-        raise Refused('symbolic link in a root\'s ancestry refused') from error
-    if not os.path.lexists(path):
+    path = _no_link_ancestry(path, "a root's ancestry")
+    info = _lstat(path)
+    if info is None:
         return {'state': 'absent'}
-    info = os.lstat(path)
     mode = oct(stat.S_IMODE(info.st_mode))
     try:
         if stat.S_ISDIR(info.st_mode):
@@ -203,17 +224,14 @@ def _inside(child, parent):
 
 def _check_output(path, roots):
     path = Path(os.path.abspath(path))
-    require(not os.path.lexists(path), 'output exists; a new file is required')
+    require(_lstat(path) is None, 'output exists; a new file is required')
     require('\n' not in str(path), 'line break in output path refused')
-    try:
-        parent = scanner.anchored(path.parent)
-    except ValueError as error:
-        raise Refused('symbolic link in the output path refused') from error
+    parent = _no_link_ancestry(path.parent, 'the output path')
     require(parent.is_dir(), 'output folder must exist')
     for _, root in roots:
         root = Path(os.path.abspath(root))
         require(not _inside(str(path), str(root)), 'output inside a recorded root refused')
-        if os.path.lexists(root):
+        if _lstat(root) is not None:
             require(_identity(root) not in {_identity(p) for p in (parent, *parent.parents)},
                     'output inside a recorded root refused')
     return path
@@ -294,17 +312,23 @@ def compare(before, after):
     require([(r['class'], r['path']) for r in before['roots']] == [(r['class'], r['path']) for r in after['roots']],
             'the two records name different roots')
     roots = [compare_root(b, a) for b, a in zip(before['roots'], after['roots'])]
-    altered = any(r['counts']['changed'] or r['counts']['removed'] for r in roots)
-    return {'format': COMPARISON_FORMAT, 'status': 'changed' if altered else 'unchanged', 'roots': roots}
+    # Unchanged only when nothing at all differs: no changed, removed or added entry in any root,
+    # and no root that appeared or disappeared. Which differences are acceptable is not decided here.
+    differs = any(r['counts']['changed'] or r['counts']['removed'] or r['counts']['added'] or r['before'] != r['after']
+                  for r in roots)
+    return {'format': COMPARISON_FORMAT, 'status': DIFFERENT if differs else 'unchanged', 'roots': roots}
 
 
 def shareable(comparison, before_raw, after_raw):
     """Per-root counts and classifications; no paths."""
     by_class = {}
     for root in comparison['roots']:
-        totals = by_class.setdefault(root['class'], {'changed': 0, 'removed': 0, 'added': 0})
-        for k in totals:
+        totals = by_class.setdefault(root['class'], {'changed': 0, 'removed': 0, 'added': 0,
+                                                     'added_in_recorded_directory': 0, 'roots_appeared': 0, 'roots_disappeared': 0})
+        for k in ('changed', 'removed', 'added', 'added_in_recorded_directory'):
             totals[k] += root['counts'][k]
+        totals['roots_appeared'] += root['before'] == 'absent' and root['after'] == 'present'
+        totals['roots_disappeared'] += root['before'] == 'present' and root['after'] == 'absent'
     return {'format': COMPARISON_FORMAT + '-summary', 'status': comparison['status'],
             'before_record_sha256': hashlib.sha256(before_raw).hexdigest(),
             'after_record_sha256': hashlib.sha256(after_raw).hexdigest(),
@@ -348,7 +372,7 @@ def main(argv=None):
             report = _check_output(args.report, [(r['class'], r['path']) for r in result['roots']])
             _write_new(report, result)
         print(json.dumps(shareable(result, *raws), indent=2))
-        return 1 if result['status'] == 'changed' else 0
+        return 1 if result['status'] == DIFFERENT else 0
     except (Refused, OSError) as error:
         print(json.dumps({'refused': type(error).__name__ if not isinstance(error, Refused) else str(error)}), file=sys.stderr)
         return 2

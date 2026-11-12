@@ -51,19 +51,66 @@ class PriorData(unittest.TestCase):
         result = tool.compare(tool.load(before), tool.load(after))
         return result, {r['class']: r for r in result['roots']}
 
-    def test_unchanged_data_compares_equal_and_new_root_is_reported_as_created(self):
+    def test_nothing_differing_is_the_only_unchanged(self):
+        before, _ = self.write()
+        after, _ = self.write()
+        result, roots = self.compare(before, after)
+        self.assertEqual(result['status'], 'unchanged')
+        self.assertTrue(all(r['finding'] in ('unchanged', 'absent before and after') for r in roots.values()))
+        self.assertEqual(tool.main(['compare', str(before), str(after)]), 0)
+
+    def test_new_root_is_a_difference_reported_as_created(self):
         before, _ = self.write()
         (self.current / 'records').mkdir(parents=True)
         (self.current / 'records/store.db').write_bytes(b'INVENTED')
         after, _ = self.write()
         result, roots = self.compare(before, after)
-        self.assertEqual(result['status'], 'unchanged')
+        self.assertEqual(result['status'], 'differences found')
         self.assertEqual(roots['prior-data']['finding'], 'unchanged')
         self.assertEqual(roots['current-data']['finding'], 'created (absent before)')
         self.assertEqual(roots['current-data']['before'], 'absent')
         self.assertEqual(roots['current-data']['counts']['added_in_recorded_directory'], 0)
         self.assertEqual(roots['current-data']['counts']['added'], 3)
-        self.assertEqual(tool.main(['compare', str(before), str(after)]), 0)
+        self.assertEqual(tool.main(['compare', str(before), str(after)]), 1)
+        shared = tool.shareable(result, before.read_bytes(), after.read_bytes())
+        self.assertEqual(shared['by_class']['current-data']['roots_appeared'], 1)
+        self.assertEqual(shared['by_class']['prior-data'], {'changed': 0, 'removed': 0, 'added': 0,
+            'added_in_recorded_directory': 0, 'roots_appeared': 0, 'roots_disappeared': 0})
+
+    # Review probes inventory-addition and inventory-appeared: each once gave exit 0, "unchanged".
+    def test_addition_to_a_recorded_prior_data_folder_is_a_difference(self):
+        self.roots = [('prior-data', self.prior)]
+        before, _ = self.write()
+        (self.prior / 'new.txt').write_bytes(b'invented')
+        after, _ = self.write()
+        result, roots = self.compare(before, after)
+        self.assertEqual(result['status'], 'differences found')
+        self.assertEqual(roots['prior-data']['finding'], 'unchanged entries; additions')
+        self.assertEqual(roots['prior-data']['counts']['added_in_recorded_directory'], 1)
+        self.assertEqual(tool.main(['compare', str(before), str(after)]), 1)
+
+    def test_prior_data_root_that_appears_is_a_difference(self):
+        absent = self.home / 'Library/Logs/Chirality'
+        self.roots = [('prior-data', absent)]
+        before, _ = self.write()
+        absent.mkdir(parents=True); (absent / 'invented.log').write_bytes(b'invented')
+        after, _ = self.write()
+        result, roots = self.compare(before, after)
+        self.assertEqual(result['status'], 'differences found')
+        self.assertEqual((roots['prior-data']['before'], roots['prior-data']['finding']), ('absent', 'created (absent before)'))
+        self.assertEqual(tool.main(['compare', str(before), str(after)]), 1)
+
+    # Review probe inventory-unreadable-ancestor: refused, never recorded.
+    @unittest.skipIf(os.geteuid() == 0, 'root reads everything')
+    def test_unreadable_ancestor_of_a_root_is_refused(self):
+        locked = self.base / 'locked'; locked.mkdir(); (locked / 'existing.txt').write_text('invented')
+        locked.chmod(0o000); self.addCleanup(locked.chmod, 0o700)
+        out, summary = self.records / 'r.json', self.records / 's.json'
+        # Never recorded as absent: the root exists but cannot be examined.
+        with self.assertRaisesRegex(tool.Refused, 'unreadable ancestor'):
+            tool.record([('prior-data', locked / 'existing.txt')])
+        self.assertEqual(tool.main(['record', '--root', str(locked / 'existing.txt'), '--out', str(out), '--summary', str(summary)]), 2)
+        self.assertFalse(out.exists() or summary.exists())
 
     def test_changed_bytes_mode_deletion_and_addition_are_each_reported(self):
         before, _ = self.write()
@@ -74,7 +121,7 @@ class PriorData(unittest.TestCase):
         after, _ = self.write()
         result, roots = self.compare(before, after)
         prior = roots['prior-data']
-        self.assertEqual(result['status'], 'changed')
+        self.assertEqual(result['status'], 'differences found')
         self.assertEqual(prior['finding'], 'changed')
         changed = {c['path']: c['differs_in'] for c in prior['entries']['changed']}
         self.assertEqual(changed['settings.json'], ['sha256', 'size'])
@@ -101,7 +148,7 @@ class PriorData(unittest.TestCase):
         result, roots = self.compare(before, after)
         self.assertEqual(roots['application-bundle']['finding'], 'changed (replacement expected)')
         self.assertEqual(roots['prior-data']['finding'], 'unchanged')
-        self.assertEqual(result['status'], 'changed')   # the exit basis is unchanged by the class
+        self.assertEqual(result['status'], 'differences found')   # the exit basis is unchanged by the class
 
     def test_removed_root_is_a_failure(self):
         before, _ = self.write()
@@ -109,7 +156,7 @@ class PriorData(unittest.TestCase):
         after, _ = self.write()
         result, roots = self.compare(before, after)
         self.assertEqual(roots['system-per-identifier']['finding'], 'removed')
-        self.assertEqual(result['status'], 'changed')
+        self.assertEqual(result['status'], 'differences found')
 
     def test_socket_is_recorded_by_kind_and_never_read(self):
         # AF_UNIX paths are short; the usual temporary folder is too deep for one.
