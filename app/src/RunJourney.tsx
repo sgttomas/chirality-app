@@ -43,7 +43,7 @@ const NOT_SENT: Record<string, string> = {
   "WR pre-send publication failed; nothing sent": "The App couldn't save the run's record.",
   "generated supporting files changed or unavailable; nothing sent": "The copy of the workflow's supporting files that the App made for this run changed or can't be read.",
   "selected revision source changed or unavailable; nothing sent": "The chosen workflow's stored files changed or can't be read since you prepared the run.",
-  "workflow approval changed since preparation; nothing sent": "Your workflow approval setting changed since you prepared the run.",
+  "workflow approval changed since preparation; nothing sent": "The App couldn't apply the same workflow approval it applied when you prepared this run.",
 };
 export type GuideOutcome = { command: string; message: string; failed?: boolean; settled?: boolean };
 /** The last guide action's result without raw host JSON; the exact reply stays under details. */
@@ -169,11 +169,8 @@ function RunResult({ run, host, loaded, showConversation }: { run: Json; host: J
   </li>;
 }
 
-/** Said in a guide whose view did not refresh after the last press: what it shows is from before that press. */
-export const VIEW_NOT_REFRESHED = "The App couldn't refresh this view after your last press, so what it shows is from before that press. Nothing can be started, prepared or ended from here until it refreshes.";
-
-export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation, viewStale = false }: {
-  data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean; viewStale?: boolean;
+export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, text: personText, setText, outcome, showConversation }: {
+  data: Json; host: Json; thread: string; chooseThread: (thread: string) => void; act: Act; busy: boolean;
   text: string; setText: (text: string) => void; outcome?: GuideOutcome | null;
   showConversation?: (threadId: string, target?: string) => void;
 }) {
@@ -189,7 +186,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const projectFolder = appProjectFolder(host);
   // Every host-changing control goes through one guard: never while busy or
   // while the shown workflow source/generation differs from the host's.
-  const canAct = !busy && sourceCurrent && !viewStale;
+  const canAct = !busy && sourceCurrent;
   const perform = (command: string, args: Record<string, unknown>) => { if (canAct) void act(command, args); };
   // After Prepare, land on Start; after Start, on Progress (not on the page).
   const startButton = useRef<HTMLButtonElement>(null);
@@ -251,8 +248,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   // even while the selection's standing admits it (WR §4.6, SL-4).
   const chosenReady = chosen?.runnable === true && !chosen?.currentLimit;
   const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
-  const step = viewStale ? VIEW_NOT_REFRESHED
-    : !ready ? "Connect Codex first: open Connection & access and start Codex."
+  const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
     : !active ? projectAvailable ? "Show this project's workflows to begin." : "No project folder is set. Choose one in Desktop setup; it applies the next time you open the App."
     : !thread ? conversations.length ? "Choose the conversation that will run the workflow." : "Start a conversation first, then choose it here."
@@ -321,7 +317,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>Name any files in the project folder that it should use. This text goes with the workflow's own instructions in one starting message.</small></p>
       </li>
       <li aria-labelledby="run-start-heading"><h3 id="run-start-heading">Start</h3>
-        {viewStale ? <p role="note">Not shown until this view refreshes: whether a run is prepared or has been sent.</p> : !prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
+        {!prepared ? <>{unresolvedStart && <p><label><input type="checkbox" checked={checkedRun === holdKey} disabled={!canAct} onChange={event => setCheckedRun(event.target.checked ? holdKey : null)}/> I read the conversation and want to prepare a new run anyway</label>
             <small>The earlier start may have run; a new run sends the workflow again.</small></p>}
           <button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || (unresolvedStart && checkedRun !== holdKey)}
           onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
@@ -331,9 +327,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>
       <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>
-        {viewStale ? <div ref={progressNode} tabIndex={-1} className="run-journey-state" aria-label="Run progress"><p role="status"><strong>Can't tell.</strong> This view hasn't refreshed since your last press, so the App isn't showing this run's state. Read the conversation for what happened.</p>
-          {thread && <p>{showConversation ? <button onClick={() => showConversation(thread)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}</p>}</div>
-        : reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
+        {reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
           <p role="status"><strong>{reading.title}.</strong> {reading.detail}</p>
           {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p>{showConversation
             ? <button onClick={() => showConversation(latest.conversation, reading.tone === "waiting" ? "conversation-requests" : "conversation")}>{reading.tone === "waiting" ? "Answer in the conversation" : "Show the conversation"}</button>
@@ -345,8 +339,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         </div> : orderUnknown ? <p role="status">This conversation has several runs, and the App can't tell which one is the latest. Each is listed under Results.</p> : <p>No run in this conversation yet.</p>}
       </li>
       <li aria-labelledby="run-results-heading"><h3 id="run-results-heading">Results</h3>
-        {viewStale && <p role="note">Runs in this conversation are not shown until this view refreshes.</p>}
-        {!viewStale && (resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
+        {(resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
           {resultOrder.ordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}
           {resultOrder.unordered.length > 0 && <li><small>{resultOrder.ordered.length ? "These runs' order isn't known:" : resultOrder.unordered.length > 1 ? "The App doesn't know these runs' order:" : ""}</small></li>}
           {resultOrder.unordered.map((run: Json) => <RunResult key={text(run.reference)} run={run} host={host} loaded showConversation={showConversation}/>)}

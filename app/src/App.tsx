@@ -1014,11 +1014,6 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   const chatAvailable=!!context&&!!thread;
   const [text,setText]=useState("");
   const [busy,setBusy]=useState(false);
-  // The view a press's refresh failed on. While it is still the view shown,
-  // the guides make no claim from it; a newer view clears it.
-  const latestData = useRef(data); latestData.current = data;
-  const [unrefreshed, setUnrefreshed] = useState<{ view: Json } | null>(null);
-  const viewStale = unrefreshed !== null && unrefreshed.view === data;
   const pendingAction = useRef(false);
   const [progress, setProgress] = useState("");
   const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[];failed?:boolean;settled?:boolean}>();
@@ -1039,7 +1034,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
     setOutcome({relation,message:"",limits:[]});
     const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
-    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){setUnrefreshed({view:latestData.current});limit(`View refresh after ${after} failed: ${String(error)}. The original command response is retained as reported.`);}};
+    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${String(error)}. The original command response is retained as reported.`);}};
     // Capture this metadata request before awaiting the command or a new view.
     let draftRequest:Record<string,unknown>|undefined,draftRequestError:unknown;
     if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
@@ -1099,10 +1094,10 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale}/>
+      outcome={guideOutcome} showConversation={showConversation}/>
     </div>
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
-    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
     {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
     <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined}>

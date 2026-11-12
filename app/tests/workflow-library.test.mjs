@@ -364,37 +364,3 @@ test('a press refused before any host command is said under the Run guide\'s Nex
   for(let node=result;node;node=node.parentNode)assert.notEqual(node,studio,'the result is outside the studio');
   await React.act(async()=>root.unmount());
 });
-
-// Review round 2 of pull request 241: the host's successful "run opened" reply
-// followed by a view refresh that failed left the guide saying the cached run
-// was ready and unsent, with Start enabled.
-test('after a press whose view refresh fails the guide makes no claim from the cached run until a newer view arrives',async()=>{
-  const g={home:'account',appSession:'s1',spawnCounter:1};
-  const prepared={reference:'run-1',conversation:'T1',home:'account',generation:g,preparationOrder:0,workflow:{name:'invented-flow'},lifecycle:{state:'prepared; not a run until its start turn is observed'},status:{}};
-  const view=()=>({context:{sourceRef:'src',generation:g},projectLibraryAvailable:true,activeLibrary:null,libraries:[],reviews:[],drafts:{drafts:[]},
-    selections:[{sourceRef:'src',threadId:'T1',selection:{state:'selected',reference:'sel',runnable:true,identity:{name:'invented-flow',origin:'project',revision:'rev-1-0123456789'}}}],runs:[prepared]});
-  const threads=[{generation:g,threadId:'T1',model:'invented-model',status:{type:'idle'}}];
-  const c=document.createElement('div');const root=createRoot(c);const calls=[];let refreshes=0;
-  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
-  const show=data=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:g,workflowRoot:data,threads,serverRequests:[]},view:'run',
-    act:async(command,args)=>{calls.push([command,args]);return {state:'native workflow-text turn observed; run opened'};},observeView:async()=>{refreshes++;throw new Error('Controlled view refresh unavailable');}})));
-  const first=view();
-  await show(first);
-  const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0];
-  const button=label=>guide().querySelectorAll(n=>n.localName==='button').find(n=>n.textContent===label);
-  await React.act(async()=>props(guide().querySelectorAll(n=>n.localName==='select')[0]).onChange({target:{value:'T1'}}));
-  assert.ok(button('Start the run'));
-  await React.act(async()=>props(button('Start the run')).onClick());
-  assert.deepEqual(calls.map(call=>call[0]),['workflow_send_run']);assert.equal(refreshes,1);
-  const text=()=>guide().textContent;
-  assert.match(text(),/Start requested; see Progress for what happened\./,'the press\'s own result');
-  assert.match(text(),/Next: The App couldn't refresh this view after your last press/);
-  assert.doesNotMatch(text(),/Ready to start|has not been sent|Nothing has been sent yet/,'no claim from the cached run');
-  assert.equal(button('Start the run'),undefined,'Start is not offered again from the cached view');
-  assert.ok(c.querySelectorAll(n=>n.getAttribute('aria-label')==='Workflow observation limit').length>0,'the refresh failure stays visible');
-  // A newer view arrives (the App's next status read): the guide reads from it again.
-  await show({...view(),runs:[{...prepared,source:'s',lifecycle:{state:"open (live); only the person's explicit end ends it"}}]});
-  assert.doesNotMatch(text(),/couldn't refresh this view/);
-  assert.ok(button('End this run'));
-  await React.act(async()=>root.unmount());
-});

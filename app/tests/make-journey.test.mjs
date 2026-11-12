@@ -498,21 +498,11 @@ for (const replacement of ['draft choice', 'library']) test(`a queued Continue r
   }
 });
 
-// Review round 2 of pull request 241: a reply that resolves with a limit was
-// summarised as plain success, and a cached view was acted on after its refresh failed.
-test('a drafts folder the App could not read is said in the guide, and a view that did not refresh offers nothing', async () => {
-  const draft = {name:'spacing-summary', state:'draft', content:{value:'8490609ce68a61af'}, findings:[], trials:[]};
-  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
-  const render = (view, viewStale) => React.act(async () => root.render(React.createElement(MakeWorkflowGuide, {data:view, host:host(), busy:false, viewStale,
-    act:async (command, args) => { calls.push({command, args}); }, offerComposer:() => {}})));
-  await render(data({drafts:{drafts:[], limit:'drafts folder refused (invented cause); nothing outside the library is listed'}}), false);
-  assert.match(region(c, 'Make a workflow from your work').textContent, /The App couldn't read this library's drafts: drafts folder refused \(invented cause\); nothing outside the library is listed/);
-  await render(data({drafts:{drafts:[draft]}}), false);
-  assert.equal(props(button(c, 'Look for drafts in this library')).disabled, false);
-  await render(data({drafts:{drafts:[draft]}}), true);
-  assert.match(next(c), /^The App couldn't refresh this view after your last press, so what it shows is from before that press\./);
-  for (const node of all(region(c, 'Make a workflow from your work'), 'button')) if (!/^Continue /.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is not offered from a view that did not refresh`);
-  assert.match(region(c, 'Make a workflow from your work').textContent, /Draft states below are from before your last press\./);
-  assert.deepEqual(calls, []);
-  await React.act(async () => root.unmount());
+// Review round 2 of pull request 241: a reply that resolves with a limit was summarised as plain success.
+test('a drafts folder the App could not read is said in the guide', async () => {
+  const ui = await mount({host:host(), data:data({drafts:{drafts:[], limit:'drafts folder refused (invented cause); nothing outside the library is listed'}})});
+  assert.match(region(ui.c, 'Make a workflow from your work').textContent, /The App couldn't read this library's drafts: drafts folder refused \(invented cause\); nothing outside the library is listed/);
+  await ui.rerender({data:data({drafts:{drafts:[], limit:null}})});
+  assert.doesNotMatch(region(ui.c, 'Make a workflow from your work').textContent, /couldn't read this library's drafts/);
+  await ui.close();
 });

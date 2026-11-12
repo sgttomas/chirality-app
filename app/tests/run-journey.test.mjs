@@ -510,7 +510,7 @@ test('a prepared run the host did not send says what happened in plain words and
   for (const [state, what] of [
     ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The copy of the workflow's supporting files that the App made for this run changed or can't be read\./],
     ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The chosen workflow's stored files changed or can't be read since you prepared the run\./],
-    ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. Your workflow approval setting changed since you prepared the run\./],
+    ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. The App couldn't apply the same workflow approval it applied when you prepared this run\./],
   ]) {
     await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause', 'invented host recovery text')]})});
     const progress = region(ui.c, 'Run progress').textContent;
@@ -536,35 +536,6 @@ test('a result line says only what the command established', () => {
   assert.equal(bundle('{"state":"selected","choiceChat":null}'), 'Opened the included workflow to read. Nothing was chosen for a conversation.', 'the studio\'s inspection with no conversation is not a choice');
   for (const reply of ['{"state":"selected"}', 'not json', '']) assert.equal(bundle(reply), 'The App accepted this. The Workflow step shows what is chosen for the conversation.', `a reply that does not say which: ${reply}`);
   assert.equal(guideResultWords({command:'workflow_open_project_library', message:'{}', failed:false, settled:true}).words, "Opened this project's workflow library.", 'opening the library is not having listed it');
-});
-
-// Review round 2: after a start that succeeded, a view refresh that failed
-// left "Ready to start", "Nothing has been sent yet" and Start enabled again.
-test('a view that did not refresh after the last press makes no claim from its cached run and offers no start, prepare or end', async () => {
-  const preparedRun = {reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{}};
-  const view = {host:host(), data:data({selections:selected(), runs:[preparedRun]}), thread:'T1', outcome:{command:'workflow_send_run', message:'{"state":"native workflow-text turn observed; run opened"}', failed:false, settled:true}};
-  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
-  const render = viewStale => React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:view.host, thread:'T1', busy:false, text:'', viewStale,
-    chooseThread:() => {}, setText:() => {}, act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome})));
-  await render(false);
-  assert.ok(button(c, 'Start the run'), 'the cached view alone offers Start');
-  await render(true);
-  const section = region(c, 'Run a workflow');
-  assert.match(section.textContent, /Next: The App couldn't refresh this view after your last press, so what it shows is from before that press\./);
-  assert.doesNotMatch(section.textContent, /Ready to start|has not been sent|Nothing has been sent yet|Prepared resolve-spacing/, 'no claim from the cached run');
-  assert.match(region(c, 'Run progress').textContent, /^Can't tell\. This view hasn't refreshed since your last press/);
-  assert.equal(button(c, 'Start the run'), undefined); assert.equal(button(c, 'Prepare this run'), undefined);
-  for (const node of all(section, 'button')) if (!/Show the conversation/.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is not offered`);
-  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested; see Progress for what happened\./, 'the press\'s own result stays');
-  const open = {...preparedRun, source:'s', lifecycle:{state:OPEN}};
-  view.data = data({selections:selected(), runs:[open]});
-  await render(true);
-  assert.equal(button(c, 'End this run'), undefined, 'an open run in a stale view offers no end');
-  assert.match(section.textContent, /Runs in this conversation are not shown until this view refreshes\./);
-  await render(false);
-  assert.ok(button(c, 'End this run'), 'a refreshed view shows the run again');
-  assert.deepEqual(calls, []);
-  await React.act(async () => root.unmount());
 });
 
 test('a library folder the App could not list is said where the list would be', async () => {
