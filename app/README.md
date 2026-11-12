@@ -1309,10 +1309,34 @@ that names another identity or another store than the store records for the
 folder, that is a duplicate, or that belongs to a moved project attaches
 nothing until the person restores the link, adopts the project or gives the
 folder a new identity; the host status names which of those acts apply, and
-the panel offers only those. A folder is not given another identity while
-the project it was recorded for is still in use (a running Codex, an open
-run, a record waiting to be written); restoring the link is never refused
-for that, and reads no record, so it stays possible when a disposal stands. Records an earlier App wrote at the §13.7 paths
+the panel offers those. A link naming a project whose records the store keeps
+with no folder recorded for it (an adoption that stopped part way) reads as
+"records kept, not attached", admits no Codex and is not registered on the
+link alone; the person adopts it. Restoring the link reads no record, so it
+stays possible when a disposal stands; finishing a disposal is offered only
+once the folder is attached again, and finishing an interrupted package
+import only where its folder and project file agree with the import's own
+record. As containment, adopting a project or giving a folder a new identity
+is refused while a record of an identity concerned is being read or written
+or while that identity's activity is held (a running Codex, an open run, a
+capture or a record waiting to be written), in this or another App window.
+Present limits: that containment is not a binding of store and project across
+an operation, and a writer that reaches the records by the project's path
+after the act, with nothing holding the project's activity, is not covered; a
+workflow record reader kept from before can be given a replacement folder at
+the same path carrying a copied link; a connector account reader does not hold
+the retention read admission, so payload put back from outside after a
+disposal can be read again; and restoring the link of a folder with an
+interrupted package import writes the App's link bytes, not those the import
+recorded, so that import cannot then be finished from the App. When the last
+line of the store's registry of project folders (`roots.jsonl`) is
+incomplete, every attachment and the status say so and its bytes are kept;
+records are read from what its complete lines record, and nothing is
+written, minted, adopted or restored for any project. The App's only way out
+of that state today is when the incomplete line is its own interrupted package
+import's registry write: finishing that import completes the line. Any other
+incomplete line can only be resolved by hand, outside the App. Records an
+earlier App wrote at the §13.7 paths
 (`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`,
 the registered `records/coordination.rs.jsonl`, and connector route accounts
 in `.chirality/records/connectors/route-accounts/`) are read in place, and
