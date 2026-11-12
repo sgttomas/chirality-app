@@ -52,7 +52,7 @@ haven't gleaned it through how the project is constructed and how meaning is
 conveyed throughout."
 
 What that means here, within the extent, conditions and reservations of that
-grant:
+grant, including any limit on passing those decisions on:
 
 - Decisions follow perspective. Agent 0 decides what the target needs,
   including changes to scopes, criteria and holds, and records each decision
