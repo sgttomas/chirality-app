@@ -641,7 +641,7 @@ class RecordingsAtThePin(unittest.TestCase):
         expected = capture.expected_distribution(PIN)
         main = next(e for e in expected["inventory"]["entries"] if e["path"] == "bin/codex")
         self.assertEqual(sorted(p.name for p in RECORDINGS.iterdir()),
-                         sorted(s + ".recording.json" for s in capture.SCENARIOS))
+                         sorted([s + ".recording.json" for s in capture.SCENARIOS] + ["README.md"]))
         for scenario in capture.SCENARIOS:
             with self.subTest(scenario):
                 record = recording(scenario)
