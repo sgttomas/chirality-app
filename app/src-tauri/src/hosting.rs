@@ -201,6 +201,10 @@ pub struct HostConfig {
     pub(crate) probe_wait_limit: Duration,
     pub(crate) distribution: Option<successor::Distribution>,
     pub(crate) require_distribution_artifacts: bool,
+    /// The dedicated local home only (None for every other home): the App's lock file there. A
+    /// start takes an exclusive, non-waiting lock on it and the Codex child inherits that one
+    /// descriptor, so the lock is held while any process of that Codex lives; held, nothing starts.
+    pub(crate) process_lock: Option<PathBuf>,
 }
 
 /// The account home's provider, as a session setting (see `HostConfig::new`).
@@ -247,6 +251,7 @@ impl HostConfig {
             probe_wait_limit: Duration::from_secs(20),
             distribution: None,
             require_distribution_artifacts: false,
+            process_lock: None,
         }
     }
 }
@@ -749,6 +754,9 @@ pub struct Host {
     submission_contexts:Arc<Mutex<Vec<Value>>>,
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
+    /// The App's own close-on-exec descriptor of the local home's process lock, kept for the
+    /// child it was taken for until the next start in this Host releases it before locking again.
+    process_lock: Mutex<Option<std::fs::File>>,
     /// One stop request at a time for this Host (SR-11): its guard, SR-01 and
     /// its send are not interleaved with another. Per Host, so a home whose
     /// Codex stops reading holds up only its own interrupts.
@@ -845,6 +853,7 @@ impl Host {
             submission_contexts:Arc::new(Mutex::new(Vec::new())),
             frame_write: Mutex::new(()),
             attachment_gate: Mutex::new(()),
+            process_lock: Mutex::new(None),
             interrupt_gate: Mutex::new(()),
             this: Mutex::new(std::sync::Weak::new()),
             #[cfg(test)]
@@ -1743,6 +1752,37 @@ impl Host {
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
+        // The dedicated local home: an earlier Codex there must be known ended before another
+        // starts. The App's descriptor from this Host's previous start is released first (its child
+        // keeps its own inherited copy while it lives); then an exclusive, non-waiting lock.
+        let process_lock = match &cfg.process_lock {
+            None => None,
+            Some(path) => {
+                self.process_lock.lock().unwrap().take();
+                match crate::native_local_provider::take_process_lock(path) {
+                    Ok(file) => {
+                        use std::os::fd::AsRawFd;
+                        let fd = file.as_raw_fd();
+                        // In the child only, after process_group(0)'s setpgid and before exec: clear
+                        // close-on-exec on this one descriptor. One fcntl; async-signal-safe.
+                        unsafe {
+                            cmd.pre_exec(move || {
+                                if libc::fcntl(fd, libc::F_SETFD, 0) == -1 { Err(std::io::Error::last_os_error()) } else { Ok(()) }
+                            });
+                        }
+                        Some(file)
+                    }
+                    Err(reason) => {
+                        let mut i = self.inner.0.lock().unwrap();
+                        // Recorded as the spawn failure it is (no child was started), so Restart
+                        // Codex can try again once the earlier process has ended.
+                        self.lt(&mut i, "LT-08", "spawn-failed", "halted-after-repeated-failure",
+                                json!({"failure": reason, "failureCount": 1}));
+                        return Err(reason);
+                    }
+                }
+            }
+        };
         let child = match process_group_custody::OwnedProcess::spawn(&mut cmd) {
             Ok(c) => c,
             Err(e) => {
@@ -1770,6 +1810,8 @@ impl Host {
                 return Err(e);
             }
         }
+        // Kept with the child it was taken for; dropped (unlocking only the App's copy) at the next start.
+        if let Some(file) = process_lock { *self.process_lock.lock().unwrap() = Some(file); }
         let stdout = child.take_stdout().unwrap();
         let stderr = child.take_stderr().unwrap();
         let source_gate = match successor_gate { Some(guard) => guard, None => self.attachment_gate.lock().unwrap() };
@@ -6496,3 +6538,143 @@ mod observer_journal_tests;
 #[cfg(test)]
 #[path = "hosting_0167_tests.rs"]
 mod supplier_0167_tests;
+
+/// DEL-01-05 finding 1: a Codex for the dedicated local home must be known ended before another
+/// starts there. Stand-in children only (a Python stand-in for Codex, /bin/sleep); never the real Codex.
+#[cfg(all(test, target_os = "macos"))]
+mod local_process_lock_tests {
+    use super::*;
+    use crate::native_local_provider::{take_process_lock, EARLIER_PROCESS, PROCESS_LOCK};
+    use std::os::fd::AsRawFd;
+    use std::os::unix::fs::PermissionsExt;
+    struct Fixture { root: PathBuf, cfg: HostConfig }
+    impl Fixture {
+        /// A stand-in "codex" that answers every request and stays alive until its input closes;
+        /// in app-server mode it first leaves a marker in its CODEX_HOME.
+        fn new(local: bool) -> Self {
+            let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-lock-").unwrap());
+            for d in ["vendor/bin", "vendor/codex-path", "vendor/codex-resources", "home", "probe"] {
+                std::fs::create_dir_all(root.join(d)).unwrap();
+            }
+            std::fs::set_permissions(root.join("home"), std::fs::Permissions::from_mode(0o700)).unwrap();
+            std::fs::write(root.join("vendor/codex-package.json"), b"{}\n").unwrap();
+            let bin = root.join("vendor/bin/codex");
+            std::fs::write(&bin, "#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\n").unwrap();
+            std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let mut cfg = HostConfig::new(bin.clone(), root.join("home"), root.join("probe"), root.clone());
+            cfg.distribution = Some(successor::Distribution::development_from_binary(&bin).unwrap());
+            cfg.allow_unverified_dev = true;
+            cfg.wait_limit = Duration::from_secs(2);
+            if local { cfg.process_lock = Some(root.join("home").join(PROCESS_LOCK)); }
+            Self { root, cfg }
+        }
+        fn lock_path(&self) -> PathBuf { self.root.join("home").join(PROCESS_LOCK) }
+        fn started(&self) -> bool { self.root.join("home/started").exists() }
+    }
+    impl Drop for Fixture { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.root); } }
+    fn until(what: &str, done: impl Fn() -> bool) {
+        let end = std::time::Instant::now() + Duration::from_secs(5);
+        while !done() { assert!(std::time::Instant::now() < end, "{what}"); std::thread::sleep(Duration::from_millis(10)); }
+    }
+
+    #[test]
+    fn local_process_lock_is_held_by_the_child_after_the_apps_descriptor_closes_and_freed_when_it_exits() {
+        let f = Fixture::new(true);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(f.started());
+        {
+            let mine = host.process_lock.lock().unwrap();
+            let fd = mine.as_ref().expect("the App keeps its descriptor with the child").as_raw_fd();
+            assert_ne!(unsafe { libc::fcntl(fd, libc::F_GETFD) } & libc::FD_CLOEXEC, 0, "the App's own descriptor stays close-on-exec");
+        }
+        // A second child started the ordinary way while the first lives inherits nothing.
+        let mut ordinary = Command::new("/bin/sleep").arg("30").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+        // The stand-in for the App dying: its own descriptor closes; the child still holds the lock.
+        drop(host.process_lock.lock().unwrap().take());
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the Codex child alone");
+        // The child ends: the lock is free although the ordinary child still runs.
+        host.stop("fixture", "test complete").unwrap();
+        let lock = take_process_lock(&f.lock_path()).expect("free once the child has exited");
+        assert!(ordinary.try_wait().unwrap().is_none(), "the ordinary child is still running and does not hold the lock");
+        drop(lock);
+        ordinary.kill().unwrap();
+        ordinary.wait().unwrap();
+    }
+
+    #[test]
+    fn local_start_while_the_lock_is_held_is_refused_with_the_fixed_sentence_and_starts_nothing() {
+        let f = Fixture::new(true);
+        let host = Arc::new(Host::new());
+        let earlier = take_process_lock(&f.lock_path()).unwrap();
+        let error = host.start(&f.cfg, "fixture").unwrap_err();
+        assert_eq!(error, EARLIER_PROCESS);
+        assert!(!f.started(), "no Codex was started, so nothing was written to one");
+        assert!(host.child.lock().unwrap().is_none() && host.stdin.lock().unwrap().is_none(), "no child and no input pipe");
+        assert!(host.process_lock.lock().unwrap().is_none());
+        assert_eq!(host.snapshot()["state"], "halted-after-repeated-failure");
+        let last = host.lifecycle_events().last().cloned().unwrap();
+        assert_eq!((last["transitionId"].as_str(), last["failure"].as_str()), (Some("LT-08"), Some(EARLIER_PROCESS)));
+        for absent in ["/", ".lock", "pid", "PID", "home/"] {
+            assert!(!EARLIER_PROCESS.contains(absent), "the sentence carries no path or process detail: {absent}");
+        }
+        assert!(!EARLIER_PROCESS.bytes().any(|b| b.is_ascii_digit()), "no process number");
+        // Not stranded: Restart Codex (Stop, then start) succeeds once the earlier process is gone.
+        drop(earlier);
+        host.stop("fixture", "restart").unwrap();
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(f.started());
+        host.stop("fixture", "test complete").unwrap();
+    }
+
+    #[test]
+    fn local_restart_after_the_apps_own_stop_does_not_trip_over_the_lock_of_the_process_it_ended() {
+        let f = Fixture::new(true);
+        let host = Arc::new(Host::new());
+        for round in 1..=3 {
+            let ready = host.start(&f.cfg, "fixture").unwrap();
+            assert_eq!(ready["generation"]["spawnCounter"], round);
+            let pid = host.inner.0.lock().unwrap().child_pid.expect("a spawned child");
+            host.stop("fixture", "restart").unwrap();
+            // Stop returned after the group was observed empty: the ended child holds nothing.
+            until("the stopped child has ended", || unsafe { libc::kill(pid, 0) } != 0);
+        }
+        assert!(take_process_lock(&f.lock_path()).is_err(), "the App's descriptor for the last child is still kept");
+        drop(host.process_lock.lock().unwrap().take());
+        assert!(take_process_lock(&f.lock_path()).is_ok());
+    }
+
+    #[test]
+    fn account_home_start_takes_no_process_lock() {
+        let f = Fixture::new(false);
+        assert!(f.cfg.process_lock.is_none() && HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into()).process_lock.is_none());
+        // A held lock file elsewhere is never consulted by an account start.
+        let elsewhere = f.root.join("probe").join(PROCESS_LOCK);
+        let held = take_process_lock(&elsewhere).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(host.process_lock.lock().unwrap().is_none(), "no lock taken");
+        assert!(!f.lock_path().exists(), "no lock file in the account home");
+        host.stop("fixture", "test complete").unwrap();
+        drop(held);
+    }
+
+    #[test]
+    fn local_process_lock_file_that_is_not_the_apps_private_file_refuses() {
+        let f = Fixture::new(true);
+        let path = f.lock_path();
+        std::os::unix::fs::symlink(f.root.join("elsewhere"), &path).unwrap();
+        assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "a link");
+        std::fs::remove_file(&path).unwrap();
+        std::fs::write(&path, "").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "not private");
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        std::fs::hard_link(&path, f.root.join("alias")).unwrap();
+        assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "hard-linked");
+        std::fs::remove_file(f.root.join("alias")).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "the private file works");
+        host.stop("fixture", "test complete").unwrap();
+    }
+}
