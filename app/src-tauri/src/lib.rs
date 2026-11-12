@@ -1507,7 +1507,7 @@ fn role_set_metadata() -> Value {
         // the set; only those that may start a conversation are offered as one.
         Ok(set) => json!({"available":true,"roles":set.roles,"defaultRole":set.default_role(),
             "conversationRoles":role_supply::Role::ALL.into_iter().filter(|r|r.primary_entry()).collect::<Vec<_>>(),
-            "identity":identity,"standing":"candidate; U-R6/U-R11 open"}),
+            "identity":identity,"standing":"candidate; U-R6 open"}),
         Err(reason) => json!({"available":false,"reason":reason,"identity":identity}),
     }
 }
@@ -1567,6 +1567,13 @@ fn thread_start(
 /// (New conversation, Continue as, clean trial). It binds the start to that
 /// home and generation before any effect; nothing is recaptured.
 #[allow(clippy::too_many_arguments)]
+/// What a start records as "the preselection was left as it was". The caller's
+/// claim stands only for the role set's own default: no caller can record
+/// another role, or no role, as preselected. An absent claim stays absent
+/// (not established).
+fn established_preselection(claimed: Option<bool>, role: Option<role_supply::Role>, default: Option<role_supply::Role>) -> Option<bool> {
+    claimed.map(|claimed| claimed && role.is_some() && role == default)
+}
 fn start_conversation(
     app: &tauri::AppHandle,
     state: &AppState,
@@ -1580,6 +1587,7 @@ fn start_conversation(
     preselected: Option<bool>,
 ) -> Result<Value, String> {
     let supply_ref=util::opaque_id("sup:")?;
+    let preselected=established_preselection(preselected,role,role_supply::bundled_role_set().ok().and_then(|set|set.default_role()));
     // An unknown class or absent home keeps its existing refusal observation.
     // A different, replaced, closed or incomplete source is refused before any
     // effect or record: no endpoint, role, provider or start state changes, and
@@ -2247,11 +2255,12 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
+fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,preselected:Option<bool>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
     let class=home_class(&mode_home_class).map_err(SendRefusal::kept)?;
     // The source is bound before the trial's begin step: a mismatch keeps the pre-fill.
     runtime_session::trial_flows::start_bound_clean_trial(&state.workflows,&state.homes,class,&generation,&reference,
-        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,None),
+        // As an ordinary start: the record says whether the role was the preselection or the person's choice.
+        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,preselected),
         |home,started,thread|runtime_session::trial_flows::send_trial(&state.workflows,home,&reference,started,thread,&person_text))
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{

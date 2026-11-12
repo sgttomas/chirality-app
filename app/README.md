@@ -690,11 +690,13 @@ implemented behavior and qualification limits.
     including the person's `run_ended`, are written in order. I/O failures still
     hold strict order.
 24. **Conversation roles** (NIR §5.4, §5.8; ROLE §3.2, §3.3, §4.4, §6.2). The
-    start display lists the role set readably, with the `default_for_new_chat`
-    role labelled as a preselection (the bundled set marks none today, U-R11),
-    "No role", and each role's limits as the limit account hands them (TASK
-    "A task agent does not delegate: Stated, not enforced"; a modified copy
-    reads not known). The start display and Continue as offer HELP_HUMAN,
+    start display lists the role set readably, each role with a plain line
+    from its shipped guidance, with the `default_for_new_chat` role shown
+    preselected and clearable (HELP_HUMAN in the bundled set, DEL-02-04
+    TBD-004), "No role", and each role's limits as the limit account hands
+    them, in plain words (TASK "A task agent does not delegate: Stated, not
+    enforced", then that Codex does not enforce it and that approval, sandbox,
+    configuration and depth do not either; a modified copy reads not known). The start display and Continue as offer HELP_HUMAN,
     HELPS_HUMANS and WORKING_ITEMS (the host's `roleSet.conversationRoles`)
     and No role. TASK is not listed as a choice: it is the role a manager
     assigns bounded work to, and its guidance is supplied for that delegation
@@ -1161,6 +1163,49 @@ The offline recorded peer and actual Host/recovery tests exercise preserved reda
 including unknown acknowledgment after process loss and a delegated child
 outliving its parent. This is development verification; the existing C1 EXP
 records remain capture-only and no candidate qualification is claimed.
+
+## Supplier intake and recordings at a pin
+
+A pin advance is deliberate (DEL-01-01 REQ-006). One of its steps is a maintained
+tool, `supplier_checks/intake.py`, run from `app/`. It does not sign in, use a
+model or read a person's Codex home, and fetching a release archive is not among
+its acts (a download needs the owner's permission naming the file, source and
+size).
+
+A pin is a key of the table `PINS` in `intake.py`, which holds, for each pin
+that has a consumer today, the release archive's address, size, SHA-256 and
+source commit. The tool accepts no other pin and builds no path from a caller's
+text; adding a pin is a reviewed change to that table.
+
+`intake.py --archive <file> --pin <pin> --out <new directory>` checks the
+archive's size and SHA-256 against the table, extracts regular files and
+directories only, writes the distribution record (`CANONICAL_DISTRIBUTION.json`),
+compares the tree with it, runs the supplier's schema generators and writes the
+manifest, the two compiled bundles and `GENERATION.json`. A refusal at any point
+removes the output directory.
+
+What the generator is given is six variables (HOME, CODEX_HOME and TMPDIR in a
+fresh scratch directory, PATH, LANG and TZ=UTC). Before each execution the tool
+refuses when configuration from outside the fresh homes could reach the
+supplier: a `.git` or `.codex` entry in any ancestor of the scratch working
+directory, the system folder `/etc/codex`, or a managed preference the supplier
+reads. Each is checked by presence alone; a check that cannot be made refuses,
+and the generation record names the checks made. These are controls on what the
+supplier is given, not a sandbox: they do not stop supplier code opening a file
+by an absolute path. The generator's sockets are sampled while it runs, which is
+not network isolation.
+
+This is an operator-run tool on stable inputs. It is built so that a check that
+was not made or that failed cannot come out as a distribution record or a
+generated basis. It is not built to withstand a writer changing the inputs
+during the run, nor someone with write access forging a record.
+
+Recorded exchanges at a pin are kept as evidence under
+`supplier_checks/recordings/<pin>/`, with a note beside them saying how they
+were made and what the files do and do not establish. The harness that made
+them is not maintained; `supplier_checks/test_recordings.py` checks what the
+files themselves establish. Neither a recording nor a generated basis is
+qualification of the pin (DEL-01-01 AC-011).
 
 ## Group B offline examination support
 
