@@ -360,9 +360,15 @@ def test_interlocutor_write_needs_explicit_targets_and_host_permission(brief, po
 # --- Operational instructions and product boundary --------------------------------
 
 def test_operational_roster_is_compatible():
+    # AGENTS.md states the roster as relationship -> role texts: Agent 0 is
+    # type 0, and "Type n" is type n. Every registry role must appear once,
+    # under the relationship that matches its registry type.
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    rows = dict(re.findall(r"^\| ([A-Z_]+) \| ([0-2]) \|", agents, re.MULTILINE))
-    assert rows == {name: str(cfg["type"]) for name, cfg in REGISTRY["roles"].items()}
+    table = re.findall(r"^\| (Agent 0|Type [12]) \| (.+?) \|$", agents, re.MULTILINE)
+    pairs = [(role, "0" if relationship == "Agent 0" else relationship[-1])
+             for relationship, cell in table for role in re.findall(r"`([A-Z_]+)`", cell)]
+    assert len(pairs) == len(dict(pairs))
+    assert dict(pairs) == {name: str(cfg["type"]) for name, cfg in REGISTRY["roles"].items()}
 
 
 def test_packaged_product_role_set_remains_pinned_four_roles():
