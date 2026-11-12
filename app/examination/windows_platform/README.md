@@ -202,10 +202,13 @@ work and the holds that apply to it.
 - **Process ownership and termination.** A Windows Job kill-on-close mechanism
   may preserve termination of workers when the spawning App dies; it does not
   select the App's parent-death behaviour. Neither EOF nor successful delivery
-  of a termination request proves process exit. A Job memory limit is not an
-  automatic replacement for a counted-heap grant, a measured process footprint
-  or a host-headroom admission: each needs its own Windows definition and
-  evidence.
+  of a termination request proves process exit.
+- **SWBPIPE's memory quantities.** SWBPIPE's counted-heap grant, measured
+  process footprint and fresh host-headroom admission need separate Windows
+  definitions and evidence, and a Job memory limit is not an automatic
+  replacement for them. These are SWBPIPE's quantities: peer constraints for
+  later design, not adoption of a shared library and not a change to the App's
+  custody contract. They select no memory or custody policy for the App.
 - **Namespace, locks, publication and SQLite.** DEL-01-02 owns the process,
   namespace, lock, publication and SQLite probe gates. Open-time and sidecar
   races and the Windows directory-sync gap are unresolved. App crash cleanup
