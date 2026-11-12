@@ -127,6 +127,15 @@ class SignInFlow(unittest.TestCase):
                 self.git('reset', '-q', '--hard'); self.git('clean', '-qfd')
         (self.repo / 'app/build-output').mkdir(); (self.repo / 'app/build-output/x.o').write_text('ignored')
         self.assertConditions([])
+        # Files Git would not compare are refused, not taken as equal.
+        for flag in ('--assume-unchanged', '--skip-worktree'):
+            with self.subTest(flag=flag):
+                self.git('update-index', flag, 'app/src/login.ts')
+                (self.repo / 'app/src/login.ts').write_text('hidden change\n')
+                self.assertConditions(['working tree differs from the commit under app/'])
+                self.git('update-index', flag.replace('--', '--no-'), 'app/src/login.ts')
+                self.git('checkout', '--', 'app/src/login.ts')
+        self.assertConditions([])
 
     def test_named_revision_must_match_the_working_tree(self):
         first = self.head()

@@ -134,6 +134,11 @@ class Repository:
 
     def require_clean(self, commit):
         """The working tree under app/ must equal the commit: nothing modified, staged or untracked."""
+        # git status does not look at files marked assume-unchanged or skip-worktree; refuse them.
+        for item in self.git('ls-files', '-v', '-z', '--', 'app/').stdout.split(b'\0'):
+            if item and (item[:1].islower() or item[:1] == b'S'):
+                raise Unresolved('working tree differs from the commit under app/',
+                                 'a file under app/ is marked assume-unchanged or skip-worktree, so Git does not compare it')
         status = self.git('status', '--porcelain=v1', '-z', '--untracked-files=all', '--', 'app/').stdout
         head = self.git('rev-parse', '--verify', 'HEAD^{commit}').stdout.decode().strip()
         differs = self.git('diff', '--name-only', '-z', commit, '--', 'app/').stdout
