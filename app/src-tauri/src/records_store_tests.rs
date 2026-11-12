@@ -510,6 +510,65 @@ fn a_torn_roots_registry_reads_from_its_complete_lines_and_writes_nothing() {
     let _ = (std::fs::remove_dir_all(&known), std::fs::remove_dir_all(&unknown));
 }
 
+/// Review round 3, finding 3: with the registry's last line incomplete and
+/// its complete lines recording the folder for several projects, no identity
+/// act is offered, as none is on any other path while the tail is unread.
+#[test]
+fn several_identities_beside_an_incomplete_registry_tail_offer_no_identity_act() {
+    let _store = OwnStore::new();
+    let here = folder("torn-several-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let store = opened().unwrap().0;
+    let registry = store.join("roots.jsonl");
+    let mut bytes = std::fs::read(&registry).unwrap();
+    let second = json!({"format":"chirality.records-store.root","formatVersion":"0.1","projectId":"chirality-project:second-fixture","root":here.to_str().unwrap(),"at":"2026-11-12T00:00:00Z","how":"attached"});
+    bytes.extend_from_slice(format!("{second}\n").as_bytes());
+    std::fs::write(&registry, &bytes).unwrap();
+    // Whole registry: the fault, with the acts that resolve it offered.
+    let whole = attach(&here, false).unwrap();
+    assert_eq!(whole.fault, Some("several identities"), "{whole:?}");
+    assert!(whole.registry.is_none() && !whole.resolutions.is_empty(), "{whole:?}");
+    // The reviewer's state: the same lines, then an incomplete one.
+    bytes.extend_from_slice(b"{");
+    std::fs::write(&registry, &bytes).unwrap();
+    let torn = attach(&here, false).unwrap();
+    assert_eq!(torn.fault, Some("several identities"), "{torn:?}");
+    assert!(torn.registry.is_some(), "{torn:?}");
+    assert!(torn.resolutions.is_empty(), "no act is offered that the host would refuse: {torn:?}");
+    assert!(status(Some(&here))["project"]["attachment"]["resolutions"].as_array().is_some_and(|r| r.is_empty()));
+    for act in [new_identity(&here), adopt(&here)] { assert!(act.unwrap_err().contains("was not read whole")); }
+    assert_eq!(std::fs::read(&registry).unwrap(), bytes);
+    let _ = std::fs::remove_dir_all(&here);
+}
+
+/// Review round 3, finding 5: something that is not a plain file where the
+/// registry belongs is reported, by status and by an attachment, and is
+/// never waited on.
+#[test]
+fn a_registry_that_is_not_a_plain_file_is_reported_without_waiting() {
+    let own = OwnStore::new();
+    let here = folder("fifo-registry-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let store = opened().unwrap().0;
+    let registry = store.join("roots.jsonl");
+    std::fs::remove_file(&registry).unwrap();
+    let name = std::ffi::CString::new(registry.as_os_str().as_encoded_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    let (done, wait) = std::sync::mpsc::channel();
+    let (project, configured) = (here.clone(), own.0.clone());
+    std::thread::spawn(move || {
+        // The test's store is chosen per thread.
+        use_store_for_test(Some(Ok(Store { root: configured, placement: Placement::Override, limits: vec![] })));
+        let _ = done.send((status(None), status(Some(&project)), attach(&project, false).map(|_| ())));
+    });
+    let (store_view, project_view, attached) = wait.recv_timeout(std::time::Duration::from_secs(5)).expect("status and attachment return; nothing waits on the registry");
+    assert!(store_view["registry"].as_str().is_some_and(|r| r.contains("records store unreadable: roots.jsonl")), "{store_view}");
+    assert!(project_view["registry"].as_str().is_some_and(|r| r.contains("records store unreadable: roots.jsonl")), "{project_view}");
+    assert!(attached.unwrap_err().contains("records store unreadable"));
+    std::fs::remove_file(&registry).unwrap();
+    let _ = std::fs::remove_dir_all(&here);
+}
+
 /// Review round 2, finding 1, case (b), as containment: with P's activity
 /// held (a supplier or a record waiting to be written), P's moved folder is
 /// not adopted elsewhere, so a write for the old path is refused there and

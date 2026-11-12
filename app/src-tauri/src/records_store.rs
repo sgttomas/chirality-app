@@ -504,18 +504,16 @@ const REGISTRY_TORN: &str = "the records store's registry of project folders (ro
 /// does not read. Read only, and the bytes are never changed here.
 fn roots_torn(store: &Path) -> Result<bool, String> {
     let path = store.join("roots.jsonl");
-    let mut f = match std::fs::File::open(&path) {
-        Ok(f) => f,
+    // Read as every other line file of the store is: a plain, singly linked
+    // file, opened without following a link and without waiting, so that
+    // something else at this path is reported and never waited on.
+    match std::fs::symlink_metadata(&path) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
         Err(e) => return Err(format!("records store unreadable: roots.jsonl: {e}")),
-    };
-    let len = f.metadata().map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?.len();
-    if len == 0 { return Ok(false); }
-    use std::io::{Seek, SeekFrom};
-    f.seek(SeekFrom::Start(len - 1)).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?;
-    let mut last = [0u8; 1];
-    f.read_exact(&mut last).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?;
-    Ok(last[0] != b'\n')
+        Ok(_) => {}
+    }
+    let bytes = crate::records_retention::read_plain(&path).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?;
+    Ok(bytes.last().is_some_and(|last| *last != b'\n'))
 }
 /// Refuses an act that would append to the roots registry while its last
 /// line is incomplete: appending would close that line and change what it
@@ -664,6 +662,9 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             if held_elsewhere(project).is_empty() { out.resolutions.push("adopt"); }
         }
         out.resolutions.push("new-identity");
+        // No identity act can succeed while the registry's last line is
+        // unread, so none is offered on this path either.
+        if torn { out.resolutions.clear(); }
         return Ok(out);
     }
     // The incomplete last line may be exactly this folder's registration (or
