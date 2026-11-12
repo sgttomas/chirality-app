@@ -1448,7 +1448,9 @@ The chain-head tag `records-chain-heads.json` is written in profile 0.3
 (`formatVersion` "0.3"; a package format addition decided by App Agent 0,
 2026-11-12). Each log's head, as before, records the SHA-256 of its last
 counted line, the lines counted, whether lines carry links, the lines written
-before chaining began, and each place the chain was broken. Profile 0.3 adds,
+before chaining began, and each place the chain was broken (the words of one
+kind of break differ from those an earlier build wrote; see the earlier
+profiles, below). Profile 0.3 adds,
 for every chained log whose file the App could read when it wrote the tag,
 `bytes` and `sha256`, the exact length and SHA-256 of the log file as
 exported, also for a role supply log the App could not take; and for every
@@ -1471,9 +1473,12 @@ unsigned: someone who rewrites a log, the tag and the manifests together is
 not detected (LIM-007).
 
 Packages of profiles 0.1 and 0.2 record neither a log's bytes nor an account
-of its lines. The App reads them as before, and reports a line it sets aside
-as a limit for a package of any profile, since it recomputes the account from
-the payload. `verify.py` checks only the manifests and inventory of such a
+of its lines. The App reads them as before, except that one whose log has a
+break at a line no read line precedes, exported by a build before this
+change, no longer verifies in the App, because the App compares the recorded
+break's words with the ones it now writes. The App reports a line it sets
+aside as a limit for a package of any profile, since it recomputes the
+account from the payload. `verify.py` checks only the manifests and inventory of such a
 package, lists every chain as NOT CHECKED; it
 does not follow their chains, so for them a changed log with regenerated
 manifests is shown only by the App. No release exported those profiles.
