@@ -714,6 +714,7 @@
             "means": "app_controls_by_computer_use",
             "outside_controls": [],
             "interface_gaps": [],
+            "examination_limits": [],
             "interventions": []
           }
         },
@@ -736,6 +737,7 @@
             "means": "app_controls_by_computer_use",
             "outside_controls": [],
             "interface_gaps": [],
+            "examination_limits": [],
             "interventions": []
           }
         },
@@ -758,6 +760,7 @@
             "means": "app_controls_by_computer_use",
             "outside_controls": [],
             "interface_gaps": [],
+            "examination_limits": [],
             "interventions": []
           }
         },
@@ -780,6 +783,7 @@
             "means": "app_controls_by_computer_use",
             "outside_controls": [],
             "interface_gaps": [],
+            "examination_limits": [],
             "interventions": []
           }
         },
@@ -802,6 +806,7 @@
             "means": "app_controls_by_computer_use",
             "outside_controls": [],
             "interface_gaps": [],
+            "examination_limits": [],
             "interventions": []
           }
         },
@@ -824,6 +829,7 @@
             "means": "app_controls_by_computer_use",
             "outside_controls": [],
             "interface_gaps": [],
+            "examination_limits": [],
             "interventions": []
           }
         }
@@ -842,17 +848,7 @@
           "supplier_cases": [],
           "result_record": "INVENTED-SQ-J2-1",
           "outcome": "not-run",
-          "stimuli": [],
-          "operation": {
-            "operator": {
-              "kind": "person",
-              "identity": "INVENTED person operating"
-            },
-            "means": "app_controls_by_hand",
-            "outside_controls": [],
-            "interface_gaps": [],
-            "interventions": []
-          }
+          "stimuli": []
         },
         {
           "step": "J2-2",
@@ -861,17 +857,7 @@
           "supplier_cases": [],
           "result_record": "INVENTED-SQ-J2-2",
           "outcome": "not-run",
-          "stimuli": [],
-          "operation": {
-            "operator": {
-              "kind": "person",
-              "identity": "INVENTED person operating"
-            },
-            "means": "app_controls_by_hand",
-            "outside_controls": [],
-            "interface_gaps": [],
-            "interventions": []
-          }
+          "stimuli": []
         },
         {
           "step": "J2-3",
@@ -880,17 +866,7 @@
           "supplier_cases": [],
           "result_record": "INVENTED-SQ-J2-3",
           "outcome": "not-run",
-          "stimuli": [],
-          "operation": {
-            "operator": {
-              "kind": "person",
-              "identity": "INVENTED person operating"
-            },
-            "means": "app_controls_by_hand",
-            "outside_controls": [],
-            "interface_gaps": [],
-            "interventions": []
-          }
+          "stimuli": []
         },
         {
           "step": "J2-4",
@@ -899,17 +875,7 @@
           "supplier_cases": [],
           "result_record": "INVENTED-SQ-J2-4",
           "outcome": "not-run",
-          "stimuli": [],
-          "operation": {
-            "operator": {
-              "kind": "person",
-              "identity": "INVENTED person operating"
-            },
-            "means": "app_controls_by_hand",
-            "outside_controls": [],
-            "interface_gaps": [],
-            "interventions": []
-          }
+          "stimuli": []
         },
         {
           "step": "J2-5",
@@ -918,17 +884,7 @@
           "supplier_cases": [],
           "result_record": "INVENTED-SQ-J2-5",
           "outcome": "not-run",
-          "stimuli": [],
-          "operation": {
-            "operator": {
-              "kind": "person",
-              "identity": "INVENTED person operating"
-            },
-            "means": "app_controls_by_hand",
-            "outside_controls": [],
-            "interface_gaps": [],
-            "interventions": []
-          }
+          "stimuli": []
         },
         {
           "step": "J2-6",
@@ -937,17 +893,7 @@
           "supplier_cases": [],
           "result_record": "INVENTED-SQ-J2-6",
           "outcome": "not-run",
-          "stimuli": [],
-          "operation": {
-            "operator": {
-              "kind": "person",
-              "identity": "INVENTED person operating"
-            },
-            "means": "app_controls_by_hand",
-            "outside_controls": [],
-            "interface_gaps": [],
-            "interventions": []
-          }
+          "stimuli": []
         },
         {
           "step": "J2-7",
@@ -956,21 +902,11 @@
           "supplier_cases": [],
           "result_record": "INVENTED-SQ-J2-7",
           "outcome": "not-run",
-          "stimuli": [],
-          "operation": {
-            "operator": {
-              "kind": "person",
-              "identity": "INVENTED person operating"
-            },
-            "means": "app_controls_by_hand",
-            "outside_controls": [],
-            "interface_gaps": [],
-            "interventions": []
-          }
+          "stimuli": []
         }
       ],
       "outcome": "not-run",
-      "basis": "person_observed"
+      "basis": "not_established"
     }
   ],
   "handoff": {

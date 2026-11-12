@@ -52,6 +52,13 @@ def check(selection_path, expected):
     errors, missing, unsupported, external, checks = [], [], [], [], []
     paths, artifacts, records, used, identities = {}, {}, {}, set(), {}
 
+    def journey_basis():
+        scenarios = dossier.get('scenarios') if isinstance(dossier, dict) else None
+        if not isinstance(scenarios, list):
+            return None
+        return {s['scenario']: s.get('basis') for s in scenarios
+                if isinstance(s, dict) and s.get('scenario') in sq.JOURNEYS}
+
     def report(consistent):
         return {'selection_consistent': consistent and not errors,
                 'coverage': 'incomplete' if missing or errors else ('unsupported' if unsupported else 'complete'),
@@ -60,6 +67,8 @@ def check(selection_path, expected):
                 'existing_checks': checks, 'selection_sha256': expected,
                 'fixed_support': selected['support'],
                 'reported_outcomes': {slot: v['outcome'] for slot, v in records.items() if 'outcome' in v},
+                # A journey's outcomes travel with who operated it, so an agent's run never reads as a person's.
+                'reported_journey_basis': journey_basis(),
                 'reported_currency': {'dossier': dossier.get('currency') if dossier else None,
                                       **{slot: v['currency'] for slot, v in records.items() if 'currency' in v}},
                 'current_reliance': False, 'qualification_established': False,
@@ -153,6 +162,7 @@ def check(selection_path, expected):
     expected_steps = {(s['scenario'], st['step']): st for s in dossier['scenarios'] for st in s['steps'] if st['state'] == 'recorded'}
     require(set(mapped) == set(expected_steps), 'recorded step mapping mismatch')
     direct = set(mapped.values())
+    step_parts = {m['step']: m.get('parts', []) for steps in step_map['scenarios'].values() for m in steps}
     candidate = selected['candidate']
     for key, slot in mapped.items():
         value = record(slot, 'result')
@@ -168,11 +178,20 @@ def check(selection_path, expected):
         require(value['case'] == case, 'unsupported direct case mapping')
         operation = st.get('operation')
         if operation:
-            # A result must not read as person-operated when an agent or computer use operated the step.
-            by_person_hand = operation['operator']['kind'] == 'person' and operation['means'] == 'app_controls_by_hand'
+            # The result's method must name the operator the dossier records: a person's step reads
+            # person_operated, an agent's (computer use or otherwise) ui_automation, whatever the means.
             method = value['configuration']['route'].get('native_route', {}).get('method')
-            if operation['means'] != 'not_through_app_controls':
-                require((method == 'person_operated') == by_person_hand, 'journey operation disagrees with result native route')
+            require((method == 'person_operated') == (operation['operator']['kind'] == 'person'),
+                    'journey operation disagrees with result native route')
+            if operation['means'] == 'not_through_app_controls':
+                # The result format has no way to say the step was not done through the App's controls.
+                unsupported.append('journey step not through the App controls: ' + slot)
+        planned = [p['part'] for p in step_parts.get(key[1], [])]
+        if planned:
+            # A planned part is carried with its own outcome; it cannot be left out or set aside.
+            require(sorted(p['part'] for p in value.get('parts', [])) == sorted(planned) and
+                    not {p['part'] for p in value.get('parts_not_applicable', [])} & set(planned),
+                    'planned journey parts missing or declared not applicable')
         require(value['run_basis'] == 'candidate', 'direct result is not candidate basis')
         app = value['subject'].get('app_candidate', {})
         require(all(app.get(k) == candidate[k] for k in ('revision', 'build_identity')) and

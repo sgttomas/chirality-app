@@ -2778,6 +2778,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2796,6 +2797,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2814,6 +2816,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2837,6 +2840,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2860,6 +2864,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2878,6 +2883,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -2904,6 +2910,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2922,6 +2929,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2940,6 +2948,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2958,6 +2967,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2976,6 +2986,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -2994,6 +3005,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -3017,6 +3029,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -6664,6 +6677,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6682,6 +6696,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6700,6 +6715,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6723,6 +6739,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6746,6 +6763,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6764,6 +6782,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -6790,6 +6809,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6808,6 +6828,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6826,6 +6847,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6844,6 +6866,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6862,6 +6885,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6880,6 +6904,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -6903,6 +6928,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -7638,6 +7664,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7656,6 +7683,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7674,6 +7702,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7697,6 +7726,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7720,6 +7750,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7738,6 +7769,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -7764,6 +7796,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7782,6 +7815,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7800,6 +7834,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7818,6 +7853,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7836,6 +7872,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7854,6 +7891,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -7877,6 +7915,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -8612,6 +8651,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8630,6 +8670,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8648,6 +8689,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8671,6 +8713,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8694,6 +8737,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8712,6 +8756,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -8738,6 +8783,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8756,6 +8802,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8774,6 +8821,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8792,6 +8840,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8810,6 +8859,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8828,6 +8878,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -8851,6 +8902,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -9586,6 +9638,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9604,6 +9657,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9622,6 +9676,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9645,6 +9700,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9668,6 +9724,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9686,6 +9743,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -9712,6 +9770,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9730,6 +9789,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9748,6 +9808,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9766,6 +9827,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9784,6 +9846,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9802,6 +9865,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -9825,6 +9889,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -12009,6 +12074,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12027,6 +12093,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12050,6 +12117,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12073,6 +12141,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12091,6 +12160,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -12117,6 +12187,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12135,6 +12206,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12153,6 +12225,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12171,6 +12244,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12189,6 +12263,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12207,6 +12282,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12230,6 +12306,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -12965,6 +13042,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -12983,6 +13061,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13001,6 +13080,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13024,6 +13104,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13047,6 +13128,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13065,6 +13147,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -13091,6 +13174,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13109,6 +13193,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13127,6 +13212,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13145,6 +13231,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13166,6 +13253,7 @@
         "means": "app_controls_by_computer_use",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13184,6 +13272,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13207,6 +13296,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -13942,6 +14032,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13960,6 +14051,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -13978,6 +14070,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14001,6 +14094,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14024,6 +14118,7 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14042,6 +14137,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }
@@ -14068,6 +14164,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14086,6 +14183,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14104,6 +14202,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14122,6 +14221,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14140,6 +14240,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14158,6 +14259,7 @@
         "means": "app_controls_by_hand",
         "outside_controls": [],
         "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       },
@@ -14181,6 +14283,5951 @@
          }
         ],
         "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "core_loop_mapping",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ],
+    "handed_over": true,
+    "reported_as_independent": true
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03",
+   "examination_opened": "2026-10-03"
+  }
+ },
+ {
+  "rule": "SQ-R12",
+  "why": "operation facts on a step recorded as not run, which no one attempted",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.2",
+   "record_id": "SQ-RV-18",
+   "support_revision": "EXP-v0.2",
+   "case_definition": {
+    "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+    "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+    "declared_on": "2026-10-03"
+   },
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring",
+    "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ],
+       "core_loop_element": "planning",
+       "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+       "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ],
+       "core_loop_element": "execution",
+       "v3_reference": "J02, J04 (real tool use)",
+       "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (workflow created)",
+       "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+       "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05",
+       "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-07"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (saved to the project library)",
+       "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J05, J07 (selected in a fresh chat)",
+       "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (refined workflow)",
+       "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-1",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-1"
+        },
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-8R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+       "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (three cycles, refined)",
+       "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+       "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+       "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (denied write left no file)",
+       "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (renewed approval created one line)",
+       "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-09"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-10"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "J08 (same chat continued)",
+       "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        },
+        {
+         "id": "ST-5",
+         "produced": "replay",
+         "evidence": "ILLUSTRATIVE ST-5"
+        }
+       ]
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "v3: ChatGPT sign-in only",
+       "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none (v3 had no local model server)",
+       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-omlx",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J1",
+     "run_ref": "RUN-J1",
+     "steps": [
+      {
+       "step": "J1-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "preparation",
+          "what": "ILLUSTRATIVE input file changed after selection, outside the App"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J2",
+     "run_ref": "RUN-J2",
+     "steps": [
+      {
+       "step": "J2-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-7 (ILLUSTRATIVE)",
+       "outcome": "not-run",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "inconclusive"
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "core_loop_mapping",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ],
+    "handed_over": true,
+    "reported_as_independent": true
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03",
+   "examination_opened": "2026-10-03"
+  }
+ },
+ {
+  "rule": "SQ-R13",
+  "why": "a journey stated as a person observed in which an agent operated a control",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.2",
+   "record_id": "SQ-RV-19",
+   "support_revision": "EXP-v0.2",
+   "case_definition": {
+    "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+    "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+    "declared_on": "2026-10-03"
+   },
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring",
+    "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ],
+       "core_loop_element": "planning",
+       "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+       "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ],
+       "core_loop_element": "execution",
+       "v3_reference": "J02, J04 (real tool use)",
+       "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (workflow created)",
+       "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+       "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05",
+       "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-07"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (saved to the project library)",
+       "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J05, J07 (selected in a fresh chat)",
+       "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (refined workflow)",
+       "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-1",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-1"
+        },
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-8R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+       "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (three cycles, refined)",
+       "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+       "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+       "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (denied write left no file)",
+       "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (renewed approval created one line)",
+       "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-09"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-10"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "J08 (same chat continued)",
+       "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        },
+        {
+         "id": "ST-5",
+         "produced": "replay",
+         "evidence": "ILLUSTRATIVE ST-5"
+        }
+       ]
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "v3: ChatGPT sign-in only",
+       "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none (v3 had no local model server)",
+       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-omlx",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J1",
+     "run_ref": "RUN-J1",
+     "steps": [
+      {
+       "step": "J1-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": [
+         {
+          "by": "examiner",
+          "actor": {
+           "kind": "agent",
+           "identity": "ILLUSTRATIVE examining agent",
+           "provider": "ILLUSTRATIVE provider",
+           "model": "ILLUSTRATIVE model",
+           "session": "ILLUSTRATIVE thread"
+          },
+          "kind": "operated_control",
+          "what": "ILLUSTRATIVE the examining agent pressed the selection control"
+         }
+        ]
+       }
+      },
+      {
+       "step": "J1-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "preparation",
+          "what": "ILLUSTRATIVE input file changed after selection, outside the App"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J2",
+     "run_ref": "RUN-J2",
+     "steps": [
+      {
+       "step": "J2-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "core_loop_mapping",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ],
+    "handed_over": true,
+    "reported_as_independent": true
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03",
+   "examination_opened": "2026-10-03"
+  }
+ },
+ {
+  "rule": "SQ-R13",
+  "why": "a journey stated as a person observed in which the examiner explained a control",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.2",
+   "record_id": "SQ-RV-20",
+   "support_revision": "EXP-v0.2",
+   "case_definition": {
+    "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+    "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+    "declared_on": "2026-10-03"
+   },
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring",
+    "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ],
+       "core_loop_element": "planning",
+       "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+       "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ],
+       "core_loop_element": "execution",
+       "v3_reference": "J02, J04 (real tool use)",
+       "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (workflow created)",
+       "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+       "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05",
+       "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-07"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (saved to the project library)",
+       "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J05, J07 (selected in a fresh chat)",
+       "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (refined workflow)",
+       "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-1",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-1"
+        },
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-8R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+       "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (three cycles, refined)",
+       "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+       "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+       "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (denied write left no file)",
+       "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (renewed approval created one line)",
+       "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-09"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-10"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "J08 (same chat continued)",
+       "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        },
+        {
+         "id": "ST-5",
+         "produced": "replay",
+         "evidence": "ILLUSTRATIVE ST-5"
+        }
+       ]
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "v3: ChatGPT sign-in only",
+       "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none (v3 had no local model server)",
+       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-omlx",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J1",
+     "run_ref": "RUN-J1",
+     "steps": [
+      {
+       "step": "J1-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": [
+         {
+          "by": "examiner",
+          "actor": {
+           "kind": "person",
+           "identity": "ILLUSTRATIVE examiner"
+          },
+          "kind": "explained_control",
+          "what": "ILLUSTRATIVE the examiner explained the tools panel"
+         }
+        ]
+       }
+      },
+      {
+       "step": "J1-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "preparation",
+          "what": "ILLUSTRATIVE input file changed after selection, outside the App"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J2",
+     "run_ref": "RUN-J2",
+     "steps": [
+      {
+       "step": "J2-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "core_loop_mapping",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ],
+    "handed_over": true,
+    "reported_as_independent": true
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03",
+   "examination_opened": "2026-10-03"
+  }
+ },
+ {
+  "rule": "SQ-R15",
+  "why": "a passed step recording what the App's window did not give",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.2",
+   "record_id": "SQ-RV-21",
+   "support_revision": "EXP-v0.2",
+   "case_definition": {
+    "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+    "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+    "declared_on": "2026-10-03"
+   },
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring",
+    "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ],
+       "core_loop_element": "planning",
+       "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+       "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ],
+       "core_loop_element": "execution",
+       "v3_reference": "J02, J04 (real tool use)",
+       "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (workflow created)",
+       "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+       "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05",
+       "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-07"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (saved to the project library)",
+       "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J05, J07 (selected in a fresh chat)",
+       "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (refined workflow)",
+       "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-1",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-1"
+        },
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-8R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+       "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (three cycles, refined)",
+       "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+       "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+       "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (denied write left no file)",
+       "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (renewed approval created one line)",
+       "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-09"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-10"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "J08 (same chat continued)",
+       "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        },
+        {
+         "id": "ST-5",
+         "produced": "replay",
+         "evidence": "ILLUSTRATIVE ST-5"
+        }
+       ]
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "v3: ChatGPT sign-in only",
+       "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none (v3 had no local model server)",
+       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-omlx",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J1",
+     "run_ref": "RUN-J1",
+     "steps": [
+      {
+       "step": "J1-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "preparation",
+          "what": "ILLUSTRATIVE input file changed after selection, outside the App"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [
+         "ILLUSTRATIVE where the results were saved was not shown"
+        ],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J2",
+     "run_ref": "RUN-J2",
+     "steps": [
+      {
+       "step": "J2-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "core_loop_mapping",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ],
+    "handed_over": true,
+    "reported_as_independent": true
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03",
+   "examination_opened": "2026-10-03"
+  }
+ },
+ {
+  "rule": "SQ-R16",
+  "why": "a passed step recording what the examination could not perceive",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.2",
+   "record_id": "SQ-RV-22",
+   "support_revision": "EXP-v0.2",
+   "case_definition": {
+    "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+    "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+    "declared_on": "2026-10-03"
+   },
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring",
+    "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ],
+       "core_loop_element": "planning",
+       "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+       "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ],
+       "core_loop_element": "execution",
+       "v3_reference": "J02, J04 (real tool use)",
+       "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (workflow created)",
+       "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+       "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05",
+       "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-07"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (saved to the project library)",
+       "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J05, J07 (selected in a fresh chat)",
+       "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (refined workflow)",
+       "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-1",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-1"
+        },
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-8R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+       "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (three cycles, refined)",
+       "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+       "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+       "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (denied write left no file)",
+       "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (renewed approval created one line)",
+       "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-09"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-10"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "J08 (same chat continued)",
+       "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        },
+        {
+         "id": "ST-5",
+         "produced": "replay",
+         "evidence": "ILLUSTRATIVE ST-5"
+        }
+       ]
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "v3: ChatGPT sign-in only",
+       "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none (v3 had no local model server)",
+       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-omlx",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J1",
+     "run_ref": "RUN-J1",
+     "steps": [
+      {
+       "step": "J1-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "preparation",
+          "what": "ILLUSTRATIVE input file changed after selection, outside the App"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J2",
+     "run_ref": "RUN-J2",
+     "steps": [
+      {
+       "step": "J2-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [
+         "ILLUSTRATIVE focus was lost to another window"
+        ],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    }
+   ],
+   "handoff": {
+    "to": "DEL-11-03",
+    "supplies": [
+     "scenario_outcomes",
+     "evidence_limits",
+     "input_gaps",
+     "v3_comparison_inputs",
+     "core_loop_mapping",
+     "affected_rechecks"
+    ],
+    "not_claimed": [
+     "joined_host_witness",
+     "replacement",
+     "public_release",
+     "retirement",
+     "professional_reliance",
+     "practitioner_validation"
+    ],
+    "handed_over": true,
+    "reported_as_independent": true
+   },
+   "currency": {
+    "state": "current"
+   },
+   "date": "2026-10-03",
+   "examination_opened": "2026-10-03"
+  }
+ },
+ {
+  "rule": "SQ-R17",
+  "why": "a passed J1-5 with no independent observation of what the agent received",
+  "record": {
+   "record_kind": "sq_dossier",
+   "format": "SQ-v0.2",
+   "record_id": "SQ-RV-23",
+   "support_revision": "EXP-v0.2",
+   "case_definition": {
+    "ref": "ILLUSTRATIVE case definition SQ-v0.2 §3",
+    "sha256": "sha256:937c82cf4fe560ec7340c7b1f62ccdb9d414cc0f1d812c5d8b01ebf8ef89ecb9",
+    "declared_on": "2026-10-03"
+   },
+   "candidate": {
+    "revision": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "build_identity": "ILLUSTRATIVE (SQ example; not a real candidate)",
+    "codex_pin": "0.158.0"
+   },
+   "integration_owner": "App workflow-experience integration owner (ILLUSTRATIVE)",
+   "examiner": {
+    "identity": "independent candidate examiner (ILLUSTRATIVE)",
+    "separation": "separate_session_no_authoring",
+    "review_record": "EXP-RX-02 (ILLUSTRATIVE)"
+   },
+   "scenarios": [
+    {
+     "scenario": "V4-EXM-10",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "J-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-01"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        }
+       ],
+       "core_loop_element": "planning",
+       "v3_reference": "J04 (plan revised from 90 to 60 minutes)",
+       "result_record": "EXP-J-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        }
+       ],
+       "core_loop_element": "execution",
+       "v3_reference": "J02, J04 (real tool use)",
+       "result_record": "EXP-J-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE bounded child delegated at J-2"
+        }
+       ]
+      },
+      {
+       "step": "J-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-02"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-14"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (workflow created)",
+       "result_record": "EXP-J-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-09"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "none recorded (v3 had no draft-trial distinction)",
+       "result_record": "EXP-J-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05",
+       "result_record": "EXP-J-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-07"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-03"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-16"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-37"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-05"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J05 (saved to the project library)",
+       "result_record": "EXP-J-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-06"
+        },
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-18"
+        },
+        {
+         "deliverable": "DEL-04-03",
+         "file": "RECORD_SEMANTICS.md",
+         "case_id": "VC-40"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J05, J07 (selected in a fresh chat)",
+       "result_record": "EXP-J-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-2",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-2"
+        }
+       ]
+      },
+      {
+       "step": "J-8",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-03"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (refined workflow)",
+       "result_record": "EXP-J-8 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-1",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-1"
+        },
+        {
+         "id": "ST-3",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-3"
+        }
+       ]
+      },
+      {
+       "step": "J-8R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 2 on new inputs: WR TT-7 (PROPOSED), not V4-EXM-10's words; recorded, not aggregated",
+       "result_record": "EXP-J-8R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-01"
+        },
+        {
+         "deliverable": "DEL-02-02",
+         "file": "WORKSPACE_AND_REGISTRATION.md",
+         "case_id": "WR-VC-12"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-08"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "APP_ACT_CONTROL.md",
+         "case_id": "VC-AAC-13"
+        }
+       ],
+       "core_loop_element": "workflow saving",
+       "v3_reference": "J07 (three cycles, refined)",
+       "result_record": "EXP-J-9 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "J-9R",
+       "state": "recorded",
+       "counts": false,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-02-03",
+         "file": "EXECUTION_COMPATIBILITY.md",
+         "case_id": "VC-E-17"
+        }
+       ],
+       "core_loop_element": "reuse",
+       "v3_reference": "J07",
+       "added_reason": "Run of revision 3: WR TT-7 (PROPOSED); recorded, not aggregated",
+       "result_record": "EXP-J-9R (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-11",
+     "run_ref": "RUN-A",
+     "steps": [
+      {
+       "step": "S11-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-02"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-10"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "J08 (keyboard Stop; Stopping, then Stopped)",
+       "result_record": "EXP-S11-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        }
+       ]
+      },
+      {
+       "step": "S11-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-01"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-05"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "interruption",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (denied write left no file)",
+       "result_record": "EXP-S11-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-03"
+        },
+        {
+         "deliverable": "DEL-02-01",
+         "file": "WORKFLOW_DECLARATION.md",
+         "case_id": "VC-28"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-07"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "approvals",
+       "v3_reference": "J09 (renewed approval created one line)",
+       "result_record": "EXP-S11-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-06"
+        },
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-11"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "none recorded",
+       "result_record": "EXP-S11-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "S11-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-04"
+        },
+        {
+         "deliverable": "DEL-01-03",
+         "file": "NATIVE_PLANS_TOOLS_DELEGATION.md",
+         "case_id": "NV-04"
+        },
+        {
+         "deliverable": "DEL-01-02",
+         "file": "EXECUTION_AND_RECOVERY.md",
+         "case_id": "VC-R-14"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-09"
+        },
+        {
+         "deliverable": "DEL-01-01",
+         "file": "HOSTING_BOUNDARY.md",
+         "case_id": "X-10"
+        }
+       ],
+       "core_loop_element": "restart",
+       "v3_reference": "J08 (same chat continued)",
+       "result_record": "EXP-S11-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "stimuli": [
+        {
+         "id": "ST-4",
+         "produced": "native",
+         "evidence": "ILLUSTRATIVE ST-4"
+        },
+        {
+         "id": "ST-5",
+         "produced": "replay",
+         "evidence": "ILLUSTRATIVE ST-5"
+        }
+       ]
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "V4-EXM-12",
+     "run_ref": "RUN-B",
+     "steps": [
+      {
+       "step": "M12-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A01"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "v3: ChatGPT sign-in only",
+       "result_record": "EXP-M12-1 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none (v3 had no local model server)",
+       "result_record": "EXP-M12-2 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A03"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-3 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-04",
+         "file": "NATIVE_INTERACTION_RECEIVING.md",
+         "case_id": "VC-NIR-12"
+        },
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A12"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-4 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-5 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      },
+      {
+       "step": "M12-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [
+        {
+         "deliverable": "DEL-01-05",
+         "file": "ACCOUNT_AND_PROVIDER_ACCESS.md",
+         "case_id": "VC-A13"
+        }
+       ],
+       "core_loop_element": "model access",
+       "v3_reference": "none",
+       "result_record": "EXP-M12-6 (ILLUSTRATIVE)",
+       "outcome": "pass"
+      }
+     ],
+     "access_modes": [
+      {
+       "kind": "chatgpt_account",
+       "home": "H-acct",
+       "conversation_ref": "ILLUSTRATIVE conv A"
+      },
+      {
+       "kind": "local_provider",
+       "home": "H-omlx",
+       "conversation_ref": "ILLUSTRATIVE conv B"
+      }
+     ],
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J1",
+     "run_ref": "RUN-J1",
+     "steps": [
+      {
+       "step": "J1-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "preparation",
+          "what": "ILLUSTRATIVE input file changed after selection, outside the App"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J1-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J1-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      }
+     ],
+     "basis": "person_observed",
+     "outcome": "pass"
+    },
+    {
+     "scenario": "J2",
+     "run_ref": "RUN-J2",
+     "steps": [
+      {
+       "step": "J2-1",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-1 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-2",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-2 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-3",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-3 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-4",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-4 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-5",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-5 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-6",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-6 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [],
+        "interface_gaps": [],
+        "examination_limits": [],
+        "interventions": []
+       }
+      },
+      {
+       "step": "J2-7",
+       "state": "recorded",
+       "counts": true,
+       "supplier_cases": [],
+       "result_record": "EXP-J2-7 (ILLUSTRATIVE)",
+       "outcome": "pass",
+       "operation": {
+        "operator": {
+         "kind": "person",
+         "identity": "ILLUSTRATIVE person operating"
+        },
+        "means": "app_controls_by_hand",
+        "outside_controls": [
+         {
+          "kind": "independent_observation",
+          "what": "ILLUSTRATIVE supplier history of the run-start turn compared with the stored workflow bytes"
+         }
+        ],
+        "interface_gaps": [],
+        "examination_limits": [],
         "interventions": []
        }
       }

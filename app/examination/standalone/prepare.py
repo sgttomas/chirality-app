@@ -22,19 +22,29 @@ JOURNEY_RECORD_REQUIREMENTS = {
                             'controls, listed for the step as preparation or independent_observation, apart from the '
                             'journey action; any operator may do them.',
     'step_operation': {
+        'present_on': 'a recorded step whose outcome shows an attempt (pass, fail, blocked, inconclusive); '
+                      'absent on a not-run or unrecorded step. A blocked step was attempted (DEL-09-01) and '
+                      'carries the operation of whoever began it; a step no one began is not run.',
         'operator': {'kind': ['person', 'agent'], 'identity': 'required',
                      'agent_requires': ['provider', 'model', 'session']},
         'means': ['app_controls_by_hand', 'app_controls_by_computer_use', 'not_through_app_controls'],
         'outside_controls': ['preparation', 'independent_observation'],
-        'interface_gaps': 'Where completing the step needed knowledge the interface did not give; empty when none.',
-        'interventions': {'by': ['examiner', 'agent', 'other_person'],
+        'interface_gaps': "What the App's window did not give a user; empty when none; a step with any cannot pass.",
+        'examination_limits': 'What the operator or its tool could not perceive or operate; empty when none; a '
+                              'step with any cannot pass and is blocked or inconclusive, not failed on that ground '
+                              'alone; an operator that cannot tell which it was records inconclusive.',
+        'interventions': {'by': ['examiner', 'agent', 'other_person'], 'actor': 'person or agent, identified',
                           'kind': ['operated_control', 'explained_control', 'other']},
     },
     'not_through_app_controls_can_pass': False,
+    'planned_parts': 'A step with planned parts records each part with its own outcome in its result; none is '
+                     'left out or declared not applicable, and the step passes only if every part passes.',
     'basis': ['person_observed', 'agent_operated', 'not_established'],
-    'person_observed_only_when': "every recorded step was operated by a person by their own hand through the "
-                                 "App's shipped controls",
-    'agent_operated_when': 'any recorded step was operated by an agent or through computer use',
+    'basis_from': 'attempted steps only; none attempted is not_established',
+    'person_observed_only_when': "every attempted step was operated by a person by their own hand through the "
+                                 "App's shipped controls, with no control operated or explained by anyone else",
+    'agent_operated_when': 'any attempted step was operated by an agent or through computer use, or an agent '
+                           'operated a control in it',
 }
 
 

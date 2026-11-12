@@ -58,5 +58,21 @@
   "currency": {
     "state": "current"
   },
-  "blocked_by": "INVENTED unmet prerequisite"
+  "blocked_by": "INVENTED unmet prerequisite",
+  "parts": [
+    {
+      "part": "supplied-as-selected",
+      "expectation": "What the App shows as supplied; a file selected as an input is sent as selected",
+      "outcome": "blocked",
+      "needs_native": true,
+      "blocked_by": "INVENTED unmet prerequisite"
+    },
+    {
+      "part": "changed-file-held",
+      "expectation": "A file selected as an input and changed between selection and sending is held and not sent",
+      "outcome": "blocked",
+      "needs_native": true,
+      "blocked_by": "INVENTED unmet prerequisite"
+    }
+  ]
 }

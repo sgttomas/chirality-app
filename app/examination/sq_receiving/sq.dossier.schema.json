@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-09-02:standalone-dossier:0.2",
   "title": "Standalone qualification dossier (DEL-09-02 SQ-v0.2 §5; OUT-002; PROPOSED)",
-  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R14 in app/examination/sq_receiving/sq_dossier_rules.py.",
+  "description": "One dossier per identified App candidate. It indexes the three named scenarios (V4-EXM-10, V4-EXM-11 inside the same run, V4-EXM-12) and the two journeys (J1, J2) step by step; each step points to DEL-09-01 EXP result records, to the supplier feature cases it joins and to the stimuli declared before the run (R23-27), never copying them. Step states follow EXP §6.1; outcomes are EXP's (HOSTING §9.3 labels). Kept at DEL-09-02 Evidence/EXP/<candidate key>/SQ-dossier.json (EXP §8.4). Rules beyond the schema: SQ-R1…SQ-R17 in app/examination/sq_receiving/sq_dossier_rules.py.",
   "type": "object",
   "required": ["record_kind", "format", "record_id", "support_revision", "case_definition", "candidate", "integration_owner", "examiner", "scenarios", "handoff", "currency", "date"],
   "additionalProperties": false,
@@ -113,7 +113,7 @@
         "outcome": { "$ref": "#/$defs/outcome", "description": "Only once every counted step is recorded (SQ-R4)." },
         "basis": {
           "enum": ["person_observed", "agent_operated", "not_established"],
-          "description": "J1 and J2 only: the basis that follows from the operation facts recorded on the journey's steps (SQ-R13); a summary of those observations, not a separate declaration. person_observed: at least one step recorded and every recorded step operated by a person by their own hand through the App's shipped controls. agent_operated: any recorded step operated by an agent or through computer use. not_established: otherwise (nothing recorded yet, or a person's step done not through the App's controls)."
+          "description": "J1 and J2 only: the basis that follows from the operation facts on the journey's attempted steps (SQ-R13); a summary of those observations, not a separate declaration. agent_operated: any attempted step operated by an agent or through computer use, or in which an agent operated a control. person_observed: at least one attempted step, every attempted step operated by a person by their own hand through the App's shipped controls, and no control operated or explained by anyone else. not_established: otherwise (no step attempted yet, a person's step done not through the App's controls, or a control operated by another person or explained by anyone)."
         }
       },
       "allOf": [
@@ -121,33 +121,35 @@
         { "if": { "properties": { "scenario": { "enum": ["J1", "J2"] } } }, "then": { "required": ["basis"] }, "else": { "not": { "required": ["basis"] } } }
       ]
     },
-    "operation": {
+    "actor": {
       "type": "object",
-      "description": "Who operated a J1 or J2 step and by what means, kept apart from what was done outside the App's controls and from where the interface did not suffice. Required on every recorded J1 or J2 step (SQ-R12). These are the examiner's observations of the step as it was carried out, not a plan; only the operator's identity is a declaration, as the operator or the session that ran the agent states it.",
-      "required": ["operator", "means", "outside_controls", "interface_gaps", "interventions"],
+      "description": "A person or an agent, identified; an agent also by provider, model and the session or thread it ran in.",
+      "required": ["kind", "identity"],
       "additionalProperties": false,
       "properties": {
-        "operator": {
-          "type": "object",
-          "required": ["kind", "identity"],
-          "additionalProperties": false,
-          "properties": {
-            "kind": { "enum": ["person", "agent"] },
-            "identity": { "type": "string", "minLength": 1 },
-            "provider": { "type": "string", "minLength": 1 },
-            "model": { "type": "string", "minLength": 1 },
-            "session": { "type": "string", "minLength": 1, "description": "The session or thread the agent ran in." }
-          },
-          "if": { "properties": { "kind": { "const": "agent" } } },
-          "then": { "required": ["provider", "model", "session"] }
-        },
+        "kind": { "enum": ["person", "agent"] },
+        "identity": { "type": "string", "minLength": 1 },
+        "provider": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "session": { "type": "string", "minLength": 1, "description": "The session or thread the agent ran in." }
+      },
+      "if": { "properties": { "kind": { "const": "agent" } } },
+      "then": { "required": ["provider", "model", "session"] }
+    },
+    "operation": {
+      "type": "object",
+      "description": "Who operated a J1 or J2 step and by what means, kept apart from what was done outside the App's controls, from what the App's window did not give, and from what the examination itself could not perceive or operate. Present on a recorded J1 or J2 step whose outcome shows an attempt (pass, fail, blocked, inconclusive) and absent on a not-run or unrecorded step (SQ-R12). Blocked means attempted and stopped by a stated precondition or dependency (DEL-09-01), so a blocked step carries the operation of whoever began the attempt, by the means that attempt used, even when it stopped before any control was operated; a step that no one began is not run. These are the examiner's observations of the step as it was carried out, not a plan; only identities are declarations, as the actor or the session that ran the agent states them.",
+      "required": ["operator", "means", "outside_controls", "interface_gaps", "examination_limits", "interventions"],
+      "additionalProperties": false,
+      "properties": {
+        "operator": { "$ref": "#/$defs/actor" },
         "means": {
           "enum": ["app_controls_by_hand", "app_controls_by_computer_use", "not_through_app_controls"],
           "description": "The App's shipped controls by the person's own hand; the App's shipped controls through harness computer use; or not through the App's controls, which cannot pass (SQ-R14)."
         },
         "outside_controls": {
           "type": "array",
-          "description": "What was done outside the App's controls for this step, apart from the journey action; allowed for any operator.",
+          "description": "What was done outside the App's controls for this step, apart from the journey action; allowed for any operator. A passed step lists each kind its step map entry requires (SQ-R17).",
           "items": {
             "type": "object",
             "required": ["kind", "what"],
@@ -160,21 +162,31 @@
         },
         "interface_gaps": {
           "type": "array",
-          "description": "Where completing the step needed knowledge the interface did not give; empty when none.",
+          "description": "What the App's window did not give a user in this step: a term unexplained, a next action missing, a state unclear, an engineering record that had to be read. Empty when none. A step with any cannot pass (SQ-R15); it is an interface failure.",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "examination_limits": {
+          "type": "array",
+          "description": "What the operator or its tool could not perceive or operate in this step: a native dialog the tool cannot see, a control it cannot press, focus lost to another window. Empty when none. A step with any cannot pass (SQ-R16); it is not an interface failure, so the step is blocked (stopped by it) or inconclusive (its evidence left insufficient), not failed on that ground alone. An operator that cannot tell whether the App or the examination fell short lists it here and records the step inconclusive.",
           "items": { "type": "string", "minLength": 1 }
         },
         "interventions": {
           "type": "array",
-          "description": "Every intervention by an examiner or another agent, or another person, in the step (VER-009, VER-010).",
+          "description": "Every intervention in the step by anyone other than its operator, with the role in which they acted (examiner, another agent, another person) and who they were (VER-009, VER-010). An agent that operated a control makes the journey agent-operated; anyone else who operated a control, or anyone who explained one, keeps it from being a person observed; an intervention of kind other changes no basis but stays listed (SQ-R13).",
           "items": {
             "type": "object",
-            "required": ["by", "kind", "what"],
+            "required": ["by", "actor", "kind", "what"],
             "additionalProperties": false,
             "properties": {
-              "by": { "enum": ["examiner", "agent", "other_person"] },
+              "by": { "enum": ["examiner", "agent", "other_person"], "description": "The role in which the actor intervened; an examiner may be a person or an agent." },
+              "actor": { "$ref": "#/$defs/actor" },
               "kind": { "enum": ["operated_control", "explained_control", "other"] },
               "what": { "type": "string", "minLength": 1 }
-            }
+            },
+            "allOf": [
+              { "if": { "properties": { "by": { "const": "agent" } } }, "then": { "properties": { "actor": { "properties": { "kind": { "const": "agent" } } } } } },
+              { "if": { "properties": { "by": { "const": "other_person" } } }, "then": { "properties": { "actor": { "properties": { "kind": { "const": "person" } } } } } }
+            ]
           }
         }
       },

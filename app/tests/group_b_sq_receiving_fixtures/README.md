@@ -1,8 +1,8 @@
 # Invented SQ receiving fixtures
 
 `development/` contains complete schema-valid invented SQ-v0.2/EXP-v0.2 JSON,
-36 direct native_development result declarations (J1 invented as operated by an
-agent through computer use, J2 by a person's own hand), one primary review declaration,
+36 direct native_development result declarations (J1 invented as blocked steps an
+agent began through computer use, J2 as steps not run, which name no operator), one primary review declaration,
 canonical binding sidecars, a case-definition text and exact selection hashes.
 No candidate, native session, person act, actual review or qualification occurred.
 The native fields are invented schema examples. No blank form is presented as an

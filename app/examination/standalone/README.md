@@ -16,9 +16,11 @@ V4-EXM-10 and V4-EXM-11; RUN-B, RUN-J1 and RUN-J2 have the same still-unfilled
 candidate slot. The journey steps J1-1…J1-6 and J2-1…J2-7 cite their governing
 acceptance criteria instead of supplier cases, mark the J2 sessions and the
 steps performed at the act control, and the preparation's
-`journey_record_requirements` states what each recorded journey step and
+`journey_record_requirements` states what each attempted journey step and
 journey must say: who operated it and by what means, what was done outside the
-App's controls, and where the interface did not suffice.
+App's controls, what the App's window did not give, what the examination could
+not perceive or operate, and any intervention. J1-4 and J2-7 carry planned
+parts that each keep their own outcome.
 The invented inventory rows are input material for future substantive tool
 work and new-input reuse; no workflow is authored or registered by this tool.
 

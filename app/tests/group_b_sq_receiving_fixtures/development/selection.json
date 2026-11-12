@@ -20,7 +20,7 @@
   },
   "dossier": {
     "path": "dossier.json",
-    "sha256": "cd0f059e53640cf7c2c9d9edb5579b0daa62f883527c003146c7203a226ef80b"
+    "sha256": "6191945f547a2c882f8f05f7fe77b6797050f2b05808bd5083a7c484cadfa7cd"
   },
   "case_definition": {
     "ref": "INVENTED-SQ-CASE-DEFINITION",
@@ -345,11 +345,11 @@
       "kind": "result",
       "record": {
         "path": "result-J1-4.json",
-        "sha256": "fe4faa9c1eb9ce5ec4d70edf3141609d2c1cffdd93a9fd24d9c706d43441343e"
+        "sha256": "9f1b7503caa7d25be3a4d07a3198feb163702691ae04eb263863792f3cd1547e"
       },
       "binding": {
         "path": "result-J1-4.binding.json",
-        "sha256": "a40569cf8903c1813f5ceba5c3a9f1205c0dbfd9a5be89922332b532db450330"
+        "sha256": "67fe7ec38558a5c07fd97c4b1f8bb416d76317159a64f339e9a6895068a63dfb"
       }
     },
     {
@@ -453,11 +453,11 @@
       "kind": "result",
       "record": {
         "path": "result-J2-7.json",
-        "sha256": "df3de6323ef51576a15b2ceeffc973c9f070161127ec1cf2bb312100ebb9f366"
+        "sha256": "0ece0ea485d7d53bf37c972cd9c980aa24f894da859da7dc55847cb199430e35"
       },
       "binding": {
         "path": "result-J2-7.binding.json",
-        "sha256": "e596f6f5b05f338b6a55514eac5ca4fad64f7feb93997b4b6f78b342ecfe680a"
+        "sha256": "4eb053a70d139471be2b5239516e3f9c7027148c155f6a7c6dae20660f4cc4d8"
       }
     },
     {

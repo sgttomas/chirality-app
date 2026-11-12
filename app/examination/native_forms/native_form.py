@@ -77,7 +77,9 @@ JOURNEY_COLUMNS = ['Step', 'Time (local, with offset)',
                    'Means (app_controls_by_hand, app_controls_by_computer_use, not_through_app_controls)',
                    'Journey action done', 'Observed',
                    'Outside the controls (preparation or independent_observation: what)',
-                   'Knowledge the interface did not give; interventions (by whom, operated or explained)',
+                   "Interface gaps (what the App's window did not give a user)",
+                   'Examination limits (what the operator or its tool could not perceive or operate)',
+                   'Interventions (role, who, operated_control / explained_control / other)',
                    'Captures (path, sha256)', 'Deviation or limit']
 
 
@@ -98,15 +100,24 @@ def journey_form(plan, case, scenario, fingerprint):
             lines.append('- ' + field + ': __________')
     lines += ['', '## Step table', '', '| ' + ' | '.join(JOURNEY_COLUMNS) + ' |',
               '|' + '---|' * len(JOURNEY_COLUMNS)]
-    lines += ['| ' + s['step'] + ' |' + ' |' * (len(JOURNEY_COLUMNS) - 1) for s in scenario['steps']]
+    blank = ' |' * (len(JOURNEY_COLUMNS) - 1)
+    for s in scenario['steps']:
+        lines.append('| ' + s['step'] + ' |' + blank)
+        lines += ['| ' + s['step'] + ' part ' + p['part'] + ' |' + blank for p in s.get('parts', [])]
     lines += ['', '## Close', '', '- Steps not reached and why: __________',
               '- Examiner statement that rows were written during the run, not reconstructed: __________', '',
               'The statement above is blank; generation does not attest contemporaneous recording.',
-              "Every row names who operated the step and by what means. A journey action goes through the App's shipped",
-              'controls; one done not through them is at most blocked, failed, not run or inconclusive. Preparation and',
-              'independent observation are listed apart from the journey action. One step operated by an agent, or',
-              'through computer use, makes the journey agent_operated; person_observed needs every recorded step operated',
-              "by a person by their own hand through the App's shipped controls. Cite acts by their own records (EXP-R5).",
+              'Every attempted row (passed, failed, blocked or inconclusive) names who operated the step and by what means;',
+              'a step no one began is not run and names no operator. A blocked step was begun and then stopped.',
+              "A journey action goes through the App's shipped controls; one done not through them is at most blocked,",
+              'failed, not run or inconclusive. Preparation and independent observation are listed apart from the journey',
+              "action. An interface gap (what the App's window did not give) fails the step; an examination limit (what",
+              'the operator or its tool could not perceive or operate) leaves it blocked or inconclusive; an operator that',
+              'cannot tell which it was records inconclusive. Each planned part has its own row and outcome.',
+              'One step operated by an agent or through computer use, or in which an agent operated a control, makes the',
+              'journey agent_operated; person_observed needs every attempted step operated by a person by their own hand',
+              "through the App's shipped controls with no control operated or explained by anyone else.",
+              'Cite acts by their own records (EXP-R5).',
               'When a real record is assigned, place its completed form at forms/<record_id>-journey.md beside records,',
               'cite native_route.form_ref and digest the actual completed bytes in the record evidence.', '',
               '## Case-definition guidance — expected, not observed', '']
@@ -117,6 +128,9 @@ def journey_form(plan, case, scenario, fingerprint):
             lines.append('Session: ' + step['session'])
         if 'act_control' in step:
             lines.append('At the act control: ' + step['act_control'])
+        if 'outside_controls_required' in step:
+            lines.append('Required outside the controls: ' + ', '.join(step['outside_controls_required']))
+        lines += ['Planned part ' + p['part'] + ': ' + p['expectation'] for p in step.get('parts', [])]
         lines += ['- ' + text for text in step['source_action_observation']]
         lines.append('')
     lines += ['Full prerequisites, record requirements and missing inputs remain in the source-bound preparation.',

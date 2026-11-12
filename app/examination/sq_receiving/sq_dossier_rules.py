@@ -1,4 +1,4 @@
-"""SQ-v0.2 dossier rules a schema cannot express (SQ-R1 to SQ-R14).
+"""SQ-v0.2 dossier rules a schema cannot express (SQ-R1 to SQ-R17).
 
 Call after schema validation, with the step map the dossier is read against.
 These inspect declared facts, not their truth.
@@ -105,29 +105,55 @@ def violations(d, step_map):
                 v.append("SQ-R10")
                 break
     for s in d["scenarios"]:
-        if s["scenario"] not in JOURNEYS:
-            continue
-        recorded = [st for st in s["steps"] if st["state"] == "recorded"]
-        # SQ-R12 every recorded journey step states who operated it and by what means
-        if any("operation" not in st for st in recorded):
+        journey = s["scenario"] in JOURNEYS
+        # SQ-R12 a journey step states who operated it and by what means exactly when it was attempted;
+        # a not-run or unrecorded step, and a step of another scenario, states no operation
+        if any(("operation" in st) != (journey and attempted(st)) for st in s["steps"]):
             v.append("SQ-R12")
-        # SQ-R13 the journey's basis is the one its recorded steps give: one step operated by an agent, or
-        # through computer use, makes it agent-operated; a person observed needs every recorded step operated
-        # by a person by their own hand through the App's shipped controls
-        if s.get("basis") != journey_basis(recorded):
+        if not journey:
+            continue
+        tried = [st for st in s["steps"] if attempted(st)]
+        # SQ-R13 the journey's basis is the one its attempted steps give (journey_basis)
+        if s.get("basis") != journey_basis(tried):
             v.append("SQ-R13")
-        # SQ-R14 a journey action not done through the App's controls is never a passed step
-        if any(st.get("operation", {}).get("means") == "not_through_app_controls" and st["outcome"] == "pass"
-               for st in recorded):
-            v.append("SQ-R14")
+        for st in tried:
+            op = st.get("operation", {})
+            # SQ-R14 a journey action not done through the App's controls is never a passed step
+            if op.get("means") == "not_through_app_controls" and st["outcome"] == "pass":
+                v.append("SQ-R14")
+            # SQ-R15 what the App's window did not give a user fails the step; it cannot pass
+            if op.get("interface_gaps") and st["outcome"] == "pass":
+                v.append("SQ-R15")
+            # SQ-R16 what the examination could not perceive or operate leaves the step unpassed
+            if op.get("examination_limits") and st["outcome"] == "pass":
+                v.append("SQ-R16")
+            # SQ-R17 a passed step lists each outside-the-controls kind its map requires (the
+            # preparation or independent observation the step's observation rests on)
+            need = set(ms.get(st["step"], {}).get("outside_controls_required", []))
+            if st["outcome"] == "pass" and need - {x["kind"] for x in op.get("outside_controls", [])}:
+                v.append("SQ-R17")
     return sorted(set(v))
 
 
-def journey_basis(recorded):
-    """The basis the recorded steps of a journey give (SQ-R13)."""
-    ops = [st.get("operation") for st in recorded]
-    if any(op and (op["operator"]["kind"] == "agent" or op["means"] == "app_controls_by_computer_use") for op in ops):
+ATTEMPTED = ("pass", "fail", "blocked", "inconclusive")
+
+
+def attempted(st):
+    """A recorded step whose outcome shows an attempt (DEL-09-01: blocked was attempted; not-run was not)."""
+    return st["state"] == "recorded" and st.get("outcome") in ATTEMPTED
+
+
+def journey_basis(tried):
+    """The basis a journey's attempted steps give (SQ-R13)."""
+    ops = [st.get("operation") for st in tried]
+    def by_agent(op):
+        return (op["operator"]["kind"] == "agent" or op["means"] == "app_controls_by_computer_use"
+                or any(i["kind"] == "operated_control" and i["actor"]["kind"] == "agent" for i in op["interventions"]))
+    if any(op and by_agent(op) for op in ops):
         return "agent_operated"
-    if ops and all(op and op["operator"]["kind"] == "person" and op["means"] == "app_controls_by_hand" for op in ops):
+    def by_person_alone(op):
+        return (op["operator"]["kind"] == "person" and op["means"] == "app_controls_by_hand"
+                and not any(i["kind"] in ("operated_control", "explained_control") for i in op["interventions"]))
+    if ops and all(op and by_person_alone(op) for op in ops):
         return "person_observed"
     return "not_established"

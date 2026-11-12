@@ -678,7 +678,20 @@
      }
     ],
     "stimuli": [],
-    "counts": true
+    "counts": true,
+    "parts": [
+     {
+      "part": "supplied-as-selected",
+      "expectation": "What the App shows as supplied; a file selected as an input is sent as selected"
+     },
+     {
+      "part": "changed-file-held",
+      "expectation": "A file selected as an input and changed between selection and sending is held and not sent"
+     }
+    ],
+    "outside_controls_required": [
+     "preparation"
+    ]
    },
    {
     "step": "J1-5",
@@ -699,11 +712,22 @@
      {
       "deliverable": "DEL-09-02",
       "criterion": "AC-009"
+     },
+     {
+      "deliverable": "DEL-02-03",
+      "criterion": "AC-002"
+     },
+     {
+      "deliverable": "DEL-02-03",
+      "criterion": "AC-003"
      }
     ],
     "stimuli": [],
     "counts": true,
-    "act_control": "when_required"
+    "act_control": "when_required",
+    "outside_controls_required": [
+     "independent_observation"
+    ]
    },
    {
     "step": "J1-6",
@@ -768,6 +792,10 @@
      {
       "deliverable": "DEL-09-02",
       "criterion": "AC-010"
+     },
+     {
+      "deliverable": "DEL-02-02",
+      "criterion": "AC-009"
      }
     ],
     "stimuli": [],
@@ -850,7 +878,20 @@
     "stimuli": [],
     "counts": true,
     "session": "later",
-    "act_control": "when_required"
+    "act_control": "when_required",
+    "parts": [
+     {
+      "part": "allow-disk-records",
+      "expectation": "Under \"Allow disk records\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them"
+     },
+     {
+      "part": "require-verified-approval",
+      "expectation": "Under \"Require verified approval\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them"
+     }
+    ],
+    "outside_controls_required": [
+     "independent_observation"
+    ]
    }
   ]
  }

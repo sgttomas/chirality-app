@@ -116,8 +116,21 @@ class StandalonePreparationTest(unittest.TestCase):
         self.assertEqual([s.get('session') for s in j2['steps']], ['first'] * 5 + ['first_to_later', 'later'])
         self.assertEqual({s['step']: s['act_control'] for s in j1['steps'] + j2['steps'] if 'act_control' in s},
                          {'J1-2': 'when_required', 'J1-5': 'when_required', 'J2-5': 'always', 'J2-7': 'when_required'})
-        self.assertIn('Allow disk records', j2['steps'][6]['source_action_observation'][1])
-        self.assertIn('independent observation', j1['steps'][4]['source_action_observation'][1])
+        # Both approval policies and the changed-file condition are planned parts that cannot disappear.
+        self.assertEqual([p['part'] for p in j2['steps'][6]['parts']], ['allow-disk-records', 'require-verified-approval'])
+        self.assertIn('"Allow disk records" and "Require verified approval"', j2['steps'][6]['source_action_observation'][0])
+        self.assertEqual([p['part'] for p in j1['steps'][3]['parts']], ['supplied-as-selected', 'changed-file-held'])
+        self.assertNotIn('where the changed-file condition is arranged', j1['steps'][3]['source_action_observation'][0])
+        self.assertEqual({s['step']: s['outside_controls_required'] for s in j1['steps'] + j2['steps'] if 'outside_controls_required' in s},
+                         {'J1-4': ['preparation'], 'J1-5': ['independent_observation'], 'J2-7': ['independent_observation']})
+        for index, step in ((4, j1['steps'][4]), (6, j2['steps'][6])):
+            self.assertIn('two comparisons', step['source_action_observation'][1])
+        self.assertIn('recorded under J1-5', j1['steps'][1]['source_action_observation'][0])
+        self.assertIn({'deliverable': 'DEL-02-03', 'criterion': 'AC-002'}, j1['steps'][4]['governing_criteria'])
+        self.assertIn({'deliverable': 'DEL-02-02', 'criterion': 'AC-009'}, j2['steps'][2]['governing_criteria'])
+        self.rejects(lambda p: p['scenarios'][4]['steps'][6]['parts'].pop())
+        self.rejects(lambda p: p['scenarios'][3]['steps'][3].pop('parts'))
+        self.rejects(lambda p: p['scenarios'][3]['steps'][4].pop('outside_controls_required'))
         self.rejects(lambda p: p['scenarios'][4]['steps'][4].pop('act_control'))
         self.rejects(lambda p: p['scenarios'][4]['steps'][6].update(session='first'))
         self.rejects(lambda p: p['scenarios'][3]['steps'][0]['governing_criteria'].pop())
@@ -130,6 +143,9 @@ class StandalonePreparationTest(unittest.TestCase):
         self.assertEqual(need['step_operation']['operator']['agent_requires'], ['provider', 'model', 'session'])
         self.assertEqual(need['step_operation']['outside_controls'], ['preparation', 'independent_observation'])
         self.assertIs(need['not_through_app_controls_can_pass'], False)
+        self.assertIn('examination_limits', need['step_operation'])
+        self.assertIn('actor', need['step_operation']['interventions'])
+        self.assertIn('attempted', need['basis_from'])
         self.assertEqual(need['basis'], ['person_observed', 'agent_operated', 'not_established'])
         self.assertIn('journey_operation', [item['id'] for item in self.plan['missing_inputs']])
         self.rejects(lambda p: p.pop('journey_record_requirements'))

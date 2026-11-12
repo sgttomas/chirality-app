@@ -56,5 +56,21 @@
   "currency": {
     "state": "current"
   },
-  "not_run_because": "INVENTED not attempted after earlier block"
+  "not_run_because": "INVENTED not attempted after earlier block",
+  "parts": [
+    {
+      "part": "allow-disk-records",
+      "expectation": "Under \"Allow disk records\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them",
+      "outcome": "not-run",
+      "needs_native": true,
+      "not_run_because": "INVENTED not attempted after earlier block"
+    },
+    {
+      "part": "require-verified-approval",
+      "expectation": "Under \"Require verified approval\": the same source and revision as registered; the policy requested and the approval evidence applied, as the selection and run records state them",
+      "outcome": "not-run",
+      "needs_native": true,
+      "not_run_because": "INVENTED not attempted after earlier block"
+    }
+  ]
 }

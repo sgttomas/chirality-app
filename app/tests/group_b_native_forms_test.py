@@ -33,15 +33,25 @@ class NativeForms(unittest.TestCase):
             text = forms.generate(self.plan, scenario['scenario'])
             table = [line for line in text.splitlines() if line.startswith('| ')]
             self.assertEqual(table[0], '| ' + ' | '.join(forms.JOURNEY_COLUMNS) + ' |')
-            for column in ('Operator', 'Means', 'Outside the controls', 'Knowledge the interface did not give'):
+            for column in ('Operator', 'Means', 'Outside the controls', 'Interface gaps', 'Examination limits', 'Interventions'):
                 self.assertTrue(any(c.startswith(column) for c in forms.JOURNEY_COLUMNS), column)
-            self.assertEqual(table[1:], ['| ' + s['step'] + ' |' + ' |' * (len(forms.JOURNEY_COLUMNS) - 1) for s in scenario['steps']])
+            blank = ' |' * (len(forms.JOURNEY_COLUMNS) - 1)
+            rows = []
+            for s in scenario['steps']:
+                rows.append('| ' + s['step'] + ' |' + blank)
+                rows += ['| ' + s['step'] + ' part ' + p['part'] + ' |' + blank for p in s.get('parts', [])]
+            self.assertEqual(table[1:], rows)
             self.assertIn('Journey basis (person_observed, agent_operated, not_established): __________', text)
             self.assertNotIn('Person operating', text)
             self.assertNotIn('Supplier cases:', text)
             for step in scenario['steps']:
                 self.assertIn('### ' + step['step'], text)
-        self.assertIn('At the act control: always', forms.generate(self.plan, 'J2'))
+        j2 = forms.generate(self.plan, 'J2')
+        self.assertIn('At the act control: always', j2)
+        self.assertIn('| J2-7 part allow-disk-records |', j2)
+        self.assertIn('| J2-7 part require-verified-approval |', j2)
+        self.assertIn('| J1-4 part changed-file-held |', forms.generate(self.plan, 'J1'))
+        self.assertIn('records inconclusive', j2)
 
     def test_wrong_source(self):
         self.plan['sources'][0]['sha256'] = 'sha256:' + '0'*64

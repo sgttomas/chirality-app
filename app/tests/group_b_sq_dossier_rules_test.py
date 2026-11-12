@@ -79,7 +79,7 @@ class SQDossierRules(unittest.TestCase):
                               ('DEL-01-04', 'AC-003'), ('DEL-02-03', 'AC-001')}, cited)
 
     def test_valid_dossiers_pass_schema_and_every_rule(self):
-        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-0%d' % n for n in range(1, 8)])
+        self.assertEqual([d['record_id'] for d in self.valid], ['SQ-EX-0%d' % n for n in range(1, 9)])
         for dossier in self.valid:
             with self.subTest(record=dossier['record_id']):
                 self.assertEqual([s['scenario'] for s in dossier['scenarios']],
@@ -94,6 +94,10 @@ class SQDossierRules(unittest.TestCase):
             for step in journey['steps']:
                 self.assertEqual(step['operation']['operator']['kind'], 'agent')
                 self.assertEqual(step['operation']['means'], 'app_controls_by_computer_use')
+        # Its J1-3 recorded what the App's window did not give, so it fails rather than passes (SQ-R15).
+        j1 = next(s for s in dossier['scenarios'] if s['scenario'] == 'J1')
+        self.assertEqual((j1['steps'][2]['outcome'], j1['outcome']), ('fail', 'fail'))
+        self.assertTrue(j1['steps'][2]['operation']['interface_gaps'])
         # The same journey stated as a person observed is refused, and so is one agent step in a person's journey.
         probe = copy.deepcopy(dossier)
         next(s for s in probe['scenarios'] if s['scenario'] == 'J1')['basis'] = 'person_observed'
@@ -108,12 +112,57 @@ class SQDossierRules(unittest.TestCase):
         next(s for s in probe['scenarios'] if s['scenario'] == 'J2').update(basis='not_established', outcome='blocked')
         self.assertEqual(self.violations(probe), [])
 
+    def test_an_examination_limit_leaves_the_step_blocked_and_unattempted_steps_name_no_operator(self):
+        dossier = next(d for d in self.valid if d['record_id'] == 'SQ-EX-08')
+        j2 = next(s for s in dossier['scenarios'] if s['scenario'] == 'J2')
+        blocked, later = j2['steps'][5], j2['steps'][6]
+        self.assertEqual(blocked['outcome'], 'blocked')
+        self.assertTrue(blocked['operation']['examination_limits'])
+        self.assertEqual(blocked['operation']['interface_gaps'], [])
+        self.assertNotIn('operation', later)
+        probe = copy.deepcopy(dossier)
+        next(s for s in probe['scenarios'] if s['scenario'] == 'J2')['steps'][5]['outcome'] = 'pass'
+        self.assertIn('SQ-R16', self.violations(probe))
+        # A journey with no attempted step is not established, and stating otherwise is refused.
+        planned = copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-01'))
+        self.assertEqual({s['basis'] for s in planned['scenarios'] if s['scenario'] in self.rules.JOURNEYS}, {'not_established'})
+        next(s for s in planned['scenarios'] if s['scenario'] == 'J1')['basis'] = 'person_observed'
+        self.assertEqual(self.violations(planned), ['SQ-R13'])
+
+    def test_interventions_decide_the_basis_by_who_acted_and_how(self):
+        base = next(d for d in self.valid if d['record_id'] == 'SQ-EX-03')
+        person = {'kind': 'person', 'identity': 'ILLUSTRATIVE other person'}
+        agent = {'kind': 'agent', 'identity': 'ILLUSTRATIVE agent', 'provider': 'ILLUSTRATIVE', 'model': 'ILLUSTRATIVE', 'session': 'ILLUSTRATIVE'}
+        for by, actor, kind, basis in [('agent', agent, 'operated_control', 'agent_operated'),
+                                       ('examiner', agent, 'operated_control', 'agent_operated'),
+                                       ('examiner', person, 'operated_control', 'not_established'),
+                                       ('other_person', person, 'operated_control', 'not_established'),
+                                       ('examiner', person, 'explained_control', 'not_established'),
+                                       ('agent', agent, 'explained_control', 'not_established'),
+                                       ('examiner', agent, 'other', 'person_observed')]:
+            with self.subTest(by=by, actor=actor['kind'], kind=kind):
+                probe = copy.deepcopy(base)
+                j1 = next(s for s in probe['scenarios'] if s['scenario'] == 'J1')
+                j1['steps'][0]['operation']['interventions'] = [{'by': by, 'actor': actor, 'kind': kind, 'what': 'ILLUSTRATIVE'}]
+                self.assertEqual([e.message for e in self.validator.iter_errors(probe)], [])
+                self.assertEqual(self.violations(probe), [] if basis == 'person_observed' else ['SQ-R13'])
+                j1['basis'] = basis
+                self.assertEqual(self.violations(probe), [])
+        # The role and the actor cannot contradict each other.
+        probe = copy.deepcopy(base)
+        next(s for s in probe['scenarios'] if s['scenario'] == 'J1')['steps'][0]['operation']['interventions'] = [
+            {'by': 'agent', 'actor': person, 'kind': 'other', 'what': 'ILLUSTRATIVE'}]
+        self.assertTrue(list(self.validator.iter_errors(probe)))
+
     def test_operator_and_means_must_agree_in_the_schema(self):
         dossier = copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-03'))
         operation = next(s for s in dossier['scenarios'] if s['scenario'] == 'J1')['steps'][0]['operation']
         operation['means'] = 'app_controls_by_computer_use'
         self.assertTrue(list(self.validator.iter_errors(dossier)))
         operation.update(means='app_controls_by_hand', operator={'kind': 'agent', 'identity': 'ILLUSTRATIVE agent'})
+        self.assertTrue(list(self.validator.iter_errors(dossier)))
+        operation.update(operator={'kind': 'person', 'identity': 'ILLUSTRATIVE person'})
+        operation.pop('examination_limits')
         self.assertTrue(list(self.validator.iter_errors(dossier)))
         dossier = copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-01'))
         next(s for s in dossier['scenarios'] if s['scenario'] == 'J1').pop('basis')
@@ -127,14 +176,14 @@ class SQDossierRules(unittest.TestCase):
 
     def test_schema_valid_rule_violations_are_detected(self):
         self.assertEqual({item['rule'] for item in self.rule_violations},
-                         {'SQ-R%d' % n for n in range(1, 15)} - {'SQ-R10'})
+                         {'SQ-R%d' % n for n in range(1, 18)} - {'SQ-R10'})
         for item in self.rule_violations:
             with self.subTest(record=item['record']['record_id'], rule=item['rule']):
                 self.assertEqual([e.message for e in self.validator.iter_errors(item['record'])], [])
                 self.assertIn(item['rule'], self.violations(item['record']))
         # Each journey refusal shows its own rule alone.
         for item in self.rule_violations:
-            if item['rule'] in ('SQ-R11', 'SQ-R12', 'SQ-R13', 'SQ-R14'):
+            if item['rule'] in ['SQ-R%d' % n for n in range(11, 18)]:
                 self.assertEqual(self.violations(item['record']), [item['rule']], item['why'])
 
     def test_paired_st4_probes_at_j2_are_not_masked(self):

@@ -34,8 +34,12 @@ worker separates source execution from caller files; it is not hostile-process
 isolation or authenticated filesystem custody.
 
 A J1 or J2 step's result names its step and no scenario, since the result
-format admits only V4-EXM scenarios. Its native route method must agree with
-the step's recorded operation: person_operated only for a person's own hand.
+format admits only V4-EXM scenarios. Its native route method must name the
+operator the dossier records: person_operated for a person, ui_automation for
+an agent. A step recorded as not done through the App's controls is reported as
+an unsupported join, because the result format cannot say so. A step with
+planned parts must carry each in its result's parts, none declared not
+applicable. The report carries each journey's basis beside its outcomes.
 
 In a selection, `review.results` is an object
 mapping direct result slots to their full subject/configuration/criterion basis;

@@ -164,17 +164,66 @@ class SQReceivingTests(unittest.TestCase):
         self.assertEqual((j1['basis'],j1['steps'][0]['operation']['means']),('agent_operated','app_controls_by_computer_use'))
         self.assertEqual(self.value('result-J1-1')['case'],{'owner_deliverable':'DEL-09-02','case_id':'J1-1'})
         self.assertEqual(self.value('result-J1-1')['configuration']['route']['native_route']['method'],'ui_automation')
-        self.assertEqual(self.check()['coverage'],'complete')
+        r=self.check();self.assertEqual(r['coverage'],'complete')
+        self.assertEqual(r['reported_journey_basis'],{'J1':'agent_operated','J2':'not_established'})
 
     def test_agent_operated_journey_step_cannot_read_as_person_operated(self):
         v=self.value('result-J1-2');v['configuration']['route']['native_route']={'method':'person_operated','form_ref':'INVENTED-FORM-J1-2'}
         self.schema_valid(v);self.save('result-J1-2',v)
         self.refused('journey operation disagrees with result native route')
 
+    def jstep(self, step):
+        return next(st for s in self.dossier['scenarios'] for st in s['steps'] if st['step']==step)
+
+    def test_journey_steps_not_attempted_name_no_operator(self):
+        j2=next(s for s in self.dossier['scenarios'] if s['scenario']=='J2')
+        self.assertEqual(j2['basis'],'not_established')
+        self.assertTrue(all('operation' not in st and st['outcome']=='not-run' for st in j2['steps']))
+        self.assertTrue(all('operation' in st for st in next(s for s in self.dossier['scenarios'] if s['scenario']=='J1')['steps']))
+
+    def attempt_j2_1(self):
+        # A truthful blocked step operated by a person's own hand is received as consistent.
+        st=self.jstep('J2-1');st['outcome']='blocked'
+        st['operation']={'operator':{'kind':'person','identity':'INVENTED person operating'},'means':'app_controls_by_hand',
+                         'outside_controls':[],'interface_gaps':[],'examination_limits':[],'interventions':[]}
+        j2=next(s for s in self.dossier['scenarios'] if s['scenario']=='J2');j2.update(outcome='blocked',basis='person_observed')
+        v=self.value('result-J2-1');v['outcome']='blocked';v.pop('not_run_because');v['blocked_by']='INVENTED unmet prerequisite'
+        self.schema_valid(v);self.save('result-J2-1',v)
+
     def test_person_operated_journey_step_cannot_read_as_automation(self):
+        self.attempt_j2_1();self.assertEqual(self.check()['coverage'],'complete')
         v=self.value('result-J2-1');v['configuration']['route']['native_route']={'method':'ui_automation','tool':'INVENTED tool','tool_definition_check':'INVENTED-DC-N2'}
         self.schema_valid(v);self.save('result-J2-1',v)
         self.refused('journey operation disagrees with result native route')
+
+    def test_step_not_through_the_controls_keeps_its_operator_and_is_unsupported(self):
+        self.jstep('J1-1')['operation']['means']='not_through_app_controls'
+        r=self.check();self.assertTrue(r['selection_consistent'],r);self.assertEqual(r['coverage'],'unsupported')
+        self.assertIn('journey step not through the App controls: result-J1-1',r['unsupported_joins'])
+        v=self.value('result-J1-1');v['configuration']['route']['native_route']={'method':'person_operated','form_ref':'INVENTED-FORM-J1-1'}
+        self.schema_valid(v);self.save('result-J1-1',v)
+        self.refused('journey operation disagrees with result native route')
+
+    def test_planned_parts_cannot_disappear(self):
+        planned=[p['part'] for p in self.value('result-J1-4')['parts']]
+        self.assertEqual(planned,['supplied-as-selected','changed-file-held'])
+        self.assertEqual([p['part'] for p in self.value('result-J2-7')['parts']],['allow-disk-records','require-verified-approval'])
+        v=self.value('result-J1-4');v['parts'].pop();self.schema_valid(v);self.save('result-J1-4',v)
+        self.refused('planned journey parts missing or declared not applicable')
+
+    def test_planned_part_cannot_be_declared_not_applicable(self):
+        v=self.value('result-J2-7');gone=v['parts'].pop()
+        v['parts_not_applicable']=[{'part':gone['part'],'reason':'INVENTED keychain protection unavailable','declared_in':{'case_definition':'INVENTED-SQ-CASE-DEFINITION','identity':'sha256:'+'0'*64}}]
+        self.schema_valid(v);self.save('result-J2-7',v)
+        self.refused('planned journey parts missing or declared not applicable')
+
+    def test_a_blocked_part_cannot_yield_a_passed_step(self):
+        st=self.jstep('J1-4');st['outcome']='pass'
+        st['operation']['outside_controls']=[{'kind':'preparation','what':'INVENTED selected file changed after selection'}]
+        v=self.value('result-J1-4');v['outcome']='pass';v.pop('blocked_by')
+        v['parts'][0].update(outcome='pass');v['parts'][0].pop('blocked_by')
+        self.schema_valid(v);self.save('result-J1-4',v)
+        self.refused('EXP-R1')
 
     def test_dossier_without_a_journey_refused(self):
         slots={'result-'+st['step'] for s in self.dossier['scenarios'] if s['scenario']=='J2' for st in s['steps']}

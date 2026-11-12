@@ -102,7 +102,7 @@
     "Each missing prerequisite names a concrete next action; no step needed anything outside the App"
   ],
   "J1-2": [
-    "Select an existing workflow, creating and registering nothing; where the workflow approval policy asks to re-confirm the registered revision for use, that re-confirmation is made at the act control",
+    "Select an existing workflow, creating and registering nothing; where the workflow approval policy asks at selection to re-confirm the registered revision for use, that re-confirmation is made at the act control (an act that falls at run admission is recorded under J1-5)",
     "The workflow's source and revision are shown before it starts"
   ],
   "J1-3": [
@@ -110,12 +110,12 @@
     "The App states it before the run; a workflow whose requirements are not declared reads as undeclared, not as needing none"
   ],
   "J1-4": [
-    "Supply the workflow's inputs; where the changed-file condition is arranged, a selected file is changed between selection and sending (preparation outside the App's controls)",
-    "What the App shows as supplied; a file selected as an input is sent as selected, and one changed between selection and sending is held and not sent"
+    "Supply the workflow's inputs, one of them a file selected as an input and then changed between selection and sending (the change is preparation outside the App's controls; if it cannot be arranged, that part is blocked or not run with its reason)",
+    "Two parts, each with its own outcome: what the App shows as supplied, a file selected as an input sent as selected; and the changed file held and not sent"
   ],
   "J1-5": [
-    "Start the run deliberately and carry it to completion with real execution doing useful work, answering its questions and approvals; a human checkpoint the workflow declares is answered at the act control",
-    "Waiting, failed, interrupted and completed states are distinct, and a technical acknowledgment is not shown as completed work; what the agent received is the selected workflow byte for byte (independent observation outside the App's controls: the supplier's own history of the run-start turn compared with the stored workflow bytes)"
+    "Start the run deliberately and carry it to completion with real execution doing useful work, answering its questions and approvals; an act that falls at run admission (a re-confirmation for use) and a human checkpoint the workflow declares are made at the act control",
+    "Waiting, failed, interrupted and completed states are distinct, and a technical acknowledgment is not shown as completed work; the agent received the selected workflow byte for byte (independent observation outside the App's controls, two comparisons: the run-start turn the supplier's history returns against the composed run text, and that text's workflow body against the stored workflow file)"
   ],
   "J1-6": [
     "Find the results",
@@ -146,7 +146,7 @@
     "The unfinished work is found again; no draft is lost; read-only history is not presented as a continuing conversation; no completed action is replayed"
   ],
   "J2-7": [
-    "Select the saved workflow and run it with new inputs under the workflow approval policy; a re-confirmation for use, or lowering the policy, where needed, is made at the act control",
-    "The same source and revision as registered; which approval policy was chosen (\"Allow disk records\" or \"Require verified approval\"); the policy requested and the approval evidence applied, as the candidate's selection and run records state them; the agent received the saved workflow byte for byte (independent observation outside the App's controls: the supplier's own history of the run-start turn compared with the stored workflow bytes)"
+    "Select the saved workflow and run it with new inputs under each workflow approval policy in turn, \"Allow disk records\" and \"Require verified approval\", each a planned part with its own outcome; a re-confirmation for use, or lowering the policy, where needed, is made at the act control; a part the candidate cannot carry out is blocked with its cause",
+    "For each part: the same source and revision as registered; the policy requested and the approval evidence applied, as the candidate's selection and run records state them; the agent received the saved workflow byte for byte (independent observation outside the App's controls, two comparisons: the run-start turn the supplier's history returns against the composed run text, and that text's workflow body against the stored workflow file)"
   ]
 }
