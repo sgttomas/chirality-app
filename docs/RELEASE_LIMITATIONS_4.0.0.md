@@ -131,3 +131,30 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** verify a package with the verifier it
   carries, and establish where it came from by other means.
 - **Basis:** DEL-04-03 (TBD-003; AC-009 and AC-011).
+
+### LIM-013: "Decided" rests on the App's records folder, not on a verified capture
+
+- **Id:** LIM-013
+- **Exit criteria:** 5, 15
+- **What is unavailable:** a check that a decision the App shows as decided
+  was captured at its own act control. A decision package reads as decided,
+  and a work item waiting on it as no longer waiting, from an act record held
+  in this installation's records store outside the parts its import account
+  names. The App does not verify that a record in that folder was captured at
+  its act control. So a record file placed in the App's data folder by another
+  program, and an imported record whose import account was later removed or
+  lost, are not distinguished from the person's own recorded act. An act
+  record in the project folder, in an imported package, or in a
+  legacy-imported copy that the import account names is shown as a claim and
+  decides nothing.
+- **Why:** the decision view reads act records without resolving their
+  capture evidence under the capture seal, which exists only in a signed App
+  with its keychain; and the import of a project's earlier records keeps its
+  only account inside the same folder as the copies.
+- **What the person does instead:** the App's data folder is what the word
+  "decided" rests on, and a record placed there by anything other than the
+  App is not told apart from the App's own. Where a decision matters, decide
+  it at the App's act control and check that the row names the actor, the
+  alternative chosen and the capture time expected.
+- **Basis:** DEL-06-02 (Decision row; AC-004); DEL-04-03 (Record authority;
+  REQ-010); DEL-01-04 (the act control and its capture seal).
