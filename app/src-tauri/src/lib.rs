@@ -292,14 +292,8 @@ pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
 
 /// Complete explicit environment route; no private supplier/home path is built in.
 /// Desktop requests are a separate exclusive source, resolved before Root binding.
-/// The release configuration has no environment route and reads none of its names.
-pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
-    if !development_inputs_admitted(tauri::is_dev()) {
-        return Err("the release configuration takes no startup inputs from the environment".into());
-    }
-    host_config_from_inputs(workspace, |key|std::env::var_os(key), probe_home)
-}
-
+/// Reached only through `explicit_environment_launch`, which the release
+/// configuration leaves before reading any name.
 fn host_config_from_inputs(workspace: Option<&PathBuf>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
     let bin = input("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()

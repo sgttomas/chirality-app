@@ -338,7 +338,8 @@ implemented behavior and qualification limits.
 21. **Save a workflow** starts from a draft list. Under the owner's OI-008 ruling
     (first given for the draft workspace as "A, proceed with the Rust host."), the Rust host observes
     the open library's `.chirality/workflow-drafts/` folders. **Open this App
-    project's workflow library** opens the explicit `CHIRALITY_WORKSPACE`; the
+    project's workflow library** opens the configured project (the saved desktop
+    request's, or `CHIRALITY_WORKSPACE` in a development build); the
     folder pickers still open other libraries. For each draft the host reports
     its content identity, the hygiene findings (HY-1…HY-5, HY-7), its WR §5.1
     state and its App-recorded base, or that it has none. Attribution names a
@@ -792,7 +793,8 @@ implemented behavior and qualification limits.
 
 25. **Records capability** (RS §13.8 "Agent access", §13.9; owner U-STORE-4,
     "I choose option B"). Conversations the App starts in its current project
-    (`CHIRALITY_WORKSPACE`) are offered one read-only tool,
+    (the saved desktop request's, or `CHIRALITY_WORKSPACE` in a development
+    build) are offered one read-only tool,
     `chirality_records_read_v1` (`dynamicTools` on `thread/start`). Stock
     0.160.0 retains its declaration through hot and cold resume and fork in
     the opt-in [records supplier check](supplier_checks/records_delivery.py).
@@ -1270,9 +1272,17 @@ merge from saved desktop requests. The release configuration, built with
 `distribution-successor` and not a development run, reads none of the
 `CHIRALITY_` startup inputs (`development_inputs_admitted` in
 `src-tauri/src/lib.rs`): it starts from the saved desktop request or first-use
-setup as if they were unset, and takes its binary, homes, project and records
-location only from its own bundle and setup. It reads `CHIRALITY_RECORDS_STORE`
-and `CHIRALITY_RECORDS_VERIFY_SECS` no more than the route's names. A compiled
+setup as if they were unset, with the bundled Codex. It reads
+`CHIRALITY_RECORDS_STORE` and `CHIRALITY_RECORDS_VERIFY_SECS` no more than the
+route's names. That is independence from the development startup inputs, not
+from the environment: the operating system's path resolution still applies.
+`HOME` decides where the App data folder is (through Tauri's path resolver),
+and with it which saved setup, and so which homes, project and default records
+store, are found; `TMPDIR` decides where the probe home and other temporary
+files are made; the person's own `CODEX_HOME` is still read, and can only make
+the records store refuse a location that overlaps it; `PATH` is appended after
+the bundle's own entry for the Codex child and does not choose the Codex
+binary. A compiled
 production successor continues to refuse without its installed-custody issuer,
 regardless of a desktop development selection.
 
@@ -1350,7 +1360,8 @@ The App keeps a project's records in its own records store (RS §13.8;
 `src-tauri/src/records_store.rs`), outside the project and every Codex home:
 `<App data>/records/` by default, or a folder the person chose (from the next
 start). Tests and development name it with `CHIRALITY_RECORDS_STORE`; a
-development build without it records nothing, and there is no fallback. Each
+development run (`tauri dev`) without it records nothing, and there is no
+fallback. Each
 project has one subtree, `projects/<safe-project-key>/`, holding
 `runs/<safe-run-key>/<safe-writer-key>.jsonl`, `acts/<safe-writer-key>.jsonl`,
 `captures/` and `workflow/` (WR WP-1 records), and the App's own logs for the
