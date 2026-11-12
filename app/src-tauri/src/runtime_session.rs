@@ -4806,13 +4806,12 @@ impl WorkflowRootSession {
         workflows: &std::sync::Mutex<Self>,
         context: &crate::workflow_selection::Context,
         active_home: impl Fn() -> std::sync::Arc<HomeSession>,
+        wait: crate::workflow_selection::Wait,
         action: impl FnOnce(&mut Self, std::sync::Arc<HomeSession>) -> Result<T, String>,
     ) -> Result<T, String> {
         let home = active_home();
-        context.verify_home(&home)?;
-        let mut root = workflows.lock().unwrap();
-        let current = active_home();
-        context.verify_home(&current)?;
+        context.verify_home_within(&home, wait)?;
+        let (mut root, current, _) = crate::workflow_selection::lock_root(workflows, context, &active_home, wait)?;
         if !std::sync::Arc::ptr_eq(&home, &current) {
             return Err("Workflow App home source changed; no library operation performed".into());
         }
@@ -9541,6 +9540,25 @@ for line in sys.stdin:
         assert_eq!(r["reading"],"not established");assert!(r["reason"].as_str().unwrap().contains("not loaded"));
         // Nothing of the configuration but features.multi_agent is kept.
         assert!(!serde_json::to_string(&peer.home.host.delegation_readings()).unwrap().contains("fixture private configuration text"));
+    }
+    /// DEL-01-05: the model list read at the person's press sends config/read for the
+    /// server's own folder. It leaves the chooser's provider revision as it was and
+    /// still advances the revision the settings reading and confirmations follow.
+    #[test]
+    fn model_catalog_read_keeps_the_choosers_provider_revision_and_advances_the_strict_one(){
+        let peer=Peer::new();let host=&peer.home.host;
+        let cwd=peer.home.host_config.as_ref().unwrap().cwd.to_str().unwrap().to_owned();
+        let settings=host.effective_access_settings_read(&peer.generation,&cwd,"account").unwrap();
+        let read=settings["scope"]["readRevision"].clone();assert!(read.is_string());
+        assert_eq!(host.configured_provider_observation_revision(&peer.generation,&cwd),read);
+        assert_eq!(host.configured_provider_revision(&peer.generation,&cwd),read);
+        let setup=peer.wire().len();
+        assert_eq!(host.model_catalog_read(&peer.generation)["state"],"observed");
+        let wire=peer.wire().split_off(setup);
+        assert!(wire.iter().any(|f|f["method"]=="config/read"&&f["params"]["cwd"]==json!(cwd)),"the model list read names the provider read's folder: {wire:?}");
+        assert_eq!(host.configured_provider_observation_revision(&peer.generation,&cwd),read,"the chooser's provider revision is unchanged by the model list read");
+        let strict=host.configured_provider_revision(&peer.generation,&cwd);
+        assert!(strict.is_string()&&strict!=read,"the settings reading is no longer current after the newer read");
     }
     #[test]
     fn model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration(){

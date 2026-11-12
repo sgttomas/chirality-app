@@ -159,7 +159,7 @@ jobs:
       - name: Role history and portable export verification
         run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs
       - name: Workflow and fleet presentation
-        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
+        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs
       - name: Save compiled third-party Rust dependencies
@@ -190,6 +190,8 @@ jobs:
           python3 supplier_checks/test_records_delivery.py
           python3 supplier_checks/test_local_auth.py
           python3 supplier_checks/test_recorded_replay.py
+          python3 supplier_checks/test_recordings.py
+          python3 supplier_checks/test_intake.py
           python3 supplier_checks/swbpipe_projection_test.py
           python3 supplier_checks/swbpipe_receiving_test.py
           python3 supplier_checks/swbpipe_receiving_v4_test.py
@@ -302,6 +304,8 @@ jobs:
           python3 supplier_checks/test_records_delivery.py
           python3 supplier_checks/test_local_auth.py
           python3 supplier_checks/test_recorded_replay.py
+          python3 supplier_checks/test_recordings.py
+          python3 supplier_checks/test_intake.py
           python3 supplier_checks/swbpipe_projection_test.py
           python3 supplier_checks/swbpipe_receiving_test.py
           python3 supplier_checks/swbpipe_receiving_v4_test.py
@@ -321,7 +325,7 @@ jobs:
       - name: Role history and portable export verification
         run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs
       - name: Workflow and fleet presentation
-        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
+        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs
       - name: Node schemas and presentation with mandatory supplier

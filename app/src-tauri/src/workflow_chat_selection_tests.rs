@@ -47,7 +47,7 @@ fn chat_workflow_two_chats_keep_their_pinned_choices_and_started_runs() {
     let chat2=crate::workflow_selection::Chat::in_home(&a.home,&second_thread);
     let original=root.lock().unwrap().selected[&chat1].reference.clone();
     let no_choice=chat_context(&root.lock().unwrap(),&a.home,Some(&second_thread));
-    assert!(crate::workflow_selection::prepare(&root,&no_choice,||a.home.clone(),"new chat".into(),a.project()).unwrap_err().contains("No actual closed workflow selection"));
+    assert!(crate::workflow_selection::prepare(&root,&no_choice,||a.home.clone(),crate::workflow_selection::Wait::for_press(),"new chat".into(),a.project()).unwrap_err().contains("No actual closed workflow selection"));
     let before=a.fixture.rs_entries();
     choose_context(&root,&a.home,&no_choice,&second.0,&second.1).unwrap();
     assert_eq!(a.fixture.rs_entries(),before,"selection keeps the existing record-timing behavior");
@@ -55,8 +55,8 @@ fn chat_workflow_two_chats_keep_their_pinned_choices_and_started_runs() {
     assert!(root.lock().unwrap().selected[&chat2].replaces.is_none(),"chat 1's choice is not chat 2's replaced choice");
     let c1=chat_context(&root.lock().unwrap(),&a.home,Some("thread"));
     let c2=chat_context(&root.lock().unwrap(),&a.home,Some(&second_thread));
-    let r1=crate::workflow_selection::prepare(&root,&c1,||a.home.clone(),"A".into(),a.project()).unwrap();
-    let r2=crate::workflow_selection::prepare(&root,&c2,||a.home.clone(),"B".into(),a.project()).unwrap();
+    let r1=crate::workflow_selection::prepare(&root,&c1,||a.home.clone(),crate::workflow_selection::Wait::for_press(),"A".into(),a.project()).unwrap();
+    let r2=crate::workflow_selection::prepare(&root,&c2,||a.home.clone(),crate::workflow_selection::Wait::for_press(),"B".into(),a.project()).unwrap();
     start_workflow_run(&root,&r1).unwrap();start_workflow_run(&root,&r2).unwrap();
     let bytes=root.lock().unwrap().runs[&r1].lock().unwrap().prepared().text().to_owned();
     let r1_identity=root.lock().unwrap().runs[&r1].lock().unwrap().prepared().workflow().clone();
@@ -83,8 +83,8 @@ fn chat_workflow_identical_thread_ids_in_two_homes_have_distinct_choices() {
     choose_context(&root,&b.home,&context,&second.0,&second.1).unwrap();
     let ca=chat_context(&root.lock().unwrap(),&a.home,Some("thread"));let cb=chat_context(&root.lock().unwrap(),&b.home,Some("thread"));
     assert_ne!(ca.source_ref,cb.source_ref);
-    let ar=crate::workflow_selection::prepare(&root,&ca,||a.home.clone(),"A home".into(),a.project()).unwrap();
-    let br=crate::workflow_selection::prepare(&root,&cb,||b.home.clone(),"B home".into(),b.project()).unwrap();
+    let ar=crate::workflow_selection::prepare(&root,&ca,||a.home.clone(),crate::workflow_selection::Wait::for_press(),"A home".into(),a.project()).unwrap();
+    let br=crate::workflow_selection::prepare(&root,&cb,||b.home.clone(),crate::workflow_selection::Wait::for_press(),"B home".into(),b.project()).unwrap();
     assert_eq!(root.lock().unwrap().runs[&ar].lock().unwrap().prepared().workflow().revision,first.1);
     assert_eq!(root.lock().unwrap().runs[&br].lock().unwrap().prepared().workflow().revision,second.1);
     assert_eq!(root.lock().unwrap().runs[&ar].lock().unwrap().prepared().scope().home,a.generation["home"].as_str().unwrap());
@@ -102,7 +102,7 @@ fn chat_workflow_stale_source_generation_history_and_choice_refuse_without_side_
     assert!(choose_context(&root,&a.home,&old_history,&second.0,&second.1).is_err());
     choose_context(&root,&a.home,&stale,&second.0,&second.1).unwrap();
     assert!(choose_context(&root,&a.home,&stale,&first.0,&first.1).unwrap_err().contains("choice changed"));
-    assert!(crate::workflow_selection::prepare(&root,&stale,||a.home.clone(),"stale".into(),a.project()).unwrap_err().contains("choice changed"));
+    assert!(crate::workflow_selection::prepare(&root,&stale,||a.home.clone(),crate::workflow_selection::Wait::for_press(),"stale".into(),a.project()).unwrap_err().contains("choice changed"));
     assert_eq!(a.fixture.rs_entries(),before);assert_eq!(a.turn_starts(),0);assert!(root.lock().unwrap().runs.is_empty());
 }
 #[test]
@@ -132,14 +132,14 @@ fn chat_workflow_no_chat_inspection_never_fills_a_new_chat_choice() {
     assert_eq!(chat_context(&root.lock().unwrap(),&peer.home,Some("thread")).selection_ref,original.selection_ref);
     let new=peer.second_thread();let context=chat_context(&root.lock().unwrap(),&peer.home,Some(&new));
     assert!(context.selection_ref.is_none());
-    assert!(crate::workflow_selection::prepare(&root,&context,||peer.home.clone(),"no default".into(),peer.project()).unwrap_err().contains("No actual closed workflow selection"));
+    assert!(crate::workflow_selection::prepare(&root,&context,||peer.home.clone(),crate::workflow_selection::Wait::for_press(),"no default".into(),peer.project()).unwrap_err().contains("No actual closed workflow selection"));
     assert!(root.lock().unwrap().snapshot().get("selection").is_none());
     // Inspection can make a draft while Codex has not started, without a chat.
     let cold=Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account,Arc::new(crate::hosting::Host::new()),Err("invented no supplier".into())).unwrap());
     let fixture=Fixture::new();let empty=Mutex::new(WorkflowRootSession::default());let context=chat_context(&empty.lock().unwrap(),&cold,None);
     crate::workflow_selection::choose(&empty,&context,||cold.clone(),|root,chat|root.select_development_copy(chat,fixture.package.clone())).unwrap();
     let context=chat_context(&empty.lock().unwrap(),&cold,None);
-    crate::workflow_selection::with_choice(&empty,&context,||cold.clone(),|root,_,chat| {
+    crate::workflow_selection::with_choice(&empty,&context,||cold.clone(),crate::workflow_selection::Wait::for_press(),|root,_,chat| {
         root.open_library(fixture.root.clone(),"project",Some(&fixture.root),Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&fixture.root)))))?;
         root.create_selected_draft(chat,"from-inspection")
     }).unwrap();
