@@ -393,6 +393,23 @@ pub(crate) fn link_path(path: &Path) -> Result<Option<storage::Ownership>, Strin
 pub(crate) fn idle_for_reassociation(dir: &Path, project: &str) -> Result<storage::Ownership, String> {
     storage::try_lock_exclusive(&control(dir)?.join(".activity.lock"))?.ok_or_else(|| format!("project {project}, which the records store recorded at this folder, is still in use: Codex is running for it, or a workflow run, a captured act or a record of it is still open or waiting to be written, in this or another App window. Stop Codex and end the run; if a record is waiting, restore the project file so it can be written. Then try again; nothing changed"))
 }
+/// Containment, held while an association changes (`adopt`, `new_identity`)
+/// for each identity concerned: refused, never waited for, while any read or
+/// publication is admitted for its records (every writer holds this shared
+/// admission from before its binding check until it has published, the
+/// connector account writer included) in this or another App process. Held,
+/// it keeps new ones out until the association has changed; each then checks
+/// its binding again once admitted (`write_path`). Payload of a disposal that
+/// has started is refused as `read_path` refuses it. A later design that binds
+/// store and project across an operation replaces this.
+pub(crate) fn quiet_for_reassociation(dir: &Path, project: &str) -> Result<Option<storage::Ownership>, String> {
+    if records_store::package::owns(dir) { return Ok(None); }
+    let guard = storage::try_lock_exclusive(&gate(dir)?)?.ok_or_else(|| format!("a record of project {project} is being read or written at this moment, in this or another App window. Wait for it to finish and try again; nothing changed"))?;
+    if state(dir)?.disposition.is_some() {
+        return Err("project records disposed or disposal incomplete; no store payload available".into());
+    }
+    Ok(Some(guard))
+}
 pub(crate) fn check_write(dir: &Path) -> Result<(), String> {
     state(dir)?.writable()
 }

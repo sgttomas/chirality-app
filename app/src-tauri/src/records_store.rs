@@ -1461,15 +1461,28 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     if here.len() == 1 && here[0] == project {
         return Err("this folder is already attached to the project its file names; nothing adopted".into());
     }
-    // Every admission is held before the first line is written: the adopted
-    // identity's, and that of each identity this folder is released from.
-    let mut _admissions = vec![crate::records_retention::read_path(&project_dir(&store,&project))?];
-    for other in here.iter().filter(|p| **p != project) { _admissions.push(crate::records_retention::read_path(&project_dir(&store,other))?); }
-    // Nothing still writing for an identity this folder is released from may
-    // find the folder attached to another identity: its records would go
-    // into that history. Held until the association has changed.
+    // Containment (a later design replaces it): refused while anything is
+    // admitted to read or write the records of an identity concerned, the
+    // adopted one and each this folder is released from, and while anything
+    // still holds its activity (a running Codex, an open run, a capture or a
+    // record waiting to be written). Held until the association has changed,
+    // so nothing pending is written into another identity or follows a path
+    // into a new one. The adopted identity's own record is only checked when
+    // the store holds it: one adopted from another store has none yet, and
+    // registering it publishes under that admission.
+    let adopted = project_dir(&store, &project);
+    let mut _admissions = Vec::new();
+    if adopted.join("project.json").is_file() {
+        _admissions.push(crate::records_retention::quiet_for_reassociation(&adopted, &project)?);
+    } else {
+        _admissions.push(crate::records_retention::read_path(&adopted)?);
+    }
+    for other in here.iter().filter(|p| **p != project) { _admissions.push(crate::records_retention::quiet_for_reassociation(&project_dir(&store,other), other)?); }
     let mut _idle = Vec::new();
-    for other in here.iter().filter(|p| **p != project) { _idle.push(crate::records_retention::idle_for_reassociation(&project_dir(&store,other), other)?); }
+    for other in here.iter() { _idle.push(crate::records_retention::idle_for_reassociation(&project_dir(&store,other), other)?); }
+    if !here.contains(&project) && adopted.join("project.json").is_file() {
+        _idle.push(crate::records_retention::idle_for_reassociation(&adopted, &project)?);
+    }
     if roots_of(&lines, &project).iter().any(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
         return Err("another folder holds this project identity; give this folder a new identity instead; nothing adopted".into());
     }
@@ -1510,13 +1523,16 @@ pub fn new_identity(root: &Path) -> Result<Value, String> {
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let prior = listed(&roots(&store)?, &at);
+    // Containment, as `adopt`: refused while anything is admitted to read or
+    // write the records of an identity this folder is released from, or still
+    // holds its activity.
     let mut _admissions=Vec::new();
-    for project in &prior {_admissions.push(crate::records_retention::read_path(&project_dir(&store,project))?);}
-    // As `adopt`: nothing still writing for an identity this folder is
-    // released from may find the folder attached to another.
+    for project in &prior {_admissions.push(crate::records_retention::quiet_for_reassociation(&project_dir(&store,project), project)?);}
     let mut _idle = Vec::new();
     for project in &prior { _idle.push(crate::records_retention::idle_for_reassociation(&project_dir(&store,project), project)?); }
-    if let Link::Present{project,..}=read_link(&canonical) {_admissions.push(crate::records_retention::read_path(&project_dir(&store,&project))?);}
+    // The identity the link names, when it is not one already held above
+    // (a second admission on a held one would wait on this act itself).
+    if let Link::Present{project,..}=read_link(&canonical) { if !prior.contains(&project) {_admissions.push(crate::records_retention::read_path(&project_dir(&store,&project))?);} }
     for project in prior {
         append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":at,"at":now_rfc3339(),"how":"released"}))?;
     }

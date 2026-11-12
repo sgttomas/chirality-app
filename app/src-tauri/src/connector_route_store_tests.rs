@@ -1411,3 +1411,31 @@ fn a_kept_account_store_refuses_while_the_link_disagrees_and_reads_again_once_re
     assert!(store.write(&account("ra:while-moved")).is_err());
     assert_eq!(names(), before, "moved: nothing written");
 }
+/// Review round 2, finding 1, case (a), as containment: an account writer
+/// already past its checks (the TempChecked seam) holds its admission, so a
+/// new identity for the folder is refused at the act and the account is
+/// published under the identity it was admitted for, still attached.
+#[test]
+fn a_new_identity_is_refused_while_an_account_writer_is_admitted() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let project = crate::records_store::attach(&p, false).unwrap().project.unwrap();
+    let mut at_seam = None;
+    store
+        .write_inner(&account("ra:admitted"), KEY, |stage| {
+            if stage == Stage::TempChecked {
+                at_seam = Some(crate::records_store::new_identity(&p));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let refused = at_seam.expect("the seam was reached").unwrap_err();
+    assert!(refused.contains(&format!("a record of project {project} is being read or written at this moment")) && refused.ends_with("nothing changed"), "{refused}");
+    let now = crate::records_store::attach(&p, false).unwrap();
+    assert_eq!(now.project.as_deref(), Some(project.as_str()), "the association did not change");
+    assert!(store.accounts_directory().join(format!("{KEY}.json")).is_file(), "published under the identity it was admitted for");
+    // Once nothing is admitted, the person's act goes through.
+    let fresh = crate::records_store::new_identity(&p).unwrap();
+    assert_ne!(fresh["projectId"], project.as_str());
+}
