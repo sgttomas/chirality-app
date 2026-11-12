@@ -61,6 +61,9 @@ needs:
     content identity, scope and purpose; a library's registration acts are kept with that library;
     a record can be validated; and entries for a run's text and its supply check are carried in
     the run's log.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
   gating: false
 - from: external:sgttomas/chirality-library release
   condition: The selected Library release publishes its source archive with a digest, and its

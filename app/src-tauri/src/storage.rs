@@ -64,11 +64,7 @@ pub fn library_pending_path(library: &Path, id: &str) -> PathBuf {
 /// The project's capture evidence folder as it is read now: the store's, or
 /// before an import the §13.7 folder in place.
 pub fn capture_dir(root: &Path) -> Result<PathBuf, String> {
-    let home = records_store::readable_home(root)?;
-    Ok(match (home.store_mode, home.attachment.dir) {
-        (true, Some(dir)) => dir.join("captures"),
-        _ => root.join(CAPTURES),
-    })
+    Ok(records_store::readable_home(root)?.captures())
 }
 /// The project's capture evidence folder for a write (store only).
 pub fn write_capture_dir(root: &Path) -> Result<PathBuf, String> {
@@ -434,26 +430,23 @@ pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
     let home = records_store::readable_home(root)?;
     let library = library_log(root);
     check_path(&library)?;
-    match (home.store_mode, home.attachment.dir) {
-        (true, Some(dir)) => {
-            let registered = dir.join(records_store::REGISTERED_COPY);
+    let registered = home.registered_log();
+    match home.in_store() {
+        Some(dir) => {
             let files = if registered.exists() { vec![registered] } else { vec![] };
             Ok(Sources { walk: vec![dir.join("runs"), dir.join("acts")], files, exclude: vec![] })
         }
-        _ => {
-            let legacy = root.join(LEGACY_LOG);
-            check_path(&legacy)?;
-            let files = if legacy.exists() { vec![legacy] } else { vec![] };
-            Ok(Sources { walk: vec![root.join(LEGACY_RECORDS)], files, exclude: vec![library] })
+        None => {
+            check_path(&registered)?;
+            let files = if registered.exists() { vec![registered] } else { vec![] };
+            Ok(Sources { walk: vec![home.records()], files, exclude: vec![library] })
         }
     }
 }
 /// The registered legacy log as it is read now: the imported copy in the
 /// project's store subtree, or before an import the file in place.
 pub fn registered_legacy_log(root: &Path) -> Result<PathBuf,String> {
-    let home=records_store::readable_home(root)?;
-    if home.store_mode {Ok(home.attachment.dir.ok_or("records store source identity unavailable")?.join(records_store::REGISTERED_COPY))}
-    else{Ok(root.join(LEGACY_LOG))}
+    Ok(records_store::readable_home(root)?.registered_log())
 }
 
 pub fn read_all(root: &Path) -> (Vec<Value>, Vec<String>) {

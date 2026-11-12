@@ -687,7 +687,14 @@ mod platform {
         /// were opened in (RS §13.8). The binding is kept, never reassociated:
         /// once the person resolves the link, the same store works again.
         fn check_association(&self) -> Result<()> {
-            let Some(dir) = &self.store_dir else { return Ok(()) };
+            let Some(dir) = &self.store_dir else {
+                // Accounts read in the project folder: the place is decided
+                // again before each read, so a folder whose attachment has
+                // since been refused is not read in the place of its records.
+                return crate::records_store::route_accounts_place(&self.root, false)
+                    .map(|_| ())
+                    .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e));
+            };
             crate::records_store::require_attached(&self.root, dir)
                 .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))
         }

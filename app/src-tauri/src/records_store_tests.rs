@@ -214,6 +214,11 @@ fn a_missing_changed_or_unreadable_project_file_attaches_nothing_until_the_perso
     let shown = status(Some(&root));
     assert_eq!(shown["project"]["reading"], "nothing from the records store (the project is not attached)", "{shown}");
     assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    // Review round 3, finding 2: nor do the notes say the kept files are
+    // read in place or ask for an import; the refusal is the note.
+    let said = shown["project"]["notes"].as_array().unwrap();
+    assert!(said.iter().all(|n| n.as_str().is_some_and(|n| !n.contains("import needed") && !n.contains("read in place"))), "{shown}");
+    assert!(said.iter().any(|n| n.as_str().is_some_and(|n| n.contains("link missing"))), "{shown}");
     std::fs::remove_dir_all(root.join(".chirality/records")).unwrap();
     assert!(notes(&root).iter().any(|n| n.contains("link missing")));
     assert_eq!(status(Some(&root))["project"]["attachment"]["recordedHere"], governing.as_str());
@@ -508,6 +513,89 @@ fn a_torn_roots_registry_reads_from_its_complete_lines_and_writes_nothing() {
     assert_eq!(storage::read_all(&known).0.len(), 1, "nothing written for P");
     assert_eq!(std::fs::read(&registry).unwrap(), torn, "the registry's bytes, torn tail included, are kept exactly");
     let _ = (std::fs::remove_dir_all(&known), std::fs::remove_dir_all(&unknown));
+}
+
+/// Review round 3, findings 1 and 2, repaired by form (App Agent 0): one
+/// decision (`readable_home`, `ReadHome`) says where a project's records are
+/// read, and it is the only product code that joins the project folder with
+/// a records location. This holds the source to that: every product source
+/// file that names such a location is listed here with how many of its lines
+/// do and why they may. A new mention anywhere fails.
+///
+/// Its limit: a location built with none of these names, from a path a
+/// caller passes in, is not seen here. The unrefusing home being private to
+/// the store module is what the compiler holds on the store's side.
+#[test]
+fn the_places_that_name_a_records_location_in_the_project_folder_are_a_closed_list() {
+    const NAMES: [&str; 9] = [
+        "LEGACY_RECORDS", "LEGACY_LOG", "CAPTURES", "CAPTURE_STORE", "LEGACY_DIRECTORY",
+        ".chirality/records", ".chirality/captures", "records/coordination.rs.jsonl", "\".chirality\"",
+    ];
+    const ALLOWED: [(&str, usize, &str); 11] = [
+        ("records_store.rs", 14, "the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
+        ("storage.rs", 9, "the three names' definitions, the library's own act log and capture folder, and checks of the shape of a path already in hand"),
+        ("connector_route_store.rs", 3, "the accounts folder's name and two comparisons of a path recorded in an account; the place itself comes from records_store::route_accounts_place"),
+        ("act_control.rs", 2, "the A15 capture store's name and the library act log's recorded name: an A15 capture stays with its library"),
+        ("act_control_a15.rs", 13, "the library's own capture store (A15 stays with its library) and that module's tests"),
+        ("file_act_root.rs", 1, "a test's assertion that nothing was created"),
+        ("fleet_records.rs", 1, "the census of the project's .chirality folder for the fleet view (DEL-06-01): project content, not a records location"),
+        ("native_conversation_links.rs", 1, "the folder of the fleet copy published in the project: not a records location"),
+        ("runtime_session.rs", 2, "test fixtures"),
+        ("workflow_library.rs", 1, "the workflow supply folder"),
+        ("workflow_package_copy.rs", 1, "the workflow package copy folder"),
+    ];
+    fn walk(dir: &std::path::Path, found: &mut BTreeMap<String, Vec<usize>>, base: &std::path::Path) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                walk(&path, found, base);
+                continue;
+            }
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            if !name.ends_with(".rs") || name.ends_with("_tests.rs") || name == "tests.rs" {
+                continue;
+            }
+            let text = std::fs::read_to_string(&path).unwrap();
+            let lines: Vec<usize> = text.lines().enumerate()
+                .filter(|(_, line)| !line.trim_start().starts_with("//") && NAMES.iter().any(|n| line.contains(n)))
+                .map(|(i, _)| i + 1).collect();
+            if !lines.is_empty() {
+                found.insert(path.strip_prefix(base).unwrap().to_string_lossy().into_owned(), lines);
+            }
+        }
+    }
+    let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut found = BTreeMap::new();
+    walk(&base, &mut found, &base);
+    let mut wrong = Vec::new();
+    for (file, lines) in &found {
+        match ALLOWED.iter().find(|(name, _, _)| name == file) {
+            None => wrong.push(format!("{file} names a records location in the project folder (lines {lines:?}) and is not on the list")),
+            Some((_, count, why)) if *count != lines.len() => wrong.push(format!("{file} has {} such lines (lines {lines:?}); the list allows {count}: {why}", lines.len())),
+            Some(_) => {}
+        }
+    }
+    for (file, _, _) in ALLOWED {
+        if !found.contains_key(file) {
+            wrong.push(format!("{file} is on the list and names no such location any more; take it off"));
+        }
+    }
+    assert!(wrong.is_empty(), "a project's records are read where records_store::readable_home says, and nowhere else. Take the location from the ReadHome it returns (it refuses for a refused attachment). Only where the line is none of the project's record locations (a library's own store, a test, a shape check), change this list and say why:\n{}", wrong.join("\n"));
+    // The decision itself: a refused attachment is an error, with nothing to read in place.
+    let root = folder("decision-refused-");
+    records::append_project(&root, None, "writer:d", "evidence_limit", &APP_WRITER, body("in the store")).unwrap();
+    assert!(readable_home(&root).unwrap().in_store().is_some());
+    std::fs::remove_file(root.join(PROJECT_LINK)).unwrap();
+    let refused = readable_home(&root).unwrap_err();
+    assert!(refused.starts_with("project records unavailable: link missing; not attached") && refused.ends_with("the files kept in the project folder are not read in their place"), "{refused}");
+    assert!(route_accounts_place(&root, false).unwrap_err().contains("link missing; not attached"));
+    // A folder that is simply new reads in place, as before.
+    let fresh = folder("decision-new-");
+    let read = readable_home(&fresh).unwrap();
+    assert!(read.in_store().is_none() && read.records() == fresh.join(".chirality/records") && read.captures() == fresh.join(".chirality/captures"));
+    assert_eq!(read.registered_log(), fresh.join("records/coordination.rs.jsonl"));
+    assert_eq!(read.in_place_parts("workflow"), Some(vec![".chirality", "records", "workflow"]));
+    let _ = (std::fs::remove_dir_all(&root), std::fs::remove_dir_all(&fresh));
 }
 
 /// Review round 3, finding 3: with the registry's last line incomplete and

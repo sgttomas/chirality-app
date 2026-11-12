@@ -1354,7 +1354,18 @@ that names another identity or another store than the store records for the
 folder, that is a duplicate, or that belongs to a moved project attaches
 nothing until the person restores the link, adopts the project or gives the
 folder a new identity; the host status names which of those acts apply, and
-the panel offers those. A link naming a project whose records the store keeps
+the panel offers those. While an attachment is refused the project's records
+are unavailable: one decision (`readable_home` in `records_store.rs`) says
+where a project's records are read from, in the store or in the project
+folder; it gives no location for a refused attachment, so files kept in the
+project folder are not read in the place of records the store holds, and
+status says nothing is read in place and asks for no import. No other product
+code builds such a location, which a test holds against the source by the
+names of those locations (a location built from a path a caller passes in,
+with none of those names, is outside what that test sees). One case stands
+apart, unchanged: with no records store available at all and no link in the
+folder, connector route accounts are read in place and nothing is written,
+while ordinary records in that state are unavailable. A link naming a project whose records the store keeps
 with no folder recorded for it (an adoption that stopped part way) reads as
 "records kept, not attached", admits no Codex and is not registered on the
 link alone; the person adopts it. Restoring the link reads no record, so it
@@ -1378,8 +1389,12 @@ line of the store's registry of project folders (`roots.jsonl`) is
 incomplete, every attachment and the status say so and its bytes are kept;
 records are read from what its complete lines record, and nothing is
 written, minted, adopted or restored for any project. The App's only way out
-of that state today is when the incomplete line is its own interrupted package
-import's registry write: finishing that import completes the line. Any other
+of that state today is finishing an interrupted package import whose frozen
+registry bytes begin with exactly the bytes found: the import completes a
+tail that is byte for byte a prefix of those frozen bytes. The App cannot
+tell whose interrupted write left such bytes; the result is exactly the line
+the import would have written from a clean file, and another act that left
+them never reported success and its line was never in force. Any other
 incomplete line can only be resolved by hand, outside the App. Records an
 earlier App wrote at the §13.7 paths
 (`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`,

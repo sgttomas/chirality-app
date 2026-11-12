@@ -125,9 +125,10 @@ fn round_trip_restart_project_move_and_symlink_selected_root() {
         ErrorKind::LocationMismatch
     );
     // RS §13.8: a moved project attaches nothing until the person adopts it.
-    let unadopted = ProjectRouteStore::open(&moved).unwrap();
-    assert!(unadopted.discover().directory_absent, "read in place: nothing there");
-    assert!(unadopted.location().contains("nothing written"), "{}", unadopted.location());
+    // Its accounts are unavailable until then: the folder is not opened as
+    // an empty source read in place (review round 3, finding 1).
+    let unadopted = ProjectRouteStore::open(&moved).unwrap_err();
+    assert!(unadopted.detail.contains("and not here; nothing attached") && unadopted.detail.contains("not read in their place"), "{unadopted}");
     crate::records_store::adopt(&moved).unwrap();
     let cold = ProjectRouteStore::open(&moved).unwrap();
     let discovery = cold.discover();
@@ -1410,6 +1411,56 @@ fn a_kept_account_store_refuses_while_the_link_disagrees_and_reads_again_once_re
     assert!(discovery.accounts.is_empty() && !discovery.enumeration_complete, "moved: {discovery:?}");
     assert!(store.write(&account("ra:while-moved")).is_err());
     assert_eq!(names(), before, "moved: nothing written");
+}
+/// Review round 3, finding 1: a refused attachment has no accounts place.
+/// A reader opened while the link disagrees is refused, whether the accounts
+/// are in the store or kept in the project folder, and is never a complete,
+/// empty or in-place source; a reader opened in place before the attachment
+/// was refused reads nothing while the refusal stands.
+#[test]
+fn a_refused_attachment_is_never_an_empty_or_an_in_place_account_source() {
+    let scratch = Scratch::new();
+    // The reviewer's first state: one account in the store, then the link changed.
+    let p = scratch.project();
+    let writer = ProjectRouteStore::open_for_write(&p).unwrap();
+    writer.write(&account("ra:in-the-store")).unwrap();
+    drop(writer);
+    let link_path = p.join(crate::records_store::PROJECT_LINK);
+    let link: Value = serde_json::from_slice(&fs::read(&link_path).unwrap()).unwrap();
+    let mut changed = link.clone();
+    changed["projectId"] = json!("chirality-project:forged-fixture");
+    fs::write(&link_path, serde_json::to_vec(&changed).unwrap()).unwrap();
+    let refused = ProjectRouteStore::open(&p).unwrap_err();
+    assert!(refused.detail.contains("link changed; not attached") && refused.detail.contains("not read in their place"), "{refused}");
+    // Its second: an account also kept in the project folder is not read in the store's place.
+    legacy_account(&p, &format!("{KEY}.json"), &account("ra:kept-in-the-project"));
+    let kept_files = snapshot(&p.join(LEGACY_DIRECTORY));
+    let refused = ProjectRouteStore::open(&p).unwrap_err();
+    assert!(refused.detail.contains("link changed; not attached"), "{refused}");
+    fs::remove_file(&link_path).unwrap();
+    for refused in [ProjectRouteStore::open(&p).unwrap_err(), ProjectRouteStore::open_for_write(&p).unwrap_err()] {
+        assert!(refused.detail.contains("link missing; not attached"), "{refused}");
+    }
+    assert_eq!(snapshot(&p.join(LEGACY_DIRECTORY)), kept_files, "nothing written in the project");
+    crate::records_store::restore_link(&p).unwrap();
+    ProjectRouteStore::open(&p).unwrap();
+    // A reader opened in place (accounts an earlier build left, not yet
+    // imported) and kept: once the folder's attachment is refused it reads
+    // nothing, and reads again when the person restores the link.
+    let q = scratch.0.join("kept-in-place");
+    fs::create_dir(&q).unwrap();
+    legacy_account(&q, &format!("{KEY}.json"), &account("ra:legacy"));
+    let kept = ProjectRouteStore::open(&q).unwrap();
+    let before = kept.discover();
+    assert!(before.accounts.len() == 1 && before.enumeration_complete && before.location.contains("read in place"), "{before:?}");
+    crate::records_store::attach(&q, true).unwrap();
+    assert_eq!(kept.discover().accounts.len(), 1, "an identity alone changes nothing: still read in place until imported");
+    fs::remove_file(q.join(crate::records_store::PROJECT_LINK)).unwrap();
+    let during = kept.discover();
+    assert!(during.accounts.is_empty() && !during.enumeration_complete, "{during:?}");
+    assert!(during.issues.iter().any(|i| i.detail.contains("link missing; not attached")), "{during:?}");
+    crate::records_store::restore_link(&q).unwrap();
+    assert_eq!(kept.discover().accounts.len(), 1);
 }
 /// Review round 2, finding 1, case (a), as containment: an account writer
 /// already past its checks (the TempChecked seam) holds its admission, so a

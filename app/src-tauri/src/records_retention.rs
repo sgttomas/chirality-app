@@ -509,7 +509,7 @@ fn context(
     // person's act. (Decided by App Agent 0; reversed by letting "hold"
     // through here.)
     if let Some(registry) = &attachment.registry {
-        return Err(format!("{registry}. While it stands nothing in this project can be disposed of or changed, so what a legal hold would protect is protected; a hold, a close and a disposal are each refused until the registry is read whole again. This build has no control that clears it; nothing changed"));
+        return Err(format!("{registry}. While it stands the App disposes of nothing in this project and writes nothing to its records, so what a legal hold would protect is protected from the App's own operations; a hold, a close and a disposal are each refused until the registry is read whole again. This build has no control that clears it, except that finishing an interrupted package import completes the line when those incomplete bytes are exactly the beginning of that import's registry line; nothing changed"));
     }
     if attachment.refusal.is_some()
         || !attachment.limits.is_empty()

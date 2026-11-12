@@ -946,7 +946,9 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     Err("project records need import before export".into())
 }
 
-/// Where a project's records are read and written now.
+/// Where a project's records are read and written now, whether or not the
+/// attachment is refused. Product code outside this module cannot obtain one:
+/// an ordinary reader takes `readable_home`, the one decision.
 #[derive(Clone, Debug)]
 pub(crate) struct Home {
     pub attachment: Attachment,
@@ -957,7 +959,7 @@ pub(crate) struct Home {
 /// The project's home for reading. An unavailable configured store never
 /// falls back to retained originals, even with a missing project link. Explicit
 /// library readers use their library's own log/capture paths independently.
-pub(crate) fn home(root: &Path) -> Result<Home, String> {
+fn unrefusing_home(root: &Path) -> Result<Home, String> {
     match attach(root, false) {
         Ok(attachment) => {
             if attachment.dir.is_none() {
@@ -976,18 +978,139 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
     }
 }
 
-/// The project's records home for an ordinary reader. A refused attachment
-/// (a link missing, changed, moved or duplicated; records kept and not
-/// attached; an association not known) makes it unavailable: the files kept
+/// The unrefusing home, for tests only: they read the attachment and the
+/// store's standing directly. No product code outside this module has it.
+#[cfg(test)]
+pub(crate) fn home(root: &Path) -> Result<Home, String> {
+    unrefusing_home(root)
+}
+
+/// Where an ordinary reader reads a project's records now. Made only by the
+/// one decision (`decide`), so having one means the attachment is not
+/// refused. Its methods are the only product code that joins the project
+/// folder with a records location; `the_places_that_name_a_records_location_
+/// in_the_project_folder_are_a_closed_list` holds that against the source.
+#[derive(Clone, Debug)]
+pub(crate) struct ReadHome {
+    pub attachment: Attachment,
+    /// The store holds this project's records: they are read from the store.
+    /// Otherwise the project's §13.7 records (if any) are read in place.
+    pub store_mode: bool,
+    place: ReadPlace,
+}
+#[derive(Clone, Debug)]
+enum ReadPlace {
+    /// The project's folder in the records store.
+    Store(PathBuf),
+    /// The project folder: the store holds nothing of the project's, and
+    /// records an earlier build wrote there (if any) are read in place.
+    InPlace(PathBuf),
+}
+/// The one decision of where a project's records are read from. A refused
+/// attachment (a link missing, changed, moved or duplicated; records kept
+/// and not attached; an association not known) is an error: the files kept
 /// in the project folder are never read in the place of records the store
 /// holds and will not attach. A folder that is simply new and unlinked has
-/// no refusal and reads as before.
-pub(crate) fn readable_home(root: &Path) -> Result<Home, String> {
-    let home = home(root)?;
-    if let Some(refusal) = &home.attachment.refusal {
+/// no refusal and reads in place as before.
+fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> {
+    if let Some(refusal) = &attachment.refusal {
         return Err(format!("project records unavailable: {refusal}; the files kept in the project folder are not read in their place"));
     }
-    Ok(home)
+    let place = match (store_mode, attachment.dir.clone()) {
+        (true, Some(dir)) => ReadPlace::Store(dir),
+        _ => ReadPlace::InPlace(attachment.root.clone()),
+    };
+    Ok(ReadHome { attachment, store_mode, place })
+}
+/// The project's records home for an ordinary reader: the one decision, after
+/// the unrefusing home's own refusals (an unavailable store, a disposal).
+pub(crate) fn readable_home(root: &Path) -> Result<ReadHome, String> {
+    let home = unrefusing_home(root)?;
+    decide(home.attachment, home.store_mode)
+}
+impl ReadHome {
+    /// The project's store folder, when its records are read from the store.
+    pub(crate) fn in_store(&self) -> Option<&Path> {
+        match &self.place {
+            ReadPlace::Store(dir) => Some(dir),
+            ReadPlace::InPlace(_) => None,
+        }
+    }
+    /// The folder the project's run, act and workflow logs are read under.
+    pub(crate) fn records(&self) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(dir) => dir.clone(),
+            ReadPlace::InPlace(root) => root.join(crate::storage::LEGACY_RECORDS),
+        }
+    }
+    /// The project's capture evidence folder.
+    pub(crate) fn captures(&self) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(dir) => dir.join("captures"),
+            ReadPlace::InPlace(root) => root.join(crate::storage::CAPTURES),
+        }
+    }
+    /// The registered legacy log: its imported copy, or the file in place.
+    pub(crate) fn registered_log(&self) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(dir) => dir.join(REGISTERED_COPY),
+            ReadPlace::InPlace(root) => root.join(crate::storage::LEGACY_LOG),
+        }
+    }
+    /// A log named by its path in the project, where it is read now.
+    pub(crate) fn named(&self, rel: &str) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(_) if rel == crate::storage::LEGACY_LOG => self.registered_log(),
+            ReadPlace::Store(dir) => dir.join(crate::storage::home_rel(rel)),
+            ReadPlace::InPlace(root) => root.join(rel),
+        }
+    }
+    /// The folder names, below the project folder, of the in-place records
+    /// folder `leaf`, for a reader that opens them one by one from a handle
+    /// it holds on the project folder. `None` when read from the store.
+    pub(crate) fn in_place_parts(&self, leaf: &'static str) -> Option<Vec<&'static str>> {
+        match &self.place {
+            ReadPlace::Store(_) => None,
+            ReadPlace::InPlace(_) => Some(crate::storage::LEGACY_RECORDS.split('/').chain([leaf]).collect()),
+        }
+    }
+    /// What status says is being read. "In place" and "import needed" are
+    /// said only here and in `import_needed_note`, of the in-place variant.
+    fn reading(&self, kept_in_project: bool) -> &'static str {
+        match (&self.place, kept_in_project) {
+            (ReadPlace::Store(_), _) => "records store",
+            (ReadPlace::InPlace(_), true) => "records in place in the project (import needed)",
+            (ReadPlace::InPlace(_), false) => "no records yet",
+        }
+    }
+    fn import_needed(&self, kept_in_project: bool) -> bool {
+        matches!(self.place, ReadPlace::InPlace(_)) && kept_in_project
+    }
+    fn import_needed_note(&self, census: &[LegacyFile]) -> Option<String> {
+        if !self.import_needed(!census.is_empty()) {
+            return None;
+        }
+        Some(format!("import needed: {} record file(s) ({}) are read in place; all new recording for the project is refused until they are imported into the records store", census.len(), describe(census)))
+    }
+    /// The connector route accounts kept in the project folder, read in place
+    /// and written nowhere.
+    fn accounts_in_place(&self, location: &str) -> Result<AccountsPlace, String> {
+        match &self.place {
+            ReadPlace::InPlace(root) => Ok(accounts_in_project(root, location.to_owned())),
+            ReadPlace::Store(_) => Err("the project's records are in the records store; its connector accounts are not read in the project".into()),
+        }
+    }
+}
+/// The in-project connector accounts place. Built only by the one decision
+/// (`ReadHome::accounts_in_place`) and by the one named case in
+/// `route_accounts_place` where no records store is available at all.
+fn accounts_in_project(root: &Path, location: String) -> AccountsPlace {
+    AccountsPlace {
+        anchor: root.to_path_buf(),
+        parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
+        store_dir: None,
+        location,
+    }
 }
 
 /// The project's store folder for a write: attached (minted if new), and with
@@ -1218,46 +1341,36 @@ pub(crate) struct AccountsPlace {
 /// nothing. Once the store holds the
 /// project's records the accounts are in its store folder; before that,
 /// accounts in the project are read in place (writes refused, "import
-/// needed"); a project with none is placed in the store. A folder the store
-/// cannot attach, or one with no identity yet, is read in place and written
-/// nowhere.
+/// needed"); a project with none is placed in the store. A folder with no
+/// identity yet is read in place and written nowhere. A folder whose
+/// attachment is refused has no accounts place at all: an error.
 pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPlace, String> {
-    // As `home`: with no store, a folder with no link is read in place and
-    // written nowhere; a linked project with the store unavailable is an error.
+    // The one named case outside the decision, unchanged: with no records
+    // store available and no link in the folder, connector accounts are read
+    // in place and nothing is written (ordinary records in that state are
+    // unavailable); a linked project with the store unavailable is an error.
     let store = match opened() {
         Ok((store, _)) => store,
         Err(e) if !mint && read_link(root) == Link::Absent && root.is_dir() => {
-            return Ok(AccountsPlace {
-                anchor: root.to_path_buf(),
-                parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
-                store_dir: None,
-                location: format!("the project, read in place; nothing written: records store unavailable: {e}"),
-            });
+            return Ok(accounts_in_project(root, format!("the project, read in place; nothing written: records store unavailable: {e}")));
         }
         Err(e) => return Err(e),
     };
     let attachment = attach(root, mint)?;
-    let in_place = || AccountsPlace {
-        anchor: attachment.root.clone(),
-        parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
-        store_dir: None,
-        location: String::new(),
+    let store_mode = attachment.dir.as_deref().is_some_and(store_holds);
+    // The one decision, entered from the attachment: a refused attachment has
+    // no accounts place, in the store or in the project.
+    let read = decide(attachment, store_mode)?;
+    let in_project = !connector_census(&read.attachment.root)?.is_empty();
+    let Some(dir) = read.attachment.dir.clone() else {
+        return read.accounts_in_place(if in_project {
+            "the project, read in place: import needed before accounts are written in the records store"
+        } else {
+            "the project, read in place: no project identity in the records store yet (a writer opening the accounts mints it)"
+        });
     };
-    let in_project = !connector_census(&attachment.root)?.is_empty();
-    let Some(dir) = attachment.dir.clone() else {
-        let mut place = in_place();
-        place.location = match (&attachment.refusal, in_project) {
-            (Some(refusal), _) => format!("the project, read in place; nothing written: {refusal}"),
-            (None, true) => "the project, read in place: import needed before accounts are written in the records store".into(),
-            (None, false) => "the project, read in place: no project identity in the records store yet (a writer opening the accounts mints it)".into(),
-        };
-        return Ok(place);
-    };
-    let store_mode = store_holds(&dir);
-    if !store_mode && in_project {
-        let mut place = in_place();
-        place.location = "the project, read in place: import needed before accounts are written in the records store".into();
-        return Ok(place);
+    if !read.store_mode && in_project {
+        return read.accounts_in_place("the project, read in place: import needed before accounts are written in the records store");
     }
     let key = dir.file_name().ok_or("project store folder has no name")?.to_string_lossy().into_owned();
     let mut parts = vec!["projects".to_owned(), key.clone()];
@@ -1636,30 +1749,33 @@ pub fn restore_link(root: &Path) -> Result<Value, String> {
 /// incomplete (the store governs): identity limits, §13.7 records not
 /// imported (not read), and imported originals that differ from their copies.
 pub(crate) fn notes(root: &Path) -> Vec<String> {
-    let home = match home(root) {
+    let home = match unrefusing_home(root) {
         Ok(h) => h,
         Err(e) => return vec![e],
     };
     let mut notes = home.attachment.limits.clone();
     notes.extend(home.attachment.registry.clone());
     if home.attachment.dir.as_deref().is_some_and(|d|crate::records_retention::terminal(d).unwrap_or(false)){notes.push("Records disposed or disposal incomplete; only surviving administration and export evidence remain. Retained project originals are not read or re-imported.".into());}
-    if let Some(refusal) = &home.attachment.refusal {
-        notes.push(refusal.clone());
-    }
-    let census = match legacy_census(&home.attachment.root) {
+    // The one decision: of a refused attachment nothing is said to be read
+    // in place and no import is asked for; its refusal is the note.
+    let read = match decide(home.attachment.clone(), home.store_mode) {
+        Ok(read) => read,
+        Err(_) => {
+            notes.extend(home.attachment.refusal.clone());
+            return notes;
+        }
+    };
+    let census = match legacy_census(&read.attachment.root) {
         Ok(c) => c,
         Err(e) => {
             notes.push(e);
             return notes;
         }
     };
-    if !home.store_mode {
-        if !census.is_empty() {
-            notes.push(format!("import needed: {} record file(s) ({}) are read in place; all new recording for the project is refused until they are imported into the records store", census.len(), describe(&census)));
-        }
+    let Some(dir) = read.in_store().map(Path::to_path_buf) else {
+        notes.extend(read.import_needed_note(&census));
         return notes;
-    }
-    let dir = home.attachment.dir.clone().unwrap();
+    };
     let covered = match coverage(&dir) {
         Ok(c) => c,
         Err(e) => {
@@ -1719,9 +1835,11 @@ pub fn status(project: Option<&Path>) -> Value {
     }
     if let Some(root) = project {
         out["packageImport"] = package::status(root);
-        out["project"] = match home(root) {
+        out["project"] = match unrefusing_home(root) {
             Ok(home) => {
                 let census = legacy_census(&home.attachment.root).unwrap_or_default();
+                // What is read comes from the one decision.
+                let read = decide(home.attachment.clone(), home.store_mode);
                 let imports = home.attachment.dir.as_ref().and_then(|d| read_lines(&d.join("imports.jsonl")).ok()).map_or(0, |l| l.len());
                 let covered = home.attachment.dir.as_ref().and_then(|d| coverage(d).ok()).unwrap_or_default();
                 // §13.7 files no import has copied (all of them before the first).
@@ -1733,9 +1851,8 @@ pub fn status(project: Option<&Path>) -> Value {
                     // store holds, and no import is asked for while it stands.
                     "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
                         else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
-                        else if home.attachment.refusal.is_some() {"nothing from the records store (the project is not attached)"}
-                        else if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
-                    "importNeeded":home.attachment.refusal.is_none() && !home.store_mode && !census.is_empty(),
+                        else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty())}},
+                    "importNeeded":read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
                     "legacyFiles":census.len(),"notImported":to_import,
                     "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})
             }

@@ -204,11 +204,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         // A named log where it is read now: in the project's records store
         // subtree once it holds the project's records, otherwise in place.
         match crate::records_store::readable_home(root){
-            Ok(home)=>record_paths.iter().filter_map(|rp|{
-                if home.store_mode && *rp==crate::storage::LEGACY_LOG {match crate::storage::registered_legacy_log(root){Ok(path)=>Some(path),Err(e)=>{limits.push(e);None}}}
-                else if home.store_mode{home.attachment.dir.as_ref().map(|dir|dir.join(crate::storage::home_rel(rp)))}
-                else{Some(root.join(rp))}
-            }).collect(),
+            Ok(home)=>record_paths.iter().map(|rp|home.named(rp)).collect(),
             Err(e)=>{limits.push(e);Vec::new()}
         }
 

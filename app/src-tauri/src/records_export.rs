@@ -102,8 +102,8 @@ fn publish(from: &Path, to: &Path) -> Result<(), String> {
 /// Exports the already attached project's store to a new folder. No identity
 /// is minted by this read; import-needed and identity refusals stay explicit.
 pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
-    let home = crate::records_store::home(project)?;
-    let source = home.attachment.dir.ok_or("project has no attached records in the store; nothing exported")?;
+    let home = crate::records_store::readable_home(project)?;
+    let source = home.attachment.dir.clone().ok_or("project has no attached records in the store; nothing exported")?;
     crate::records_store::export_permitted(&source,&home.attachment.root)?;
     let project_id = home.attachment.project.ok_or("project identity unavailable")?;
     crate::storage::check_path(destination)?;
