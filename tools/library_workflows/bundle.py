@@ -312,9 +312,12 @@ def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
     """The committed tree as path -> bytes, and what else is found in it:
     every entry that is not a regular file or a folder, and every folder that
     holds no file. A folder or file that cannot be read stops the reading: an
-    unreadable tree is never an empty one."""
+    unreadable tree is never an empty one. The tree is traversed once, so the
+    files and the folders reported come from the same listing; it must not be
+    changed while it is read."""
     tree: dict[str, bytes] = {}
     other: list[str] = []
+    visited: list[str] = []
     if not output.is_dir():
         return tree, other
 
@@ -323,6 +326,8 @@ def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
 
     for folder, folders, names in os.walk(output, onerror=unreadable, followlinks=False):
         here = Path(folder)
+        if here != output:
+            visited.append(here.relative_to(output).as_posix())
         for name in sorted(folders + names):
             path = here / name
             relative = path.relative_to(output).as_posix()
@@ -332,10 +337,11 @@ def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
                 tree[relative] = path.read_bytes()
         # A link to a folder is reported above and never entered.
         folders[:] = [name for name in folders if not (here / name).is_symlink()]
-    for folder, _, _ in os.walk(output, onerror=unreadable, followlinks=False):
-        relative = Path(folder).relative_to(output).as_posix()
-        if relative != "." and not any(path.startswith(f"{relative}/") for path in tree):
-            other.append(f"folder without a file: {relative}")
+    other += [
+        f"folder without a file: {relative}"
+        for relative in visited
+        if not any(path.startswith(f"{relative}/") for path in tree)
+    ]
     return tree, sorted(other)
 
 

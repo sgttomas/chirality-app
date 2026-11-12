@@ -210,8 +210,11 @@ def test_an_archive_that_is_not_the_selected_one_is_refused(tmp_path):
 def test_a_reading_that_cannot_be_made_is_never_a_pass(tmp_path):
     tree = built(tmp_path, FILES)
     output = tmp_path / "out"
-    # No tree at all is a difference and a failed verification, not an empty match.
+    # No tree at all is a difference and a failed verification, not an empty
+    # match: also when nothing is expected, where an absent tree read as an
+    # empty one would compare equal.
     assert bundle.differences(tree, output) == [f"not a folder: {output}"]
+    assert bundle.differences({}, output) == [f"not a folder: {output}"]
     assert bundle.verify_tree(output) == [f"missing: {bundle.MANIFEST_NAME}"]
     bundle.write_tree(tree, output)
     assert bundle.differences(tree, output) == [] and bundle.verify_tree(output) == []
@@ -243,3 +246,29 @@ def test_a_reading_that_cannot_be_made_is_never_a_pass(tmp_path):
     assert bundle.verify_tree(empty) == ["the manifest names no workflow"]
     with pytest.raises(bundle.BundleError, match="names no workflow"):
         built(tmp_path, FILES, [METHODS[2]])
+    # Also when the release holds no workflow folder either, where the index
+    # and the folders agree and nothing else would refuse the empty bundle.
+    without_workflows = {path: data for path, data in FILES.items() if not path.startswith(("workflows/alpha/", "workflows/beta/"))}
+    with pytest.raises(bundle.BundleError, match="names no workflow"):
+        built(tmp_path, without_workflows, [METHODS[2]])
+
+
+def test_the_tree_is_listed_once_so_files_and_folders_agree(tmp_path, monkeypatch):
+    tree = built(tmp_path, FILES)
+    output = tmp_path / "out"
+    bundle.write_tree(tree, output)
+    walks = []
+    walk = bundle.os.walk
+
+    def counted(top, *arguments, **options):
+        walks.append(top)
+        for step in walk(top, *arguments, **options):
+            yield step
+        # A file that appears once the listing is done must not be able to
+        # make a second listing disagree with the first.
+        (output / "late").mkdir(exist_ok=True)
+
+    monkeypatch.setattr(bundle.os, "walk", counted)
+    read, other = bundle.read_tree(output)
+    assert walks == [output] and other == []
+    assert read == tree
