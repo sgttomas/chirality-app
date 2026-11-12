@@ -15,21 +15,38 @@ fn chosen_target(revision: &str) -> Target {
 fn bundled_identity() -> crate::workflow_workspace::WorkflowIdentity {
     crate::workflow_workspace::production_catalog::ProductionCatalog::load().unwrap().identity(BUNDLED).unwrap().clone()
 }
-/// Every path beneath `root` with its kind and size: a read leaves this unchanged.
-fn tree(root: &std::path::Path) -> Vec<(String, bool, u64)> {
-    fn walk(base: &std::path::Path, at: &std::path::Path, out: &mut Vec<(String, bool, u64)>) {
+/// Every path beneath `root` with its kind and, for a file, its bytes (a link is recorded by its target and not
+/// followed): a read leaves this unchanged.
+fn tree(root: &std::path::Path) -> Vec<(String, String, Vec<u8>)> {
+    fn walk(base: &std::path::Path, at: &std::path::Path, out: &mut Vec<(String, String, Vec<u8>)>) {
         let Ok(entries) = std::fs::read_dir(at) else { return };
         for entry in entries {
             let path = entry.unwrap().path();
             let meta = std::fs::symlink_metadata(&path).unwrap();
-            out.push((path.strip_prefix(base).unwrap().to_string_lossy().into_owned(), meta.is_dir(), meta.len()));
-            if meta.is_dir() { walk(base, &path, out); }
+            let name = path.strip_prefix(base).unwrap().to_string_lossy().into_owned();
+            if meta.file_type().is_symlink() {
+                out.push((name, "link".into(), std::fs::read_link(&path).unwrap().to_string_lossy().into_owned().into_bytes()));
+            } else if meta.is_dir() {
+                out.push((name, "folder".into(), vec![]));
+                walk(base, &path, out);
+            } else {
+                out.push((name, "file".into(), std::fs::read(&path).unwrap()));
+            }
         }
     }
     let mut out = vec![];
     walk(root, root, &mut out);
     out.sort();
     out
+}
+/// A separate copy of a folder, byte for byte.
+fn copy_tree(from: &std::path::Path, to: &std::path::Path) {
+    std::fs::create_dir_all(to).unwrap();
+    for entry in std::fs::read_dir(from).unwrap() {
+        let entry = entry.unwrap();
+        if entry.file_type().unwrap().is_dir() { copy_tree(&entry.path(), &to.join(entry.file_name())); }
+        else { std::fs::copy(entry.path(), to.join(entry.file_name())).unwrap(); }
+    }
 }
 /// A refusal carries its reason and no text, and never says the bytes matched.
 fn assert_refused(read: &Value, reason: &str) {
@@ -232,4 +249,54 @@ fn unknown_targets_are_refused_before_anything_is_read() {
     // The target takes exactly its three fields; a caller cannot add a path.
     assert!(serde_json::from_value::<Target>(json!({"kind":"included","name":BUNDLED,"revision":"r","path":"/etc"})).is_err());
     assert!(serde_json::from_value::<Target>(json!({"kind":"selection","revision":"r"})).is_ok());
+}
+
+// What ties a text to a workflow is its content: the files read hash to the revision the person was shown, or no
+// text is returned. Where those files are read from is bounded by the shared snapshot reader, exactly as for
+// selecting and running: it refuses a link at the package folder and inside it, and it follows links in the folders
+// above it. So with a folder above a holding copy replaced, from outside the App, by a link to another folder, the
+// only text that can come out is the revision's own. (Descending to the package folder through handles that follow
+// no link is the shared reader's own change, DEL-02-01; when it lands, the first case here becomes a refusal.)
+#[test]
+fn a_replaced_folder_above_a_holding_copy_yields_the_revisions_own_text_or_none() {
+    let f = Fixture::new();
+    let root = f.selected();
+    let held = root.inspected.as_ref().unwrap().selection.identity().clone();
+    let text = std::fs::read_to_string(f.package.join("WORKFLOW.md")).unwrap();
+    // Another folder, outside the library, holding a separate byte-equal copy; the library folder becomes a link to it.
+    let outside = f.root.with_file_name(format!("{}-outside", f.root.file_name().unwrap().to_string_lossy()));
+    struct Removed(std::path::PathBuf);
+    impl Drop for Removed { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }
+    let _outside = Removed(outside.clone()); // removed with the test, however it ends
+    copy_tree(&f.root, &outside);
+    std::fs::remove_dir_all(&f.root).unwrap();
+    std::os::unix::fs::symlink(&outside, &f.root).unwrap();
+    // Each read leaves the workflow state and every file as they were just before it.
+    let read_changing_nothing = || {
+        let before = (root.snapshot(), tree(&outside));
+        let read = root.read_chosen_text(None, &chosen_target(&held.revision));
+        assert_eq!((root.snapshot(), tree(&outside)), before, "the read changed nothing, here or through the link");
+        read
+    };
+    let read = read_changing_nothing();
+    assert_eq!(read["state"], "read", "today the shared reader follows a link above the package folder: {read}");
+    assert_eq!(read["text"], text.as_str(), "the revision's own text, and no other");
+    assert_eq!(read["identity"], json!(held));
+    assert_eq!(read["matched"], true);
+    // Different content behind the link, in WORKFLOW.md or in another file: no text.
+    let name = crate::workflow_workspace::development_catalog::NAME;
+    let other = tree(&outside).iter().find(|(path, kind, _)| kind == "file" && path.starts_with(name) && !path.ends_with("WORKFLOW.md")).map(|(path, _, _)| outside.join(path)).expect("the package has another file");
+    for file in [outside.join(name).join("WORKFLOW.md"), other] {
+        let original = std::fs::read(&file).unwrap();
+        let mut changed = original.clone();
+        changed[0] ^= 0x01;
+        std::fs::write(&file, &changed).unwrap();
+        assert_refused(&read_changing_nothing(), "could not read this revision's files and tie them to its identity");
+        std::fs::write(&file, &original).unwrap();
+    }
+    assert_eq!(read_changing_nothing()["text"], text.as_str(), "restored, it is the revision's text again");
+    // A link at the package folder itself is refused, whatever it points to.
+    std::fs::rename(outside.join(name), outside.join("moved")).unwrap();
+    std::os::unix::fs::symlink(outside.join("moved"), outside.join(name)).unwrap();
+    assert_refused(&read_changing_nothing(), "could not read this revision's files and tie them to its identity");
 }

@@ -9,6 +9,16 @@
 //! or folder and changes no selection, library, run or record. A caller's name
 //! is looked up in the compiled catalogue; it is never joined to a folder.
 //!
+//! What ties a text to a workflow is its content. The caller names no path;
+//! text is returned only when the files read hash to the revision the person
+//! was shown. Where those files are read from is bounded by the shared snapshot
+//! reader exactly as it is for selecting and running: it refuses a link at the
+//! package folder and inside it, and it follows links in the folders above it.
+//! Verification also reads the fixed host authorities that selecting reads:
+//! the included catalogue's manifest, and for a registered revision the
+//! library's registration ledger and its act evidence. This command adds no
+//! location boundary of its own and claims none.
+//!
 //! What it says of the text is only what the host established: which identity
 //! it was read for, and that the bytes read hashed to that identity's revision
 //! when read. It says nothing of what the workflow requires, whether its tools

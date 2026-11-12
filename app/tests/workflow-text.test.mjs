@@ -151,6 +151,40 @@ test('text read for one identity is not shown under another', async () => {
   } finally { await ui.close(); h.restore(); }
 });
 
+test('after a refused read, a changed revision is not said to have had text read earlier', async () => {
+  const EARLIER = /read earlier|text read|was of another/;
+  // An included entry: the read is refused, then the entry's revision changes.
+  const h = heldHost(); const ui = await mount({data:data()});
+  try {
+    await ui.press("Read alpha-flow's text");
+    await settle(h.of('workflow_read_text')[0], {state:'refused', reason:'the files the App holds for this workflow do not match its revision', cause:'invented cause'});
+    assert.match(region(ui.c, 'Text of alpha-flow').textContent, /^The App did not show alpha-flow's text: the files the App holds for this workflow do not match its revision\./);
+    await ui.rerender({data:data({productionCatalog:catalogue(REV2)})});
+    assert.equal(region(ui.c, 'Text of alpha-flow').textContent, "Read alpha-flow's text", 'no text was read, so nothing is said of an earlier text; the control is offered afresh');
+    assert.doesNotMatch(region(ui.c, 'Text of alpha-flow').textContent, EARLIER);
+    // A command the host rejected outright, then a changed revision: the same.
+    await ui.press("Read alpha-flow's text");
+    await settle(h.of('workflow_read_text')[1], new Error('invented rejection'), 'reject');
+    assert.match(region(ui.c, 'Text of alpha-flow').textContent, /^The App did not show alpha-flow's text: invented rejection\./);
+    await ui.rerender({data:data()});
+    assert.doesNotMatch(region(ui.c, 'Text of alpha-flow').textContent, EARLIER);
+    // A read still in flight when the revision changes read nothing either.
+    await ui.press("Read alpha-flow's text");
+    await ui.rerender({data:data({productionCatalog:catalogue(REV2)})});
+    assert.doesNotMatch(region(ui.c, 'Text of alpha-flow').textContent, EARLIER);
+  } finally { await ui.close(); h.restore(); }
+  // The chosen workflow: the review's reproduction, a refused selection read and then another revision chosen in the same conversation.
+  const h2 = heldHost(); const ui2 = await mount({data:data({selections:selections()}), thread:'T1'});
+  try {
+    await ui2.press("Read resolve-spacing's text");
+    await settle(h2.of('workflow_read_text')[0], {state:'refused', reason:'the App could not read this revision\'s files and tie them to its identity', cause:''});
+    assert.match(region(ui2.c, 'Text of resolve-spacing').textContent, /^The App did not show resolve-spacing's text: /);
+    await ui2.rerender({data:data({selections:selections({...PROJECT, revision:'rev-3-0123456789abcdef'})})});
+    assert.equal(region(ui2.c, 'Text of resolve-spacing').textContent, "Read resolve-spacing's text");
+    assert.doesNotMatch(region(ui2.c, 'Text of resolve-spacing').textContent, EARLIER);
+  } finally { await ui2.close(); h2.restore(); }
+});
+
 test('the chosen workflow\'s text is read as the conversation\'s selection and follows that selection', async () => {
   const h = heldHost(); const ui = await mount({data:data({selections:selections()}), thread:'T1'});
   try {

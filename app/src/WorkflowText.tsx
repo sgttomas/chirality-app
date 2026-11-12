@@ -99,7 +99,8 @@ export function WorkflowTextControl({ slot, identity, target, context, source, t
   if (!key) return null;
   const name = text(identity.name), revision = text(identity.revision);
   const current = texts.of(slot, identity);
-  const earlier = !current && texts.held[slot] !== undefined && texts.held[slot].state !== "reading";
+  // Said only of a text that was read. An earlier refusal, or a read still in flight, read no text.
+  const earlier = !current && texts.held[slot]?.state === "read";
   const read = () => texts.read(slot, identity, target, context());
   if (!current) return <div aria-label={`Text of ${name}`}>
     {earlier && <p><small>The text read earlier here was of another workflow or revision; it is not shown.</small></p>}
