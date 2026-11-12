@@ -252,6 +252,20 @@ class AncestryBinding(Scratch):
         with patch, self.assertRaisesRegex(ValueError, 'between identification passes'):
             identify.inventory(app)
         self.assertTrue(done)
+        # A separate copy with an EQUAL inventory is not told apart: an identity describes entries,
+        # bytes and represented metadata, not which physical copy was read.
+        twin = write_bundle(self.tmp / 'twin')
+        self.assertNotEqual(twin.stat().st_ino, app.stat().st_ino)
+        expected = identify.identity(identify.inventory(app))
+        self.assertEqual(identify.identity(identify.inventory(twin)), identify.identity(identify.inventory(write_bundle(self.tmp / 'twin2'))))
+        same = write_bundle(self.tmp / 'same', extra={'Contents/Resources/other': b'another bundle again'})
+        self.assertEqual(identify.identity(identify.inventory(same)), expected)
+        def swap_equal():
+            app.rename(busy / 'Old2.app'); same.rename(app)
+        patch, done = self.between_stat_and_open('busy', swap_equal, occurrence=2)
+        with patch:
+            self.assertEqual(identify.identity(identify.inventory(app)), expected)
+        self.assertTrue(done)
         # The same replacement once the reader HAS reached the bundle is refused.
         again = write_bundle(self.tmp / 'spare2', extra={'Contents/Resources/other': b'a third bundle'})
         def swap_inside():
@@ -268,6 +282,18 @@ class AncestryBinding(Scratch):
         with self.assertRaisesRegex(ValueError, 'ancestry replaced'):
             with identify._open_directory(app, bundle=True):
                 busy.rename(busy.with_name('moved')); write_bundle(busy)
+
+    @unittest.skipUnless(hasattr(os, 'chflags'), 'file flags are a BSD and macOS facility')
+    def test_flags_changed_on_an_ancestor_while_held_are_refused_when_the_walk_ends(self):
+        # Stricter than before this change: the closing comparison now includes flags, so a
+        # change of flags alone on a directory above the bundle, made during a reading, refuses it.
+        busy, app = self.tree()
+        try:
+            with self.assertRaisesRegex(ValueError, 'ancestry replaced'):
+                with identify._open_directory(app, bundle=True):
+                    os.chflags(busy, stat.UF_HIDDEN)
+        finally:
+            os.chflags(busy, 0)
 
 
 class PortableValidation(Scratch):
@@ -761,7 +787,9 @@ class CandidateRecord(GitScratch):
         # not check against that record.
         code, _, err = self.record(); self.assertEqual(code, 0, err)
         recorded = json.loads((self.tmp / 'rec/candidate-identification.json').read_text())['app_candidate']['build_identity']
-        other = write_bundle(self.tmp / 'spare', extra={'Contents/Resources/other': b'a different bundle'})
+        # The same entries and sizes as the recorded bundle; one file's bytes differ.
+        other = write_bundle(self.tmp / 'spare')
+        (other / 'Contents/Resources/instructions/AGENTS.md').write_text('guidancE\n')
         real, done = os.open, []
         def opening(path, flags, mode=0o777, *, dir_fd=None):
             if path == 'build' and dir_fd is not None and not done:
@@ -777,7 +805,15 @@ class CandidateRecord(GitScratch):
         self.assertEqual(report['recorded_build_identity'], recorded)
         self.assertNotEqual(report['build_identity'], recorded)
         self.assertEqual(report['build_identity'], identify.identity(identify.inventory(self.app)))
+        self.assertEqual(report['changed'], ['Contents/Resources/instructions/AGENTS.md'])
         self.assertEqual(identify.identity(identify.inventory(self.app.with_name('Old.app'))), recorded)
+        # What a record does not do: tell apart a separate copy whose inventory is equal.
+        self.app.rename(self.app.with_name('Differing.app'))
+        self.app.with_name('Old.app').rename(self.tmp / 'elsewhere.app')
+        twin = write_bundle(self.tmp / 'twin'); twin.rename(self.app)
+        code, out, _ = self.check()
+        self.assertEqual(code, 0, out)
+        self.assertEqual(json.loads(out)['build_identity'], recorded)
 
     def test_shared_development_bundle_rule(self):
         judge = identify.judge_development_bundle

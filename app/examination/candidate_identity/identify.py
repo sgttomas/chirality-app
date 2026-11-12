@@ -7,22 +7,29 @@ nothing, launches nothing, opens no examination and establishes no qualification
 
 What an identity describes: the bundle the reader actually examined, not whatever
 occupied its pathname when the caller asked. The reader makes two complete passes
-and requires their results to be equal. In each pass:
-- It opens each directory on the way to the bundle relative to the handle of its
-  parent, without following links, and holds those handles until the pass ends.
+and requires their inventories to be equal. In each pass:
+- It opens each directory on the way to the bundle, and the bundle root, relative
+  to the handle of its parent, without following links, and holds those handles
+  until the pass's walk and its closing comparisons are done.
 - When it opens one, it compares what it opened with what it had just examined
   by that name: device, inode, mode, owner, group and flags for a directory above
-  the bundle; the full stamp for the bundle root and for everything inside it.
-- It reads the bundle through its held root, comparing each entry's stamp before
-  and after reading it.
-- When the pass ends it examines each directory on the way once more by its name
-  under its held parent, and compares that with the held handle and with the
-  first examination.
-It does not watch a pathname between those points or between the passes. A bundle
-put at the name before a pass first examined it is what that pass describes, as
-one whole bundle: if both passes describe it, it is the bundle identified, and if
-only the second does, the passes differ and the reading is refused. A record made
-of another bundle does not check against it. So whoever identifies
+  the bundle; the full stamp for the bundle root.
+- It walks the bundle from its held root, opening each directory and file inside
+  relative to its parent's handle without following links and closing it as the
+  walk goes, and comparing each entry's stamp before and after reading it. The
+  access list and extended attributes of a symbolic link inside the bundle are
+  read by pathname, not through a handle.
+- When the walk ends it examines each named directory on the way, and the bundle
+  root, once more by its name under its held parent, and compares device, inode,
+  mode, owner, group and flags with the held handle and with the first examination.
+These are comparisons at particular points. Nothing watches a pathname between
+them or between the passes. A bundle put at the name before a pass first examined
+it is what that pass describes, as one whole bundle: if both passes describe it,
+it is the bundle identified; if only the second does and its inventory differs
+from the first pass's, the reading is refused. An inventory, and so an identity
+and a record, describes a bundle's entries, bytes and represented metadata, not
+which physical copy was read: two copies with equal inventories are not told
+apart, within a reading or by a check against a record. So whoever identifies
 a candidate sees to it that nothing rebuilds or replaces the bundle during
 identification and its intended use, and identifies it in the place it will be
 opened from.
@@ -226,7 +233,7 @@ def _binding(info):
 
     Not its access list or extended attributes, and never its contents. An ancestor
     of an examined tree (a temporary folder, a home, a build root) is written by
-    other processes: an entry made or removed there changes its times, size and
+    other processes: an entry made or removed there can change its times, size and
     link count and says nothing about the tree. It is bound by this.
     """
     return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
