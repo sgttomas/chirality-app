@@ -170,13 +170,17 @@ An entry is added in the same pull request that makes the limitation standing.
   person's own Codex settings; a conversation with a model server on another
   machine; and a local model server that requires no key. Preparing or
   starting the local connection, and entering its key, are refused while
-  either system Codex configuration file (`/etc/codex/managed_config.toml`,
-  `/etc/codex/requirements.toml`) exists or a managed Codex preference is
-  set, whatever they contain. In the home that
-  uses the ChatGPT account, the App's Codex runs on the built-in OpenAI
+  a system Codex configuration file exists (`/etc/codex/config.toml`,
+  `/etc/codex/managed_config.toml` or `/etc/codex/requirements.toml`) or a
+  managed Codex preference is set, whatever they contain. Removing or
+  renaming such a file is the person's or their administrator's own act; the
+  App does not ask for it. In the home that
+  uses the ChatGPT account, the App starts Codex on the built-in OpenAI
   provider whatever default provider the person's Codex settings name; a
   conversation saved earlier on another provider can be opened there and
-  cannot run a message. In the local model home, Codex's plugin traffic is
+  cannot run a message. Where a managed Codex requirement names another
+  provider, that home's Codex does not report the built-in one, and the App
+  starts no ChatGPT account conversation and says so. In the local model home, Codex's plugin traffic is
   always off, whatever the person's Codex plugin setting. Changing the local
   server's address removes the saved key, except when restoring the address
   the App recorded for the saved key; that restoration keeps the key and does

@@ -74,6 +74,13 @@ checks:
 - app/tests/model-choice.test.mjs
 - app/tests/local-model-settings.test.mjs
 - app/tests/trial-continue-model-choice.test.mjs
+# Access and model controls as other panels carry them, and their choices kept across navigation.
+- app/tests/conversation-roles.test.mjs
+- app/tests/fork-admission.test.mjs
+- app/tests/history-continue-navigation.test.mjs
+- app/tests/native-waiting.test.mjs
+- app/tests/prepared-message-navigation.test.mjs
+- app/tests/waiting-requests.test.mjs
 - app/src-tauri/src/access_provider_tests.rs
 - app/src-tauri/src/access_settings.rs
 - app/src-tauri/src/native_secure_entry.rs

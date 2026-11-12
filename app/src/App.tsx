@@ -1255,7 +1255,7 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
-    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home Codex runs on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed. A local model server is set up below, under “Use oMLX / a local model”.</p>}
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed. A local model server is set up below, under “Use oMLX / a local model”.</p>}
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <details><summary>Other sign-in options</summary>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
@@ -1357,7 +1357,7 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
       {row("Credential storage", observation.packet.credentialStore, true)}
       {row("Plugins", observation.packet.plugins, false)}
       {host.homeRouting.activeModeHomeClass === "account" && (observation.packet.personDefaultProvider?.state === "reported" && observation.packet.personDefaultProvider.value !== "openai"
-        ? <p><strong>Default provider in your Codex settings:</strong> <code>{String(observation.packet.personDefaultProvider.value)}</code>. It is not used in this home, where Codex runs on its built-in OpenAI provider.</p>
+        ? <p><strong>Default provider in your Codex settings:</strong> <code>{String(observation.packet.personDefaultProvider.value)}</code>. It is not used in this home, where the App starts Codex on its built-in OpenAI provider.</p>
         : observation.packet.personDefaultProvider?.state === "none" || observation.packet.personDefaultProvider?.state === "reported" ? <p><strong>Default provider in your Codex settings:</strong> {observation.packet.personDefaultProvider.state === "none" ? "none named" : "the built-in OpenAI provider"}.</p>
         : <p><strong>Default provider in your Codex settings:</strong> Unknown / not established.</p>)}
       <p>Read from the selected {host.homeRouting.activeModeHomeClass} home’s current Codex process. A source category is shown only when its reported origin matches an enabled layer and that layer reports the same setting.</p>
@@ -2534,7 +2534,7 @@ export function App() {
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
             local={fixedLocal} choose={route => reviseChoice(route)}/>
-          {homeClass === "account" && <p aria-label="Local model servers">A local model server is not used from this home: Codex here runs only on its built-in OpenAI provider. <a href="#workspace-connection">Set up a local model server</a> under Connection &amp; access, and switch to its home to start a conversation with it.</p>}
+          {homeClass === "account" && <p aria-label="Local model servers">Custom local providers are not offered from this home. <a href="#workspace-connection">Set up the App’s local model connection</a> under Connection &amp; access, and switch to its home to start a conversation with it.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
             model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
