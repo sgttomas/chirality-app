@@ -17,18 +17,17 @@ impl QueryDb {
         // Never reuse another process's mutable cache for absence/duplicate
         // decisions. Each process rebuilds from the authoritative logs.
         let stem = format!("query-{}-{}.sqlite", crate::util::sha256_hex(root.as_os_str().as_encoded_bytes()), crate::util::opaque_id("")?);
-        let store = crate::records_store::current().ok().map(|s| s.root.join("indexes"));
-        let mut places = store.into_iter().collect::<Vec<_>>();
-        places.push(std::fs::canonicalize(std::env::temp_dir()).map_err(|e| e.to_string())?);
-        let mut last = String::new();
-        for dir in places {
-            match Self::at(&dir.join(&stem)) { Ok(db) => return Ok(db), Err(e) => last = e }
+        let (store, folder) = cache_folder().map_err(|e| format!("query cache not written ({e}); the record sources are read directly"))?;
+        let db = Self::at(&folder.join(&stem)).map_err(|e| format!("query cache not written ({e}); the record sources are read directly"))?;
+        // Created in the store this process bound, and in no folder put in
+        // its place meanwhile: otherwise the file is removed and not used.
+        match crate::records_store::opened_existing() {
+            Ok((bound, _)) if bound == store => Ok(db),
+            Ok(_) | Err(_) => Err(format!("query cache not written (the records store at {} is no longer the store this App opened); the record sources are read directly", store.display())),
         }
-        Err(last)
     }
     fn at(path: &Path) -> Result<Self, String> {
         use std::os::unix::fs::OpenOptionsExt;
-        crate::storage::ensure_directory(path.parent().ok_or("cache has no parent")?)?;
         crate::storage::check_path(path)?;
         let created = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).custom_flags(libc::O_NOFOLLOW).open(path).map_err(|e| e.to_string())?;
         let original = Stamp::of(&created.metadata().map_err(|e| e.to_string())?);
@@ -37,8 +36,12 @@ impl QueryDb {
             let conn = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NOFOLLOW)?;
             if !same_identity(path, identity) { return Err(rusqlite::Error::InvalidQuery); }
             // The cache is rebuildable: no durable WAL or large SQLite page
-            // cache. Disk backs query sorting and membership sets too.
-            conn.execute_batch("PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA temp_store=FILE; PRAGMA cache_size=-2048; PRAGMA trusted_schema=OFF;
+            // cache. SQLite's own temporary structures stay in memory: as a
+            // file they go to the temporary folder ($SQLITE_TMPDIR, $TMPDIR,
+            // /var/tmp, /tmp), never under indexes/. The ones these queries
+            // build (a sort of matched rows, the set of act identities) are
+            // bounded by results the caller holds in memory anyway.
+            conn.execute_batch("PRAGMA journal_mode=OFF; PRAGMA synchronous=OFF; PRAGMA temp_store=MEMORY; PRAGMA cache_size=-2048; PRAGMA trusted_schema=OFF;
                 CREATE TABLE entries(log INTEGER NOT NULL, offset INTEGER NOT NULL, len INTEGER NOT NULL, seq TEXT NOT NULL, id TEXT, act INTEGER NOT NULL, corrects TEXT, late_subject TEXT, member INTEGER, digest TEXT NOT NULL);
                 CREATE INDEX entry_identities ON entries(id);
                 CREATE TABLE identities(id TEXT PRIMARY KEY, holders INTEGER NOT NULL);
@@ -166,6 +169,34 @@ impl QueryDb {
         if !self.unchanged() { return Err("query cache changed while it was read".into()); }
         Ok(())
     }
+}
+/// Whether a read may write the derived query cache at all. The one stated
+/// exception to "a read writes nothing": the cache file under `indexes/` of a
+/// store that already exists and that this process has bound (its folder's
+/// device and inode checked). Set this to `false` and every index read uses
+/// source scans and writes nothing.
+const READS_WRITE_CACHE: bool = true;
+/// The bound store and its `indexes/` folder. Creates at most that one folder,
+/// in the existing bound store: never the store, any ancestor of it, or a
+/// folder anywhere else (no temporary-folder fallback).
+fn cache_folder() -> Result<(PathBuf, PathBuf), String> {
+    if !READS_WRITE_CACHE {
+        return Err("reads write no query cache".into());
+    }
+    let (store, _) = crate::records_store::opened_existing()?;
+    let folder = store.join("indexes");
+    match std::fs::symlink_metadata(&folder) {
+        Ok(m) if m.is_dir() => {}
+        Ok(_) => return Err(format!("{} is not a folder", folder.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => match std::fs::create_dir(&folder) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => return Err(format!("{}: {e}", folder.display())),
+        },
+        Err(e) => return Err(format!("{}: {e}", folder.display())),
+    }
+    crate::storage::check_path(&folder)?;
+    Ok((store, folder))
 }
 fn same_identity(path: &Path, identity: (u64, u64)) -> bool {
     crate::storage::check_path(path).is_ok() && super::stamp_of(path).is_some_and(|s| (s.dev, s.ino) == identity)
