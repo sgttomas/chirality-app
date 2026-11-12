@@ -40,11 +40,19 @@ test('the guidance-changed flag fires only on an actual change',()=>{
   assert.ok(changed.includes('<b>Guidance changed since this conversation started</b>: agents/AGENT_HELP_HUMAN.md (edited)'));
   assert.ok(changed.includes('Nothing was sent to this conversation; it keeps the guidance it started with.'));
   assert.equal((changed.match(/Continue as HELP_HUMAN…/g)??[]).length,2,'the flag offers Continue as the same role');
+  // Review round 2: the limit account is read from the current files. After a change it is not this conversation's.
+  const same=header(thread());
+  assert.ok(same.includes('aria-label="Limits of HELP_HUMAN"')&&same.includes('<b>Stated, not enforced</b>')&&!same.includes('does not show this conversation'),'unchanged guidance: the current account is the conversation\'s');
+  assert.ok(changed.includes('The current guidance differs from it, so the App does not show this conversation&#x27;s limits from the current guidance.'));
+  const own=changed.slice(0,changed.indexOf('Continue as <select'));
+  assert.ok(!own.includes('Stated, not enforced')&&!own.includes('It is stated in the role&#x27;s guidance'),'nothing above the Continue-as choice says what this conversation\'s guidance states');
+  assert.ok(changed.includes('A conversation continued as HELP_HUMAN gets the current guidance:')&&changed.slice(changed.indexOf('gets the current guidance:')).includes('aria-label="Limits of HELP_HUMAN"'),'the current guidance\'s limits are shown as what a continued conversation gets');
   const missing=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'missing',reason:'missing'}]}));
   assert.ok(missing.includes('AGENTS.md (missing now)'));
   const unread=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'not-read',reason:'unreadable: store unavailable'}]}));
   assert.ok(!unread.includes('Guidance changed since'),'a comparison not made is not a change');
   assert.ok(unread.includes('could not be read (AGENTS.md), so it was not compared'));
+  assert.ok(unread.includes('The current guidance could not be compared with it, so the App does not show this conversation&#x27;s limits from the current guidance.'),'a comparison not made is not sameness either');
   assert.deepEqual(guidanceChange([{kind:'changed'},{kind:'not-read'},{kind:'missing'}]).changed.length,2);
   assert.deepEqual(guidanceChange(undefined),{changed:[],notRead:[]});
 });
@@ -115,7 +123,7 @@ test('each conversation role is offered with a plain meaning from its shipped gu
     // AC-003/AC-004 and V4-ROLE-03: the chosen role's limit is shown as stated, not enforced, with no enforcement implied.
     assert.ok(html.includes("Work within the brief&#x27;s write targets: <b>Stated, not enforced</b>. It is stated in the role&#x27;s guidance; Codex does not enforce it. None of these enforces it either: the brief itself, working in a separate worktree, your sandbox setting or your approval setting."),`${name}'s limit in plain words`);
     assert.ok(!/Enforced by Codex|Not this limit|brief-text|approval-policy/.test(html));
-    assert.ok(html.includes('Codex does not enforce them, and your approval and sandbox settings are a separate matter that does not enforce them either.'));
+    assert.ok(html.includes('Where a limit is shown as “Stated, not enforced”, it is written in that role&#x27;s guidance for the agent to follow. Codex does not enforce it, and your approval and sandbox settings are a separate matter that does not enforce it either.'));
   }
   assert.equal(ROLE_PLAIN_MEANING.TASK,undefined,'TASK is not offered, so it has no start line');
   // A limit whose standing is unknown keeps its unknown label and claims no enforcement.
@@ -124,13 +132,22 @@ test('each conversation role is offered with a plain meaning from its shipped gu
   const enforced={...limits,account:{roles:[{role:'HELP_HUMAN',limits:[{...all,standing:'enforced-by-supplier',presentedAs:'Enforced by Codex',mechanism:'a named control'}]}]}};
   const withEnforced=h(RoleChoice,{group:'g',roleSet,limits:enforced,role:'HELP_HUMAN',setRole:noop,preselected:false});
   assert.ok(withEnforced.includes('<b>Enforced by Codex</b>. Codex enforces it through a named control.')&&!withEnforced.includes('Codex does not enforce'));
-  // Review round 1: with any limit of unknown standing, the note does not say what guidance states in general.
-  const stated='A role&#x27;s limits are written in its guidance for the agent to follow.';
-  assert.ok(h(RoleChoice,{group:'g',roleSet,limits,role:'HELP_HUMAN',setRole:noop,preselected:false}).includes(stated));
+  // Review rounds 1 and 2: the note speaks only of limits shown as stated, never of guidance in general,
+  // and says so when the App could not establish what some guidance states.
+  const general='A role&#x27;s limits are written in its guidance';
+  const conditional='Where a limit is shown as “Stated, not enforced”, it is written in that role&#x27;s guidance';
+  const cannot='The App could not establish what some role guidance states.';
+  const allKnown=h(RoleChoice,{group:'g',roleSet,limits,role:'HELP_HUMAN',setRole:noop,preselected:false});
+  assert.ok(allKnown.includes(conditional)&&!allKnown.includes(general)&&!allKnown.includes(cannot));
   const someUnknown={...limits,account:{roles:[{role:'HELP_HUMAN',limits:[all]},{role:'WORKING_ITEMS',limits:[{...all,standing:'unknown',presentedAs:'Not known whether the supplied guidance states this'}]}]}};
   const withUnknown=h(RoleChoice,{group:'g',roleSet,limits:someUnknown,role:'WORKING_ITEMS',setRole:noop,preselected:false});
-  assert.ok(!withUnknown.includes(stated)&&withUnknown.includes('Some role guidance has been changed from the shipped text, so the App can&#x27;t tell what limits it states.'),'changed guidance: the App says it cannot tell');
+  assert.ok(withUnknown.includes(cannot)&&!withUnknown.includes(general),'changed guidance: the App says it could not establish it');
   assert.ok(withUnknown.includes('<b>Not known whether the supplied guidance states this</b>')&&!withUnknown.includes('It is stated in the role&#x27;s guidance'),'the changed role\'s own limit claims nothing about what its guidance states');
+  // Round 2: guidance that could not be read has no limit rows at all; it is listed under notRead.
+  const unreadable={...limits,notRead:[{role:'WORKING_ITEMS',reading:'Limits not known',reason:'guidance could not be read'}],account:{roles:limits.account.roles.filter(r=>r.role!=='WORKING_ITEMS')}};
+  const withUnread=h(RoleChoice,{group:'g',roleSet,limits:unreadable,role:'WORKING_ITEMS',setRole:noop,preselected:false});
+  assert.ok(withUnread.includes('Limits of WORKING_ITEMS: Limits not known (guidance could not be read)'));
+  assert.ok(withUnread.includes(cannot)&&!withUnread.includes(general),'unreadable guidance with no unknown row still qualifies the note');
   // The start display carries no engineering status line for the role set.
   const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8');
   assert.ok(!app.includes('Role set: {host?.roleSet?.standing'));
@@ -352,7 +369,7 @@ test('TASK delegation shows the observed event, original standing and root prove
   assert.ok(html.includes('native-item:2')&&html.includes('receipt position 21')&&html.includes('Original root parent: parent · original parent supply: sup:parent'));
   assert.ok(html.includes('original TASK association: sup:child:1')&&!html.includes('Original guidance generation:'),'same-generation comparison keeps generation detail in raw evidence');
   const unknown=h(RoleLimitObservations,{observations:[{...observed,standing:'unknown',presentedAs:'TASK prohibition stated, not enforced'}]});
-  assert.ok(unknown.includes('For this child: <b>Not known whether the supplied guidance states this</b>')&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
+  assert.ok(unknown.includes('For this child: <b>Not known whether the supplied guidance states this</b>; the App could not establish what the guidance it was given states.')&&!/was changed|could not be read/.test(unknown)&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
   // Review round 1: an unknown standing was preceded by "The TASK guidance it was given says…".
   assert.ok(!unknown.includes('guidance it was given says')&&unknown.includes('The shipped TASK guidance says a task agent does not delegate.'),'with an unknown standing only the shipped default is described, never what this child was given');
   assert.ok(!unknown.includes('Codex does not enforce')&&!unknown.includes('Enforced by Codex'));

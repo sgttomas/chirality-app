@@ -1546,6 +1546,13 @@ fn thread_start(
 /// (New conversation, Continue as, clean trial). It binds the start to that
 /// home and generation before any effect; nothing is recaptured.
 #[allow(clippy::too_many_arguments)]
+/// What a start records as "the preselection was left as it was". The caller's
+/// claim stands only for the role set's own default: no caller can record
+/// another role, or no role, as preselected. An absent claim stays absent
+/// (not established).
+fn established_preselection(claimed: Option<bool>, role: Option<role_supply::Role>, default: Option<role_supply::Role>) -> Option<bool> {
+    claimed.map(|claimed| claimed && role.is_some() && role == default)
+}
 fn start_conversation(
     app: &tauri::AppHandle,
     state: &AppState,
@@ -1559,6 +1566,7 @@ fn start_conversation(
     preselected: Option<bool>,
 ) -> Result<Value, String> {
     let supply_ref=util::opaque_id("sup:")?;
+    let preselected=established_preselection(preselected,role,role_supply::bundled_role_set().ok().and_then(|set|set.default_role()));
     // An unknown class or absent home keeps its existing refusal observation.
     // A different, replaced, closed or incomplete source is refused before any
     // effect or record: no endpoint, role, provider or start state changes, and

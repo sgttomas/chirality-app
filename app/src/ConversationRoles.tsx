@@ -81,11 +81,11 @@ export function RoleLimits({ limits, role }: { limits: Json; role: string | null
 function LimitsNote({ limits }: { limits: Json }) {
   const all = list(limits?.account?.roles).flatMap((r: Json) => list(r?.limits));
   if (!limits?.available || all.length === 0 || !all.every((l: Json) => l?.standing === "stated-not-enforced" || l?.standing === "unknown")) return null;
-  // What the guidance states is said only where the account read it. Changed
-  // guidance has limits the App cannot tell (REQ-003, AC-004).
-  if (all.some((l: Json) => l?.standing === "unknown"))
-    return <p><small>Some role guidance has been changed from the shipped text, so the App can't tell what limits it states. Where a limit is shown as “Stated, not enforced”, it is written in that role's guidance and Codex does not enforce it; your approval and sandbox settings are a separate matter that does not enforce it either.</small></p>;
-  return <p><small>A role's limits are written in its guidance for the agent to follow. Codex does not enforce them, and your approval and sandbox settings are a separate matter that does not enforce them either.</small></p>;
+  // Said of the limits shown that way, never of guidance in general: a role
+  // whose guidance was changed has limits of unknown standing, and a role whose
+  // guidance could not be read has no limit rows at all (REQ-003, AC-004).
+  const unestablished = all.some((l: Json) => l?.standing === "unknown") || list(limits?.notRead).length > 0;
+  return <p><small>{unestablished ? "The App could not establish what some role guidance states. " : ""}Where a limit is shown as “Stated, not enforced”, it is written in that role's guidance for the agent to follow. Codex does not enforce it, and your approval and sandbox settings are a separate matter that does not enforce it either.</small></p>;
 }
 
 /** ST-5: the start display's role choice, readable. The default is shown as a
@@ -199,7 +199,7 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
       return <div key={i}>
         <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. {row.standing === "stated-not-enforced" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Stated, not enforced</b>. Codex does not enforce this limit.</>
           : row.standing === "enforced-by-supplier" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Enforced by Codex</b>.</>
-          : <>The shipped TASK guidance says a task agent does not delegate. For this child: <b>Not known whether the supplied guidance states this</b>; its guidance was changed or could not be read.</>} The App recorded this delegation and did not prevent it.</p>
+          : <>The shipped TASK guidance says a task agent does not delegate. For this child: <b>Not known whether the supplied guidance states this</b>; the App could not establish what the guidance it was given states.</>} The App recorded this delegation and did not prevent it.</p>
         <p><small>Native event: {text(row.itemId)} · {text(row.source)} · receipt position {text(row.receiptPosition)}. Original root parent: {text(row.root?.parentThreadId)} · original parent supply: {text(original?.parentSupplyRef ?? row.parentSupplyRef)}{original?.associationId ? ` · original TASK association: ${text(original.associationId)}` : ""}.</small></p>
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
         <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>
@@ -288,6 +288,9 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
   const [target, setTarget] = useState<string>(own === undefined ? CONVERSATION_ROLES[0] : (own ?? ""));
   const relation = thread?.roleRelation;
   const { changed, notRead } = guidanceChange(thread?.futureGuidanceNotices);
+  // The limit account is read from the current guidance files. It describes
+  // this conversation only while those files are what the conversation was given.
+  const sameGuidance = changed.length === 0 && notRead.length === 0;
   // The role set's short meaning, as the limit account hands it with each role.
   const meaningOf = (name: string) => text(list(limits?.account?.roles).find((r: Json) => r?.role === name)?.meaning);
   return <div aria-label="Conversation role">
@@ -298,7 +301,8 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
     <TrialHeader trialConversation={trialConversation} trialsStartedHere={trialsStartedHere} />
     {relation?.kind === "continued-from" && <p><small>Continues conversation {text(relation.from?.sourceThread)} (its role: {roleName(relation.from?.sourceRole)}); a relation only: no history was carried.</small></p>}
     {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the fork was sent no instructions, so it keeps the source's guidance.</small></p>}
-    {own !== undefined && <RoleLimits limits={limits} role={own} />}
+    {own !== undefined && (sameGuidance ? <RoleLimits limits={limits} role={own} />
+      : <p><small>This conversation keeps the guidance it started with. The current guidance {changed.length > 0 ? "differs from it" : "could not be compared with it"}, so the App does not show this conversation's limits from the current guidance.</small></p>)}
     {changed.length > 0 && <p role="status"><b>Guidance changed since this conversation started</b>: {changed.map((n: Json) => `${text(n.path)} (${n.kind === "missing" ? "missing now" : "edited"})`).join(", ")}. Nothing was sent to this conversation; it keeps the guidance it started with. New conversations use the current guidance.{" "}
       {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ?? "no role"}…</button>}</p>}
     {notRead.length > 0 && <p><small>Current guidance could not be read ({notRead.map((n: Json) => text(n.path)).join(", ")}), so it was not compared.</small></p>}
@@ -309,7 +313,8 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
       <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target || "no role"}…</button>{" "}
       <button disabled={busy || !ready || !!forkUnavailable} onClick={fork}>Fork (same role)</button>
     </p>
-    {target !== (own ?? "") && <>{ROLE_PLAIN_MEANING[target] && <p><small>{target}: {ROLE_PLAIN_MEANING[target]}</small></p>}<RoleLimits limits={limits} role={target || null} /></>}
+    {(target !== (own ?? "") || !sameGuidance) && <>{ROLE_PLAIN_MEANING[target] && <p><small>{target}: {ROLE_PLAIN_MEANING[target]}</small></p>}
+      {!sameGuidance && <p><small>A conversation continued as {target || "no role"} gets the current guidance:</small></p>}<RoleLimits limits={limits} role={target || null} /></>}
     {forkUnavailable && <p role="status">{forkUnavailable}</p>}
     <p><small>Continue as starts a new conversation with that role; this conversation keeps its role. The App first asks this conversation's agent for a handoff summary in a visible turn here, and you edit it before anything is sent. Fork copies this conversation with the same role and guidance.</small></p>
   </div>;

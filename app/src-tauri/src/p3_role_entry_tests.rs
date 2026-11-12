@@ -94,3 +94,16 @@ fn p3_entry_task_start_is_refused_before_send_and_task_guidance_stays_for_delega
 fn p3_entry_compiled_tauri_mode_matches_declared_production_feature() {
     assert_eq!(tauri::is_dev(), !cfg!(feature = "custom-protocol"));
 }
+
+#[test]
+fn a_start_is_recorded_as_preselected_only_for_the_role_sets_default() {
+    use role_supply::Role;
+    let default = role_supply::bundled_role_set().unwrap().default_role();
+    assert_eq!(default, Some(Role::HELP_HUMAN));
+    assert_eq!(established_preselection(Some(true), Some(Role::HELP_HUMAN), default), Some(true));
+    assert_eq!(established_preselection(Some(false), Some(Role::HELP_HUMAN), default), Some(false), "the default chosen by the person is a choice");
+    assert_eq!(established_preselection(Some(true), Some(Role::WORKING_ITEMS), default), Some(false), "another role is never the preselection");
+    assert_eq!(established_preselection(Some(true), None, default), Some(false), "no role is never the preselection");
+    assert_eq!(established_preselection(Some(true), Some(Role::HELP_HUMAN), None), Some(false), "a set with no default preselects nothing");
+    assert_eq!(established_preselection(None, Some(Role::HELP_HUMAN), default), None, "a claim not made stays not established");
+}
