@@ -232,10 +232,12 @@ impl Origin {
         }
     }
 }
-/// The one rule for which origins may decide a package. A legacy-imported
-/// copy carries only the trust of the project folder it came from
-/// (`records_store::IMPORT_STANDING`), so it decides nothing. Change it here
-/// and nowhere else. Library registration acts are not read by this view.
+/// The one rule for which origins may decide a package, kept in this one
+/// place. As App Agent 0 decided: an act log that reached the store through
+/// the explicit legacy import is quoted evidence only and never decides
+/// anything, since an imported copy carries only the trust of the project
+/// folder it came from (`records_store::IMPORT_STANDING`). Library
+/// registration acts are not read by this view.
 fn origin_decides(origin: Origin) -> bool {
     origin == Origin::Store
 }
