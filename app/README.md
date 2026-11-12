@@ -1328,7 +1328,9 @@ is written there, elsewhere or in a temporary folder. Once opened, a process
 stays bound to the store's physical folder and identity file (their device and
 inode): a redirected alias is not followed, and a folder put at the store's
 path in its place, even holding a copy of `store.json`, is refused by readers
-and writers alike. Readers take only an admission control that already exists;
+and writers alike. So is a `store.json` replaced while the App runs, even with
+the same bytes (a restore from a backup, for example): nothing is read or
+written through it until the App is reopened, which opens the store afresh. Readers take only an admission control that already exists;
 records with no control beside them read as unavailable with that reason. A
 store whose state cannot be read (for example an unreadable import record)
 reads as unavailable, never as empty or as "no records yet". A read writes
