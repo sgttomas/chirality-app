@@ -169,7 +169,12 @@ class Transitive(unittest.TestCase):
         self.assertEqual([n['root_path'] for n in unic['text']['notices']], ['LICENSE-APACHE', 'LICENSE-MIT'])
         for name in ('uuid-simd', 'vsimd'):
             self.assertEqual(next(e for e in index['cargo'] if e['package'] == name)['text']['kind'], 'missing')
-        self.assertEqual(next(e for e in index['npm'] if e['package'] == 'scheduler')['text']['kind'], 'installed-tree-only')
+        scheduler = next(e for e in index['npm'] if e['package'] == 'scheduler')['text']
+        self.assertEqual(scheduler['kind'], 'lock-tarball')
+        self.assertEqual([m['member'] for m in scheduler['notice_members']], ['LICENSE'])
+        received = [e for e in index['cargo'] if e.get('text', {}).get('kind') == 'received-upstream-text']
+        for row in received:  # received objc2 texts are listed as unverified like the retained ones
+            self.assertTrue(any(item.startswith(row['package'] + ' ') for item in summary['missing_or_unverified']))
 
     def test_legacy_reader_and_explicit_join_keep_original_graph_receipt(self):
         associations = t.local_associations(ROOT)

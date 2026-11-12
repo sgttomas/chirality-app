@@ -1,114 +1,92 @@
-# macOS arm64 direct-runtime notice inputs (v2)
+# Notices the macOS arm64 package ships
 
-Current basis is main source `4e942918f1fc4e99140665b2cbb36024c937255e`, not a
-built package. It reconciles only the manifest digest after that commit added the
-dev-only `tauri` `test` feature (and its comment) to `Cargo.toml`. Runtime
-declarations, `Cargo.lock`, npm manifests, App `LICENSE.md`, components and texts
-are unchanged from the original PR69 implementation basis
-`7fdb470b9bedf3bea9f4369672dd24524a6c799d`. Any later `Cargo.toml` edit,
-including a dev-only one, still requires deliberate reconciliation here and in
-the dependent receipt plan. The index selects
-common direct runtime declarations plus applicable target-specific declarations
-for `aarch64-apple-darwin`, retaining each component's declaration targets.
-Top-level build/dev-only dependencies remain excluded. Known other-platform
-conditions are excluded; unsupported runtime cfg expressions refuse explicitly
-rather than silently drop a dependency. This is a bounded explicit target
-selector, not a complete Cargo feature/cfg/transitive evaluator.
+Every component shipped in the package has an entry in `coverage.json`, with its
+version, its source, where its notice text ships and one standing: `covered`,
+`held-pending-owner-licence-reading` or `uncovered` (with the reason and what
+would close it). `coverage.py check --strict` exits non-zero while any component is
+not covered, naming each. `production_inputs/prepare.py` records the account's
+digest and counts in every plan and refuses a production plan while the strict
+check fails, unless `--not-for-public-release` names the plan as not for public
+release, which the plan then states.
 
-PR69 promotes objc2 0.6.4, objc2-app-kit 0.3.2, objc2-foundation 0.3.2,
-block2 0.6.2 and dispatch2 0.3.1 to direct macOS runtime dependencies. Their five
-cached crate archives match exact Cargo.lock checksums. None contains a root
-LICENSE/NOTICE file: the README links to ../../LICENSE.md in the upstream
-repository. The v2 index retains each declared license, locked archive/manifest,
-exact .cargo_vcs_info revision/path and README digests, with `notice_gap` marking
-missing upstream text. No generic MIT or other-package license is substituted.
-The verifier prints these five missing components and `notice_text_coverage:
-incomplete` even when index/asset correspondence passes.
-
-There are now 22 indexed components (App +18 Cargo +3 npm), but still only the
-existing 30 exact notice texts (133,902 bytes). The explicit notice overlay
-continues to map its 31 existing index/text files; no new missing text is invented.
-Actual new-candidate bundle inclusion and legal/transitive completeness remain
-unestablished. Retained 12d26 and fdcf candidates keep their original inventories.
-
-The historical v1 representation remains readable only for a matching basis with
-no target-specific runtime declarations. It cannot silently describe the new
-scope. v2 adds the selected target, per-component declaration targets and explicit
-missing-text provenance; no old source snapshot or identity is rewritten.
-
-From the repository root, using Python 3.11+ and no additional packages:
+From the repository root (Python 3.11+, no additional packages):
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/check.py
-PYTHONDONTWRITEBYTECODE=1 python3 app/tests/notice_resources_test.py
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/coverage.py check            # reporting
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/coverage.py check --strict   # refuses open components
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/coverage.py generate         # after any input changes
 ```
 
-The default check uses saved assets and this repository's current
-manifests/locks; no sibling checkout, source cache, supplier, network or build.
-It checks complete indexed assets, bytes, direct-runtime scope and the explicit
-overlay. Source/archive provenance can also be checked with **already prepared**
-local caches and the selected Git revision available:
+`check` regenerates the account and requires the committed file to be identical; it
+runs the direct, transitive, shipped-text and font checks on the way. No cache,
+supplier tree or network is read.
+
+## What ships and where
+
+| Inputs | Generator | Package path under `Contents/Resources/` |
+| --- | --- | --- |
+| Direct runtime dependencies and the App (`index.json`, `assets/`) | hand-kept, `check.py` | `third-party-notices/index.json`, `assets/` |
+| Transitive runtime closure (`transitive-index.json`) | `transitive.py` | `third-party-notices/transitive-index.json` |
+| Transitive texts (`transitive/<cargo or npm>/<package>/<version>/`) | `package_texts.py extract` | `third-party-notices/transitive/` |
+| Supplier component texts (`../supplier_notices/`, listed in `components.json`) | hand-kept table | `third-party-notices/supplier/` |
+| Coverage account (`coverage.json`) | `coverage.py generate` | `third-party-notices/coverage.json` |
+| Font licences and SQLite notice | `../font_notice/`, `../sqlite_notice/` | `third-party-notices/fonts/`, `sqlite-preparation/` (mapped by `prepare.py`) |
+| Voice library licences | the supplier ships them in its tree | `codex/codex-resources/voice/licenses/` |
+
+`../unsigned/tauri.notices.conf.json` is written by `package_texts.py overlay`: the
+development configuration plus every resource above except fonts, SQLite and the
+vendor tree. `check.py` refuses an overlay that differs. Ordinary routes do not map
+notices.
+
+## Transitive texts
+
+`transitive.py` records the target- and feature-selected runtime graph (Cargo
+`aarch64-apple-darwin`, release features, normal edges, no proc-macros) and the
+npm runtime closure of `package-lock.json`. Its npm rows are derived from the
+locked tarballs:
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/check.py --archives \
-  --cargo-home /absolute/private-cargo-home --npm-cache /absolute/npm-cache
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py associate-npm --npm-cache /absolute/npm-cache-root
 ```
 
-Missing/changed archives or unavailable selected Git source refuse; no fetch,
-download, extraction or fallback occurs. This mode compares archive checksums
-against locks, manifest/license metadata, the complete provided root notice set,
-exact tar-member bytes and App Git source. This is correspondence, not supplier
-origin authentication or a determination of licensing rights.
-
-`../unsigned/tauri.notices.conf.json` explicitly selects unsigned development:
-the ordinary development configuration plus exactly 31 per-file mappings for
-the index and 30 texts at `resource_dir/third-party-notices/`. Default,
-development and attested-reference routes do not automatically select it.
-After a separately coordinated future build window, use the ordinary unsigned
-command with `--config packaging/unsigned/tauri.notices.conf.json` and the
-separately identified supplier overlay. No build was performed here; a later
-build needs its own exact source/candidate inventory. Never add these files
-to the retained PR15 candidate or rewrite its evidence.
-
-The focused test stages explicit source/destination pairs and checks the saved
-namespace. It does **not** execute Tauri's Rust `ResourcePaths` mapper. Its
-existing SDK test has no prebuilt private-target runner and needs compilation;
-the CLI exposes no standalone mapper API. Actual SDK mapping, bundle inclusion
-and native readability remain unrun under the no-build/no-GUI boundary.
-No user-facing redesign is included.
-
-The upstream toml `LICENSE-APACHE` ends with a blank line at line 202. Its exact
-bytes and indexed archive digest are preserved. The full contribution's
-whitespace check reports that one source-text EOF exception; excluding only
-that exact asset leaves the code/docs/index diff clean. No broad attributes or
-CI exception is supplied.
-
-## Transitive runtime inventory
-
-`transitive.py` records the macOS arm64 dependency input graph beyond the
-direct index. `generate` runs an offline `cargo tree` with the release features
-(normal edges, no proc-macros, `aarch64-apple-darwin`) against a prepared Cargo
-home and reads every exact locked archive. That graph is what Cargo selects for
-the target and features; it is not an observation of final linked contents.
-The index records licence/notice members, the received objc2 upstream text
-where its revision and README link match, and every missing text with its
-upstream locator. npm runtime packages are recomputed from `package-lock.json`;
-the three direct packages reuse the direct index's archive-verified texts, and
-`scheduler` is recorded from the installed tree only, explicitly unverified.
+`package_texts.py extract` reads each locked `.crate` file from a Cargo cache folder
+(the one holding `<name>-<version>.crate`), requires its SHA-256 to equal
+`Cargo.lock`, takes exactly the notice members the index names and requires each
+to match the index; npm members come from the locked tarball, checked against its
+lock integrity. Held texts are copied from their committed files after their
+digests are checked: `retained/` (unchanged evidence), the direct assets the root
+associations name, and `received/`, which holds texts fetched with the owner's
+permission and listed in `coverage-inputs.json` with repository, revision, URL,
+size and digests. Each received text must be at the revision its crates name, or
+be the root blob the retained root metadata names at that revision. Extraction
+only reads the caches; it never runs Cargo or npm.
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check --cargo-home /absolute/prepared-cargo-home
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py generate --cargo-home /absolute/prepared-cargo-home --node-modules /absolute/prepared/node_modules
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/package_texts.py extract \
+  --cargo-cache "$CARGO_HOME/registry/cache/index.crates.io-1949cf8c6b5b557f" --npm-cache /absolute/npm-cache-root
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/package_texts.py overlay
 ```
 
-The default check needs no Cargo, so it cannot re-resolve the graph. It fails
-closed when the manifests or locks change, when rows no longer match the
-generation receipt's member-set digests, when a crate row contradicts
-`Cargo.lock` (version, checksum or registry/path source kind) or is unreachable
-from the workspace root through lock edges, when the npm rows differ from the
-recomputed lock closure, or when a received-text row names anything other than
-the one allowed retained file and a known revision-to-blob association. A
-rebound receipt that drops a selected crate passes the Cargo-free check; only
-`check --cargo-home` re-resolves the exact member set. This is a preparation
-inventory, not bundled coverage or a licensing determination.
+For any other lockfile, `package_texts.py crates --lock L --cargo-cache DIR --out NEW_DIR
+--rows ROWS.json` extracts the root notice members of every registry package the lock
+names (archives verified against the lock) and writes one row per package:
+`archive-member`, `missing` (with the repository and revision the archive names) or
+`not-in-registry` for Git- and path-sourced packages.
+
+## Standings
+
+The nine objc2-family crates ship the objc2 repository's root `LICENSE.md`, a
+licensing overview with no copyright line. They stand covered on the owner's
+licence reading of 2026-11-12, recorded in `coverage-inputs.json` and on each row;
+no other component rests on that reading. The account says for each covered row
+whether its text is a licence file of the locked archive, a root text of the
+repository at the revision the crate names, or that reading.
+
+## Limits
+
+The account describes what the package is built to carry, from committed inputs;
+it is not read from a built package, and Tauri's resource mapper has not been run
+against the overlay here. A notice text is the publisher's text at the version or
+revision named; the account decides no licence question except where an owner
+reading is recorded. The upstream toml `LICENSE-APACHE` ends with a blank line;
+its bytes are kept as published.
