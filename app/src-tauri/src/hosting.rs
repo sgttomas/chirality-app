@@ -211,10 +211,12 @@ impl RemovalClass {
 
 /// Inherited environment variables removed, by name, from every supplier
 /// process the host starts: the label probe and the app-server child, on the
-/// ordinary and the successor path. This is a list of named exceptions; the
-/// rest of the App's environment is inherited unchanged. CODEX_CA_CERTIFICATE
-/// is deliberately not listed, and CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED
-/// is neither set nor removed (its presence alone is recorded).
+/// ordinary and the successor path. This is a list of named exceptions: no
+/// other inherited variable is removed on its account. Apart from it, the host
+/// sets CODEX_HOME on every start, and the successor plan sets PATH and removes
+/// its two wrapper settings. CODEX_CA_CERTIFICATE is deliberately not listed,
+/// and CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED is neither set nor
+/// removed (its presence alone is recorded).
 pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
     use RemovalClass::*;
     &[

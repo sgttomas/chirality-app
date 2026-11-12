@@ -195,13 +195,14 @@ fn child_environment_inner_observed_on_every_start_path() {
         let recorded: Vec<&str> = conf["removedEnvironment"].as_array().unwrap().iter().map(|v| v.as_str().unwrap()).collect();
         assert_eq!(sorted(recorded.iter().copied()), sorted(expected.iter().map(|(name, _)| *name)), "{path}: recorded list is not the decided list");
         assert_eq!(sorted(recorded.iter().copied()), observed, "{path}: recorded removals differ from the child's observed environment");
+        // Each decided name has exactly one class entry, with its decided class.
         let classes = conf["removedEnvironmentClasses"].as_array().unwrap();
-        assert_eq!(classes.len(), recorded.len());
-        for (entry, name) in classes.iter().zip(&recorded) {
-            assert_eq!(entry["name"], *name);
-            let class = expected.iter().find(|(n, _)| n == name).map(|(_, class)| *class).unwrap();
-            assert_eq!(entry["class"], class, "{path}: class of {name}");
-            assert!(entry["reason"].as_str().unwrap().contains("by name"));
+        assert_eq!(classes.len(), expected.len(), "{path}: class entries");
+        for (name, class) in &expected {
+            let entries: Vec<_> = classes.iter().filter(|entry| entry["name"] == *name).collect();
+            assert_eq!(entries.len(), 1, "{path}: class entries for {name}");
+            assert_eq!(entries[0]["class"], *class, "{path}: class of {name}");
+            assert!(entries[0]["reason"].as_str().unwrap().contains("by name"));
         }
         let presence = conf["inheritedEnvironmentPresence"].as_object().unwrap();
         assert_eq!(presence.keys().collect::<Vec<_>>(), [PRESENCE_ONLY]);
