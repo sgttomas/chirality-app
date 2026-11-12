@@ -51,7 +51,13 @@ the Library's own inventory rule. Entries of another kind (skills) are not
 bundled and are listed in the manifest as `index_entries_not_bundled`, so
 every index entry is accounted for. A package the App's own rules would
 refuse (a link, an operating-system file, a name the App does not admit, more
-than 1000 files or 16 MiB) stops the generator.
+than 1000 files or 16 MiB) stops the generator, and so does an index that
+names no workflow.
+
+A reading that cannot be made is a refusal, never a pass: an archive that is
+not the selected one, a tree folder or file that cannot be read, a missing
+tree, a manifest that names no workflow, and a folder holding no file are
+each reported and make the command fail.
 
 ## What the manifest records
 
@@ -77,7 +83,8 @@ or a folder. It is read in two forms: a relative link, resolved from the file
 that names it; and a path written from the Library's root, after any prefix
 such as `$INSTRUCTION_ROOT/`. A path of the package itself is not counted. A
 skill or tool named without a path is not counted, and neither is the rest of
-a URL. The list says what the text names, not what a run needs.
+a URL. A file that is not UTF-8 text is not scanned; this edition has none.
+The list says what the text names, not what a run needs.
 
 Document paths (`docs/`, the Library's `README.md`) are deliberately not
 recorded. A workflow can name a path that it means in the person's own

@@ -20,6 +20,7 @@ import argparse
 import hashlib
 import io
 import json
+import os
 import posixpath
 import re
 import struct
@@ -219,6 +220,8 @@ def build(files: dict[str, bytes], selection: dict) -> dict[str, bytes]:
         for path in files
         if path.startswith("workflows/") and path.count("/") == 2 and path.endswith("/WORKFLOW.md")
     }
+    if not names:
+        raise BundleError("the method index names no workflow")
     if folders != set(names):
         raise BundleError(
             "the index and the workflow folders disagree: "
@@ -306,24 +309,40 @@ def build(files: dict[str, bytes], selection: dict) -> dict[str, bytes]:
 
 
 def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
-    """The committed tree as path -> bytes, and every entry that is not a
-    regular file or a folder."""
+    """The committed tree as path -> bytes, and what else is found in it:
+    every entry that is not a regular file or a folder, and every folder that
+    holds no file. A folder or file that cannot be read stops the reading: an
+    unreadable tree is never an empty one."""
     tree: dict[str, bytes] = {}
-    special: list[str] = []
+    other: list[str] = []
     if not output.is_dir():
-        return tree, special
-    for path in sorted(output.rglob("*")):
-        relative = path.relative_to(output).as_posix()
-        if path.is_symlink() or not (path.is_file() or path.is_dir()):
-            special.append(relative)
-        elif path.is_file():
-            tree[relative] = path.read_bytes()
-    return tree, special
+        return tree, other
+
+    def unreadable(error: OSError) -> None:
+        raise BundleError(f"cannot read {error.filename}: {error.strerror}")
+
+    for folder, folders, names in os.walk(output, onerror=unreadable, followlinks=False):
+        here = Path(folder)
+        for name in sorted(folders + names):
+            path = here / name
+            relative = path.relative_to(output).as_posix()
+            if path.is_symlink() or not (path.is_file() or path.is_dir()):
+                other.append(f"not a regular file: {relative}")
+            elif path.is_file():
+                tree[relative] = path.read_bytes()
+        # A link to a folder is reported above and never entered.
+        folders[:] = [name for name in folders if not (here / name).is_symlink()]
+    for folder, _, _ in os.walk(output, onerror=unreadable, followlinks=False):
+        relative = Path(folder).relative_to(output).as_posix()
+        if relative != "." and not any(path.startswith(f"{relative}/") for path in tree):
+            other.append(f"folder without a file: {relative}")
+    return tree, sorted(other)
 
 
 def differences(expected: dict[str, bytes], output: Path) -> list[str]:
-    actual, special = read_tree(output)
-    found = [f"not a regular file: {path}" for path in special]
+    if not output.is_dir():
+        return [f"not a folder: {output}"]
+    actual, found = read_tree(output)
     found += [f"missing: {path}" for path in sorted(set(expected) - set(actual))]
     found += [f"not in the release: {path}" for path in sorted(set(actual) - set(expected))]
     found += [
@@ -335,9 +354,10 @@ def differences(expected: dict[str, bytes], output: Path) -> list[str]:
 
 
 def write_tree(expected: dict[str, bytes], output: Path) -> None:
-    actual, special = read_tree(output)
-    for relative in special:
-        raise BundleError(f"{output / relative} is not a regular file; remove it by hand")
+    actual, other = read_tree(output)
+    for line in other:
+        if line.startswith("not a regular file"):
+            raise BundleError(f"{output}: {line}; remove it by hand")
     for relative in set(actual) - set(expected):
         (output / relative).unlink()
     for relative, data in expected.items():
@@ -352,11 +372,12 @@ def write_tree(expected: dict[str, bytes], output: Path) -> None:
 
 def verify_tree(output: Path) -> list[str]:
     """The committed tree against its own manifest; no release needed."""
-    tree, special = read_tree(output)
-    found = [f"not a regular file: {path}" for path in special]
+    tree, found = read_tree(output)
     if MANIFEST_NAME not in tree:
         return found + [f"missing: {MANIFEST_NAME}"]
     manifest = json.loads(tree.pop(MANIFEST_NAME).decode("utf-8"))
+    if not manifest["packages"]:
+        found.append("the manifest names no workflow")
     listed: set[str] = set()
     for row in manifest["packages"]:
         name = row["name"]

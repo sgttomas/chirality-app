@@ -205,3 +205,41 @@ def test_an_archive_that_is_not_the_selected_one_is_refused(tmp_path):
     path.write_bytes(archive + b"\0" * 512)
     with pytest.raises(bundle.BundleError, match="not the selected release archive"):
         bundle.read_release(path, selection_for(archive))
+
+
+def test_a_reading_that_cannot_be_made_is_never_a_pass(tmp_path):
+    tree = built(tmp_path, FILES)
+    output = tmp_path / "out"
+    # No tree at all is a difference and a failed verification, not an empty match.
+    assert bundle.differences(tree, output) == [f"not a folder: {output}"]
+    assert bundle.verify_tree(output) == [f"missing: {bundle.MANIFEST_NAME}"]
+    bundle.write_tree(tree, output)
+    assert bundle.differences(tree, output) == [] and bundle.verify_tree(output) == []
+    # A folder holding no file is reported by both readings.
+    (output / "gamma").mkdir()
+    assert bundle.differences(tree, output) == ["folder without a file: gamma"]
+    assert bundle.verify_tree(output) == ["folder without a file: gamma"]
+    # A folder that cannot be read stops the reading; it is not read as empty.
+    (output / "gamma/WORKFLOW.md").write_bytes(b"hidden\n")
+    (output / "gamma").chmod(0)
+    try:
+        for reading in (lambda: bundle.differences(tree, output), lambda: bundle.verify_tree(output)):
+            with pytest.raises(bundle.BundleError, match="cannot read"):
+                reading()
+    finally:
+        (output / "gamma").chmod(0o700)
+    # A link is reported and never followed.
+    (output / "gamma/WORKFLOW.md").unlink()
+    (output / "gamma").rmdir()
+    (output / "linked").symlink_to(output / "alpha")
+    assert bundle.differences(tree, output) == ["not a regular file: linked"]
+    (output / "linked").unlink()
+    # A manifest that names no workflow does not verify, and an index that
+    # names none is not a release the bundle is built from.
+    recorded = json.loads(tree[bundle.MANIFEST_NAME])
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    (empty / bundle.MANIFEST_NAME).write_text(json.dumps({**recorded, "packages": []}))
+    assert bundle.verify_tree(empty) == ["the manifest names no workflow"]
+    with pytest.raises(bundle.BundleError, match="names no workflow"):
+        built(tmp_path, FILES, [METHODS[2]])
