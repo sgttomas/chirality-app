@@ -321,3 +321,58 @@ def test_a_tree_that_is_a_link_is_refused_by_every_command(tmp_path):
         with pytest.raises(bundle.BundleError, match="is a link"):
             reading()
     assert stale.is_file()
+    # A link inside the tree stops the writer before it deletes or rewrites.
+    (target / "linked").symlink_to(target / "alpha")
+    (target / "beta/WORKFLOW.md").write_bytes(b"changed\n")
+    with pytest.raises(bundle.BundleError, match="not a regular file: linked"):
+        bundle.write_tree(tree, target)
+    assert stale.is_file() and (target / "beta/WORKFLOW.md").read_bytes() == b"changed\n"
+
+
+def test_the_writers_clean_up_uses_the_same_reading_and_its_failure_is_a_refusal(tmp_path, monkeypatch, capsys):
+    # A whole generate through the command line, on an invented selection.
+    archive = release({**FILES, bundle.INDEX_PATH: index(METHODS)})
+    path = tmp_path / "invented.tar"
+    path.write_bytes(archive)
+    selection = selection_for(archive)
+    record = {key: selection[key] for key in ("repository", "tag", "commit")}
+    record["published_archive"] = {"name": "invented.tar", "bytes": len(archive), "reported_sha256": selection["archive"]["sha256"]}
+    (tmp_path / bundle.SELECTION).parent.mkdir(parents=True)
+    (tmp_path / bundle.SELECTION).write_text(json.dumps(record))
+    monkeypatch.setattr(bundle, "ROOT", tmp_path)
+    output = tmp_path / bundle.OUTPUT
+    assert bundle.main(["generate", "--archive", str(path)]) == 0
+    assert bundle.main(["compare", "--archive", str(path)]) == 0 and bundle.main(["verify"]) == 0
+    # The clean-up removes a folder left holding no file, however deep.
+    (output / "stale/deeper").mkdir(parents=True)
+    (output / "stale/deeper/old.md").write_bytes(b"not in the release\n")
+    assert bundle.main(["generate", "--archive", str(path)]) == 0
+    assert not (output / "stale").exists()
+    # A listing that fails during the clean-up, on a tree that is correct and
+    # unchanged, stops the command: generate does not report success.
+    listdir = bundle.os.listdir
+    root_listings = []
+
+    def failing(folder):
+        if Path(folder) == output:
+            root_listings.append(folder)
+            if len(root_listings) == 2:  # the first is the writer's reading, the second its clean-up
+                raise OSError(5, "Input/output error", str(folder))
+        return listdir(folder)
+
+    monkeypatch.setattr(bundle.os, "listdir", failing)
+    tree = bundle.build(bundle.read_release(path, selection), selection)
+    with pytest.raises(bundle.BundleError, match="cannot read"):
+        bundle.write_tree(tree, output)
+    assert len(root_listings) == 2, "the writer's clean-up listed the tree itself and stopped on the error"
+    root_listings.clear()
+    capsys.readouterr()
+    assert bundle.main(["generate", "--archive", str(path)]) == 2
+    assert "refused: cannot read" in capsys.readouterr().err and len(root_listings) == 2
+    # Something at the tree's place that is not a folder is refused, not replaced.
+    monkeypatch.setattr(bundle.os, "listdir", listdir)
+    plain = tmp_path / "plain"
+    plain.write_bytes(b"a file where the tree should be\n")
+    for reading in (lambda: bundle.differences({}, plain), lambda: bundle.verify_tree(plain), lambda: bundle.write_tree({}, plain)):
+        with pytest.raises(bundle.BundleError, match="is not a folder"):
+            reading()

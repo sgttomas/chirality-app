@@ -58,10 +58,19 @@ A reading that cannot be made is a refusal, never a pass: an archive that is
 not the selected one, a tree folder or file that cannot be read, a missing
 tree, a manifest that names no workflow, and a folder holding no file are
 each reported and make the command fail. So does an entry whose kind cannot
-be established, and a tree that is itself a link. Each reading of the tree
-lists every folder once (`generate` reads it before writing and again after),
-and the commands require a stable tree: do not change it while a command
-runs, because a file added after its folder was listed is not seen.
+be established, and a tree that is itself a link or is not a folder. Every
+reading of the tree, the writer's clean-up of empty folders included, is one
+function that lists every folder once and stops on any error (`generate`
+reads the tree before writing, again to clean up, and again to compare).
+
+The commands require a stable tree: do not change it while a command runs.
+The release build runs them on a stable export. Against a tree that is
+changed underneath a running command the tool gives no assurance: a file
+added after its folder was listed is not seen, and a tree root or an entry
+swapped for a link between its check and its use can be read through by
+`compare` and `verify`, and written or deleted through by `generate` before
+its final comparison refuses. Closing that would need descriptor-relative
+traversal with no-follow opens, which this tool does not do.
 
 ## What the manifest records
 

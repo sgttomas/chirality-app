@@ -309,22 +309,30 @@ def build(files: dict[str, bytes], selection: dict) -> dict[str, bytes]:
     return tree
 
 
-def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
-    """The committed tree as path -> bytes, and what else is found in it:
-    every entry that is not a regular file or a folder, and every folder that
-    holds no file. Each folder is listed once and every entry is classified
-    by its own status, so the files and folders reported come from one
-    reading. Anything that cannot be listed, classified or read stops the
-    reading: an unreadable tree is never an empty one. A link is reported and
-    never followed, and a tree that is itself a link is refused. The tree must
-    not be changed while it is read."""
-    tree: dict[str, bytes] = {}
-    other: list[str] = []
-    visited: list[str] = []
-    if output.is_symlink():
+def scan_tree(output: Path) -> tuple[dict[str, bytes], list[str], list[str]] | None:
+    """One reading of the tree at `output`: its regular files as path -> bytes,
+    the entries that are neither a regular file nor a folder, and its folders.
+    None when nothing is there.
+
+    Every reading of the tree in this tool is this function. Each folder is
+    listed once and each entry is classified by its own status, so nothing is
+    skipped silently: anything that cannot be listed, classified or read
+    raises, and an unreadable tree is never an empty one. A link is reported
+    and never followed, and a tree that is itself a link, or is not a folder,
+    is refused. The tree must not be changed while it is read."""
+    try:
+        mode = os.lstat(output).st_mode
+    except FileNotFoundError:
+        return None
+    except OSError as error:
+        raise BundleError(f"cannot read {output}: {error.strerror}") from None
+    if stat.S_ISLNK(mode):
         raise BundleError(f"{output} is a link; the bundled tree must be a folder")
-    if not output.is_dir():
-        return tree, other
+    if not stat.S_ISDIR(mode):
+        raise BundleError(f"{output} is not a folder")
+    files: dict[str, bytes] = {}
+    special: list[str] = []
+    folders: list[str] = []
 
     def read(folder: Path) -> None:
         try:
@@ -337,28 +345,44 @@ def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
             try:
                 mode = os.lstat(path).st_mode
                 if stat.S_ISREG(mode):
-                    tree[relative] = path.read_bytes()
+                    files[relative] = path.read_bytes()
             except OSError as error:
                 raise BundleError(f"cannot read {path}: {error.strerror}") from None
             if stat.S_ISDIR(mode):
-                visited.append(relative)
+                folders.append(relative)
                 read(path)
             elif not stat.S_ISREG(mode):
-                other.append(f"not a regular file: {relative}")
+                special.append(relative)
 
     read(output)
-    other += [
-        f"folder without a file: {relative}"
-        for relative in visited
-        if not any(path.startswith(f"{relative}/") for path in tree)
-    ]
-    return tree, sorted(other)
+    return files, special, folders
+
+
+def folders_without_a_file(files: dict[str, bytes], folders: list[str]) -> list[str]:
+    return [folder for folder in folders if not any(path.startswith(f"{folder}/") for path in files)]
+
+
+def described(scan: tuple[dict[str, bytes], list[str], list[str]]) -> tuple[dict[str, bytes], list[str]]:
+    """A reading's files, and what else it found: every entry that is not a
+    regular file or a folder, and every folder that holds no file."""
+    files, special, folders = scan
+    other = [f"not a regular file: {path}" for path in special]
+    other += [f"folder without a file: {path}" for path in folders_without_a_file(files, folders)]
+    return files, sorted(other)
+
+
+def read_tree(output: Path) -> tuple[dict[str, bytes], list[str]]:
+    """The committed tree as path -> bytes, and what else is found in it.
+    A tree that is not there reads as no files."""
+    scan = scan_tree(output)
+    return ({}, []) if scan is None else described(scan)
 
 
 def differences(expected: dict[str, bytes], output: Path) -> list[str]:
-    if not output.is_symlink() and not output.is_dir():
+    scan = scan_tree(output)
+    if scan is None:
         return [f"not a folder: {output}"]
-    actual, found = read_tree(output)
+    actual, found = described(scan)
     found += [f"missing: {path}" for path in sorted(set(expected) - set(actual))]
     found += [f"not in the release: {path}" for path in sorted(set(actual) - set(expected))]
     found += [
@@ -370,10 +394,9 @@ def differences(expected: dict[str, bytes], output: Path) -> list[str]:
 
 
 def write_tree(expected: dict[str, bytes], output: Path) -> None:
-    actual, other = read_tree(output)
-    for line in other:
-        if line.startswith("not a regular file"):
-            raise BundleError(f"{output}: {line}; remove it by hand")
+    actual, special, _ = scan_tree(output) or ({}, [], [])
+    if special:
+        raise BundleError(f"{output}: not a regular file: {special[0]}; remove it by hand")
     for relative in set(actual) - set(expected):
         (output / relative).unlink()
     for relative, data in expected.items():
@@ -381,9 +404,12 @@ def write_tree(expected: dict[str, bytes], output: Path) -> None:
         if actual.get(relative) != data:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(data)
-    for folder in sorted((p for p in output.rglob("*") if p.is_dir()), reverse=True):
-        if not any(folder.iterdir()):
-            folder.rmdir()
+    # Folders left holding no file are removed, deepest first. They are found
+    # by the same reading as everything else, so a listing that fails here
+    # stops the command and is not a finished clean-up.
+    files, _, folders = scan_tree(output) or ({}, [], [])
+    for relative in sorted(folders_without_a_file(files, folders), key=lambda path: path.count("/"), reverse=True):
+        (output / relative).rmdir()
 
 
 def verify_tree(output: Path) -> list[str]:
@@ -430,7 +456,7 @@ def main(argv: list[str] | None = None) -> int:
         if arguments.command == "verify":
             found = verify_tree(output)
         else:
-            selection = read_selection()
+            selection = read_selection(ROOT)
             expected = build(read_release(arguments.archive, selection), selection)
             if arguments.command == "generate":
                 write_tree(expected, output)
