@@ -1325,8 +1325,9 @@ ancestry. Put this stand-in configuration in the scratch home's `config.toml`:
 model_provider = "skeleton_local"
 model = "skeleton-no-model"
 # The App starts this home's Codex on the built-in provider whatever
-# model_provider says (DEL-01-05), so the built-in provider's address is the
-# setting that keeps a development conversation on this machine.
+# model_provider says (DEL-01-05). The next line gives that provider a
+# same-machine address in this file. A file alone does not decide where a
+# launch's model requests go: also set CHIRALITY_DEV_OPENAI_BASE_URL, below.
 openai_base_url = "http://127.0.0.1:9/v1"
 [model_providers.skeleton_local]
 name = "Offline development stand-in"
@@ -1399,7 +1400,8 @@ scratch workspace's `project/decisions/`, then run `npx --offline tauri dev`.
 For the offline thread exercise, start a new conversation with the ChatGPT
 account entry and, under **Advanced: enter a model ID yourself**, type the
 model `skeleton-no-model`. No provider is entered: the conversation runs on
-the built-in provider at the address set above. This is a test choice, not a
+the built-in provider, at the address `CHIRALITY_DEV_OPENAI_BASE_URL` gives.
+This is a test choice, not a
 product default.
 Open a package, choose an alternative and confirm its full native text.
 Authenticated/live model work remains coordinated with the owner.
