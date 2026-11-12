@@ -1416,7 +1416,12 @@ fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<S
         entry["at"] = json!(now_rfc3339());
         entry["state"] = json!("closed");
         entry["transition"] = json!("RQ-06");
-        entry["endedAs"] = json!("ended-unanswered(process-exit)");
+        // What the record holds and no more: the request was recorded open by
+        // a session that ended. No reply is recorded; whether one was written
+        // after the last record, and whether Codex's process had ended, were
+        // not observed. (RQ-04, written by the session that held the request,
+        // keeps `ended-unanswered(process-exit)`.)
+        entry["endedAs"] = json!(OPEN_AT_APP_SESSION_END);
         entry["context"] = json!("app-ended-without-record");
         // Identity, subject and any reply/ack observation are copied exactly.
         pending.push(entry);
@@ -1424,12 +1429,20 @@ fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<S
     (pending, limits.into_iter().collect())
 }
 
+/// The startup ending of a request an earlier App session left recorded open.
+pub(crate) const OPEN_AT_APP_SESSION_END: &str = "open-at-app-session-end";
+/// The custody events of the recorded startup endings (RQ-06). A row written
+/// with `open-at-app-session-end` gives `request_open_at_app_session_end`,
+/// standing App-recorded. A row an earlier build wrote as
+/// `ended-unanswered(process-exit)` stays as it was written and keeps the
+/// kind it was given then; nothing is rewritten.
 fn recorded_startup_request_events(rows: &[Value]) -> Vec<Value> {
     rows.iter().filter(|r| r["kind"] == "register_entry_summary"
         && r["transition"] == "RQ-06" && r["state"] == "closed"
-        && r["endedAs"] == "ended-unanswered(process-exit)"
+        && (r["endedAs"] == OPEN_AT_APP_SESSION_END || r["endedAs"] == "ended-unanswered(process-exit)")
         && r["context"] == "app-ended-without-record")
         .filter_map(|row| {
+            let recorded_open = row["endedAs"] == OPEN_AT_APP_SESSION_END;
             let generation = row["generation"].as_str()?;
             generation_from_ref(generation).ok()?;
             let key = json!([row["session"], row["generation"], row["requestIdentity"]]);
@@ -1437,8 +1450,9 @@ fn recorded_startup_request_events(rows: &[Value]) -> Vec<Value> {
             let mut entry = json!({"generation":row["generation"],
                 "requestIdentity":row["requestIdentity"],"method":row["method"]});
             if let Some(subject) = row.get("subject") { entry["subject"] = subject.clone(); }
-            Some(json!({"kind":"request_ended_unanswered","eventId":format!("cev:rq06:{identity}"),
-                "appSession":row["session"],"at":row["at"],"standing":"App-observed",
+            Some(json!({"kind":if recorded_open {"request_open_at_app_session_end"} else {"request_ended_unanswered"},
+                "eventId":format!("cev:rq06:{identity}"),
+                "appSession":row["session"],"at":row["at"],"standing":if recorded_open {"App-recorded"} else {"App-observed"},
                 "entry":entry,"context":row["context"]}))
         }).collect()
 }

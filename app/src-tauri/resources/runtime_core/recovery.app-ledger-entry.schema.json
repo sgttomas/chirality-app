@@ -379,6 +379,7 @@
           "pattern": "^RQ-[0-9][0-9]$"
         },
         "endedAs": {
+          "description": "ended-unanswered(process-exit): written by the session that held the request, when its Codex generation closed. open-at-app-session-end (0.5): written at a later session's start for a request an earlier App session left recorded open. That session's end ended the connection it could be answered on. No reply is recorded; whether one was written after the last record, and whether Codex's process had ended, were not observed.",
           "enum": [
             "answered",
             "declined",
@@ -386,7 +387,8 @@
             "resolved-by-supplier",
             "settle-write-failed",
             "reply-outcome-unknown",
-            "ended-unanswered(process-exit)"
+            "ended-unanswered(process-exit)",
+            "open-at-app-session-end"
           ]
         },
         "origin": {

@@ -10,7 +10,7 @@ import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
-const {RecoveryCustodyPanel} = loadSrc('RecoveryCustodyPanel');
+const {RecoveryCustodyPanel, requestEndWords, OPEN_AT_APP_SESSION_END_WORDS} = loadSrc('RecoveryCustodyPanel');
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
 let output;
 if (process.env.CHIRALITY_REQUEST_HISTORY_DTO_LOG) {
@@ -52,7 +52,17 @@ test('actual cold RQ04 and RQ06 DTOs stay historical and require an explicit bou
       await view.show(); assert.deepEqual(calls, [], 'mount and ordinary metadata presentation do not query the ledger');
       await view.press('Read latest request summaries');
       assert.deepEqual(calls, [null]);
-      assert.match(view.container.textContent, /ended-unanswered\(process-exit\)/, scenario);
+      // The session that held the request records a process exit it observed (RQ-04). A later
+      // session's startup ending records only what the ledger holds (RQ-06): recorded open, no
+      // reply recorded, the rest not observed; the raw value stays beside the sentence.
+      if (scenario === 'app-ended-without-record') {
+        assert.match(view.container.textContent, /open-at-app-session-end:/, scenario);
+        assert.match(view.container.textContent, /The App session that held this request ended while the request was recorded open, so it can no longer be answered\. No reply to it is recorded\. Whether one was sent after the last record was not observed\./, scenario);
+        assert.doesNotMatch(view.container.textContent, /unanswered|process-exit/, scenario);
+      } else {
+        assert.match(view.container.textContent, /ended-unanswered\(process-exit\)/, scenario);
+        assert.doesNotMatch(view.container.textContent, /open-at-app-session-end/, scenario);
+      }
       assert.match(view.container.textContent, /original-request-home/);
       assert.match(view.container.textContent, /old-request-session/);
       assert.match(view.container.textContent, /cannot be answered here/);
@@ -95,6 +105,13 @@ test('foreign replies and completion after home selection changes do not populat
   } finally {await view.close();}
 });
 
+test('a startup ending is worded by its own kind, and an unknown kind is never shown as an ending', () => {
+  assert.equal(requestEndWords({kind:'request_open_at_app_session_end'}), OPEN_AT_APP_SESSION_END_WORDS);
+  assert.doesNotMatch(OPEN_AT_APP_SESSION_END_WORDS, /unanswered|process|Codex/);
+  assert.equal(requestEndWords({kind:'request_ended_unanswered'}), 'Recorded by an earlier build as ended unanswered when its App session ended without a record:');
+  assert.equal(requestEndWords({kind:'some_later_kind'}), 'some_later_kind:');
+  assert.equal(requestEndWords({}), 'not established:');
+});
 test('terminal outcome and typed identities are displayed without relabeling them unanswered', async () => {
   const dto = structuredClone(original);
   dto.page.entries = ['answered','declined','reply-outcome-unknown','errored','resolved-by-supplier'].map((endedAs,index) => ({
