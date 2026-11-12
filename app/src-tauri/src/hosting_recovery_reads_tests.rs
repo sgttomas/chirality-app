@@ -478,6 +478,27 @@ fn an_unanswered_read_is_unavailable_and_a_retry_while_not_ready_waits_for_ready
 
 /// An earlier session's request that takes no transition here keeps the
 /// ledger's persistence reading (it is not taken into this process).
+/// The other order of the same relaunch: the App ends with Codex still
+/// running, so no loss reached the ledger before the session ended. The
+/// reading says what the ledger holds, a turn in progress, and states nothing
+/// about Codex having ended. (In the cv19 test above the loss row is waited
+/// for; without that wait either order can occur, and each reads as recorded.)
+#[test]
+fn cv19_relaunch_with_no_loss_recorded_reads_only_the_turn_last_recorded_in_progress() {
+    let f = Fixture::new();
+    f.live_work();
+    f.until("the live turn in the ledger", || f.states().last().map(String::as_str) == Some("turn-live"));
+    // The App ends here, Codex running: that session writes nothing more.
+    let relaunched = Fixture::session(&f.root, &f.cfg);
+    let told = crate::interrupted_work::read_home(&relaunched);
+    let entry = &told["conversations"][0];
+    assert_eq!((entry["threadId"].as_str(), entry["lastRecordedState"].as_str(), entry["priorSessionEnd"].as_str()),
+        (Some("thread"), Some("turn-live"), Some("ended-without-record")), "{told}");
+    assert!(entry.get("lostBeforeSessionEnd").is_none(), "no loss was recorded, so none is stated: {told}");
+    assert_eq!(entry["turns"], json!([{"turnId":"turn-1","current":{"reading":"not-read","attempts":0}}]), "{told}");
+    let _ = relaunched.host.stop("fixture", "test ended");
+}
+
 #[test]
 fn relaunch_without_a_final_status_leaves_the_ledger_stop_request_reading_unchanged() {
     let f = Fixture::new();
