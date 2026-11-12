@@ -448,14 +448,31 @@ pub(crate) fn roots_write_pending(store: &Path, bytes: &[u8]) -> Result<bool, St
     };
     for key in keys {
         let dir = store.join("projects").join(&key);
-        if std::fs::symlink_metadata(journal(&dir)?).is_err() {
-            continue;
+        // Only a journal that is not there is passed over. If whether one
+        // exists cannot be established, whether a registry write is pending
+        // is unknown, and that is a refusal, never "nothing pending".
+        match std::fs::symlink_metadata(journal(&dir)?) {
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(format!("the package import journal of project folder {} could not be examined ({e}), so whether a registry write is pending is unknown", key.to_string_lossy())),
         }
         if entries(&dir)?.iter().any(|e| e.done.is_none() && within(&e.intent)) {
             return Ok(true);
         }
     }
     Ok(false)
+}
+/// A new package import freezes its own write to the registry of project
+/// folders. While another unfinished import's frozen write is pending over
+/// the registry's bytes, a second frozen write could not be satisfied
+/// together with the first, so the new import is refused before its intent
+/// is made durable. The pending import's own recovery does not come here.
+fn refuse_while_another_registry_write_is_pending(store: &Path) -> Result<(), String> {
+    let registry = optional(&store.join("roots.jsonl"))?.unwrap_or_default();
+    if roots_write_pending(store, &registry)? {
+        return Err("an interrupted package import's write to the registry of project folders is pending; finish that import first; nothing imported and nothing in the registry changed".into());
+    }
+    Ok(())
 }
 pub(crate) fn require_root(root: &Path) -> Result<(), String> {
     let (store, _) = opened()?;
@@ -781,6 +798,7 @@ fn prepare_inner(
     {
         return Err("finish the existing package import first".into());
     }
+    refuse_while_another_registry_write_is_pending(&store)?;
     let before = bag::payload_inventory(&dir)?;
     for (name, member) in snapshot.payload() {
         if before.get(name).is_some_and(|old| old != member) {
@@ -1056,6 +1074,8 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         {
             return Err("another package import is incomplete".into());
         }
+        // Under the store lock and before this import's intent is durable.
+        refuse_while_another_registry_write_is_pending(i.store_path())?;
         // Mark uncertain before create: an error can mean the complete intent
         // is visible but its parent flush has not been confirmed.
         UNCERTAIN

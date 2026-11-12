@@ -442,6 +442,95 @@ fn package_import_pending_registry_write_holds_every_other_registry_append_until
     }
 }
 
+/// Review round 1, finding 1. A package import publishes its own registry
+/// write and does not go through the store's appender, so the appender's
+/// refusal did not reach it: a second import froze and published its write
+/// while another's was pending, and the first could then never finish. Now a
+/// new import is refused while another's registry write is pending, when it
+/// is prepared and again, under the store lock, before its intent is made
+/// durable; nothing of it is left, and both finish in turn.
+#[test]
+fn package_import_a_second_import_is_refused_while_anothers_registry_write_is_pending() {
+    for at in ["payload", "roots-partial"] {
+        let f = Fixture::new();
+        // Another project with a package of its own, exported from the source store.
+        Fixture::choose(&f.source);
+        let second_root = f.base.join("second-project");
+        std::fs::create_dir_all(&second_root).unwrap();
+        crate::records::append_project(&second_root, Some("run:fixture"), "app-writer:local", "evidence_limit", &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"invented second fixture"})).unwrap();
+        let second_project = attach(&second_root, false).unwrap().project.unwrap();
+        let second_bag = f.base.join("export/second-bag");
+        crate::records_export::export(&second_root, &second_bag).unwrap();
+        Fixture::choose(&f.destination);
+        // Prepared before the first import freezes anything durable.
+        let early = prepare(&second_root, &second_bag, &actor(), &observed()).unwrap();
+        let plan = f.plan();
+        STOP.with(|s| *s.borrow_mut() = Some(at));
+        assert!(apply(plan, &actor(), &observed()).unwrap_err().contains("test interruption"));
+        let path = f.destination.join("roots.jsonl");
+        let before = std::fs::read(&path).ok();
+        assert!(roots_write_pending(&f.destination, before.as_deref().unwrap_or_default()).unwrap(), "{at}: the first import's registry write is pending");
+        let pending = "package import's write to the registry of project folders is pending";
+        let prepared = prepare(&second_root, &second_bag, &actor(), &observed()).err().expect("a new import is not prepared");
+        assert!(prepared.contains(pending), "{at}: {prepared}");
+        let applied = apply(early, &actor(), &observed()).unwrap_err();
+        if at == "payload" {
+            assert!(applied.contains(pending), "{at}: {applied}");
+        }
+        let second_dir = project_dir(&f.destination, &second_project);
+        assert!(std::fs::symlink_metadata(journal(&second_dir).unwrap()).is_err(), "{at}: the second import left no durable intent");
+        assert_eq!(std::fs::read(&path).ok(), before, "{at}: the registry's bytes are unchanged");
+        // The first finishes, as before; then the second imports.
+        UNCERTAIN.lock().unwrap().remove(&f.dir());
+        let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+        apply(retry, &actor(), &observed()).unwrap();
+        assert!(require_complete(&f.dir()).is_ok(), "{at}: the first import finishes");
+        let second = prepare(&second_root, &second_bag, &actor(), &observed()).unwrap();
+        apply(second, &actor(), &observed()).unwrap();
+        assert!(require_complete(&second_dir).is_ok(), "{at}: then the second imports");
+        assert_eq!(attach(&second_root, false).unwrap().project.as_deref(), Some(second_project.as_str()));
+    }
+}
+
+/// Review round 1, finding 2. Whether a registry write is pending is read
+/// from each project's package import journal. A journal that is not there
+/// is passed over; one that cannot be examined is a refusal, never "nothing
+/// pending": with the project's administration folder unsearchable, a
+/// registration is refused, the startup recovery writes nothing, the
+/// registry's bytes are unchanged, and the import still finishes once the
+/// folder can be read again.
+#[test]
+fn package_import_a_journal_that_cannot_be_examined_refuses_the_registry_write() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    let plan = f.plan();
+    STOP.with(|s| *s.borrow_mut() = Some("roots-partial"));
+    assert!(apply(plan, &actor(), &observed()).unwrap_err().contains("test interruption"));
+    let path = f.destination.join("roots.jsonl");
+    let before = std::fs::read(&path).unwrap();
+    assert!(!before.ends_with(b"\n"), "the frozen write left a fragment");
+    let controls = journal(&f.dir()).unwrap().parent().unwrap().to_path_buf();
+    let mode = std::fs::metadata(&controls).unwrap().permissions();
+    std::fs::set_permissions(&controls, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let pending = roots_write_pending(&f.destination, &before);
+    let other = f.base.join("other-folder");
+    std::fs::create_dir_all(&other).unwrap();
+    let registration = attach(&other, true);
+    let left = recover_at_startup();
+    let after = std::fs::read(&path).unwrap();
+    std::fs::set_permissions(&controls, mode).unwrap();
+    let unknown = "so whether a registry write is pending is unknown";
+    assert!(pending.unwrap_err().contains(unknown));
+    assert!(registration.unwrap_err().contains(unknown));
+    assert!(match left { Ok(left) => left.iter().any(|l| l.contains(unknown)), Err(e) => e.contains(unknown) });
+    assert_eq!(after, before, "the registry's bytes are unchanged");
+    UNCERTAIN.lock().unwrap().remove(&f.dir());
+    let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+    apply(retry, &actor(), &observed()).unwrap();
+    assert!(require_complete(&f.dir()).is_ok(), "the import finishes once its journal can be examined");
+}
+
 /// Without a pending import, a fragment in the registry is closed and named,
 /// and the package import's readers (its frozen-prefix comparison and its
 /// registry reading) ignore the naming line and the set-aside line.
