@@ -46,6 +46,7 @@ code_paths:
 # selection and need-state rules are DEL-06-01's.
 - app/src-tauri/src/fleet_views.rs
 - app/src-tauri/src/decision_view.rs
+- app/src-tauri/src/decision_view_tests.rs
 # app/src-tauri/resources/connector_route/connector.standing.schema.json is DEL-07-02's published standing form.
 # fleet_views.rs reads it to judge a connector need and this deliverable does not list it.
 # app/src-tauri/schemas/checkpoint-record-entries.schema.json is DEL-02-03's. Its decisionPackageFile
