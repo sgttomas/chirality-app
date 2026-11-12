@@ -382,7 +382,15 @@ any further push to the branch. `main` does not require an up-to-date branch:
 before merging or arming, Agent 0 updates the branch and waits for a fresh run
 when a PR merged since the branch's base touched the same files or the same
 deliverable. Open PRs that overlap this way merge in turn: the later one stays
-unarmed until the earlier has landed and the later has been updated. Agents working under that Agent 0's assignment report a PR ready to
+unarmed until the earlier has landed and the later has been updated. A later
+PR whose head already contains the exact reviewed head of each earlier one may
+instead be merged first and so land them, when its required checks are green
+on its exact head, a comparison made at merge time shows that the merge leaves
+`main` holding exactly the tree those checks passed on, and each earlier PR
+has had its own review and any INTERLOCUTOR consultation. An earlier PR that
+gained a commit after its review is not landed this way until that commit is
+reviewed. Each PR merged or landed this way says so and states the result of
+its own checks (owner, 2026-11-12). Agents working under that Agent 0's assignment report a PR ready to
 merge and wait for that Agent 0 to merge it. A Type 1 the owner started directly reports its PR ready to this project's Agent 0; where the owner works with it alone and no Agent 0 holds the project, it holds that perspective and merges under this grant. Explicit holds and reserved decisions
 apply. This grant excludes protection bypasses, history rewrites, force pushes,
 permission changes and releases. Use [Git conventions](#git-conventions) below.
