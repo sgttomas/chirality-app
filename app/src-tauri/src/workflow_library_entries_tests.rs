@@ -326,6 +326,7 @@ fn library_entries_commands_refuse_stale_home_generation_history_and_library() {
                 &root,
                 &stale,
                 || home.clone(),
+                crate::workflow_selection::Wait::for_press(),
                 |root, home| {
                     if operation == "refresh" {
                         root.observe_library_entries(library["reference"].as_str().unwrap())
@@ -372,6 +373,7 @@ fn library_entries_queued_command_rechecks_home_after_waiting_for_root() {
                 }
                 home
             },
+            crate::workflow_selection::Wait::for_press(),
             |_, _| Err::<Value, _>("stale command reached its mutation".into()),
         )
     });

@@ -202,7 +202,7 @@ pub(crate) fn project_status_history<'a>(
     for thread in status["threads"].as_array_mut().into_iter().flatten() {
         if let (Some(home),Some(id)) = (thread["generation"]["home"].as_str(),thread["threadId"].as_str()) {
             let role = history.role_details(home,id,root.as_deref().ok());
-            for field in ["appRole","roleRelation","childGuidance","roleLimitObservations","futureGuidanceNotices"] {
+            for field in ["appRole","roleRelation","childGuidance","roleLimitObservations","suppliedLimitAccount","futureGuidanceNotices"] {
                 thread[field] = role[field].clone();
             }
         }
