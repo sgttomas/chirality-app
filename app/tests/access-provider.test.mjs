@@ -255,7 +255,7 @@ test('Start says why it is unavailable, and reading providers again keeps a chos
   const why=()=>c.querySelectorAll(node=>node.getAttribute('id')==='start-conversation-blocked')[0]?.textContent;
   assert.equal(props(button(c,'Start thread')).disabled,true);assert.match(why(),/Choose how this conversation connects \(step 1\)/);
   await press(c,'Read configured local providers');await press(c,'Choose provider anonymous');
-  assert.match(why(),/Choose a model \(step 2\)/);
+  assert.match(why(),/Enter the model's name on the local server \(step 2\)/);
   await change(labelled(c,'input','Model '),'person-model');
   assert.equal(props(button(c,'Start thread')).disabled,false);assert.equal(why(),undefined,'no reason is shown while Start is available');
   // Another private read of the same folder is a newer observation: the row choice is retired, with what restores it.
