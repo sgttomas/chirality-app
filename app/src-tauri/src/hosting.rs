@@ -4705,6 +4705,19 @@ pub(crate) fn install_broken_test_input(host:&Host)->Option<ChildStdin>{
     host.stdin.lock().unwrap().replace(ChildStdin::from(input))
 }
 
+/// For tests of a resume or fork whose own write fails: once the configuration reading that admits
+/// it has been written (and is answered by the stand-in, or by `answer` when given), the input is
+/// replaced by one that fails. The replaced input is kept, so the stand-in is not ended.
+#[cfg(test)]
+pub(crate) fn break_input_after_the_reading(host:&Host,answer:Option<Value>)->Arc<Mutex<Vec<Option<ChildStdin>>>>{
+    let kept=Arc::new(Mutex::new(Vec::new()));let keep=Arc::clone(&kept);
+    *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|h,source|{
+        if let Some(config)=&answer{h.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":config})).unwrap(),source.generation());}
+        keep.lock().unwrap().push(install_broken_test_input(h));
+    }));
+    kept
+}
+
 #[cfg(test)]
 mod hosting_identity_tests {
     use super::*;
@@ -5785,7 +5798,11 @@ mod conversation_transport_tests {
     }
     #[test]
     fn history_bridge_failed_write_foreign_latest_revision_and_closed_refuse_admission() {
-        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();install_broken_test_input(&host);let failed=host.history_dispatch(&query).unwrap();let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
+        // The admitting reading is written and answered; then the input fails, so the resume's own write fails.
+        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
+        let mut cat=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=cat.stdin.take();
+        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai"},"origins":{}})));let failed=host.history_dispatch(&query).unwrap();
+        *host.before_provider_wait.lock().unwrap()=None;drop(kept);assert!(cat.wait().unwrap().success());let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
     }
