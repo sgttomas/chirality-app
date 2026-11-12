@@ -233,7 +233,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         Draft202012Validator(schema).validate(selected)
         identifier = selected['production_bundle_identifier']
         require(not identifier.startswith('dev.chirality.app-v4.package-test.'), 'test namespace cannot select production inputs')
-        mode, product = 'selected-production-inputs', 'Chirality App v4'
+        mode, product = 'selected-production-inputs', 'Chirality'
         publisher_ref = {'path': str(inventory.anchored(publisher_input)), 'sha256': publisher_sha256}
     profile_ref = None
     if provisioning_profile is not None or provisioning_profile_sha256 is not None:
