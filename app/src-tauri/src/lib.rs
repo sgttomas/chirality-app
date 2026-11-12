@@ -51,6 +51,7 @@ mod publisher_selection;
 mod publisher_recipe;
 pub mod home_resources;
 mod native_local_provider;
+mod dev_model_address;
 mod native_secure_entry;
 mod desktop_startup;
 mod desktop_setup_confirmation;
@@ -281,6 +282,13 @@ fn complete_config_resource_continuation(
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
 fn probe_home() -> Result<PathBuf,String> {
     runtime_session::allocate_fresh_probe(&std::env::temp_dir())
+}
+
+/// Whether this build admits development startup inputs. The release
+/// configuration (built with distribution-successor, and not a development
+/// run) admits none.
+pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
+    is_dev || !cfg!(feature = "distribution-successor")
 }
 
 /// Complete explicit environment route; no private supplier/home path is built in.
@@ -1167,6 +1175,8 @@ fn oauth_cancel(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value)-
 fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
     let _operation=state.key_setup.try_lock().map_err(|_|"Another explicit key operation is pending; no duplicate/retry")?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App is quitting; no key home was created or started".into()); }
+    // DEL-01-05: the key home's start configuration is cloned from the account home's.
+    dev_model_address::check_key_home(&state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?.host_config)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     bootstrap.key_plan()?;
     if !app.dialog().message("Add or replace an API key through the separate App key home? Its explicit resource links may be prepared and its Codex child started. Existing account conversations are not transferred.").title("Separate API-key home").buttons(MessageDialogButtons::OkCancel).blocking_show(){return Ok(json!({"state":"cancelled; no key setup/login"}));}
@@ -2881,7 +2891,10 @@ pub fn run() {
     let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
     let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
     let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
-    let desktop_startup::RootInputs { launch, data, allow_operational } = desktop.admit_root(launch, data);
+    let desktop_startup::RootInputs { mut launch, data, allow_operational } = desktop.admit_root(launch, data);
+    // DEL-01-05: a development build can be held to a same-machine model address.
+    // Not consulted in the release configuration.
+    launch.host_config = dev_model_address::apply(launch.host_config, development_inputs_admitted(tauri::is_dev()), |key|std::env::var_os(key));
     let host_config = launch.host_config.clone();
     let key_path = launch.key_path.clone();
     let shared_paths = launch.shared_paths.clone();

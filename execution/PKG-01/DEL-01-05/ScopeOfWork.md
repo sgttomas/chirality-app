@@ -38,7 +38,7 @@ Its examination scenario is EXAMINATION V4-EXM-12. The access modes are two, as 
 Terms:
 
 - **App-owned Codex home.** A Codex home directory the App creates for its own Codex, with a stable identity that is neither a credential nor a path. Every conversation belongs to exactly one home.
-- **Account home.** The home for ChatGPT account conversations. It shares the person's Codex settings, providers and MCP servers through links to the person's own files and keeps its own sign-in, held by Codex. If a pinned Codex cannot share settings this way, the App keeps its own settings and says so.
+- **Account home.** The home for ChatGPT account conversations. It shares the person's Codex settings, providers and MCP servers through links to the person's own files and keeps its own sign-in, held by Codex. A development build can also be held to a same-machine model address by a startup input the released App does not read. If a pinned Codex cannot share settings this way, the App keeps its own settings and says so.
 - **Dedicated local home.** The home for the keyed oMLX route. It has its own fixed, nonsecret configuration — provider `chirality-omlx` at `http://127.0.0.1:8000/v1` over the Responses interface, with one fixed model for the route — shares nothing with the account home, and holds the local server's key in Codex custody.
 - **Probe home.** A home used only when the supplier binary is asked for its version label. It is never an account home and hosts no conversation.
 - **Access entry.** One way a conversation can reach a model: the ChatGPT account, a provider from the person's shared Codex settings, or the keyed oMLX route.

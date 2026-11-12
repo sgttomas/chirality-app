@@ -3340,6 +3340,8 @@ pub(crate) fn start_native_oauth<F: FnOnce() -> bool>(
         .oauth_start_gate
         .try_lock()
         .map_err(|_| "Another native sign-in start is pending; no replacement/retry")?;
+    // DEL-01-05: sign-in is off in a home whose Codex carries the development model address.
+    crate::dev_model_address::check_sign_in(&home.host_config)?;
     check_native_oauth_home(home, bootstrap, generation)?;
     if !confirm() {
         return Ok(NativeOAuthStart {
@@ -3710,6 +3712,9 @@ mod oauth_root_tests {
     }
     impl Fixture {
         fn new() -> Self {
+            Self::with(|_| {})
+        }
+        fn with(change: impl FnOnce(&mut HostConfig)) -> Self {
             use std::os::unix::fs::PermissionsExt;
             let root = std::fs::canonicalize(std::env::temp_dir())
                 .unwrap()
@@ -3760,6 +3765,7 @@ for line in sys.stdin:
                 HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
             cfg.allow_unverified_dev = true;
             cfg.wait_limit = Duration::from_secs(2);
+            change(&mut cfg);
             let host = Arc::new(Host::new());
             host.start(&cfg, "owned unqualified Root fixture").unwrap();
             assert_eq!(
@@ -3834,6 +3840,37 @@ for line in sys.stdin:
             let _ = self.home.host.stop("owned Root fixture", "bounded cleanup");
             let _ = std::fs::remove_dir_all(&self.root);
         }
+    }
+    /// DEL-01-05: a home whose Codex carries the development model address refuses sign-in
+    /// before anything is sent, in both sign-in modes, and never asks the person.
+    #[test]
+    fn dev_model_address_refuses_sign_in_before_anything_is_sent() {
+        let f = Fixture::with(|cfg| {
+            *cfg = crate::dev_model_address::apply(Ok(cfg.clone()), true, |_| {
+                Some("http://127.0.0.1:9/v1".into())
+            })
+            .unwrap();
+        });
+        let before = f.wire().len();
+        for mode in [NativeLoginMode::Browser, NativeLoginMode::DeviceCode] {
+            let refusal = start_native_oauth(&f.home, &f.generation, mode, None, || {
+                panic!("the person is not asked")
+            })
+            .err()
+            .unwrap();
+            assert_eq!(refusal, crate::dev_model_address::SIGN_IN_OFF);
+        }
+        assert_eq!(f.wire().len(), before, "no request reached the supplier");
+        assert!(f.wire().iter().all(|frame| {
+            !matches!(
+                frame["method"].as_str(),
+                Some("account/login/start" | "configRequirements/read" | "account/read")
+            )
+        }));
+        assert!(f.home.oauth_login.lock().unwrap().is_none());
+        // The same home without the setting still starts a sign-in.
+        let plain = Fixture::new();
+        plain.start(NativeLoginMode::Browser);
     }
     #[test]
     fn oauth_root_browser_once_original_cancel_and_safe_observations() {

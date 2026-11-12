@@ -35,6 +35,8 @@ code_paths:
 - app/src-tauri/src/config_resource_continuation.rs
 - app/src-tauri/src/home_resources.rs
 - app/src-tauri/src/native_local_provider.rs
+# The development model address: a startup input the release configuration never consults.
+- app/src-tauri/src/dev_model_address.rs
 - app/src-tauri/src/native_secure_entry.rs
 - app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs

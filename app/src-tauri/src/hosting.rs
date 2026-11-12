@@ -1551,6 +1551,8 @@ impl Host {
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+        // DEL-01-05: a home whose Codex would carry the development model address holds no sign-in file.
+        crate::dev_model_address::check_start(cfg)?;
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
         let attempt = {
