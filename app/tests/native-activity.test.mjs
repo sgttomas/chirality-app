@@ -361,8 +361,21 @@ test('a final error notice alerts, and a stopped Codex or a dropped notice is sa
  assert.match(html,/33 earlier notices are no longer kept\./);assert.match(html,/Codex error kind <code>other<\/code>/);
  v.turnErrors=[notice('turn-3',40,1,{observationEnded:true})];
  assert.match(render(v),/Codex has stopped since, so the App received nothing more for this turn\./);
+ // What arrived before the stop is still what arrived: the stop does not unsay it.
+ v.turnErrors=[notice('turn-3',40,1,{observationEnded:true,laterFrameForTurn:true})];
+ assert.match(render(v),/The App has received more for this turn since\./);assert.doesNotMatch(render(v),/received nothing more/);
  // A notice for a turn the view has nothing else for still shows, under a turn of unknown status.
  v.turnErrors=[notice('turn-9',90,1,{willRetry:undefined})];
  const orphan=render(v);assert.match(orphan,/status unknown<\/h4>/);assert.match(orphan,/Codex did not say whether it will retry\./);
  assert.deepEqual(activityModel(v,'T').turns.at(-1).errors.length,1);
+});
+
+test('a turn last seen in progress is not headed in progress once Codex has stopped',()=>{
+ const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
+ assert.match(render(v),/<h4>Turn 3 · inProgress<\/h4>/);
+ v.observationEnded=true;
+ const html=render(v);
+ assert.match(html,/<h4>Turn 3 · in progress when last observed; Codex has stopped since, outcome unknown<\/h4>/);
+ assert.doesNotMatch(html,/<h4>Turn 3 · inProgress<\/h4>/);
+ assert.match(html,/<h4>Turn 1 · interrupted<\/h4>/,'an observed end stays as observed');assert.match(html,/<h4>Turn 2 · completed<\/h4>/);
 });

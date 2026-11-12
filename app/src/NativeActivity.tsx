@@ -400,6 +400,14 @@ export function DelegationLine({ delegation, descendants }: { delegation: Json; 
   return null;
 }
 
+/**
+ * A turn's status for its heading. A turn last seen in progress is not in
+ * progress once Codex has stopped: its outcome was not observed.
+ */
+export const turnStatusWords = (native: Json | null, observationEnded: boolean) => !native ? "status unknown"
+  : native.status === "inProgress" && observationEnded ? "in progress when last observed; Codex has stopped since, outcome unknown"
+  : text(native.status);
+
 /** One error notice in the supplier's own words: its message, then its details where it sent any. */
 const errorWords = (error: Json) => `${text(error?.message)}${typeof error?.additionalDetails === "string" && error.additionalDetails ? ` — ${error.additionalDetails}` : ""}`;
 
@@ -414,8 +422,8 @@ export function TurnErrors({ errors, turn }: { errors: Json[]; turn: Json | null
   const latest = errors[errors.length - 1];
   const received = typeof latest?.ordinalInTurn === "number" ? latest.ordinalInTurn : errors.length;
   const retry = latest?.willRetry === true ? "Codex said it will retry." : latest?.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry.";
-  const since = latest?.observationEnded === true ? "Codex has stopped since, so the App received nothing more for this turn."
-    : latest?.laterFrameForTurn === true ? "The App has received more for this turn since."
+  const since = latest?.laterFrameForTurn === true ? "The App has received more for this turn since."
+    : latest?.observationEnded === true ? "Codex has stopped since, so the App received nothing more for this turn."
     : turn?.status === "inProgress" || turn === null ? "The App has received nothing more for this turn since." : "";
   return <div role={latest?.willRetry === false ? "alert" : "status"} aria-label="Errors Codex reported in this turn">
     <p>Codex reported an error in this turn{received > 1 ? ` ${received} times; the latest` : ""}: <q>{errorWords(latest?.error)}</q> {retry}{since && ` ${since}`}</p>
@@ -493,7 +501,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
     {model.turns.length === 0 && <p>No activity observed for this conversation in the current Codex generation. This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON below.</p>}
     {model.turns.map((turn, index) => <section key={text(turn.turnId)} aria-label={`Conversation turn ${index + 1}`} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
       {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
-      <h4>{`Turn ${index + 1}`} · {turn.native ? text(turn.native.status) : "status unknown"}</h4>
+      <h4>{`Turn ${index + 1}`} · {turnStatusWords(turn.native, view?.observationEnded === true)}</h4>
       <details><summary>Turn source and timing</summary><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></details>
       {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />

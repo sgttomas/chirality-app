@@ -687,7 +687,9 @@ impl NativeView {
         snapshot
     }
     pub fn snapshot(&self) -> Value {
-        json!({"home":self.home,"generation":self.generation,"position":self.position,"supplierStanding":self.supplier_standing,"distributionEvidence":self.distribution_evidence,
+        json!({"home":self.home,"generation":self.generation,"position":self.position,
+            // True once this view's generation has closed: nothing here is a current reading then.
+            "observationEnded":self.generation.as_ref().is_some_and(|g|self.closed.contains(g)),"supplierStanding":self.supplier_standing,"distributionEvidence":self.distribution_evidence,
             "items":self.items.values().collect::<Vec<_>>(),"revisions":self.revisions,"descendants":self.descendants.values().collect::<Vec<_>>(),
             "turns":self.turns.values().collect::<Vec<_>>(),
             "modelReroutes":self.reroutes,
@@ -1072,7 +1074,9 @@ mod tests {
         }
         assert_eq!(v.snapshot()["turnErrors"].as_array().unwrap().len(), 4);
         // When the generation closes the entries stay, marked as no longer observed.
+        assert_eq!(v.snapshot()["observationEnded"], false);
         v.close(&g(1)).unwrap();
+        assert_eq!(v.snapshot()["observationEnded"], true);
         assert!(v.snapshot()["turnErrors"].as_array().unwrap().iter().all(|e| e["observationEnded"] == true));
     }
     #[test]
