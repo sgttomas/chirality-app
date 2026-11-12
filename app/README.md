@@ -1475,8 +1475,9 @@ must stand together, such as an act counted and the disposition change it
 makes, are written as one group line and read whole or not at all. Lines
 written before the chain, imported ones included, read as "unchained
 (legacy)", a limit that leaves the log complete; the chain starts after
-them. An edited, removed or unlinked line after the chain started is a broken
-chain: the log is incomplete and nothing repairs it. Until a chain head is
+them. An edited, removed or unlinked line after the chain started, with the
+links of the lines after it left as written, is a broken chain: the log is
+incomplete and nothing repairs it. Until a chain head is
 kept elsewhere (signed checkpoints, export manifests), removing a log's last
 lines, or every link of a log this process has not read chained, is not
 detected. The host status
