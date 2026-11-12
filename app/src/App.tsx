@@ -1830,7 +1830,7 @@ export function App() {
       ? `Provider ${modelProvider} was chosen before Codex or the connection changed. Choose it again from the list.`
       : `Provider ${modelProvider} is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`)
     : providerReading ? "Reading configured local providers…"
-    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again. The choice is kept if ${modelProvider} is still listed and Codex has not restarted since; otherwise choose it again from the list.`;
+    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again; if the choice is not kept, choose it again from the list.`;
   // The first thing that keeps Start unavailable, in the order a person meets it.
   const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
     : startPending ? "Starting the conversation…"
