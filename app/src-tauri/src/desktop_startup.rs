@@ -33,7 +33,12 @@ const SETTINGS: &str = "shared-settings";
 /// which one; and environment startup may have created a missing App data
 /// directory before it found it held, so this says nothing operational was
 /// started, not that nothing changed.
-pub(crate) const DATA_HELD: &str = "Chirality did not start here: its data is held by another process on this computer. Nothing operational was started. If a Chirality window is already open, use it; otherwise quit the App that is using this data, then open Chirality again.";
+pub(crate) const DATA_HELD: &str = "Chirality did not start here: its data is held by another process on this computer. Nothing operational was started. If a Chirality window is already open, use it; otherwise quit whatever is using this data, then open Chirality again.";
+/// A launch refused because a Codex home the saved request names is held: by
+/// another process, or still by this App. Setup is not what is needed then.
+fn home_held(reason: &str) -> bool {
+    [crate::home_hold::IN_USE, crate::home_hold::IN_USE_HERE, crate::home_hold::KEPT].iter().any(|held| reason.contains(held))
+}
 fn data_held(reason: &str) -> bool {
     reason.contains(DATA_HELD)
 }
@@ -817,7 +822,12 @@ impl DesktopSetup {
                 self.requested = None;
                 self.loaded_profile = None;
                 self.admitted = None;
-                self.launch_state = json!({"state":"setup-required","reason":reason,"operationalData":"not admitted; setup-only local input capability retained"});
+                // A held home is not a missing setup: the saved request stands and is not shown as needed.
+                self.launch_state = if home_held(&reason) {
+                    json!({"state":"home-held","reason":reason,"operationalData":"not admitted; nothing operational started"})
+                } else {
+                    json!({"state":"setup-required","reason":reason,"operationalData":"not admitted; setup-only local input capability retained"})
+                };
                 RootInputs {
                     launch: Launch::setup(reason.clone()),
                     data: Err(format!("Desktop operational data not admitted: {reason}")),
@@ -852,7 +862,7 @@ impl DesktopSetup {
                     self.launch_state = json!({"state":"data-held","reason":DATA_HELD});
                     return Launch::data_held();
                 }
-                self.launch_state = json!({"state":"setup-required","reason":reason});
+                self.launch_state = json!({"state": if home_held(&reason) { "home-held" } else { "setup-required" }, "reason": reason});
                 Launch::setup(reason)
             }
         }
@@ -5611,11 +5621,13 @@ mod tests {
                 .is_null());
             assert_eq!(home.host.snapshot()["state"], "absent");
             assert!(home.host.snapshot()["generation"].is_null());
-            // A holder of this App data is shown as held (which process is not
-            // known; DEL-01-02, one App at a time); every other refusal is setup.
+            // A holder of this App data is shown as held, and so is a holder of
+            // a Codex home the saved request names (which process is not known;
+            // DEL-01-02 REQ-010): neither is a missing setup, and showing setup
+            // as needed would be untrue. Every other refusal is setup.
             assert_eq!(
                 desktop.lock().unwrap().view()["launch"]["state"],
-                if case == "profile-owner" { "data-held" } else { "setup-required" },
+                match case { "profile-owner" => "data-held", "home-owner" => "home-held", _ => "setup-required" },
                 "{case}"
             );
             // Metadata preview is still a setup-only capability, with no
@@ -6245,6 +6257,7 @@ mod tests {
         let view = desktop.lock().unwrap().view();
         let reason = view["launch"]["reason"].as_str().unwrap_or_default().to_owned();
         assert!(reason.contains(crate::home_hold::IN_USE), "refused with the home sentence: {view}");
+        assert_eq!(view["launch"]["state"], "home-held", "a held home is not shown as setup being needed: {view}");
         assert!(started.is_none(), "no Codex configuration is admitted, so no automatic start");
         assert!(app_home.host_config.is_err());
         assert_eq!(app_home.host.snapshot()["state"], "absent");

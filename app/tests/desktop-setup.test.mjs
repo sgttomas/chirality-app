@@ -503,13 +503,26 @@ test('first use: a later project edit or no-project supersedes an in-flight Brow
     });
   }
 });
+test('a saved setup whose Codex home is held is not shown as setup being needed',async()=>{
+  const reason='Desktop request unavailable: Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.';
+  const view={...packet.dataHeld,launch:{state:'home-held',reason,operationalData:'not admitted; nothing operational started'}};
+  await mountedWelcome(view,()=>assert.fail('no IPC while a home is held'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/A Codex home this App uses is held/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,reason);
+    assert.match(welcome.textContent,/Nothing operational was started\. Your saved setup is unchanged; open Chirality again when the home is free\./);
+    assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder|Set up your workspace/i,'setup is not offered or said to be needed');
+    assert.equal(nodes(c,'button').length,0,'no setup action is offered');
+    assert.deepEqual(calls,[]);
+  });
+});
 test('a second App on data another process holds says what was observed, names no owner and offers no setup',async()=>{
   const view=packet.dataHeld;
   assert.equal(view.launch.state,'data-held');
   await mountedWelcome(view,()=>assert.fail('no IPC while another process holds this data'),async(c,calls)=>{
     const welcome=region(c,'Welcome');
     assert.match(welcome.textContent,/This App's data is in use/);
-    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,'Chirality did not start here: its data is held by another process on this computer. Nothing operational was started. If a Chirality window is already open, use it; otherwise quit the App that is using this data, then open Chirality again.');
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,'Chirality did not start here: its data is held by another process on this computer. Nothing operational was started. If a Chirality window is already open, use it; otherwise quit whatever is using this data, then open Chirality again.');
     assert.doesNotMatch(welcome.textContent,/already running|another Chirality App|nothing was started or changed/i,'no owner, window or unchanged state is asserted');
     assert.equal(nodes(c,'button').length,0,'no setup action is offered');
     assert.deepEqual(calls,[]);
