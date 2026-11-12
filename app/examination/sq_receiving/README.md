@@ -60,3 +60,8 @@ not a caller pin or fallback.
 
 For the additive package/S4 route, use `receive_packages.py` with its explicit successor selection and independent
 configuration; the original entry above remains its own source/record subject.
+
+A result record's structured home field (`configuration.model_server.home`)
+admits only `H-acct`, `H-key` and `not_applicable`, so it cannot name the App's
+dedicated local home: a result for the local model server leaves `home` out and
+states the dedicated local home `H-omlx` in its label and evidence.

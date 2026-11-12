@@ -1251,6 +1251,14 @@ For the offline thread exercise, enter model `skeleton-no-model` and provider
 Open a package, choose an alternative and confirm its full native text.
 Authenticated/live model work remains coordinated with the owner.
 
+A launch writes the system web view's data and caches, and the App's own data
+unless redirected, under the home's `Library` in folders named for the build's
+bundle identifier, whatever `HOME` alone is set to. Setting `CFFIXED_USER_HOME`
+together with `HOME` to one throwaway folder redirects them;
+[`examination/standalone/launch.py`](examination/standalone/launch.py) does that
+for an identified development build. Agents do not remove those folders from
+the owner's Library.
+
 For stored history, choose **Read stored conversations**, then select a received
 conversation. **Read metadata**, **Read turns**, **Read goal**, and per-turn item
 controls read disposable native pages; opaque page cursors belong to their
