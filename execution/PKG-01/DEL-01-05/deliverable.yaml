@@ -58,8 +58,6 @@ code_paths:
 - app/src/DesktopSetupPanel.tsx
 - app/src/FirstUse.tsx
 - app/supplier_checks/local_auth.py
-# The search the person who holds a credential runs over App-written files (AC-001, AC-003).
-- app/tools/credential_search.py
 checks:
 - app/src-tauri/src/native_local_provider.rs
 - app/src-tauri/src/model_catalog.rs
@@ -78,4 +76,3 @@ checks:
 - app/src-tauri/tests/config_write_contract.rs
 - app/supplier_checks/test_local_auth.py
 - app/supplier_checks/local_auth.py
-- app/tests/credential_search_test.py
