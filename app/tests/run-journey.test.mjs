@@ -9,7 +9,7 @@ import {loadSrc} from './support/load-src.mjs';
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {RunWorkflowGuide, runReading, guideResultWords} = loadSrc('RunJourney');
+const {RunWorkflowGuide, runReading, runTurnError, guideResultWords} = loadSrc('RunJourney');
 const UNKNOWN = {state:'native workflow-text send outcome unknown; original source retained', limit:'reply lost'};
 const REFUSED = {state:'native workflow-text turn/start refused by Codex; original source retained', limit:'invented refusal'};
 const NOT_CONFIRMED = 'start not confirmed (turn refused or outcome unknown); not opened, not live';
@@ -382,8 +382,8 @@ for (const [replacement, currentGeneration] of [
   const projection = (generation, runs) => data({context:{sourceRef:'src', generation}, selections:selected(), runs});
   const ui = await mount({thread:'T1', navigate:true, host:snapshot(g, 'active'), data:projection(g, [original])});
   try {
-    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
-    assert.match(region(ui.c, 'Run open-original').textContent, /Working/);
+    assert.match(region(ui.c, 'Run progress').textContent, /Codex reports this conversation active/);
+    assert.match(region(ui.c, 'Run open-original').textContent, /Codex reports this conversation active/);
     const replacementQuestion = {generation:currentGeneration, state:'outstanding', nativeParameters:{threadId:'T1'}};
     // The open row is unchanged while both the current source and its same-ID
     // activity are replaced. No ended result or new-run order is fabricated.
@@ -409,7 +409,7 @@ for (const [replacement, currentGeneration] of [
     await ui.press('Answer in the conversation');
     assert.deepEqual(ui.shown, [['T1', 'conversation-requests']]);
     await ui.rerender({host:snapshot(currentGeneration, 'active')});
-    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
+    assert.match(region(ui.c, 'Run progress').textContent, /Codex reports this conversation active/);
     assert.equal(JSON.stringify(original), originalBytes, 'the retained open run was never ended or rewritten');
     assert.deepEqual(ui.calls, [], 'all these readings and navigation issue no host command');
   } finally { await ui.close(); }
@@ -649,4 +649,54 @@ test('an open run is read from what Codex reported for its conversation and no m
 test('a run recorded open in an earlier Codex session carries the uncertain tone its words describe', () => {
   const reading = runReading({reference:'run-old', conversation:'same-id', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({generation:{...g, spawnCounter:2}, threads:[{threadId:'same-id', generation:{...g, spawnCounter:2}, status:{type:'idle'}}]}));
   assert.equal(reading.title, 'Open in an earlier Codex session'); assert.equal(reading.tone, 'uncertain');
+});
+
+// Each reading says what Codex reported for the conversation and nothing that would follow from it.
+test('the waiting, active and starting readings claim no more than was reported', () => {
+  const open = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const waiting = runReading(open, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]}));
+  assert.equal(waiting.detail, 'Codex is asking a question or approval in the conversation. Answer it there.');
+  assert.doesNotMatch(waiting.detail, /Nothing continues/, 'one outstanding request says nothing of other work in progress');
+  const active = runReading(open, host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}]}));
+  assert.deepEqual([active.tone, active.title, active.detail], ['working', 'Open — Codex reports this conversation active', 'Codex last reported this conversation as active. Follow its progress in the conversation.']);
+  assert.doesNotMatch(`${active.title} ${active.detail}`, /is working on this run|^Working/, 'a last report of active is not a claim that work is being done on the run');
+  const starting = runReading({conversation:'T1', source:'sent', lifecycle:{state:PREPARED}}, host());
+  assert.equal(starting.detail, "The App has issued the starting message and is waiting for Codex's reply. The run opens when that reply is observed.");
+  assert.doesNotMatch(starting.detail, /was sent/, 'a source is the App issuing the message; Codex receiving it is not established until its reply');
+});
+
+test('an open run says the latest error notice Codex sent for its conversation, only while nothing naming that turn has followed', async () => {
+  const run = {reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}, workflow:{name:'resolve-spacing', origin:'project', revision:'r'}, status:{}};
+  // The case observed against an unreachable model: a conversation Codex reports active whose only news is its retry notice.
+  const notice = (turnId, observedOrder, turnFirstObservedOrder, extra = {}) => ({threadId:'T1', turnId, generation:g, error:{message:'Reconnecting... waiting for network', additionalDetails:'Connection failed: error sending request'},
+    willRetry:true, receiptPosition:observedOrder, ordinalInTurn:1, observedOrder, turnFirstObservedOrder, laterFrameForTurn:false, standing:'live-observed', ...extra});
+  const activeHost = (turnErrors, over = {}) => host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}], nativeView:{turnErrors}, ...over});
+  assert.equal(runTurnError(run, activeHost([])), null);
+  assert.equal(runTurnError(run, host()), null, 'no native view, no notice');
+  assert.deepEqual(runTurnError(run, activeHost([notice('turn-3', 40, 30), notice('turn-3', 41, 30, {ordinalInTurn:2})])),
+    {words:'Reconnecting... waiting for network — Connection failed: error sending request', retry:'Codex said it will retry.', count:2});
+  // The latest turn that has a notice, and that turn's latest notice, by the host's own order whatever the list's order.
+  const later = notice('turn-5', 60, 55, {willRetry:false, error:{message:'stream disconnected before completion'}});
+  assert.deepEqual(runTurnError(run, activeHost([later, notice('turn-3', 41, 30)])), {words:'stream disconnected before completion', retry:'Codex said it will not retry.', count:1});
+  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30, {willRetry:undefined})])).retry, 'Codex did not say whether it will retry.');
+  // Something naming that turn has since reached the App, or the App stopped receiving: the notice is no longer said here.
+  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30, {laterFrameForTurn:true})])), null);
+  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30), notice('turn-5', 60, 55, {laterFrameForTurn:true})])), null, 'an older turn\'s notice is not revived when the latest turn has moved on');
+  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30, {observationEnded:true})])), null);
+  assert.equal(runTurnError(run, activeHost([notice('turn-3', 40, 30)], {generationClosed:true})), null);
+  // Never another conversation's notice, another Codex generation's, or for a run that is not open in the current source.
+  const g2 = {...g, spawnCounter:2};
+  assert.equal(runTurnError(run, activeHost([{...notice('turn-3', 40, 30), threadId:'T2'}])), null);
+  assert.equal(runTurnError(run, activeHost([{...notice('turn-3', 40, 30), generation:g2}])), null);
+  assert.equal(runTurnError({...run, generation:g2}, activeHost([notice('turn-3', 40, 30)])), null, 'a run of an earlier Codex session');
+  assert.equal(runTurnError({...run, lifecycle:{state:PREPARED}}, activeHost([notice('turn-3', 40, 30)])), null);
+  // In the guide: beside the run's state, in Codex's words, pointing to the activity for the notice whole.
+  const ui = await mount({host:activeHost([notice('turn-3', 40, 30), notice('turn-3', 41, 30, {ordinalInTurn:2})]), data:data({selections:selected(), runs:[run]}), thread:'T1'});
+  const said = region(ui.c, 'Error Codex reported in this conversation');
+  assert.equal(said.textContent, "Codex reported an error in this conversation 2 times; the latest: Reconnecting... waiting for network — Connection failed: error sending request Codex said it will retry. No later event naming that turn has reached the App. The conversation's activity shows each notice whole.");
+  assert.match(region(ui.c, 'Run progress').textContent, /^Open — Codex reports this conversation active\./, 'the state Codex reported stays as reported; the notice is beside it');
+  assert.doesNotMatch(all(region(ui.c, 'Run progress'), 'p')[0].textContent + said.textContent.split('Codex said')[1], /failed|can't reach|stopped|recovered|still trying/i, 'the App\'s own words conclude nothing from the notice');
+  await ui.rerender({host:activeHost([notice('turn-3', 41, 30, {laterFrameForTurn:true})])});
+  assert.equal(region(ui.c, 'Error Codex reported in this conversation'), undefined);
+  await ui.close?.();
 });

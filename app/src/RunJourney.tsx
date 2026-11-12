@@ -1,5 +1,6 @@
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
+import { errorWords } from "./NativeActivity";
 import { chatWorkflow, workflowAssurance } from "./workflowSelection";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
 import { IncludedWorkflows, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
@@ -143,7 +144,7 @@ export function runReading(run: Json, host: Json): RunReading {
     if (!same(run?.generation, host?.generation) || run?.home !== host?.generation?.home)
       return { tone: "uncertain", title: "Open in an earlier Codex session", detail: "This run was recorded open in a Codex session that isn't the current one, so the App can't see what it is doing now. Find its conversation in History." };
     const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
-    if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
+    if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Answer it there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
     // The status is Codex's own last report for this conversation, and each
     // reading says that report and nothing that would follow from it: an
@@ -155,18 +156,46 @@ export function runReading(run: Json, host: Json): RunReading {
     if (thread?.status?.type === "active") {
       const flags = list(thread.status.activeFlags);
       if (flags.includes("waitingOnApproval") || flags.includes("waitingOnUserInput")) return { tone: "waiting", title: "Codex reports it is waiting for an approval or an answer", detail: "Codex reports this conversation is waiting for an approval or for your answer. The request appears in the conversation once the App has received it." };
-      return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+      return { tone: "working", title: "Open — Codex reports this conversation active", detail: "Codex last reported this conversation as active. Follow its progress in the conversation." };
     }
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
     if (thread?.status?.type === "idle") return { tone: "idle", title: "Open — Codex reports this conversation idle", detail: "Codex last reported this conversation as idle, which says nothing about agents it delegated work to. The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
     return { tone: "uncertain", title: "Open — what Codex is doing is not known", detail: `The App cannot establish what Codex is doing in this conversation: ${thread?.statusSource?.limit ? text(thread.statusSource.limit) : thread?.status?.type === "notLoaded" ? "Codex reports the conversation as not loaded" : "it holds no status from Codex for it that it can read"}. The run stays open; read the conversation before deciding what to do.` };
   }
-  if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
+  // A source means the App issued the starting message; whether Codex received it is not established until its reply.
+  if (run?.source) return { tone: "working", title: "Starting", detail: "The App has issued the starting message and is waiting for Codex's reply. The run opens when that reply is observed." };
   if (status.sent === false && status.limit) {
     const what = NOT_SENT[text(status.state)];
     return { tone: "failed", title: "Not started", detail: `${what ? `Nothing was sent. ${what}` : "The App reports that this run was not sent."}${typeof status.retry === "string" && status.retry ? ` What the App says to do: ${status.retry}.` : ""} The App reported: ${text(status.state)}: ${text(status.limit)}` };
   }
   return { tone: "idle", title: "Ready to start", detail: "The run is prepared and has not been sent. Start it when your inputs are ready." };
+}
+
+/**
+ * The latest error notice the App holds from Codex for an open run's
+ * conversation, while nothing naming its turn has followed it. It is Codex's
+ * own notice (the supplier's `error` notification), as the conversation's
+ * activity shows it whole; here it is said beside the run's state, because a
+ * conversation Codex reports active can be one that cannot reach its model.
+ * It says what Codex reported and what it said of retrying, and nothing of
+ * whether the turn failed, recovered or is still trying. Null for a run that
+ * is not open in the exact current source, and once a later event naming
+ * that turn has reached the App.
+ */
+export function runTurnError(run: Json, host: Json): { words: string; retry: string; count: number } | null {
+  if (!starts(text(run?.lifecycle?.state), "open") || !same(run?.generation, host?.generation) || run?.home !== host?.generation?.home) return null;
+  if (host?.generationClosed === true) return null;
+  const mine = list(host?.nativeView?.turnErrors).filter((entry: Json) => entry?.threadId === run.conversation && typeof entry?.turnId === "string" && entry.turnId
+    && (entry.generation === undefined || same(entry.generation, run.generation)));
+  if (mine.length === 0) return null;
+  const order = (entry: Json, key: string) => (typeof entry?.[key] === "number" ? entry[key] : -1);
+  // The latest turn that has a notice, then that turn's latest notice, by the host's own observed order.
+  const latest = mine.reduce((best: Json, entry: Json) => order(entry, "turnFirstObservedOrder") > order(best, "turnFirstObservedOrder")
+    || (order(entry, "turnFirstObservedOrder") === order(best, "turnFirstObservedOrder") && order(entry, "observedOrder") >= order(best, "observedOrder")) ? entry : best);
+  if (latest.laterFrameForTurn === true || latest.observationEnded === true) return null;
+  const count = typeof latest.ordinalInTurn === "number" ? latest.ordinalInTurn : mine.filter((entry: Json) => entry.turnId === latest.turnId).length;
+  return { words: errorWords(latest.error), count,
+    retry: latest.willRetry === true ? "Codex said it will retry." : latest.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry." };
 }
 
 function declaredRows(declaration: Json, key: string): Json[] {
@@ -258,6 +287,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const preparedUnsent = runs.filter((run: Json) => !run.source && starts(run?.lifecycle?.state, "prepared"));
   const prepared = latest ? (!latest.source && starts(latest?.lifecycle?.state, "prepared") ? latest : null) : preparedUnsent.length === 1 ? preparedUnsent[0] : null;
   const reading = latest ? runReading(latest, host) : null;
+  const turnError = latest ? runTurnError(latest, host) : null;
   // An open run, or one sent and not yet opened, is ended or followed from the studio, not re-prepared here.
   const unresolved = (latest ? [latest] : runs).filter((run: Json) => starts(run.lifecycle?.state, "start not confirmed") && !startRefused(run));
   const unresolvedStart = unresolved.length > 0;
@@ -380,6 +410,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>
         {reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
           <p role="status"><strong>{reading.title}.</strong> {reading.detail}</p>
+          {turnError && <p role={turnError.retry === "Codex said it will not retry." ? "alert" : "status"} aria-label="Error Codex reported in this conversation">
+            Codex reported an error in this conversation{turnError.count > 1 ? ` ${turnError.count} times; the latest` : ""}: <q>{turnError.words}</q> {turnError.retry} No later event naming that turn has reached the App. The conversation's activity shows each notice whole.</p>}
           {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p>{showConversation
             ? <button onClick={() => showConversation(latest.conversation, reading.tone === "waiting" ? "conversation-requests" : "conversation")}>{reading.tone === "waiting" ? "Answer in the conversation" : "Show the conversation"}</button>
             : <a href="#conversation">Go to the conversation</a>}</p>}
