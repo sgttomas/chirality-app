@@ -26,7 +26,7 @@ What the launcher states, and nothing more:
 
 What the App starts, and what limits it. The App is this project's own
 reviewed code; what it does with the home and environment it is given is the
-App's. In every real run the App starts the supplier's Codex, which is not this
+App's. The App starts the supplier's Codex, which is not this
 project's code. What applies to Codex in a launch by this launcher is only
 this: it receives, through the App, the nine overrides, which redirect its
 model address and obstruct its other network clients under their defaults, and
@@ -86,12 +86,11 @@ What it also does, each with its limit:
   by the candidate path joined with that checked name, opening each component
   without following links. The identification record does not say where its
   bundle was identified; what is compared is the record found beside the bundle
-  in the build's layout. Errors name the kind of failure, counts and field
-  names, not values read from the record.
+  in the build's layout.
 - The record lists what leaves a run: the comparison's names, change labels and
   counts; the per-user cache folder and preference-folder observations (names
   and change labels; they never refuse a launch or fail a run); how the App
-  ended; the output file's path. No content of any file.
+  ended; the output file's path.
 - The address override replaces the built-in provider's address for model
   requests only, once the App reads that input (it arrives with the Access
   lane's change, not yet on main; of a candidate built before it, nothing is
@@ -163,7 +162,7 @@ DEFAULT_MODEL_ADDRESS = 'http://127.0.0.1:9/v1'
 MODEL_ADDRESS_RULE = re.compile(r'https?://(?:127\.0\.0\.1|\[::1\])(?::([1-9][0-9]{0,4}))?(?:/[A-Za-z0-9._~/-]*)?')
 # STATEMENT 1: every name the App's environment holds, with why it is there.
 ALLOWED = {
-    'HOME': 'the new throwaway home, the home of the App and every process it starts',
+    'HOME': 'the new throwaway home, the home of the App',
     'CFFIXED_USER_HOME': "the same home for the system frameworks (web view data and caches), which HOME alone does not move",
     'TMPDIR': 'a temporary folder made for this launch inside the new home',
     'PATH': 'the fixed system path, so system tools are found and nothing of the caller is',
@@ -389,8 +388,7 @@ def find_bundle(candidate, record_data):
 
 
 def identify_candidate(app, record_path):
-    """Identification's own validation and check of the bundle against the record. Errors name the kind of failure,
-    counts and field names, never a value read from the record."""
+    """Identification's own validation and check of the bundle against the record."""
     try:
         identify.validate_record(json.loads(Path(record_path).read_bytes()))
         result = identify.check(argparse.Namespace(record=str(record_path), app=str(app)))
