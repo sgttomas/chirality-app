@@ -97,7 +97,9 @@ impl RecordsSource for ProjectPaths {
         let paths = match crate::storage::discover(&self.root) {
             Ok(paths) => paths,
             Err(_) => {
-                corpus.limits.push("the project's records could not all be discovered; what follows may be incomplete".into());
+                // Nothing was read: the records are unavailable, and an empty
+                // answer is not a project with no records.
+                corpus.limits.push("the project's records are unavailable: they could not be discovered, so none of them is returned; an empty answer here does not mean the project has none".into());
                 return corpus;
             }
         };

@@ -846,37 +846,51 @@ fn imports(dir: &Path) -> Result<Imports, String> {
 /// count: until its "completed" line, the history is read in place — unless
 /// the store already held the project's records when that import started
 /// (a late import): then the store is read, as before it started.
-fn store_holds(dir: &Path) -> bool {
-    if package::complete_exists(dir) { return true; }
-    match imports(dir) {
-        Ok(i) if i.completed => true,
-        Ok(i) if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
-        Ok(i) if i.any => false,
-        Ok(_) => ["runs", "acts", "workflow", "legacy", "connectors"].iter().any(|n| dir.join(n).exists()) || captures_hold_records(dir),
-        // An unreadable import record: the store's state is unknown, so
-        // writes are refused (`write_dir`) and the history is read in place.
-        Err(_) => false,
-    }
+///
+/// `Err` when that cannot be known (an unreadable import record, package
+/// import state or store folder): never "the store holds nothing", which
+/// would read the kept originals or an empty history in its place.
+fn store_holds(dir: &Path) -> Result<bool, String> {
+    let unknown = |e: String| format!("whether the records store holds this project's records is unknown, so nothing is read in its place: {e}");
+    if package::completed(dir).map_err(unknown)? { return Ok(true); }
+    let state = imports(dir).map_err(|e| unknown(format!("the project's import record is unreadable: {e}")))?;
+    Ok(match state {
+        i if i.completed => true,
+        i if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
+        i if i.any => false,
+        _ => {
+            for name in ["runs", "acts", "workflow", "legacy", "connectors"] {
+                match std::fs::symlink_metadata(dir.join(name)) {
+                    Ok(_) => return Ok(true),
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(unknown(format!("{}: {e}", dir.join(name).display()))),
+                }
+            }
+            captures_hold_records(dir).map_err(unknown)?
+        }
+    })
 }
 
 /// Export may acquire capture ownership before any capture was recorded.
 /// That exact control file (or an empty folder) establishes no RS home. Any
 /// unknown/non-control member or unreadable inventory remains conservative.
-fn captures_hold_records(dir: &Path) -> bool {
+fn captures_hold_records(dir: &Path) -> Result<bool, String> {
     use std::os::unix::fs::MetadataExt;
     let folder = dir.join("captures");
     match std::fs::symlink_metadata(&folder) {
         Ok(meta) if meta.is_dir() => {},
-        Ok(_) => return true,
-        Err(error) => return error.kind() != std::io::ErrorKind::NotFound,
+        Ok(_) => return Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(format!("{}: {error}", folder.display())),
     }
-    match std::fs::read_dir(folder) {
-        Ok(mut entries) => entries.any(|entry|match entry {
-            Ok(entry) if entry.file_name() == ".capture.lock" => !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1),
-            _ => true,
-        }),
-        Err(_) => true,
+    let entries = std::fs::read_dir(&folder).map_err(|e| format!("{}: {e}", folder.display()))?;
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("{}: {e}", folder.display()))?;
+        if entry.file_name() != ".capture.lock" || !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1) {
+            return Ok(true);
+        }
     }
+    Ok(false)
 }
 /// Whole retained payload export is distinct from ordinary RS source routing.
 /// A fleet-only or role-observation-only store can be exported without importing nonexistent RS history;
@@ -899,7 +913,7 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if state.incomplete.is_some() {
         return Err("project import incomplete; finish the explicit import before export".into());
     }
-    if store_holds(dir) { return Ok(()); }
+    if store_holds(dir).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
     if !state.any && ["fleet","role-supply"].iter().any(|name|std::fs::symlink_metadata(dir.join(name)).is_ok()) && legacy_census(root)?.is_empty() {
         return Ok(());
     }
@@ -928,7 +942,7 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
                 }
             }
             if let Some(dir)=attachment.dir.as_deref(){if crate::records_retention::terminal(dir)?{return Err("project records disposed or disposal incomplete; ordinary project record reads are unavailable; administrative recovery and export verification remain separate".into());}}
-            let store_mode = attachment.dir.as_deref().is_some_and(store_holds);
+            let store_mode = match attachment.dir.as_deref() { Some(dir) => store_holds(dir)?, None => false };
             Ok(Home { attachment, store_mode })
         }
 
@@ -954,7 +968,7 @@ fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if let Some(started) = state.incomplete {
         return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
     }
-    if !store_holds(dir) {
+    if !store_holds(dir).map_err(|e| format!("{e}; nothing written"))? {
         let legacy = legacy_census(root)?;
         if !legacy.is_empty() {
             return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
@@ -1198,7 +1212,7 @@ pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPl
         };
         return Ok(place);
     };
-    let store_mode = store_holds(&dir);
+    let store_mode = store_holds(&dir)?;
     if !store_mode && in_project {
         let mut place = in_place();
         place.location = "the project, read in place: import needed before accounts are written in the records store".into();
@@ -1365,7 +1379,7 @@ pub fn import(root: &Path) -> Result<Value, String> {
     let id = crate::util::opaque_id("import:")?;
     // Whether the store already held the project's records: a late import,
     // during which (and if it is interrupted) readers keep reading the store.
-    let store_held = store_holds(&dir);
+    let store_held = store_holds(&dir).map_err(|e| format!("{e}; nothing imported"))?;
     let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
     append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
         "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
@@ -1561,7 +1575,13 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
             return notes;
         }
     };
-    let refused = imports(&dir).map(|i| i.refused).unwrap_or_default();
+    let refused = match imports(&dir) {
+        Ok(i) => i.refused,
+        Err(e) => {
+            notes.push(e);
+            return notes;
+        }
+    };
     for file in census {
         match covered.get(&file.rel) {
             None => match refused.get(&file.rel) {
@@ -1604,20 +1624,23 @@ pub fn status(project: Option<&Path>) -> Value {
     };
     if let Some(root) = project {
         out["packageImport"] = package::status(root);
-        out["project"] = match home(root) {
-            Ok(home) => {
-                let census = legacy_census(&home.attachment.root).unwrap_or_default();
-                let imports = home.attachment.dir.as_ref().and_then(|d| read_lines(&d.join("imports.jsonl")).ok()).map_or(0, |l| l.len());
-                let covered = home.attachment.dir.as_ref().and_then(|d| coverage(d).ok()).unwrap_or_default();
-                // §13.7 files no import has copied (all of them before the first).
-                let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
-                json!({"attachment":home.attachment.view(),
-                    "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
-                    "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
-                    "importNeeded":!home.store_mode && !census.is_empty(),
-                    "legacyFiles":census.len(),"notImported":to_import,
-                    "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})
-            }
+        // What the project holds is read whole or reported unavailable: an
+        // unreadable census or import record is never "no records yet" and
+        // never a count of nothing.
+        out["project"] = match home(root).and_then(|home| {
+            let census = legacy_census(&home.attachment.root)?;
+            let imports = match home.attachment.dir.as_ref() { Some(d) => read_lines(&d.join("imports.jsonl"))?.len(), None => 0 };
+            let covered = match home.attachment.dir.as_ref() { Some(d) => coverage(d)?, None => HashMap::new() };
+            // §13.7 files no import has copied (all of them before the first).
+            let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
+            Ok(json!({"attachment":home.attachment.view(),
+                "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
+                "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
+                "importNeeded":!home.store_mode && !census.is_empty(),
+                "legacyFiles":census.len(),"notImported":to_import,
+                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)}))
+        }) {
+            Ok(view) => view,
             Err(e) => {
                 // Ordinary source refusal must not hide the surviving native
                 // hold/recovery controls. Unattached terminal identities are

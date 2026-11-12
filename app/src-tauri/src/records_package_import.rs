@@ -225,9 +225,15 @@ pub(crate) fn require_complete(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+/// Whether a package import into `dir` has completed; `Err` when that cannot
+/// be known (an incomplete, uncertain or unreadable package import state).
+pub(crate) fn completed(dir: &Path) -> Result<bool, String> {
+    require_complete(dir)?;
+    Ok(entries(dir)?.iter().any(|e| e.done.is_some()))
+}
+#[cfg(test)]
 pub(crate) fn complete_exists(dir: &Path) -> bool {
-    require_complete(dir).is_ok()
-        && entries(dir).is_ok_and(|rows| rows.iter().any(|e| e.done.is_some()))
+    completed(dir).unwrap_or(false)
 }
 pub(crate) fn provenance_context(dir: &Path) -> Result<Value, String> {
     require_complete(dir)?;
