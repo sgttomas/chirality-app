@@ -866,9 +866,16 @@ implemented behavior and qualification limits.
     JSON normalization. Prototype TEST VALUE selectors remain unsupported.
     Missing, changed or duplicate selections never fall back to an older graph.
     Inputs are contained Fleet-relative files; connector needs are interpreted
-    from their declared receiving records with claim/route gaps shown. Decision
-    needs and current native execution remain unknown without their required
-    evidence. An incomplete source packet cannot produce unqualified readiness
+    from their declared receiving records with claim/route gaps shown. A
+    decision need names an act request and is read from the act records as the
+    decision view reads them: satisfied only by an unlapsed recorded act of the
+    person, of the kind the package names, that cites the request and chooses
+    an alternative the package names; outstanding when there is no such act or
+    the decision lapsed; unknown when the act records cannot be read (including
+    when no records store with its identity exists), the request is not found,
+    or several decisions are unordered. The act logs and package files join the
+    same snapshot check. Current native execution remains unknown without its
+    required evidence. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 
