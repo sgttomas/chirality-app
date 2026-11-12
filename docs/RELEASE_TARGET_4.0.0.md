@@ -121,12 +121,10 @@ confirmation) on disposable invented fixtures in a scratch library and a
 scratch records store. What those controls then capture is a synthetic
 examination artifact: it establishes no person's decision, is kept apart from
 any evidence of an actual human act, and is never reused as anyone's act.
-Where an owning scope compares a record with an act an examiner watched a
-person perform, in such an examination the record is compared with the
-confirmation the examining agent made at the control, and the examination
-inspects what the product recorded there (actor, content, scope and purpose);
-a product record that attributes such an act to an identified person is a
-finding (DEL-09-02 REQ-009).
+In such an examination what the product recorded at the control (actor,
+content, scope and purpose) is inspected directly, and a product record that
+attributes such an act to an identified person is a finding (DEL-09-02
+REQ-009).
 
 ## Exit criteria
 

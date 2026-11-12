@@ -63,8 +63,11 @@ needs:
     in every release, so that keychain items written by one release are readable by the next.
   gating: true
   when: Keychain protection on an installed build
-- from: external:person operating the act control
-  condition: A person confirms each act in the native confirmation while an examiner observes.
+- from: external:person or examining agent operating the act control
+  condition: A person, or in an agent-operated journey examination as the release target defines
+    it the examining agent, confirms each act in the native confirmation while an examiner observes;
+    the examining agent's capture is then a synthetic examination artifact that establishes no
+    person's decision.
 code_paths:
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
