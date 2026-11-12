@@ -1,7 +1,10 @@
 //! One App at a time on each Codex home (DEL-01-01, DEL-01-05).
 //!
 //! A home is held by an exclusive `flock` on the home directory's own inode:
-//! no file is created, renamed or left inside the home. `flock` conflicts
+//! the hold creates, renames and leaves no file inside the home. (The one
+//! file the App does create in a home is its per-start process lock, taken
+//! inside the held directory at each start of Codex: [`open_held`],
+//! `native_local_provider::take_process_lock_in`.) `flock` conflicts
 //! between two open file descriptions even inside one process, so this
 //! process keeps exactly one locked descriptor per home and shares it between
 //! the two roles that hold a home: the saved desktop route's receiving
@@ -52,6 +55,30 @@ pub(crate) const IN_USE_HERE: &str = "Codex was not started on this home: this A
 pub(crate) const REPLACED: &str = "The Codex home was replaced after this App took it, so Codex was not started on it. Start again to use the home that is there now.";
 /// What a person is told when the Codex home does not exist.
 pub(crate) const MISSING: &str = "The Codex home does not exist, so Codex was not started on it.";
+
+/// What a person is told when the App's process lock of a home is held and
+/// this App knows nothing of the holder. A held lock establishes only that
+/// something holds it: the sentence names what may, and asserts neither which
+/// nor for how long. (The dedicated local home has its own sentence,
+/// `native_local_provider::EARLIER_PROCESS`, with the same clauses; no
+/// program of the person's settings is started there.)
+pub(crate) const PROCESS_HELD: &str = "The App's lock for this Codex home is held, so Codex was not started there. A Codex process started earlier for that home, or a program it started, may hold it; that program may be one your own Codex settings start, such as a notifier or a hook. Try again in a minute. If it stays held, whatever holds it has to end before Codex can start there; the App cannot tell which program it is.";
+/// What a person is told when the App could not try its process lock of a
+/// home at all. Never read as free.
+pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check its lock for this Codex home, so Codex was not started there.";
+/// What a person is told when the App's process lock of a home is held and
+/// this App itself started a Codex process there that it has not established
+/// ended: what the App knows, and its census of that process's group as just
+/// taken. The census covers the original process group only.
+pub(crate) fn process_held_here(census: &crate::hosting::process_group_custody::Census) -> String {
+    use crate::hosting::process_group_custody::Census;
+    let seen = match census {
+        Census::Complete(0) => "When checked just now, no process of its group was running, so the holder is outside that group.",
+        Census::Complete(_) => "When checked just now, processes of its group were running.",
+        Census::Unknown(_) => "Its process group could not be checked.",
+    };
+    format!("The App's lock for this Codex home is held, so Codex was not started there. This App started a Codex process for that home and has not confirmed that it ended; that process, or a program it started, may hold the lock. {seen} Try again in a minute. If it stays held, whatever holds it has to end before Codex can start there.")
+}
 
 /// A held home directory's identity: (device, inode).
 pub(crate) type Identity = (u64, u64);
@@ -329,6 +356,25 @@ pub(crate) fn still_names(home: &Path, held: Identity) -> Result<(), String> {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(REPLACED.into()),
         Err(e) => Err(format!("Codex home could not be checked, so Codex was not started on it: {e}")),
     }
+}
+
+/// Opens `home` and returns the directory only when it is the one whose
+/// identity is `held`; a path that names another directory, or none, or that
+/// cannot be checked is refused as [`still_names`] refuses it. What is then
+/// opened by name inside the returned directory is inside the held home,
+/// whatever becomes of the path afterwards.
+pub(crate) fn open_held(home: &Path, held: Identity) -> Result<File, String> {
+    let opened = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_DIRECTORY | libc::O_NONBLOCK | libc::O_CLOEXEC)
+        .open(home);
+    let file = match opened {
+        Ok(file) => file,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err(REPLACED.into()),
+        Err(e) => return Err(format!("Codex home could not be checked, so Codex was not started on it: {e}")),
+    };
+    let meta = file.metadata().map_err(|e| format!("Codex home could not be checked, so Codex was not started on it: {e}"))?;
+    if meta.is_dir() && (meta.dev(), meta.ino()) == held { Ok(file) } else { Err(REPLACED.into()) }
 }
 
 /// What a gone Host left: its unsettled process groups, and its home holds and

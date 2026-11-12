@@ -1305,14 +1305,55 @@ build before this hold, started on the environment route, takes no lock of any
 kind and cannot be excluded or detected; while it runs on the same App data, a
 later App can hold that App data and read its session as ended.
 
+What that reading records. A request the earlier session left listed is closed
+in the ledger as `open-at-app-session-end` (RECOVERY RQ-06, context
+`app-ended-without-record`), and the custody view shows it as the event
+`request_open_at_app_session_end` with standing `App-recorded`: the App records
+that its own earlier session ended while the request was recorded open. It is
+not an observation. It asserts no Codex process exit and no missing reply; a
+Codex the earlier session started may still be alive, and a reply sent after
+the last record was not observed. Rows an earlier build wrote
+(`ended-unanswered(process-exit)`) stay as written and keep their kind. The
+custody-event schema is 0.3; 0.2 is retained beside it.
+
 The home check before Codex starts compares the home's path with the held
 directory by device and inode immediately before the label probe and again
 before the app-server is spawned. A window remains between the last check and
 the child's exec, because the child is handed the home by path (`CODEX_HOME`):
 a directory put in place of the home inside that window is not detected.
 
-Relaunch. The holds have no wait and no retry, and process exit is the
-reliable final release. A deliberate relaunch by the App itself would have to
+The process lock of a home. Every start of Codex, for every home, first takes
+an exclusive, non-waiting `flock` on one small private file the App keeps in
+the home, `chirality-codex-process.lock` (created at the home's first start,
+opened by name inside the held directory, never through a link). The Codex
+child inherits that one descriptor and the App closes its own copy as soon as
+the child is spawned, so the lock is held by the Codex process and by any
+program that inherited its open files, for as long as any of them lives, and
+by nothing of the App. This is what excludes a second Codex on a home after an
+App is killed (its Codex can outlive it: the supplier's app-server exits by
+itself up to about 45 seconds after its input closes) and after a Stop that did
+not end the process. A held lock refuses the start before it is an attempt: no
+lifecycle record, the state unchanged, the reason kept as the host status's
+`lastStartRefusal`, and no retry by the App; Start can be pressed again. What
+the refusal says is what the App knows. Where this App started a Codex process
+on the home and has not confirmed it ended, it says so with its census of that
+process's group as just taken; otherwise it says only that a Codex process
+started earlier, or a program it started, may hold the lock, and that the App
+cannot tell which program it is. A lock that cannot be tried (a link in its
+place, a file not private to the user, any other failure) refuses and never
+reads as free. Limits. A free lock shows that the Codex process and every
+program that inherited its open files have ended; it shows nothing about a
+process Codex started that did not inherit them. At the pinned supplier version
+the commands of a turn and local MCP servers are started with other descriptors
+closed (best-effort on the supplier's side), so they do not hold the lock and a
+free lock does not show they have ended; hooks and the notifier program of the
+person's own Codex settings inherit, so one of those left running holds the
+home until it ends. The App's census and settlement of the process groups it
+started are unchanged and are what Quit and the home hold rest on. A build
+before this lock takes none and is not excluded by it.
+
+Relaunch. The holds and the process lock have no wait and no retry, and
+process exit is the reliable final release. A deliberate relaunch by the App itself would have to
 start its successor after the predecessor has exited, or after an explicit,
 proven release of each hold; a successor started first is refused at once.
 Tests construct their state in their own scratch folders and need neither.

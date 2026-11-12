@@ -6206,6 +6206,15 @@ mod tests {
             let recovery = home.recovery_startup.lock().unwrap().snapshot();
             assert_eq!(recovery["state"], "configured", "{recovery}");
         }
+        if fixture["request"] == true {
+            // The stand-in asks for an approval after the handshake: wait until this App's ledger lists it.
+            let ledger = runtime_session::reviewed_ledger_path(&data);
+            let end = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while !crate::recovery::stored_entries(&ledger).iter().any(|e| e["transition"] == "RQ-01") {
+                assert!(std::time::Instant::now() < end, "the request was listed: {:?}", crate::recovery::stored_entries(&ledger));
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        }
         let session = home.host.shared_recovery_observation()["appSession"].as_str().unwrap_or("").to_owned();
         let reached = started.map_or_else(|| "no-start".to_owned(), |r| r.map_or_else(|e| format!("refused {e}"), |v| v["state"].as_str().unwrap_or("").to_owned()));
         println!("READY {} SESSION {session}", reached.replace('\n', " "));
@@ -6340,6 +6349,101 @@ mod tests {
         }
     }
 
+
+    /// A stand-in for Codex that outlives the App that started it, as the
+    /// supplier's app-server can for a time after its input closes: it asks
+    /// for one approval after the handshake, and when its input closes it
+    /// stays alive until `root/release` exists. It records its process number
+    /// in `root/stand-in-pid`. No real Codex is run.
+    fn surviving_stand_in(root: &Path) -> PathBuf {
+        let path = root.join("surviving-stand-in.py");
+        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0');sys.exit(0)\nroot=os.path.dirname(os.path.abspath(__file__))\nopen(os.path.join(root,'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nopen(os.path.join(root,'stand-in-pid'),'w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize':\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n  print(json.dumps({'id':'approval-1','method':'item/fileChange/requestApproval','params':{'threadId':'thread','itemId':'item'}}),flush=True)\nwhile not os.path.exists(os.path.join(root,'release')): time.sleep(0.02)\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        path
+    }
+
+    /// AC-010, the crash a third review reproduced: an App is killed
+    /// (SIGKILL) while the Codex it started is alive and a request is listed.
+    /// The next App's complete launch on the same App data and home is
+    /// admitted (the earlier App is gone and its session is read as ended);
+    /// its ledger records the request as open at that session's end, never as
+    /// ended by a process exit, and its custody view shows neither a process
+    /// exit nor "unanswered" for it; and its automatic start of Codex on the
+    /// home is refused while the first stand-in lives, by the lock that
+    /// stand-in holds, so no second stand-in is started. Each is compared
+    /// with what is observed from outside: the stand-in's process, an
+    /// independent attempt on the lock, and the count of stand-ins started.
+    /// Once the first stand-in has ended, the same App starts Codex.
+    #[test]
+    fn after_an_app_is_killed_its_living_codex_gets_no_process_exit_ending_and_no_successor_on_its_home() {
+        use crate::native_local_provider::{take_process_lock, EARLIER_PROCESS, PROCESS_LOCK};
+        let alive = |pid: i32| (unsafe { libc::kill(pid, 0) }) == 0;
+        let until = |what: &str, done: &dyn Fn() -> bool| {
+            let end = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            while !done() { assert!(std::time::Instant::now() < end, "{what}"); std::thread::sleep(std::time::Duration::from_millis(20)); }
+        };
+        let f = Fixture::new();
+        let (home, bin) = (f.root.join("environment-home"), surviving_stand_in(&f.root));
+        std::fs::create_dir(&home).unwrap();
+        let (mut peer, seen) = route_peer(json!({"route":"environment","data":f.data,"root":f.root,"resources":f.resources,"home":home,"bin":bin,"request":true}));
+        assert!(seen.starts_with("ready"), "the first App has Codex ready on the home: {seen}");
+        let crashed = seen.split_once("SESSION ").unwrap().1.trim().to_owned();
+        let first: i32 = std::fs::read_to_string(f.root.join("stand-in-pid")).unwrap().parse().unwrap();
+        struct End<'a>(&'a Path, i32);
+        impl Drop for End<'_> { fn drop(&mut self) { let _ = std::fs::write(self.0.join("release"), "x"); unsafe { libc::kill(self.1, libc::SIGKILL); } } }
+        let _end = End(&f.root, first);
+        assert_eq!(unsafe { libc::kill(peer.id() as i32, libc::SIGKILL) }, 0);
+        peer.wait().unwrap();
+        // Observed from outside: the stand-in outlived its App and holds the home's lock.
+        assert!(alive(first), "the stand-in Codex is alive after its App was killed");
+        assert_eq!(take_process_lock(&home.join(PROCESS_LOCK)).unwrap_err(), EARLIER_PROCESS, "an independent attempt finds the lock held");
+        assert_eq!(server_starts(&f.root), 1);
+        let ledger = runtime_session::reviewed_ledger_path(&f.data);
+        let before = crate::recovery::stored_entries(&ledger);
+        assert!(before.iter().any(|e| e["transition"] == "RQ-01") && !before.iter().any(|e| ["RQ-04", "RQ-06"].contains(&e["transition"].as_str().unwrap_or(""))), "listed and not ended when the App was killed: {before:?}");
+
+        let (state, app_home, desktop, started) = complete_startup(environment_input(&f.data, Some(&home), Some(&bin)), PathBuf::from("/invented/platform-app-data"), f.resources.clone(), &f.root);
+        assert_eq!(desktop.lock().unwrap().view()["launch"]["state"], "environment", "the App data of a killed App is admitted");
+        let refused = started.expect("the automatic start is reached").unwrap_err();
+        assert_eq!(refused, crate::home_hold::PROCESS_HELD);
+        let status = app_home.host.snapshot();
+        assert_eq!(status["state"], "absent", "nothing spawned or recorded in the lifecycle");
+        assert_eq!(status["lastStartRefusal"]["reason"], crate::home_hold::PROCESS_HELD, "kept for the window");
+        assert_eq!(status["lastStartRefusal"]["home"], crate::hosting::home_identity(&home));
+        assert!(alive(first) && server_starts(&f.root) == 1, "no second stand-in while the first lives");
+
+        // The ledger, against what was observed: the earlier session is read as ended without a
+        // record; the request it left listed is recorded open at that session's end; nothing
+        // says the living stand-in exited.
+        let after = crate::recovery::stored_entries(&ledger);
+        let start = after.iter().rev().find(|e| e["kind"] == "session_started").unwrap();
+        assert_eq!((start["previousSession"].as_str(), start["previousSessionEnd"].as_str()), (Some(crashed.as_str()), Some("ended-without-record")));
+        let endings: Vec<_> = after.iter().filter(|e| e["transition"] == "RQ-06").collect();
+        assert_eq!(endings.len(), 1, "{after:?}");
+        assert_eq!((endings[0]["endedAs"].as_str(), endings[0]["context"].as_str()), (Some("open-at-app-session-end"), Some("app-ended-without-record")));
+        let written = serde_json::to_string(&after[before.len()..]).unwrap();
+        assert!(!written.contains("process-exit") && !written.contains("RQ-04") && !written.contains("unanswered"), "no process exit and no missing reply is recorded for a Codex seen alive: {written}");
+        let custody = app_home.host.recovery_custody().snapshot();
+        let events = custody["requestEndEvents"].as_array().unwrap();
+        assert_eq!(events.len(), 1, "{custody}");
+        assert_eq!((events[0]["kind"].as_str(), events[0]["standing"].as_str()), (Some("request_open_at_app_session_end"), Some("App-recorded")));
+        let shown = serde_json::to_string(&json!([custody["requestEndEvents"], custody["restartEvents"]])).unwrap();
+        assert!(!shown.contains("unanswered") && !shown.contains("process-exit") && !shown.contains("process_exit"), "the custody view shows no process exit and no \"unanswered\": {shown}");
+
+        // The first stand-in ends; the same App's start is then admitted and starts the second.
+        std::fs::write(f.root.join("release"), "x").unwrap();
+        until("the first stand-in has ended", &|| !alive(first));
+        drop(take_process_lock(&home.join(PROCESS_LOCK)).expect("free once the earlier Codex has ended"));
+        let cfg = app_home.host_config.clone().unwrap();
+        let ready = crate::automatic_start(&app_home.host, &app_home.recovery_startup, Ok(&f.data), &cfg, &desktop).unwrap();
+        assert_eq!(ready["state"], "ready");
+        assert_eq!(server_starts(&f.root), 2);
+        assert!(app_home.host.snapshot()["lastStartRefusal"].is_null());
+        let second: i32 = std::fs::read_to_string(f.root.join("stand-in-pid")).unwrap().parse().unwrap();
+        let _ = app_home.host.stop("fixture", "test ended");
+        until("the second stand-in has ended", &|| !alive(second));
+        drop((state, app_home, desktop));
+    }
 
     /// The child half of the first-save test: an App on never-used App data
     /// (at setup, holding nothing), which saves setup when told to and then

@@ -269,3 +269,32 @@ fn a_kept_home_says_why_and_a_later_attempt_retries_the_settlement_monitor() {
     assert!(peer(&home).contains("HELD"), "released once the taker lets go");
     std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
 }
+
+/// The home's process lock is opened by name inside the directory this App
+/// holds: a path that no longer names it is refused, and a directory put at
+/// the path after the held one was opened receives nothing.
+#[test]
+fn the_process_lock_is_created_inside_the_held_directory_whatever_becomes_of_the_path() {
+    use crate::native_local_provider::{take_process_lock_in, ProcessLockRefusal, PROCESS_LOCK};
+    let home = home();
+    let meta = std::fs::metadata(&home).unwrap();
+    let held = (meta.dev(), meta.ino());
+    let directory = open_held(&home, held).expect("the path names the held directory");
+    let moved = home.with_file_name("moved-away");
+    std::fs::rename(&home, &moved).unwrap();
+    assert_eq!(open_held(&home, held).unwrap_err(), REPLACED, "no directory at the path");
+    std::fs::create_dir(&home).unwrap();
+    assert_eq!(open_held(&home, held).unwrap_err(), REPLACED, "another directory at the path");
+    let lock = take_process_lock_in(&directory).unwrap();
+    assert!(moved.join(PROCESS_LOCK).is_file() && contents(&home).is_empty(), "the lock file is in the held directory only");
+    // A second open file description of the same file is refused while the first holds it.
+    assert_eq!(take_process_lock_in(&directory).unwrap_err(), ProcessLockRefusal::Held);
+    drop(lock);
+    drop(take_process_lock_in(&directory).expect("free once released"));
+    // A link in the lock's place is never followed.
+    std::fs::remove_file(moved.join(PROCESS_LOCK)).unwrap();
+    std::os::unix::fs::symlink(moved.join("elsewhere"), moved.join(PROCESS_LOCK)).unwrap();
+    assert_eq!(take_process_lock_in(&directory).unwrap_err(), ProcessLockRefusal::Unavailable);
+    assert!(!moved.join("elsewhere").exists());
+    std::fs::remove_dir_all(home.parent().unwrap()).unwrap();
+}

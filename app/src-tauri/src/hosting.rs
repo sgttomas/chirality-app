@@ -201,11 +201,13 @@ pub struct HostConfig {
     pub(crate) probe_wait_limit: Duration,
     pub(crate) distribution: Option<successor::Distribution>,
     pub(crate) require_distribution_artifacts: bool,
-    /// The dedicated local home only (None for every other home): the App's lock file there. A
-    /// start takes an exclusive, non-waiting lock on it and the Codex child inherits that one
+    /// Names the dedicated local home's lock file, and so marks that home (None for every other
+    /// home); `bind_local_destination` requires it there. It does not decide the lock: every
+    /// start, for every home, takes the App's lock file inside the held home directory
+    /// (`native_local_provider::take_process_lock_in`) and the Codex child inherits that one
     /// descriptor, so the lock is held while that Codex, or anything it started that kept the
-    /// descriptor, lives; held, nothing starts. A home folder that holds the lock file is locked
-    /// at every start whatever this field says (`native_local_provider::process_lock_for`).
+    /// descriptor, lives; held, nothing starts. What this field changes is only which sentence a
+    /// refusal uses.
     pub(crate) process_lock: Option<PathBuf>,
 }
 
@@ -1701,6 +1703,45 @@ impl Host {
     pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
         self.inner.0.lock().unwrap().last_start_refusal = Some(Self::start_refusal(actor, home, None, reason));
     }
+    /// What a start is told when the home's process lock was not taken. Held: another start of
+    /// this Host under way holds it; or this Host started a process group on the home that it has
+    /// not established settled, and the refusal says so with the group's census as just taken; or
+    /// the App knows nothing of the holder and says only what may hold it. The dedicated local
+    /// home (the one whose configuration names its lock) keeps its own sentences.
+    fn process_lock_refusal(&self, cfg: &HostConfig, refusal: crate::native_local_provider::ProcessLockRefusal) -> String {
+        use crate::native_local_provider::{ProcessLockRefusal, EARLIER_PROCESS, PROCESS_LOCK_UNAVAILABLE};
+        let local = cfg.process_lock.is_some();
+        match refusal {
+            ProcessLockRefusal::Unavailable => if local { PROCESS_LOCK_UNAVAILABLE } else { crate::home_hold::PROCESS_LOCK_UNAVAILABLE }.into(),
+            ProcessLockRefusal::Held if self.home_starting.load(std::sync::atomic::Ordering::SeqCst) > 1 => crate::home_hold::IN_USE_HERE.into(),
+            ProcessLockRefusal::Held => match self.own_unsettled_census(&home_identity(&cfg.codex_home)) {
+                Some(census) => crate::home_hold::process_held_here(&census),
+                None => if local { EARLIER_PROCESS } else { crate::home_hold::PROCESS_HELD }.into(),
+            },
+        }
+    }
+    /// The census of the process groups this Host started on `home` and has not established
+    /// settled, or `None` when there is none. Each unsettled group is asked once, as its
+    /// retirement monitor asks, and given that monitor. Of several, live members seen outweigh a
+    /// census that could not be taken, which outweighs none seen.
+    fn own_unsettled_census(&self, home: &str) -> Option<process_group_custody::Census> {
+        use process_group_custody::Census;
+        let mut own: Vec<Arc<process_group_custody::OwnedProcess>> = self.child.lock().unwrap().iter().cloned().collect();
+        own.extend(self.retired_processes.lock().unwrap().iter().cloned());
+        let mut found: Option<Census> = None;
+        for process in own {
+            if process.settled() || process.bound_generation().is_some_and(|generation| generation["home"] != home) { continue; }
+            let census = process.release_if_empty();
+            if process.settled() { continue; }
+            process.maintain();
+            found = Some(match (found, census) {
+                (Some(Census::Complete(n)), _) | (_, Census::Complete(n)) if n > 0 => Census::Complete(n),
+                (Some(Census::Unknown(e)), _) | (_, Census::Unknown(e)) => Census::Unknown(e),
+                (_, census) => census,
+            });
+        }
+        found
+    }
     fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
         self.begin_start_request();
         // DEL-01-01/05: one App at a time on a Codex home, held while this
@@ -1720,24 +1761,28 @@ impl Host {
         let home = AdmittedHome { path: cfg.codex_home.clone(), identity };
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
-        // The dedicated local home: an earlier Codex there must be known ended before another
-        // starts. The exclusive, non-waiting lock is taken before the attempt is admitted, so a
-        // refusal is an ordinary early refusal: nothing is recorded and the state is unchanged, and
-        // Prepare or Start can be tried again. A state that admits no start refuses as admission
-        // would, before the lock is tried. The App's copy is closed as soon as the child is spawned.
-        // The lock follows the folder, not only the configuration: a start whose home folder holds
-        // the App's lock file takes it whatever its configuration names.
-        let process_lock = match crate::native_local_provider::process_lock_for(cfg.process_lock.as_deref(), &cfg.codex_home)? {
-            None => None,
-            Some(path) => {
-                {
-                    let i = self.inner.0.lock().unwrap();
-                    if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
-                        return Err(format!("start not accepted in state {}", i.state));
-                    }
-                }
-                Some(crate::native_local_provider::take_process_lock(&path)?)
+        // Every home (DEL-01-02 REQ-010): no Codex is started on a home while a Codex process the
+        // App started there, or a program that inherited that process's open files, is alive. The
+        // App's lock file inside the held home directory is taken exclusively and without waiting
+        // before the attempt is admitted, so a refusal is an early refusal: no lifecycle record,
+        // the state unchanged, Start can be tried again, and the reason is kept as the last start
+        // refusal. A state that admits no start refuses as admission would, before the lock is
+        // tried (this Host's own live child holds it). The App's copy is closed as soon as the
+        // child is spawned. The lock decides; what this Host knows of a process it started only
+        // informs what the refusal says. A free lock establishes nothing about a process Codex
+        // started that did not inherit its open files; this Host's settlement of its own process
+        // groups is unchanged by it.
+        {
+            let i = self.inner.0.lock().unwrap();
+            if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
+                return Err(format!("start not accepted in state {}", i.state));
             }
+        }
+        let process_lock = match crate::home_hold::open_held(&home.path, home.identity)
+            .and_then(|directory| crate::native_local_provider::take_process_lock_in(&directory).map_err(|refusal| self.process_lock_refusal(cfg, refusal)))
+        {
+            Ok(file) => file,
+            Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
         };
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
@@ -1924,9 +1969,9 @@ impl Host {
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=home_identity(&cfg.codex_home);
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
-        if let Some(file) = &process_lock {
+        {
             use std::os::fd::AsRawFd;
-            let fd = file.as_raw_fd();
+            let fd = process_lock.as_raw_fd();
             // In the child only, after process_group(0)'s setpgid and before exec: clear
             // close-on-exec on this one descriptor. One fcntl; async-signal-safe.
             unsafe {
@@ -7067,37 +7112,30 @@ mod local_process_lock_tests {
         }
     }
 
-    /// The lock follows the folder: a start whose configuration names no lock, pointed at a home
-    /// folder that holds the App's lock file (the development environment route can name the
-    /// local home's folder as the account home), still takes it.
+    /// Every home: a start whose configuration names no lock takes the lock of its home folder
+    /// all the same (the account and key homes, and the development environment route, which can
+    /// name any folder). Held, the start is an early refusal kept as the last start refusal.
     #[test]
-    fn local_process_lock_is_taken_by_any_start_in_a_folder_that_holds_the_lock_file() {
-        use crate::native_local_provider::{process_lock_for, PROCESS_LOCK_UNAVAILABLE};
+    fn a_start_whose_configuration_names_no_lock_takes_its_homes_lock_and_the_refusal_is_kept() {
+        use crate::home_hold::PROCESS_HELD;
         let f = Fixture::new(false, false);
         assert!(f.cfg.process_lock.is_none());
         // An earlier Codex of that home holds the lock (a stand-in holder here).
         let earlier = take_process_lock(&f.lock_path()).unwrap();
         let host = Arc::new(Host::new());
-        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS);
-        assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), PROCESS_HELD);
+        let status = host.snapshot();
+        assert!(!f.started() && status["state"] == "absent" && host.lifecycle_events().is_empty());
+        assert_eq!(status["lastStartRefusal"]["reason"], PROCESS_HELD, "kept for the window");
+        assert_eq!(status["lastStartRefusal"]["home"], home_identity(&f.cfg.codex_home));
+        assert!(status["lastStartRefusal"]["attempt"].is_null(), "refused before the call was an attempt");
         drop(earlier);
         // Free: the same configuration starts, and its child now holds the lock itself.
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(host.snapshot()["lastStartRefusal"].is_null(), "an admitted attempt clears it");
         assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
         stop_and_wait(&host);
         drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));
-        // The rule itself: the folder's lock file is the lock whatever the configuration names;
-        // without one it is the configured lock, or none; a name that cannot be examined refuses.
-        let (home, elsewhere) = (f.root.join("home"), std::path::Path::new("/elsewhere/lock"));
-        assert_eq!(process_lock_for(Some(elsewhere), &home).unwrap(), Some(f.lock_path()));
-        assert_eq!(process_lock_for(None, &home).unwrap(), Some(f.lock_path()));
-        assert_eq!(process_lock_for(Some(elsewhere), &f.root.join("probe")).unwrap().as_deref(), Some(elsewhere));
-        assert_eq!(process_lock_for(None, &f.root.join("probe")).unwrap(), None);
-        assert_eq!(process_lock_for(None, &f.root.join("no-such-home")).unwrap(), None);
-        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
-        let unexaminable = process_lock_for(None, &home);
-        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
-        assert_eq!(unexaminable.unwrap_err(), PROCESS_LOCK_UNAVAILABLE);
     }
     /// The sentence for a held lock says what may hold it and asserts neither which nor how long.
     #[test]
@@ -7109,17 +7147,106 @@ mod local_process_lock_tests {
         assert!(!EARLIER_PROCESS.contains('/') && !EARLIER_PROCESS.chars().any(|c| c.is_ascii_digit()));
     }
 
+    /// A home that has no lock file gets one at its first start: one small private file, held by
+    /// the child and by nothing of the App. A held lock file in another folder is never consulted.
     #[test]
-    fn account_home_start_takes_no_process_lock() {
+    fn a_home_without_the_lock_file_gets_one_private_file_at_its_first_start() {
+        use std::os::unix::fs::MetadataExt;
         let f = Fixture::new(false, false);
         assert!(f.cfg.process_lock.is_none() && HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into()).process_lock.is_none());
-        // A held lock file elsewhere is never consulted by an account start.
-        let held = take_process_lock(&f.root.join("probe").join(PROCESS_LOCK)).unwrap();
+        assert!(!f.lock_path().exists());
+        let elsewhere = take_process_lock(&f.root.join("probe").join(PROCESS_LOCK)).unwrap();
         let host = Arc::new(Host::new());
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
-        assert!(!f.lock_path().exists(), "no lock file in the account home");
+        let m = std::fs::symlink_metadata(f.lock_path()).expect("the lock file is in the home");
+        assert!(m.is_file() && m.mode() & 0o777 == 0o600 && m.nlink() == 1 && m.len() == 0, "one small private file");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
         stop_and_wait(&host);
-        drop(held);
+        drop(take_process_lock(&f.lock_path()).expect("free once the child has exited: the App keeps no descriptor"));
+        drop(elsewhere);
+    }
+
+    /// The lock decides and the census informs: after a Stop whose settlement this Host could not
+    /// establish, while something the stand-in started still holds the lock, a start is refused
+    /// and the refusal says what this App knows of the process it started, with its census as
+    /// taken. Once the group is established settled the App knows nothing of the holder and says
+    /// only what may hold it. No second stand-in is started until the holder has ended.
+    #[test]
+    fn a_start_after_an_unestablished_stop_is_refused_and_says_what_this_app_knows() {
+        use crate::home_hold::{process_held_here, PROCESS_HELD};
+        use process_group_custody::Census;
+        let f = Fixture::new(false, true);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        until("the stand-in left a process behind", || std::fs::read_to_string(f.root.join("home/left-behind")).is_ok_and(|v| v.parse::<i32>().is_ok()));
+        let mut left = LeftBehind(std::fs::read_to_string(f.root.join("home/left-behind")).unwrap().parse().unwrap());
+        // The settlement of the group is unavailable from before the Stop.
+        host.model_quit_census(Some(Census::Unknown("modelled: member enumeration failed".into())));
+        // Stop, then wait for the leader's exit as this Host observes it: with no settlement the
+        // leader is not reaped, so its process number still answers a signal probe.
+        let _ = host.stop("fixture", "test");
+        let stopped = host.child.lock().unwrap().clone().expect("the stopped child is retained");
+        until("the stand-in's exit is observed", || stopped.observe_exit().ok().flatten().is_some());
+        assert!(!stopped.settled(), "its group's settlement is not established");
+        assert_eq!(host.snapshot()["state"], "stopped");
+        let starts = || std::fs::read_to_string(f.root.join("home/started")).unwrap().len();
+        assert_eq!(starts(), 1);
+        let unknown = host.start(&f.cfg, "fixture").unwrap_err();
+        assert_eq!(unknown, process_held_here(&Census::Unknown(String::new())));
+        assert!(unknown.contains("has not confirmed that it ended") && unknown.contains("could not be checked"), "{unknown}");
+        assert_eq!(host.snapshot()["lastStartRefusal"]["reason"], unknown.as_str());
+        assert_eq!((host.snapshot()["state"].as_str(), starts()), (Some("stopped"), 1), "an early refusal: nothing started, the state as it was");
+        host.model_quit_census(Some(Census::Complete(2)));
+        let seen = host.start(&f.cfg, "fixture").unwrap_err();
+        assert!(seen.contains("processes of its group were running") && !seen.bytes().any(|b| b.is_ascii_digit()), "{seen}");
+        // Settlement becomes available: the leader's exit was observed and its group is empty.
+        // The holder is outside what this App can see, and the refusal claims no more.
+        host.model_quit_census(None);
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), PROCESS_HELD);
+        assert_eq!(starts(), 1, "no second stand-in while the lock is held");
+        for sentence in [unknown.as_str(), seen.as_str(), PROCESS_HELD, crate::home_hold::PROCESS_LOCK_UNAVAILABLE] {
+            for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "/", "pid"] {
+                assert!(!sentence.contains(claim), "{claim}: {sentence}");
+            }
+        }
+        assert!(PROCESS_HELD.contains("is held") && PROCESS_HELD.contains("may hold it") && PROCESS_HELD.contains("cannot tell which program") && PROCESS_HELD.contains("your own Codex settings"));
+        unsafe { libc::kill(left.0, libc::SIGKILL); }
+        until("the left-behind process has ended", || !alive(left.0));
+        left.0 = 0;
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "the same Host starts again once the holder has ended");
+        assert_eq!(starts(), 2);
+        stop_and_wait(&host);
+        if let Ok(pid) = std::fs::read_to_string(f.root.join("home/left-behind")).unwrap_or_default().parse::<i32>() { drop(LeftBehind(pid)); }
+    }
+
+    /// The process that served as Codex is itself alive after Stop: a stand-in whose serving
+    /// process left the process group the App reserved, so that Stop ends the group, this Host
+    /// establishes it settled and publishes `stopped`, and the serving process lives on. The
+    /// census is wrong about it; the lock is not. No second stand-in is started on the home until
+    /// that process has ended.
+    #[test]
+    fn a_serving_process_that_outlives_stop_holds_the_home_whatever_the_census_says() {
+        use crate::home_hold::PROCESS_HELD;
+        let f = Fixture::new(false, false);
+        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,json,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nhome=os.environ['CODEX_HOME']\nif os.fork():\n while not os.path.exists(home+'/input-closed'): time.sleep(0.02)\n os._exit(0)\nos.setsid()\nopen(home+'/started','a').write('x')\nopen(home+'/serving','w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\nnull=os.open(os.devnull,os.O_RDWR)\nos.dup2(null,1); os.dup2(null,2)\nopen(home+'/input-closed','w').write('x')\nwhile not os.path.exists(home+'/release'): time.sleep(0.02)\n").unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        let serving: i32 = std::fs::read_to_string(f.root.join("home/serving")).unwrap().parse().unwrap();
+        let _guard = LeftBehind(serving);
+        stop_and_wait(&host);
+        assert_eq!(host.snapshot()["state"], "stopped");
+        assert!(alive(serving), "the process that served as Codex is alive after Stop");
+        until("this Host establishes the reserved group settled", || host.child.lock().unwrap().as_ref().is_some_and(|c| c.settled()));
+        std::fs::remove_file(f.root.join("home/input-closed")).unwrap();
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), PROCESS_HELD, "the lock refuses what the census would have let through");
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).unwrap().len(), 1, "no second stand-in");
+        std::fs::write(f.root.join("home/release"), "x").unwrap();
+        until("the serving process has ended", || !alive(serving));
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).unwrap().len(), 2);
+        let second: i32 = std::fs::read_to_string(f.root.join("home/serving")).unwrap().parse().unwrap();
+        let _ = host.stop("fixture", "test");
+        until("the second serving process has ended", || !alive(second));
     }
 
     #[test]
