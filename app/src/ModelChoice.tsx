@@ -18,8 +18,9 @@ export const PROVIDER_STATES = ["named", "unnamed", "not-established", "not-read
 export function modelMatch(packet: Json, modelProvider: string, entryId: string): "confirmed" | "unconfirmed" | "none" {
   const server = typeof packet?.serverProvider === "string" ? packet.serverProvider : null;
   if (!modelProvider) return "none";
-  // Codex's list is its own catalogue: at the pin it does not ask a local
-  // server which models it has, so it is never offered as that server's.
+  // Codex's list is its own catalogue (at the pin, with an anonymous local
+  // provider, no model request reached the server), so it is never offered as
+  // a local server's.
   if (LOCAL_ENTRIES.includes(entryId)) return "none";
   if (packet?.serverProviderState === "named") return server !== null && server === modelProvider ? "confirmed" : "none";
   // A null provider is never taken as the built-in one; the person may still
@@ -78,7 +79,7 @@ export function AvailableModels({ packet, current, reading, message, model, mode
   if (modelProvider && LOCAL_ENTRIES.includes(entryId)) return <div aria-label="Available models">
     {fixedModel ? <p>This connection uses one model: <code>{fixedModel}</code>{model === fixedModel ? " — chosen" : ""}.</p>
       : <>
-        <p>Codex does not ask a local server which models it has, so there is no list to choose from. Enter the model's name exactly as your server names it.</p>
+        <p>The App has no list of this server's models: the models Codex lists are its own catalogue. Enter the model's name exactly as your server names it.</p>
         {setModel
           ? <p><label>Model name on the local server <input autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} value={model} disabled={disabled} onChange={event => setModel(event.target.value)} /></label></p>
           : <p>Enter it under “Advanced: enter IDs yourself”.</p>}

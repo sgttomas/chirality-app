@@ -172,7 +172,7 @@ test('a local server\'s model is named by the person in the model step; Codex\'s
     await ui.change(labelled(ui.c, 'input', 'Configured Codex provider '), 'local-lab');
     await ui.change(labelled(ui.c, 'select', 'Access entry '), 'local-provider');
     const step = region(ui.c, 'Available models');
-    assert.match(step.textContent, /Codex does not ask a local server which models it has/);
+    assert.match(step.textContent, /The App has no list of this server's models/);
     assert.doesNotMatch(step.textContent, /Model A|Model B|Models Codex reports/);
     assert.equal(buttons(ui.c, 'Use Model').length, 0, 'a provider named like the server provider is still not offered the list');
     assert.equal(button(ui.c, 'Read available models'), undefined);
