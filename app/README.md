@@ -1417,15 +1417,28 @@ and a fragment left by an interrupted append is closed with the byte 0x1E,
 which no JSON line contains, and named by a
 `chirality.records-store.unread-line` line before the next append or at
 startup; its bytes are kept and never read. A complete line that cannot be
-read and does not end in that mark leaves the file not read whole: reading
-continues, the limit is shown, nothing more is appended to it, and the App
-does not repair it. The witness begins with a store this build creates (or,
-in an older store, at the first startup, registration or import) and is
-backfilled once from each readable account. Development note: a project that
-existed before the witness began, with no witness line and no import account
-showing an import, reads "origin not established" for good, and nothing in it
-reads as the person's decision; exit criterion 5 must therefore be observed in
-a project created after the witness began. The host status (`recordsStore`)
+read and does not end in that mark is never set aside, by the writer or by a
+naming line written for it, and a naming line in any form but the one the
+App writes names nothing: either leaves the file not read whole, so that
+reading continues, the limit is shown, nothing more is appended to it, and
+the App does not repair it. A package import writes its registry lines as one
+frozen write of its own; while that write is pending, every other registry
+write is refused with the registry unchanged, another package import's
+included, and if whether one is pending cannot be established (a journal
+that cannot be examined) the write is refused too. The witness begins with a
+store this build creates (or, in an older store, at the first startup,
+registration or import) and is backfilled once from each readable account.
+Its first line lists the store folder key of every project present when it
+began, taken from the store's project folders and its registry; if they
+cannot be listed whole the witness does not begin and the act that would
+have begun it is refused. That list, and no time, says whether a project
+predates the witness. A witness line says an import was begun, not that
+anything was copied. Development note: a project that was present when the
+witness began, with no witness line and no import account showing an import,
+reads "origin not established" for good. Nothing in the App reads that
+answer yet (the decision view does not consult it on this build), so exit
+criterion 5 is not served by it until that view does; when it is, criterion
+5 must be observed in a project created after the witness began. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
 The records-store panel offers **Export project records**, choosing a parent
