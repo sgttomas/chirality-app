@@ -830,11 +830,17 @@ fn import_line(line: &Value) -> Option<&'static str> {
         return None;
     }
     let completed = || all(&line["files"], &file) && all(&line["conflicts"], &conflict);
+    // Each form carries only the members its writer gave it (the two writers
+    // of this file, and the one at 0237b6b3): a member no form has is not a
+    // form the App wrote.
+    let only = |members: &[&str]| line.as_object().is_some_and(|object| object.keys().all(|key| members.contains(&key.as_str())));
     match line.get("event").map(Value::as_str) {
-        Some(Some("started")) if all(&line["census"], &file) => Some("started"),
-        Some(Some("completed")) if completed() => Some("completed"),
+        Some(Some("started")) if all(&line["census"], &file)
+            && only(&["format", "formatVersion", "event", "importId", "at", "root", "method", "census", "storeHeld", "resumes"]) => Some("started"),
+        Some(Some("completed")) if completed()
+            && only(&["format", "formatVersion", "event", "importId", "at", "files", "conflicts", "censusChanged"]) => Some("completed"),
         // Written before imports had a "started" line: one line per completed import.
-        None if completed() => Some("completed"),
+        None if completed() && only(&["format", "formatVersion", "importId", "at", "root", "method", "files", "conflicts"]) => Some("completed"),
         _ => None,
     }
 }

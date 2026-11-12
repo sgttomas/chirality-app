@@ -784,7 +784,9 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
     unknown.extend([b"".to_vec(), b"\xef\xbb\xbf".to_vec(), b"\xef\xbb\xbf\n".to_vec(), b"\r".to_vec(), b"\r\n".to_vec(), b"\0".to_vec(), b"\0\n".to_vec(),
         b" ".to_vec(), b" \n".to_vec(), b"\n\n".to_vec(),
         around(b"\xef\xbb\xbf", b""), around(b"", b"\r"), around(b"", b" "), around(b" ", b""), around(b"\t", b"\t"), twice, not_utf8,
-        [valid.as_slice(), b"\n\n"].concat()]);
+        [valid.as_slice(), b"\n\n"].concat(),
+        // A valid line with a member no form of import line has.
+        [&valid[..valid.len() - 1], b",\"added\":true}\n".as_slice()].concat()]);
     for (root, content) in [&imported, &empty].into_iter().flat_map(|root| unknown.iter().map(move |content| (root, content.as_slice()))) {
         let dir = attach(root, false).unwrap().dir.unwrap();
         std::fs::write(dir.join("imports.jsonl"), content).unwrap();

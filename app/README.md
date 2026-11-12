@@ -1435,7 +1435,8 @@ state cannot be read reads as unavailable, never as empty or as "no records
 yet": a project's import account is read whole and only as line forms the
 App has written (a started line, a completed line, and the single line with
 no event that the first store builds wrote for a completed import), each line
-being one JSON object and nothing else, in UTF-8, with no key given twice;
+being one JSON object and nothing else, in UTF-8, with no key given twice
+and no member its form's writer did not give it;
 an account that exists and is empty, an unclosed last line, a blank line or
 any other content makes the account unknown, and only an account that is not
 there is "no import". (The store's appender creates the file and then
