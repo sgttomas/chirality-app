@@ -5565,6 +5565,75 @@ mod conversation_transport_tests {
         }
     }
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
+    /// An account or key-home host whose Codex answers each configuration reading as `reading` says
+    /// at that moment ("openai", another provider, "absent", or "error"); every frame written is kept.
+    struct ReportingHome { home:crate::runtime_session::HomeSession, reading:Arc<Mutex<String>>, child:Child, frames:Arc<Mutex<Vec<Value>>>, reader:Option<std::thread::JoinHandle<()>> }
+    impl ReportingHome {
+        fn new(class:crate::home_resources::HomeClass)->Self{
+            let host=host();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
+            let reading=Arc::new(Mutex::new("openai".to_owned()));let now=Arc::clone(&reading);
+            *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|h,source|{
+                let frame=match now.lock().unwrap().as_str(){
+                    "error"=>json!({"id":source.request_id(),"error":{"code":-32603,"message":"invented"}}),
+                    "absent"=>json!({"id":source.request_id(),"result":{"config":{},"origins":{}}}),
+                    provider=>json!({"id":source.request_id(),"result":{"config":{"model_provider":provider},"origins":{}}}),
+                };
+                h.on_line(&serde_json::to_vec(&frame).unwrap(),source.generation());
+            }));
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+            *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
+            let frames=Arc::new(Mutex::new(Vec::new()));let kept=Arc::clone(&frames);
+            let reader=std::thread::spawn(move||{for line in BufReader::new(stdout).lines(){let Ok(line)=line else{break};kept.lock().unwrap().push(serde_json::from_str::<Value>(&line).unwrap());}});
+            let home=crate::runtime_session::HomeSession::new(class,host,Err("synthetic reporting home".into())).unwrap();
+            Self{home,reading,child,frames,reader:Some(reader)}
+        }
+        fn reports(&self,reading:&str){*self.reading.lock().unwrap()=reading.into();}
+        /// Every frame written to this Codex's input, once the input is closed.
+        fn written(mut self)->Vec<String>{
+            *self.home.host.stdin.lock().unwrap()=None;assert!(self.child.wait().unwrap().success());self.reader.take().unwrap().join().unwrap();
+            self.frames.lock().unwrap().iter().map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect()
+        }
+    }
+    fn resume(home:&ReportingHome)->Result<(),String>{let mut view=history_selected();let query=view.continue_query().unwrap();home.home.host.history_dispatch(&query).map(|_|())}
+    fn fork(home:&ReportingHome)->Result<(),String>{home.home.host.thread_fork_dispatch(&g(),"thread").map(|_|())}
+    /// DEL-01-05 AC-005: an account or key-home Continue or fork rests on Codex's own report, read at
+    /// its own admission, of the built-in provider; otherwise nothing is sent for it.
+    #[test]
+    fn cloud_resume_and_fork_rest_on_codex_reporting_the_built_in_provider_at_their_own_admission(){
+        use crate::home_resources::HomeClass;
+        let ops:[(&str,fn(&ReportingHome)->Result<(),String>,&str);2]=[("thread/resume",resume,access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME),("thread/fork",fork,access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK)];
+        for class in [HomeClass::Account,HomeClass::ApiKey] {
+            for (method,op,refusal) in ops {
+                for case in ["built-in","requirement-names-another","not-reported","unreadable"] {
+                    let home=ReportingHome::new(class);
+                    home.reports(match case{"built-in"=>"openai","requirement-names-another"=>"invented-corporate-gateway","not-reported"=>"absent",_=>"error"});
+                    let result=op(&home);
+                    match case {
+                        "built-in"=>assert!(result.is_ok(),"{class:?} {method}: sent as before"),
+                        "unreadable"=>assert!(result.is_err(),"{class:?} {method}: unreadable refuses"),
+                        _=>assert_eq!(result.unwrap_err(),refusal,"{class:?} {method} {case}"),
+                    }
+                    let written=home.written();
+                    let expected:Vec<&str>=if case=="built-in"{vec!["config/read",method]}else{vec!["config/read"]};
+                    assert_eq!(written,expected,"{class:?} {method} {case}: nothing but the reading is sent unless it reports the built-in provider");
+                }
+                // A good value read for an earlier admission in this same Codex process is not reused.
+                let home=ReportingHome::new(class);
+                assert!(op(&home).is_ok(),"{class:?} {method}: the earlier admission");
+                home.reports("invented-corporate-gateway");
+                assert_eq!(op(&home).unwrap_err(),refusal,"{class:?} {method}: read again at this admission");
+                assert_eq!(home.written(),vec!["config/read",method,"config/read"],"{class:?} {method}");
+            }
+        }
+        assert!(access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME.ends_with("no thread/resume sent")&&access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK.ends_with("no thread/fork sent"));
+    }
+    /// The dedicated local home's resume and fork keep their own admissions: this check reads nothing there.
+    #[test]
+    fn cloud_continuation_admission_sends_nothing_for_a_local_home(){
+        let host=host();host.inner.0.lock().unwrap().local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented/work"));
+        assert!(host.cloud_continuation_admission(&g(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME).is_ok());
+        assert!(host.client_requests().is_empty(),"no reading, nothing sent");
+    }
     fn history_exchange(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>) -> (HistoryDispatch, Value, Value) {
         history_exchange_observed(host, query, response, None, |_| {})
     }

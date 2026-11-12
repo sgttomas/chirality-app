@@ -4411,3 +4411,20 @@ fn access_provider_cloud_entries_require_codex_to_report_the_built_in_provider()
     }
     assert!(!BUILT_IN_PROVIDER_UNREPORTED.contains("invented"), "names no provider and asserts no cause");
 }
+/// A new conversation's admission reads Codex's report for that admission: a built-in provider
+/// reported for an earlier admission in the same Codex process is not reused.
+#[test]
+fn access_provider_cloud_start_admission_reads_again_and_does_not_reuse_an_earlier_good_reading() {
+    for entry in ["chatgpt-account", "api-key"] {
+        let peer = Peer::new("invented-account-home");
+        peer.answer(config(json!({})));
+        assert!(peer.read(entry, "openai").is_ok(), "{entry}: the earlier admission");
+        let mut other = config(json!({}));
+        other["config"]["model_provider"] = json!("invented-corporate-gateway");
+        peer.answer(other);
+        assert_eq!(peer.read(entry, "openai").err().unwrap(), BUILT_IN_PROVIDER_UNREPORTED, "{entry}: read again at this admission");
+        assert_eq!(peer.host.client_requests().iter().filter(|r| r["method"] == "config/read").count(), 2);
+        assert!(peer.host.client_requests().iter().all(|r| r["method"] == "config/read"), "no thread/start sent");
+        peer.safe();
+    }
+}
