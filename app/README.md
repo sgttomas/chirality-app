@@ -1225,20 +1225,24 @@ One App at a time holds an App data directory and each Codex home it starts
 Codex on, on this route as on the saved one. A second App on the same App data
 starts nothing (no Codex, no recovery ledger, no record) and shows "Chirality is
 already running with this data"; a second Host on a home another App holds is
-refused. Every committed configuration uses the identifier
-`dev.chirality.app-v4.skeleton`, so development runs that do not name their App
-data share one directory and only the first of them starts. To run in parallel,
-give each run its own `CHIRALITY_APP_DATA` (an absolute path; it is created if
-missing, and setting it alone selects this route) and its own
-`CHIRALITY_CODEX_HOME`. Tests construct their state in their own scratch
-folders and need neither. `CHIRALITY_APP_DATA` is read only by a development
-run (`tauri dev`), as `CHIRALITY_RECORDS_STORE` is; a built App does not read
-it, so it cannot point an installed App at other data. It moves the App's own
-data only: the system web view keeps its website data and caches under
-`~/Library` in folders named for the build's bundle identifier, whatever this
-variable says, so two development runs of one build share that web view
-storage. Give a run its own identifier (a `--config` override) when that
-matters.
+refused, and so is a home that does not exist. If App data cannot be resolved
+or held (an invalid `CHIRALITY_APP_DATA`, an unavailable platform path),
+nothing operational starts and the reason is shown. Every committed
+configuration uses the identifier `dev.chirality.app-v4.skeleton`, so
+development runs that do not name their App data share one directory and only
+the first of them starts. To run in parallel, give each run its own
+`CHIRALITY_APP_DATA` (an absolute path; it is created if missing, and setting
+it alone selects this route) and its own existing `CHIRALITY_CODEX_HOME`.
+Tests construct their state in their own scratch folders and need neither.
+`CHIRALITY_APP_DATA` is read only by a development run (`tauri dev`), as
+`CHIRALITY_RECORDS_STORE` is; a built App does not read it, so it cannot point
+an installed App at other data. It moves the App's own data only. The system
+web view keeps its website data, caches and application support in folders
+named for the build's bundle identifier within the launch's home. Set both
+`CFFIXED_USER_HOME` and `HOME` to the same throwaway folder for a development
+launch (the App does not set them): two runs of one build under different
+throwaway homes then do not share web view storage. Without both set (`HOME`
+alone redirects none of it), they share it under `~/Library`.
 
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
 `CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary

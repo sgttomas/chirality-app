@@ -18,6 +18,27 @@ pub(crate) const STILL_RUNNING: &str = "Another App session is still running wit
 /// Startup refused because an earlier session's liveness could not be checked.
 pub(crate) const NOT_CHECKED: &str = "Whether an earlier App session is still running could not be checked, so it is not treated as ended. This session did not start on its history: nothing was written to it and nothing is inferred about that session";
 
+/// The sessions whose end the ledger records: a `session_ended` entry, or a
+/// later `session_started` naming it as its `previousSession` (that start
+/// recorded how it ended).
+fn recorded_ends(entries: &[Value]) -> std::collections::BTreeSet<&str> {
+    entries
+        .iter()
+        .filter_map(|e| match e["kind"].as_str() {
+            Some("session_ended") => e["session"].as_str(),
+            Some("session_started") => e["previousSession"].as_str(),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The App ledger's entry schema, `…:app-ledger-entry:0.5`. The compatibility
+/// rule is the one each earlier version followed: a version only adds; this
+/// reader accepts every row of the retained earlier versions (0.2, 0.3, 0.4)
+/// unchanged and rewrites none; a row this reader does not know (a later
+/// version's addition) fails validation, so the ledger is not read and that
+/// is shown as a recovery limit, never read in part. 0.5 adds the optional
+/// `session_started.livenessLock` ([`crate::session_liveness::FIELD`]).
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
     VALIDATOR
@@ -409,11 +430,18 @@ impl RecoveryLedger {
         let entry=json!({"kind":"session_ended","session":session,"at":now_rfc3339(),"how":how,"stopRequests":stop_requests});
         validator()?.validate(&entry).map_err(|_|"App session end pointer metadata shape invalid; no end append".to_string())?;Ok(entry)
     }
+    /// A session start by a caller that holds no liveness lock: its
+    /// `session_started` carries no [`crate::session_liveness::FIELD`], so a
+    /// later startup reads it as a build that took no lock was read. The App
+    /// starts its sessions with [`Self::start_session_held`].
     pub fn start_session(&mut self, session: &str, candidate: &str) -> Result<(), String> {
+        self.start_session_declared(session, candidate, false)
+    }
+    fn start_session_declared(&mut self, session: &str, candidate: &str, declared: bool) -> Result<(), String> {
         if self.startup_requires_reopen {
             return Err("recovery startup append was not confirmed; reopen the ledger before retrying".into());
         }
-        let result = self.start_session_inner(session, candidate);
+        let result = self.start_session_inner(session, candidate, declared);
         if result.is_err() {
             // The batch is one transaction, but a commit that reports an I/O
             // error can still have reached the disk. Do not retry from stale
@@ -427,27 +455,52 @@ impl RecoveryLedger {
     /// listed requests' endings, its stop requests' closing, the previous
     /// session's end, and from them the restart facts, the adoption of its
     /// unsettled conversations and the run limits) reads "no end record" as
-    /// "ended". That holds only for a session whose liveness lock is free or
-    /// absent ([`crate::session_liveness`]). When any earlier session without
-    /// an end record is still running, or that could not be checked, this
-    /// session does not start on the ledger: nothing is written and nothing
-    /// is inferred.
+    /// "ended". That holds only for a session whose liveness shows it ended
+    /// ([`crate::session_liveness::probe`]): a free lock file that names it,
+    /// or, for a session recorded by a build that took no lock, a free or
+    /// absent one. A session of this build whose liveness is not known is
+    /// settled as ended only by the positive evidence stated at
+    /// [`crate::session_liveness::resolve_not_known`]. When any earlier
+    /// session without a recorded end is still running, or is not known to
+    /// have ended, this session does not start on the ledger: nothing is
+    /// written and nothing is inferred.
     fn earlier_sessions_ended(&self, session: &str) -> Result<(), String> {
-        use crate::session_liveness::{probe, Liveness};
-        let ended: std::collections::BTreeSet<&str> = self.current.iter()
-            .filter(|e| e["kind"] == "session_ended").filter_map(|e| e["session"].as_str()).collect();
-        let mut seen = std::collections::BTreeSet::new();
-        for earlier in self.current.iter().filter(|e| e["kind"] == "session_started").filter_map(|e| e["session"].as_str()) {
-            if earlier == session || ended.contains(earlier) || !seen.insert(earlier) { continue; }
-            match probe(&self.path, earlier) {
+        use crate::session_liveness::{probe, resolve_not_known, Liveness, FIELD};
+        let ended = recorded_ends(&self.current);
+        let mut earlier: Vec<(&str, bool)> = Vec::new();
+        for entry in self.current.iter().filter(|e| e["kind"] == "session_started") {
+            let Some(id) = entry["session"].as_str() else { continue };
+            if id == session || ended.contains(id) { continue; }
+            let declared = entry[FIELD] == true;
+            match earlier.iter_mut().find(|(seen, _)| *seen == id) {
+                Some(seen) => seen.1 |= declared,
+                None => earlier.push((id, declared)),
+            }
+        }
+        for (id, declared) in earlier {
+            match probe(&self.path, id, declared) {
                 Liveness::Absent | Liveness::Free => {}
                 Liveness::Held => return Err(STILL_RUNNING.into()),
+                Liveness::Unknown(reason) if declared => {
+                    if let Err(why) = resolve_not_known(&self.path, id) {
+                        return Err(format!("{NOT_CHECKED} ({reason}; {why})"));
+                    }
+                }
                 Liveness::Unknown(reason) => return Err(format!("{NOT_CHECKED} ({reason})")),
             }
         }
         Ok(())
     }
-    fn start_session_inner(&mut self, session: &str, candidate: &str) -> Result<(), String> {
+    /// [`Self::start_session`] for the session that holds `hold`, its liveness
+    /// lock on this ledger: its `session_started` says so
+    /// ([`crate::session_liveness::FIELD`]).
+    pub(crate) fn start_session_held(&mut self, session: &str, candidate: &str, hold: &crate::session_liveness::Hold) -> Result<(), String> {
+        if hold.session() != session || hold.path() != crate::session_liveness::lock_path(&self.path, session) {
+            return Err("App session liveness lock is not this session's on this ledger; no session start".into());
+        }
+        self.start_session_declared(session, candidate, true)
+    }
+    fn start_session_inner(&mut self, session: &str, candidate: &str, declared: bool) -> Result<(), String> {
         self.earlier_sessions_ended(session)?;
         if let Some(last) = self.current.iter().rev().find(|e| e["kind"] == "session_started") {
             if last["session"] == session {
@@ -460,7 +513,7 @@ impl RecoveryLedger {
                 // ledger imported from an earlier build's JSON Lines file.
                 self.close_earlier_listed_requests(session)?;
                 self.close_earlier_stop_requests(session);
-                crate::session_liveness::sweep(&self.path);
+                crate::session_liveness::sweep(&self.path, &recorded_ends(&self.current));
                 return Ok(());
             }
         }
@@ -496,6 +549,9 @@ impl RecoveryLedger {
         if let Some(id) = previous_id {
             entry["previousSession"] = json!(id);
         }
+        if declared {
+            entry[crate::session_liveness::FIELD] = json!(true);
+        }
         // The session marker and its RQ-06 endings stand together: one transaction.
         let (pending, _) = startup_request_closures(&self.current, session);
         let mut batch = vec![entry];
@@ -503,7 +559,7 @@ impl RecoveryLedger {
         // Guarded: the liveness read above holds only for the entries read.
         self.append_batch_guarded(batch, true).map_err(|e| format!("session start and its RQ-06 request endings not confirmed: {e}"))?;
         self.close_earlier_stop_requests(session);
-        crate::session_liveness::sweep(&self.path);
+        crate::session_liveness::sweep(&self.path, &recorded_ends(&self.current));
         Ok(())
     }
     /// RQ-06 for requests an earlier session left listed, as one batch. A later

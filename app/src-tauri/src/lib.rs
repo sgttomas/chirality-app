@@ -2694,7 +2694,9 @@ fn build_input<'a>(input: &'a impl Fn(&str)->Option<std::ffi::OsString>, is_dev:
 /// The startup admission `run` performs before any operational consumer:
 /// the App data directory (named by [`APP_DATA_ENV`] or the platform's), the
 /// launch route, and one App at a time on that data on either route. On the
-/// environment route the hold is taken before its probe home is allocated.
+/// environment route App data must resolve and be held before any of its
+/// launch inputs is built (its probe home included); otherwise nothing
+/// operational starts and the actual reason is shown.
 pub(crate) fn admitted_startup(
     input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
     probe: impl Fn()->Result<PathBuf,String>,
@@ -2702,8 +2704,13 @@ pub(crate) fn admitted_startup(
     let input = build_input(&input, is_dev);
     let data = environment_app_data(&input).unwrap_or(platform_data);
     let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
-    let refused = environment_selected(&input) && data.as_ref().is_ok_and(|data| desktop.hold_environment_data(data).is_err());
-    let environment = explicit_environment_launch(&input, &data, &resources, is_dev, || if refused { Err("no probe home allocated: this App data is not held".into()) } else { probe() });
+    if environment_selected(&input) {
+        if let Err(reason) = data.as_ref().map_err(Clone::clone).and_then(|data| desktop.hold_environment_data(data)) {
+            let inputs = desktop.refuse_environment(&reason);
+            return (desktop, inputs);
+        }
+    }
+    let environment = explicit_environment_launch(&input, &data, &resources, is_dev, &probe);
     let launch = desktop.resolve(environment, is_dev, &probe);
     let inputs = desktop.admit_root(launch, data);
     (desktop, inputs)
@@ -2979,7 +2986,13 @@ pub fn run() {
                         &recovery,
                         data.as_deref().map_err(String::as_str),
                         Some(&cfg.codex_home),
-                        || { desktop.lock().map_err(|_|"Desktop custody unavailable")?.recheck_active()?; h.start(&cfg, "app-startup") },
+                        || {
+                            // A refusal before Host::start is kept as the host
+                            // status's last start refusal too (Host::start keeps its own).
+                            let admitted = desktop.lock().map_err(|_|"Desktop custody unavailable".to_string()).and_then(|desktop|desktop.recheck_active());
+                            if let Err(reason) = admitted { h.note_start_refusal("app-startup", &reason); return Err(reason); }
+                            h.start(&cfg, "app-startup")
+                        },
                     );
                 });
             }

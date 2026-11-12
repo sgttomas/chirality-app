@@ -46,6 +46,9 @@ code_paths:
 - app/src-tauri/src/desktop_startup.rs
 - app/src-tauri/src/lib.rs
 - app/src/FirstUse.tsx
+# App.tsx is shared. Here: the first-use surface is mounted for "already running" as it is for
+# setup.
+- app/src/App.tsx
 # native_requests.rs is shared with DEL-01-04. Here: custody of outstanding requests and the
 # summaries kept of them. Answer validation and decline forms are DEL-01-04's.
 - app/src-tauri/src/native_requests.rs

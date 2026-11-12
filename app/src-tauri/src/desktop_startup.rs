@@ -220,8 +220,18 @@ struct DirectoryLease {
     file: File,
     path: PathBuf,
     object: ObjectRef,
+    /// For the App data directory: this process's note that it holds it, the
+    /// positive evidence a session start may rely on
+    /// ([`crate::session_liveness::resolve_not_known`]).
+    app_data: Option<crate::session_liveness::AppDataHeld>,
 }
 impl DirectoryLease {
+    /// The lease on the App data directory itself, noted as held.
+    fn acquire_app_data(path: &Path) -> Result<Self, String> {
+        let mut lease = Self::acquire(path)?;
+        lease.app_data = Some(crate::session_liveness::note_app_data_held(&lease.file)?);
+        Ok(lease)
+    }
     fn acquire(path: &Path) -> Result<Self, String> {
         storage::check_path(path)?;
         let file = OpenOptions::new()
@@ -250,6 +260,7 @@ impl DirectoryLease {
             file,
             path: path.to_owned(),
             object: ObjectRef::of(&meta),
+            app_data: None,
         };
         lease.recheck()?;
         Ok(lease)
@@ -270,6 +281,8 @@ impl DirectoryLease {
 }
 impl Drop for DirectoryLease {
     fn drop(&mut self) {
+        // The note goes before the lock is released, never after.
+        drop(self.app_data.take());
         unsafe {
             libc::flock(self.file.as_raw_fd(), libc::LOCK_UN);
         }
@@ -729,24 +742,15 @@ impl DesktopSetup {
         if launch.source == "explicit environment (exclusive)" {
             // One App at a time holds an App data directory, on this route as
             // on the saved one: before the ledger opens or anything is written.
-            if let Ok(data) = &environment_data {
-                if let Err(reason) = self.hold_environment_data(data) {
-                    let refused = already_running(&reason);
-                    self.launch_state = if refused {
-                        json!({"state":"already-running","reason":ALREADY_RUNNING,"operationalData":"not admitted; nothing started or changed"})
-                    } else {
-                        json!({"state":"environment","reason":format!("App data could not be held, so nothing was started: {reason}"),"operationalData":"not admitted"})
-                    };
-                    let reason = if refused { ALREADY_RUNNING.to_string() } else { format!("App data could not be held, so nothing was started: {reason}") };
-                    return RootInputs {
-                        launch: if refused { Launch::already_running() } else { Launch { host_config: Err(reason.clone()), workspace: None, key_path: None, shared_paths: [None, None, None], bootstrap: None, namespaces: None, source: "explicit environment (App data not held)" } },
-                        data: Err(format!("App operational data not admitted: {reason}")),
-                        allow_operational: false,
-                    };
-                }
+            // App data that did not resolve is never treated as held: nothing
+            // operational starts, the records override included.
+            let held = environment_data
+                .as_ref()
+                .map_err(Clone::clone)
+                .and_then(|data| self.hold_environment_data(data));
+            if let Err(reason) = held {
+                return self.refuse_environment(&reason);
             }
-            // Preserve the complete legacy route, including its independently
-            // configured records override when App-data itself is unavailable.
             return RootInputs {
                 launch,
                 data: environment_data,
@@ -844,6 +848,40 @@ impl DesktopSetup {
             }
         }
     }
+    /// The environment route refused because its App data did not resolve or
+    /// could not be held: nothing operational starts and the actual reason is
+    /// shown where the environment route's startup errors are shown.
+    pub(crate) fn refuse_environment(&mut self, reason: &str) -> RootInputs {
+        self.admitted = None;
+        let refused = already_running(reason);
+        let reason = if refused {
+            ALREADY_RUNNING.to_string()
+        } else {
+            format!("App data could not be resolved and held, so nothing was started: {reason}")
+        };
+        self.launch_state = if refused {
+            json!({"state":"already-running","reason":ALREADY_RUNNING,"operationalData":"not admitted; nothing started or changed"})
+        } else {
+            json!({"state":"environment","reason":reason,"operationalData":"not admitted"})
+        };
+        RootInputs {
+            launch: if refused {
+                Launch::already_running()
+            } else {
+                Launch {
+                    host_config: Err(reason.clone()),
+                    workspace: None,
+                    key_path: None,
+                    shared_paths: [None, None, None],
+                    bootstrap: None,
+                    namespaces: None,
+                    source: "explicit environment (App data not held)",
+                }
+            },
+            data: Err(format!("App operational data not admitted: {reason}")),
+            allow_operational: false,
+        }
+    }
     /// The environment route's App data hold: the same directory-inode lease
     /// the saved route takes, kept for the life of this setup (the process).
     pub(crate) fn hold_environment_data(&mut self, data: &Path) -> Result<(), String> {
@@ -852,7 +890,7 @@ impl DesktopSetup {
             if !data.try_exists().map_err(|e| format!("App data unavailable: {e}"))? {
                 protected_directory(data)?;
             }
-            self.lease = Some(DirectoryLease::acquire(data)?);
+            self.lease = Some(DirectoryLease::acquire_app_data(data)?);
         }
         self.lease.as_ref().unwrap().recheck()
     }
@@ -865,7 +903,7 @@ impl DesktopSetup {
             if !data.exists() {
                 protected_directory(data)?;
             }
-            self.lease = Some(DirectoryLease::acquire(data)?);
+            self.lease = Some(DirectoryLease::acquire_app_data(data)?);
         }
         self.lease.as_ref().unwrap().recheck()?;
         let directory = data.join("desktop-startup");
@@ -973,7 +1011,7 @@ impl DesktopSetup {
         // One App at a time holds this App data, with or without a saved
         // request. The lease creates nothing; absent data has nothing to hold.
         if self.lease.is_none() && data.try_exists().map_err(|e| e.to_string())? {
-            self.lease = Some(DirectoryLease::acquire(&data)?);
+            self.lease = Some(DirectoryLease::acquire_app_data(&data)?);
         }
         // No request => no automatic home preparation or supplier work.
         if !data.join(PROFILE).try_exists().map_err(|e| e.to_string())? {
@@ -1099,6 +1137,13 @@ impl DesktopSetup {
     }
     pub fn recheck_active(&self) -> Result<(), String> {
         if self.config_edit_unconfirmed { return Err("Endpoint write may have changed configuration; current source has not been continued".into()); }
+        // On every route, before each Codex start: this App still holds its
+        // App data, and its path still names the held directory (by device
+        // and inode). App data not held starts nothing operational.
+        match &self.lease {
+            Some(lease) => lease.recheck().map_err(|e| format!("App data custody lost, so nothing was started: {e}"))?,
+            None => return Err("App data is not held by this App, so nothing was started".into()),
+        }
         if self.requested.is_some() {
             self.recheck()?;
         }
@@ -5352,12 +5397,15 @@ mod tests {
             None,
             [None, None, None],
         );
+        // App data that did not resolve is never treated as held: nothing
+        // operational starts (the records override included) and the actual
+        // error is shown on the environment route's launch state.
         let inputs = setup.admit_root(launch, Err("environment App data unavailable".into()));
-        assert!(
-            inputs.allow_operational,
-            "preserve independent environment records override semantics"
-        );
-        assert_eq!(inputs.data.unwrap_err(), "environment App data unavailable");
+        assert!(!inputs.allow_operational, "unresolved App data starts nothing operational");
+        assert!(inputs.data.unwrap_err().contains("environment App data unavailable"));
+        assert!(inputs.launch.host_config.unwrap_err().contains("environment App data unavailable"));
+        assert_eq!(setup.view()["launch"]["state"], "environment");
+        assert!(setup.view()["launch"]["reason"].as_str().unwrap().contains("environment App data unavailable"));
     }
 
     #[test]
@@ -6008,6 +6056,58 @@ mod tests {
         let (dev, inputs) = crate::admitted_startup(named(elsewhere.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
         assert_eq!(inputs.data.as_deref(), Ok(elsewhere.as_path()));
         assert_eq!(dev.view()["launch"]["state"], "environment");
+    }
+
+    /// Finding 4 (the reviewer's reproduction, as a maintained test): on the
+    /// environment route, App data that does not resolve (an invalid
+    /// `CHIRALITY_APP_DATA`, an unavailable platform path) allocates no probe
+    /// home and builds no operational input; the actual error is shown.
+    #[test]
+    fn unresolved_app_data_on_the_environment_route_starts_nothing_operational() {
+        let f = Fixture::new();
+        let cases: [(Option<&str>, Result<PathBuf, String>, &str); 2] = [
+            (Some("relative/app-data"), Ok(f.data.clone()), "must be an absolute path"),
+            (None, Err("platform App data unavailable (invented)".into()), "platform App data unavailable (invented)"),
+        ];
+        for (named, platform, expected) in cases {
+            let home = f.root.join("environment-home").into_os_string();
+            let input = |key: &str| -> Option<std::ffi::OsString> {
+                match key {
+                    "CHIRALITY_APP_DATA" => named.map(Into::into),
+                    "CHIRALITY_CODEX_BIN" => Some("/invented/bin/codex".into()),
+                    "CHIRALITY_CODEX_HOME" => Some(home.clone()),
+                    "CHIRALITY_ALLOW_UNVERIFIED" => Some("1".into()),
+                    _ => None,
+                }
+            };
+            let (desktop, inputs) = crate::admitted_startup(input, platform, Ok(f.resources.clone()), true, || {
+                panic!("no probe home is allocated without held App data")
+            });
+            assert!(!inputs.allow_operational, "{expected}");
+            assert!(inputs.data.as_ref().is_err_and(|e| e.contains(expected)), "{:?}", inputs.data);
+            assert!(inputs.launch.host_config.as_ref().is_err_and(|e| e.contains(expected)), "no Codex configuration");
+            assert!(inputs.launch.workspace.is_none() && inputs.launch.namespaces.is_none());
+            let view = desktop.view();
+            assert_eq!(view["launch"]["state"], "environment");
+            assert!(view["launch"]["reason"].as_str().unwrap().contains(expected), "{view}");
+            assert!(desktop.recheck_active().is_err(), "no later start is admitted either");
+        }
+        assert!(!f.root.join("relative").exists());
+    }
+
+    /// Finding 6: the environment route's App data custody is rechecked by
+    /// identity before each start, with no saved request.
+    #[test]
+    fn the_environment_routes_app_data_is_rechecked_before_each_start() {
+        let f = Fixture::new();
+        let named = |data: PathBuf| move |key: &str| (key == crate::APP_DATA_ENV).then(|| data.clone().into_os_string());
+        let (desktop, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        assert!(inputs.allow_operational);
+        desktop.recheck_active().unwrap();
+        std::fs::rename(&f.data, f.root.join("moved-app-data")).unwrap();
+        protected_directory(&f.data).unwrap();
+        let refused = desktop.recheck_active().unwrap_err();
+        assert!(refused.contains("App data custody lost"), "{refused}");
     }
 
     #[test]

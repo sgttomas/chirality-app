@@ -51,6 +51,10 @@ code_paths:
 # One App at a time on each Codex home: the process's held home inodes, shared with the saved
 # route's receiving source (DEL-01-05), taken where the Host starts its child.
 - app/src-tauri/src/home_hold.rs
+# App.tsx and DailyWorkspace.tsx are shared. Here: the connection status shows the host
+# status's last start refusal and its reason.
+- app/src/App.tsx
+- app/src/DailyWorkspace.tsx
 - app/src-tauri/src/installed_custody.rs
 - app/src-tauri/src/publisher_selection.rs
 - app/src-tauri/src/compiled_development_selection.rs

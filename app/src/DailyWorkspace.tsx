@@ -63,8 +63,10 @@ function revealLink(event: MouseEvent<HTMLElement>): void {
 }
 
 /** A reading of the host snapshot, never a start/admission or model selection. */
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed }: {
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal }: {
   state?: string; setupRequired?: boolean; savedSetup?: boolean; generationClosed?: boolean;
+  /** The host status's `lastStartRefusal.reason`: why the last start of Codex was refused. */
+  startRefusal?: string;
 }) {
   const ready = state === "ready" && generationClosed !== true;
   const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
@@ -78,6 +80,7 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
     : "Open Connection & access to inspect the current status and available controls.";
   return <section className="workspace-connection-status" aria-label="Workspace connection status">
     <p role="status" aria-live="polite"><strong>{title}</strong> <span>{guidance}</span></p>
+    {!setupRequired && !ready && startRefusal && <p role="alert" aria-label="Why Codex was not started">Codex was not started: {startRefusal}</p>}
     {!setupRequired && state && <a href={ready ? "#workspace-start" : "#workspace-connection"}>{ready ? "Choose a new conversation" : "Open connection controls"}</a>}
   </section>;
 }

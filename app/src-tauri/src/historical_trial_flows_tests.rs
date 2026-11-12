@@ -56,7 +56,7 @@ fn historical_trial_new_process(peer: &mut Peer) {
         .stop("invented App restart", "old native Host owner ends")
         .unwrap();
     // The old App's process has ended (one App at a time on this data).
-    peer.home.host.release_process_holds_for_test();
+    peer.home.host.end_process_for_test();
     let cfg = peer.home.host_config.as_ref().unwrap().clone();
     let host = Arc::new(crate::hosting::Host::new());
     host.configure_recovery(
@@ -1018,7 +1018,7 @@ fn historical_trial_recorded_source_history_can_be_read_without_loading_original
         )
         .unwrap();
     // The old App's process has ended (one App at a time on this data).
-    source.home.host.release_process_holds_for_test();
+    source.home.host.end_process_for_test();
     let cfg = source.home.host_config.as_ref().unwrap().clone();
     let host = Arc::new(crate::hosting::Host::new());
     host.configure_recovery(

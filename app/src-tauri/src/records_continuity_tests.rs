@@ -185,7 +185,7 @@ fn stop(host: &Host) {
     let _ = host.stop("invented peer", "finished test step");
     // Each fixture Host is its own App process; a stopped one has ended
     // (one App at a time on this data).
-    host.release_process_holds_for_test();
+    host.end_process_for_test();
 }
 #[test]
 fn records_continuity_original_start_to_fresh_host_explicit_cold_resume_and_logged_read() {

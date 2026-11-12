@@ -537,4 +537,27 @@ test('the mounted App shows only the welcome while setup is required and keeps c
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 });
+test('a refused start at launch is shown in the connection status with its reason, without pressing Start',async()=>{
+  const reason='Chirality is already running with this Codex home: another Chirality App is using it. Codex was not started on this home.';
+  const host={state:'absent',generation:null,threads:[],desktopSetup:{...packet.retained.initial},lastStartRefusal:{reason,actor:'app-startup',at:'invented'},roleLimits:{account:{roles:[]}}};
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
+  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
+  const calls=[];
+  const idle=installIdleNativeWaiting(async(command)=>{
+    calls.push(command);
+    if(command==='host_status')return structuredClone(host);if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    return null;
+  });
+  try {
+    await React.act(()=>root.render(React.createElement(App)));
+    const status=region(c,'Workspace connection status');
+    assert.match(status.textContent,/Codex is not connected/);
+    assert.equal(region(c,'Why Codex was not started').textContent,`Codex was not started: ${reason}`);
+    assert.ok(!calls.includes('host_start'),'shown without a start being pressed');
+    host.state='ready';host.lastStartRefusal=null;host.generation={appSession:'s',home:'h',spawnCounter:1};
+    await React.act(async()=>{for(const t of timers.values())await t.fn();});
+    assert.equal(region(c,'Why Codex was not started'),undefined,'gone once Codex is connected');
+  } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
+});
 const guidance2=c=>c.querySelectorAll(n=>n.getAttribute('id')==='first-use-next')[0];

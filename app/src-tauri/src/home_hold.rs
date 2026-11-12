@@ -8,13 +8,18 @@
 //! source ([`Role::Receiving`]) and the Host that starts Codex on it
 //! ([`Role::Host`]). Each role admits one holder. Another process gets
 //! `EWOULDBLOCK` and is refused; a lock that could not be taken for any other
-//! reason also refuses, never reads as free.
+//! reason also refuses, never reads as free. A home that does not exist is
+//! refused before anything is started: the hold is always on the actual
+//! existing directory, and a process is handed the home's path only while
+//! that path still names the held directory ([`still_names`]).
 //!
-//! A Host's hold lasts while the Host lives. Inside one process a later Host
-//! may take the home over only from a Host that has no child that may still
-//! be alive and is not starting one (an earlier session in a test that models
-//! a relaunch, or a home session replaced in place). The kernel releases the
-//! lock when the process ends, however it ends.
+//! A Host's hold lasts while the Host lives, and past it while a process
+//! group it started has not settled ([`keep_until_settled`]). Inside one
+//! process a later Host may take the home over only from a Host that is
+//! certainly idle: no child that may still be alive and no start under way.
+//! A holder whose state cannot be read, or that is gone while its hold is
+//! kept, is busy. The kernel releases the lock when the process ends, however
+//! it ends.
 use std::{
     collections::HashMap,
     fs::{File, OpenOptions},
@@ -22,7 +27,7 @@ use std::{
         fd::AsRawFd,
         unix::fs::{MetadataExt, OpenOptionsExt},
     },
-    path::{Path, PathBuf},
+    path::Path,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex, OnceLock, Weak,
@@ -30,7 +35,15 @@ use std::{
 };
 
 /// What a person is told when another App holds the home.
-pub(crate) const IN_USE: &str = "Chirality is already running with this Codex home: another Chirality App is using it. Codex was not started here and nothing was changed. Use the Chirality window that is already open, or quit that App first and then start again.";
+pub(crate) const IN_USE: &str = "Chirality is already running with this Codex home: another Chirality App is using it. Codex was not started on this home. Use the Chirality window that is already open, or quit that App first and then start again.";
+/// What a person is told when the home's path no longer names the directory
+/// this App holds.
+pub(crate) const REPLACED: &str = "The Codex home was replaced after this App took it, so Codex was not started on it. Start again to use the home that is there now.";
+/// What a person is told when the Codex home does not exist.
+pub(crate) const MISSING: &str = "The Codex home does not exist, so Codex was not started on it.";
+
+/// A held home directory's identity: (device, inode).
+pub(crate) type Identity = (u64, u64);
 
 /// Whether the holder of a home role may still have a Codex child on it.
 pub(crate) trait HoldOwner: Send + Sync {
@@ -49,9 +62,6 @@ pub(crate) enum Role {
 enum Key {
     /// An existing home directory (device, inode).
     Inode(u64, u64),
-    /// A home that does not exist yet: held in this process only, by its
-    /// resolved location (Codex itself does not start on a missing home).
-    Absent(PathBuf),
 }
 
 struct HostSlot {
@@ -60,8 +70,7 @@ struct HostSlot {
     starting: Arc<AtomicUsize>,
 }
 struct Entry {
-    /// The one locked descriptor of this home in this process (`None` for
-    /// [`Key::Absent`]).
+    /// The one locked descriptor of this home in this process.
     file: Option<File>,
     receiving: bool,
     host: Option<HostSlot>,
@@ -178,23 +187,27 @@ pub(crate) fn hold_receiving(home: &File) -> Result<HomeHold, String> {
     })
 }
 
-/// The Host role on `home` for the Host `id`, and a claim for its start.
-/// Returns a new hold when the Host did not already hold the home.
+/// The Host role on `home` for the Host `id`, a claim for its start, and the
+/// identity of the held directory. Returns a new hold when the Host did not
+/// already hold the home. A home that does not exist, or that could not be
+/// checked, is refused.
 pub(crate) fn claim_host(
     home: &Path,
     id: usize,
     owner: Weak<dyn HoldOwner>,
     starting: &Arc<AtomicUsize>,
-) -> Result<(Option<HomeHold>, StartClaim), String> {
+) -> Result<(Option<HomeHold>, StartClaim, Identity), String> {
     let opened = OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_DIRECTORY | libc::O_NONBLOCK | libc::O_CLOEXEC)
         .open(home);
-    let (key, file) = match opened {
-        Ok(file) => (inode_key(&file)?, Some(file)),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (Key::Absent(resolved(home)?), None),
+    let file = match opened {
+        Ok(file) => file,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err(MISSING.into()),
         Err(e) => return Err(format!("Codex home could not be checked, so Codex was not started: {e}")),
     };
+    let key = inode_key(&file)?;
+    let Key::Inode(dev, ino) = key;
     let mut registry = registry().lock().unwrap_or_else(|e| e.into_inner());
     let claim = |starting: &Arc<AtomicUsize>| {
         starting.fetch_add(1, Ordering::SeqCst);
@@ -203,10 +216,12 @@ pub(crate) fn claim_host(
     if let Some(entry) = registry.get_mut(&key) {
         if let Some(slot) = &entry.host {
             if slot.id == id {
-                return Ok((None, claim(starting)));
+                return Ok((None, claim(starting), (dev, ino)));
             }
+            // A holder that is gone while its hold is kept (its processes
+            // have not settled), or whose state cannot be read, is busy.
             let busy = slot.starting.load(Ordering::SeqCst) > 0
-                || slot.owner.upgrade().is_some_and(|owner| owner.may_have_child());
+                || slot.owner.upgrade().map_or(true, |owner| owner.may_have_child());
             if busy {
                 return Err("Codex is already started on this home by this App; a second Codex was not started on it".into());
             }
@@ -217,20 +232,17 @@ pub(crate) fn claim_host(
             starting: Arc::clone(starting),
         });
     } else {
-        let locked = match &file {
-            Some(file) => Some(os_lock(file).map_err(|e| {
-                if would_block(&e) {
-                    IN_USE.to_string()
-                } else {
-                    format!("Codex home hold could not be taken, so Codex was not started: {e}")
-                }
-            })?),
-            None => None,
-        };
+        let locked = os_lock(&file).map_err(|e| {
+            if would_block(&e) {
+                IN_USE.to_string()
+            } else {
+                format!("Codex home hold could not be taken, so Codex was not started: {e}")
+            }
+        })?;
         registry.insert(
             key.clone(),
             Entry {
-                file: locked,
+                file: Some(locked),
                 receiving: false,
                 host: Some(HostSlot {
                     id,
@@ -247,32 +259,58 @@ pub(crate) fn claim_host(
             id,
         }),
         claim(starting),
+        (dev, ino),
     ))
 }
 
-/// The nearest existing ancestor, canonical, with the missing suffix.
-fn resolved(path: &Path) -> Result<PathBuf, String> {
-    let mut cursor = path.to_path_buf();
-    let mut suffix = Vec::new();
-    loop {
-        match std::fs::canonicalize(&cursor) {
-            Ok(mut found) => {
-                found.extend(suffix.into_iter().rev());
-                return Ok(found);
-            }
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                suffix.push(
-                    cursor
-                        .file_name()
-                        .ok_or("Codex home location could not be resolved")?
-                        .to_os_string(),
-                );
-                if !cursor.pop() {
-                    return Err("Codex home location could not be resolved".into());
-                }
-            }
-            Err(e) => return Err(format!("Codex home could not be checked: {e}")),
+/// `Ok` only while `home` names the directory whose identity is `held`; a
+/// path that names another directory, or none, or that cannot be checked is
+/// refused.
+pub(crate) fn still_names(home: &Path, held: Identity) -> Result<(), String> {
+    match std::fs::metadata(home) {
+        Ok(meta) if meta.is_dir() && (meta.dev(), meta.ino()) == held => Ok(()),
+        Ok(_) => Err(REPLACED.into()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Err(REPLACED.into()),
+        Err(e) => Err(format!("Codex home could not be checked, so Codex was not started on it: {e}")),
+    }
+}
+
+/// What a Host leaves when it goes: its home holds and its session's
+/// liveness lock stay held until every process group it started has
+/// settled ([`crate::hosting::process_group_custody::OwnedProcess::settled`]: its
+/// leader's exit observed and its group known empty). Each unsettled group is
+/// given its retirement monitor, which establishes settlement. A group whose
+/// settlement can no longer be established (its reservation was released
+/// without a known-empty observation), or a keeper that cannot be started,
+/// keeps the holds for the life of the process; the kernel releases them when
+/// the process ends.
+pub(crate) fn keep_until_settled(
+    holds: Vec<HomeHold>,
+    liveness: Option<Arc<crate::session_liveness::Hold>>,
+    processes: Vec<Arc<crate::hosting::process_group_custody::OwnedProcess>>,
+) {
+    let pending: Vec<_> = processes.into_iter().filter(|p| !p.settled()).collect();
+    if pending.is_empty() || (holds.is_empty() && liveness.is_none()) {
+        return;
+    }
+    for process in &pending {
+        process.maintain();
+    }
+    let kept = Arc::new(Mutex::new(Some((holds, liveness))));
+    let keeper = Arc::clone(&kept);
+    let started = std::thread::Builder::new().name("home-hold-settlement".into()).spawn(move || loop {
+        if pending.iter().all(|p| p.settled()) {
+            drop(keeper.lock().unwrap_or_else(|e| e.into_inner()).take());
+            return;
         }
+        if pending.iter().any(|p| p.released() && !p.settled()) {
+            std::mem::forget(keeper.lock().unwrap_or_else(|e| e.into_inner()).take());
+            return;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(25));
+    });
+    if started.is_err() {
+        std::mem::forget(kept.lock().unwrap_or_else(|e| e.into_inner()).take());
     }
 }
 

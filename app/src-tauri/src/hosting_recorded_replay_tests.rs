@@ -343,9 +343,9 @@ runpy.run_path({peer},run_name='__main__')
             .stop("recorded replay old App cleanup", "done")
             .unwrap();
         // The old App's process has ended: one App at a time on this data.
-        self.home.host.release_process_holds_for_test();
+        self.home.host.end_process_for_test();
         // The old App's process has ended: one App at a time on this data.
-        self.home.host.release_process_holds_for_test();
+        self.home.host.end_process_for_test();
         std::fs::write(self.root.join("generation"), "2").unwrap();
         let host = Arc::new(Host::new());
         host.configure_recovery(self.root.join("recovery.ledger.jsonl"))

@@ -588,7 +588,7 @@ for line in sys.stdin:
         crate::recovery::RecoveryLedger::open(f.ledger()).unwrap();
         // Relaunch: a new App session reads the stop outcome from the ledger alone.
         // The earlier App's process has ended (one App at a time on this data).
-        f.home.host.release_process_holds_for_test();
+        f.home.host.end_process_for_test();
         let relaunched = Host::new();
         relaunched.configure_recovery(f.ledger()).unwrap();
         let back = relaunched.snapshot()["stopRequests"]["records"].as_array().unwrap().iter().find(|r| r["turnId"] == "turn-1").unwrap().clone();
@@ -908,6 +908,13 @@ for line in sys.stdin:
         let last_sent = rows.iter().rposition(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent").expect("sent record");
         let crashed = f.root.join("crashed.ledger.jsonl");
         std::fs::write(&crashed, rows[..=last_sent].iter().map(|r| serde_json::to_string(r).unwrap() + "\n").collect::<String>()).unwrap();
+        // The crashed App's process has ended: its lock file stays beside the
+        // crashed ledger, free, as the kernel leaves it.
+        f.home.host.end_process_for_test();
+        let session = f.generation["appSession"].as_str().unwrap();
+        let lock = crate::session_liveness::lock_path(&crashed, session);
+        std::fs::create_dir_all(lock.parent().unwrap()).unwrap();
+        std::fs::copy(crate::session_liveness::lock_path(&f.ledger(), session), &lock).unwrap();
         let mut ledger = crate::recovery::RecoveryLedger::open(crashed.clone()).unwrap();
         ledger.start_session("relaunch", "candidate").unwrap();
         let after: Vec<Value> = ledger.recorded_entries().as_array().unwrap().clone();
