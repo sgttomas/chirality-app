@@ -17,11 +17,14 @@ fn observed() -> Value {
 }
 impl Fixture {
     fn new() -> Self {
+        Self::named("project")
+    }
+    fn named(name: &str) -> Self {
         let base = std::env::temp_dir()
             .canonicalize()
             .unwrap()
             .join(crate::util::opaque_id("package-import-test-").unwrap());
-        let root = base.join("project");
+        let root = base.join(name);
         std::fs::create_dir_all(&root).unwrap();
         let source = base.join("source-store");
         let destination = base.join("destination-store");
@@ -386,4 +389,92 @@ fn package_import_resume_preserves_unrelated_newer_roots_tail() {
         std::fs::read(f.destination.join("roots.jsonl")).unwrap(),
         before
     );
+}
+
+// ---- The registry's frozen write and the store's own appender ----
+
+/// While an interrupted package import's frozen registry write is pending,
+/// a registration, an adoption and a new identity each refuse and leave the
+/// registry's bytes as they were, the startup recovery leaves them too, and
+/// finishing the import then succeeds as before; afterwards the registry is
+/// appended to again.
+#[test]
+fn package_import_pending_registry_write_holds_every_other_registry_append_until_finished() {
+    for at in ["payload", "administration", "roots-partial"] {
+        let f = Fixture::new();
+        let plan = f.plan();
+        assert!(plan.intent.roots_final.len() > plan.intent.roots_original.len(), "{at}: the import appends registry rows");
+        STOP.with(|s| *s.borrow_mut() = Some(at));
+        assert!(apply(plan, &actor(), &observed()).unwrap_err().contains("test interruption"));
+        let path = f.destination.join("roots.jsonl");
+        let before = std::fs::read(&path).ok();
+        if at == "roots-partial" {
+            assert!(!before.as_ref().unwrap().ends_with(b"\n"), "the frozen write left a fragment");
+        }
+        let pending = "package import's write to the registry of project folders is pending";
+        let other = f.base.join("other-folder");
+        std::fs::create_dir_all(&other).unwrap();
+        let registration = attach(&other, true).unwrap_err();
+        assert!(registration.contains(pending), "{at}: registration: {registration}");
+        let renamed = f.base.join("renamed-folder");
+        std::fs::create_dir_all(&renamed).unwrap();
+        let identity = new_identity(&renamed).unwrap_err();
+        assert!(identity.contains(pending), "{at}: new identity: {identity}");
+        let adopted = f.base.join("adopted-folder");
+        std::fs::create_dir_all(adopted.join(".chirality")).unwrap();
+        let store_id: Value = serde_json::from_slice(&std::fs::read(f.destination.join("store.json")).unwrap()).unwrap();
+        std::fs::write(adopted.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:invented-adopted", store_id["storeId"].as_str().unwrap())).unwrap()).unwrap();
+        let adoption = adopt(&adopted).unwrap_err();
+        assert!(adoption.contains(pending), "{at}: adoption: {adoption}");
+        let left = recover_at_startup().unwrap();
+        if at == "roots-partial" {
+            assert!(left.iter().any(|l| l.contains(pending)), "{at}: {left:?}");
+        }
+        assert_eq!(std::fs::read(&path).ok(), before, "{at}: the registry's bytes are unchanged");
+        UNCERTAIN.lock().unwrap().remove(&f.dir());
+        let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+        apply(retry, &actor(), &observed()).unwrap();
+        assert!(require_complete(&f.dir()).is_ok(), "{at}: the import finishes");
+        assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
+        // The refused mint wrote the folder's link first (the link-first
+        // order); the registry now takes its line.
+        assert_eq!(attach(&other, true).unwrap().how, "registered", "{at}: then the registry is appended to again");
+    }
+}
+
+/// Without a pending import, a fragment in the registry is closed and named,
+/// and the package import's readers (its frozen-prefix comparison and its
+/// registry reading) ignore the naming line and the set-aside line.
+#[test]
+fn package_import_readers_ignore_a_closed_and_named_fragment_in_a_later_tail() {
+    let f = Fixture::new();
+    let plan = f.plan();
+    STOP.with(|s| *s.borrow_mut() = Some("roots"));
+    assert!(apply(plan, &actor(), &observed()).is_err());
+    let path = f.destination.join("roots.jsonl");
+    let mut bytes = std::fs::read(&path).unwrap();
+    bytes.extend(b"{\"format\":\"chirality.records-store.root\",\"how\":\"rele");
+    std::fs::write(&path, &bytes).unwrap();
+    *ROOTS.lock().unwrap() = None;
+    assert!(recover_at_startup().unwrap().is_empty());
+    let after = std::fs::read(&path).unwrap();
+    assert!(after.starts_with(&bytes) && after.len() > bytes.len(), "closed and named");
+    let read = lines::read(&after, &path);
+    assert_eq!(read.set_aside.len(), 1);
+    let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+    apply(retry, &actor(), &observed()).unwrap();
+    assert!(require_complete(&f.dir()).is_ok());
+    assert_eq!(std::fs::read(&path).unwrap(), after, "the import's recovery wrote nothing more");
+    assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
+}
+
+/// The package import's own registry write emits no raw 0x1E, even for a
+/// project folder whose name holds one: serde_json escapes it.
+#[test]
+fn package_import_registry_write_emits_no_raw_record_separator() {
+    let f = Fixture::named("project\u{1e}folder");
+    f.import();
+    let registry = std::fs::read(f.destination.join("roots.jsonl")).unwrap();
+    assert!(!registry.contains(&lines::MARK));
+    assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
 }

@@ -89,6 +89,7 @@ code_paths:
 # records_store.rs is also listed by DEL-07-02 for the placing of its route accounts. The store
 # itself is this deliverable's.
 - app/src-tauri/src/records_store.rs
+- app/src-tauri/src/records_store_lines.rs
 - app/src-tauri/src/records_continuity.rs
 - app/src-tauri/src/records_index.rs
 - app/src-tauri/src/records_query.rs
@@ -131,6 +132,7 @@ checks:
 - app/tests/validate-records.test.mjs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/records_store_tests.rs
+- app/src-tauri/src/records_store_lines_tests.rs
 - app/src-tauri/src/records_store_publication_tests.rs
 - app/src-tauri/src/records_durability_tests.rs
 - app/src-tauri/src/records_scale_tests.rs

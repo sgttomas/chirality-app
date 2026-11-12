@@ -84,7 +84,9 @@ fn heads_profile(folder: &Path, paths: impl Iterator<Item = String>, roles: bool
     json!({"format":"chirality.records-export-chain-heads","formatVersion":if roles{"0.2"}else{"0.1"},"method":crate::record_lines::LINE_METHOD,"logs":logs})
 }
 fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_profile(folder,paths,true) }
-fn publish(from: &Path, to: &Path) -> Result<(), String> {
+/// Puts `from` in place at `to` by an exclusive rename: never replaces a file
+/// already at `to` (also used for a new records store line file).
+pub(crate) fn publish(from: &Path, to: &Path) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
     let to = std::ffi::CString::new(to.as_os_str().as_bytes()).map_err(|e| e.to_string())?;

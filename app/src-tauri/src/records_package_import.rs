@@ -425,6 +425,38 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+/// Whether the registry's current `bytes` lie within the frozen registry write
+/// of an active original package import that has not finished it: from its
+/// frozen original prefix up to, not including, its whole frozen bytes. While
+/// they do, only that import's own recovery writes to the registry.
+pub(crate) fn roots_write_pending(store: &Path, bytes: &[u8]) -> Result<bool, String> {
+    let within = |i: &Intent| {
+        bytes.len() >= i.roots_original.len()
+            && bytes.len() < i.roots_final.len()
+            && i.roots_final.starts_with(bytes)
+    };
+    // An identity restoration's intent is the store's active original.
+    if identity::active_intent(store)?.as_ref().is_some_and(within) {
+        return Ok(true);
+    }
+    // Any other unfinished import's intent is in its project's journal.
+    let administration = store.join("administration");
+    let keys = match std::fs::read_dir(&administration) {
+        Ok(rd) => rd.map(|e| e.map(|e| e.file_name()).map_err(|e| e.to_string())).collect::<Result<Vec<_>, _>>()?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(format!("package import journals unreadable, so whether a registry write is pending is unknown: {e}")),
+    };
+    for key in keys {
+        let dir = store.join("projects").join(&key);
+        if std::fs::symlink_metadata(journal(&dir)?).is_err() {
+            continue;
+        }
+        if entries(&dir)?.iter().any(|e| e.done.is_none() && within(&e.intent)) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
 pub(crate) fn require_root(root: &Path) -> Result<(), String> {
     let (store, _) = opened()?;
     identity::require_root(&store, root)
