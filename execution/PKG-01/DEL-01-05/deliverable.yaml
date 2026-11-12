@@ -57,6 +57,9 @@ code_paths:
 - app/src/AccountStatus.tsx
 - app/src/DesktopSetupPanel.tsx
 - app/src/FirstUse.tsx
+# The access and model chooser shared by a new conversation, a clean trial and Continue as.
+- app/src/ConversationRoles.tsx
+- app/src/TrialComposer.tsx
 - app/supplier_checks/local_auth.py
 checks:
 - app/src-tauri/src/native_local_provider.rs
@@ -69,6 +72,8 @@ checks:
 - app/tests/conversation-panel.test.mjs
 - app/tests/access-provider.test.mjs
 - app/tests/model-choice.test.mjs
+- app/tests/local-model-settings.test.mjs
+- app/tests/trial-continue-model-choice.test.mjs
 - app/src-tauri/src/access_provider_tests.rs
 - app/src-tauri/tests/access_integration.rs
 - app/src-tauri/tests/oauth_control.rs

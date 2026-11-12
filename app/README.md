@@ -1234,6 +1234,10 @@ ancestry. Put this stand-in configuration in the scratch home's `config.toml`:
 ```toml
 model_provider = "skeleton_local"
 model = "skeleton-no-model"
+# The App starts this home's Codex on the built-in provider whatever
+# model_provider says (DEL-01-05), so the built-in provider's address is the
+# setting that keeps a development conversation on this machine.
+openai_base_url = "http://127.0.0.1:9/v1"
 [model_providers.skeleton_local]
 name = "Offline development stand-in"
 base_url = "http://127.0.0.1:9/v1"
@@ -1244,10 +1248,17 @@ plugins = false
 enabled = false
 ```
 
+Without `openai_base_url` at a loopback address, a message sent in this home
+is addressed to the supplier's real endpoint, signed in or not. Port 9 has no
+listener; point it at a loopback stub to see a reply.
+
 Copy the maintained `tests/fixtures/FX-DP1/project/decisions` files into the
 scratch workspace's `project/decisions/`, then run `npx --offline tauri dev`.
-For the offline thread exercise, enter model `skeleton-no-model` and provider
-`skeleton_local` explicitly. These are test choices, not product defaults.
+For the offline thread exercise, start a new conversation with the ChatGPT
+account entry and, under **Advanced: enter a model ID yourself**, type the
+model `skeleton-no-model`. No provider is entered: the conversation runs on
+the built-in provider at the address set above. This is a test choice, not a
+product default.
 Open a package, choose an alternative and confirm its full native text.
 Authenticated/live model work remains coordinated with the owner.
 
@@ -1308,8 +1319,9 @@ this cannot be put right from the App. To use that home again:
 3. Open the App, prepare the local connection and enter the key again in the
    secure field. The App writes the record before the field opens.
 
-Removing the whole `codex-omlx` folder also works and discards that home's
-local conversations.
+Removing the whole `codex-omlx` folder also discards its local conversations
+and settings; set the address and model name again before preparing the
+connection.
 
 ## Storage and remaining work
 

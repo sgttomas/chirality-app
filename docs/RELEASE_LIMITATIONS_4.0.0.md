@@ -168,31 +168,40 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Exit criteria:** 6
 - **What is unavailable:** a conversation on a local provider defined in the
   person's own Codex settings; a conversation with a model server on another
-  machine; and a local model server that requires no key. In the home that
+  machine; and a local model server that requires no key. The local model
+  server is also unavailable while either system Codex configuration file
+  (`/etc/codex/managed_config.toml`, `/etc/codex/requirements.toml`) exists
+  or a managed Codex preference is set, whatever they contain. In the home that
   uses the ChatGPT account, the App's Codex runs on the built-in OpenAI
   provider whatever default provider the person's Codex settings name; a
   conversation saved earlier on another provider can be opened there and
   cannot run a message. In the local model home, Codex's plugin traffic is
   always off, whatever the person's Codex plugin setting. Changing the local
-  server's address removes the saved key. An existing conversation continues
+  server's address removes the saved key, except when restoring the address
+  the App recorded for the saved key; that restoration keeps the key and does
+  not require a prepared connection. An existing conversation continues
   only when the model name now set matches the model Codex recorded for it,
   and then uses the server at the address now set; otherwise it cannot
   continue under the current settings. In a session already using the local
   home, a change to the local model settings cannot be used until the App is
   quit and reopened; the local connection is unavailable meanwhile. Changing
   an existing server address requires the local connection to be prepared
-  first so Codex can sign out, even if no key was saved. If the local home's
-  settings are changed outside the App while a key is saved, the local
-  connection is unavailable until the address the key was entered for is set
-  again, which the App offers; the address is then changed through the App.
-  If the App's record of that address is removed outside the App while a key
-  is saved, the key is not used at any address and the App offers no repair.
+  first so Codex can sign out, even if no key was saved. If an otherwise
+  valid local-home configuration is changed outside the App to name an
+  address different from the one recorded for its saved key, preparation is
+  refused and the App offers to restore the recorded address. A local-home
+  configuration that is no longer in the App's own form cannot be read or
+  repaired from the App. If the App's record of the address a saved key was
+  entered for is removed outside the App, the key is not used at any address
+  and the App offers no repair.
 - **Why:** at the selected supplier version, Codex runs conversations only on
   the provider its process started with, so account and local access use
   separate homes; the App does not reconfigure a prepared local connection in
   place. The release requires a local credential, limits the server to this
   machine to keep the key and conversation content from travelling off it
-  without the protections that requires, and requires a prepared local
+  without the protections that requires, does not use the local home under
+  a system or managed Codex configuration because the App cannot establish
+  what such a layer would do to that home's settings, and requires a prepared local
   connection to confirm removal of the saved key before an address change so
   that key cannot be sent to another server.
 - **What the person does instead:** set the local server's address and model
