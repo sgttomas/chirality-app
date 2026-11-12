@@ -1163,60 +1163,46 @@ records remain capture-only and no candidate qualification is claimed.
 
 ## Supplier intake and recordings at a pin
 
-A pin advance is deliberate (DEL-01-01 REQ-006). Two of its steps are maintained
-tools under `supplier_checks/`, run from `app/`. Neither signs in, uses a model
-or reads a person's Codex home, and fetching a release archive is not among
-their acts (a download needs the owner's permission naming the file, source and
+A pin advance is deliberate (DEL-01-01 REQ-006). One of its steps is a maintained
+tool, `supplier_checks/intake.py`, run from `app/`. It does not sign in, use a
+model or read a person's Codex home, and fetching a release archive is not among
+its acts (a download needs the owner's permission naming the file, source and
 size).
 
-A pin is a key of the table `PINS` in `capture.py`, which holds, for each pin
+A pin is a key of the table `PINS` in `intake.py`, which holds, for each pin
 that has a consumer today, the release archive's address, size, SHA-256 and
-source commit. Neither tool accepts another pin or builds a path from a
-caller's text; adding a pin is a reviewed change to that table.
+source commit. The tool accepts no other pin and builds no path from a caller's
+text; adding a pin is a reviewed change to that table.
 
-1. `intake.py --archive <file> --pin <pin> --out <new directory>` checks the
-   archive's size and SHA-256 against the table, extracts regular files and
-   directories only, writes the distribution record
-   (`CANONICAL_DISTRIBUTION.json`), compares the tree with it, runs the
-   supplier's generators and writes the manifest, the two compiled bundles and
-   `GENERATION.json`. A refusal at any point removes the output directory.
-2. `capture.py --vendor <tree> --pin <pin> --out <directory> <scenario>` records
-   the `st5`, `st5-race` or `nv04` exchange from the stock App Server with a
-   scripted loopback provider. The pin's committed distribution record must name
-   the table's archive and the whole tree must equal its inventory. The
-   entrypoint and path directory the package metadata names are admitted only as
-   members of that inventory, and again immediately before each execution.
+`intake.py --archive <file> --pin <pin> --out <new directory>` checks the
+archive's size and SHA-256 against the table, extracts regular files and
+directories only, writes the distribution record (`CANONICAL_DISTRIBUTION.json`),
+compares the tree with it, runs the supplier's schema generators and writes the
+manifest, the two compiled bundles and `GENERATION.json`. A refusal at any point
+removes the output directory.
 
-What both tools give the supplier is six variables (HOME, CODEX_HOME and TMPDIR
-in a fresh scratch directory, PATH, LANG, and TZ=UTC so that a recording does
-not depend on its host's clock setting; the App starts Codex with the person's
-own environment). Before each execution they refuse when configuration from
-outside the fresh homes could reach the supplier: a `.git` or `.codex` entry in
-any ancestor of the scratch working directory, the system folder `/etc/codex`,
-or a managed preference the supplier reads. Each is checked by presence alone; a
-check that cannot be made refuses, and the recording and the generation record
-name the checks made. These are controls on what the supplier is given, not a
-sandbox: they do not stop supplier code opening a file by an absolute path.
+What the generator is given is six variables (HOME, CODEX_HOME and TMPDIR in a
+fresh scratch directory, PATH, LANG and TZ=UTC). Before each execution the tool
+refuses when configuration from outside the fresh homes could reach the
+supplier: a `.git` or `.codex` entry in any ancestor of the scratch working
+directory, the system folder `/etc/codex`, or a managed preference the supplier
+reads. Each is checked by presence alone; a check that cannot be made refuses,
+and the generation record names the checks made. These are controls on what the
+supplier is given, not a sandbox: they do not stop supplier code opening a file
+by an absolute path. The generator's sockets are sampled while it runs, which is
+not network isolation.
 
-Observation ends before a recording is decided. The socket watch, the readers of
-the supplier's output and the stub provider are stopped and waited for; then a
-failed socket sample, a generation that was never sampled, a reply that never
-came, a scenario step that was not observed, a version command that did not exit
-0 with the pin's label, or a reader that did not stop means no recording is
-written. A recording's socket sample establishes only what was sampled; it is
-not network isolation. Redaction replaces known local values and named identity
-fields and refuses when one remains, or when a rollout file name is not in UTC;
-it cannot show that nothing else specific to the machine is present, so a
-recording is read by an independent reviewer before it is committed. Recordings
-are kept under `supplier_checks/recordings/<pin>/` and are made once, not
-regenerated.
+This is an operator-run tool on stable inputs. It is built so that a check that
+was not made or that failed cannot come out as a distribution record or a
+generated basis. It is not built to withstand a writer changing the inputs
+during the run, nor someone with write access forging a record.
 
-These are operator-run tools on stable inputs. They are built so that an
-observation that was not made, that failed or that is incomplete cannot come out
-as a recording or a generated basis, and so that drift and mistakes are caught.
-They are not built to withstand a writer changing the inputs during the run, nor
-someone with write access forging a record. Neither a recording nor a generated
-basis is qualification of the pin (DEL-01-01 AC-011).
+Recorded exchanges at a pin are kept as evidence under
+`supplier_checks/recordings/<pin>/`, with a note beside them saying how they
+were made and what the files do and do not establish. The harness that made
+them is not maintained; `supplier_checks/test_recordings.py` checks what the
+files themselves establish. Neither a recording nor a generated basis is
+qualification of the pin (DEL-01-01 AC-011).
 
 ## Group B offline examination support
 

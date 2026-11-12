@@ -190,7 +190,7 @@ jobs:
           python3 supplier_checks/test_records_delivery.py
           python3 supplier_checks/test_local_auth.py
           python3 supplier_checks/test_recorded_replay.py
-          python3 supplier_checks/test_capture.py
+          python3 supplier_checks/test_recordings.py
           python3 supplier_checks/test_intake.py
           python3 supplier_checks/swbpipe_projection_test.py
           python3 supplier_checks/swbpipe_receiving_test.py
@@ -304,7 +304,7 @@ jobs:
           python3 supplier_checks/test_records_delivery.py
           python3 supplier_checks/test_local_auth.py
           python3 supplier_checks/test_recorded_replay.py
-          python3 supplier_checks/test_capture.py
+          python3 supplier_checks/test_recordings.py
           python3 supplier_checks/test_intake.py
           python3 supplier_checks/swbpipe_projection_test.py
           python3 supplier_checks/swbpipe_receiving_test.py
