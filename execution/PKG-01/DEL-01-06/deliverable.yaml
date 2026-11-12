@@ -26,8 +26,9 @@ needs:
 - from: external:chirality-app-v4:DEP-005
   condition: The Tauri 2 bundler builds the macOS bundle.
 - from: external:Apple Developer ID signing and notary service
-  condition: The App's own code is signed with the owner's Developer ID, and the bundle is
-    notarised and a ticket issued for stapling.
+  condition: The App's own code and the disk image that carries the App are signed with the
+    owner's Developer ID, and the App and the disk image are each notarised and a ticket issued
+    for stapling to each.
 - from: external:chirality-app-v4:DEP-004
   condition: OpenAI publishes, or gives the owner directly, its written position on distributing
     an App that uses its sign-in.
@@ -61,4 +62,5 @@ checks:
 - app/tests/compiled_selection_packaging_test.py
 - app/packaging/seal_c/test_prepare.py
 - app/packaging/static_distribution/test_connected.py
+- app/tests/release_build_test.py
 - app/tests/group_b_legacy_pkg_rules_test.py

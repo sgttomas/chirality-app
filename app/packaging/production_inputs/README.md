@@ -5,7 +5,9 @@ not build, copy the supplier, sign, notarise, install, launch or read account st
 The current owner selection: on 2026-11-02 the owner kept
 the existing production identifier `com.chirality.app` (same-ID), superseding the
 earlier separate-v4 route, with macOS 15 minimum and package version 4.0.0. The
-exact identifier/team enter only through the closed private publisher input. These
+identifier/team enter through the closed publisher input file, which
+`release/build.py` generates from the compiled keychain selection in
+`app/src-tauri/src/capture_seal_keychain.rs` unless a file is supplied. These
 choices do not select keychain service/account/group values, qualify OS support or
 authorize signing. The historical publisher draft and native candidates are not
 rewritten.
@@ -29,15 +31,16 @@ This route clears publisher controls and preserves the compiled `None` gate.
 It prepares a release-profile, `--no-sign`, custom-protocol/distribution-successor
 build, not a synthetic runtime trust anchor or an installed-custody pass.
 
-After the parent obtains actual owner input privately, replace the test identifier
-argument with `--publisher-input /private/selected.json --publisher-sha256
-<independently-selected-exact-input-digest>`. That file uses only the existing
+For a production plan, replace the test identifier argument with
+`--publisher-input <file> --publisher-sha256 <digest>`. `release/build.py`
+writes that file from the bundle identifier and team already published in
+`app/src-tauri/src/capture_seal_keychain.rs`; the values hold no credential and
+are not private. That file uses only the existing
 closed publisher-build-selection.s1 shape (format, production identifier, team).
 No requirement logic, certificate, key, password, notary or keychain-policy field
 is accepted. The helper sets the exact effective identifier and build-only
 production-v1 controls; source/build validation remains in the existing publisher
-selector. It performs no signing and does not authenticate the owner's selection.
-Never put real values in command-line literals, chat or public logs.
+selector. It performs no signing.
 
 In production mode only, `--provisioning-profile /private/profile.provisionprofile
 --provisioning-profile-sha256 <exact-digest>` embeds the selected private Developer ID
@@ -145,7 +148,7 @@ One coordinated unsigned release-profile input-test App has been built from
 exact `12d26b8db5f251be97d83d4f574196697df40a70` in a separate target/build directory.
 Do not rebuild or mutate any retained native candidate or state. A default-None
 input-test bundle can establish actual P1/P2/P3/notice/attested-resource placement
-and release-profile build behavior before private publisher values arrive.
+and release-profile build behavior without a publisher selection.
 It cannot establish production publisher matching, installed S4 or signing.
 
 Before invoking the recipe, the build owner binds the exact source export,
