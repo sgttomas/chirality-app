@@ -405,9 +405,25 @@ fn an_adoption_stopped_after_its_release_lines_is_offered_to_the_person_to_compl
     let store = opened().unwrap().0;
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":q,"root":before.display().to_string(),"at":now_rfc3339(),"how":"released","by":"adopt"})).unwrap();
     let stopped = attach(&after, false).unwrap();
-    assert!(stopped.dir.is_none() && stopped.refusal.is_none(), "{stopped:?}");
-    assert_eq!((stopped.how, stopped.fault, stopped.resolutions.as_slice(), stopped.linked.as_deref()), ("none", Some("no folder recorded"), ["adopt"].as_slice(), Some(q.as_str())));
-    assert_eq!(status(Some(&after))["project"]["attachment"]["resolutions"], json!(["adopt"]));
+    // Review round 2, finding 6: known history with no folder recorded is
+    // "records kept, not attached", never a project with no records: it
+    // refuses (the earlier expectation, no refusal, was that defect).
+    assert!(stopped.dir.is_none(), "{stopped:?}");
+    assert!(stopped.refusal.as_deref().is_some_and(|r| r.starts_with("records kept, not attached")), "{stopped:?}");
+    assert_eq!((stopped.how, stopped.fault, stopped.resolutions.as_slice(), stopped.linked.as_deref()), ("unattached", Some("no folder recorded"), ["adopt"].as_slice(), Some(q.as_str())));
+    let view = status(Some(&after));
+    assert_eq!(view["project"]["attachment"]["resolutions"], json!(["adopt"]));
+    assert_ne!(view["project"]["reading"], "no records yet", "{view}");
+    assert!(view["project"]["reading"].as_str().unwrap().starts_with("records kept in the records store"), "{view}");
+    // No supplier is admitted for it, and the App's opening attach does not
+    // register the folder on its link alone: nothing is written.
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let supplier = crate::records_retention::activity(&after).err().expect("no supplier admitted");
+    assert!(supplier.starts_with("records kept, not attached"), "{supplier}");
+    let opening = attach(&after, true).unwrap();
+    assert!(opening.dir.is_none() && opening.fault == Some("no folder recorded"), "{opening:?}");
+    assert!(records::append_project(&after, None, "writer:q", "evidence_limit", &APP_WRITER, body("not Q's until confirmed")).is_err());
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "nothing registered");
     assert_eq!(adopt(&after).unwrap()["projectId"], q.as_str());
     let done = attach(&after, false).unwrap();
     assert_eq!(done.project.as_deref(), Some(q.as_str()));

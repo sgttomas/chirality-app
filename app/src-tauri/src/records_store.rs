@@ -705,20 +705,31 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
                 out.fault = Some("another store");
                 out.resolutions.extend(["adopt", "new-identity"]);
                 out.refusal = Some(format!("this project's records were kept in another records store ({linked}); nothing attached here until the person adopts this project into this store"));
-            } else if mint {
-                register(&store, project, &at, "registered")?;
-                out.limits.push(format!("the records store held no record of project {project}; registered from its project file"));
-                out.how = "registered";
-                attach_to(&mut out, project);
             } else {
-                out.how = "none";
-                // The store holds this identity and records no folder for it
-                // (an adoption stopped after its release lines, for one): the
-                // person can complete it; nothing waits on a later writer.
-                if project_dir(&store, project).join("project.json").is_file() {
+                // Known history: the store holds this identity's record, or
+                // has recorded folders for it that are all released (an
+                // adoption stopped after its release lines, or a link copied
+                // from a folder that was later given a new identity). Its
+                // records are kept and are not this folder's until the person
+                // confirms it; never read as a project with no records, and
+                // never registered here on the link alone.
+                let released = lines.iter().any(|l| l["projectId"] == project.as_str());
+                let known = released || project_dir(&store, project).join("project.json").is_file();
+                if mint && !released {
+                    // A link the store does not know yet, or an identity whose
+                    // minting stopped before its first roots line.
+                    register(&store, project, &at, "registered")?;
+                    out.limits.push(format!("the records store held no record of project {project}; registered from its project file"));
+                    out.how = "registered";
+                    attach_to(&mut out, project);
+                } else if known {
+                    out.refusal = Some(format!("records kept, not attached: the records store holds project {project}, which this folder's project file names, and records no folder for it; nothing is read or written for it until the person confirms this folder is that project"));
+                    out.how = "unattached";
                     out.linked = Some(project.clone());
                     out.fault = Some("no folder recorded");
                     out.resolutions.push("adopt");
+                } else {
+                    out.how = "none";
                 }
             }
         }
@@ -1625,6 +1636,8 @@ pub fn status(project: Option<&Path>) -> Value {
                 json!({"attachment":home.attachment.view(),
                     "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
                     "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"}
+                        else if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
+                        else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
                         else if home.attachment.dir.is_none() && home.attachment.refusal.is_some() {"nothing from the records store (the project is not attached)"} else {"no records yet"},
                     "importNeeded":!home.store_mode && !census.is_empty(),
                     "legacyFiles":census.len(),"notImported":to_import,
