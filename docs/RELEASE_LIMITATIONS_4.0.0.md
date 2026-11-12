@@ -172,15 +172,13 @@ An entry is added in the same pull request that makes the limitation standing.
   in this installation's records store outside the parts its import account
   names. The App does not verify that a record in that folder was captured at
   its act control. So a record file placed in the App's data folder by another
-  program, and an imported record whose import account was later removed or
-  lost, are not distinguished from the person's own recorded act. An act
+  program is not distinguished from the person's own recorded act. An act
   record in the project folder, in an imported package, or in a
   legacy-imported copy that the import account names is shown as a claim and
   decides nothing.
 - **Why:** the decision view reads act records without resolving their
   capture evidence under the capture seal, which exists only in a signed App
-  with its keychain; and the import of a project's earlier records keeps its
-  only account inside the same folder as the copies.
+  with its keychain.
 - **What the person does instead:** the App's data folder is what the word
   "decided" rests on, and a record placed there by anything other than the
   App is not told apart from the App's own. Where a decision matters, decide
