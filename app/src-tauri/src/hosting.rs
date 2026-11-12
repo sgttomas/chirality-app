@@ -274,6 +274,12 @@ struct Inner {
     pending: HashMap<String, (usize, Sender<Value>)>,
     source_requests: HashMap<String, SourceEvidence>,
     provider_read_revisions: HashMap<String,(Value,String)>,
+    /// The latest private configuration read per folder: what the chooser's
+    /// provider list is compared with, and nothing else. A model list or
+    /// delegation read is not one, so it leaves a chosen provider current;
+    /// `provider_read_revisions` (admission, the settings reading and the
+    /// native confirmations) still follows every read.
+    provider_observation_revisions: HashMap<String,(Value,String)>,
     private_config_channels: Vec<Value>,
     local_provider: Option<access_provider::LocalProviderBinding>,
     /// Private effective-configuration reading each local fork was admitted on, by fork request ref.
@@ -2100,6 +2106,7 @@ impl Host {
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
         if method=="config/read" {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
             i.provider_read_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
+            if private_config {i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));}
         }}
         if private_config&&!i.private_config_channels.contains(&request.generation){i.private_config_channels.push(request.generation.clone());}
         let cce_bound=cce_intent.map(|intent|call_custody::Offer::bind(intent,&self.inner,&request)).transpose().map_err(|e|e.message())?;
@@ -2140,7 +2147,7 @@ impl Host {
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
                 if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_local_resume_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
-                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());}
+                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());i.provider_observation_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;

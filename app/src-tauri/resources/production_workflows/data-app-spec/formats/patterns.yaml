@@ -1,0 +1,642 @@
+# Design pattern catalogue (0.1)
+#
+# Each pattern generalises what a survey of public interactive data applications showed,
+# together with visualization, decision-structuring and provenance literature. Patterns
+# guide authoring and checking; they never instruct the builder.
+# Validate from the package folder with tools/check_design.py (formats/app-patterns.schema.json).
+
+catalogue_version: "0.1"
+id: app_patterns
+title: Interactive data application design patterns
+version: 0.1.0-draft
+
+patterns:
+
+  # ---------------------------------------------------------------- explore and inspect
+  - id: filter_linked_views
+    name: Filters driving linked views
+    intent: One curated dataset; filters set state that every view of the selection reads.
+    addresses:
+      - {queries: [summarise, compare], targets: [value, extremes, distribution], cardinalities: [multiple, all]}
+      - {searches: [browse, explore]}
+    question_form: "How does <property> vary across <dimension> for the <subjects> I select?"
+    applies_when: [categorical_dimensions]
+    provides:
+      - {kind: FilterTransform, role: applies the selection}
+      - {kind: ChoiceControl, role: selects categories}
+      - {kind: TemporalControl, role: selects a period, optional: true}
+      - {kind: ChartView, role: summary of the selection}
+      - {kind: TableView, role: rows of the selection}
+      - {kind: KpiView, role: headline values, optional: true}
+      - {kind: Export, role: download of the selection, optional: true}
+    settles:
+      - {key: filter_choices, question: "Are filter choices fixed or generated from the data, and what does each view show when the selection is empty?", why: "Many surveyed apps generate filter controls from the data; empty states are hidden semantics."}
+      - {key: summary_statistic, question: "Which statistic does each view show over the selection (mean, median, maximum, count), in which unit?", why: "Per-variable aggregation differs between apps, e.g. daily maximum versus mean.", default_authority: domain_expert}
+      - {key: subjects_without_data, question: "Are subjects with no data in the selection shown, hidden or flagged?", why: "Several apps offer 'show sites with no data'."}
+      - {key: export_scope, question: "Does a download contain the selected rows, all rows or the displayed summary?", why: "Filtered-data and statistics downloads both occur."}
+      - {key: shared_scales, question: "Do views that show the same field share its scale and colours, and views of different fields use different ones, unless an exception is recorded?", why: "Consistency constraints across multiple views, with validations and exceptions (Qu & Hullman 2018)."}
+    pitfalls:
+      - statement: A control that changes nothing (a 'Split by' control that does not change the grouping).
+        basis: [{kind: observed, statement: "A gallery demo's 'Split by' control did not change the grouping."}]
+    composes_with: [site_map_drilldown, series_detail_with_reference]
+    corpus: [river water-quality explorer, surface-water explorer, statistical model explorer, filterable catalogue explorer, weather explorer]
+    basis:
+      - {kind: observed, statement: "Monitoring-network explorers: filters for project, site, parameter and date drive time series, boxplots and tables."}
+      - {kind: observed, statement: "Explorer: one curated dataset; filter then linked views."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: site_map_drilldown
+    name: Map as input with site drill-down
+    intent: A map shows the subjects; selecting one sets the state that per-site panels read.
+    addresses:
+      - {searches: [locate, lookup], queries: [identify], targets: [value, distribution, extremes, outliers]}
+      - {queries: [summarise], targets: [distribution], cardinalities: [all]}
+    question_form: "Where are the <subjects>, and what is the record at the one I pick?"
+    applies_when: [spatial_points]
+    provides:
+      - {kind: MapView, role: subjects as points}
+      - {kind: PointLayer, role: one marker per subject}
+      - {kind: Interaction, role: a map click sets the selected subject}
+      - {kind: StateVariable, role: the selected subject}
+      - {kind: ChartView, role: panel for the selected subject}
+    settles:
+      - {key: crs, question: "Which coordinate reference system do coordinates use, and do axis labels match it?", why: "Easting/Northing labels on longitude/latitude values were seen."}
+      - {key: marker_encoding, question: "What does marker colour or shape encode (status, median, latest value), over which period?", why: "Site medians colour one map; status colours another."}
+      - {key: no_selection_state, question: "What do the panels show before any subject is selected?", why: "Empty states are hidden semantics."}
+      - {key: label_join, question: "Are labels and values joined by key rather than by row order?", why: "A surveyed world map labelled one country with another country's total; the cause is inferred to be a row-order join."}
+      - {key: shared_encodings, question: "Does the map encode a field the same way as the linked views that show it?", why: "Consistency constraints across multiple views (Qu & Hullman 2018)."}
+    pitfalls:
+      - statement: Marker labels attached to the wrong feature.
+        basis: [{kind: observed, statement: "A world map's labels were misaligned with its values."}]
+    composes_with: [filter_linked_views, series_detail_with_reference, criterion_exceedance]
+    corpus: [river water-quality explorer, community air-monitoring portal, interpolated air-quality map, demographic map explorer, lake monitoring explorer]
+    basis:
+      - {kind: observed, statement: "Map of sites, then the selected site by map click or filter, then per-site views."}
+      - {kind: observed, statement: "Map-as-input appears in 6 of 24 code-inspected gallery apps."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: series_detail_with_reference
+    name: Series detail with reference values
+    intent: One subject's record over time, with criteria or baselines drawn from the same elements that define them.
+    addresses:
+      - {queries: [identify, compare], targets: [value, trend], cardinalities: [single]}
+    question_form: "What is the full record of <property> at <subject>, against <reference>?"
+    applies_when: [time_series]
+    provides:
+      - {kind: ChartView, role: series with reference rules}
+      - {kind: TableView, role: the underlying records, optional: true}
+    settles:
+      - {key: censored_markers, question: "How are values below detection drawn (marker, plotted value)?", why: "Detect and non-detect markers differ in shape."}
+      - {key: reference_values, question: "Which reference values are drawn (criterion, baseline, limits), and are their labels generated from the elements that define them?", why: "Restated thresholds drift; labels should come from one element.", default_authority: domain_expert}
+      - {key: time_axis, question: "Is the axis calendar time with irregular spacing preserved, or sample index?", why: "One control-chart app plots EWMA against observation number under an axis labelled 'Date'."}
+      - {key: units_shown, question: "Is each property's unit shown with it?", why: "A precipitation measure was shown with a 'C' unit."}
+    pitfalls:
+      - statement: A wrong unit attached to a displayed value.
+        basis: [{kind: observed, statement: "A weather app showed a precipitation metric with a 'C' unit."}]
+    composes_with: [site_map_drilldown, criterion_exceedance, trend_test_per_entity]
+    corpus: [river water-quality explorer, surface-water explorer, community air-monitoring portal, lake monitoring explorer, quality-control chart app]
+    basis:
+      - {kind: observed, statement: "Time series as dots or lines with detect versus non-detect markers."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  # ---------------------------------------------------------------- criteria and statistical checks
+  - id: criterion_exceedance
+    name: Measurements against issued criteria
+    intent: Resolve the criterion that applies to each measurement, compare, and show exceedances with their basis.
+    addresses:
+      - {queries: [identify, compare], targets: [value, extremes]}
+    question_form: "Which <subjects> exceed <criterion> for <property> in <period>?"
+    applies_when: [criteria_available]
+    provides:
+      - {kind: Criterion, role: the issued values with instrument and edition}
+      - {kind: JoinTransform, role: resolves the applicable criterion by context keys}
+      - {kind: DeriveTransform, role: ratio or exceedance flag}
+      - {kind: TableView, role: exceedances with criterion and basis}
+      - {kind: ClassificationScheme, role: ratio classes, optional: true}
+      - {kind: KpiView, role: count of exceedances, optional: true}
+    settles:
+      - {key: criterion_instrument, question: "Which criteria apply, from which instrument and edition, and does the app show them?", why: "Regimes and editions differ: CCME, FEQG, Manitoba Tier III; Alberta Tier 1.", default_authority: domain_expert}
+      - {key: context_keys, question: "Which keys select the criterion (land use, soil texture, depth, receptor), and what applies when a key is missing?", why: "Tier 1 lookups are keyed by land use, soil texture, depth and rating, with 'undefined = most conservative'.", default_authority: domain_expert}
+      - {key: averaging_and_statistic, question: "Is the comparison per sample or over an averaging period, with which statistic?", why: "The 11 ppb SO2 objective is a 30-day average.", default_authority: domain_expert}
+      - {key: comparison_rule, question: "Is exceedance strictly greater or greater-or-equal; is the value rounded first; how are range criteria handled?", why: "pH 6-8.5 is handled as |pH - 7.25| / 1.25 in one app.", default_authority: domain_expert}
+      - {key: censored_values, question: "How are non-detects compared, and is a detection limit above the criterion flagged?", why: "Non-detects are included at the detection limit in one app.", default_authority: domain_expert}
+      - {key: unit_consistency, question: "Are data and criterion units checked to be the same, and converted how?", why: "Units are implicit between data and lookup in one app.", default_authority: domain_expert}
+      - {key: no_criterion, question: "How is 'no criterion' represented, so that it is never read as a number?", why: "A sentinel of 1,000,000 stands for 'no guideline'."}
+    pitfalls:
+      - statement: Context-specific criteria computed but never applied.
+        basis: [{kind: observed, statement: "A depth-specific subset is computed but never used; inferred effect: shallow-interval values apply at all depths."}]
+      - statement: A threshold restated in several places, with labels cross-attached.
+        basis: [{kind: observed, statement: "A monitoring dashboard restated a threshold's meaning three times and attached the labels to the wrong lines."}]
+    alternatives: [control_chart_baseline]
+    composes_with: [site_map_drilldown, series_detail_with_reference, report_export]
+    corpus: [3D site-screening plot, surface-water explorer, lake monitoring explorer]
+    basis:
+      - {kind: observed, statement: "Observations joined to a guideline table resolved by context keys, then ratio, class breaks and a colour-coded table, plot or map."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: control_chart_baseline
+    name: Control chart against a baseline
+    intent: Estimate limits from a baseline period and flag later observations that signal a change.
+    addresses:
+      - {queries: [identify], targets: [outliers, trend]}
+    question_form: "Have recent values of <property> departed from the baseline?"
+    applies_when: [time_series]
+    provides:
+      - {kind: SplitHeadTransform, role: baseline and monitoring phases}
+      - {kind: AnalysisComponent, role: the chart statistic}
+      - {kind: ControlChartView, role: phase-aware chart}
+      - {kind: KnownAnswerTest, role: qualifies the component}
+    settles:
+      - {key: baseline_definition, question: "Which observations form the baseline, and are limits frozen or updated?", why: "One control-chart app takes the first 8 non-missing values in date order as its baseline and freezes the limits.", default_authority: domain_expert}
+      - {key: sigma_estimator, question: "Which estimator of the standard deviation is used?", why: "One control-chart app uses sd/c4(8), not the qcc package's default moving range.", default_authority: domain_expert}
+      - {key: signal_rules, question: "What multiplier and run rules define a signal?", why: "One control-chart app uses 4.5 sigma and runs of 7.", default_authority: domain_expert}
+      - {key: estimated_or_specified, question: "Are the limits estimated from data (a result) or specified (a criterion)?", why: "A gallery SPC demo sets specification limits to mean +/- 1 sigma.", default_authority: domain_expert}
+      - {key: library_semantics, question: "Which library version's semantics apply?", why: "qcc 3.0 changed violations and default rules.", default_authority: domain_expert}
+    pitfalls:
+      - statement: Lower-side signals drawn on the upper curve.
+        basis: [{kind: observed, statement: "Inferred from R semantics: lower-side CUSUM signals are drawn at the upper CUSUM value."}]
+    alternatives: [criterion_exceedance, trend_test_per_entity]
+    corpus: [quality-control chart app, SPC gallery demo]
+    basis:
+      - {kind: observed, statement: "Shewhart, CUSUM and EWMA charts with a baseline of the first 8 observations."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: trend_test_per_entity
+    name: Trend test per subject
+    intent: Test each subject's series for a monotonic trend and classify it, with a slope in stated units.
+    addresses:
+      - {queries: [identify, compare, summarise], targets: [trend]}
+    question_form: "Is <property> at each <subject> increasing, decreasing or showing no trend?"
+    applies_when: [time_series]
+    provides:
+      - {kind: AnalysisComponent, role: the trend test}
+      - {kind: Analysis, role: the test applied per subject and property}
+      - {kind: Metric, role: slope per unit time}
+      - {kind: TableView, role: classification per subject}
+      - {kind: KnownAnswerTest, role: qualifies the component}
+    settles:
+      - {key: test_method, question: "Which test (Mann-Kendall, Seasonal Kendall, regression), and why does it suit the data?", why: "One river-monitoring app uses Seasonal Kendall with Sen's slope.", default_authority: domain_expert}
+      - {key: classification_rule, question: "Which significance level and rule map test results to classes?", why: "One app interprets trends at p < 0.05.", default_authority: domain_expert}
+      - {key: censored_values, question: "How are non-detects and changing detection limits handled in the test?", why: "Seasonal Kendall with non-detect substitution hides a parameter.", default_authority: domain_expert}
+      - {key: minimum_record, question: "What minimum record does a test need, and what is shown when it is shorter?", why: "Statistical methods carry hidden parameters.", default_authority: domain_expert}
+      - {key: seasonality, question: "Is seasonality accounted for?", why: "Seasonal and non-seasonal tests both occur.", default_authority: domain_expert}
+      - {key: slope_units, question: "In what units per unit time is the slope reported?", why: "Slopes are reported per year in one app."}
+    alternatives: [control_chart_baseline, forecast_with_band]
+    composes_with: [series_detail_with_reference, site_map_drilldown]
+    corpus: [river water-quality explorer]
+    basis:
+      - {kind: observed, statement: "A monitoring-network explorer with a trend test (Seasonal Kendall and Sen's slope)."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  # ---------------------------------------------------------------- space and time
+  - id: interpolated_surface_over_time
+    name: Interpolated surface over time
+    intent: Interpolate station values to a surface for each time step, stepped or animated.
+    addresses:
+      - {targets: [distribution, trend], cardinalities: [all]}
+    question_form: "How did <property> vary across the area, between stations, over time?"
+    applies_when: [spatial_points, time_series]
+    provides:
+      - {kind: TemporalAggregateTransform, role: values per time step}
+      - {kind: AnalysisComponent, role: the interpolation method}
+      - {kind: RasterLayer, role: the surface}
+      - {kind: TemporalControl, role: the time step}
+      - {kind: ColorScale, role: the surface encoding}
+      - {kind: Materialization, role: precomputed surfaces, optional: true}
+    settles:
+      - {key: time_step, question: "What is the time step, with calendar semantics?", why: "A 30-day slider step from 2010-07-01 cannot map to calendar months.", default_authority: domain_expert}
+      - {key: interpolation_method, question: "Which method, model and fit; what minimum station count and fallback?", why: "One interpolated map does not disclose its method; fitting with at most 19 stations is fragile.", default_authority: domain_expert}
+      - {key: grid_mask_crs, question: "What grid, mask and CRS?", why: "Not observable without source.", default_authority: domain_expert}
+      - {key: uncertainty_display, question: "Is interpolation uncertainty (e.g. kriging variance) shown?", why: "The spatiotemporal archetype's authoring questions include the variance (ONTOLOGY.md §7).", default_authority: domain_expert}
+      - {key: colour_domain, question: "Is the colour scale fixed across time steps or set per step?", why: "Colour-scale policies differ between apps."}
+      - {key: precompute_equivalence, question: "If surfaces are precomputed, what equivalence with runtime computation is required?", why: "Materialisation equivalence was a schema need."}
+    pitfalls:
+      - statement: A fixed-day time step mislabelled as months.
+        basis: [{kind: observed, statement: "Reachable slider values are 2010-07-01 + 30k days, which do not line up with calendar months."}]
+    alternatives: [raster_scenario_atlas]
+    composes_with: [site_map_drilldown]
+    corpus: [interpolated air-quality map]
+    basis:
+      - {kind: observed, statement: "Station series, temporal aggregation, per-period kriging, raster over basemap, time slider."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: raster_scenario_atlas
+    name: Raster scenario atlas
+    intent: Choose a variable, scenario, period and region to show a precomputed raster, compare side by side and summarise.
+    addresses:
+      - {queries: [compare, summarise], targets: [distribution]}
+    question_form: "What does <variable> look like under <scenario> in <period>, and how do scenarios differ?"
+    applies_when: [raster, alternatives_defined]
+    provides:
+      - {kind: DataProductSource, role: rasters addressed by control values}
+      - {kind: RasterLayer, role: the selected raster}
+      - {kind: ChoiceControl, role: "variable, scenario, period and region"}
+      - {kind: TableView, role: regional summaries}
+    settles:
+      - {key: raster_delivery, question: "Are rasters delivered as files rendered in the browser or as pre-rendered tiles?", why: "Both occur and are switchable by configuration."}
+      - {key: legend_ranges, question: "Where do legend ranges come from (precomputed statistics, per view)?", why: "Precomputed legend ranges are looked up."}
+      - {key: colour_domain, question: "Is the colour domain shared across scenarios for comparison?", why: "Colour-scale policies differ between apps."}
+    alternatives: [interpolated_surface_over_time]
+    composes_with: [scenario_comparison]
+    corpus: [raster scenario atlas]
+    basis:
+      - {kind: observed, statement: "Raster scenario atlas served statically through a URL template filled from control values."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: indicator_profile
+    name: Indicator profile with comparators
+    intent: Indicators by geography and time, compared with a comparator, released periodically.
+    addresses:
+      - {queries: [compare, summarise], targets: [value, trend, extremes]}
+    question_form: "How does <indicator> in <area> compare with <comparator>, and how is it changing?"
+    applies_when: [categorical_dimensions, time_series, spatial_areas]
+    provides:
+      - {kind: DataProductSource, role: the indicator release}
+      - {kind: Definition, role: indicator definitions}
+      - {kind: TableView, role: indicators against comparators}
+      - {kind: ChartView, role: trend}
+      - {kind: PolygonLayer, role: areas, optional: true}
+    settles:
+      - {key: indicator_definition, question: "How is each indicator defined (numerator, denominator, rate base)?", why: "Counts versus per-1000 and cumulative versus new are exposed choices.", default_authority: domain_expert}
+      - {key: comparator_and_significance, question: "What is each value compared with, and how is a difference judged significant?", why: "Indicator profiles use comparators and confidence-interval significance.", default_authority: domain_expert}
+      - {key: release_vintage, question: "Which release is shown, and is staleness disclosed?", why: "Surveyed indicator apps showed data frozen for years without notice."}
+      - {key: suppression, question: "How are small counts suppressed?", why: "Suppression semantics belong in the data contract.", default_authority: domain_expert}
+      - {key: polarity, question: "Is a higher value better or worse for each indicator?", why: "Indicator polarity is restated in one app.", default_authority: domain_expert}
+    pitfalls:
+      - statement: Stale data shown without a date.
+        basis: [{kind: observed, statement: "Silent staleness: indicator data frozen for years, without the apps saying so."}]
+    corpus: [public-health indicator dashboard, public-health indicator map, public-health profiles]
+    basis:
+      - {kind: observed, statement: "Indicator profile / surveillance: indicator catalogue by geography by time by comparator."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: correlation_structure
+    name: Correlation structure of many properties
+    intent: Show how many properties of the same subjects vary together.
+    addresses:
+      - {targets: [correlation, clusters, similarity]}
+    question_form: "Which <properties> vary together at <subject>?"
+    applies_when: [multiple_properties]
+    provides:
+      - {kind: AnalysisComponent, role: correlation and clustering}
+      - {kind: MatrixHeatmapView, role: clustered correlation matrix}
+      - {kind: ChartView, role: pairs of properties, optional: true}
+    settles:
+      - {key: value_semantics, question: "Are circular or censored properties excluded from linear correlation, or treated appropriately?", why: "Wind direction entered a linear correlation matrix.", default_authority: domain_expert}
+      - {key: correlation_method, question: "Which coefficient, and how are missing values handled?", why: "Not observable without source.", default_authority: domain_expert}
+      - {key: clustering, question: "Which clustering and ordering method?", why: "Clustered heatmaps hide a method choice.", default_authority: domain_expert}
+    corpus: [interpolated air-quality map, guided air-quality explorer, chemometrics upload workbench]
+    basis:
+      - {kind: observed, statement: "Multivariate pattern explorers: correlation heatmap with clustering."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  # ---------------------------------------------------------------- models, scenarios and decisions
+  - id: forecast_with_band
+    name: Forecast with an uncertainty band
+    intent: Project a series beyond the observed period, with its uncertainty and assumptions.
+    addresses:
+      - {local_tasks: [forecast]}
+    question_form: "Where is <property> heading over <horizon>, and how uncertain is that?"
+    applies_when: [time_series]
+    provides:
+      - {kind: AnalysisComponent, role: the forecasting model}
+      - {kind: ChartView, role: series with forecast band}
+      - {kind: Caveat, role: model assumptions}
+    settles:
+      - {key: model_and_horizon, question: "Which model, fitted on which window, over which horizon?", why: "Bespoke forecasting pipelines need a model contract.", default_authority: domain_expert}
+      - {key: interval, question: "Which interval does the band show?", why: "A forecast fan is shown without its definition in the UI.", default_authority: domain_expert}
+      - {key: refit_gate, question: "When does the model refit, and is fitting gated by a run control?", why: "Expensive work is gated or cached."}
+    corpus: [public-health indicator dashboard, forecasting demo, engineering calculator]
+    basis:
+      - {kind: observed, statement: "Smoothed series with a forecast fan; upload-and-forecast calculators."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: parameterised_simulation
+    name: Parameterised model run
+    intent: Run a registered model under bounded, unit-bearing parameters, with an explicit run where computation is expensive.
+    addresses:
+      - {local_tasks: [simulate]}
+    question_form: "What happens to <outcome> if <parameter> is set to <value>?"
+    applies_when: [model_parameters]
+    provides:
+      - {kind: NumberControl, role: model parameters}
+      - {kind: TriggerControl, role: explicit run, optional: true}
+      - {kind: AnalysisComponent, role: the registered model}
+      - {kind: ChartView, role: model output}
+      - {kind: Caveat, role: validity range of the model}
+    settles:
+      - {key: parameter_bounds, question: "What bounds, steps, units and defaults does each parameter have, with which grounds?", why: "A simulation slider allows 0 simulations.", default_authority: domain_expert}
+      - {key: run_gate, question: "Does the model run live or on an explicit trigger?", why: "Run, refresh or reset gates appear in 7 of 24 gallery apps."}
+      - {key: seed_policy, question: "If the model is stochastic, how is the seed set and shown?", why: "A surveyed financial simulation has no seed."}
+      - {key: model_binding, question: "Which registered component and version implements the model?", why: "Process models are model code; expose them as registered models.", default_authority: domain_expert}
+      - {key: validity_range, question: "Outside which inputs is the model not applicable, and what does the app show there?", why: "Applicability is a separate question from numerical verification (thesis worked example).", default_authority: domain_expert}
+    composes_with: [scenario_comparison, target_solver]
+    corpus: [air dispersion simulator, population projection with solver, financial scenario simulator, storm-surge simulator]
+    basis:
+      - {kind: observed, statement: "Calculators and model simulators: typed inputs to a function or model, with run gates and seeds."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: scenario_comparison
+    name: Scenario comparison
+    intent: Evaluate the same analysis under several parameter sets, including a captured reference, side by side.
+    addresses:
+      - {queries: [compare], local_tasks: [simulate]}
+      - {queries: [compare], decision_stages: [design, choice]}
+    question_form: "How does <outcome> under <scenario> compare with <reference>?"
+    applies_when: [model_parameters, alternatives_defined]
+    provides:
+      - {kind: Scenario, role: one evaluation context per alternative}
+      - {kind: Interaction, role: captures a reference scenario, optional: true}
+      - {kind: ChartView, role: one layer per scenario}
+    settles:
+      - {key: captured_state, question: "Which state does a captured reference fix, and which stays live?", why: "One decision tool's reference keeps the global horizon and starting population live."}
+      - {key: status_quo, question: "What is the status quo for each lever?", why: "One decision tool's status quo differs by lever.", default_authority: domain_expert}
+      - {key: reset_rules, question: "What resets a captured reference?", why: "In one decision tool, changing the population resets the reference."}
+    composes_with: [consequence_table, parameterised_simulation]
+    corpus: [wildlife management decision tool, financial scenario simulator]
+    basis:
+      - {kind: observed, statement: "Scenario comparison is a mode available to calculators, simulators and decision support."}
+      - {kind: observed, statement: "A decision tool's reference snapshot and status-quo comparisons."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: consequence_table
+    name: Consequence table
+    intent: Alternatives against concerns, each measured the same way, with the status quo, and no hidden weighting.
+    addresses:
+      - {queries: [compare], decision_stages: [choice]}
+    question_form: "How do the alternatives compare on each concern?"
+    applies_when: [alternatives_defined]
+    provides:
+      - {kind: Objective, role: concerns the table measures}
+      - {kind: Metric, role: one performance measure per row}
+      - {kind: ConsequenceTableView, role: the table}
+      - {kind: Caveat, role: what the table does not model}
+    settles:
+      - {key: alternative_realisation, question: "Is each alternative a scenario (an evaluation context) or a series or category of one evaluation?", why: "One decision tool realises alternatives both ways."}
+      - {key: performance_measures, question: "Which measure represents each concern, with which definition, unit and rounding?", why: "One population tool's growth rate is an eigenvalue in some tabs and a realised ratio in others.", default_authority: domain_expert}
+      - {key: status_quo_cells, question: "What does the status-quo column show where a measure does not apply (n/a, 0)?", why: "One decision tool shows a measure as 0 and costs as n/a for the status quo."}
+      - {key: not_modelled, question: "Which concerns are weighed outside the app, and does the app say so?", why: "One decision tool's authors call the decision a social choice; other objectives are evaluated outside the software.", default_authority: domain_expert}
+      - {key: weighting, question: "Is any weighting applied, and on whose authority?", why: "One decision tool applies no weighting of objectives; a weight is a value judgment."}
+    pitfalls:
+      - statement: One measure defined differently in different places.
+        basis: [{kind: observed, statement: "The definition of lambda differs by engine: eigenvalue in A; realised ratio in B and C."}]
+    composes_with: [scenario_comparison, target_solver]
+    corpus: [wildlife management decision tool]
+    basis:
+      - {kind: observed, statement: "A decision tool reports a consequence table within a structured decision-making frame."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: target_solver
+    name: Lever value for a target
+    intent: Find the lever value at which an outcome reaches a target, or say that none exists.
+    addresses:
+      - {local_tasks: [solve]}
+    question_form: "What <lever> is needed for <outcome> to reach <target>?"
+    applies_when: [model_parameters]
+    provides:
+      - {kind: AnalysisComponent, role: the solver}
+      - {kind: Metric, role: the solved lever value}
+      - {kind: KpiView, role: the answer or 'no solution'}
+    settles:
+      - {key: target_definition, question: "What is the target, exactly?", why: "One decision tool's breakeven is defined only by its code.", default_authority: domain_expert}
+      - {key: solver_tolerance, question: "With what tolerance is a solution accepted?", why: "One decision tool's optimiser accepts at 0.01.", default_authority: domain_expert}
+      - {key: no_solution, question: "What is shown when no solution exists?", why: "A breakeven failure gives NA."}
+    composes_with: [parameterised_simulation, consequence_table]
+    corpus: [wildlife management decision tool, population projection with solver]
+    basis:
+      - {kind: observed, statement: "Breakeven search over the penned proportion."}
+      - {kind: observed, statement: "A population projection followed by a solver for a target."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: composite_priority_score
+    name: Composite priority score
+    intent: Combine normalised criteria into a score, rank or zone the subjects, and show the formula that was computed.
+    addresses:
+      - {templates: [sort]}
+      - {queries: [identify], decision_stages: [choice]}
+    question_form: "Which <subjects> should come first, given <criteria>?"
+    applies_when: [multiple_properties]
+    provides:
+      - {kind: DeriveTransform, role: normalisation and combination}
+      - {kind: Metric, role: the score}
+      - {kind: TableView, role: ranked subjects}
+      - {kind: MapView, role: zones, optional: true}
+      - {kind: NumberControl, role: weights, optional: true}
+    settles:
+      - {key: normalisation, question: "How is each criterion normalised before combination?", why: "One gallery app adds quantities in mixed units with an ad hoc weight.", default_authority: domain_expert}
+      - {key: combination_rule, question: "Is the combination additive or multiplicative?", why: "In one prioritisation tool the rule differs by case and changes with custom data.", default_authority: domain_expert}
+      - {key: weights_authority, question: "Whose weights are used, and may users change them?", why: "A weight is a value judgment; it needs an attributable ruling (thesis Framework §2.5)."}
+      - {key: formula_display, question: "Is the displayed formula generated from the computed one?", why: "One prioritisation tool's formula text disagrees with the computed formula."}
+      - {key: zoning, question: "How are scores turned into zones (quantiles, strata)?", why: "Stratified quantile zones are mapped.", default_authority: domain_expert}
+    pitfalls:
+      - statement: Formula text that disagrees with the formula computed.
+        basis: [{kind: observed, statement: "A prioritisation tool's displayed formula disagreed with the computed formula for some cases."}]
+    alternatives: [consequence_table]
+    corpus: [conservation prioritisation tool, site-suitability map, climate-change species suitability tool]
+    basis:
+      - {kind: observed, statement: "Normalised criteria with user weights produce a composite score; stratified quantile zones are mapped."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: rule_based_screening
+    name: Rule-based screening for a decision
+    intent: >-
+      Apply decision rules that an accountable person has adopted to each subject's
+      evidence, and show a candidate course of action with the rule that produced it,
+      for that person to accept or override outside the app. Proposing a course of action
+      per subject is a recommendation (AppRole recommend): it binds only once the decision
+      makers' authority has adopted the rules.
+    addresses:
+      - {queries: [identify], decision_stages: [design, choice]}
+    question_form: "Under our adopted rules, what does each <subject>'s evidence point to?"
+    applies_when: [alternatives_defined]
+    provides:
+      - {kind: ParameterTable, role: the adopted rules with their grounds}
+      - {kind: DeriveTransform, role: candidate course of action and the rule that fired}
+      - {kind: TableView, role: candidates with their evidence}
+      - {kind: Caveat, role: the decision stays with the decision maker}
+    settles:
+      - {key: rule_authority, question: "Who adopted the rules, in which edition, and for which subjects?", why: "Rules that map evidence to action are judgments; an agent may record them but not supply them (thesis Framework §2.5).", default_authority: domain_expert}
+      - {key: rule_inputs, question: "Which evidence does each rule read (status, trend, record length, cost), with which definitions?", why: "Inputs inherit the hidden semantics of the patterns that produce them.", default_authority: domain_expert}
+      - {key: precedence, question: "Which rule wins when several apply, and what happens when none applies?", why: "Lookups with precedence and defaults hide choices.", default_authority: domain_expert}
+      - {key: insufficient_evidence, question: "What is shown when the evidence is insufficient for any rule?", why: "Proposed by the author for this pattern.", default_authority: domain_expert}
+      - {key: rule_shown, question: "Is the rule that produced each candidate shown next to it?", why: "Displayed logic must be generated from the computed logic."}
+    alternatives: [consequence_table, composite_priority_score]
+    composes_with: [criterion_exceedance, trend_test_per_entity, report_export]
+    corpus: []
+    basis:
+      - {kind: inferred, statement: "Added for the groundwater worked example (examples/). No surveyed app applies adopted rules per subject; the closest are composite scores and consequence tables."}
+    standing: PROPOSAL
+
+  # ---------------------------------------------------------------- data intake, live data, outputs, trust
+  - id: upload_contract
+    name: Upload against a contract
+    intent: Accept user data only through a declared template, with validation messages and a gate before analysis.
+    addresses:
+      - {local_tasks: [verify_inputs]}
+    question_form: "Is my file usable, and if not, what is wrong with it?"
+    applies_when: [user_supplied]
+    provides:
+      - {kind: UploadSource, role: "the contract: schema, rules and example"}
+      - {kind: FileUploadControl, role: the upload}
+      - {kind: Message, role: validation messages}
+      - {kind: TableView, role: list of issues}
+      - {kind: BundledDataset, role: example data, optional: true}
+    settles:
+      - {key: template_and_example, question: "Which template and example file does the app offer?", why: "Uploads come with templates or example data."}
+      - {key: column_roles, question: "Are column roles fixed by the template or assigned by the user?", why: "Column-role assignment after upload occurs."}
+      - {key: parse_rules, question: "Which date, number and censoring formats are accepted?", why: "One app accepts dd/mm/yyyy only; Excel serial dates occur."}
+      - {key: validation_messages, question: "Which rules are checked, with which user-facing message each?", why: "Upload contracts need user-facing error messages."}
+      - {key: gate, question: "Do issues block analysis, or only warn?", why: "An upload issue list gates exploration in one app."}
+      - {key: units_declared, question: "Must the upload state units, and are they checked?", why: "Units are implicit in one template."}
+    pitfalls:
+      - statement: Every failure collapsed into one vague message.
+        basis: [{kind: observed, statement: "A broad exception handler mapped every failure to 'not available'."}]
+    composes_with: [criterion_exceedance, control_chart_baseline, trend_test_per_entity, correlation_structure]
+    corpus: [chemometrics upload workbench, 3D site-screening plot, air dispersion simulator, quality-control chart app, engineering calculator, risk-based inspection workflow, groundwater data viewer]
+    basis:
+      - {kind: observed, statement: "Bring-your-own-data workbench: upload with template or example, column or role assignment, validation gate, analysis."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: live_status_board
+    name: Live status with freshness
+    intent: Show the current state of a changing source against thresholds, with its age and failure states.
+    addresses:
+      - {local_tasks: [monitor]}
+    question_form: "What is the current <property> at <subject>, and how recent is it?"
+    applies_when: [live_source]
+    provides:
+      - {kind: ExternalServiceSource, role: the live source with refresh policy}
+      - {kind: KpiView, role: current status}
+      - {kind: Message, role: staleness and failure states}
+    settles:
+      - {key: refresh_policy, question: "How often is the source refreshed, and is the interval shared across sessions?", why: "Refresh policy is a declared contract."}
+      - {key: staleness, question: "When is a value stale, and how is that shown?", why: "Freshness display and staleness rules are needed."}
+      - {key: failure_behaviour, question: "What is shown when the source fails?", why: "Live services need declared failure behaviour."}
+      - {key: secrets, question: "Which secrets does the source need, referenced by name only?", why: "Exported definitions have leaked credentials in other systems."}
+    pitfalls:
+      - statement: A 'live' display that replays bundled data.
+        basis: [{kind: observed, statement: "'Live' is often simulated: replayed CSV, database by time of day, random writer."}]
+    corpus: [community air-monitoring portal, live air-quality index feed, live transit dashboard]
+    basis:
+      - {kind: observed, statement: "Live-feed dashboards: station choice, recent window, current index and history."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: report_export
+    name: Report export with provenance
+    intent: Hand results to someone else in a declared layout that carries what they rest on.
+    addresses:
+      - {goals: [present, produce]}
+    question_form: "What do I hand over, and can its recipient tell how it was produced?"
+    applies_when: []
+    provides:
+      - {kind: Export, role: the file}
+      - {kind: ExportSheet, role: declared sheets or sections}
+      - {kind: TextBlock, role: notes and criteria cited in the export}
+    settles:
+      - {key: export_contents, question: "Which rows, sheets and columns does the export contain?", why: "One decision tool's workbook schema differs per tab."}
+      - {key: provenance_fields, question: "Which provenance fields does it carry (app and specification version, data vintage, date, criteria edition)?", why: "One decision tool's workbook carries package version, tab, date and subject."}
+      - {key: format, question: "Which format and branding?", why: "Branded Excel reports with conditional formatting occur."}
+      - {key: reproducibility, question: "Can the recipient reproduce the result from the export (state, parameters, seeds)?", why: "State and configuration round-trips exist in a few apps."}
+    pitfalls:
+      - statement: An export path that fails for one input mode.
+        basis: [{kind: observed, statement: "The compare-mode export with percent input likely fails."}]
+    corpus: [3D site-screening plot, wildlife management decision tool, public-health profiles, climate-change species suitability tool]
+    basis:
+      - {kind: observed, statement: "Report generation is a cross-cutting export capability, not an archetype."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: result_provenance
+    name: About this result
+    intent: Let users see what a displayed result rests on and what acceptance it has, read from the record.
+    addresses:
+      - {searches: [lookup], queries: [identify], targets: [value]}
+    question_form: "Where did this number come from, how current is it, and who has accepted it for what?"
+    applies_when: []
+    provides:
+      - {kind: ProvenancePolicy, role: what the app discloses}
+      - {kind: ProvenanceView, role: the panel}
+    settles:
+      - {key: data_vintage, question: "Is each dataset's vintage or 'as of' date shown?", why: "No surveyed app showed a 'data as of' date."}
+      - {key: per_result_provenance, question: "Which results carry inputs, parameters and component versions?", why: "Per-result provenance can follow PROV-AQ."}
+      - {key: acceptance_display, question: "Is acceptance shown as recorded, including its absence?", why: "Generated output must not claim acceptance in its own voice (ONTOLOGY.md §2)."}
+    corpus: []
+    basis:
+      - {kind: documented, statement: "PROV-O, PROV-AQ and RO-Crate for build and result provenance."}
+      - {kind: observed, statement: "No app showed a human-visible 'data as of' date."}
+      - {kind: inferred, statement: Drawn from provenance standards rather than observed in the surveyed apps.}
+    standing: PROPOSAL
+
+  # ---------------------------------------------------------------- teaching and guidance
+  - id: guided_narrative
+    name: Guided narrative
+    intent: A fixed sequence of explained steps before free exploration.
+    addresses:
+      - {goals: [present]}
+      - {local_tasks: [teach]}
+    question_form: "What should I look at first, and why?"
+    applies_when: []
+    provides:
+      - {kind: NavItem, role: the steps}
+      - {kind: TextBlock, role: the explanation at each step}
+    settles:
+      - {key: step_gating, question: "Can users skip steps, and what does each step fix?", why: "Stepper gating occurs."}
+      - {key: narrative_source, question: "Who wrote the narrative, and is it shown verbatim?", why: "Verbatim text is a specification element (ONTOLOGY.md §3)."}
+    corpus: [guided air-quality explorer]
+    basis:
+      - {kind: observed, statement: "Guided narrative explorer: fixed step sequence with explanatory text, then free exploration."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+  - id: teaching_sampler
+    name: Teaching sampler
+    intent: A seeded simulation with few parameters that shows how a concept behaves.
+    addresses:
+      - {local_tasks: [teach]}
+    question_form: "What happens to <statistic> when I change <parameter>?"
+    applies_when: [model_parameters]
+    provides:
+      - {kind: GeneratedSource, role: seeded data}
+      - {kind: NumberControl, role: parameters}
+      - {kind: ChartView, role: the result}
+    settles:
+      - {key: seed_policy, question: "How is the seed set and shown?", why: "Seeded randomness is a teaching-demo need."}
+      - {key: label_binding, question: "Are parameter labels generated from the parameters they describe?", why: "A teaching app swaps two parameter labels."}
+    pitfalls:
+      - statement: Swapped parameter labels.
+        basis: [{kind: observed, statement: "A teaching app swapped two parameter labels."}]
+    corpus: [statistics teaching apps]
+    basis:
+      - {kind: observed, statement: "Teaching simulator: seeded simulation with parameter sliders, no external data."}
+      - {kind: inferred, statement: Generalised by the author as a pattern; a design hypothesis.}
+    standing: PROPOSAL
+
+derivations:
+  - {archetype: explorer, patterns: [filter_linked_views, series_detail_with_reference, site_map_drilldown], notes: "The map is common but not universal."}
+  - {archetype: indicator_surveillance, patterns: [indicator_profile, report_export]}
+  - {archetype: spatiotemporal_map, patterns: [site_map_drilldown, interpolated_surface_over_time, raster_scenario_atlas], notes: "Usually one of the last two."}
+  - {archetype: live_monitoring, patterns: [live_status_board, series_detail_with_reference]}
+  - {archetype: qc_compliance, patterns: [criterion_exceedance, control_chart_baseline, series_detail_with_reference], notes: "Criterion or baseline, rarely both."}
+  - {archetype: calculator, patterns: [parameterised_simulation], notes: "Deterministic and usually without a dataset or run gate."}
+  - {archetype: model_simulator, patterns: [parameterised_simulation, scenario_comparison, target_solver]}
+  - {archetype: decision_support, patterns: [consequence_table, scenario_comparison, composite_priority_score, target_solver], notes: "Consequence table or composite score, depending on whether trade-offs stay visible."}
+  - {archetype: analysis_workbench, patterns: [upload_contract, report_export], notes: "Plus the analysis pattern the uploaded data serve, e.g. control_chart_baseline or correlation_structure."}
+  - {archetype: teaching_demo, patterns: [teaching_sampler, guided_narrative]}
