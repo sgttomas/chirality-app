@@ -360,12 +360,12 @@ fn records_retention_disposal_relying_on_an_export_with_a_broken_chain_is_not_re
         None => assert!(asked.text.contains(&format!("{rel}: chain broken at line 2")), "{}", asked.text),
         // The bounded summary names the line whole; the App shows every limit.
         Some(shown) => {
-            assert!(asked.text.contains("is broken at line 2."), "{}", asked.text);
+            assert!(asked.text.contains("1 limit(s); each is named in full in the App under this confirmation."), "{}", asked.text);
             assert!(shown.content["export"]["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")));
         }
     }
     let summary = crate::records_export::integrity_summary(&p.context["export"]["logIntegrity"]).unwrap();
-    assert!(summary.contains(".jsonl is broken at line 2."), "{summary}");
+    assert!(summary.contains("1 limit(s); each is named in full in the App under this confirmation."), "{summary}");
     assert!(p.context["export"]["verification"].as_str().unwrap().contains("separately, log integrity: limited (1 fault(s)"), "the verification sentence read alone is not a clean pass");
     // Not refused, and recorded with the act.
     let result = apply(p, &f.actor, &f.observed).unwrap();

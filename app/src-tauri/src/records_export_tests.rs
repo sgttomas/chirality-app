@@ -113,9 +113,9 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     let unaltered = standalone(&f.bag());
     assert_eq!(unaltered.status.code(), Some(0), "{}", String::from_utf8_lossy(&unaltered.stderr));
     let stdout = String::from_utf8_lossy(&unaltered.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent."), "{stdout}");
-    assert!(stdout.contains("\nLog integrity: no chain is broken, and the package's account lists no line as set aside. Every link this verifier examined names the line before it.\n"), "{stdout}");
-    assert!(stdout.contains("A package whose records, manifests and chain heads were replaced together still verifies."), "{stdout}");
+    assert!(stdout.starts_with("Manifests and inventory: agree."), "{stdout}");
+    assert!(stdout.contains("\nChains: 1 of 1 recomputed from the lines; each recomputed head equals the recorded one.\nLimits: none.\n"), "{stdout}");
+    assert!(stdout.contains("Unsigned: a package whose logs, tag and manifests were replaced together passes these checks."), "{stdout}");
     // Change the first line (same length, still JSON), then recompute both
     // manifests as an alterer would. The tag, left as exported, shows the change.
     let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
@@ -133,7 +133,7 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     assert_eq!(altered.status.code(), Some(1));
     let stderr = String::from_utf8_lossy(&altered.stderr);
     // The tag pins the log's bytes, and that equality is compared first.
-    assert!(stderr.starts_with("Result: failed (exit status 1).") && stderr.contains(&format!("{rel}: its bytes")) && stderr.contains("are not the ones the package's chain-head tag records"), "{stderr}");
+    assert!(stderr.starts_with("Result: a check failed (exit status 1).") && stderr.contains(&format!("{rel}: its bytes")) && stderr.contains("are not the ones the package's chain-head tag records"), "{stderr}");
     // The App's own verification recomputes the heads and refuses it too.
     assert!(verify(&f.bag()).is_err_and(|e| e.contains("chain heads differ")));
     // With the chain-head tag recomputed as well, the package is the one a
@@ -148,8 +148,8 @@ fn records_export_standalone_recomputes_chains_and_refuses_a_changed_line_with_r
     let rewritten = standalone(&f.bag());
     assert_eq!(rewritten.status.code(), Some(2), "{}", String::from_utf8_lossy(&rewritten.stderr));
     let stdout = String::from_utf8_lossy(&rewritten.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 limit in 1 log."), "{stdout}");
-    assert!(stdout.contains(&format!("Integrity limit: {rel}: chain broken at line 2: it links to")), "{stdout}");
+    assert!(stdout.starts_with("Manifests and inventory: agree.") && stdout.contains("\nLimits: 1.\n"), "{stdout}");
+    assert!(stdout.contains(&format!("  FOUND by this verifier: {rel}: chain broken at line 2: it links to")), "{stdout}");
     assert!(!stdout.contains("no chain is broken") && !stdout.contains("exit status 0"), "{stdout}");
 }
 
@@ -214,13 +214,13 @@ fn records_export_log_integrity_never_reads_a_missing_or_unreadable_statement_as
     assert_eq!(log_integrity(&json!({"logs":[]}), false), json!({"state":"no chain recorded broken"}), "a package with no chained log records no break");
     // Every other shape is a limit that names what is not stated.
     for (heads, says) in [
-        (json!({}), "lists no logs"),
+        (json!({}), "NOT CHECKED: the chain-head tag lists no logs"),
         (json!({"logs":"none"}), "lists no logs"),
-        (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"head":"x","lines":1}}]}), "runs/a/b.jsonl: the package does not state whether this chain was broken"),
-        (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"broken":"no"}}]}), "does not state whether this chain was broken"),
+        (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"head":"x","lines":1}}]}), "runs/a/b.jsonl: NOT CHECKED: the package records no list of breaks for this chain"),
+        (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"broken":"no"}}]}), "NOT CHECKED: the package records no list of breaks for this chain"),
         (json!({"logs":[{"log":"runs/a/b.jsonl","chain":{"broken":[7]}}]}), "a recorded break that is not text"),
         (json!({"logs":[{"chain":{"broken":["chain broken at line 2: x"]}}]}), "a log the tag does not name: chain broken at line 2"),
-        (json!({"logs":[{"log":"role-supply/observations.jsonl","chain":{"state":"unreadable or invalid role supply chain","error":"invented"}}]}), "chain not read at export (unreadable or invalid role supply chain: invented)"),
+        (json!({"logs":[{"log":"role-supply/observations.jsonl","chain":{"state":"unreadable or invalid role supply chain","error":"invented"}}]}), "the App's reader could not read this log's chain (unreadable or invalid role supply chain: invented)"),
     ] {
         let integrity = log_integrity(&heads, false);
         assert_eq!(integrity["state"], "limited", "{heads}");
@@ -229,7 +229,7 @@ fn records_export_log_integrity_never_reads_a_missing_or_unreadable_statement_as
     // A log the legacy profile records no head for was not checked, which is a limit.
     let legacy = log_integrity(&whole, true);
     assert_eq!(legacy["state"], "limited");
-    assert!(legacy["limits"][0].as_str().unwrap().contains("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head"), "{legacy}");
+    assert!(legacy["limits"][0].as_str().unwrap().contains("role-supply/observations.jsonl: NOT CHECKED: this package's chain-head profile (0.1) records no head for this log to compare with"), "{legacy}");
     // A stored member is read only in its two written forms; anything else is not stated.
     for stored in [json!({}), json!({"logIntegrity":null}), json!({"logIntegrity":{"state":"limited"}}), json!({"logIntegrity":{"state":"fine"}}), json!({"logIntegrity":"no chain recorded broken"})] {
         assert_eq!(stored_log_integrity(&stored), json!({"state":"not stated"}), "{stored}");
@@ -240,28 +240,30 @@ fn records_export_log_integrity_never_reads_a_missing_or_unreadable_statement_as
 }
 
 #[test]
-fn records_export_integrity_summary_keeps_every_line_number_whole_for_ordinary_run_paths() {
-    // An ordinary run log's path is 140 characters. The summary a native
-    // confirmation falls back to must still name each log and its whole line.
-    let log = |c: &str| format!("runs/{}/{}.jsonl", c.repeat(64), "f".repeat(64));
-    let limit = |c: &str, line: u64| format!("{}: chain broken at line {line}: it links to \"{}\", but the preceding line's identity is {}; never repaired", log(c), "0".repeat(64), "1".repeat(64));
-    let one = integrity_summary(&json!({"state":"limited","limits":[limit("a", 2)]})).unwrap();
-    assert!(one.contains("1 log chain fault(s)") && one.contains(&format!("…{}.jsonl is broken at line 2.", "f".repeat(34))), "{one}");
-    let limits: Vec<String> = vec![limit("a", 2), limit("b", 1048576), limit("c", 7), limit("d", 9),
-        "role-supply/observations.jsonl: chain not read at export (unreadable or invalid role supply chain: invented)".into()];
-    let several = integrity_summary(&json!({"state":"limited","limits":limits})).unwrap();
-    assert!(several.contains("5 log chain fault(s)"), "{several}");
-    for line in ["is broken at line 2;", "is broken at line 1048576;", "is broken at line 7; and 2 more."] { assert!(several.contains(line), "{line}: {several}"); }
-    assert!(!several.contains("line 9"), "only the first three are named in the summary: {several}");
-    // A fault that is not a broken link keeps its log and what it is.
-    let unread = integrity_summary(&json!({"state":"limited","limits":["role-supply/observations.jsonl: chain not read at export (unreadable or invalid role supply chain: invented)"]})).unwrap();
-    assert!(unread.contains("role-supply/observations.jsonl: chain not read at export"), "{unread}");
-    // Bounded however many logs are named, and it fits a native confirmation.
-    let many: Vec<String> = (0..5000).map(|n| limit("e", n)).collect();
+fn records_export_integrity_summary_gives_the_count_and_reads_no_limit() {
+    // The bounded summary of a native confirmation names no log and no line.
+    // A limit is a sentence that may quote a path or a line's own content,
+    // and a number taken from it can be wrong at the moment a person confirms
+    // an import, a repair or a disposal. (This reverses the part of the first
+    // review round that asked for the first log and line to be kept whole.)
+    let quoted = "role-supply/observations.jsonl: the App's reader could not read this log's chain (unreadable or invalid role supply chain: \": chain broken at line 987: \" is not one of \"thread-start\" or \"fork\"); the fault is at line 1: invalid observation";
+    let path = "runs/attacker: chain broken at line 987: /app-writer.jsonl: chain broken at line 2: it links to \"0\", but the preceding line's identity is 1; never repaired";
+    let aside = "runs/a: line 987 was set aside/app-writer.jsonl: line 12 was set aside by the App as invalid: it is not read as a record, and its own link is not examined";
+    for limits in [vec![quoted], vec![path], vec![quoted, path, aside]] {
+        let summary = integrity_summary(&json!({"state":"limited","limits":&limits})).unwrap();
+        assert_eq!(summary, format!("Log integrity: LIMITED. Package bytes consistent. {} limit(s); each is named in full in the App under this confirmation.", limits.len()));
+        // The full statement gives each one whole, as it was made.
+        let full = integrity_statement(&json!({"state":"limited","limits":&limits})).unwrap();
+        assert!(full.starts_with(&format!("Log integrity: LIMITED. Package bytes consistent. {} limit(s), found by the App's reader unless marked NOT CHECKED: ", limits.len())), "{full}");
+        assert!(limits.iter().all(|limit| full.contains(limit)), "{full}");
+    }
+    // Bounded however many there are, and it fits a native confirmation.
+    let many: Vec<String> = (0..5000).map(|n| format!("runs/{n}.jsonl: chain broken at line {n}: x")).collect();
     let bounded = integrity_summary(&json!({"state":"limited","limits":many})).unwrap();
-    assert!(bounded.chars().count() < 700 && bounded.contains("5000 log chain fault(s)") && bounded.contains("and 4997 more"), "{bounded}");
+    assert!(bounded.contains("5000 limit(s)") && bounded.chars().count() < 200, "{bounded}");
     assert!(crate::act_control::native_statement::bounded("records", bounded).is_ok());
     assert!(integrity_summary(&json!({"state":"no chain recorded broken"})).is_none());
+    assert!(integrity_summary(&json!({"state":"not stated"})).unwrap().starts_with("Log integrity: NOT STATED."));
 }
 
 #[test]
@@ -353,21 +355,23 @@ fn records_export_standalone_agrees_with_the_reader_on_every_line_the_reader_set
     let alone = standalone(&f.bag());
     let (stdout, stderr) = (String::from_utf8_lossy(&alone.stdout), String::from_utf8_lossy(&alone.stderr));
     assert_eq!(alone.status.code(), Some(2), "{stdout}{stderr}");
-    assert!(stdout.contains(&format!("\nLog integrity: LIMITED. {} limits in 1 log.", 1 + set_aside.len())), "{stdout}");
-    assert!(stdout.contains(&format!("Integrity limit: {rel}: chain broken at line {broken_at}: it links to")), "{stdout}");
+    assert!(stdout.contains(&format!("\nLimits: {}.\n", 1 + set_aside.len())), "{stdout}");
+    assert!(stdout.contains(&format!("  FOUND by this verifier: {rel}: chain broken at line {broken_at}: it links to")), "{stdout}");
     for line in 2..2 + set_aside.len() {
-        assert!(stdout.contains(&format!("Integrity limit: {rel}: line {line} was set aside by the App as invalid: it is not read as a record, and its own link is not examined")), "{line}: {stdout}");
+        assert!(stdout.contains(&format!("  STATED by the package, not checked here: {rel}: line {line} was set aside by the App as invalid: it is not read as a record, and its own link is not examined")), "{line}: {stdout}");
     }
-    assert!(stdout.contains(&format!("Note: {rel}: the package's account lists line {torn_at} as a torn line the App closed and set aside after an interrupted write. It is not a limit")), "{stdout}");
+    assert!(stdout.contains(&format!("Note. STATED by the package, not checked here: {rel}: line {torn_at} is a torn line the App closed after an interrupted write; it is not counted in the chain")), "{stdout}");
     // The same store exported by a build of the earlier profile, which
     // recorded no account: the App still reports each line it sets aside,
     // and the standalone verifier, working the lines out for itself, agrees.
     reprofile_as_for_test(&f.bag(), "0.2");
     let earlier = verify(&f.bag()).unwrap();
     assert_eq!(earlier["logIntegrity"], app["logIntegrity"]);
+    // The standalone verifier does not follow a chain of that profile: it
+    // checks the manifests and lists the chain as not checked.
     let alone = standalone(&f.bag());
     assert_eq!(alone.status.code(), Some(2), "{}", String::from_utf8_lossy(&alone.stderr));
-    assert!(String::from_utf8_lossy(&alone.stdout).contains(&format!("\nLog integrity: LIMITED. {} limits in 1 log.", 1 + set_aside.len())));
+    assert!(String::from_utf8_lossy(&alone.stdout).contains(&format!("\nChains: not checked by this verifier for a package of profile 0.2; verify through the App.\nLimits: 1.\n  NOT CHECKED: {rel}: its chain\n")));
 }
 
 #[test]
@@ -399,8 +403,11 @@ fn records_export_reads_packages_of_the_earlier_chain_head_profiles_unchanged() 
         assert!(read["chainHeadProfile"].as_str().unwrap().starts_with(&format!("{version}:")), "{read}");
         assert_eq!(read["state"], "package bytes consistent; no chain recorded broken");
         assert_eq!(read["logIntegrity"], json!({"state":"no chain recorded broken"}));
+        // The standalone verifier checks such a package's manifests only and
+        // lists its chains as not checked: its own exit status, never 0.
         let alone = standalone(&f.bag());
-        assert_eq!(alone.status.code(), Some(0), "{version}: {}", String::from_utf8_lossy(&alone.stderr));
+        assert_eq!(alone.status.code(), Some(2), "{version}: {}", String::from_utf8_lossy(&alone.stderr));
+        assert!(String::from_utf8_lossy(&alone.stdout).contains(&format!("\nChains: not checked by this verifier for a package of profile {version}; verify through the App.\n")));
         // A tag of one profile presented as another is a disagreement.
         let mut forged = earlier.clone();
         forged["formatVersion"] = json!("0.3");
@@ -434,43 +441,6 @@ fn records_export_stored_log_integrity_is_read_only_in_its_two_written_forms() {
         assert_eq!(read, json!({"state":"not stated"}), "{stored}");
         assert!(integrity_statement(&read).unwrap().starts_with("Log integrity: NOT STATED."));
     }
-}
-
-#[test]
-fn records_export_integrity_summary_takes_the_line_from_the_break_and_not_from_the_logs_path() {
-    // A package path may itself hold the words that introduce a break.
-    let path = "runs/attacker: chain broken at line 987: /app-writer.jsonl";
-    let limit = format!("{path}: chain broken at line 2: it links to \"{}\", but the preceding line's identity is {}; never repaired", "0".repeat(64), "1".repeat(64));
-    let summary = integrity_summary(&json!({"state":"limited","limits":[limit]})).unwrap();
-    // The sentence then holds a break's words twice, and nothing in it says
-    // which are the break's: no line is named, and the App names it in full.
-    assert!(summary.contains("one limit whose log and line this summary cannot name safely, named in full in the App."), "{summary}");
-    assert!(!summary.contains("987") && !summary.contains("is broken at line"), "{summary}");
-    // A line set aside keeps its log and its line in the summary too.
-    let aside = integrity_summary(&json!({"state":"limited","limits":[format!("runs/{}/{}.jsonl: line 12 was set aside by the App as invalid: it is not read as a record, and its own link is not examined", "a".repeat(64), "f".repeat(64))]})).unwrap();
-    assert!(aside.contains(".jsonl: line 12 was set aside by the App as invalid"), "{aside}");
-    // And there too the line is the limit's own, not one a path spells.
-    let spelled = integrity_summary(&json!({"state":"limited","limits":["runs/a: line 987 was set aside/app-writer.jsonl: line 12 was set aside by the App as invalid: it is not read as a record, and its own link is not examined"]})).unwrap();
-    assert!(spelled.contains("/app-writer.jsonl: line 12 was set aside by the App as invalid."), "{spelled}");
-    // A set-aside limit whose path holds a break's words: its own line, never the path's.
-    let both = integrity_summary(&json!({"state":"limited","limits":["runs/a: chain broken at line 987: /writer.jsonl: line 12 was set aside by the App as invalid: it is not read as a record, and its own link is not examined"]})).unwrap();
-    // (The path is the log's name and is shown as it is; what is said of it is line 12, set aside, and no break.)
-    assert!(both.contains("/writer.jsonl: line 12 was set aside by the App as invalid.") && !both.contains("is broken at line"), "{both}");
-    // Where a break's words stand more than once, no line is named: the sentence's beginning is shown.
-    let twice = integrity_summary(&json!({"state":"limited","limits":[format!("{path}: chain broken at line 2: unknown chain method \"x: chain broken at line 5: y\"")]})).unwrap();
-    assert!(!twice.contains("is broken at line") && !twice.contains("line 5") && twice.contains("cannot name safely"), "{twice}");
-    // An unclosed final part keeps its log and length.
-    let unclosed = integrity_summary(&json!({"state":"limited","limits":["runs/a/app-writer.jsonl: partial entry at end (not read): 12 bytes after the last complete line"]})).unwrap();
-    assert!(unclosed.contains("runs/a/app-writer.jsonl: partial entry at end (not read), 12 bytes."), "{unclosed}");
-}
-
-/// Regenerates both manifests over the package as it stands and leaves the
-/// chain-head tag byte for byte: what someone changing a log would do.
-fn reseal_leaving_the_tag(bag: &Path) {
-    let paths = files(&bag.join("data"), false).unwrap().into_keys().collect::<Vec<_>>();
-    std::fs::write(bag.join("manifest-sha256.txt"), manifest(bag, paths.iter().map(|p| format!("data/{p}"))).unwrap()).unwrap();
-    let tags: Vec<String> = TAGS.iter().filter(|p| bag.join(p).exists()).map(|p| p.to_string()).collect();
-    std::fs::write(bag.join("tagmanifest-sha256.txt"), manifest(bag, tags.into_iter()).unwrap()).unwrap();
 }
 
 #[test]
@@ -533,6 +503,16 @@ fn records_export_an_unclosed_final_part_is_a_limit_and_a_log_named_for_a_break_
     let alone = standalone(&f.bag());
     let stdout = String::from_utf8_lossy(&alone.stdout);
     assert_eq!(alone.status.code(), Some(2), "{stdout}{}", String::from_utf8_lossy(&alone.stderr));
-    assert!(stdout.contains("\nLog integrity: LIMITED. 2 limits in 2 logs."), "{stdout}");
-    assert!(stdout.contains(&format!("Integrity limit: {}: partial entry at end (not read): 12 bytes after the last complete line", rel(&log))), "{stdout}");
+    assert!(stdout.contains("\nLimits: 2.\n"), "{stdout}");
+    assert!(stdout.contains(&format!("  FOUND by this verifier: {}: partial entry at end (not read): 12 bytes after the last complete line", rel(&log))), "{stdout}");
+    assert!(stdout.contains(&format!("  STATED by the package, not checked here: {}: line 1 was set aside by the App as invalid", rel(&named))), "{stdout}");
+}
+
+/// Regenerates both manifests over the package as it stands and leaves the
+/// chain-head tag byte for byte: what someone changing a log would do.
+fn reseal_leaving_the_tag(bag: &Path) {
+    let paths = files(&bag.join("data"), false).unwrap().into_keys().collect::<Vec<_>>();
+    std::fs::write(bag.join("manifest-sha256.txt"), manifest(bag, paths.iter().map(|p| format!("data/{p}"))).unwrap()).unwrap();
+    let tags: Vec<String> = TAGS.iter().filter(|p| bag.join(p).exists()).map(|p| p.to_string()).collect();
+    std::fs::write(bag.join("tagmanifest-sha256.txt"), manifest(bag, tags.into_iter()).unwrap()).unwrap();
 }

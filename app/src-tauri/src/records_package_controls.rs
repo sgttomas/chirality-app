@@ -640,7 +640,7 @@ fn resumed_integrity(plan: &ControlPlan) -> Vec<(String, Value)> {
 /// no chain recorded broken.
 fn integrity_sentence(id: &str, found: &Value, summary: bool) -> Option<String> {
     if found["state"] == "not stated" {
-        return Some(format!("Import {id}: Log integrity: NOT STATED. This recovery repairs the import's controls and does not read its package again, so it does not say whether any of its logs was limited; the records store's own report of the project's logs does."));
+        return Some(format!("Import {id}: Log integrity: NOT STATED. This recovery repairs the import's controls and does not read its package again."));
     }
     let said = if summary { crate::records_export::integrity_summary(found) } else { crate::records_export::integrity_statement(found) };
     said.map(|limit| format!("Import {id}: {limit}"))

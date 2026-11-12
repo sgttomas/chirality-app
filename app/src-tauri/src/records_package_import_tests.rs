@@ -166,8 +166,8 @@ fn package_import_of_a_store_with_a_broken_chain_is_not_refused_and_reports_the_
     let standalone = std::process::Command::new("python3").arg(bag.join("verify.py")).arg(&bag).output().unwrap();
     assert_eq!(standalone.status.code(), Some(2), "{}", String::from_utf8_lossy(&standalone.stderr));
     let stdout = String::from_utf8_lossy(&standalone.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 limit in 1 log."), "{stdout}");
-    assert!(stdout.contains(&format!("Integrity limit: {rel}: chain broken at line 2")), "{stdout}");
+    assert!(stdout.starts_with("Manifests and inventory: agree.") && stdout.contains("\nLimits: 1.\n"), "{stdout}");
+    assert!(stdout.contains(&format!("  FOUND by this verifier: {rel}: chain broken at line 2")), "{stdout}");
     // Import is not refused: the person is told before deciding, as its own
     // statement, and in the result.
     Fixture::choose(&f.destination);
@@ -180,13 +180,13 @@ fn package_import_of_a_store_with_a_broken_chain_is_not_refused_and_reports_the_
         // Too long for a native alert on this host: the bounded summary
         // still names the line whole, and the App shows every limit.
         Some(shown) => {
-            assert!(asked.text.contains("is broken at line 2."), "{}", asked.text);
+            assert!(asked.text.contains("1 limit(s); each is named in full in the App under this confirmation."), "{}", asked.text);
             assert!(shown.content["logIntegrity"]["limits"][0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")));
         }
     }
     // The summary is checked directly as well, whichever form this host shows.
     let summary = crate::records_export::integrity_summary(plan.snapshot.log_integrity()).unwrap();
-    assert!(summary.contains("1 log chain fault(s)") && summary.contains(".jsonl is broken at line 2."), "{summary}");
+    assert!(summary.contains("1 limit(s); each is named in full in the App under this confirmation."), "{summary}");
     let result = apply(plan, &actor(), &observed()).unwrap();
     assert_eq!(result["state"], "package imported; log integrity limited");
     assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "the standing sentence read alone is not a clean pass: {result}");

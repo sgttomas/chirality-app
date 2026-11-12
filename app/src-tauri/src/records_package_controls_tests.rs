@@ -187,7 +187,7 @@ fn finishing_an_interrupted_import_of_a_package_with_a_broken_chain_states_the_l
     match &asked.in_app {
         None => assert!(asked.text.contains(": chain broken at line 2"), "{}", asked.text),
         Some(shown) => {
-            assert!(asked.text.contains("is broken at line 2."), "{}", asked.text);
+            assert!(asked.text.contains("1 limit(s); each is named in full in the App under this confirmation."), "{}", asked.text);
             assert_eq!(shown.content["imports"][0]["logIntegrity"]["state"], "limited");
         }
     }

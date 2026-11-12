@@ -1334,25 +1334,33 @@ for the other: whether the package's bytes agree with its manifests and
 recorded chain heads, and whether the integrity of any log it carries is
 limited. A package faithfully exported from a store whose chain was already
 broken is not refused: its bytes are consistent, and the log's integrity is
-limited at the line the package records, which is said with the log and line
-each time and stays reported by the store's reader after import. A chain that
+limited at the line the package records, which the App's full statement
+names with its log and line and which stays reported by the store's reader
+after import. A chain that
 does not match what the package records for it, in either direction, fails.
-`verify.py` ends with exit status 0 when every check it makes passed, 2 when
-the bytes are consistent and a log's integrity is limited or a recorded head
-could not be compared with the lines, and 1 when anything disagrees. Exit
-status 0 means exactly that every check this verifier makes passed; it does
-not mean the records are intact, because `verify.py` does not hold the record
-format, and it says so on every run ("Not checked: ..."). Its output leads
-with "Package bytes:", "Exported logs:" (profile 0.3), "Recorded chain heads:"
-and "Log integrity:". These are separate statements and none stands for
-another: equal bytes say that an exported log is the log that was exported;
-they do not say its records are intact, which is the chain recomputation and
-the account, and nothing here says whether a record may be disposed of. What
-was not checked or not stated is never counted as unbroken: a log a legacy
-package records no head for is an integrity limit, a package with no chained
-log says there was nothing to check, an unclosed final part of a log is a
-limit, and lines written before chaining began are named as outside what the
-chain shows.
+`verify.py` prints only lines that name a check it made and that check's
+result, or that say something was not checked. For a package whose chain-head
+tag is of profile 0.3 its checks are three: the manifests and inventory; that
+each chained log's exact length and SHA-256 equal the ones the tag records
+for it; and each chain recomputed from the lines and compared with the
+recorded head, line count and breaks. Then it lists limits under three
+labels: FOUND by this verifier (a break in a recomputed chain that the
+package records too; an unclosed final part of a log), STATED by the package
+and not checked here (a line the package's account says the App set aside; a
+role supply log the package says the App could not read), and NOT CHECKED (a
+chain it did not recompute). It ends with exit status 0 when every check it
+makes passed and no limit is listed, 2 when every check passed and at least
+one limit is listed, and 1 when a check failed. Exit status 0 means exactly
+that; it does not mean the records are intact, because `verify.py` does not
+hold the record format and does not check the package's account, and it says
+so on every run.
+
+Three things are kept apart, in the tag, in what either checker says and
+here, and none stands for another: equal bytes say that an exported log is
+the log that was exported; whether its records are intact is the chain
+recomputation and, in the App, the reading of every line with the record
+format; and nothing in a verification says whether a record may be disposed
+of.
 
 The chain-head tag `records-chain-heads.json` is written in profile 0.3
 (`formatVersion` "0.3"; a package format addition decided by App Agent 0,
@@ -1364,40 +1372,38 @@ the log file as exported, also for a role supply log the App could not take;
 `setAside`, the numbers (from 1) of the lines the App counted in the chain
 without reading them as records, because it found them unreadable or invalid;
 `torn`, the numbers of the torn lines the App closed and set aside after an
-interrupted write (not counted; the App names each, by its exact length and
-SHA-256, in the line after it); and `unclosedEnd`, the length of an unclosed
+interrupted write (not counted); and `unclosedEnd`, the length of an unclosed
 final part or null. For a role supply log the App could not take it also
 records the `line` and `kind` of the fault that stopped it. Nothing else in a
 package changed.
 
-What holds for a profile 0.3 package: both checkers compare each log's bytes
-with the tag first, so a package altered in any log, with the tag not changed
-to agree, fails verification whether or not its manifests were regenerated.
-That equality is what makes this true and not the chain's links: the App does
-not examine the link of a line it sets aside, so the links alone do not tie
-the lines before such a line to the recorded head. `verify.py` then recomputes
-each chain from the lines, following the account, compares it with the
-recorded head and breaks, and relays the account (which lines the App set
-aside, a refused role log's line and kind) as the package's own statement,
-which it does not check; a line set aside is always reported as an integrity
-limit by log and line. The App's own verification recomputes the account from
-the lines with the record format and refuses a package whose account differs.
-The package is unsigned: someone who rewrites a log, the tag and the manifests
-together is not detected (LIM-007).
+What holds for a profile 0.3 package: a package altered in any chained log,
+with the tag not changed to agree, fails verification in both checkers,
+whether or not its manifests were regenerated. `verify.py` compares each
+log's bytes with the tag before it makes anything of the lines. The App's
+verification recomputes the whole tag from the payload, with the record
+format, and compares it with the recorded one, which includes those members;
+so it also refuses a package whose account differs from what its reader
+finds. That equality, and not the chain's links, is what binds every byte:
+the App does not examine the link of a line it sets aside, so the links alone
+do not tie the lines before such a line to the recorded head. The package is
+unsigned: someone who rewrites a log, the tag and the manifests together is
+not detected (LIM-007).
 
-Packages of profiles 0.1 and 0.2 carry no account and no pin on a log's bytes.
-The App reads them as before, and reports a line it sets aside as a limit for
-a package of any profile, since it recomputes the account from the payload.
-`verify.py` reads them by working out for itself, as nearly as it can without
-the schema, which lines the App set aside. For them it can fail a faithful
-package at a line whole at its top level and invalid deeper, it can report no
-limit where the App reports one, and with the tag unchanged a change to a
-line before a line the App set aside is not shown; it says so on every run on
-such a package. No release exported them. A role supply log's chain is
-compared by `verify.py`, which does not check that each observation is one
-the App accepts and says so; where a package of profile 0.2 records that the
-App refused such a log, that is reported as "not compared", never as
-agreement. Disposal may rely on an export
+Packages of profiles 0.1 and 0.2 record neither a log's bytes nor an account
+of its lines. The App reads them as before, and reports a line it sets aside
+as a limit for a package of any profile, since it recomputes the account from
+the payload. `verify.py` checks only the manifests and inventory of such a
+package, lists every chain as NOT CHECKED and ends with exit status 2; it
+does not follow their chains, so for them a changed log with regenerated
+manifests is shown only by the App. No release exported those profiles.
+
+Where the App states a limit on log integrity (at verification, import,
+repair and disposal) it gives the number of limits and each one as its
+reader found it, or marked NOT CHECKED, and says nothing of when or why a
+limit arose. The bounded summary in a native confirmation gives the number
+only and says each is named in full in the App: it reads no limit's text, so
+nothing a path or a line's content spells can be taken for a log or a line. Disposal may rely on an export
 that carries a limited log: the native disposal question says so as its own
 statement, and the disposal act records it in its `export` member as
 `logIntegrity` (state "no chain recorded broken" or "limited", with each log

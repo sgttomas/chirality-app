@@ -253,7 +253,7 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
         String::from_utf8_lossy(&standalone.stderr)
     );
     assert!(String::from_utf8_lossy(&standalone.stdout)
-        .contains("It does not show who produced the package, and it shows no human act."));
+        .contains("They do not show who produced the package, and they show no human act."));
     assert!(bag.join("data/role-supply/observations.jsonl").exists());
     let heads: Value =
         serde_json::from_slice(&std::fs::read(bag.join("records-chain-heads.json")).unwrap())
@@ -346,7 +346,7 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
     assert!(verified["logIntegrity"]["limits"][0]
         .as_str()
         .unwrap()
-        .starts_with("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head"));
+        .starts_with("role-supply/observations.jsonl: NOT CHECKED: this package's chain-head profile (0.1) records no head"));
     let standalone = std::process::Command::new("python3")
         .arg(bag.join("verify.py"))
         .arg(&bag)
@@ -359,9 +359,9 @@ fn role_only_payload_exports_without_hiding_new_in_place_legacy() {
         String::from_utf8_lossy(&standalone.stderr)
     );
     let stdout = String::from_utf8_lossy(&standalone.stdout);
-    assert!(stdout.starts_with("Package bytes: consistent.") && stdout.contains("\nLog integrity: LIMITED. 1 limit in 1 log."), "{stdout}");
-    assert!(stdout.contains("role-supply/observations.jsonl: this package's legacy chain-head profile (0.1) records no head for this log, so its chain was not checked"), "{stdout}");
-    assert!(stdout.contains("It does not show who produced the package, and it shows no human act."));
+    assert!(stdout.starts_with("Manifests and inventory: agree.") && stdout.contains("\nChains: not checked by this verifier for a package of profile 0.1; verify through the App.\nLimits: 1.\n"), "{stdout}");
+    assert!(stdout.contains("  NOT CHECKED: role-supply/observations.jsonl: its chain\n"), "{stdout}");
+    assert!(stdout.contains("They do not show who produced the package, and they show no human act."));
     let current =
         crate::records_export::matches_current(&f.directory().parent().unwrap(), &bag, false)
             .unwrap();

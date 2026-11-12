@@ -268,12 +268,12 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
     // head that states an empty list of breaks counts as not recorded broken.
     let mut limits: Vec<String> = Vec::new();
     match heads["logs"].as_array() {
-        None => limits.push("the chain-head tag lists no logs, so whether any chain was broken at export is not stated".into()),
+        None => limits.push("NOT CHECKED: the chain-head tag lists no logs".into()),
         Some(items) => for item in items {
             let log = item["log"].as_str().unwrap_or("a log the tag does not name");
             let chain = &item["chain"];
             if let Some(state) = chain["state"].as_str() {
-                limits.push(format!("{log}: chain not read at export ({state}: {}){}", chain["error"].as_str().unwrap_or("no cause recorded"),
+                limits.push(format!("{log}: the App's reader could not read this log's chain ({state}: {}){}", chain["error"].as_str().unwrap_or("no cause recorded"),
                     match (chain["line"].as_u64(), chain["kind"].as_str()) { (Some(line), Some(kind)) => format!("; the fault is at line {line}: {kind}"), _ => String::new() }));
             } else if let Some(broken) = chain["broken"].as_array() {
                 // The reader names a log by its file name; what follows that
@@ -284,7 +284,7 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
                     None => format!("{log}: a recorded break that is not text"),
                 }));
             } else {
-                limits.push(format!("{log}: the package does not state whether this chain was broken at export"));
+                limits.push(format!("{log}: NOT CHECKED: the package records no list of breaks for this chain"));
             }
             // A line the reader set aside is a limit, never part of a clean result.
             limits.extend(chain["setAside"].as_array().into_iter().flatten().map(|line| format!("{log}: line {line}{SET_ASIDE}")));
@@ -293,7 +293,7 @@ pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value
         },
     }
     if role_log_without_head {
-        limits.push(format!("{}: this package's legacy chain-head profile (0.1) records no head for this log, so its chain is not established", crate::role_observations::RELATIVE_LOG));
+        limits.push(format!("{}: NOT CHECKED: this package's chain-head profile (0.1) records no head for this log to compare with", crate::role_observations::RELATIVE_LOG));
     }
     if limits.is_empty() { json!({"state":WHOLE}) } else { json!({"state":LIMITED,"limits":limits}) }
 }
@@ -310,72 +310,28 @@ pub(crate) fn stored_log_integrity(export: &Value) -> Value {
         && members.get("limits").and_then(Value::as_array).is_some_and(|limits| !limits.is_empty() && limits.iter().all(|l| l.as_str().is_some_and(|t| !t.is_empty())));
     if whole || limited { Value::Object(members.clone()) } else { json!({"state":"not stated"}) }
 }
-/// The sentence a person is shown where a package they are verifying,
-/// importing or relying on carries a log whose integrity is limited; `None`
-/// when no chain is recorded broken.
+/// What a person is shown where a package they are verifying, importing or
+/// relying on carries limits on log integrity; `None` when there is none.
+/// Each limit is what the App's reader found in the package's logs, unless
+/// the limit itself is marked NOT CHECKED. Nothing is said of when or why.
 pub(crate) fn integrity_statement(integrity: &Value) -> Option<String> {
     if integrity["state"] == "not stated" {
-        return Some("Log integrity: NOT STATED. The package's bytes are consistent; whether any of its logs was already limited when it was exported is not stated, and consistent bytes do not show it.".into());
+        return Some("Log integrity: NOT STATED. Package bytes consistent. No statement of log integrity is recorded here.".into());
     }
     let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
-    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} log chain fault(s) {} already in the store when it was exported: {}. The records are kept as they stood; a broken chain is reported and never repaired, and consistent bytes do not make these logs whole.",
-        limits.len(), if limits.len() == 1 { "was" } else { "were" }, limits.join("; ")))
+    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. Package bytes consistent. {} limit(s), found by the App's reader unless marked NOT CHECKED: {}.",
+        limits.len(), limits.join("; ")))
 }
-/// The same statement in a bounded form for a native confirmation's summary,
-/// where the whole context is shown in the App: the count, and the first
-/// log and line. Never longer than a few lines however many logs are named.
+/// The same in a bounded form for a native confirmation's summary: the
+/// number of limits, and where each is named. No limit is quoted or read
+/// here, so nothing in a limit's own text can be taken for a log or a line.
 pub(crate) fn integrity_summary(integrity: &Value) -> Option<String> {
     if integrity["state"] == "not stated" {
         return integrity_statement(integrity);
     }
     if integrity["state"] != LIMITED { return None; }
-    let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
-    // Built from the parts of each limit, never by cutting its text: a long
-    // log name is shortened, and the line number is always whole.
-    const NAMED: usize = 3;
-    let named: Vec<String> = limits.iter().take(NAMED).map(|limit| summary_item(limit)).collect();
-    let more = limits.len().saturating_sub(NAMED);
-    Some(format!("Log integrity: LIMITED. The package's bytes are consistent, and separately {} log chain fault(s) were already in the store when it was exported: {}{}. Every one is named in full in the App under this confirmation; consistent bytes do not make these logs whole.",
-        limits.len(), named.join("; "), if more > 0 { format!("; and {more} more") } else { String::new() }))
-}
-/// One limit for a bounded summary: the log (its name shortened from the
-/// front when long) and its line. A limit is a sentence, and this reads it:
-/// a kind whose sentence ends in fixed words is recognised by that ending
-/// and its number taken from just before it; a broken chain's line is taken
-/// only when the sentence has the break's words exactly once. Where a log's
-/// path or a line's own link value repeats those words, no line is named
-/// here: the sentence's beginning is shown, and the App names it in full.
-fn summary_item(limit: &str) -> String {
-    const MARK: &str = ": chain broken at line ";
-    let short = |log: &str| -> String {
-        let count = log.chars().count();
-        if count <= 44 { log.to_owned() } else { format!("…{}", log.chars().skip(count - 40).collect::<String>()) }
-    };
-    // The number that stands between `before` and the fixed ending `after`.
-    let ending = |before: &str, after: &str| -> Option<(String, String)> {
-        let named = limit.strip_suffix(after)?;
-        let at = named.rfind(before)?;
-        let number = &named[at + before.len()..];
-        (!number.is_empty() && number.bytes().all(|b| b.is_ascii_digit())).then(|| (short(&named[..at]), number.to_owned()))
-    };
-    if let Some((log, line)) = ending(": line ", SET_ASIDE) {
-        return format!("{log}: line {line} was set aside by the App as invalid");
-    }
-    if let Some((log, bytes)) = ending(": partial entry at end (not read): ", UNCLOSED) {
-        return format!("{log}: partial entry at end (not read), {bytes} bytes");
-    }
-    if limit.matches(MARK).count() == 1 {
-        let at = limit.find(MARK).unwrap_or(0);
-        let line: String = limit[at + MARK.len()..].chars().take_while(char::is_ascii_digit).collect();
-        if !line.is_empty() { return format!("{} is broken at line {line}", short(&limit[..at])); }
-    }
-    if limit.contains(MARK) {
-        // The break's words stand more than once: quoting the sentence's
-        // beginning could itself name a wrong line, so none is named.
-        return "one limit whose log and line this summary cannot name safely, named in full in the App".into();
-    }
-    let (log, what) = limit.split_once(": ").unwrap_or(("a log", limit));
-    format!("{}: {}", short(log), what.chars().take(80).collect::<String>())
+    let count = integrity["limits"].as_array()?.len();
+    Some(format!("Log integrity: LIMITED. Package bytes consistent. {count} limit(s); each is named in full in the App under this confirmation."))
 }
 /// The log integrity recorded by the chain-head tag of a package this module
 /// has verified (`verify`).
