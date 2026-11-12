@@ -430,17 +430,29 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
         ));
     }
     // The link must agree with the store on both identities, as attach
-    // requires; a link that cannot be read, or a store identity that cannot
-    // be read, refuses.
+    // requires. The store's identity is taken as attach takes it: store.json
+    // read as a records store identity and equal to the identity this process
+    // opened for this store. Anything else refuses, as attach refuses.
     let store_id = {
         let bytes = retention::read_plain(&store.join("store.json"))
             .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
         let v: Value = serde_json::from_slice(&bytes)
             .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
-        v["storeId"]
+        if v["format"] != STORE_FORMAT {
+            return Err(format!("{STALE}: store.json is not a records store identity"));
+        }
+        let id = v["storeId"]
             .as_str()
             .map(str::to_owned)
-            .ok_or_else(|| format!("{STALE}: this store's identity names none"))?
+            .ok_or_else(|| format!("{STALE}: this store's identity names none"))?;
+        let opened = OPENED.lock().unwrap_or_else(|p| p.into_inner()).as_ref()
+            .filter(|(_, root, _)| root == store)
+            .map(|(_, _, id)| id.clone());
+        match opened {
+            Some(known) if known == id => id,
+            Some(known) => return Err(format!("{STALE}: this store's identity changed since the App opened it ({known}, now {id}); no silent reassociation")),
+            None => return Err(format!("{STALE}: the App has not opened the records store at {}", store.display())),
+        }
     };
     match read_link(&root) {
         Link::Present { project, store: linked } if project == here[0] && linked == store_id => Ok(()),

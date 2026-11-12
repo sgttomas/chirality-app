@@ -1140,3 +1140,44 @@ fn records_retention_a_write_resolved_before_the_link_changed_is_refused_until_t
     assert_eq!(capability.answer(&call(20), Some(&cwd))["success"], true);
     assert!(std::fs::read(&read_log).unwrap().len() > logged.len());
 }
+
+#[test]
+fn a_queued_write_is_refused_when_the_store_identity_attach_would_refuse() {
+    // Review round 2, finding 5: the low-level write admission took storeId
+    // from store.json without checking it is a records store identity or the
+    // one this process opened. Attach refuses both; so must a queued write.
+    const STALE: &str = "project root association changed; stale queued write refused";
+    let f = Fixture::new();
+    let project = f.project.clone();
+    let captures = storage::write_capture_dir(&project).unwrap();
+    let pending = captures.join("pending").join(format!("{}.json", storage::key("cap:store-identity-fixture")));
+    let identity_path = f.store.join("store.json");
+    let identity_bytes = std::fs::read(&identity_path).unwrap();
+    let identity: Value = serde_json::from_slice(&identity_bytes).unwrap();
+    let link_path = project.join(records_store::PROJECT_LINK);
+    let link_bytes = std::fs::read(&link_path).unwrap();
+    // The same id with a format that is not a records store identity.
+    let mut wrong_format = identity.clone();
+    wrong_format["format"] = json!("invented.not-a-records-store");
+    std::fs::write(&identity_path, serde_json::to_vec(&wrong_format).unwrap()).unwrap();
+    assert!(records_store::attach(&project, false).is_err(), "attach refuses this store identity");
+    let e = storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap_err();
+    assert!(e.contains(STALE) && e.contains("not a records store identity"), "{e}");
+    assert!(!pending.exists());
+    // Another id, with the project link changed to name it.
+    let mut replaced = identity.clone();
+    replaced["storeId"] = json!("records-store:replaced-fixture");
+    std::fs::write(&identity_path, serde_json::to_vec(&replaced).unwrap()).unwrap();
+    let mut link: Value = serde_json::from_slice(&link_bytes).unwrap();
+    link["storeId"] = json!("records-store:replaced-fixture");
+    std::fs::write(&link_path, serde_json::to_vec(&link).unwrap()).unwrap();
+    assert!(records_store::attach(&project, false).is_err(), "attach refuses a changed store identity");
+    let e = storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap_err();
+    assert!(e.contains(STALE) && e.contains("identity changed since the App opened it"), "{e}");
+    assert!(!pending.exists());
+    // Put back, the same resolved path is written.
+    std::fs::write(&identity_path, &identity_bytes).unwrap();
+    std::fs::write(&link_path, &link_bytes).unwrap();
+    storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap();
+    assert!(pending.is_file());
+}
