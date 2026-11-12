@@ -6,60 +6,58 @@ applicability statement covers; a changed offering or sign-in flow reads as unre
 reads the applicability statement "against the offering and the sign-in flow the candidate
 actually uses".
 
-The retained record (app/packaging/terms/retained, read and never written) covers the stock
-Codex-managed `account/login/start` with type `chatgpt` or `chatgptDeviceCode`, recorded at
-repository revision fdcf608f, whose declared pin was 0.160.0. That is the baseline.
+Everything is read from the Git object store at one named commit, which does not change under the
+tool: the retained record (app/packaging/terms/retained, never written), the schemas, the evidence
+and the readings. The working tree under app/ must equal that commit; otherwise, or without a Git
+checkout of the revision, the result is unresolved.
 
-Two parts:
+Baseline (the retained record's scope): repository revision fdcf608f, its 0.160.0 schema, and the
+account sign-in types `chatgpt` and `chatgptDeviceCode`.
 
 1. Schema, exact. The compared definitions are the request, response and notification definitions
-   of the methods the sign-in flow uses (account/login/start, account/login/cancel,
-   account/login/completed, account/read, account/updated, account/logout), the login-method
-   policy the host consults (ForcedLoginMethod, the item type of configRequirements'
-   allowedLoginMethods), and every definition those reach through `$ref`. They are compared with
-   the baseline's by exact content.
+   of account/login/start, account/login/cancel, account/login/completed, account/read,
+   account/updated and account/logout, the login-method policy the host consults
+   (ForcedLoginMethod), and every definition those reach through `$ref`, compared by content at
+   the candidate's pin against the baseline.
 
-2. Source, evidence plus a bound reading. The tool concludes nothing about the host source by
-   itself. It computes one digest over the whole host source tree (every file under
-   app/src-tauri/src) and lists, by plain text search with no parsing and no exclusions, every
-   line containing "account/login", "login/start" or "LoginAccount". That search is evidence for a
-   reader; an unusual spelling can evade it. The result rests on a reading: a JSON file under
-   app/packaging/terms/readings/ that a named reader, who did not write the sign-in code change,
-   made against that exact source tree digest and pin, stating the account sign-in types the host
-   sends. Any change to the host source makes a reading stale, so a reading is made once, for the
-   final candidate. The tool never writes a reading.
+2. Bound set, evidence and a reading. The bound set is every file Git tracks under app/ at the
+   commit except the readings folder app/packaging/terms/readings/. Its identity is BOUND_FORM
+   below. The evidence is every line containing "account/login", "login/start" or "LoginAccount"
+   in any tracked file under app/src-tauri and app/src at the commit, by plain text search with no
+   parsing; an unusual spelling can evade it, so it is a starting point for a reader and decides
+   nothing. The result rests on a reading: a JSON file tracked under the readings folder at the
+   commit, made by a named reader in a closed set of roles, naming the commit it was made against
+   and that commit's bound-set digest, which must equal this commit's.
 
 The result is `unchanged` only when the compared definitions equal the baseline's, exactly one
-well-formed reading exists for the current source tree digest and the candidate's pin, and that
-reading's account sign-in types equal the baseline's. Otherwise it is `unresolved`, with each
-condition that failed. It states no applicability: that is the owner's statement. Equal schemas
-and an equal reading do not show that the supplier's own sign-in behaviour inside Codex is
-unchanged between pins.
+well-formed reading exists for this bound set and pin, and its account sign-in types equal the
+baseline's. Otherwise `unresolved`, naming each failed condition. See LIMITS for what this
+withstands. It states no applicability; that is the owner's statement.
 """
 import argparse
 from datetime import date
 import hashlib
 import json
-import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 import re
-import stat
 import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 RETAINED_RECORD = 'app/packaging/terms/retained/execution/PKG-01/DEL-01-06/Work/terms-position-v1/OpenAI.json'
 SCHEMA = 'app/src-tauri/resources/supplier/{pin}/codex_app_server_protocol.v2.schemas.json'
-SOURCE_DIR = 'app/src-tauri/src'
-READINGS_DIR = 'app/packaging/terms/readings'
+READINGS_DIR = 'app/packaging/terms/readings/'
 PIN_SOURCE = 'app/src-tauri/src/hosting.rs'
 PIN = re.compile(rb'pub const DECLARED_PIN: &str = "([0-9]+\.[0-9]+\.[0-9]+)";')
-TREE_METHOD = 'chirality.app.source-tree.sha256/v1'
-SEARCH = (b'account/login', b'login/start', b'LoginAccount')
-READING_FORMAT = 'chirality-terms-sign-in-reading/v1'
+SEARCH = ('account/login', 'login/start', 'LoginAccount')
+EVIDENCE_PATHS = ('app/src-tauri', 'app/src')
+READING_FORMAT = 'chirality-terms-sign-in-reading/v2'
+ROLES = ('owner', 'independent reviewer')
+NOT_READERS = {'flow.py', 'app/packaging/terms/flow.py', 'the tool', 'tool', 'claude', 'codex'}
+BOUND_FORM = ('SHA-256 over the concatenation, in the order `git ls-tree -r -z <commit> -- app/` gives, of '
+              '"<mode> <type> <object>\\t<path>\\n" (UTF-8, path as Git stores it) for every entry whose path does '
+              'not start with "app/packaging/terms/readings/"')
 
-# What the retained record covers, from repository revision fdcf608f (a test re-derives the pin
-# and schema bytes from that revision when Git history is available).
 BASELINE = {
     'revision': 'fdcf608fb57c4f8299c7440ffc56519314046cff',
     'pin': '0.160.0',
@@ -67,7 +65,6 @@ BASELINE = {
     'account_sign_in_types': ['chatgpt', 'chatgptDeviceCode'],
 }
 
-# Roots of the compared set; the set is these plus their `$ref` closure in the pin's schema.
 ROOTS = (
     'LoginAccountParams', 'LoginAccountResponse',                     # account/login/start
     'CancelLoginAccountParams', 'CancelLoginAccountResponse',         # account/login/cancel
@@ -77,23 +74,28 @@ ROOTS = (
     'LogoutAccountResponse',                                          # account/logout
     'ForcedLoginMethod',                                              # allowedLoginMethods policy
 )
-# The survey's named list; reported for comparison with the closure, not used to decide.
 NAMED = ROOTS + ('CancelLoginAccountStatus', 'LoginAppBrand', 'AuthMode')
 
-ESTABLISHES = (
-    'The schema comparison is exact: the compared definitions at the candidate\'s pin against the baseline\'s, by content.',
-    'The source evidence is a plain text search that an unusual spelling can evade; it is evidence for a reader, not a '
-    'conclusion, which is why the result rests on a reading bound to the exact source tree digest.',
-    'Any change to the host source makes a reading stale; a reading is made once, for the final candidate.',
+LIMITS = (
+    'This is an operator-run check on stable inputs. It is built so that an observation that was not made, that failed, '
+    'or that is incomplete cannot come out as success, and so that drift and mistakes are caught.',
+    'It is not built to withstand a writer changing the inputs during the run, nor someone with write access forging a '
+    'reading.',
+    'The schema comparison is exact. The evidence is a plain text search that an unusual spelling can evade; it decides '
+    'nothing.',
+    'The tool checks that a reading exists for exactly this commit\'s bound set and pin, and what it states. It cannot '
+    'establish that an independent reading occurred: a reading\'s truth rests on the review of the pull request that '
+    'commits it and on the named reader, not on the tool.',
+    'Any change to a tracked file under app/ other than the readings folder changes the bound set, so a reading is made '
+    'once, for the final candidate.',
     'Nothing here states applicability; that is the owner\'s statement (DEL-01-06 CLM-003).',
 )
 
-CONDITIONS = ('input unreadable', 'schema differs', 'malformed reading', 'no reading for this source tree',
-              'reading made for another tree or pin', 'more than one reading for this source tree', 'types differ')
 
-
-class Unreadable(Exception):
-    pass
+class Unresolved(Exception):
+    def __init__(self, condition, detail):
+        super().__init__(detail)
+        self.condition = condition
 
 
 def canonical(value):
@@ -104,148 +106,79 @@ def sha(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
-def _os(what, call, *args, **kwargs):
-    try:
-        return call(*args, **kwargs)
-    except OSError as error:
-        raise Unreadable(f'{what}: {type(error).__name__}') from error
+class Repository:
+    """Read-only access to one commit's object store."""
+    def __init__(self, path):
+        self.path = Path(path)
 
-
-DIR_FLAGS = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
-FILE_FLAGS = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
-
-
-class Tree:
-    """Reads beneath a root, opening every component without following a link."""
-    def __init__(self, root):
-        self.root = Path(os.path.abspath(root))
-
-    def _open_dir(self, relative):
-        fd = _os(str(self.root), os.open, '/', DIR_FLAGS)
+    def git(self, *args, ok=(0,)):
         try:
-            for part in self.root.parts[1:] + tuple(p for p in PurePosixPath(relative).parts if relative):
-                child = _os(f'{relative or "."}: link, missing or untraversable', os.open, part, DIR_FLAGS, dir_fd=fd)
-                os.close(fd); fd = child
-        except BaseException:
-            os.close(fd); raise
-        return fd
+            result = subprocess.run(['git', '-C', str(self.path), *args], capture_output=True, timeout=120)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise Unresolved('input unreadable', f'git {args[0]}: {type(error).__name__}') from error
+        if result.returncode not in ok:
+            raise Unresolved('input unreadable', f'git {args[0]} failed')
+        return result
 
-    @staticmethod
-    def _read_at(fd, name, where):
-        leaf = _os(where, os.open, name, FILE_FLAGS, dir_fd=fd)
-        try:
-            before = os.fstat(leaf)
-            if not stat.S_ISREG(before.st_mode):
-                raise Unreadable(f'{where}: not a regular file')
-            chunks = []
-            while chunk := _os(where, os.read, leaf, 1 << 20):
-                chunks.append(chunk)
-            after = os.fstat(leaf)
-            if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
-                raise Unreadable(f'{where}: changed while read')
-            return b''.join(chunks)
-        finally:
-            os.close(leaf)
+    def commit(self, revision):
+        result = subprocess.run(['git', '-C', str(self.path), 'rev-parse', '--verify', '--quiet', revision + '^{commit}'],
+                                capture_output=True, timeout=60) if self.path.is_dir() else None
+        if result is None or result.returncode != 0 or not re.fullmatch(rb'[0-9a-f]{40}\n', result.stdout):
+            raise Unresolved('no git checkout of the revision', f'{revision} does not resolve to a commit here')
+        top = subprocess.run(['git', '-C', str(self.path), 'rev-parse', '--show-toplevel'], capture_output=True, timeout=60)
+        if top.returncode != 0:
+            raise Unresolved('no git checkout of the revision', 'not inside a Git working tree')
+        self.path = Path(top.stdout.decode().strip())   # paths below are relative to the repository root
+        return result.stdout.decode().strip()
 
-    def read(self, relative):
-        parent, _, name = relative.rpartition('/')
-        fd = self._open_dir(parent)
-        try:
-            return self._read_at(fd, name, relative)
-        finally:
-            os.close(fd)
+    def require_clean(self, commit):
+        """The working tree under app/ must equal the commit: nothing modified, staged or untracked."""
+        status = self.git('status', '--porcelain=v1', '-z', '--untracked-files=all', '--', 'app/').stdout
+        head = self.git('rev-parse', '--verify', 'HEAD^{commit}').stdout.decode().strip()
+        differs = self.git('diff', '--name-only', '-z', commit, '--', 'app/').stdout
+        if status or differs or (head != commit and self.git('diff', '--cached', '--name-only', '-z', commit, '--', 'app/').stdout):
+            raise Unresolved('working tree differs from the commit under app/',
+                             'modified, staged or untracked files under app/ differ from the named commit')
 
-    def listing(self, relative):
-        """Names and own metadata in one directory; returns None when it does not exist."""
-        try:
-            fd = self._open_dir(relative)
-        except Unreadable as error:
-            if isinstance(error.__cause__, FileNotFoundError):
-                return None
-            raise
-        try:
-            return {n: _os(f'{relative}/{n}', os.stat, n, dir_fd=fd, follow_symlinks=False)
-                    for n in _os(relative, os.listdir, fd)}
-        finally:
-            os.close(fd)
+    def show(self, commit, path):
+        return self.git('show', f'{commit}:{path}').stdout
 
-    def files(self, relative):
-        """Every file under a directory: relative path -> bytes. Links, special files, line breaks
-        in names, anything unreadable and a directory that changes while read refuse."""
-        found = {}
-        def visit(fd, prefix):
-            def identities():
-                names = _os(prefix or relative, os.listdir, fd)
-                out = {}
-                for name in names:
-                    if '\n' in name or '\r' in name:
-                        raise Unreadable(f'{prefix}{name!r}: line break in a name')
-                    info = _os(prefix + name, os.stat, name, dir_fd=fd, follow_symlinks=False)
-                    out[name] = (info.st_mode, info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
-                return out
-            before = identities()
-            for name, (mode, *_rest) in sorted(before.items(), key=lambda item: item[0].encode()):
-                if stat.S_ISLNK(mode):
-                    raise Unreadable(f'{prefix}{name}: symbolic link refused')
-                if stat.S_ISDIR(mode):
-                    child = _os(prefix + name, os.open, name, DIR_FLAGS, dir_fd=fd)
-                    try:
-                        visit(child, prefix + name + '/')
-                    finally:
-                        os.close(child)
-                elif stat.S_ISREG(mode):
-                    found[prefix + name] = self._read_at(fd, name, prefix + name)
-                else:
-                    raise Unreadable(f'{prefix}{name}: special file refused')
-            if identities() != before:
-                raise Unreadable(f'{prefix or relative}: changed while read')
-        fd = self._open_dir(relative)
-        try:
-            visit(fd, '')
-        finally:
-            os.close(fd)
-        return found
+    def entries(self, commit):
+        """(mode, type, object, path) for every entry under app/ at the commit, in ls-tree order."""
+        raw = self.git('ls-tree', '-r', '-z', commit, '--', 'app/').stdout
+        out = []
+        for item in raw.split(b'\0'):
+            if not item:
+                continue
+            meta, _, path = item.partition(b'\t')
+            mode, kind, obj = meta.split(b' ')
+            path = path.decode('utf-8')
+            if '\n' in path:
+                raise Unresolved('input unreadable', 'a tracked path holds a line break')
+            out.append((mode.decode(), kind.decode(), obj.decode(), path))
+        if not out:
+            raise Unresolved('input unreadable', 'nothing tracked under app/ at the commit')
+        return out
 
 
-class GitRevision:
-    """Committed bytes at a revision; used only to re-derive the baseline's pin and schema."""
-    def __init__(self, repository, revision):
-        self.repository, self.revision = repository, revision
-
-    def read(self, relative):
-        result = subprocess.run(['git', '-C', str(self.repository), 'show', f'{self.revision}:{relative}'],
-                                capture_output=True, timeout=60)
-        if result.returncode != 0:
-            raise Unreadable(f'git show {relative}')
-        return result.stdout
+def bound_set(entries):
+    listing = b''.join(f'{m} {k} {o}\t{p}\n'.encode('utf-8') for m, k, o, p in entries if not p.startswith(READINGS_DIR))
+    return sha(listing)
 
 
-def tree_digest(files):
-    """SHA-256 over method, count, then each file in UTF-8 path byte order: path length, path,
-    content length, content (lengths as 8-byte big-endian)."""
-    preimage = bytearray(TREE_METHOD.encode()); preimage.append(0)
-    preimage += len(files).to_bytes(8, 'big')
-    for path in sorted(files, key=str.encode):
-        raw = files[path]
-        preimage += len(path.encode()).to_bytes(8, 'big') + path.encode() + len(raw).to_bytes(8, 'big') + raw
-    return sha(bytes(preimage))
-
-
-def evidence(files):
-    """Every line containing a search term, by plain text search: no parsing, no exclusions."""
+def evidence(repo, commit):
+    args = ['grep', '-z', '-n', '-a', '-F']
+    for term in SEARCH:
+        args += ['-e', term]
+    raw = repo.git(*args, commit, '--', *EVIDENCE_PATHS, ok=(0, 1)).stdout
     found = []
-    for path in sorted(files, key=str.encode):
-        for number, line in enumerate(files[path].split(b'\n'), 1):
-            if any(term in line for term in SEARCH):
-                found.append({'file': path, 'line': number, 'text': line.strip().decode('utf-8', 'replace')[:240]})
+    for line in raw.split(b'\n'):
+        if not line:
+            continue
+        name, number, text = line.split(b'\0', 2)
+        found.append({'file': name.decode('utf-8').split(':', 1)[1], 'line': int(number),
+                      'text': text.strip().decode('utf-8', 'replace')[:240]})
     return found
-
-
-def declared_pin(reader):
-    found = PIN.findall(reader.read(PIN_SOURCE))
-    if len(found) != 1:
-        raise Unreadable('declared pin not found exactly once')
-    return found[0].decode()
 
 
 def references(value, found):
@@ -253,7 +186,7 @@ def references(value, found):
         for key, item in value.items():
             if key == '$ref' and isinstance(item, str):
                 if not item.startswith('#/definitions/'):
-                    raise Unreadable('schema reference outside its definitions')
+                    raise Unresolved('input unreadable', 'schema reference outside its definitions')
                 found.add(item.rsplit('/', 1)[1])
             else:
                 references(item, found)
@@ -266,78 +199,88 @@ def compared_definitions(raw):
     try:
         schema = json.loads(raw)
     except ValueError as error:
-        raise Unreadable('schema is not JSON') from error
+        raise Unresolved('input unreadable', 'schema is not JSON') from error
     definitions = schema.get('definitions') if isinstance(schema, dict) else None
     if not isinstance(definitions, dict):
-        raise Unreadable('schema has no definitions')
+        raise Unresolved('input unreadable', 'schema has no definitions')
     selected, pending = set(), list(ROOTS)
     while pending:
         name = pending.pop()
         if name in selected:
             continue
         if name not in definitions:
-            raise Unreadable(f'schema lacks definition {name}')
+            raise Unresolved('input unreadable', f'schema lacks definition {name}')
         selected.add(name)
         found = set(); references(definitions[name], found); pending.extend(found - selected)
     compared = {name: definitions[name] for name in sorted(selected)}
-    named = {n: definitions.get(n) for n in NAMED}
     return {'compared_definitions': sorted(compared), 'compared_set_sha256': sha(canonical(compared)),
             'definition_sha256': {n: sha(canonical(v)) for n, v in compared.items()},
-            'named_set_sha256': sha(canonical(named))}
+            'named_set_sha256': sha(canonical({n: definitions.get(n) for n in NAMED}))}
 
 
-def baseline(tree):
-    record = json.loads(tree.read(RETAINED_RECORD))
+def baseline(repo, commit):
+    try:
+        record = json.loads(repo.show(commit, RETAINED_RECORD))
+    except ValueError as error:
+        raise Unresolved('input unreadable', 'retained record is not JSON') from error
     text = json.dumps(record)
     if BASELINE['revision'] not in text or not all(t in text for t in BASELINE['account_sign_in_types']):
-        raise Unreadable('retained record does not name the baseline revision and sign-in types')
-    raw = tree.read(SCHEMA.format(pin=BASELINE['pin']))
+        raise Unresolved('input unreadable', 'retained record does not name the baseline revision and sign-in types')
+    raw = repo.show(commit, SCHEMA.format(pin=BASELINE['pin']))
     if sha(raw) != BASELINE['schema_file_sha256']:
-        raise Unreadable('baseline schema bytes differ from those at the recorded revision')
-    return {'revision': BASELINE['revision'], 'pin': BASELINE['pin'],
-            'retained_scope': record.get('scope') if isinstance(record, dict) else None,
-            'schema_file_sha256': BASELINE['schema_file_sha256'],
+        raise Unresolved('input unreadable', 'baseline schema bytes differ from those at the recorded revision')
+    return {'revision': BASELINE['revision'], 'pin': BASELINE['pin'], 'schema_file_sha256': BASELINE['schema_file_sha256'],
             'account_sign_in_types': list(BASELINE['account_sign_in_types']), **compared_definitions(raw)}
 
 
+def declared_pin(repo, commit):
+    found = PIN.findall(repo.show(commit, PIN_SOURCE))
+    if len(found) != 1:
+        raise Unresolved('input unreadable', 'declared pin not found exactly once')
+    return found[0].decode()
+
+
+def strict_json(raw):
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                raise ValueError(f'duplicated field: {key}')
+            result[key] = value
+        return result
+    return json.loads(raw.decode('utf-8'), object_pairs_hook=unique,
+                      parse_constant=lambda x: (_ for _ in ()).throw(ValueError('non-finite number')))
+
+
 HEX64 = re.compile(r'[0-9a-f]{64}')
+HEX40 = re.compile(r'[0-9a-f]{40}')
 PIN_TEXT = re.compile(r'[0-9]+\.[0-9]+\.[0-9]+')
 TYPE_TEXT = re.compile(r'[A-Za-z][A-Za-z0-9]*')
+KEYS = {'format', 'commit', 'bound_set_sha256', 'pin', 'reader', 'date', 'how_read', 'account_sign_in_types',
+        'separate_credential_logins', 'relied_on'}
 
 
-def _location(value, files, where):
-    if not (isinstance(value, dict) and set(value) == {'file', 'line'}):
-        raise ValueError(f'{where}: exactly file and line required')
-    path, line = value['file'], value['line']
-    if not (isinstance(path, str) and path in files and type(line) is int and line >= 1):
-        raise ValueError(f'{where}: names no file of this source tree or no line')
-    if line > files[path].count(b'\n') + 1:
-        raise ValueError(f'{where}: line beyond the end of {path}')
-
-
-def validate_reading(value, files, matches_tree):
-    """Strict structure. Locations are checked against the tree only when the digest matches."""
-    keys = {'format', 'source_tree_sha256', 'pin', 'reader', 'date', 'account_sign_in_types',
-            'separate_credential_logins', 'relied_on'}
-    if not (isinstance(value, dict) and set(value) == keys):
-        raise ValueError('reading must hold exactly: ' + ', '.join(sorted(keys)))
+def validate_reading(value, location):
+    """Strict structure; `location(file, line)` raises ValueError for a place not in the bound set."""
+    if not (isinstance(value, dict) and set(value) == KEYS):
+        raise ValueError('reading must hold exactly: ' + ', '.join(sorted(KEYS)))
     if value['format'] != READING_FORMAT:
         raise ValueError('unknown reading format')
-    if not (isinstance(value['source_tree_sha256'], str) and HEX64.fullmatch(value['source_tree_sha256'])):
-        raise ValueError('source_tree_sha256 must be 64 lowercase hex')
+    if not (isinstance(value['commit'], str) and HEX40.fullmatch(value['commit'])):
+        raise ValueError('commit must be a full 40-hex commit identifier')
+    if not (isinstance(value['bound_set_sha256'], str) and HEX64.fullmatch(value['bound_set_sha256'])):
+        raise ValueError('bound_set_sha256 must be 64 lowercase hex')
     if not (isinstance(value['pin'], str) and PIN_TEXT.fullmatch(value['pin'])):
         raise ValueError('pin must be x.y.z')
     reader = value['reader']
-    if not (isinstance(reader, dict) and set(reader) == {'name', 'role', 'did_not_write_the_sign_in_change'}
-            and all(isinstance(reader[k], str) and reader[k].strip() for k in ('name', 'role'))
-            and reader['did_not_write_the_sign_in_change'] is True):
-        raise ValueError('reader must name, role and did_not_write_the_sign_in_change: true')
-    try:
-        date.fromisoformat(value['date'])
-        if not re.fullmatch(r'\d{4}-\d{2}-\d{2}', value['date']):
-            raise ValueError
-    except (TypeError, ValueError) as error:
-        raise ValueError('date must be YYYY-MM-DD') from error
+    if not (isinstance(reader, dict) and set(reader) == {'name', 'role'} and isinstance(reader['name'], str)
+            and reader['name'].strip() and reader['name'].strip().casefold() not in NOT_READERS and reader['role'] in ROLES):
+        raise ValueError('reader must hold a name and a role in ' + ', '.join(ROLES) + '; the tool is not a reader')
+    if not (isinstance(value['date'], str) and re.fullmatch(r'\d{4}-\d{2}-\d{2}', value['date'])):
+        raise ValueError('date must be YYYY-MM-DD')
+    date.fromisoformat(value['date'])
+    if not (isinstance(value['how_read'], str) and len(value['how_read'].strip()) >= 20):
+        raise ValueError('how_read must say, in the reader\'s words, which commit and what was searched and read')
     types = value['account_sign_in_types']
     if not (isinstance(types, list) and types and all(isinstance(t, str) and TYPE_TEXT.fullmatch(t) for t in types)
             and len(set(types)) == len(types)):
@@ -351,87 +294,101 @@ def validate_reading(value, files, matches_tree):
                 and isinstance(login['home'], str) and login['home'].strip()
                 and isinstance(login['sent_from'], list) and login['sent_from']):
             raise ValueError(f'separate_credential_logins[{k}] must hold type, home and a non-empty sent_from')
-        if matches_tree:
-            for j, place in enumerate(login['sent_from']):
-                _location(place, files, f'separate_credential_logins[{k}].sent_from[{j}]')
-    relied = value['relied_on']
-    if not (isinstance(relied, list) and relied):
+        for place in login['sent_from']:
+            location(place)
+    if not (isinstance(value['relied_on'], list) and value['relied_on']):
         raise ValueError('relied_on must be a non-empty list')
-    if matches_tree:
-        for k, place in enumerate(relied):
-            _location(place, files, f'relied_on[{k}]')
+    for place in value['relied_on']:
+        location(place)
 
 
-def readings(tree, files, digest):
-    """(well-formed readings with their file names, malformed reading problems)."""
-    entries = tree.listing(READINGS_DIR)
+def compare(repository, revision='HEAD'):
+    repo = Repository(repository)
+    report = {'format': 'chirality-terms-sign-in-flow/v3', 'limits': list(LIMITS), 'bound_set_form': BOUND_FORM,
+              'baseline_revision': BASELINE['revision'], 'reader_roles': list(ROLES)}
+    try:
+        commit = repo.commit(revision)
+        report['commit'] = commit
+        repo.require_clean(commit)
+        entries = repo.entries(commit)
+        digest = bound_set(entries)
+        base = baseline(repo, commit)
+        pin = declared_pin(repo, commit)
+        candidate = {'pin': pin, 'schema_path': SCHEMA.format(pin=pin),
+                     **compared_definitions(repo.show(commit, SCHEMA.format(pin=pin)))}
+        found = evidence(repo, commit)
+    except Unresolved as error:
+        return report | {'status': 'unresolved', 'conditions_failed': [error.condition], 'detail': str(error)}
+    blobs = {p: o for m, k, o, p in entries if k == 'blob' and not p.startswith(READINGS_DIR)}
+    line_counts = {}
+    def location(place):
+        if not (isinstance(place, dict) and set(place) == {'file', 'line'} and isinstance(place['file'], str)
+                and type(place['line']) is int and place['line'] >= 1):
+            raise ValueError('a place must hold exactly file and line')
+        if place['file'] not in blobs:
+            raise ValueError(f'{place["file"]} is not a file of the bound set')
+        if place['file'] not in line_counts:
+            line_counts[place['file']] = repo.show(commit, place['file']).count(b'\n') + 1
+        if place['line'] > line_counts[place['file']]:
+            raise ValueError(f'line {place["line"]} is beyond the end of {place["file"]}')
     good, malformed = [], []
-    for name in sorted(entries or {}):
-        info = entries[name]
-        if name == 'README.md' and stat.S_ISREG(info.st_mode):
+    for mode, kind, obj, path in entries:
+        if not path.startswith(READINGS_DIR):
             continue
-        if not (name.endswith('.json') and stat.S_ISREG(info.st_mode)):
-            malformed.append({'reading': name, 'problem': 'not a regular .json file'})
+        name = path[len(READINGS_DIR):]
+        if name == 'README.md' and kind == 'blob' and mode == '100644':
+            continue
+        if not (kind == 'blob' and mode == '100644' and name.endswith('.json') and '/' not in name):
+            malformed.append({'reading': name, 'problem': 'not a regular .json file directly in the readings folder'})
             continue
         try:
-            value = json.loads(tree.read(f'{READINGS_DIR}/{name}'))
-            validate_reading(value, files, isinstance(value, dict) and value.get('source_tree_sha256') == digest)
-        except (ValueError, UnicodeDecodeError) as error:
+            value = strict_json(repo.show(commit, path))
+            validate_reading(value, location)
+            stated = repo.commit(value['commit'])
+            if bound_set(repo.entries(stated)) != value['bound_set_sha256']:
+                raise ValueError('the named commit\'s bound set is not the digest the reading states')
+        except (ValueError, UnicodeDecodeError, Unresolved) as error:
             malformed.append({'reading': name, 'problem': str(error)})
             continue
         good.append((name, value))
-    return good, malformed
-
-
-def compare(source_root, record_root=None):
-    tree, retained = Tree(source_root), Tree(record_root or source_root)
-    report = {'format': 'chirality-terms-sign-in-flow/v2', 'establishes': list(ESTABLISHES),
-              'baseline_revision': BASELINE['revision']}
     failed, differences = [], []
-    try:
-        base = baseline(retained)
-        pin = declared_pin(tree)
-        candidate = {'pin': pin, 'schema_path': SCHEMA.format(pin=pin), **compared_definitions(tree.read(SCHEMA.format(pin=pin)))}
-        files = tree.files(SOURCE_DIR)
-        digest = tree_digest(files)
-        good, malformed = readings(tree, files, digest)
-    except (Unreadable, ValueError, UnicodeDecodeError, RecursionError) as error:
-        return report | {'status': 'unresolved', 'conditions_failed': ['input unreadable'], 'unreadable': str(error)}
     for name in sorted(set(base['definition_sha256']) | set(candidate['definition_sha256'])):
-        before, after = base['definition_sha256'].get(name), candidate['definition_sha256'].get(name)
-        if before != after:
-            differences.append({'definition': name, 'baseline': before, 'candidate': after})
+        if base['definition_sha256'].get(name) != candidate['definition_sha256'].get(name):
+            differences.append({'definition': name, 'baseline': base['definition_sha256'].get(name),
+                                'candidate': candidate['definition_sha256'].get(name)})
     if differences:
         failed.append('schema differs')
     if malformed:
         failed.append('malformed reading')
-    bound = [(n, r) for n, r in good if r['source_tree_sha256'] == digest and r['pin'] == pin]
+    bound = [(n, r) for n, r in good if r['bound_set_sha256'] == digest and r['pin'] == pin]
     if len(bound) > 1:
-        failed.append('more than one reading for this source tree')
+        failed.append('more than one reading for this bound set')
     elif not bound:
-        failed.append('reading made for another tree or pin' if good else 'no reading for this source tree')
+        failed.append('reading made for another bound set or pin' if good else 'no reading for this bound set')
     elif sorted(bound[0][1]['account_sign_in_types']) != sorted(base['account_sign_in_types']):
         failed.append('types differ')
-    source = {'tree_method': TREE_METHOD, 'tree_sha256': digest, 'files': len(files),
-              'search_terms': [t.decode() for t in SEARCH], 'evidence': evidence(files)}
     report |= {'status': 'unresolved' if failed else 'unchanged', 'conditions_failed': failed,
                'schema': {'baseline': base, 'candidate': candidate, 'differences': differences,
                           'named_set_equal': base['named_set_sha256'] == candidate['named_set_sha256']},
-               'source': source,
-               'readings': {'bound': [n for n, _ in bound], 'other': [{'reading': n, 'source_tree_sha256': r['source_tree_sha256'],
-                            'pin': r['pin']} for n, r in good if (n, r) not in bound], 'malformed': malformed}}
+               'bound_set': {'sha256': digest, 'entries': sum(not e[3].startswith(READINGS_DIR) for e in entries)},
+               'evidence': {'search_terms': list(SEARCH), 'paths': list(EVIDENCE_PATHS), 'lines': found},
+               'readings': {'bound': [n for n, _ in bound],
+                            'other': [{'reading': n, 'bound_set_sha256': r['bound_set_sha256'], 'pin': r['pin']}
+                                      for n, r in good if (n, r) not in bound],
+                            'malformed': malformed}}
     if len(bound) == 1:
-        report['readings']['account_sign_in_types'] = bound[0][1]['account_sign_in_types']
-        report['readings']['reader'] = bound[0][1]['reader']['name']
+        report['readings'] |= {'account_sign_in_types': bound[0][1]['account_sign_in_types'],
+                               'reader': bound[0][1]['reader'], 'reading_commit': bound[0][1]['commit']}
     return report
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('--source-root', default=str(ROOT), help='candidate source tree (default: this checkout)')
-    parser.add_argument('--record-root', help='tree holding the retained record and baseline schema (default: the source root)')
+    parser = argparse.ArgumentParser(description=__doc__ + '\nLimits:\n  ' + '\n  '.join(LIMITS),
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--repository', default=str(ROOT), help='Git checkout of the candidate (default: this one)')
+    parser.add_argument('--revision', default='HEAD', help='commit to read (default: HEAD)')
     args = parser.parse_args(argv)
-    report = compare(args.source_root, args.record_root)
+    report = compare(args.repository, args.revision)
     print(json.dumps(report, indent=2))
     return 0 if report['status'] == 'unchanged' else 1
 
