@@ -33,6 +33,12 @@ differs: any changed, removed or added entry in any root (the application bundle
 any root that appeared or disappeared, gives `differences found` and exit 1; 2 is a refusal. The
 per-root and per-class breakdown says where; which differences are acceptable is not decided here.
 
+Limits: an operator-run check on stable inputs. It is built so that an observation that was not
+made, that failed, or that is incomplete cannot come out as success, and so that drift and
+mistakes are caught. It is not built to withstand a writer changing the inputs during the run, nor
+someone with write access forging a record: the completion marker detects truncation or an edit
+that did not recompute it, and is not authentication.
+
 Test it on invented trees only. Never run it on another person's home directory.
 """
 import argparse
@@ -274,6 +280,8 @@ def write_record(roots, out, summary_out):
 
 HEX64 = re.compile(r'[0-9a-f]{64}')
 MODE = re.compile(r'0o[0-7]{1,4}')
+EMPTY_SHA256 = hashlib.sha256(b'').hexdigest()
+CONTROL = re.compile(r'[\x00-\x1f\x7f]')
 ROOT_KINDS = ('dir', 'file', 'socket', 'fifo', 'char-device', 'block-device', 'other')
 ENTRY_KINDS = ROOT_KINDS + ('symlink',)
 
@@ -282,17 +290,22 @@ def _valid_identity(item, where):
     """kind, mode and, for files, size and digest; for links, the target text; nothing else."""
     kind = item.get('kind')
     require(kind in ENTRY_KINDS, f'{where}: unknown kind')
-    require(isinstance(item.get('mode'), str) and MODE.fullmatch(item['mode']), f'{where}: mode missing or malformed')
+    # Permission bits only, in the form oct() writes them.
+    require(isinstance(item.get('mode'), str) and MODE.fullmatch(item['mode']) and oct(int(item['mode'], 8)) == item['mode'],
+            f'{where}: mode missing or malformed')
     if kind == 'file':
         require(type(item.get('size')) is int and item['size'] >= 0, f'{where}: file size missing')
         require(isinstance(item.get('sha256'), str) and HEX64.fullmatch(item['sha256']), f'{where}: file digest missing')
+        # A zero-byte file has exactly the digest of the empty input, and only it has.
+        require((item['size'] == 0) == (item['sha256'] == EMPTY_SHA256), f'{where}: size and digest cannot both hold')
     if kind == 'symlink':
-        require(isinstance(item.get('target'), str) and item['target'], f'{where}: link target missing')
+        require(isinstance(item.get('target'), str) and item['target'] and '\0' not in item['target'],
+                f'{where}: link target missing or impossible')
     return kind
 
 
 def _valid_relative(path):
-    return (isinstance(path, str) and path and not path.startswith('/') and '\n' not in path and '\r' not in path
+    return (isinstance(path, str) and path and not path.startswith('/') and not CONTROL.search(path)
             and all(p not in ('', '.', '..') for p in path.split('/')))
 
 
@@ -309,8 +322,9 @@ def validate(value):
     for i, root in enumerate(value['roots']):
         where = f'root {i}'
         require(isinstance(root, dict) and root.get('class') in CLASSES, f'{where}: unknown class')
-        require(isinstance(root.get('path'), str) and root['path'].startswith('/') and '\n' not in root['path'],
-                f'{where}: path missing or not absolute')
+        require(isinstance(root.get('path'), str) and root['path'].startswith('/') and not CONTROL.search(root['path'])
+                and os.path.normpath(root['path']) == root['path'] and not root['path'].startswith('//'),
+                f'{where}: path missing, not absolute, not normal or holding a control character')
         require(root['path'] not in paths, f'{where}: duplicate root'); paths.add(root['path'])
         if root.get('state') == 'absent':
             require(set(root) == {'class', 'path', 'state'}, f'{where}: an absent root holds nothing else')

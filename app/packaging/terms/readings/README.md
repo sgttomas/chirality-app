@@ -28,7 +28,8 @@ someone with write access forging a reading.
 
 **What makes a reading stale:** any change to a tracked file under `app/` other than this folder.
 Committing the reading itself does not, so a reading is made once, for the final candidate, and
-committed afterwards.
+committed afterwards. Files Git ignores under `app/` (build output, generated files) and files
+outside `app/` are not in the bound set, and the tool does not look at them.
 
 The tool's `evidence.lines` lists every line containing `account/login`, `login/start` or
 `LoginAccount` in tracked files under `app/src-tauri` and `app/src`. That plain text search can

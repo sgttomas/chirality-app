@@ -1,6 +1,7 @@
 """Prior-version data inventory (DEL-01-06 AC-009, VER-008) on invented trees only.
 
 Never point this at a real home directory or any person's application data."""
+import hashlib
 import importlib.util
 import json
 import os
@@ -298,6 +299,43 @@ class PriorData(unittest.TestCase):
         self.assertRecordRefused(good.read_text()[:-40], completed=False)  # truncated
         self.assertEqual(tool.main(['compare', str(good), str(good)]), 0)
         self.assertEqual(list(value), ['format', 'roots', 'completion'])   # the marker is written last
+
+    # Review round 3 probes nul-entry, nul-root, zero-byte-wrong-digest, noncanonical-root: each a
+    # consistent, completed record that no successful observation could have produced.
+    def test_values_a_successful_record_could_not_hold_are_refused(self):
+        root = str(self.prior)
+        empty = hashlib.sha256(b'').hexdigest()
+        records = {
+            'NUL in an entry path': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o700',
+                                      'entries': [{'path': 'impossible\u0000name', 'kind': 'dir', 'mode': '0o700'}]}],
+            'NUL in a root path': [{'class': 'prior-data', 'path': root + '\u0000impossible', 'state': 'absent'}],
+            'control character in a path': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o700',
+                                             'entries': [{'path': 'tab\tname', 'kind': 'dir', 'mode': '0o700'}]}],
+            'zero-byte file, wrong digest': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'file', 'mode': '0o600',
+                                              'size': 0, 'sha256': '0' * 64, 'entries': []}],
+            'non-empty file, empty digest': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'file', 'mode': '0o600',
+                                              'size': 3, 'sha256': empty, 'entries': []}],
+            'root path not normal': [{'class': 'prior-data', 'path': root + '/../' + self.prior.name, 'state': 'absent'}],
+            'mode beyond permission bits': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o17777', 'entries': []}],
+            'mode not as written': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o0755', 'entries': []}],
+            'directory with a digest': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o755',
+                                         'sha256': empty, 'entries': []}],
+            'file size without digest': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o755',
+                                          'entries': [{'path': 'f', 'kind': 'file', 'mode': '0o600', 'size': 1}]}],
+            'NUL in a link target': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o755',
+                                      'entries': [{'path': 'l', 'kind': 'symlink', 'mode': '0o755', 'target': 'a\u0000b'}]}],
+            'duplicate entry path': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o755',
+                                      'entries': [{'path': 'd', 'kind': 'dir', 'mode': '0o755'}, {'path': 'd', 'kind': 'dir', 'mode': '0o755'}]}],
+            'entry outside its root': [{'class': 'prior-data', 'path': root, 'state': 'present', 'kind': 'dir', 'mode': '0o755',
+                                        'entries': [{'path': '../outside', 'kind': 'dir', 'mode': '0o755'}]}],
+        }
+        for label, roots in records.items():
+            with self.subTest(case=label):
+                self.assertRecordRefused({'format': tool.FORMAT, 'roots': json.loads(json.dumps(roots))})
+        # A real zero-byte file records the empty digest and compares.
+        (self.prior / 'empty.txt').write_bytes(b'')
+        good, _ = self.write()
+        self.assertEqual(tool.main(['compare', str(good), str(good)]), 0)
 
     def test_records_naming_different_roots_are_refused(self):
         before, _ = self.write()

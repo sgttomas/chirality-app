@@ -44,7 +44,9 @@ the application bundle included, and any root that appeared or disappeared,
 gives `differences found` and exit 1. A refusal exits 2.
 
 `record` writes the record's content and then, last, a completion marker that binds
-the SHA-256 of that content. `compare` validates both records strictly before
+the SHA-256 of that content. The marker detects a record that was truncated, or edited
+without recomputing the marker. It is not authentication, and it does not protect
+against someone deliberately writing a consistent record. `compare` validates both records strictly before
 comparing: the format, a non-empty list of roots, each root's class and state,
 each entry's path, kind and mode, and each file's size and digest. Entries must
 be in order with their parent directories recorded, and the content must match
@@ -59,6 +61,19 @@ reads a socket or special file, never reads a keychain and never touches or
 launches an application. It refuses a link in a root's ancestry, an existing
 output or one inside a root, an unreadable entry, data that changes while being
 read and a name with a line break.
+
+Paths with a NUL or other control character, a root path that is not in normal
+form, a mode beyond the permission bits, a zero-byte file whose digest is not that
+of the empty input (or a non-empty file with that digest), and fields that do not
+match an entry's kind are all refused as values a successful record could not hold.
+
+## Limits
+
+These are operator-run checks on stable inputs. They are built so that an
+observation that was not made, that failed, or that is incomplete cannot come out
+as success, and so that drift and mistakes are caught. They are not built to
+withstand a writer changing the inputs during the run, nor someone with write
+access forging a record: a completion marker is not authentication.
 
 Its tests run on invented trees only. Whether a person can go back to v3.0.1 by
 reinstalling it is a question the two records help answer; this tool does not

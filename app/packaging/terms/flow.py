@@ -87,7 +87,8 @@ LIMITS = (
     'establish that an independent reading occurred: a reading\'s truth rests on the review of the pull request that '
     'commits it and on the named reader, not on the tool.',
     'Any change to a tracked file under app/ other than the readings folder changes the bound set, so a reading is made '
-    'once, for the final candidate.',
+    'once, for the final candidate. Files Git ignores under app/ (build output, generated files) and files outside app/ '
+    'are not in the bound set and are not looked at.',
     'Nothing here states applicability; that is the owner\'s statement (DEL-01-06 CLM-003).',
 )
 
