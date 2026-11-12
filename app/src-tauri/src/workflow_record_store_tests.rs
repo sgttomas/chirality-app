@@ -628,7 +628,7 @@ fn bundled_publication_requires_this_apps_installed_root_and_rechecks_at_publish
         let root = f.0.join(name).join("workflows");
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(root.join("MANIFEST.json"), catalog.manifest()).unwrap();
-        catalog.select_embedded().snapshot().publish_new(&root.join("coordinated-knowledge-work")).unwrap();
+        catalog.select_source("coordinated-knowledge-work").snapshot().publish_new(&root.join("coordinated-knowledge-work")).unwrap();
         root
     };
     let installed = make("installed");

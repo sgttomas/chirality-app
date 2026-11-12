@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "compatible_roles": [
+    "TASK",
+    "WORKING_ITEMS",
+    "HELPS_HUMANS"
+  ],
+  "tools": {
+    "commands": [
+      "python3 tools/review/scan_section_coverage.py:*",
+      "python3 tools/review/extract_claims.py:*",
+      "python3 tools/review/scan_tbd_markers.py:*",
+      "python3 tools/review/check_body_thinness.py:*"
+    ]
+  }
+}
