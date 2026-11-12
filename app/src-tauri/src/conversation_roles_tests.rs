@@ -101,6 +101,11 @@ impl Fixture {
     /// bind from the actual request and correlated response.
     fn start(&self, role: Option<Role>, continued_from: Option<Value>) -> String {
         let composition = crate::runtime_session::compose_role(&self.instructions, role).unwrap();
+        self.start_composed(&composition, continued_from)
+    }
+    /// The same path from a composition already made, so a test can change the
+    /// guidance files between composing and the start.
+    fn start_composed(&self, composition: &crate::role_supply::Composition, continued_from: Option<Value>) -> String {
         let receipt = self.home.host.thread_start_with_guidance_dispatch(&self.generation, &self.root.to_string_lossy(), "fixture-model", "fixture-provider", &composition.text).unwrap();
         self.home.history.lock().unwrap().start_dispatched_continuing(receipt.clone(), &composition, &crate::util::opaque_id("sup:").unwrap(), continued_from).unwrap();
         let evidence = self.home.host.source_request_wait(&receipt, Duration::from_secs(5)).unwrap();
@@ -405,6 +410,79 @@ fn guidance_changed_flag_fires_only_on_an_actual_change() {
     // A store that cannot be read is no change: the comparison is reported as not made.
     let unread = f.home.history.lock().unwrap().role_details(&f.home_name(), &thread, None)["futureGuidanceNotices"].clone();
     assert!(unread.as_array().unwrap().iter().all(|n| n["kind"] == "not-read"), "{unread}");
+}
+
+/// A conversation's limit account is made from the composition that is
+/// supplied, never from the guidance files, and is made once. A file changed
+/// between composing and the start, or at any time after, cannot make the
+/// account differ from what was sent; the comparison with the current files
+/// is a separate statement and selects nothing in it.
+#[test]
+fn a_conversations_limit_account_describes_the_guidance_it_was_supplied_whatever_the_files_become() {
+    let f = Fixture::new();
+    let role_file = f.instructions.join("agents/AGENT_HELPS_HUMANS.md");
+    let shipped = std::fs::read(&role_file).unwrap();
+    let standings = |account: &Value| -> Vec<String> {
+        account["account"]["limits"].as_array().unwrap().iter().map(|l| l["standing"].as_str().unwrap().to_owned()).collect()
+    };
+    // What the current files' account says of the same role at this moment.
+    let current = |f: &Fixture| -> Value {
+        limit_account(Some(&f.instructions))["account"]["roles"].as_array().unwrap().iter()
+            .find(|r| r["role"] == "HELPS_HUMANS").unwrap()["limits"][0]["standing"].clone()
+    };
+    let sent_guidance = |f: &Fixture, nth: usize| -> Value {
+        let starts: Vec<Value> = f.wire().into_iter().filter(|frame| frame["method"] == "thread/start").collect();
+        crate::role_supply::content(starts[nth]["params"]["developerInstructions"].as_str().unwrap().as_bytes())
+    };
+
+    // Supplied modified guidance. The file is restored to the shipped bytes after
+    // composing and before the start is dispatched and bound.
+    std::fs::write(&role_file, b"Invented edited HELPS_HUMANS guidance").unwrap();
+    let composition = crate::runtime_session::compose_role(&f.instructions, Some(Role::HELPS_HUMANS)).unwrap();
+    std::fs::write(&role_file, &shipped).unwrap();
+    let edited = f.start_composed(&composition, None);
+    let of_edited = f.details(&edited)["suppliedLimitAccount"].clone();
+    assert_eq!(of_edited["standing"], "established", "{of_edited}");
+    assert_eq!(of_edited["subject"], json!({"kind":"original-supply","suppliedTo":edited,"supplyRef":f.role(&edited)["supply_ref"],"thisConversation":true}));
+    assert_eq!(standings(&of_edited), ["unknown"], "modified guidance was sent, so what it states is not known");
+    assert_eq!(current(&f), "stated-not-enforced", "the file now holds the shipped guidance again");
+    assert_eq!(of_edited["account"]["composedContent"], sent_guidance(&f, 0), "the account names the bytes that were sent");
+    assert_eq!(f.details(&edited)["futureGuidanceNotices"][0]["kind"], "changed", "the comparison is its own statement");
+
+    // The other way round: supplied the shipped guidance, the file edited before the start.
+    let composition = crate::runtime_session::compose_role(&f.instructions, Some(Role::HELPS_HUMANS)).unwrap();
+    std::fs::write(&role_file, b"Invented later edit").unwrap();
+    let default = f.start_composed(&composition, None);
+    let of_default = f.details(&default)["suppliedLimitAccount"].clone();
+    assert_eq!(of_default["subject"]["suppliedTo"], default);
+    assert_eq!(standings(&of_default), ["stated-not-enforced"]);
+    assert_eq!(current(&f), "unknown", "the file is modified now");
+    assert_eq!(of_default["account"]["composedContent"], sent_guidance(&f, 1));
+
+    // Made once: no later state of the files, readable or not, rewrites either account.
+    for bytes in [&shipped[..], &b"Invented third edit"[..]] {
+        std::fs::write(&role_file, bytes).unwrap();
+        assert_eq!(f.details(&edited)["suppliedLimitAccount"], of_edited);
+        assert_eq!(f.details(&default)["suppliedLimitAccount"], of_default);
+    }
+    std::fs::remove_file(&role_file).unwrap();
+    let unread = f.home.history.lock().unwrap().role_details(&f.home_name(), &edited, None);
+    assert_eq!(unread["suppliedLimitAccount"], of_edited, "an unreadable store changes the comparison only");
+    assert_eq!(f.details(&default)["suppliedLimitAccount"], of_default);
+
+    // A fork is sent no guidance of its own (the request carries the thread id only), so
+    // it shows the account of the supply it runs under, named as the conversation given it.
+    let out = fork_conversation(&f.home, &f.generation, &edited, Duration::from_secs(5)).unwrap();
+    let fork = out["thread"]["threadId"].as_str().unwrap().to_owned();
+    let sent = f.wire().into_iter().find(|frame| frame["method"] == "thread/fork").unwrap();
+    assert!(sent["params"].get("developerInstructions").is_none() && sent["params"].get("baseInstructions").is_none());
+    let of_fork = f.details(&fork)["suppliedLimitAccount"].clone();
+    assert_eq!(of_fork["subject"], json!({"kind":"original-supply","suppliedTo":edited,"supplyRef":f.role(&edited)["supply_ref"],"thisConversation":false}));
+    assert_eq!(of_fork["account"], of_edited["account"]);
+    assert_eq!(f.details(&edited)["suppliedLimitAccount"], of_edited, "the source's own account is as it was");
+
+    // No binding, no account: nothing is made up from the files.
+    assert!(f.details("never-started-here")["suppliedLimitAccount"].is_null());
 }
 
 #[test]
