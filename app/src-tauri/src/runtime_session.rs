@@ -1593,7 +1593,9 @@ impl HistorySession {
                 current.insert(path.clone(), read(&path, role_default(role)));
             }
         }
-        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"futureGuidanceNotices":binding.changes(&current)})
+        // The limit account comes from the binding alone. The comparison with the
+        // current files above is its own statement and selects nothing in it.
+        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"suppliedLimitAccount":binding.supplied_limit_account(),"futureGuidanceNotices":binding.changes(&current)})
     }
     /// ROLE §3.3 F-1: bind a same-role fork from the actual `thread/fork`
     /// request and its correlated response. The fork inherits the source's
@@ -8120,6 +8122,19 @@ for line in sys.stdin:
     emit({'method':'model/rerouted','params':{'threadId':tid,'turnId':uid,'fromModel':'fixture-model','toModel':'fixture-safe-model','reason':'highRiskCyberActivity'}})
    emit({'method':'turn/completed','params':{'threadId':tid,'turn':{'id':uid,'status':'completed','items':[],'error':None}}})
    continue
+  if mode('notify-mode')=='unreachable':
+   # The exchange observed against an unreachable model: the conversation turns active, the turn starts,
+   # its user message completes, then Codex repeats its retry notice. No end of the turn arrives.
+   tid=f['params']['threadId'];live=dict(result['turn'],status='inProgress');uid=live['id']
+   emit({'method':'thread/status/changed','params':{'threadId':tid,'status':{'type':'active','activeFlags':[]}}})
+   emit({'id':f['id'],'result':{'turn':live}})
+   emit({'method':'turn/started','params':{'threadId':tid,'turn':live}})
+   item={'id':uid+'-user','type':'userMessage','content':[]}
+   emit({'method':'item/started','params':{'threadId':tid,'turnId':uid,'item':item}})
+   emit({'method':'item/completed','params':{'threadId':tid,'turnId':uid,'item':item}})
+   for n in range(3):
+    emit({'method':'error','params':{'threadId':tid,'turnId':uid,'willRetry':True,'error':{'message':'Reconnecting... waiting for network','additionalDetails':'Connection failed: error sending request','codexErrorInfo':{'responseStreamDisconnected':{'httpStatusCode':None}}}}})
+   continue
   if mode('notify-mode')=='spawn':
    emit({'id':f['id'],'result':result})
    item={'id':'spawn-old','type':'collabAgentToolCall','status':'completed','tool':'spawnAgent','senderThreadId':f['params']['threadId'],'receiverThreadIds':['child-old'],'agentsStates':{'child-old':{'status':'running'}}}
@@ -8593,6 +8608,42 @@ for line in sys.stdin:
         assert!(due.len()<=4);
         let results=trial_flows::perform_trial_reads(&peer.home,due);
         root.lock().unwrap().apply_trial_reads(results)
+    }
+    // The exchange observed against an unreachable model, through the owned peer,
+    // the real Host and the view the window reads. While the turn is live the
+    // conversation reads active and the turn in progress with Codex's own retry
+    // notices, as sent; once Codex is stopped neither reads as current, and at
+    // no point does the conversation read idle or the turn done.
+    #[test]
+    fn an_unreachable_model_shows_an_active_conversation_and_codexs_retry_notices_as_sent(){
+        let peer=Peer::new();let g=peer.generation.clone();
+        let row=||peer.home.host.snapshot()["threads"].as_array().unwrap().iter().find(|t|t["generation"]==g&&t["threadId"]=="thread").unwrap().clone();
+        assert_eq!(row()["status"],json!({"type":"idle"}),"the admission reply's status");assert!(row().get("statusSource").is_none());
+        peer.set_mode("notify-mode","unreachable");
+        peer.home.host.turn_start_text(&g,"thread","start the run").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while crate::host_tick::receive_view(&peer.home)["turnErrors"].as_array().is_none_or(|e|e.len()<3){assert!(std::time::Instant::now()<deadline,"retry notices observed");std::thread::sleep(Duration::from_millis(20));}
+        assert_eq!(row()["status"],json!({"type":"active","activeFlags":[]}));
+        assert_eq!(row()["statusSource"]["method"],"thread/status/changed");
+        let view=crate::host_tick::receive_view(&peer.home);
+        let sent=json!({"message":"Reconnecting... waiting for network","additionalDetails":"Connection failed: error sending request","codexErrorInfo":{"responseStreamDisconnected":{"httpStatusCode":null}}});
+        let errors=view["turnErrors"].as_array().unwrap();
+        assert_eq!(errors.len(),3);
+        for (n,error) in errors.iter().enumerate(){
+            assert_eq!(error["error"],sent,"as the supplier sent it");
+            assert_eq!((error["threadId"].clone(),error["turnId"].clone(),error["willRetry"].clone(),error["laterFrameForTurn"].clone()),(json!("thread"),json!("turn"),json!(true),json!(false)));
+            assert_eq!(error["generation"],g,"the generation the window compares");assert_eq!(error["ordinalInTurn"],n as u64+1);
+        }
+        assert_eq!(view["turns"].as_array().unwrap().iter().find(|t|t["id"]=="turn").unwrap()["status"],"inProgress","no end of the turn was sent and none is shown");
+        // Stopping Codex ends the observation: the last status moves aside and the notices are marked.
+        peer.home.host.stop("fixture:person","codex-stop").unwrap();
+        assert_eq!(row()["status"],Value::Null);assert_eq!(row()["statusObservationEnded"],true);
+        assert_eq!(row()["lastObservedStatus"],json!({"type":"active","activeFlags":[]}));
+        let closed=crate::host_tick::receive_view(&peer.home);
+        assert_eq!(view["observationEnded"],false);assert_eq!(closed["observationEnded"],true,"the turn last seen in progress is no longer a current reading");
+        assert_eq!(closed["turns"].as_array().unwrap().iter().find(|t|t["id"]=="turn").unwrap()["status"],"inProgress","Codex sent no end, and none is invented");
+        assert_eq!(closed["turnErrors"].as_array().unwrap().len(),3,"the stop keeps every notice");
+        assert!(closed["turnErrors"].as_array().unwrap().iter().all(|e|e["observationEnded"]==true),"{}",closed["turnErrors"]);
     }
     // RS R5 / HOSTING §8.3 through the owned peer, the host's record tick and the
     // run's RS writer: the run-start turn is rerouted (model/rerouted names it), a
