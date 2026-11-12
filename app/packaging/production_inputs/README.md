@@ -169,107 +169,17 @@ hashes. The existing candidate-identification/v3 producer is debug-only; do not
 relabel a release build as that development profile. Its standalone bundle
 inventory method can still supply raw inventory for the actual PKG identity.
 
-## Signing and installed-witness intake — prepared, not authorised execution
+## Signing, notarization and the package record
 
-1. Receive exact production identifier/team from the parent secure card, then
-   build and retain the original publisher binding, public projection and
-   requirement from the existing selector. Bind actual source/configuration,
-   compiled selection, final executable and build identity. Ordinary test output
-   or a default-None build is not a substitute.
-2. The signer separately supplies CF-1's Developer ID Application certificate
-   identity for the already selected team and the reviewed App entitlement/
-   profile basis. No certificate private-key export or keychain enumeration is
-   required from this lane. Since PR #100 (2026-11-03) the SEAL-C source selection
-   is compiled (`com.chirality.app.v4.capture-seal` / `installation-keyring` / own-App
-   group `8A7JL35U4S.com.chirality.app`, explicit first enrollment). It is inert
-   until a publisher-selected signed build: debug and unselected builds keep the
-   file provider and no enrollment menu. Sign the App's main executable with
-   exactly `com.apple.application-identifier` and `com.apple.developer.team-identifier`
-   (no `keychain-access-groups`; the profile's wildcard allowlist is not signed),
-   with the selected profile embedded through this helper's `--provisioning-profile`
-   option (not a codesign flag). The exact original bytes must be at
-   `Contents/embedded.provisionprofile`, mode 0644, before the outer App signature
-   seals them, and are checked by digest after signing. See
-   `SEAL_C_KEYCHAIN_SIGNING_JOIN.md`, "Source selection admitted (2026-11-03)".
-   Live authority still needs the matching compiled publisher, signing and S4.
-   Do not guess a team-derived group or claim empty entitlements. Parent allocated
-   this implementation to the runtime owner; no real keychain action is performed
-   here. Keychain storage alone does not establish deferred SEAL-2 entry-seal,
-   exclusive-agent or native-origin guarantees, or import development keys.
-   The runtime interface uses the compiled KEYCHAIN_SELECTION and explicit
-   `allow_first_enrollment`; enrollment runs only as `prepare_enrollment()` then
-   `enroll_initial(PreparedSealEnrollment)` through the native-menu caller, never
-   at startup, IPC, UI, seal, verify or rotate. Receive the actual
-   controlled enrollment procedure before activation. For 4.0.0 the owner left
-   key rotation unavailable (C3): expect no rotation route and no signed SC-5
-   witness, and carry that release limitation as recorded in
-   `PACKAGING_AND_DISTRIBUTION.md` and the SEAL-C signing join. Ordinary operations never
-   provision or regenerate missing keys; no plan here calls enrollment or SecItem.
-3. Retain FP-0 and P1 equality before signing. Under the owner's later signing
-   direction, sign P-0 then the outer App using CF-4, never `--deep` for signing.
-   Recompare the complete P1 tree for FP-1(b) and perform deep strict verification.
-   Record exact entitlement/configuration bytes, signature facts/cdhash, actors
-   and observations privately as needed. No pass is inferred from this recipe.
-4. Construct/sign the DMG from that signed App, retain its pre-notary SHA,
-   submit using the owner's separately managed notary profile, preserve the
-   actual accepted/rejected log, staple and retain the separate post-staple SHA.
-   Each rebuild changes the package subject. Nothing in the preparation authorises
-   that submission, purchase, account act or publication.
-5. For W-0…W-6, use an explicitly authorised quarantine transfer/attribute
-   procedure and isolated installation subject: record installer quarantine,
-   mounted App Gatekeeper result, installed App quarantine, first launch/version,
-   actual S4 observation/custody and supplier ready handshake, installed signature/
-   entitlements and cdhash. No conversation is needed. Missing quarantine is
-   blocked; Gatekeeper refusal is failure. Native lifecycle/cleanup evidence is
-   still a separate actual result; old synthetic cohorts are not installed proof.
-6. Assemble the existing `static-package-input/2` plus distinct outer
-   `packaged-s4-binding/1` request under one evidence root. Include approved terms
-   closure, exact pre/post installer bytes, legacy+S1 package/full inventory and
-   supplier selection/reference/attestation, S4 observation/custody/full generation,
-   original/private publisher input/binding/requirement, public derivative,
-   effective Tauri config and exact App source/build/version/id/executableSHA/cdhash.
-   The receiver selects the trusted publisher binding digest independently; never
-   take trust from the packet. Wrapper ID and inner package ID remain distinct.
+`app/packaging/release/` holds the runnable procedure:
+[`build.py`](../release/build.py) builds the unsigned candidate from this
+plan, [`owner_sign.py`](../release/owner_sign.py) is the owner's signing,
+notarization and stapling run, which writes the package identity record, and
+[`record.py`](../release/record.py) builds that record's content and checks a
+package against it. The owner's page is
+[`release/README.md`](../release/README.md).
 
-```sh
-python3 app/packaging/successor/check.py /private/packet/binding.json \
-  --evidence-root /private/packet \
-  --trusted-publisher-sha256 <from-independent-receiving-configuration>
-```
-
-The explicit EXP/SQ package-witness adapter consumes the same request with its
-separately pinned receiving configuration. It retains errors/gaps and nonauthority
-flags; do not create another cohort or convert a consistency result into release.
-
-## Precise remaining inputs
-
-- Owner: exact production identifier and Developer ID team (parent's private card).
-- Signing stage: CF-1 certificate identity/owner signing act, actual notary profile
-  and the settled SEAL-C access-group/service/account plus entitlement/profile
-  compatibility. Private keys/passwords do not enter this preparation.
-- Supplier/component evidence: exact source/notice associations for the retained
-  Codex main, code-mode-host, rg and zsh hashes in CACHED_SHIPPED_NOTICE_INPUTS.md.
-  The cached tree has voice notices and archive-level metadata, not those missing
-  associations. SQLite's exact source input is now prepared separately. No legal
-  approval, transitive completeness or scope waiver follows. No acquisition is
-  requested without an exact file/source/size and purpose.
-
-Current source-fixture checks: `python3 -m pytest -q
-app/tests/production_inputs_test.py` (16 tests, including actual case/firmlink
-alias refusal on this filesystem). A corrected unqualified plan is retained at
-`~/dev/chirality-t3/scratch/app-package-inputs-frozen-b42vohmf/plan`:
-config SHA `389a8e491d84fe7517f8aea483761e2dc511f1376ef0ef8f27b64c8c96fd2287`.
-It has fifty resource mappings, a validated completion marker, a disposable
-22,190,080-byte Git App export of exact `e7a21ddb9b61de8d2e8d8b27b9c69f10d03cc8f7`
-and a full mode/byte-equal durable copy of the retained vendor. Its adjacent
-`source-export.json` binds the export and comparison. No build or signing ran;
-actual building will select the then-current integrated source and prepared
-tool/cache/environment values rather than silently relabel this plan.
-
-The earlier `app-package-inputs-wgel4r51/plan` is retained as a historical input
-test only. It lacks the new completion marker and names a live checkout and
-volatile `/private/tmp` vendor. Do not execute that earlier recipe. Preserve both
-input accounts until their consumers release them; neither is an App artifact.
+## Optional upstream notice supplement
 
 Optional upstream notice inclusion uses `--upstream-notices` with a completed
 `packaging/notices/receipts.py stage` directory. The helper validates exact

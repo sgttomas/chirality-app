@@ -63,4 +63,5 @@ checks:
 - app/packaging/seal_c/test_prepare.py
 - app/packaging/static_distribution/test_connected.py
 - app/tests/release_build_test.py
+- app/tests/owner_release_test.py
 - app/tests/group_b_legacy_pkg_rules_test.py
