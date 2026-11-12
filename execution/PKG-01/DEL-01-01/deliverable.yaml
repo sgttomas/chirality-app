@@ -68,6 +68,8 @@ code_paths:
 # scripted loopback provider; recordings/<pin>/ holds what it recorded.
 - app/supplier_checks/capture.py
 - app/supplier_checks/stub_provider.py
+# intake.py checks and inventories a supplier release archive and runs the supplier's generators.
+- app/supplier_checks/intake.py
 - app/supplier_checks/recordings
 checks:
 - app/src-tauri/src/hosting_0167_tests.rs
@@ -78,6 +80,7 @@ checks:
 - app/src-tauri/tests/steering_integration.rs
 - app/supplier_checks/test_recorded_replay.py
 - app/supplier_checks/test_capture.py
+- app/supplier_checks/test_intake.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs
 - app/tests/process-group-custody.test.mjs

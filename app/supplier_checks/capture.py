@@ -588,12 +588,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--vendor", required=True, help="root of the complete stock vendor tree")
     parser.add_argument("--pin", required=True)
+    parser.add_argument("--expected-root", help="directory holding <pin>/CANONICAL_DISTRIBUTION.json; "
+                                                "the repository's supplier resources by default")
     parser.add_argument("--out", required=True)
     parser.add_argument("--child-hold", type=float, default=8.0)
     parser.add_argument("scenario", choices=SCENARIOS)
     args = parser.parse_args(argv)
     try:
-        record, binary, codex_path = verified_vendor(args.vendor, args.pin)
+        record, binary, codex_path = verified_vendor(args.vendor, args.pin, args.expected_root)
     except Refused as refusal:
         sys.stderr.write("refused: %s\n" % refusal)
         return 2
