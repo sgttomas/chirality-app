@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./hostReads";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
