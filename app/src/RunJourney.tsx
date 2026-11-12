@@ -192,9 +192,11 @@ export type HeldTurnNotice = { turnId: string; words: string; retry: string; cou
  * about the same turn.
  *
  * `count` is the number of notices the host accepted for that one turn; the
- * host keeps the latest of them only. `turnStatus` is the status Codex last
- * reported to the App for that turn, or null where the App holds none. Empty
- * for a run that is not open in the exact current source.
+ * host keeps the latest of them only. `turnStatus` is the status the App
+ * holds for that turn from Codex's reports (not always the last one received:
+ * the host keeps a reported end over a later stale report of progress), or
+ * null where it holds none or cannot tie one to this conversation's turn.
+ * Empty for a run that is not open in the exact current source.
  */
 export function runTurnNotices(run: Json, host: Json): HeldTurnNotice[] {
   if (!starts(text(run?.lifecycle?.state), "open") || !same(run?.generation, host?.generation) || run?.home !== host?.generation?.home) return [];
@@ -202,15 +204,23 @@ export function runTurnNotices(run: Json, host: Json): HeldTurnNotice[] {
   const view = host?.nativeView, conversation = run.conversation;
   const turnOf = (entry: Json): string | null => (typeof entry?.turnId === "string" && entry.turnId ? entry.turnId : null);
   const mine = list(view?.turnErrors).filter((entry: Json) => entry?.threadId === conversation && turnOf(entry) && same(entry.generation, run.generation));
-  const recorded = new Set<string>(list(view?.turnRecords).filter((record: Json) => record?.threadId === conversation).map(turnOf).filter((id): id is string => !!id));
+  // The host reports a turn's row with the turn's id only, and which conversation holds a turn of that id in a
+  // separate list. So a row is this conversation's turn only where exactly one record names that id, it is this
+  // conversation's, and exactly one row has the id. Where another conversation also holds a turn of that id, the
+  // App cannot tell the rows apart and says no status. The two lists are not paired by position: nothing declares it.
+  const heldStatus = (id: string): string | null => {
+    const records = list(view?.turnRecords).filter((record: Json) => turnOf(record) === id);
+    const rows = list(view?.turns).filter((row: Json) => row?.id === id);
+    if (records.length !== 1 || records[0].threadId !== conversation || rows.length !== 1) return null;
+    return typeof rows[0].status === "string" && rows[0].status ? rows[0].status : null;
+  };
   const received = (entry: Json) => (typeof entry?.observedOrder === "number" ? entry.observedOrder : -1);
   const said: HeldTurnNotice[] = [];
   for (const id of new Set<string>(mine.map((entry: Json) => entry.turnId))) {
     const ofTurn = mine.filter((entry: Json) => entry.turnId === id);
     const notice = ofTurn.reduce((best: Json, entry: Json) => (received(entry) >= received(best) ? entry : best));
     if (notice.laterFrameForTurn === true || notice.observationEnded === true) continue;
-    const status = recorded.has(id) ? list(view?.turns).find((entry: Json) => entry?.id === id)?.status : undefined;
-    said.push({ turnId: id, words: errorWords(notice.error), turnStatus: typeof status === "string" && status ? status : null,
+    said.push({ turnId: id, words: errorWords(notice.error), turnStatus: heldStatus(id),
       count: typeof notice.ordinalInTurn === "number" ? notice.ordinalInTurn : ofTurn.length,
       retry: notice.willRetry === true ? "Codex said it will retry." : notice.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry." });
   }
@@ -218,7 +228,7 @@ export function runTurnNotices(run: Json, host: Json): HeldTurnNotice[] {
 }
 const TURN_STATUS_WORDS: Record<string, string> = { inProgress: "in progress", completed: "completed", failed: "failed", interrupted: "interrupted" };
 /** What the App holds of the notice's own turn, in Codex's terms; nothing where it holds no status. */
-export const turnStatusWords = (status: string | null): string => (status === null ? "" : `Codex last reported that turn to the App as ${TURN_STATUS_WORDS[status] ?? `“${status}”`}.`);
+export const turnStatusWords = (status: string | null): string => (status === null ? "" : `The App holds Codex's report of that turn as ${TURN_STATUS_WORDS[status] ?? `“${status}”`}.`);
 
 function declaredRows(declaration: Json, key: string): Json[] {
   return list(declaration?.elements?.[key]).map((element: Json) => element?.value ?? {});
