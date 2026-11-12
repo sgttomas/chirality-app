@@ -857,6 +857,40 @@ implemented behavior and qualification limits.
     currently unsigned and unchained; cold reads restore no conversation or
     role authority.
 
+    The host records what it observes of Codex's **native delegation** the
+    same way, in the same 0.2 format (`fleet.native-links.schema.json`), with
+    no undertaking named. A completed spawn item received live in a
+    conversation of the selected project is written once as
+    `dispatch_observed`: the home-qualified parent and child thread
+    identities, the spawn item, the content identity of the spawn prompt
+    (never its text, or that Codex supplied none) and the association. The
+    association comes only from one line of the prompt,
+    `Chirality-Brief: briefs/<file>.json sha256:<64 lowercase hex>` (path
+    relative to `.chirality/fleet/`, digest of the file's exact bytes),
+    compared with the brief file when the dispatch is recorded, and the dispatch
+    records what that brief record itself states (its record identity, work
+    item and undertaking): brief
+    referenced, brief referenced whose content does not match the
+    reference, brief reference not resolved (with the reason), or no brief
+    reference. A match shows which brief was named, not that the child
+    received or read it. A file that is not a brief record is never a
+    reference that resolves, whatever its digest. `child_observed` is
+    written when the status Codex reports for a child changes, and
+    `observation_ended` when the generation it was observed in closes
+    (Codex stopped or exited) or when the App itself exits (cause "App
+    quit"). A session records the end only of its own observation, and every
+    later fact of a child, in whatever generation of Codex reports it, goes
+    through the recording context frozen when that child was first
+    recorded, with the writer's physical check:
+    nothing is ever written about a child another session recorded, or
+    under another identity or folder, and after a crash or a kill no end is
+    recorded at all. Each child's facts reach
+    the store in the order observed; a later one waits while an earlier one
+    of that child is unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
+    conversation whose folder is not the selected project, is not recorded.
+    An observation whose project has no usable records-store attachment
+    waits and is recorded once it has one.
+
 27. **Refresh fleet records** rebuilds the file-based coordination workspace
     for each undertaking: the selected graph, outstanding returns and review
     ownership, recorded integration, selected work and waiting causes. It reads
@@ -869,8 +903,19 @@ implemented behavior and qualification limits.
     Missing, changed or duplicate selections never fall back to an older graph.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. Decision
-    needs and current native execution remain unknown without their required
-    evidence. An incomplete source packet cannot produce unqualified readiness
+    needs remain unknown without their required evidence. A dispatch is
+    tied by what its own record says: the work item and undertaking the
+    referenced brief named when the dispatch was recorded. Nothing in the
+    project's files is consulted to tie anything, so a brief file changed,
+    replaced or superseded afterwards moves no worker. An item so held, with
+    no return recorded, reads `dispatched` and lists every worker dispatched
+    for it, each with its last recorded status, when it was recorded and
+    that nothing has been recorded since; it reads `unknown` once an end of
+    every such worker's observation is recorded, or where its named brief
+    cannot be found. A dispatch under an earlier brief of the item still
+    holds it and says so. A worker still observed for work that is not
+    selected in the current graph leaves no row plainly ready. A child tied to no brief
+    leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 
@@ -1293,9 +1338,61 @@ plugins = false
 enabled = false
 ```
 
-Without `openai_base_url` at a loopback address, a message sent in this home
-is addressed to the supplier's real endpoint, signed in or not. Port 9 has no
-listener; point it at a loopback stub to see a reply.
+A configuration file does not decide where a development launch's model
+requests go: the stand-in provider above applies only where a conversation
+uses it, the first-use route writes its own configuration, and the App can
+rewrite one while it runs. A conversation on the built-in provider is
+addressed to the supplier's real service, signed in or not: the API address,
+or with a ChatGPT sign-in the ChatGPT service address.
+
+So a launch that is not the owner's sitting also sets
+`CHIRALITY_DEV_OPENAI_BASE_URL` to a same-machine address, for example
+`http://127.0.0.1:9/v1` (nothing listens there) or a loopback stub's address.
+A development build passes it to the account home's Codex at every start as
+the command-line setting `openai_base_url`, which outranks the person's and
+the project's configuration files and replaces either default address. A
+system managed configuration or managed preference outranks it, so such a home
+is not started while either is present. The rule for the value: at most
+2048 bytes; `http://` or `https://`; then `127.0.0.1` or `[::1]` written
+literally (no name is accepted, `localhost` included, so nothing is resolved);
+an optional port from 1 to 65535 without leading zeroes; and an optional path
+containing only ASCII letters, digits and `._~/-`. No user or password part,
+query or fragment. With any other value Codex is not started. Loopback restricts where the request goes; it does not make
+whatever listens there trusted. The release configuration (built with
+`distribution-successor`, and not a development run) never consults the input.
+The dedicated local home never carries the setting; its provider has its own
+address.
+
+The input is for scratch homes nobody has signed in to, because a stand-in
+that listens there may record what it receives. A home whose Codex would
+carry the setting is not started while it holds a sign-in file (looked at by
+name only); sign-in is refused in it; and the separate key home is not
+prepared at all. Two things the App does not detect: a sign-in kept in the
+login keychain instead of the file, and a sign-in file put there from outside
+the App after its last check (if that happens between App start-up and the
+first start, Codex is not started and the reason shows only when the person
+starts it). The launch helper's home kind is the first hold: a home
+made for the owner's sitting never carries the input.
+
+The setting replaces the built-in provider's address for model requests, and
+for the model list unless a model catalogue address is configured
+(`model_providers.openai.model_catalog_url`, which it does not replace).
+Nothing else: the sign-in, token, plugin, connector and analytics addresses
+are separate. As far as the supplier's source shows, a home with no sign-in
+does not ask for the model list at all and lists the catalogue bundled with
+Codex; where a request is made and fails, Codex logs the failure and still
+lists the bundled catalogue. For those, such a launch also sets the proxy
+variables to a loopback port where nothing listens and exempts loopback, as
+the examination launch helper does: `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`
+and their lower-case forms to `http://127.0.0.1:9`, and `NO_PROXY` and
+`no_proxy` to `127.0.0.1,localhost,::1`. The supplier's own HTTP and websocket
+clients honour these by default. Not covered: a home whose configuration turns
+on the supplier's system proxy feature, clients the supplier builds for direct
+routing, redirects, anything Codex itself starts, the web view's helper
+processes, and the system. So a launch made this way has had the built-in
+provider's address replaced and some other clients obstructed; it has not been
+held to this machine. What it shows is behaviour against a local substitute,
+which does not qualify the account route to the real service.
 
 Copy the maintained `tests/fixtures/FX-DP1/project/decisions` files into the
 scratch workspace's `project/decisions/`, then run `npx --offline tauri dev`.
