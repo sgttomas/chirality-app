@@ -5,8 +5,8 @@ needs:
   condition: A brief carries purpose, basis, context, authority and tools, write scope and expected
     return; the work graph and coordination records are files; an observed native child is recorded
     with the identities Codex reported and its association, which is a brief referenced with its
-    content identity, a brief referenced that has changed since, a brief reference not resolved,
-    or no brief reference; and after
+    content identity, a brief referenced whose content does not match the reference, a brief
+    reference not resolved, or no brief reference; and after
     a changed basis and an interruption the records still give ownership, returns awaiting review
     and continuation.
   gating: true

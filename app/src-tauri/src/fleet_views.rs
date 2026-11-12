@@ -502,9 +502,9 @@ pub(super) fn derive(
                     let (observed, ended) = delegation.observed(dispatch);
                     let same_bytes = brief.is_some_and(|b| dispatch["body"]["association"]["briefContent"]["value"] == crate::util::sha256_hex(&b.bytes));
                     category = if ended { "unknown" } else { "dispatched" };
-                    causes.push(format!("App observed dispatch of child {} by {} for {} ({}); {observed}{}",
+                    causes.push(format!("App observed dispatch of child {} by {}; its spawn prompt named {} ({}); {observed}{}",
                         text(&dispatch["body"]["child"]["threadId"]), text(&dispatch["body"]["parent"]["threadId"]), text(&item["brief"]),
-                        if same_bytes { "the brief file matches the content referenced at dispatch" } else { "the brief file is not the content referenced at dispatch" },
+                        if same_bytes { "the brief file has the content the prompt referenced" } else { "the brief file does not have the content the prompt referenced" },
                         if for_brief.len() > 1 { format!("; {} dispatches recorded for this brief, the latest shown", for_brief.len()) } else { String::new() }));
                 } else if delegation_claims.iter().any(|r| r.kind()=="dispatch_observed" && !item["brief"].is_null() && r.record["body"]["association"]["brief"]==item["brief"]) {
                     category="unknown";causes.push("project dispatch claim lacks protected App provenance".into());
@@ -531,7 +531,7 @@ pub(super) fn derive(
     json!({"standing":"Derived file-based coordination claims, not native execution, permission, human acceptance or authority. Rebuild writes nothing.",
         "graphIdentityMethod":crate::util::FILE_IDENTITY_METHOD,"undertakings":views,
         "limits":["Decision needs remain unknown until their current human-act standing is available; a recorded decision alone is insufficient.",
-            "A dispatch is shown only from the App's own recorded observation, tied to an item only by the brief its spawn prompt referenced. It establishes a child and its parent, never work done, a return, a review or an integration. Legacy 0.1 child observations do not establish a current native relationship."]})
+            "A dispatch is shown only from the App's own recorded observation, tied to an item only by the brief its spawn prompt named; that shows which brief was named, not that the child received or read it. It establishes a child and its parent, never work done, a return, a review or an integration. Legacy 0.1 child observations do not establish a current native relationship."]})
 }
 
 #[cfg(test)]

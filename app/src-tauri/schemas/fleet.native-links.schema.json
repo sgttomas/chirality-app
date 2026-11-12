@@ -214,7 +214,7 @@
       "pattern": "^brief:[A-Za-z0-9._-]+$"
     },
     "association": {
-      "description": "How the observed dispatch is tied to a brief, from the spawn prompt Codex supplied and the brief file's bytes when the dispatch was observed. Nothing is inferred: an absent prompt, an absent reference and a reference that cannot be resolved are each recorded as such.",
+      "description": "How the observed dispatch is tied to a brief, from the spawn prompt Codex supplied and the brief file's bytes when the dispatch was recorded. A matching reference shows which brief the prompt named and what its bytes were then, not that the child received or read it. A mismatch shows only that the file's bytes are not those referenced, not which of the two changed. Nothing is inferred: an absent prompt, an absent reference and a reference that cannot be resolved are each recorded as such.",
       "oneOf": [
         {
           "type": "object",
@@ -263,7 +263,7 @@
           ],
           "properties": {
             "state": {
-              "const": "brief referenced; changed since"
+              "const": "brief referenced; content does not match the reference"
             },
             "brief": {
               "$ref": "#/$defs/briefId"

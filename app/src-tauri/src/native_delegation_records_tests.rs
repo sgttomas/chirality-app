@@ -191,10 +191,10 @@ fn the_association_is_recorded_only_as_the_prompt_and_the_brief_file_establish_i
     assert_eq!(state(Some("briefs/W1.json is mentioned, with no reference line")), json!({"state":"no brief reference"}));
     assert_eq!(state(Some(&line("briefs/W1.json", &digest))), json!({"state":"brief referenced","brief":"brief:W1","briefFile":"briefs/W1.json",
         "briefContent":{"method":crate::util::FILE_IDENTITY_METHOD,"value":digest}}));
-    // The file no longer has the referenced bytes.
+    // The file's bytes are not the referenced ones; which of the two is wrong is not known.
     let other = "0".repeat(64);
     let changed = state(Some(&line("briefs/W1.json", &other)));
-    assert_eq!(changed["state"], "brief referenced; changed since");
+    assert_eq!(changed["state"], "brief referenced; content does not match the reference");
     assert_eq!((&changed["referencedContent"]["value"], &changed["currentContent"]["value"]), (&json!(other), &json!(digest)));
     // Nothing is chosen or inferred where the reference does not resolve.
     for (prompt, reason) in [
@@ -229,7 +229,7 @@ fn the_association_is_recorded_only_as_the_prompt_and_the_brief_file_establish_i
         assert!(session.snapshot()["limits"].as_array().unwrap().is_empty(), "{}", session.snapshot()["limits"]);
     }
     let recorded: Vec<Value> = f.of("dispatch_observed").iter().map(|row| row["body"]["association"]["state"].clone()).collect();
-    assert_eq!(recorded, json!(["brief referenced", "brief referenced; changed since", "brief reference not resolved", "no brief reference"]).as_array().unwrap().clone());
+    assert_eq!(recorded, json!(["brief referenced", "brief referenced; content does not match the reference", "brief reference not resolved", "no brief reference"]).as_array().unwrap().clone());
     assert_eq!(f.of("dispatch_observed")[3]["body"]["spawnPrompt"], json!({"state":"not supplied"}));
 }
 

@@ -47,8 +47,11 @@ fn brief_file(reference: &str) -> bool {
 }
 
 /// The association of one dispatch, from the prompt Codex supplied and the
-/// brief file as it is now. An absent prompt, an absent reference and a
-/// reference that cannot be resolved are each recorded as such.
+/// brief file as it is now. A match shows which brief the prompt named and
+/// what its bytes were, not that the child received or read it; a mismatch
+/// shows only that the file's bytes are not those referenced, not which of
+/// the two changed. An absent prompt, an absent reference and a reference
+/// that cannot be resolved are each recorded as such.
 pub(super) fn associate(project: &Path, prompt: Option<&str>) -> Value {
     let unresolved = |reason: &str, references: &[(String, String)]| {
         json!({"state":"brief reference not resolved","reason":reason,
@@ -109,7 +112,7 @@ pub(super) fn associate(project: &Path, prompt: Option<&str>) -> Value {
             None => unresolved("the referenced file is not a readable brief record", &references),
         }
     } else {
-        let mut value = json!({"state":"brief referenced; changed since","briefFile":file,
+        let mut value = json!({"state":"brief referenced; content does not match the reference","briefFile":file,
             "referencedContent":{"method":crate::util::FILE_IDENTITY_METHOD,"value":referenced},"currentContent":identity(&bytes)});
         if let Some(brief) = brief {
             value["brief"] = json!(brief);

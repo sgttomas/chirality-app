@@ -866,8 +866,10 @@ implemented behavior and qualification limits.
     `Chirality-Brief: briefs/<file>.json sha256:<64 lowercase hex>` (path
     relative to `.chirality/fleet/`, digest of the file's exact bytes),
     compared with the brief file when the dispatch is recorded: brief
-    referenced, brief referenced and changed since, brief reference not
-    resolved (with the reason), or no brief reference. `child_observed` is
+    referenced, brief referenced whose content does not match the
+    reference, brief reference not resolved (with the reason), or no brief
+    reference. A match shows which brief was named, not that the child
+    received or read it. `child_observed` is
     written when the status Codex reports for a child changes, and
     `observation_ended` when the generation it was observed in closes
     (Codex stopped or exited) or, at the next launch, for a child an earlier

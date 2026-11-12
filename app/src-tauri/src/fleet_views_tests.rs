@@ -698,7 +698,7 @@ fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observat
     let held = work(v, "W1");
     assert_eq!(held["category"], "dispatched");
     let cause = held["causes"].as_array().unwrap().iter().filter_map(Value::as_str).find(|c| c.contains("child-a")).unwrap().to_owned();
-    assert!(cause.contains("invented-parent") && cause.contains("no child status recorded") && cause.contains("matches the content referenced"), "{cause}");
+    assert!(cause.contains("invented-parent") && cause.contains("no child status recorded") && cause.contains("has the content the prompt referenced"), "{cause}");
     assert_eq!(work(v, "W3")["category"], "ready", "a dispatch tied to its brief qualifies no other item");
     assert_eq!(v["queue"], json!([]), "a dispatch is not a return");
     f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed")]);
@@ -751,7 +751,7 @@ fn fleet_views_a_project_line_naming_the_app_or_a_child_tied_to_no_brief_never_r
     let w = f.read();
     assert_eq!(work(view(&w), "W3")["category"], "ready (qualified)");
     assert!(view(&w)["notes"].to_string().contains("child observations with no recorded dispatch: stray-child"));
-    // A dispatch whose brief file is no longer the content referenced still holds the item, and says so.
+    // A dispatch whose brief file does not have the content referenced still holds the item, and says so.
     let mut changed = association;
     changed["briefContent"]["value"] = json!("0".repeat(64));
     let mut rows = stray.to_vec();
@@ -759,5 +759,5 @@ fn fleet_views_a_project_line_naming_the_app_or_a_child_tied_to_no_brief_never_r
     f.observed(&rows);
     let w = f.read();
     assert_eq!(work(view(&w), "W1")["category"], "dispatched");
-    assert!(work(view(&w), "W1")["causes"].to_string().contains("is not the content referenced at dispatch"));
+    assert!(work(view(&w), "W1")["causes"].to_string().contains("does not have the content the prompt referenced"));
 }
