@@ -112,10 +112,13 @@ export function CurrentFileLimits({ limits, role }: { limits: Json; role: string
 /** The limits of the guidance a conversation runs under, from the account the
  * host made when that guidance was supplied and kept with the role binding.
  * Without one (the binding is held only by the App process that made it) the
- * limits are not known; the current files are never shown in its place. */
-export function SuppliedLimits({ supplied }: { supplied: Json }) {
+ * limits are not known; the current files are never shown in its place.
+ * `childAccountHeld`: the App holds this conversation's supply as a child,
+ * which is shown under its own subject line, so nothing is denied here. */
+export function SuppliedLimits({ supplied, childAccountHeld = false }: { supplied: Json; childAccountHeld?: boolean }) {
   const to = supplied?.subject?.kind === "original-supply" ? supplied.subject.suppliedTo : undefined;
-  if (typeof to !== "string" || !to) return <p><small>Limits in the guidance this conversation was given: not known. This App process holds no account of what was supplied at its start.</small></p>;
+  if (typeof to !== "string" || !to) return childAccountHeld ? null
+    : <p><small>Limits in the guidance this conversation was given: not known. This App process holds no account of guidance it supplied to this conversation.</small></p>;
   const account = supplied.standing === "established" ? supplied.account : undefined;
   const role = account && account.role !== "none" ? text(account.role) : null;
   return <RoleLimits subject={{ of: "conversation-supply", thread: to, own: supplied.subject.thisConversation === true }} role={role} entry={account}
@@ -196,7 +199,7 @@ export function NativeChildRoles({ supply }: { supply: Json }) {
       {Array.isArray(namespace.candidateNames) && <p>Observed role names: {namespace.candidateNames.length ? namespace.candidateNames.map(text).join(", ") : "none"}. Sources observed: {text(namespace.sourceCount)}.</p>}
       {namespace.config && <p>Configuration identity: {text(namespace.config.method)} · {text(namespace.config.value)}</p>}
     </details>}
-    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App leaves your own roles, features, delegation depth and permissions as they are. The shipped TASK guidance says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. If the TASK guidance has been changed, the App can't tell what it states; each child's own limits are shown with it.</small></p>
+    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App leaves your own roles, features, delegation depth and permissions as they are. The TASK guidance document shipped with the App says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. That describes the shipped document, not what any child was given: each child's own limits are shown with it.</small></p>
   </section>;
 }
 
@@ -241,7 +244,7 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
       return <div key={i}>
         <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. {row.standing === "stated-not-enforced" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Stated, not enforced</b>. Codex does not enforce this limit.</>
           : row.standing === "enforced-by-supplier" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Enforced by Codex</b>.</>
-          : <>The shipped TASK guidance says a task agent does not delegate. For this child: <b>Not known whether the supplied guidance states this</b>; the App could not establish what the guidance it was given states.</>} The App recorded this delegation and did not prevent it.</p>
+          : <>Whether the TASK guidance this child was given says a task agent does not delegate: <b>Not known whether the supplied guidance states this</b>. The App could not establish what that guidance states.</>} The App recorded this delegation and did not prevent it.</p>
         <p><small>Native event: {text(row.itemId)} · {text(row.source)} · receipt position {text(row.receiptPosition)}. Original root parent: {text(row.root?.parentThreadId)} · original parent supply: {text(original?.parentSupplyRef ?? row.parentSupplyRef)}{original?.associationId ? ` · original TASK association: ${text(original.associationId)}` : ""}.</small></p>
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
         <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>
@@ -342,7 +345,7 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
     <TrialHeader trialConversation={trialConversation} trialsStartedHere={trialsStartedHere} />
     {relation?.kind === "continued-from" && <p><small>Continues conversation {text(relation.from?.sourceThread)} (its role: {roleName(relation.from?.sourceRole)}); a relation only: no history was carried.</small></p>}
     {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the App sent the fork no instructions of its own.</small></p>}
-    <SuppliedLimits supplied={thread?.suppliedLimitAccount} />
+    <SuppliedLimits supplied={thread?.suppliedLimitAccount} childAccountHeld={thread?.childGuidance?.standing === "app-observed-child-supply"} />
     {changed.length > 0 && <p role="status"><b>Guidance changed since this conversation started</b>: {changed.map((n: Json) => `${text(n.path)} (${n.kind === "missing" ? "missing now" : "edited"})`).join(", ")}. Nothing was sent to this conversation; it keeps the guidance it started with. New conversations use the current guidance.{" "}
       {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ?? "no role"}…</button>}</p>}
     {notRead.length > 0 && <p><small>Current guidance could not be read ({notRead.map((n: Json) => text(n.path)).join(", ")}), so it was not compared.</small></p>}

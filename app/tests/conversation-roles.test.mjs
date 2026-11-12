@@ -58,7 +58,7 @@ test('the guidance-changed flag fires only on an actual change',()=>{
   assert.ok(after.includes('A conversation continued as HELP_HUMAN is given the guidance files as they stand when it starts.')&&after.includes('Limits of HELP_HUMAN in its guidance file as the App last read it:')&&!after.includes('supplied when this conversation started'),'the current files\' limits are shown as the files\', for a continued conversation');
   // No account kept (the binding is held only by the App process that made it): not known, and nothing borrowed.
   const none=ownPart(header(thread({suppliedLimitAccount:undefined})));
-  assert.ok(none.includes('Limits in the guidance this conversation was given: not known. This App process holds no account of what was supplied at its start.')&&!none.includes('Stated, not enforced'));
+  assert.ok(none.includes('Limits in the guidance this conversation was given: not known. This App process holds no account of guidance it supplied to this conversation.')&&!none.includes('Stated, not enforced'));
   const missing=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'missing',reason:'missing'}]}));
   assert.ok(missing.includes('AGENTS.md (missing now)'));
   const unread=header(thread({futureGuidanceNotices:[{path:'AGENTS.md',kind:'not-read',reason:'unreadable: store unavailable'}]}));
@@ -307,7 +307,7 @@ test('child catalog presents the host matrix without adding TASK to primary role
     assert.equal((html.match(/Not supplied\. Not offered by this conversation&#x27;s role\./g)??[]).length,4-count);
     assert.ok(html.includes('PERSON_ROLE')&&html.includes('Sources observed: 4')&&html.includes(identity('e').value));
     assert.ok(html.includes('not a lock on later changes'));
-    assert.ok(html.includes('The shipped TASK guidance says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. If the TASK guidance has been changed, the App can&#x27;t tell what it states'));
+    assert.ok(html.includes('The TASK guidance document shipped with the App says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. That describes the shipped document, not what any child was given: each child&#x27;s own limits are shown with it.'),'the note names the shipped document as its subject, never a child\'s guidance');
     assert.ok(!/<(input|option|button)/.test(html),'catalog is evidence, with no role-changing or delegation control');
     assert.ok(h(SupplyStatus,{supply}).includes('aria-label="Native child role supply"'),'the ordinary supply display consumes the catalog');
   }
@@ -353,7 +353,9 @@ const childEvent={generation:g,parentThreadId:'parent',threadId:'child',turnId:'
 const associatedChild={standing:'app-observed-child-supply',role:'TASK',parentSupplyRef:'sup:parent',composition:identity('c'),file:identity('d'),native:childEvent,metadataRequestRef:'req:metadata',agentRole:'TASK',parentThreadId:'parent',limitAccount:{role:'TASK',limits:[task,all]},providerAdoption:'unknown',currentRoleAuthorityRestored:false,basis:'original parent + native event + metadata',roleSupplyRecord:{state:'written'}};
 
 test('selected child evidence remains historical and separate from the primary conversation role',()=>{
-  const html=header(thread({threadId:'child',appRole:{standing:'unknown',reason:'no primary App binding'},childGuidance:associatedChild}));
+  // As the host hands an observed child: no primary binding, so no role relation and no supplied account of its own.
+  const html=header(thread({threadId:'child',appRole:{standing:'unknown',reason:'no primary App binding'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:associatedChild}));
+  assert.ok(!/holds no account|was given: not known/.test(html),'the child\'s held account is not denied');
   assert.ok(html.includes('Role not established in this App process (no primary App binding)'));
   assert.ok(html.includes('Original App child guidance: <b>TASK</b> (observed). Parent conversation: parent. Provider uptake remains unknown.'));
   assert.ok(!html.includes('Role: <b>TASK</b>')&&!/<option[^>]*value="TASK"/.test(html));
@@ -361,7 +363,7 @@ test('selected child evidence remains historical and separate from the primary c
   assert.ok(html.includes('It does not set the primary conversation role or restore current role authority'));
   assert.ok(html.includes('Resume, fork and later generations do not authorize new child associations from this catalog'));
   assert.ok(html.includes('req:metadata')&&html.includes('native-item:1')&&html.includes(identity('d').value),'original identity remains inspectable');
-  const later=header(thread({generation:{...g,spawnCounter:2},threadId:'child',childGuidance:associatedChild}));
+  const later=header(thread({generation:{...g,spawnCounter:2},threadId:'child',appRole:{standing:'unknown',reason:'no primary App binding'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:associatedChild}));
   assert.ok(later.includes('Original App child guidance')&&later.includes('&quot;spawnCounter&quot;: 1'),'later generations preserve the original evidence');
   const unknown=h(ChildAssociations,{associations:[{native:childEvent,guidance:{standing:'unknown',reason:'native child metadata pending'}}]});
   assert.ok(unknown.includes('Child child · parent parent · guidance unknown')&&unknown.includes('Child guidance unknown: native child metadata pending'));
@@ -380,9 +382,9 @@ test('TASK delegation shows the observed event, original standing and root prove
   assert.ok(html.includes('native-item:2')&&html.includes('receipt position 21')&&html.includes('Original root parent: parent · original parent supply: sup:parent'));
   assert.ok(html.includes('original TASK association: sup:child:1')&&!html.includes('Original guidance generation:'),'same-generation comparison keeps generation detail in raw evidence');
   const unknown=h(RoleLimitObservations,{observations:[{...observed,standing:'unknown',presentedAs:'TASK prohibition stated, not enforced'}]});
-  assert.ok(unknown.includes('For this child: <b>Not known whether the supplied guidance states this</b>; the App could not establish what the guidance it was given states.')&&!/was changed|could not be read/.test(unknown)&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
+  assert.ok(unknown.includes('Whether the TASK guidance this child was given says a task agent does not delegate: <b>Not known whether the supplied guidance states this</b>. The App could not establish what that guidance states.')&&!/was changed|could not be read/.test(unknown)&&!unknown.includes('<b>Stated, not enforced</b>'),'a modified original limit is not relabeled as default guidance');
   // Review round 1: an unknown standing was preceded by "The TASK guidance it was given says…".
-  assert.ok(!unknown.includes('guidance it was given says')&&unknown.includes('The shipped TASK guidance says a task agent does not delegate.'),'with an unknown standing only the shipped default is described, never what this child was given');
+  assert.ok(!unknown.includes('guidance it was given says')&&!/shipped/.test(unknown),'with an unknown standing nothing is asserted of any guidance, the shipped document included');
   assert.ok(!unknown.includes('Codex does not enforce')&&!unknown.includes('Enforced by Codex'));
   assert.ok(header(thread({roleLimitObservations:[observed]})).includes('aria-label="Observed TASK delegations"'),'shown in the source conversation');
   assert.ok(h(SupplyStatus,{supply:{roleLimitObservations:[observed]}}).includes('Delegations by an agent given TASK guidance'),'shown in the home supply display');
@@ -454,13 +456,34 @@ test('every limit standing reads the same under each guidance an account can des
   // The current files' account is shown only as the files'.
   assert.ok(h(CurrentFileLimits,{limits,role:'HELP_HUMAN'}).includes('Limits of HELP_HUMAN in its guidance file as the App last read it:'));
   assert.ok(h(CurrentFileLimits,{limits,role:null}).includes('No role: the conversation gets the product guidance only. No role limits are stated.'));
+  // Review round 4, finding 1: an observed native child has no conversation-start binding, so the host hands no
+  // supplied account for it, but the App does hold the child's own account. Nothing denies that account.
+  const childLimits={role:'TASK',limits:[task,all]};
+  const childOnly=thread({threadId:'child',appRole:{standing:'unknown',reason:'original App supply binding not established'},roleRelation:null,suppliedLimitAccount:undefined,
+    childGuidance:{standing:'app-observed-child-supply',role:'TASK',limitAccount:childLimits,native:{parentThreadId:'parent'}}});
+  const childHeader=header(childOnly).slice(0,header(childOnly).indexOf('Continue as <select'));
+  assert.ok(childHeader.includes('Limits in the TASK guidance the App supplied for this child:')&&childHeader.includes('<b>Stated, not enforced</b>'));
+  assert.ok(!/holds no account|was given: not known/.test(childHeader),'a held child account is not followed by a denial');
+  const neither=header(thread({appRole:{standing:'unknown',reason:'r'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:null}));
+  assert.ok(neither.includes('Limits in the guidance this conversation was given: not known. This App process holds no account of guidance it supplied to this conversation.'));
+  const unknownChild=header(thread({appRole:{standing:'unknown',reason:'r'},roleRelation:null,suppliedLimitAccount:undefined,childGuidance:{standing:'unknown',reason:'native child metadata pending'}}));
+  assert.ok(unknownChild.includes('holds no account of guidance it supplied to this conversation'),'child guidance that is not established is not an account held');
+  // The rule's closed list (round 4, finding 2). Every place in the role view that says what guidance says, states,
+  // is stated or written in, or prohibits is one of: the shared renderer (limitWords), or one of the two exceptions
+  // Agent 0 settled, which render no account: the record of an observed TASK delegation, which states the standing
+  // the host copied from that child's account when it observed the delegation, and the note under native child
+  // roles, which states what the shipped TASK document says. A new composer anywhere else fails here.
   const source=readFileSync(new URL('../src/ConversationRoles.tsx',import.meta.url),'utf8');
-  // The shipped default has no account of its own. Two fixed sentences name the shipped TASK document
-  // (the native child roles note, and a delegation whose standing is unknown); the document carries what they say.
+  const code=source.replace(/\/\*[\s\S]*?\*\//g,'').replace(/^\s*\/\/.*$/gm,'');
+  const composers={};let inside=null;
+  for (const line of code.split('\n')) {
+    inside=/^(?:export )?(?:function|const) (\w+)/.exec(line)?.[1]??inside;
+    for (const _ of line.matchAll(/(?<![.\w?])(says|states|is stated|stated in|written in|prohibits?)\b/g)) composers[inside]=(composers[inside]??0)+1;
+  }
+  assert.deepEqual(composers,{limitWords:1,NativeChildRoles:2,RoleLimitObservations:5});
+  // The note's ground: the shipped TASK document carries what the note says of it.
   const shippedTask=readFileSync(new URL('../src-tauri/resources/instructions/agents/AGENT_TASK.md',import.meta.url),'utf8').replace(/\s+/g,' ');
   assert.ok(shippedTask.includes('Do not delegate or create another execution layer. This role limit is stated, not enforced by the App'));
-  assert.equal(source.split('The shipped TASK guidance says a task agent does not delegate').length-1,2);
-  // One place makes the sentence: the source has a single "It is stated in", in limitWords.
-  assert.equal(source.split('It is stated in').length-1,1);
+  assert.ok(source.includes('The TASK guidance document shipped with the App says a task agent does not delegate'));
   assert.ok(!source.includes('sameGuidance'),'no account is selected by comparing guidance');
 });
