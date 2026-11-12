@@ -18,7 +18,8 @@ class ProductionInputs(unittest.TestCase):
         self.source = self.root / 'source'
         for relative in ('app/src-tauri/resources', 'app/packaging/unsigned', 'app/packaging/notices', 'app/packaging/sqlite_notice', 'app/packaging/font_notice', 'app/src/fonts', 'app/src-tauri/schemas'):
             shutil.copytree(ROOT / relative, self.source / relative)
-        for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json', 'app/src/workspace.css', 'app/index.html'):
+        for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json', 'app/src/workspace.css', 'app/index.html', 'docs/RELEASE_LIMITATIONS_4.0.0.md'):
+            (self.source / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, self.source / relative)
         self.vendor = self.root / 'vendor'; self.vendor.mkdir()
         for name in ('bin', 'codex-path', 'codex-resources'): (self.vendor / name).mkdir()
@@ -95,8 +96,9 @@ class ProductionInputs(unittest.TestCase):
         self.assertNotIn('--debug',recipe['argv']);self.assertIn('--no-sign',recipe['argv'])
         self.assertNotIn('CHIRALITY_PUBLISHER_SELECTION',recipe['environment'])
         self.assertIn('CHIRALITY_PUBLISHER_SELECTION',recipe['unset_environment'])
-        self.assertEqual(len(config['bundle']['resources']),52)
-        self.assertEqual(len(dest),52)
+        self.assertIn('release/LIMITATIONS.md',dest)
+        self.assertEqual(len(config['bundle']['resources']),53)
+        self.assertEqual(len(dest),53)
         self.assertFalse(recipe['inherit_environment'])
         self.assertIn('CARGO_TARGET_DIR',recipe['required_environment'])
         self.assertNotIn('RUSTFLAGS',recipe['environment_allowlist'])

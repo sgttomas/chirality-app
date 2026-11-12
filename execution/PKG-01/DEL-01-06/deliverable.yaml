@@ -38,6 +38,9 @@ needs:
 code_paths:
 - app/packaging/**
 - app/src-tauri/tauri.conf.json
+# The limitations list ships byte for byte as release/LIMITATIONS.md; the host reads it there.
+- docs/RELEASE_LIMITATIONS_4.0.0.md
+- app/src-tauri/src/release_limitations.rs
 # build.rs and build_support compile the publisher identity into the App. The check that uses
 # the compiled identity on an installed App is DEL-01-01's.
 - app/src-tauri/build.rs
@@ -62,3 +65,4 @@ checks:
 - app/packaging/seal_c/test_prepare.py
 - app/packaging/static_distribution/test_connected.py
 - app/tests/group_b_legacy_pkg_rules_test.py
+- app/tests/release_limitations_resource_test.py

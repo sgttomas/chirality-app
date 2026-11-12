@@ -67,6 +67,7 @@ pub mod receiving;
 pub mod recorder;
 pub mod records;
 pub mod records_access;
+pub mod release_limitations;
 mod fleet_records;
 mod native_conversation_links;
 mod after_run_end;
@@ -1498,6 +1499,7 @@ fn role_set_metadata() -> Value {
 /// overlays.
 const RESOURCE_INSTRUCTIONS: &str = "instructions";
 const RESOURCE_WORKFLOWS: &str = "workflows";
+use release_limitations::RESOURCE_RELEASE_LIMITATIONS;
 /// Native build mode chooses the source, never file existence or a failed package check.
 fn prepare_role_entry(
     root: &std::path::Path,
@@ -2079,6 +2081,12 @@ fn noted_selection(state: &AppState, context: &workflow_selection::Context,
 }
 fn active_native_view(state:&AppState)->Value {
     let home=state.homes.lock().unwrap().active(); current_native_view(&home)
+}
+/// The release's limitations list as shipped in the bundle, with the SHA-256 of the bytes read
+/// (DEL-01-06 AC-008). No view presents it yet; how a person reaches it is decided separately.
+#[tauri::command(async)]
+fn release_limitations(app:tauri::AppHandle)->Result<Value,String>{
+    release_limitations::reply(&app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?, RESOURCE_RELEASE_LIMITATIONS)
 }
 #[tauri::command(async)]
 fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
@@ -2954,6 +2962,7 @@ pub fn run() {
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
             host_status,
+            release_limitations,
             select_home,
             open_waiting_requests,
             claim_native_waiting_intent,
@@ -3109,7 +3118,11 @@ mod bundle_resources_tests {
             assert_eq!(declared.get(source).and_then(Value::as_str), Some(format!("{read}/").as_str()), "{source} must be bundled as {read}/");
             assert!(manifest().join(source).join(required).is_file(), "{source}{required} is the source tree");
         }
-        assert_eq!(declared.len(), 2, "the default bundle carries only what the default host reads: {declared:?}");
+        // The release's limitations list ships byte for byte from its maintained document (DEL-01-06 AC-008).
+        assert_eq!(declared.get("../../docs/RELEASE_LIMITATIONS_4.0.0.md").and_then(Value::as_str), Some(RESOURCE_RELEASE_LIMITATIONS),
+            "the limitations list must be bundled as {RESOURCE_RELEASE_LIMITATIONS}");
+        assert!(manifest().join("../../docs/RELEASE_LIMITATIONS_4.0.0.md").is_file(), "the limitations document is the source");
+        assert_eq!(declared.len(), 3, "the default bundle carries only what the default host reads: {declared:?}");
         // The packaged instructions are what the host verifies against.
         runtime_session::verify_production_instructions_root(&manifest().join("resources/instructions")).unwrap();
         // Every `resource_dir()` read in the host names one of those, or is a
@@ -3124,14 +3137,14 @@ mod bundle_resources_tests {
                 if code.starts_with("mod bundle_resources_tests") { break; }
                 if code.starts_with("//") || !code.contains(".resource_dir()") { continue; }
                 reads += 1;
-                assert!(code.contains("RESOURCE_INSTRUCTIONS") || code.contains("RESOURCE_WORKFLOWS") || gated.iter().any(|g| code.contains(g)),
+                assert!(code.contains("RESOURCE_INSTRUCTIONS") || code.contains("RESOURCE_WORKFLOWS") || code.contains("RESOURCE_RELEASE_LIMITATIONS") || gated.iter().any(|g| code.contains(g)),
                     "{}: resource read not declared in bundle.resources: {code}", path.display());
             }
         }
-        // Instruction root, workflow root and the shared startup resource root.
+        // Instruction root, workflow root, limitations list and the shared startup resource root.
         // Startup now passes that same resolved root to compiled selection,
         // instead of resolving it a second time in the observer callback.
-        assert!(reads >= 3, "the known resource reads were scanned: {reads}");
+        assert!(reads >= 4, "the known resource reads were scanned: {reads}");
     }
 }
 
