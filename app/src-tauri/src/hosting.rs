@@ -159,7 +159,7 @@ pub(crate) fn assessment_identity_rows() -> Vec<Value> {
 pub fn generated_output_identity() -> String {
     let g = generation_record();
     let text = |value: &Value| value.as_str().unwrap_or("absent").to_owned();
-    format!("codex {} from {} (archive sha256 {}; main sha256 {}; tree manifest sha256 {}; {}); stable+experimental JSON-schema generation (manifest sha256 {}; experimental root sha256 {}; v2 sha256 {}); unqualified distribution",
+    format!("codex {} generated from {} (archive sha256 {}; main sha256 {}; tree manifest sha256 {}; the generation record states: {}); stable+experimental JSON-schema generation (manifest sha256 {}; experimental root sha256 {}; v2 sha256 {}); unqualified distribution",
         text(&g["pin"]), text(&g["supplier"]["source"]), text(&g["supplier"]["archive_sha256"]), text(&g["supplier"]["main_sha256"]),
         text(&g["supplier"]["tree_manifest_sha256"]), text(&g["supplier"]["verified"]), text(&g["manifest_sha256"]),
         text(&g["compiled_experimental_bundles"]["codex_app_server_protocol.schemas.json"]),

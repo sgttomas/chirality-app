@@ -131,11 +131,11 @@ fn declared_pin_records_are_the_official_0167_2_archive_and_its_generation() {
         assessment_manifest_sha256()
     );
     let identity = generated_output_identity();
-    assert!(identity.starts_with("codex 0.167.2 from official release archive https://github.com/openai/codex/releases/download/rust-v0.167.2/"), "{identity}");
+    assert!(identity.starts_with("codex 0.167.2 generated from official release archive https://github.com/openai/codex/releases/download/rust-v0.167.2/"), "{identity}");
     for part in [
         "e791290651bce41938fb160b5de2bd9ff8bcf3401ca3e236c73f485fca4be1bb",
         "97bc82fd46f117cf10efb95e6ff0c81dc4784f5797bcdc2cb75093ba09e4def0",
-        "complete vendor tree equal to the expected inventory before execution",
+        "the generation record states: complete vendor tree equal to the expected inventory before execution",
         GENERATED_MANIFEST_SHA256,
     ] {
         assert!(identity.contains(part), "{part}");
