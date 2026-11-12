@@ -524,6 +524,8 @@ impl RoleLog {
             if row["carried"] != composition.carried {
                 return Err("observed carrier differs from the pinned App composition".into());
             }
+            role_supply::check_structure(&composition.carried, role_supply::recorded_role(&row["selection"]["role"])?)?;
+            crate::role_lifecycle::verify_composition_sources(composition)?;
             let payloads =
                 child(&folder, "content", true)?.ok_or("App content folder unavailable")?;
             let (composed, file) = Self::publish_bytes(&payloads, composition.text.as_bytes())?;
@@ -684,6 +686,12 @@ impl RoleLog {
             String::from_utf8(Self::payload(folder, &leaf, id, length)?).map_err(|e| e.to_string())
         };
         let composed = get(&refs["composed"])?;
+        // The parts a composition has follow from its format and role; a
+        // quoted row is read only when they do (a child row carries no
+        // selection and is checked against its own role below).
+        if let Some(selection) = row.get("selection") {
+            role_supply::check_structure(&row["carried"], role_supply::recorded_role(&selection["role"])?)?;
+        }
         let part_refs = refs["parts"].as_array().ok_or("source part refs absent")?;
         let carried = &row["carried"]["developerInstructions"];
         let metadata = carried["parts"].as_array().ok_or("carried parts absent")?;
@@ -750,6 +758,7 @@ impl RoleLog {
                     .as_array()
                     .ok_or("quoted child parts absent")?;
                 let role = child["role"].as_str().ok_or("quoted child role absent")?;
+                role_supply::check_structure(&child["carried"], role_supply::recorded_role(&child["role"])?)?;
                 // A child whose role may delegate also carries the parent's
                 // delegation guidance as a third part (composition 0.3).
                 let delegation = metadata.len() == 3;

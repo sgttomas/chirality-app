@@ -1250,6 +1250,9 @@ impl<'a> BoundedRoleReading<'a> {
         let composed = self.payload(&source["appBytes"]["composed"], METADATA_GUIDANCE)?;
         let carried = &source["carried"]["developerInstructions"];
         let metadata = carried["parts"].as_array().ok_or(META_TUPLE)?;
+        role_supply::recorded_role(&source["selection"]["role"])
+            .and_then(|role| role_supply::check_structure(&source["carried"], role))
+            .map_err(|_| META_TUPLE)?;
         let refs = source["appBytes"]["parts"].as_array().ok_or(META_TUPLE)?;
         if metadata.len() != refs.len()
             || carried["content"] != role_supply::content(&composed)

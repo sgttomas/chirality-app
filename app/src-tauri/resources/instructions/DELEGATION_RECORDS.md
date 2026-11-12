@@ -88,7 +88,11 @@ A sub-agent finishing is not a return until you have received what it produced a
   "evidence": [{"kind": "file", "ref": "<path that shows it>"}]}}
 ```
 
-A review's verdict is `"no blocking findings"`, `"findings to repair"` or `"not concluded"`. If something the work rests on changes, append a `basis_changed` line naming the changed file and the items it affects.
+A review's verdict is `"no blocking findings"`, `"findings to repair"` or `"not concluded"`. If something the work rests on changes, append a line naming the changed file and the items it affects:
+
+```json
+{HEADER, "kind": "basis_changed", "body": {"changed": {"kind": "file", "ref": "<path of what changed>"}, "affectedItems": ["<item>"]}}
+```
 
 ## A decision that is the person's
 

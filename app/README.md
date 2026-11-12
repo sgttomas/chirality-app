@@ -77,8 +77,10 @@ implemented behavior and qualification limits.
    represent that notice as measured socket traffic. Reviewed v4 guidance seeds
    an editable App instruction copy without overwriting edits; new conversations
    read current bytes. A file a later release adds (`DELEGATION_RECORDS.md`) is
-   placed once in a copy seeded without it, with its own addition record; no
-   existing file is touched, and once placed its absence refuses the start. The Rust host prepares additive native child roles
+   placed once, with its own addition record, only where the copy's readable
+   seed record shows it was seeded without it; no existing file is touched.
+   Otherwise, and once placed, its absence is a missing file: a start in a role
+   that may delegate is refused saying so, and a start with no role is not. The Rust host prepares additive native child roles
    from that frozen guidance, withholding colliding or unsupported names and
    rechecking configuration/source currentness before dispatch. The opt-in
    [supplier child-carrier check](supplier_checks/child_roles.py)

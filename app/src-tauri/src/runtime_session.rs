@@ -452,6 +452,40 @@ pub const INSTRUCTION_RELEASE: &str = "chirality-app-v4-unqualified-group-a-entr
 pub const COMMON_DEFAULT: &[u8] = include_bytes!("../resources/instructions/AGENTS.md");
 /// The App's own delegation guidance, apart from the role documents and their binding.
 pub const DELEGATION_DEFAULT: &[u8] = include_bytes!("../resources/instructions/DELEGATION_RECORDS.md");
+/// The person's reason when a guidance file is missing from their guidance
+/// folder: what is missing and where, that the App does not put it back, and
+/// what they can do. `at_app_start`: found by the store check when the App
+/// started, which refuses every start until the App starts again. A start with
+/// no role is offered only where it works: a role document or the delegation
+/// guidance found missing at a start. `shipped`: the installed App's verified
+/// packaged copy of the defaults, when the host has it; otherwise none is named.
+pub fn missing_guidance_reason(store: &std::path::Path, path: &str, at_app_start: bool, shipped: Option<&std::path::Path>) -> String {
+    let what = match path.strip_prefix("agents/AGENT_").and_then(|r| r.strip_suffix(".md")) {
+        Some(role) => format!("The {role} role document ({path})"),
+        None if path == "AGENTS.md" => "The product guidance file (AGENTS.md)".to_owned(),
+        None => format!("The delegation guidance file ({path})"),
+    };
+    let file = store.join(path);
+    let no_role = !at_app_start && path != "AGENTS.md";
+    let action = if no_role {
+        format!("You can put the file back yourself, as {}, to start a conversation in this role; meanwhile you can start with no role, which does not use it.", file.display())
+    } else if at_app_start {
+        format!("No conversation can start until it is back: put the file back yourself, as {}, then quit and reopen the App.", file.display())
+    } else {
+        format!("No conversation can start until it is back: put the file back yourself, as {}.", file.display())
+    };
+    let default = match shipped {
+        Some(dir) => format!("The shipped default to copy from is {}.", dir.join(path).display()),
+        None => "The shipped default is the copy the App carries.".to_owned(),
+    };
+    format!("{what} is missing from your guidance folder, {}. The App does not put a guidance file back by itself, because the file is yours to edit or remove. {action} {default}", store.display())
+}
+fn read_guidance(root: &std::path::Path, path: &str, default: &[u8], at_app_start: bool, shipped: Option<&std::path::Path>) -> Result<crate::role_supply::Guidance, String> {
+    if matches!(std::fs::symlink_metadata(root.join(path)), Err(e) if e.kind() == std::io::ErrorKind::NotFound) {
+        return Err(missing_guidance_reason(root, path, at_app_start, shipped));
+    }
+    crate::role_supply::Guidance::read_seeded(root, path, INSTRUCTION_RELEASE, default)
+}
 pub fn role_default(role: crate::role_supply::Role) -> &'static [u8] {
     use crate::role_supply::Role::*;
     match role {
@@ -560,13 +594,12 @@ fn seed_instructions_with_admission(root: &std::path::Path, after_absence: impl 
         after_directories, || validate_instruction_copies(root))
 }
 fn validate_instruction_copies(root: &std::path::Path) -> Result<(), String> {
-    crate::role_supply::Guidance::read_seeded(root, "AGENTS.md", INSTRUCTION_RELEASE, COMMON_DEFAULT)?;
+    read_guidance(root, "AGENTS.md", COMMON_DEFAULT, true, None)?;
     for role in crate::role_supply::Role::ALL {
-        crate::role_supply::Guidance::read_seeded(root, &format!("agents/AGENT_{}.md", role.name()),
-            INSTRUCTION_RELEASE, role_default(role))?;
+        read_guidance(root, &format!("agents/AGENT_{}.md", role.name()), role_default(role), true, None)?;
     }
-    crate::role_supply::Guidance::read_seeded(root, crate::role_supply::DELEGATION_GUIDANCE_PATH,
-        INSTRUCTION_RELEASE, DELEGATION_DEFAULT)?;
+    // The delegation guidance is read only by a start in a role that may
+    // delegate, so its absence refuses those starts and leaves the store usable.
     Ok(())
 }
 
@@ -577,24 +610,26 @@ pub fn compose_role(
     root: &std::path::Path,
     role: Option<crate::role_supply::Role>,
 ) -> Result<crate::role_supply::Composition, String> {
-    use crate::role_supply::{Composition, Guidance};
+    compose_role_from(root, role, None)
+}
+/// `shipped`: the installed App's verified packaged defaults, named in the
+/// reason when a guidance file is missing.
+pub fn compose_role_from(
+    root: &std::path::Path,
+    role: Option<crate::role_supply::Role>,
+    shipped: Option<&std::path::Path>,
+) -> Result<crate::role_supply::Composition, String> {
+    use crate::role_supply::Composition;
     crate::role_supply::bundled_role_set()?;
-    let common = Guidance::read_seeded(root, "AGENTS.md", INSTRUCTION_RELEASE, COMMON_DEFAULT)?;
+    let common = read_guidance(root, "AGENTS.md", COMMON_DEFAULT, false, shipped)?;
     let active = role
-        .map(|r| {
-            Guidance::read_seeded(
-                root,
-                &format!("agents/AGENT_{}.md", r.name()),
-                INSTRUCTION_RELEASE,
-                role_default(r),
-            )
-        })
+        .map(|r| read_guidance(root, &format!("agents/AGENT_{}.md", r.name()), role_default(r), false, shipped))
         .transpose()?;
     // A role that may delegate is also given the delegation guidance; no role
     // and TASK are not (role set "delegation").
     let delegation = role
         .filter(|r| r.may_delegate())
-        .map(|_| Guidance::read_seeded(root, crate::role_supply::DELEGATION_GUIDANCE_PATH, INSTRUCTION_RELEASE, DELEGATION_DEFAULT))
+        .map(|_| read_guidance(root, crate::role_supply::DELEGATION_GUIDANCE_PATH, DELEGATION_DEFAULT, false, shipped))
         .transpose()?;
     Composition::new(&common, role.zip(active.as_ref()), delegation.as_ref(), false)
 }

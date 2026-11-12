@@ -211,9 +211,9 @@ pub(crate) fn seed(
 
 /// Place, once, a file this release adds to a store first seeded without it.
 /// Nothing already in the store is opened for writing. The file is created
-/// only when it is absent and no record says the store has had it: neither
-/// the first seed record nor the file's own addition record names it. After
-/// that, its absence is the person's and the start is refused as missing.
+/// only on affirmative evidence: the first seed record is read, valid and
+/// names the files of a store seeded without it, and no addition record for
+/// it exists. Otherwise nothing is placed and its absence is a missing file.
 /// The addition record is written once, after the file, naming it as created
 /// or, when a file was already there, as preserved.
 #[cfg(unix)]
@@ -270,14 +270,22 @@ pub(crate) fn add_later(
     if exists(record_name)? {
         return Ok(());
     }
-    // A first seed record that cannot be read declares nothing of this file.
-    if let Ok(Some(mut file)) = open(seed_history::SEED_RECORD, libc::O_RDONLY) {
-        let mut raw = Vec::new();
-        if (&mut file).take(16 * 1024 + 1).read_to_end(&mut raw).is_ok()
-            && seed_history::seeded_paths(&raw).is_some_and(|paths| paths.contains(path))
-        {
-            return Ok(());
+    // Only affirmative evidence that the store predates this file permits it:
+    // a first seed record that is read, valid and names the files of a store
+    // seeded without it. A missing, unreadable, oversized or malformed record
+    // is no such evidence: nothing is placed, and the file reads as missing.
+    let predates = match open(seed_history::SEED_RECORD, libc::O_RDONLY) {
+        Ok(Some(mut file)) => {
+            let mut raw = Vec::new();
+            file.metadata().is_ok_and(|m| m.is_file())
+                && (&mut file).take(16 * 1024 + 1).read_to_end(&mut raw).is_ok()
+                && raw.len() <= 16 * 1024
+                && seed_history::seeded_paths(&raw).is_some_and(|paths| !paths.contains(path))
         }
+        _ => false,
+    };
+    if !predates {
+        return Ok(());
     }
     let entry = match open(path, libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL)? {
         Some(mut file) => {

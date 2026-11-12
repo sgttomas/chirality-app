@@ -855,3 +855,58 @@ fn native_children_quoted_original_limit_and_common_source_mismatches_are_unavai
         );
     }
 }
+// DEL-02-04: a composition's parts follow from its format and role. A 0.3
+// composition for a role that may delegate without the delegation part, and a
+// no-role or TASK composition with one, are refused by the writer and by the
+// cold reader, however consistent their hashes and ranges. The schemas refuse
+// a delegation part out of place and one carried by no role or TASK; the
+// dependence on the role set is the reader's (role_supply::check_structure).
+#[test]
+fn compositions_whose_parts_do_not_follow_their_format_and_role_are_refused() {
+    let f = Fixture::new();
+    let log = f.log();
+    let old = composition_0_2();
+    let c = composition();
+    // Hash-consistent, wrongly labelled: a delegating role at 0.3 with only
+    // the product and role parts (the reviewer's case).
+    let mut short = old.clone();
+    short.carried["compositionFormat"] = json!("chirality.role.compose/0.3");
+    short.verify().unwrap();
+    let mut row = observation("sup:short", "supplied");
+    row["carried"] = short.carried.clone();
+    assert!(log.append(row, Some(&short)).is_err());
+    // The mirror: the delegation part carried by TASK or by no role.
+    for role in ["TASK", "none"] {
+        let mut row = observation("sup:mirror", "supplied");
+        row["selection"]["role"] = json!(role);
+        assert!(log.append(row, Some(&c)).is_err(), "{role}");
+    }
+    // Genuine rows of both formats are written and read.
+    let mut genuine = observation("sup:0.2", "supplied");
+    genuine["carried"] = old.carried.clone();
+    log.append(genuine, Some(&old)).unwrap();
+    f.append(&log, "sup:0.3", "supplied");
+    let read = log.read("home", Some("thread"));
+    assert_eq!(read["observations"].as_array().unwrap().len(), 2, "{read}");
+    // The cold reader refuses the same cases from bytes already on disk.
+    let (_, folder, _, _) = log.location(false).unwrap().unwrap();
+    let (rows, _, _) = RoleLog::read_lines(&folder, &f.directory()).unwrap();
+    let payloads = child(&folder, "content", false).unwrap().unwrap();
+    RoleLog::source_bytes(Some(&payloads), &rows[0]).unwrap();
+    RoleLog::source_bytes(Some(&payloads), &rows[1]).unwrap();
+    let mut relabelled = rows[0].clone();
+    relabelled["carried"]["compositionFormat"] = json!("chirality.role.compose/0.3");
+    assert!(RoleLog::source_bytes(Some(&payloads), &relabelled).is_err());
+    let mut none = rows[1].clone();
+    none["selection"]["role"] = json!("none");
+    assert!(RoleLog::source_bytes(Some(&payloads), &none).is_err());
+    let mut task = rows[1].clone();
+    task["selection"]["role"] = json!("TASK");
+    task["carried"]["developerInstructions"]["parts"][1]["role"] = json!("TASK");
+    task["carried"]["developerInstructions"]["parts"][1]["source"]["path"] = json!("agents/AGENT_TASK.md");
+    assert!(RoleLog::source_bytes(Some(&payloads), &task).is_err());
+    // The schemas refuse the mirror cases.
+    for bad in [&none, &task] {
+        assert!(validate(bad).is_err());
+    }
+}

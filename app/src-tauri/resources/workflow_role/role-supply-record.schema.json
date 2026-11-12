@@ -58,7 +58,9 @@
           "properties": {
             "content": {"$ref": "#/$defs/contentIdentity"},
             "byteLength": {"type": "integer", "minimum": 1},
-            "parts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/part"}}
+            "parts": {"type": "array", "minItems": 1, "maxItems": 3, "items": {"$ref": "#/$defs/part"},
+              "prefixItems": [{"properties": {"kind": {"const": "product-guidance"}}, "required": ["kind"]}, {"properties": {"kind": {"const": "role-guidance"}}, "required": ["kind"]}, {"properties": {"kind": {"const": "delegation-guidance"}}, "required": ["kind"]}],
+              "description": "In order: the product guidance, the role, the delegation guidance. Which of these a composition has follows from its format and role; the reader checks what depends on the role set (role_supply::check_structure)."}
           }
         },
         "baseInstructions": {"const": "not-set", "description": "R17-8: never set"},

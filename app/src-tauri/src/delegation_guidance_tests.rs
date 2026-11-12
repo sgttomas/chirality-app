@@ -3,7 +3,7 @@
 //! AC-007). Expected bytes come from the files on disk and the scope's
 //! framing; digests are computed here with SHA-256 directly, not product code.
 use crate::role_supply::{Composition, Role};
-use crate::runtime_session::{compose_role, seed_instructions};
+use crate::runtime_session::{compose_role, compose_role_from, missing_guidance_reason, seed_instructions};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
@@ -225,9 +225,56 @@ fn a_store_that_predates_the_file_gains_it_once_and_nothing_else_changes() {
     assert_eq!(std::fs::read(store.join(".seed-addition-DELEGATION_RECORDS.json")).unwrap(), added);
     // Once placed, its absence is the person's: refused, never restored.
     std::fs::remove_file(store.join(DELEGATION)).unwrap();
-    assert!(seed_instructions(&store).is_err());
-    assert!(compose_role(&store, Some(Role::HELP_HUMAN)).is_err());
-    assert!(!store.join(DELEGATION).exists());
+    assert_missing_refuses_and_no_role_starts(&store);
+}
+
+/// The delegation guidance is absent and the App placed nothing: a start in
+/// each role that may delegate is refused with the missing-file reason; a
+/// start with no role carries the product guidance alone; once the person
+/// puts the file back, a delegating start is supplied it.
+fn assert_missing_refuses_and_no_role_starts(store: &Path) {
+    seed_instructions(store).unwrap();
+    assert!(!store.join(DELEGATION).exists(), "the App put the file back");
+    for role in delegating_roles() {
+        assert_eq!(compose_role(store, Some(role)).unwrap_err(), missing_guidance_reason(store, DELEGATION, false, None), "{role:?}");
+    }
+    let none = compose_role(store, None).unwrap();
+    assert_eq!(carried_bytes(&none), std::fs::read(store.join("AGENTS.md")).unwrap());
+    // The person's own act; the App offers no restore control (see the PR).
+    std::fs::write(store.join(DELEGATION), shipped(DELEGATION)).unwrap();
+    let c = compose_role(store, Some(Role::HELP_HUMAN)).unwrap();
+    assert_eq!(carried_bytes(&c), expected(store, Some(Role::HELP_HUMAN), true));
+    assert_eq!(parts(&c)[2]["source"]["state"], "default");
+}
+
+#[test]
+fn without_a_readable_seed_record_nothing_is_placed_and_the_file_reads_as_missing() {
+    let corrupt: [(&str, fn(&Path)); 4] = [
+        ("deleted", |p| std::fs::remove_file(p).unwrap()),
+        ("corrupted", |p| std::fs::write(p, b"{\"format\":").unwrap()),
+        ("names other paths", |p| std::fs::write(p, br#"{"format":"chirality.instruction-seed-record/1","release":"r","created":[],"preserved":[]}"#).unwrap()),
+        ("linked", |p| {
+            let target = p.with_file_name("record-elsewhere.json");
+            std::fs::rename(p, &target).unwrap();
+            std::os::unix::fs::symlink(&target, p).unwrap();
+        }),
+    ];
+    for (case, apply) in corrupt {
+        // A store seeded with the file, then the file deleted and the record lost.
+        let t = Temp::new();
+        let store = t.store();
+        seed_instructions(&store).unwrap();
+        std::fs::remove_file(store.join(DELEGATION)).unwrap();
+        apply(&store.join(".seed-record.json"));
+        assert_missing_refuses_and_no_role_starts(&store);
+        assert!(!store.join(".seed-addition-DELEGATION_RECORDS.json").exists(), "{case}");
+        // An older store whose record is lost likewise gains nothing.
+        let t = Temp::new();
+        let store = legacy_store(&t);
+        apply(&store.join(".seed-record.json"));
+        assert_missing_refuses_and_no_role_starts(&store);
+        assert!(!store.join(".seed-addition-DELEGATION_RECORDS.json").exists(), "{case}");
+    }
 }
 
 #[test]
@@ -235,8 +282,7 @@ fn a_store_seeded_with_the_file_never_has_it_restored_and_a_present_file_is_kept
     let t = Temp::new();
     seed_instructions(&t.store()).unwrap();
     std::fs::remove_file(t.store().join(DELEGATION)).unwrap();
-    assert!(seed_instructions(&t.store()).is_err());
-    assert!(!t.store().join(DELEGATION).exists());
+    assert_missing_refuses_and_no_role_starts(&t.store());
 
     // An older store where the person already has a file of that name.
     let t = Temp::new();
@@ -293,7 +339,9 @@ fn each_unreadable_delegation_file_refuses_the_start_without_a_default() {
         for role in delegating_roles() {
             assert!(compose_role(&store, Some(role)).is_err(), "{case}: {role:?}");
         }
-        assert!(seed_instructions(&store).is_err(), "{case}");
+        // The store stays usable: only starts that read this file are refused.
+        seed_instructions(&store).unwrap();
+        assert!(compose_role(&store, None).is_ok(), "{case}");
         assert!(std::fs::symlink_metadata(&file).is_err() || std::fs::read(&file).map_or(true, |b| b != shipped(DELEGATION)), "{case}: default substituted");
         let _ = std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600));
     }
@@ -384,12 +432,24 @@ fn the_shipped_texts_record_skeletons_are_valid_records() {
             kinds.push(value["kind"].as_str().unwrap().to_owned());
         }
     }
-    assert_eq!(kinds, ["brief", "work_graph", "current_graph", "return_recorded", "review_recorded", "integration_recorded", "decision package"]);
-    // The kinds the text reserves to the App are kinds of the format.
+    assert_eq!(kinds, ["brief", "work_graph", "current_graph", "return_recorded", "review_recorded", "integration_recorded", "basis_changed", "decision package"]);
+    // Every record kind the text names is either reserved to the App, in the
+    // sentence that forbids it, or one an agent writes and has a skeleton above
+    // that validates. A kind named without one fails here.
     let schema: Value = serde_json::from_str(include_str!("../schemas/fleet.record.schema.json")).unwrap();
-    for kind in ["dispatch_observed", "child_observed", "observation_ended", "related_conversation", "basis_changed"] {
-        assert!(text.contains(&format!("`{kind}`")), "{kind}");
-        assert!(schema["$defs"]["header"]["properties"]["kind"]["enum"].as_array().unwrap().contains(&json!(kind)), "{kind}");
+    let format_kinds: Vec<String> = schema["$defs"]["header"]["properties"]["kind"]["enum"].as_array().unwrap()
+        .iter().map(|k| k.as_str().unwrap().to_owned()).collect();
+    let forbidding = text.split("Never write a line of kind ").nth(1).unwrap().split(", and never name").next().unwrap();
+    let reserved: Vec<&String> = format_kinds.iter().filter(|k| forbidding.contains(&format!("`{k}`"))).collect();
+    assert_eq!(reserved, ["dispatch_observed", "child_observed", "observation_ended", "related_conversation"]);
+    for kind in &format_kinds {
+        let named = text.contains(&format!("`{kind}`")) || text.contains(&format!("\"kind\": \"{kind}\""));
+        if named && !reserved.contains(&kind) {
+            assert!(kinds.contains(kind), "the text names `{kind}` for an agent to write without a valid skeleton");
+        }
+        if reserved.contains(&kind) {
+            assert!(!kinds.contains(kind), "the text gives a skeleton for App-reserved `{kind}`");
+        }
     }
     // The places the text names are the places the App reads.
     assert!(text.contains(&format!("`{}/<name>.json`", crate::recorder::DECISIONS_DIR)));
@@ -397,4 +457,62 @@ fn the_shipped_texts_record_skeletons_are_valid_records() {
         assert!(text.contains(place), "{place}");
     }
     assert_eq!(crate::util::FILE_IDENTITY_METHOD, "chirality.app.exact-bytes.sha256/v1");
+}
+
+/// Words that would offer something the App does not have for a guidance file.
+fn assert_offers_only_what_exists(reason: &str) {
+    let lower = reason.to_lowercase();
+    for offer in ["restore", "button", "click", "command", "setting", "menu", "reset", "repair"] {
+        assert!(!lower.contains(offer), "the refusal offers `{offer}`: {reason}");
+    }
+    assert!(lower.contains("does not put a guidance file back by itself"), "{reason}");
+}
+
+#[test]
+fn each_missing_guidance_file_is_refused_as_the_code_does_in_words_a_person_can_act_on() {
+    let conversation: [Option<Role>; 4] = [None, Some(Role::HELP_HUMAN), Some(Role::HELPS_HUMANS), Some(Role::WORKING_ITEMS)];
+    let files: Vec<String> = ["AGENTS.md".to_owned(), DELEGATION.to_owned()].into_iter().chain(Role::ALL.into_iter().map(role_path)).collect();
+    for path in &files {
+        // Found missing at a start, after the App started.
+        let t = Temp::new();
+        let store = t.store();
+        seed_instructions(&store).unwrap();
+        std::fs::remove_file(store.join(path)).unwrap();
+        for role in conversation {
+            let reads = path == "AGENTS.md"
+                || role.is_some_and(|r| *path == role_path(r) || (*path == DELEGATION && r.may_delegate()));
+            let result = compose_role(&store, role);
+            if !reads {
+                assert!(result.is_ok(), "{path} missing: {role:?} start");
+                continue;
+            }
+            let reason = result.unwrap_err();
+            assert_eq!(reason, missing_guidance_reason(&store, path, false, None));
+            assert!(reason.contains(&store.display().to_string()) && reason.contains(&store.join(path).display().to_string()), "{reason}");
+            assert_offers_only_what_exists(&reason);
+            // A start with no role is offered exactly where it works.
+            let no_role_works = compose_role(&store, None).is_ok();
+            assert_eq!(reason.contains("start with no role"), no_role_works, "{reason}");
+            assert_eq!(no_role_works, path != "AGENTS.md", "{path}");
+            assert!(reason.contains("The shipped default is the copy the App carries."), "{reason}");
+            // An installed build names its verified packaged copy.
+            let packaged = Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/instructions");
+            crate::runtime_session::verify_production_instructions_root(&packaged).unwrap();
+            let named = compose_role_from(&store, role, Some(&packaged)).unwrap_err();
+            assert!(named.contains(&format!("The shipped default to copy from is {}.", packaged.join(path).display())), "{named}");
+            assert!(packaged.join(path).is_file());
+        }
+        // Found missing by the store check when the App starts: every start is
+        // refused until the App starts again, so no start is offered; the
+        // delegation guidance is not part of that check.
+        let checked = seed_instructions(&store);
+        if path == DELEGATION {
+            checked.unwrap();
+        } else {
+            let reason = checked.unwrap_err();
+            assert_eq!(reason, missing_guidance_reason(&store, path, true, None));
+            assert_offers_only_what_exists(&reason);
+            assert!(!reason.contains("no role") && reason.contains("No conversation can start until it is back") && reason.contains("quit and reopen the App"), "{reason}");
+        }
+    }
 }

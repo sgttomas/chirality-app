@@ -337,6 +337,48 @@ mod guidance_reads;
 #[cfg(all(test, unix))]
 #[path = "delegation_guidance_tests.rs"]
 mod delegation_guidance;
+/// The parts a recorded composition must have for its format and role, in
+/// order. 0.2: the product guidance, then the role. 0.3: the same, then the
+/// delegation guidance exactly when the role may delegate (the role set's
+/// "delegation", which `RoleSet::parse` ties to `Role::may_delegate`). The
+/// schemas check position and kind; this checks what depends on the role.
+pub(crate) fn check_structure(carried: &Value, role: Option<Role>) -> Result<(), String> {
+    let delegation = match carried["compositionFormat"].as_str() {
+        Some(COMPOSITION_FORMAT) => role.is_some_and(Role::may_delegate),
+        Some(COMPOSITION_FORMAT_0_2) => false,
+        _ => return Err("composition format not established".into()),
+    };
+    let parts = carried["developerInstructions"]["parts"]
+        .as_array()
+        .ok_or("composition parts absent")?;
+    let mut expected = vec![("product-guidance", "AGENTS.md".to_owned(), None)];
+    if let Some(r) = role {
+        expected.push(("role-guidance", format!("agents/AGENT_{}.md", r.name()), Some(r)));
+    }
+    if delegation {
+        expected.push(("delegation-guidance", DELEGATION_GUIDANCE_PATH.to_owned(), None));
+    }
+    if parts.len() != expected.len()
+        || parts.iter().zip(&expected).any(|(p, (kind, path, r))| {
+            p["kind"] != *kind
+                || p["source"]["path"] != path.as_str()
+                || match r {
+                    Some(r) => p["role"] != json!(r),
+                    None => p.get("role").is_some(),
+                }
+        })
+    {
+        return Err("composition parts differ from its format and role".into());
+    }
+    Ok(())
+}
+/// A recorded selection's role: a role name, or "none".
+pub(crate) fn recorded_role(value: &Value) -> Result<Option<Role>, String> {
+    if value == "none" {
+        return Ok(None);
+    }
+    serde_json::from_value(value.clone()).map(Some).map_err(|_| "recorded role unknown".into())
+}
 /// Tests: the shipped delegation guidance for a role that may delegate, else none.
 #[cfg(test)]
 pub(crate) fn delegation_for_test(role: Option<Role>) -> Option<Guidance> {
