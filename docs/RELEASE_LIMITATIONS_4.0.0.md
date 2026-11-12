@@ -39,7 +39,9 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What is unavailable:** once a person has protected registered workflows
   with their keychain, the key that seals registrations cannot be replaced
   with a new one.
-- **Why:** the owner chose to leave rotation unavailable for 4.0.0.
-- **What the person does instead:** no alternative is offered in 4.0.0.
+- **Why:** no rotation mechanism is built for 4.0.0.
+- **What the person does instead:** nothing replaces it in 4.0.0; the key
+  enrolled on an installation stays the key that seals and verifies
+  registrations there.
 - **Basis:** DEL-01-04 (keychain protection); DEL-01-06 REQ-007 (the release
   says so).
