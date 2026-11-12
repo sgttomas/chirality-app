@@ -69,6 +69,46 @@ class SQReceivingTests(unittest.TestCase):
 
     def schema_valid(self, value): self.assertEqual(list(self.result_validator.iter_errors(value)),[])
 
+    def test_run_b_failure_against_the_declared_modes_is_received_with_its_failed_outcomes(self):
+        # Run B recorded truthfully: the modes stay as declared, the local server seen in the
+        # account home is stated in the failed steps' own result records.
+        case = APP / 'tests/group_b_sq_receiving_fixtures/run-b-failed'
+        dossier = json.loads((case / 'dossier.json').read_bytes())
+        spec = importlib.util.spec_from_file_location('sq_rules_run_b', APP / 'examination/sq_receiving/sq_dossier_rules.py')
+        rules = importlib.util.module_from_spec(spec); spec.loader.exec_module(rules)
+        schema = json.loads((APP / 'examination/sq_receiving/sq.dossier.schema.json').read_bytes())
+        step_map = json.loads((APP / 'examination/sq_receiving/sq.step-map.json').read_bytes())
+        self.assertEqual([e.message for e in Draft202012Validator(schema).iter_errors(dossier)], [])
+        self.assertEqual(rules.violations(dossier, step_map), [])
+        run_b = next(s for s in dossier['scenarios'] if s['scenario'] == 'V4-EXM-12')
+        self.assertEqual([(m['kind'], m['home']) for m in run_b['access_modes']],
+                         [('chatgpt_account', 'H-acct'), ('local_provider', 'H-omlx')])
+        self.assertEqual(run_b['outcome'], 'fail')
+        for step in ('M12-2', 'M12-5'):
+            record = json.loads((case / f'result-{step}.json').read_bytes())
+            self.schema_valid(record)
+            self.assertEqual(record['outcome'], 'fail')
+            self.assertEqual(record['configuration']['model_server']['home'], 'H-acct')
+            self.assertIn('observed', record['limits'][0]['detail'].lower())
+            self.assertIn('account home H-acct', record['limits'][0]['detail'])
+            self.assertIn('dedicated local home H-omlx', record['limits'][0]['detail'])
+            self.assertIn('declared', record['limits'][0]['detail'])
+        result = self.consumer.check(case / 'selection.json', (case / 'selection.sha256').read_text().strip())
+        self.assertTrue(result['selection_consistent'], result)
+        self.assertEqual(result['errors'], [])
+        self.assertEqual(result['reported_outcomes'],
+                         {'result-M12-1': 'pass', 'result-M12-2': 'fail', 'result-M12-3': 'pass',
+                          'result-M12-4': 'pass', 'result-M12-5': 'fail', 'result-M12-6': 'pass'})
+        # Run A not yet run and no review: truthfully incomplete, never complete.
+        self.assertEqual(result['coverage'], 'incomplete')
+        self.assertEqual(result['missing_selected_inputs'],
+                         ['non-recorded steps: examination obligations outstanding',
+                          'primary review absent; SQ-SEQ7 remains outstanding'])
+        # The report carries no access mode or home as observed and verifies no native observation.
+        self.assertNotIn('access_modes', json.dumps(result))
+        self.assertNotIn('H-omlx', json.dumps(result))
+        self.assertIs(result['native_observation_verified'], False)
+
     def test_connected_development_full_source_validation_no_package_change(self):
         result=self.check();self.assertTrue(result['selection_consistent']);self.assertEqual(result['coverage'],'complete')
         self.assertTrue(self.selected['steps']);self.assertEqual(self.selected['packages'],[]);self.assertEqual(self.selected['changes'],[])
