@@ -70,6 +70,8 @@ pub fn revision_key(reference: &Value) -> Result<String, String> {
 }
 /// Error notifications kept for one turn: the newest, numbered from the first received.
 const TURN_ERROR_LIMIT: usize = 32;
+/// Unreadable frames named `error` kept for one turn: the newest, numbered from the first received.
+const UNREADABLE_TURN_ERROR_LIMIT: usize = 8;
 /// Streamed previews keep at most this many bytes, the latest text, labelled truncated.
 const PREVIEW_LIMIT: usize = 256 * 1024;
 fn append_preview(row: &mut Value, delta: &str) {
@@ -369,12 +371,25 @@ impl NativeView {
                 if let Some(reason) = refusal {
                     if let (Some(thread), Some(turn)) = (p["threadId"].as_str().filter(|s| !s.is_empty()), p["turnId"].as_str().filter(|s| !s.is_empty())) {
                         self.later_frame_for_turn(g, thread, turn);
-                        if self.unreadable_turn_errors.len() < TURN_ERROR_LIMIT {
-                            self.unreadable_turn_errors.push(json!({"threadId":thread,"turnId":turn,"generation":g,"receiptPosition":pos,"observedOrder":self.next_order,
-                                "reason":"the frame does not match the pinned ErrorNotification; its meaning and retry state are not established","standing":"live-observed"}));
-                            self.next_order += 1;
+                        let same = |e: &Value| e["generation"] == *g && e["threadId"] == thread && e["turnId"] == turn;
+                        let ordinal = self.unreadable_turn_errors.iter().rev().find(|e| same(e)).and_then(|e| e["ordinalInTurn"].as_u64()).unwrap_or(0) + 1;
+                        let first = self.turn_first_notice_order(g, thread, turn).unwrap_or(self.next_order);
+                        if self.unreadable_turn_errors.iter().filter(|e| same(e)).count() >= UNREADABLE_TURN_ERROR_LIMIT {
+                            if let Some(oldest) = self.unreadable_turn_errors.iter().position(|e| same(e)) {
+                                self.unreadable_turn_errors.remove(oldest);
+                            }
                         }
+                        // `kind` keeps what the host does know: a request carrying an
+                        // identity is not the notification at all.
+                        self.unreadable_turn_errors.push(json!({"threadId":thread,"turnId":turn,"generation":g,"receiptPosition":pos,"ordinalInTurn":ordinal,
+                            "observedOrder":self.next_order,"turnFirstObservedOrder":first,
+                            "kind":if frame.get("id").is_some() { "server-request-named-error" } else { "not-the-pinned-error-notification" },
+                            "reason":"its meaning and retry state are not established","standing":"live-observed"}));
+                        self.next_order += 1;
                     }
+                    // The frame was received and refused: its receipt is consumed, so
+                    // the same envelope cannot be taken again.
+                    self.position = Some(pos);
                     return Err(format!("error notice refused: {reason}"));
                 }
                 let thread = text(p, "threadId")?;
@@ -382,6 +397,9 @@ impl NativeView {
                 let will_retry = p["willRetry"].as_bool().ok_or("missing willRetry")?;
                 let same = |e: &Value| e["generation"] == *g && e["threadId"] == thread && e["turnId"] == turn;
                 let ordinal = self.turn_errors.iter().rev().find(|e| same(e)).and_then(|e| e["ordinalInTurn"].as_u64()).unwrap_or(0) + 1;
+                // The turn's place in the receiving order is its first notice's,
+                // carried by every later one so that the cap below cannot move it.
+                let first = self.turn_first_notice_order(g, thread, turn).unwrap_or(self.next_order);
                 // The newest of a turn are kept; `ordinalInTurn` shows any gap.
                 if self.turn_errors.iter().filter(|e| same(e)).count() >= TURN_ERROR_LIMIT {
                     if let Some(oldest) = self.turn_errors.iter().position(|e| same(e)) {
@@ -390,7 +408,7 @@ impl NativeView {
                 }
                 // `observedOrder` places the notice in this view's receiving order beside its items.
                 self.turn_errors.push(json!({"threadId":thread,"turnId":turn,"error":p["error"],"willRetry":will_retry,"generation":g,
-                    "receiptPosition":pos,"ordinalInTurn":ordinal,"observedOrder":self.next_order,"laterFrameForTurn":false,"standing":"live-observed"}));
+                    "receiptPosition":pos,"ordinalInTurn":ordinal,"observedOrder":self.next_order,"turnFirstObservedOrder":first,"laterFrameForTurn":false,"standing":"live-observed"}));
                 self.next_order += 1;
             }
             Some("thread/goal/updated") => {
@@ -409,6 +427,12 @@ impl NativeView {
         }
         self.position = Some(pos);
         Ok(())
+    }
+    /// The receiving order of the first notice, readable or not, held for this turn.
+    fn turn_first_notice_order(&self, generation: &Value, thread: &str, turn: &str) -> Option<u64> {
+        self.turn_errors.iter().chain(self.unreadable_turn_errors.iter())
+            .filter(|e| e["generation"] == *generation && e["threadId"] == thread && e["turnId"] == turn)
+            .filter_map(|e| e["turnFirstObservedOrder"].as_u64()).min()
     }
     fn later_frame_for_turn(&mut self, generation: &Value, thread: &str, turn: &str) {
         for error in self.turn_errors.iter_mut().filter(|e| e["generation"] == *generation && e["threadId"] == thread && e["turnId"] == turn) {
@@ -1075,8 +1099,8 @@ mod tests {
         frame(&mut v, 3, "error", notice(true));
         frame(&mut v, 4, "error", notice(true));
         assert_eq!(v.snapshot()["turnErrors"], json!([
-            {"threadId":"t","turnId":"u","error":error,"willRetry":true,"generation":g(1),"receiptPosition":3,"ordinalInTurn":1,"observedOrder":1,"laterFrameForTurn":false,"standing":"live-observed"},
-            {"threadId":"t","turnId":"u","error":error,"willRetry":true,"generation":g(1),"receiptPosition":4,"ordinalInTurn":2,"observedOrder":2,"laterFrameForTurn":false,"standing":"live-observed"}]));
+            {"threadId":"t","turnId":"u","error":error,"willRetry":true,"generation":g(1),"receiptPosition":3,"ordinalInTurn":1,"observedOrder":1,"turnFirstObservedOrder":1,"laterFrameForTurn":false,"standing":"live-observed"},
+            {"threadId":"t","turnId":"u","error":error,"willRetry":true,"generation":g(1),"receiptPosition":4,"ordinalInTurn":2,"observedOrder":2,"turnFirstObservedOrder":1,"laterFrameForTurn":false,"standing":"live-observed"}]));
         // Another conversation's frame and an error for another turn change nothing here.
         frame(&mut v, 5, "item/started", json!({"threadId":"other","turnId":"u","item":{"id":"x","type":"agentMessage","text":""}}));
         frame(&mut v, 6, "error", json!({"threadId":"t","turnId":"w","error":{"message":"m"},"willRetry":false}));
@@ -1126,9 +1150,15 @@ mod tests {
         assert_eq!(snapshot["turnErrors"][0]["laterFrameForTurn"], true, "a refused later notice is still a later frame for the turn");
         let unreadable = snapshot["unreadableTurnErrors"].as_array().unwrap();
         assert_eq!(unreadable.len(), 7);
-        assert_eq!(unreadable[0], json!({"threadId":"t","turnId":"u","generation":g(1),"receiptPosition":2,"observedOrder":1,
-            "reason":"the frame does not match the pinned ErrorNotification; its meaning and retry state are not established","standing":"live-observed"}));
+        assert_eq!(unreadable[0], json!({"threadId":"t","turnId":"u","generation":g(1),"receiptPosition":2,"ordinalInTurn":1,"observedOrder":1,"turnFirstObservedOrder":0,
+            "kind":"not-the-pinned-error-notification","reason":"its meaning and retry state are not established","standing":"live-observed"}));
+        assert_eq!(unreadable[6]["kind"], "server-request-named-error", "what the host does know of the frame is kept");
+        assert_eq!(unreadable[6]["ordinalInTurn"], 7);
         assert!(unreadable.iter().all(|e| e.get("willRetry").is_none() && e.get("error").is_none()));
+        // A refused frame's receipt is consumed: the same envelope cannot be taken again.
+        let again = refused(&mut v, pos, json!({"id":7,"method":"error","params":{"threadId":"t","turnId":"u","error":{"message":"m"},"willRetry":true}}));
+        assert_eq!(again, "duplicate or out-of-order receipt");
+        assert_eq!(v.snapshot()["unreadableTurnErrors"].as_array().unwrap().len(), 7);
         // One that names no thread or turn cannot be placed and is only refused.
         for params in [json!({"threadId":"t","error":{"message":"m"},"willRetry":true}), json!({"turnId":"u","error":{"message":"m"},"willRetry":true}), json!({})] {
             pos += 1;
@@ -1156,6 +1186,50 @@ mod tests {
         assert_eq!(kept[TURN_ERROR_LIMIT - 1]["ordinalInTurn"], TURN_ERROR_LIMIT as u64 + 3);
         assert_eq!(kept[TURN_ERROR_LIMIT - 1]["error"]["message"], format!("attempt {}", TURN_ERROR_LIMIT + 3));
         assert_eq!(snapshot["turnErrors"].as_array().unwrap().len(), TURN_ERROR_LIMIT + 1);
+    }
+    // Unreadable frames are bounded for each turn, not for the whole view:
+    // many in one turn never hide another turn's or another conversation's,
+    // and what was dropped is counted.
+    #[test]
+    fn unreadable_error_frames_are_kept_per_turn_and_numbered_from_the_first() {
+        let mut v = view();
+        let malformed = |thread: &str, turn: &str| json!({"method":"error","params":{"threadId":thread,"turnId":turn,"error":{"message":"m","codexErrorInfo":42},"willRetry":true}});
+        let mut pos = 0;
+        for _ in 0..(UNREADABLE_TURN_ERROR_LIMIT + 30) {
+            pos += 1;
+            v.consume(&json!({"generation":g(1),"position":pos,"frame":malformed("t","noisy")})).unwrap_err();
+        }
+        for (thread, turn) in [("t", "quiet"), ("other", "noisy")] {
+            pos += 1;
+            v.consume(&json!({"generation":g(1),"position":pos,"frame":malformed(thread, turn)})).unwrap_err();
+        }
+        let snapshot = v.snapshot();
+        let of = |thread: &str, turn: &str| snapshot["unreadableTurnErrors"].as_array().unwrap().iter().filter(|e| e["threadId"] == thread && e["turnId"] == turn).cloned().collect::<Vec<_>>();
+        let noisy = of("t", "noisy");
+        assert_eq!(noisy.len(), UNREADABLE_TURN_ERROR_LIMIT);
+        assert_eq!(noisy.last().unwrap()["ordinalInTurn"], UNREADABLE_TURN_ERROR_LIMIT as u64 + 30, "the count of what was received survives the cap");
+        assert_eq!(noisy[0]["turnFirstObservedOrder"], 0, "and so does the turn's place");
+        assert_eq!(of("t", "quiet").len(), 1, "another turn's single frame is still kept");
+        assert_eq!(of("other", "noisy").len(), 1, "and another conversation's");
+        assert_eq!(of("other", "noisy")[0]["ordinalInTurn"], 1);
+    }
+    // The cap removes a turn's oldest notices; the turn's place in the
+    // receiving order must not move with them.
+    #[test]
+    fn a_turns_place_in_the_receiving_order_survives_the_cap_on_its_notices() {
+        let mut v = view();
+        frame(&mut v, 1, "error", json!({"threadId":"t","turnId":"a","error":{"message":"first of a"},"willRetry":true}));
+        frame(&mut v, 2, "item/completed", json!({"threadId":"t","turnId":"b","item":{"id":"m","type":"userMessage","content":[]}}));
+        for n in 0..(TURN_ERROR_LIMIT as u64 + 1) {
+            frame(&mut v, 3 + n, "error", json!({"threadId":"t","turnId":"a","error":{"message":"more of a"},"willRetry":true}));
+        }
+        let snapshot = v.snapshot();
+        let of_a: Vec<&Value> = snapshot["turnErrors"].as_array().unwrap().iter().filter(|e| e["turnId"] == "a").collect();
+        assert_eq!(of_a.len(), TURN_ERROR_LIMIT);
+        assert!(of_a.iter().all(|e| e["error"]["message"] == "more of a"), "the first notice itself is gone");
+        let b = snapshot["items"].as_array().unwrap().iter().find(|i| i["native"]["id"] == "m").unwrap()["observedOrder"].as_u64().unwrap();
+        assert!(of_a.iter().all(|e| e["turnFirstObservedOrder"].as_u64().unwrap() < b), "turn a was first received before turn b, and still reads so");
+        assert!(of_a.iter().all(|e| e["observedOrder"].as_u64().unwrap() > b), "though every notice kept arrived after it");
     }
     // A turn known only by its error notice keeps its place in the receiving order.
     #[test]
