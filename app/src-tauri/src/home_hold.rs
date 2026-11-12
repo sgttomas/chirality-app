@@ -46,13 +46,13 @@ use std::{
 pub(crate) const IN_USE: &str = "Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.";
 /// What a person is told when this App still holds the home because a process
 /// group an earlier Host of this App started is not established settled.
-pub(crate) const KEPT: &str = "Codex was not started on this home: this App is still holding it because a Codex process it started has not been confirmed ended. Quitting Chirality releases it.";
+pub(crate) const KEPT: &str = "Codex was not started on this home: this App is still holding it because a Codex process it started has not been confirmed ended. Quitting Chirality releases this App's hold; a Codex process still holding the home's lock can refuse a start after that.";
 /// What a person is told when a live Host of this App holds the home and may
 /// still have a start or a Codex process on it.
 pub(crate) const IN_USE_HERE: &str = "Codex was not started on this home: this App is already using it for another start of Codex, or for a Codex process not yet confirmed ended.";
 /// What a person is told when the home's path no longer names the directory
 /// this App holds.
-pub(crate) const REPLACED: &str = "The Codex home was replaced after this App took it, so Codex was not started on it. Start again to use the home that is there now.";
+pub(crate) const REPLACED: &str = "The Codex home's path no longer names the directory this App took, so Codex was not started on it. Start again to use what is there now.";
 /// What a person is told when the Codex home does not exist.
 pub(crate) const MISSING: &str = "The Codex home does not exist, so Codex was not started on it.";
 
@@ -73,7 +73,7 @@ pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check its l
 pub(crate) fn process_held_here(census: &crate::hosting::process_group_custody::Census) -> String {
     use crate::hosting::process_group_custody::Census;
     let seen = match census {
-        Census::Complete(0) => "When checked just now, no process of its group was running, so the holder is outside that group.",
+        Census::Complete(0) => "When checked just now, no process of its group was running.",
         Census::Complete(_) => "When checked just now, processes of its group were running.",
         Census::Unknown(_) => "Its process group could not be checked.",
     };

@@ -4,7 +4,7 @@ const text = (value: Json) => value == null ? "not established" : typeof value =
 /** What a recorded startup ending establishes, by the event's own kind. An
  *  ending an earlier build recorded as ended unanswered is shown as recorded;
  *  a kind this view does not know is shown by its name, never as an ending. */
-export const OPEN_AT_APP_SESSION_END_WORDS = "The App session that held this request ended while the request was recorded open, so it can no longer be answered. No reply to it is recorded. Whether one was sent after the last record was not observed.";
+export const OPEN_AT_APP_SESSION_END_WORDS = "The App session that held this request ended while the request was recorded open; this App session cannot answer it. No reply to it is recorded. Whether one was sent after the last record was not observed.";
 export const requestEndWords = (event: Json): string => event?.kind === "request_open_at_app_session_end"
   ? OPEN_AT_APP_SESSION_END_WORDS
   : event?.kind === "request_ended_unanswered" ? "Recorded by an earlier build as ended unanswered when its App session ended without a record:"

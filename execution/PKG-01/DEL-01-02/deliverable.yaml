@@ -46,7 +46,7 @@ code_paths:
 - app/src-tauri/src/home_hold.rs
 # native_local_provider.rs is DEL-01-05's. Here: the per-start process lock every home's start
 # takes inside the held home directory, which excludes another start while the Codex process
-# or a program that inherited its open files is alive.
+# or a program it passed the lock to still holds it.
 - app/src-tauri/src/native_local_provider.rs
 # desktop_startup.rs and lib.rs are shared. Here: the App data hold on both launch routes and
 # the "data held" refusal before the ledger opens.

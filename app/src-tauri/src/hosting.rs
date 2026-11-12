@@ -204,9 +204,9 @@ pub struct HostConfig {
     /// Names the dedicated local home's lock file, and so marks that home (None for every other
     /// home); `bind_local_destination` requires it there. It does not decide the lock: every
     /// start, for every home, takes the App's lock file inside the held home directory
-    /// (`native_local_provider::take_process_lock_in`) and the Codex child inherits that one
-    /// descriptor, so the lock is held while that Codex, or anything it started that kept the
-    /// descriptor, lives; held, nothing starts. What this field changes is only which sentence a
+    /// (`native_local_provider::take_process_lock_in`) and the Codex child is given that one
+    /// descriptor, so the lock is held while that Codex, or anything it passed the descriptor
+    /// to, keeps it open; held, nothing starts. What this field changes is only which sentence a
     /// refusal uses.
     pub(crate) process_lock: Option<PathBuf>,
 }
@@ -1772,16 +1772,17 @@ impl Host {
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
         // Every home (DEL-01-02 REQ-010): no Codex is started on a home while a Codex process the
-        // App started there, or a program that inherited that process's open files, is alive. The
+        // App started there, or a program that process passed it to, still holds the home's
+        // process lock. The
         // App's lock file inside the held home directory is taken exclusively and without waiting
         // before the attempt is admitted, so a refusal is an early refusal: no lifecycle record,
         // the state unchanged, Start can be tried again, and the reason is kept as the last start
         // refusal. A state that admits no start refuses as admission would, before the lock is
         // tried (this Host's own live child holds it). The App's copy is closed as soon as the
         // child is spawned. The lock decides; what this Host knows of a process it started only
-        // informs what the refusal says. A free lock establishes nothing about a process Codex
-        // started that did not inherit its open files; this Host's settlement of its own process
-        // groups is unchanged by it.
+        // informs what the refusal says. Taking the lock establishes that nothing still holds
+        // it, not that every program Codex started has ended; this Host's settlement of its own
+        // process groups is unchanged by it.
         {
             let i = self.inner.0.lock().unwrap();
             if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
@@ -1824,10 +1825,15 @@ impl Host {
             // A later attempt is admitted: an earlier refusal no longer describes the start.
             i.last_start_refusal = None;
             self.lt(&mut i, id, "start-requested", "verifying", json!({"actor": actor}));
+            // The lock becomes this attempt's in the Host's slot in the same step that admits
+            // the attempt, under the source gate Stop takes: a Stop that cancels the attempt
+            // always finds the lock there and releases it.
+            *self.pending_process_lock.lock().unwrap() = Some((i.start_attempt, process_lock));
             i.start_attempt
         };
-        // Admitted: the lock is this attempt's until its child is spawned, or until the attempt
-        // ends or is cancelled without one, whichever comes first.
+        // Admitted: the lock is this attempt's (in the Host's slot, set at admission) until its
+        // child is spawned, or until the attempt ends or is cancelled without one, whichever
+        // comes first.
         struct PendingProcessLock<'a> { host: &'a Host, attempt: u64 }
         impl Drop for PendingProcessLock<'_> {
             fn drop(&mut self) {
@@ -1835,7 +1841,6 @@ impl Host {
                 if slot.as_ref().is_some_and(|(held_by, _)| *held_by == self.attempt) { *slot = None; }
             }
         }
-        *self.pending_process_lock.lock().unwrap() = Some((attempt, process_lock));
         let _pending_process_lock = PendingProcessLock { host: self, attempt };
         // Admitted: this Host keeps the hold (one per home; a second of the
         // same home is dropped, the first still holding it).
@@ -2018,8 +2023,8 @@ impl Host {
             }
         }
         let spawned = process_group_custody::OwnedProcess::spawn(&mut cmd);
-        // The App's copy is closed at once, spawned or not: the child's inherited copy is what holds
-        // the lock, for as long as that Codex or anything it left holding the descriptor lives.
+        // The App's copy is closed at once, spawned or not: the child's copy is what holds the
+        // lock, for as long as that Codex or anything it passed the descriptor to keeps it open.
         drop(process_lock);
         let child = match spawned {
             Ok(c) => c,

@@ -576,18 +576,11 @@ impl RecoveryLedger {
     /// record the ledger does not accept is read back as before, labelled
     /// derived from the session end. Returns the records written.
     pub(crate) fn close_earlier_stop_requests(&mut self, session: &str) -> Vec<Value> {
-        let mut latest = std::collections::BTreeMap::<String, Value>::new();
-        for e in self.current.iter().filter(|e| e["kind"] == "stop_request") {
-            if let Some(id) = e["record"]["stopRequestId"].as_str() {
-                latest.insert(id.to_owned(), e["record"].clone());
-            }
-        }
+        let (closures, _) = startup_stop_closures(&self.current, session);
         let mut written = Vec::new();
-        for record in latest.into_values().filter(|r| r["appSession"] != session) {
-            if let Ok(Some(closed)) = crate::stop_records::closed_at_restart(&record) {
-                if self.append(crate::stop_records::ledger_entry(session, &closed)).is_ok() {
-                    written.push(closed);
-                }
+        for closed in closures {
+            if self.append(crate::stop_records::ledger_entry(session, &closed)).is_ok() {
+                written.push(closed);
             }
         }
         written
@@ -1379,6 +1372,33 @@ impl RecoveryCustodyView {
         self
     }
 }
+/// The limit shown for a stop request whose source session this ledger has no start record for.
+pub(crate) const STOP_SOURCE_UNAVAILABLE: &str = "Historical stop request source session start is unavailable; no startup closure inferred";
+/// SR-08 at startup: the stop requests an earlier session left unsettled that this startup may
+/// close, and the limits for those it may not. A record is closed only when its source session
+/// has a start record in this ledger: those are the sessions whose end this startup has
+/// established (recorded, or read under the rule of [`crate::session_liveness::establish_ended`])
+/// before anything is appended. A record from a session the ledger has no start record for is
+/// left as it is: nothing establishes that session's end, so no closure is inferred from it.
+fn startup_stop_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<String>) {
+    let started: std::collections::BTreeSet<&str> = rows.iter().filter(|e| e["kind"] == "session_started").filter_map(|e| e["session"].as_str()).collect();
+    let mut latest = std::collections::BTreeMap::<String, Value>::new();
+    for e in rows.iter().filter(|e| e["kind"] == "stop_request") {
+        if let Some(id) = e["record"]["stopRequestId"].as_str() {
+            latest.insert(id.to_owned(), e["record"].clone());
+        }
+    }
+    let (mut closures, mut limits) = (Vec::new(), Vec::new());
+    for record in latest.into_values().filter(|r| r["appSession"] != session) {
+        let Ok(Some(closed)) = crate::stop_records::closed_at_restart(&record) else { continue };
+        if record["appSession"].as_str().is_some_and(|source| started.contains(source)) {
+            closures.push(closed);
+        } else if limits.is_empty() {
+            limits.push(STOP_SOURCE_UNAVAILABLE.to_string());
+        }
+    }
+    (closures, limits)
+}
 
 fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<String>) {
     use std::collections::{BTreeMap, BTreeSet};
@@ -1495,6 +1515,7 @@ impl RecoveryCustodyView {
         if !pending_requests.is_empty() {
             limits.push("Historical listed requests still lack confirmed startup endings".into());
         }
+        limits.extend(startup_stop_closures(rows, session).1);
         let request_end_events = recorded_startup_request_events(&rows);
         let starts:Vec<_>=rows.iter().enumerate().filter(|(_,r)|r["kind"]=="session_started").collect();
         let current=starts.iter().rev().find(|(_,r)|r["session"]==session).map(|(_,r)|*r);

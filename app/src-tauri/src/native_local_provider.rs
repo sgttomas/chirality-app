@@ -159,8 +159,8 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
     Ok(config)
 }
 /// App-owned lock file in every Codex home the App starts Codex on. A Codex the App starts there
-/// inherits the locked descriptor, so the lock is held while that Codex, or anything it started
-/// that kept the descriptor, lives. Not auth.lock, not Codex's.
+/// is given the locked descriptor, so the lock is held while that Codex, or anything it started
+/// that kept the descriptor, keeps it open. Not auth.lock, not Codex's.
 pub(crate) const PROCESS_LOCK: &str = "chirality-codex-process.lock";
 /// What a held lock establishes is only that something holds it: the sentence names what may,
 /// and asserts neither which nor for how long.

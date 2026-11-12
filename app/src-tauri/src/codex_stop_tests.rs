@@ -931,6 +931,36 @@ for line in sys.stdin:
         assert_eq!(again.recorded_entries().as_array().unwrap().iter().filter(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08").count(), 1, "closed once");
     }
 
+    /// A stop request left sent by a session the ledger has no start record
+    /// for (round 4's row): nothing establishes that session's end, so the
+    /// next start infers no closure from it. The record is left as it is,
+    /// and the custody view says so as a limit. With its source session's
+    /// start record present the same row is closed (the test above).
+    #[test]
+    fn a_stop_request_whose_source_session_has_no_start_record_is_not_closed_at_the_next_start() {
+        let f = Fixture::with_ledger();
+        std::fs::write(f.root.join("interrupt-mode"), "silent").unwrap();
+        f.live_turn("turn-1");
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(1), |_| true, || Err("no start".into()));
+        let rows = ledger_rows(&f);
+        let last_sent = rows.iter().rposition(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent").expect("sent record");
+        let source = f.generation["appSession"].as_str().unwrap();
+        let orphaned: Vec<&Value> = rows[..=last_sent].iter().filter(|e| !(e["kind"] == "session_started" && e["session"] == source)).collect();
+        assert!(orphaned.len() < last_sent + 1, "the source session's start record is what was left out");
+        let orphan = f.root.join("orphan.ledger.jsonl");
+        std::fs::write(&orphan, orphaned.iter().map(|r| serde_json::to_string(r).unwrap() + "\n").collect::<String>()).unwrap();
+        f.home.host.end_process_for_test();
+        let mut ledger = crate::recovery::RecoveryLedger::open(orphan).unwrap();
+        ledger.start_session("relaunch", "candidate").unwrap();
+        let after: Vec<Value> = ledger.recorded_entries().as_array().unwrap().clone();
+        assert!(!after.iter().any(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08"), "no closure inferred: {after:?}");
+        let latest = after.iter().rev().find(|e| e["kind"] == "stop_request").unwrap();
+        assert_eq!((latest["record"]["state"].as_str(), latest["record"]["appSession"].as_str()), (Some("sent"), Some(source)), "the record is as it was left");
+        let view = crate::recovery::RecoveryCustodyView::from_owner("relaunch", Some(ledger.current_entries()), json!({}), 0, None).snapshot();
+        assert!(view["limits"].as_array().unwrap().iter().any(|l| l == crate::recovery::STOP_SOURCE_UNAVAILABLE), "shown as a limit: {view}");
+    }
+
     /// B-1: a quit asked while Stop Codex has closed the process (and is
     /// waiting) never reopens it, even when its list changes and the person
     /// then keeps the App running: no new turn reaches that process.

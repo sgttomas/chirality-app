@@ -1326,10 +1326,10 @@ The process lock of a home. Every start of Codex, for every home, first takes
 an exclusive, non-waiting `flock` on one small private file the App keeps in
 the home, `chirality-codex-process.lock` (created at the home's first start,
 opened by name inside the held directory, never through a link). The Codex
-child inherits that one descriptor and the App closes its own copy as soon as
-the child is spawned, so the lock is held by the Codex process and by any
-program that inherited its open files, for as long as any of them lives, and
-by nothing of the App. This is what excludes a second Codex on a home after an
+child is given that one descriptor and the App closes its own copy as soon as
+the child is spawned, so the lock is held by the Codex process, and by any
+program it passed the descriptor to, for as long as each keeps it open, and by
+nothing of the App. This is what excludes a second Codex on a home after an
 App is killed (its Codex can outlive it: the supplier's app-server exits by
 itself up to about 45 seconds after its input closes) and after a Stop that did
 not end the process. A held lock refuses the start before it is an attempt: no
@@ -1341,14 +1341,19 @@ process's group as just taken; otherwise it says only that a Codex process
 started earlier, or a program it started, may hold the lock, and that the App
 cannot tell which program it is. A lock that cannot be tried (a link in its
 place, a file not private to the user, any other failure) refuses and never
-reads as free. Limits. A free lock shows that the Codex process and every
-program that inherited its open files have ended; it shows nothing about a
-process Codex started that did not inherit them. At the pinned supplier version
+reads as free. Limits. Taking the lock shows that nothing still holds it. It
+does not show that every program Codex started has ended: a program that was
+passed the descriptor can close it and keep running, and a process Codex
+started without it never held it. At the pinned supplier version
 the commands of a turn and local MCP servers are started with other descriptors
 closed (best-effort on the supplier's side), so they do not hold the lock and a
 free lock does not show they have ended; hooks and the notifier program of the
-person's own Codex settings inherit, so one of those left running holds the
-home until it ends. The App's census and settlement of the process groups it
+person's own Codex settings are started with Codex's descriptors, so one of
+those left running keeps the home from being started on until it lets go of
+the lock or ends. That the supplier itself keeps the descriptor for as long as
+it runs is an assumption about the supplier: the hosted handshake test
+observes the real supplier holding the lock while it is ready, and nothing
+more. The App's census and settlement of the process groups it
 started are unchanged and are what Quit and the home hold rest on. A build
 before this lock takes none and is not excluded by it. The lock is the file:
 if the lock file is removed or replaced in the home while a Codex holds it, a
@@ -1360,6 +1365,8 @@ Relaunch. The holds and the process lock have no wait and no retry, and
 process exit is the reliable final release. A deliberate relaunch by the App itself would have to
 start its successor after the predecessor has exited, or after an explicit,
 proven release of each hold; a successor started first is refused at once.
+The predecessor's exit releases its own holds only: a Codex it started that
+still holds a home's process lock keeps a start on that home refused after it.
 Tests construct their state in their own scratch folders and need neither.
 `CHIRALITY_APP_DATA` is read only by a development run (`tauri dev`), as
 `CHIRALITY_RECORDS_STORE` is; a built App does not read it, so it cannot point
