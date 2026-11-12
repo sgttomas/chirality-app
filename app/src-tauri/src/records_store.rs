@@ -27,11 +27,14 @@
 //!
 //! **Project identity.** The App mints an opaque identity once and writes it
 //! in the project at `.chirality/project.json` (a link naming the identity
-//! and this store). The store's own records govern: a missing, changed or
-//! unreadable link with the folder known to the store is a visible limit and
-//! the store's identity is used; a link whose identity the store records at
-//! another folder (moved, or copied) attaches nothing until the person says
-//! which it is (adopt, or a new identity); nothing is minted over a mismatch.
+//! and this store). The store's own records govern, and a folder is attached
+//! only when its link and the store agree on its identity. A link that is
+//! missing or unreadable, that names another identity than the store records
+//! for the folder (changed), or whose identity the store records at another
+//! folder (moved, or copied) attaches nothing until the person resolves it:
+//! restore the link, confirm the folder is the project its link names
+//! (adopt), or give the folder a new identity. Nothing is minted over a
+//! mismatch. `Attachment::resolutions` names the acts that apply.
 //!
 //! **Existing records.** Until the person imports them, the §13.7 records in
 //! the project are read in place and new recording is refused ("import
@@ -568,12 +571,24 @@ pub struct Attachment {
     /// identity yet).
     pub how: &'static str,
     /// The identity the store recorded at this folder, when the folder is not
-    /// attached to it (its link is missing or unreadable).
+    /// attached to it (its link is missing, unreadable or names another).
     pub recorded: Option<String>,
+    /// What stands between the folder and its records, as one word for the
+    /// view: "link missing", "link unreadable", "link changed", "several
+    /// identities", "moved", "duplicated", "another store", or (attached, a
+    /// limit only) "link names another store".
+    pub fault: Option<&'static str>,
+    /// The identity the project's link file names, when it is not the one
+    /// attached.
+    pub linked: Option<String>,
+    /// The person's acts that resolve the fault, of "restore-link", "adopt"
+    /// and "new-identity" (`records_store_identity`). Only these are offered.
+    pub resolutions: Vec<&'static str>,
 }
 impl Attachment {
     pub fn view(&self) -> Value {
-        json!({"root":self.root.display().to_string(),"projectId":self.project,"how":self.how,"limits":self.limits,"refusal":self.refusal,"recordedHere":self.recorded})
+        json!({"root":self.root.display().to_string(),"projectId":self.project,"how":self.how,"limits":self.limits,"refusal":self.refusal,"recordedHere":self.recorded,
+            "fault":self.fault,"linkedIdentity":self.linked,"resolutions":self.resolutions})
     }
 }
 
@@ -596,7 +611,11 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     let at = canonical.to_str().ok_or("project folder is not Unicode; no project identity")?.to_owned();
     let listed = listed(&lines, &at);
     let link = read_link(&canonical);
-    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None };
+    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None, fault: None, linked: None, resolutions: vec![] };
+    // Other folders the store records for `project` whose own link still names it.
+    let held_elsewhere = |project: &str| -> Vec<String> {
+        roots_of(&lines, project).into_iter().filter(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if p == project)).collect()
+    };
     let attach_to = |out: &mut Attachment, project: &str| {
         let dir = project_dir(&store, project);
         remember(&dir, root);
@@ -606,13 +625,39 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     if listed.len() > 1 {
         out.refusal = Some(format!("the records store records this folder for several projects ({}); nothing attached until the person resolves it", listed.join(", ")));
         out.how = "unattached";
+        out.fault = Some("several identities");
+        if let Link::Present { project, .. } = &link {
+            out.linked = Some(project.clone());
+            if held_elsewhere(project).is_empty() { out.resolutions.push("adopt"); }
+        }
+        out.resolutions.push("new-identity");
         return Ok(out);
     }
     match (&link, listed.first()) {
-        (Link::Present { project, .. }, Some(y)) if project == y => attach_to(&mut out, y),
-        (Link::Present { project, .. }, Some(y)) => {
-            out.limits.push(format!("project file {PROJECT_LINK} names {project}, but the records store records this folder as {y}, which governs"));
+        (Link::Present { project, store: linked }, Some(y)) if project == y => {
+            // The identity agrees. A link naming another store is shown, and
+            // this store's record governs.
+            if *linked != store_id {
+                out.limits.push(format!("project file {PROJECT_LINK} names another records store ({linked}); this store records this folder as {y}, which governs"));
+                out.fault = Some("link names another store");
+                out.resolutions.push("restore-link");
+            }
             attach_to(&mut out, y);
+        }
+        // The link names another identity than the store records here (an
+        // edit, or another project's folder put at this path): the store does
+        // not choose between them. Nothing is attached until the person does.
+        (Link::Present { project, .. }, Some(y)) => {
+            let holding = held_elsewhere(project);
+            out.refusal = Some(format!("link changed; not attached: project file {PROJECT_LINK} names project {project}, and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link, {}gives this folder a new identity",
+                if holding.is_empty() { "confirms this folder is the project its file names or " } else { "" }));
+            out.recorded = Some(y.clone());
+            out.linked = Some(project.clone());
+            out.how = "unattached";
+            out.fault = Some("link changed");
+            out.resolutions.push("restore-link");
+            if holding.is_empty() { out.resolutions.push("adopt"); }
+            out.resolutions.push("new-identity");
         }
         // No usable link: never attached on its path alone (a new folder can
         // stand where a moved project was). The person restores the link or
@@ -621,28 +666,42 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             out.refusal = Some(format!("link missing; not attached: project file {PROJECT_LINK} is missing, and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link or gives this folder a new identity"));
             out.recorded = Some(y.clone());
             out.how = "unattached";
+            out.fault = Some("link missing");
+            out.resolutions.extend(["restore-link", "new-identity"]);
         }
         (Link::Unreadable(e), Some(y)) => {
             out.refusal = Some(format!("link unreadable; not attached: project file {PROJECT_LINK} is unreadable ({e}), and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link or gives this folder a new identity"));
             out.recorded = Some(y.clone());
             out.how = "unattached";
+            out.fault = Some("link unreadable");
+            out.resolutions.extend(["restore-link", "new-identity"]);
         }
         (Link::Unreadable(e), None) => {
             out.refusal = Some(format!("project file {PROJECT_LINK} is unreadable ({e}) and the records store does not know this folder; nothing minted or attached"));
             out.how = "unattached";
+            out.fault = Some("link unreadable");
+            out.resolutions.push("new-identity");
         }
         (Link::Present { project, store: linked }, None) => {
             let elsewhere = roots_of(&lines, project);
             if !elsewhere.is_empty() {
                 let holding: Vec<&String> = elsewhere.iter().filter(|r| matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if p == project)).collect();
                 out.how = "unattached";
+                out.linked = Some(project.clone());
                 out.refusal = Some(if holding.is_empty() {
+                    out.fault = Some("moved");
+                    out.resolutions.extend(["adopt", "new-identity"]);
                     format!("this folder's project identity {project} is recorded at {} and not here; nothing attached until the person confirms this folder is that project (adopt) or gives it a new identity", elsewhere.join(", "))
                 } else {
+                    out.fault = Some("duplicated");
+                    out.resolutions.push("new-identity");
                     format!("duplicated project identity: {project} is also the identity of {}; nothing attached until the person gives this folder a new identity", holding.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "))
                 });
             } else if *linked != store_id {
                 out.how = "unattached";
+                out.linked = Some(project.clone());
+                out.fault = Some("another store");
+                out.resolutions.extend(["adopt", "new-identity"]);
                 out.refusal = Some(format!("this project's records were kept in another records store ({linked}); nothing attached here until the person adopts this project into this store"));
             } else if mint {
                 register(&store, project, &at, "registered")?;
@@ -1355,27 +1414,45 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let lines = roots(&store)?;
-    if !listed(&lines, &at).is_empty() {
-        return Err("this folder is already attached; nothing adopted".into());
-    }
     let Link::Present { project, store: linked } = read_link(&canonical) else {
         return Err("the project file names no identity to adopt; nothing adopted".into());
     };
-    let _admission=crate::records_retention::read_path(&project_dir(&store,&project))?;
-    if roots_of(&lines, &project).iter().any(|r| matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
+    let here = listed(&lines, &at);
+    if here.len() == 1 && here[0] == project {
+        return Err("this folder is already attached to the project its file names; nothing adopted".into());
+    }
+    // Every admission is held before the first line is written: the adopted
+    // identity's, and that of each identity this folder is released from.
+    let mut _admissions = vec![crate::records_retention::read_path(&project_dir(&store,&project))?];
+    for other in here.iter().filter(|p| **p != project) { _admissions.push(crate::records_retention::read_path(&project_dir(&store,other))?); }
+    if roots_of(&lines, &project).iter().any(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
         return Err("another folder holds this project identity; give this folder a new identity instead; nothing adopted".into());
     }
     // Every earlier root of this identity is released (append-only lines), so
     // a new folder later made at an old path is not taken for this project.
-    for earlier in roots_of(&lines, &project) {
+    for earlier in roots_of(&lines, &project).into_iter().filter(|r| *r != at) {
         append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":earlier,"at":now_rfc3339(),"how":"released","by":"adopt"}))?;
     }
-    register(&store, &project, &at, "adopted")?;
+    // A link that names another identity than the store recorded here (the
+    // project's folder was put where another project's stood): this folder is
+    // released from that identity, whose records stay in the store under it.
+    let released: Vec<String> = here.iter().filter(|p| **p != project).cloned().collect();
+    for other in &released {
+        append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":other,"root":at,"at":now_rfc3339(),"how":"released","by":"adopt"}))?;
+    }
+    if !here.contains(&project) {
+        register(&store, &project, &at, "adopted")?;
+    }
     if linked != store_id {
 
         crate::storage::replace_json(&canonical.join(PROJECT_LINK), &link_value(&project, &store_id))?;
     }
-    Ok(json!({"state":"adopted","projectId":project,"root":at}))
+    let mut out = json!({"state":"adopted","projectId":project,"root":at});
+    if !released.is_empty() {
+        out["releasedHere"] = json!(released);
+        out["limit"] = json!("records of the identity this folder had stay in the store under that identity and are no longer attached to this folder");
+    }
+    Ok(out)
 }
 
 /// The person gives this folder a new identity (a copy, or another project
@@ -1505,7 +1582,8 @@ pub fn status(project: Option<&Path>) -> Value {
                 let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
                 json!({"attachment":home.attachment.view(),
                     "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
-                    "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
+                    "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"}
+                        else if home.attachment.dir.is_none() && home.attachment.refusal.is_some() {"nothing from the records store (the project is not attached)"} else {"no records yet"},
                     "importNeeded":!home.store_mode && !census.is_empty(),
                     "legacyFiles":census.len(),"notImported":to_import,
                     "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)})

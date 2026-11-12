@@ -3,6 +3,7 @@ import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, 
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
+import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
@@ -918,80 +919,6 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
     {newer.selectable===true
       ? <> <button disabled={busy} onClick={()=>act("workflow_follow_newer_revision",{selectionRef:selection.reference,revision:newer.revision})}>{String(newer.offered)}</button></>
       : ` ${String(newer.offered)}.`}</p>;
-}
-
-/** RS §13.8: the records store, project identity, package recovery and the
- *  separate explicit import of §13.7 records still in the project. */
-export function RecordsStorePanel({ store, act }: { store: Json; act: (command: string, args?: Record<string, unknown>) => Promise<void> }) {
-  if (!store) return null;
-  const project = store.project;
-  const attachment = project?.attachment;
-  const retention = project?.retention;
-  const packageImport = store.packageImport;
-  const packageBlocked = packageImport?.state === "incomplete" || packageImport?.state === "unavailable";
-  const kept = retention?.disposition === "kept";
-  const identityRepair = !packageBlocked && (retention == null || kept);
-  const holdable = kept || retention?.disposition === "disposal incomplete";
-  const terminalDisposition = ["disposed", "disposal incomplete", "completion durability uncertain"].includes(retention?.disposition);
-  const packageImportable = store.state === "available" && !packageBlocked && !terminalDisposition;
-  const packageRepairable = store.state === "available" && !terminalDisposition && packageImport?.canRepair === true;
-  return <section aria-label="Records store">
-    <h3>Records store</h3>
-    {store.state === "available"
-      ? <p>Store: {String(store.root)} ({String(store.placement)}).</p>
-      : <p role="alert">No records store: {String(store.error)}. Nothing is recorded; there is no fallback.</p>}
-    {(store.limits ?? []).map((l: string) => <p key={l} role="note">{l}</p>)}
-    {project && <>
-      <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
-      {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
-      {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
-      {attachment?.projectId && !attachment?.refusal && kept && !packageBlocked && project.reading === "records store" && <p>
-        <button onClick={() => act("records_store_export")}>Export project records</button>{" "}
-        <small>Creates a verified package in a folder you choose.</small>
-      </p>}
-      {packageImportable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "import" })}>Import verified package</button>{" "}
-        <small>Choose a package for the identity already named by this folder’s project file. Exact bytes and the original identity are retained; conflicting files are refused. Unsigned package content stays quoted evidence.</small>
-      </p>}
-      {packageImportable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "restore" })}>Restore project from package</button>{" "}
-        <small>Recover the package’s original project identity. The App checks whether this folder has no identity or only an unused identity created at startup. It refuses to replace an identity with records, a legal hold, closure or disposal, and retains existing bytes.</small>
-      </p>}
-      {packageImport?.state === "incomplete" && <p role="alert">
-        Package import is interrupted. Project records remain unavailable until it is finished.{" "}
-        <button onClick={() => act("records_store_import_package", { action: "resume" })}>Finish package import</button>
-      </p>}
-      {packageImport?.state === "unavailable" && <p role="alert">Package import status is unavailable. Project records remain unavailable.</p>}
-      {packageRepairable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "repair" })}>Repair package controls</button>{" "}
-        <small>Uses the original native intent and retained evidence. Differing control bytes or a missing original act keep recovery held. Package claims stay quoted evidence and grant no authority to replay acts.</small>
-      </p>}
-      {packageImport?.reason && <p role="note">Package recovery: {String(packageImport.reason)}</p>}
-      {packageImport?.repairReason && packageImport.repairReason !== packageImport.reason && packageImport.repairReason !== packageImport.limit && <p role="note">Package repair: {String(packageImport.repairReason)}</p>}
-      {typeof packageImport?.needsPackage === "boolean" && <p role="note">Original package needed for repair: {packageImport.needsPackage ? "yes; the native selector will ask you to choose it again" : "no"}.</p>}
-      {packageImport?.limit && packageImport.limit !== packageImport.reason && <p role="note">Package import: {String(packageImport.limit)}</p>}
-      {(packageImport?.importId || packageImport?.packageIdentity) && <p>Package import: {String(packageImport.state)}. {packageImport.importId && <>Import reference: {String(packageImport.importId)}. </>}{packageImport.packageIdentity && <>Package identity: {String(packageImport.packageIdentity)}.</>}</p>}
-      {retention && <p role="note">{retention.disposition === "unavailable"
-        ? "Retention state unavailable. Project closure and legal hold are unknown."
-        : <>{retention.closed ? "Project closed to recording." : "Project open."} Legal hold: {retention.legalHold ? "set" : "not set"}. Records: {String(retention.disposition)}.</>}{" "}{retention.limit && String(retention.limit)}</p>}
-      {attachment?.projectId && !attachment?.refusal && holdable && !packageBlocked && <p>
-        {kept && <><button onClick={()=>act("records_store_retention",{action:retention.closed ? "reopen" : "close"})}>{retention.closed ? "Reopen project" : "Close project"}</button>{" "}</>}
-        <button onClick={()=>act("records_store_retention",{action:retention.legalHold ? "release-hold" : "set-hold"})}>{retention.legalHold ? "Release legal hold" : "Set legal hold"}</button>{" "}
-        {kept && retention.closed && !retention.legalHold && <button onClick={()=>act("records_store_retention",{action:"dispose"})}>Dispose of records after verified export</button>}
-      </p>}
-      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : !packageBlocked && <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button>}</p>}
-      {project.notImported > 0 && kept && !retention.closed && !packageBlocked && <p>
-        <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
-        <small>{String(project.importStanding ?? "")}</small>
-      </p>}
-      {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && identityRepair && <p>
-        <button onClick={() => act("records_store_identity", { action: "adopt" })}>This folder is that project</button>{" "}
-        <button onClick={() => act("records_store_identity", { action: "new-identity" })}>Give this folder a new identity</button>{" "}
-        <button onClick={() => act("records_store_identity", { action: "restore-link" })}>Restore the project file</button>
-      </p>}
-    </>}
-    <p><button onClick={() => act("records_store_verify_export")}>Verify an exported package</button></p>
-  </section>;
 }
 
 export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {

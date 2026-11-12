@@ -177,7 +177,7 @@ fn a_new_project_is_given_an_identity_once_and_the_store_records_its_root() {
 }
 
 #[test]
-fn a_missing_or_changed_project_file_is_a_limit_and_the_store_governs() {
+fn a_missing_changed_or_unreadable_project_file_attaches_nothing_until_the_person_restores_it() {
     let root = folder("link-project-");
     records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("before")).unwrap();
     let governing = attach(&root, false).unwrap().project.unwrap();
@@ -194,18 +194,53 @@ fn a_missing_or_changed_project_file_is_a_limit_and_the_store_governs() {
     assert_eq!(storage::read_all(&root).0.len(), 0, "the store's history is not read for a folder with no link");
     assert!(notes(&root).iter().any(|n| n.contains("link missing")));
     assert_eq!(status(Some(&root))["project"]["attachment"]["recordedHere"], governing.as_str());
+    assert_eq!(missing.fault, Some("link missing"));
+    assert_eq!(missing.resolutions, ["restore-link", "new-identity"]);
     // The one-click restore attaches it again, with its history.
     assert_eq!(restore_link(&root).unwrap()["projectId"], governing.as_str());
     assert_eq!(storage::read_all(&root).0.len(), 1);
     records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("restored")).unwrap();
-    // Changed (an agent edits it): a limit; records never attach elsewhere.
-    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:forged", "records-store:other")).unwrap()).unwrap();
-    let changed = attach(&root, true).unwrap();
-    assert_eq!(changed.project.as_deref(), Some(governing.as_str()));
-    assert!(changed.limits[0].contains("chirality-project:forged") && changed.limits[0].contains("governs"));
+    // Changed (an agent edits it to name another identity): the store does not
+    // choose between the two. Not attached: nothing read, written or minted,
+    // under either identity, and the file is left as it was found.
+    let forged = serde_json::to_vec(&link_value("chirality-project:forged", "records-store:other")).unwrap();
+    std::fs::write(root.join(PROJECT_LINK), &forged).unwrap();
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let log = project_dir(&store, &governing).join(storage::log_rel(None, "writer:link"));
+    let log_before = std::fs::read(&log).unwrap();
+    for mint in [true, false] {
+        let changed = attach(&root, mint).unwrap();
+        assert!(changed.dir.is_none() && changed.project.is_none(), "{changed:?}");
+        assert_eq!(changed.how, "unattached");
+        assert_eq!(changed.recorded.as_deref(), Some(governing.as_str()));
+        assert_eq!(changed.linked.as_deref(), Some("chirality-project:forged"));
+        assert_eq!(changed.fault, Some("link changed"));
+        assert_eq!(changed.resolutions, ["restore-link", "adopt", "new-identity"]);
+        let refusal = changed.refusal.as_deref().unwrap();
+        assert!(refusal.starts_with("link changed; not attached") && refusal.contains("chirality-project:forged") && refusal.contains(governing.as_str()), "{refusal}");
+    }
+    let refused = records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("while changed")).unwrap_err();
+    assert!(refused.contains("link changed; not attached"), "{refused}");
+    assert!(storage::write_capture_dir(&root).unwrap_err().contains("link changed; not attached"));
+    assert_eq!(storage::read_all(&root).0.len(), 0, "the store's history is not read for a folder whose link names another identity");
+    assert_eq!(std::fs::read(root.join(PROJECT_LINK)).unwrap(), forged, "the link is not rewritten until the person acts");
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "nothing registered for the named identity");
+    assert_eq!(std::fs::read(&log).unwrap(), log_before, "nothing written under the recorded identity");
+    assert!(!project_dir(&store, "chirality-project:forged").exists(), "nothing minted for the named identity");
+    let view = status(Some(&root));
+    assert_eq!(view["project"]["attachment"]["fault"], "link changed");
+    assert_eq!(view["project"]["attachment"]["linkedIdentity"], "chirality-project:forged");
+    assert_eq!(view["project"]["attachment"]["resolutions"], json!(["restore-link", "adopt", "new-identity"]));
+    assert_eq!(view["project"]["reading"], "nothing from the records store (the project is not attached)");
+    assert!(notes(&root).iter().any(|n| n.contains("link changed")));
+    // Restoring the link attaches the folder to the recorded identity again.
+    assert_eq!(restore_link(&root).unwrap()["projectId"], governing.as_str());
     let (entries, limits) = storage::read_all(&root);
     assert!(limits.is_empty(), "{limits:?}");
     assert_eq!(entries.len(), 2, "both entries, in the governing project");
+    let restored = attach(&root, false).unwrap();
+    assert!(restored.limits.is_empty() && restored.fault.is_none() && restored.resolutions.is_empty(), "{restored:?}");
     // Unreadable: like missing, not attached.
     std::fs::write(root.join(PROJECT_LINK), b"{").unwrap();
     let unreadable = attach(&root, true).unwrap();
@@ -220,6 +255,92 @@ fn a_missing_or_changed_project_file_is_a_limit_and_the_store_governs() {
 }
 
 #[test]
+fn a_changed_link_naming_a_project_moved_to_this_folder_is_adopted_and_the_earlier_identity_keeps_its_records() {
+    // Project P is recorded at `here`; the person puts project Q's folder
+    // (its link with it) where P stood.
+    let here = folder("changed-here-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&here, false).unwrap().project.unwrap();
+    let elsewhere = folder("changed-elsewhere-");
+    records::append_project(&elsewhere, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let q = attach(&elsewhere, false).unwrap().project.unwrap();
+    std::fs::rename(elsewhere.join(PROJECT_LINK), here.join(PROJECT_LINK)).unwrap();
+    let store = opened().unwrap().0;
+    let p_log = project_dir(&store, &p).join(storage::log_rel(None, "writer:p"));
+    let p_bytes = std::fs::read(&p_log).unwrap();
+    let changed = attach(&here, true).unwrap();
+    assert_eq!((changed.fault, changed.recorded.as_deref(), changed.linked.as_deref()), (Some("link changed"), Some(p.as_str()), Some(q.as_str())));
+    assert_eq!(changed.resolutions, ["restore-link", "adopt", "new-identity"]);
+    assert_eq!(storage::read_all(&here).0.len(), 0);
+    // The person confirms this folder is the project its file names.
+    let adopted = adopt(&here).unwrap();
+    assert_eq!(adopted["projectId"], q.as_str());
+    assert_eq!(adopted["releasedHere"], json!([p]));
+    let now = attach(&here, false).unwrap();
+    assert_eq!(now.project.as_deref(), Some(q.as_str()));
+    assert!(now.refusal.is_none() && now.limits.is_empty() && now.resolutions.is_empty(), "{now:?}");
+    let lines = roots(&store).unwrap();
+    assert_eq!(listed(&lines, here.to_str().unwrap()), vec![q.clone()]);
+    assert_eq!(roots_of(&lines, &q), vec![here.display().to_string()], "Q's earlier folder is released");
+    assert!(roots_of(&lines, &p).is_empty(), "this folder is released from P");
+    let (entries, limits) = storage::read_all(&here);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.len(), 1, "Q's history, and none of P's");
+    assert_eq!(entries[0]["body"]["subjectRef"], "Q's entry");
+    assert_eq!(std::fs::read(&p_log).unwrap(), p_bytes, "P's records stay in the store, unchanged");
+    records::append_project(&here, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q after the move")).unwrap();
+    assert_eq!(std::fs::read(&p_log).unwrap(), p_bytes);
+    // A second adoption has nothing to do.
+    assert!(adopt(&here).unwrap_err().contains("already attached to the project its file names"));
+    let _ = (std::fs::remove_dir_all(&here), std::fs::remove_dir_all(&elsewhere));
+}
+
+#[test]
+fn a_changed_link_copied_from_a_project_still_at_its_folder_is_not_adopted_and_a_new_identity_keeps_both_histories() {
+    let here = folder("copied-here-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&here, false).unwrap().project.unwrap();
+    let original = folder("copied-original-");
+    records::append_project(&original, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let q = attach(&original, false).unwrap().project.unwrap();
+    std::fs::copy(original.join(PROJECT_LINK), here.join(PROJECT_LINK)).unwrap();
+    let changed = attach(&here, true).unwrap();
+    assert_eq!(changed.fault, Some("link changed"));
+    assert_eq!(changed.resolutions, ["restore-link", "new-identity"], "Q is still at its own folder: adoption is not offered");
+    assert!(!changed.refusal.as_deref().unwrap().contains("confirms this folder is the project its file names"));
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    assert!(adopt(&here).unwrap_err().contains("another folder holds this project identity"));
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "a refused adoption releases nothing");
+    assert_eq!(attach(&original, false).unwrap().project.as_deref(), Some(q.as_str()), "the original is unaffected");
+    // A new identity: P's and Q's records both stay under their identities.
+    let fresh = new_identity(&here).unwrap()["projectId"].as_str().unwrap().to_owned();
+    assert!(fresh != p && fresh != q);
+    assert_eq!(storage::read_all(&here).0.len(), 0);
+    assert!(project_dir(&store, &p).join(storage::log_rel(None, "writer:p")).is_file());
+    assert_eq!(storage::read_all(&original).0.len(), 1);
+    let _ = (std::fs::remove_dir_all(&here), std::fs::remove_dir_all(&original));
+}
+
+#[test]
+fn a_link_naming_another_store_with_the_recorded_identity_stays_attached_with_a_limit() {
+    let root = folder("store-named-");
+    records::append_project(&root, None, "writer:s", "evidence_limit", &APP_WRITER, body("entry")).unwrap();
+    let id = attach(&root, false).unwrap().project.unwrap();
+    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value(&id, "records-store:another")).unwrap()).unwrap();
+    let named = attach(&root, true).unwrap();
+    assert_eq!(named.project.as_deref(), Some(id.as_str()), "the identity agrees, so the folder stays attached");
+    assert!(named.refusal.is_none());
+    assert!(named.limits[0].contains("names another records store (records-store:another)"), "{:?}", named.limits);
+    assert_eq!((named.fault, named.resolutions.as_slice()), (Some("link names another store"), ["restore-link"].as_slice()));
+    assert_eq!(storage::read_all(&root).0.len(), 1);
+    restore_link(&root).unwrap();
+    let restored = attach(&root, false).unwrap();
+    assert!(restored.limits.is_empty() && restored.fault.is_none(), "{restored:?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
 fn a_copied_project_is_duplicated_and_attaches_nothing_until_it_gets_its_own_identity() {
     let original = folder("dup-original-");
     records::append_project(&original, None, "writer:dup", "evidence_limit", &APP_WRITER, body("original")).unwrap();
@@ -229,6 +350,7 @@ fn a_copied_project_is_duplicated_and_attaches_nothing_until_it_gets_its_own_ide
     std::fs::copy(original.join(PROJECT_LINK), copy.join(PROJECT_LINK)).unwrap();
     let dup = attach(&copy, true).unwrap();
     assert!(dup.dir.is_none() && dup.refusal.as_deref().unwrap().contains("duplicated project identity"), "{dup:?}");
+    assert_eq!((dup.fault, dup.resolutions.as_slice()), (Some("duplicated"), ["new-identity"].as_slice()));
     let refused = records::append_project(&copy, None, "writer:dup", "evidence_limit", &APP_WRITER, body("copy")).unwrap_err();
     assert!(refused.contains("duplicated"), "{refused}");
     assert_eq!(storage::read_all(&copy).0.len(), 0, "the copy reads none of the original's records");
@@ -252,6 +374,7 @@ fn a_moved_project_is_attached_only_when_the_person_confirms_it() {
     std::fs::rename(&before, &after).unwrap();
     let moved = attach(&after, true).unwrap();
     assert!(moved.dir.is_none() && moved.refusal.as_deref().unwrap().contains("adopt"), "{moved:?}");
+    assert_eq!((moved.fault, moved.resolutions.as_slice()), (Some("moved"), ["adopt", "new-identity"].as_slice()));
     assert!(records::append_project(&after, None, "writer:move", "evidence_limit", &APP_WRITER, body("x")).is_err());
     assert_eq!(adopt(&after).unwrap()["projectId"], id.as_str());
     assert_eq!(storage::read_all(&after).0.len(), 1, "the project's history, in the store");
@@ -267,6 +390,7 @@ fn a_project_kept_in_another_store_and_an_unreadable_link_attach_nothing() {
     std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:elsewhere", "records-store:another")).unwrap()).unwrap();
     let other = attach(&root, true).unwrap();
     assert!(other.refusal.as_deref().unwrap().contains("another records store"), "{other:?}");
+    assert_eq!((other.fault, other.resolutions.as_slice()), (Some("another store"), ["adopt", "new-identity"].as_slice()));
     assert!(storage::project_log(&root, None, "w").is_err());
     assert_eq!(adopt(&root).unwrap()["projectId"], "chirality-project:elsewhere");
     let link: Value = serde_json::from_slice(&std::fs::read(root.join(PROJECT_LINK)).unwrap()).unwrap();
