@@ -877,8 +877,9 @@ implemented behavior and qualification limits.
     `observation_ended` when the generation it was observed in closes
     (Codex stopped or exited) or when the App itself exits (cause "App
     quit"). A session records the end only of its own observation, and every
-    later fact of a child goes through the recording context frozen when
-    that child was first recorded, with the writer's physical check:
+    later fact of a child, in whatever generation of Codex reports it, goes
+    through the recording context frozen when that child was first
+    recorded, with the writer's physical check:
     nothing is ever written about a child another session recorded, or
     under another identity or folder, and after a crash or a kill no end is
     recorded at all. Each child's facts reach

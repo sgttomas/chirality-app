@@ -22,20 +22,19 @@ pub(crate) const BRIEF_REFERENCE: &str = "Chirality-Brief:";
 const FLEET: &str = ".chirality/fleet";
 const KINDS: [&str; 3] = ["dispatch_observed", "child_observed", "observation_ended"];
 
-/// A child this session recorded, with the recording context frozen when it
-/// was first recorded. Every later fact of that child is published through
-/// that context, so the writer's own physical check applies to it; the
-/// context is never captured afresh for a child already recorded.
-struct Watched {
-    child: Value,
-    context: SourceContext,
-}
 #[derive(Default)]
 pub(super) struct State {
     /// Status last recorded this session for a child in a generation.
     statuses: BTreeMap<String, String>,
-    /// Children this session recorded in a generation.
-    watched: BTreeMap<String, Watched>,
+    /// The recording context frozen when a child was first recorded, for each
+    /// child this session has recorded: a child is a thread in a home,
+    /// whatever generation of Codex reports it. Every later fact of that
+    /// child is published through this context, so the writer's own physical
+    /// check applies to it; it is never captured afresh.
+    contexts: BTreeMap<String, SourceContext>,
+    /// Children this session recorded, in each generation it recorded them
+    /// in, so that the end of that generation's observation is recorded once.
+    watched: BTreeMap<String, Value>,
     /// Observations left unrecorded because their conversation's folder is
     /// not the selected project, or is not known. Decided once per key.
     outside: BTreeSet<String>,
@@ -80,6 +79,9 @@ fn kept(context: &SourceContext) -> SourceContext {
     let mut context = context.clone();
     context.activity = None;
     context
+}
+fn child_slot(home: &str, child: &str) -> String {
+    key(json!([home, child]))
 }
 
 fn key(parts: Value) -> String {
@@ -209,6 +211,26 @@ fn fact(context: SourceContext, kind: &str, body: Value) -> Result<Pending, Stri
 }
 
 impl Session {
+    /// The one place a recording context is decided for a fact of a child,
+    /// whichever fact it is and whichever generation reports it. A child this
+    /// session has ever recorded gets its kept context, resumed; only a child
+    /// never recorded gets a fresh one, from `capture`. Nothing else in this
+    /// module captures or chooses a context.
+    fn context_of(&self, home: &str, child: &str, capture: &mut dyn FnMut() -> Option<SourceContext>) -> SourceContext {
+        match self.delegation.contexts.get(&child_slot(home, child)) {
+            Some(first) => resume(first),
+            None => capture().unwrap_or_else(|| {
+                let none = "no recording context was kept for this child; nothing is written of it";
+                SourceContext { scope: Err(none.into()), native_home: Err(none.into()), generation: Value::Null, activity: None, custody_limit: None }
+            }),
+        }
+    }
+    /// A fact of a child was taken for recording under `context`: the child's
+    /// first context is kept, and its generation is watched for its end.
+    fn recorded_child(&mut self, home: &str, generation: &Value, child: &str, context: SourceContext) {
+        self.delegation.contexts.entry(child_slot(home, child)).or_insert(context);
+        self.delegation.watched.entry(key(json!(["ended", home, generation, child]))).or_insert_with(|| json!({"threadId":child,"generation":generation}));
+    }
     fn delegation_limit(&mut self, reason: String) {
         if !self.limits.contains(&reason) {
             self.limits.push(reason);
@@ -305,12 +327,7 @@ impl Session {
                         self.delegation_limit(format!("A native dispatch was observed and not recorded in this project: {reason}."));
                         continue;
                     }
-                    let end = key(json!(["ended", home, generation, child]));
-                    // A child first recorded by its status keeps that context.
-                    let context = match self.delegation.watched.get(&end) {
-                        Some(watched) => resume(&watched.context),
-                        None => fresh.get_or_insert_with(|| freeze(generation)).clone(),
-                    };
+                    let context = self.context_of(home, child, &mut || Some(fresh.get_or_insert_with(|| freeze(generation)).clone()));
                     let prompt = native["prompt"].as_str();
                     let body = json!({"mechanism":"Codex native subagent",
                         "parent":{"threadId":sender,"generation":generation},"child":{"threadId":child,"generation":generation},
@@ -324,10 +341,8 @@ impl Session {
                         "observation":{"source":"item/completed notification, received live","position":position},
                         "typesPin":crate::hosting::DECLARED_PIN});
                     let keep = kept(&context);
-                    match self.delegation_fact(dispatch, key(json!([home, child])), context, "dispatch_observed", body) {
-                        Taken::Recorded => {
-                            self.delegation.watched.entry(end).or_insert(Watched { child: json!({"threadId":child,"generation":generation}), context: keep });
-                        }
+                    match self.delegation_fact(dispatch, child_slot(home, child), context, "dispatch_observed", body) {
+                        Taken::Recorded => self.recorded_child(home, generation, child, keep),
                         Taken::Waits => waiting = true,
                         Taken::Refused => {}
                     }
@@ -365,18 +380,15 @@ impl Session {
                     self.delegation.outside.insert(observed);
                     continue;
                 }
-                let context = match self.delegation.watched.get(&end) {
-                    Some(watched) => resume(&watched.context),
-                    None => fresh.get_or_insert_with(|| freeze(generation)).clone(),
-                };
+                let context = self.context_of(home, child, &mut || Some(fresh.get_or_insert_with(|| freeze(generation)).clone()));
                 let body = json!({"child":{"threadId":child,"generation":generation},"status":status,
                     "statusSource":"collabAgentToolCall.agentsStates","sourceItem":item_ref(row),
                     "nativeHome":context.native_home.as_ref().ok(),"typesPin":crate::hosting::DECLARED_PIN});
                 let keep = kept(&context);
-                match self.delegation_fact(observed, key(json!([home, child])), context, "child_observed", body) {
+                match self.delegation_fact(observed, child_slot(home, child), context, "child_observed", body) {
                     Taken::Recorded => {
                         self.delegation.statuses.insert(recorded, status.to_owned());
-                        self.delegation.watched.entry(end).or_insert(Watched { child: json!({"threadId":child,"generation":generation}), context: keep });
+                        self.recorded_child(home, generation, child, keep);
                     }
                     Taken::Waits => waiting = true,
                     Taken::Refused => {}
@@ -408,13 +420,13 @@ impl Session {
     /// The end of this session's observation of one child it recorded,
     /// through the context that child was first recorded under.
     fn end_watched(&mut self, end: &str, cause: &str) -> Taken {
-        let watched = &self.delegation.watched[end];
-        let child = watched.child.clone();
-        let context = resume(&watched.context);
-        let home = child["generation"]["home"].clone();
-        let last = self.delegation.statuses.get(&key(json!([home, child["generation"], child["threadId"]]))).cloned();
+        let child = self.delegation.watched[end].clone();
+        let (home, thread) = (child["generation"]["home"].as_str().unwrap_or_default().to_owned(), child["threadId"].as_str().unwrap_or_default().to_owned());
+        // An end is only ever of a child already recorded: there is nothing to capture.
+        let context = self.context_of(&home, &thread, &mut || None);
+        let last = self.delegation.statuses.get(&key(json!([home, child["generation"], thread]))).cloned();
         let body = json!({"child":child,"cause":cause,"lastObserved":last,"nativeHome":context.native_home.as_ref().ok()});
-        self.delegation_fact(end.to_owned(), key(json!([home, child["threadId"]])), context, "observation_ended", body)
+        self.delegation_fact(end.to_owned(), child_slot(&home, &thread), context, "observation_ended", body)
     }
     /// At the App's own exit, this session's observation of every child it
     /// recorded ends. `cause` says how a generation's observation ended, or
@@ -422,7 +434,7 @@ impl Session {
     /// Nothing is recorded for a child this session did not itself record.
     pub(super) fn end_own_delegation(&mut self, cause: &dyn Fn(&Value) -> Option<&'static str>) {
         let unended: Vec<(String, Value)> = self.delegation.watched.iter()
-            .filter(|(end, _)| !self.facts.contains_key(*end)).map(|(end, watched)| (end.clone(), watched.child["generation"].clone())).collect();
+            .filter(|(end, _)| !self.facts.contains_key(*end)).map(|(end, child)| (end.clone(), child["generation"].clone())).collect();
         for (end, generation) in unended {
             if let Some(cause) = cause(&generation) {
                 self.end_watched(&end, cause);

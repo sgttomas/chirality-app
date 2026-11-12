@@ -396,3 +396,72 @@ fn a_later_fact_of_a_child_is_published_only_through_its_first_frozen_context() 
     assert_eq!(f.of("observation_ended").len(), 1);
     assert_eq!(f.of("observation_ended")[0]["body"]["cause"], "Codex process stopped");
 }
+
+// Review round 4. A child is a thread in a home, whatever generation of Codex
+// reports it: its recording context is the one frozen when this session first
+// recorded it, and no later fact of it, in any generation, captures another.
+#[test]
+fn a_child_keeps_its_first_context_across_a_restart_of_codex() {
+    let f = Fixture::new();
+    let first = generation("first");
+    let mut s = spawn(&first, None);
+    let mut session = Session::default();
+    let captures = std::cell::Cell::new(0);
+    // A capture that would succeed under whatever identity is in force when it is asked.
+    let mut capture = |generation: &Value| {
+        captures.set(captures.get() + 1);
+        let mut context = f.context(generation);
+        context.scope = Scope::capture(&f.project);
+        context
+    };
+    session.observe_delegation_views(Some(&f.project), &[handed(&s, &first, &f.project)], &mut capture, &|_| None);
+    assert_eq!((captures.get(), f.rows().len()), (1, 2), "the first record of the child captures its context once");
+    s.view.close(&first).unwrap();
+    session.observe_delegation_views(Some(&f.project), &[handed(&s, &first, &f.project)], &mut capture, &|_| Some("Codex process stopped"));
+    assert_eq!(f.of("observation_ended").len(), 1);
+    // Codex is started again in the same App session: a later generation, the same home, and a live item naming the same child.
+    let second = json!({"appSession":"first","home":"invented-home","spawnCounter":2});
+    let later = |status: &str, item: &str, position: u64| {
+        let mut view = crate::native_items::NativeView::new("invented-home".into()).unwrap();
+        view.ready(second.clone(), json!("invented version"), Value::Null).unwrap();
+        for (n, (id, reported)) in [("wait-1", "running"), (item, status)].iter().enumerate().take(if item == "wait-1" { 1 } else { 2 }) {
+            view.consume(&json!({"generation":second,"position":position + n as u64,"frame":{"method":"item/completed","params":{"threadId":s.parent,"turnId":"later-turn",
+                "item":{"type":"collabAgentToolCall","id":id,"tool":"wait","status":"completed","senderThreadId":s.parent,"receiverThreadIds":[s.child],
+                    "agentsStates":{s.child.as_str():{"status":reported,"message":null}}}}}})).unwrap();
+        }
+        let mut handed = view.snapshot();
+        handed["hostThreads"] = json!([{"generation":second,"threadId":s.parent,"cwd":f.project}]);
+        handed
+    };
+    session.observe_delegation_views(Some(&f.project), &[later("running", "wait-1", 1)], &mut capture, &|_| None);
+    let statuses = f.of("child_observed");
+    assert_eq!(statuses.len(), 2);
+    assert_eq!((&statuses[1]["body"]["status"], &statuses[1]["body"]["child"]["generation"]), (&json!("running"), &second));
+    // Where each record of the child landed, read from the files themselves: the store subtree and the
+    // project log of the context it was first recorded under, and nowhere else.
+    let landed = |path: PathBuf| -> Vec<Value> {
+        std::fs::read_to_string(path).unwrap_or_default().lines().map(|line| serde_json::from_str::<Value>(line).unwrap())
+            .filter(|row| row["body"]["child"]["threadId"] == s.child.as_str()).map(|row| row["kind"].clone()).collect()
+    };
+    let of_child = json!(["dispatch_observed", "child_observed", "observation_ended", "child_observed"]).as_array().unwrap().clone();
+    assert_eq!(landed(published_at(&f.scope, 0)), of_child, "every record of the child is in the original store subtree");
+    assert_eq!(landed(published_at(&f.scope, 1)), of_child, "and, as the identical lines, in the original project's log");
+    assert_eq!(captures.get(), 1, "the later generation's status goes through the child's first context, captured zero more times");
+    // The project is given a new records identity. A capture now would succeed under it; none is made for this child.
+    let before = std::fs::read_to_string(published_at(&f.scope, 0)).unwrap();
+    crate::records_store::new_identity(&f.project).unwrap();
+    let replacement = crate::records_store::attach(&f.project, false).unwrap().dir.unwrap();
+    assert_ne!(replacement, f.scope.dir.path);
+    session.observe_delegation_views(Some(&f.project), &[later("completed", "wait-2", 1)], &mut capture, &|_| None);
+    session.end_own_delegation(&|_| Some("App quit"));
+    session.retry(Some(&f.project));
+    // Where the later status and the exit's end landed: nowhere. The writes were refused, and the files show it.
+    assert!(landed(replacement.join("fleet").join("coordination.fleet.jsonl")).is_empty(), "nothing of that child under the replacement identity");
+    assert!(!replacement.join("fleet").exists(), "the replacement subtree gained no fleet log at all");
+    assert_eq!(std::fs::read_to_string(published_at(&f.scope, 0)).unwrap(), before, "and nothing more under the original, which no longer holds");
+    assert_eq!(landed(published_at(&f.scope, 1)), of_child, "nor in the project's log");
+    assert!(session.has_pending() || session.snapshot()["limits"].to_string().contains("waits to be recorded"), "the refused facts are stated as unwritten");
+    // A second assertion only: a count of zero would prove nothing if a writer did not ask.
+    assert_eq!(captures.get(), 1, "across a generation change, a later status and the exit, the context is never captured again");
+    assert!(session.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
+}
