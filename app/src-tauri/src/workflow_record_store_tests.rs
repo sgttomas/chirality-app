@@ -23,6 +23,71 @@ fn selection() -> Value {
 fn pending(p: &ProjectRecords) -> PendingRecord {
     PendingRecord::new(p, selection(), vec![], vec![], "writer", "original").unwrap()
 }
+
+// The independent empty-child probe, using main's current reader binding.
+fn empty_folder_keeps_history_in_place(name: &str) {
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let original = pending(&kept);
+    let reference = original.reference().to_owned();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    let original_path = legacy.join(format!("{}.json", key(&reference).unwrap()));
+    std::fs::write(&original_path, &original.bytes).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), original.bytes);
+    assert!(kept.store.lock().unwrap().is_none());
+    assert!(f.store().publish(&pending(&kept)).unwrap_err().contains("import needed"));
+
+    std::fs::create_dir(home.join(name)).unwrap();
+    let fresh = f.store();
+    let listing = fresh.list_references();
+    let fresh_read = fresh.resolve(&reference).map(|r| r.bytes().to_vec());
+    let kept_read = kept.resolve(&reference).map(|r| r.bytes().to_vec());
+    let bound = fresh.store.lock().unwrap().is_some() || kept.store.lock().unwrap().is_some();
+    let new = pending(&fresh);
+    let publication = fresh.publish(&new).map(|r| r.reference().to_owned());
+    assert!(publication.as_ref().is_err_and(|e| e.contains("import needed"))
+        && listing.as_ref().is_ok_and(|v| v == &[reference])
+        && fresh_read.as_ref().is_ok_and(|b| b == &original.bytes)
+        && kept_read.as_ref().is_ok_and(|b| b == &original.bytes) && !bound,
+        "empty {name}: publication={publication:?}; listing={listing:?}; fresh={fresh_read:?}; kept={kept_read:?}; bound={bound}");
+    assert_eq!(std::fs::read(original_path).unwrap(), original.bytes);
+    assert!(!home.join("imports.jsonl").exists());
+    assert!(!home.join("workflow").join(format!("{}.json", key(new.reference()).unwrap())).exists());
+}
+
+#[test]
+fn records_store_empty_folder_runs_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("runs");
+}
+#[test]
+fn records_store_empty_folder_acts_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("acts");
+}
+#[test]
+fn records_store_empty_folder_workflow_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("workflow");
+}
+#[test]
+fn records_store_empty_folder_legacy_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("legacy");
+}
+#[test]
+fn records_store_empty_folder_connectors_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("connectors");
+}
+
+#[test]
+fn records_store_import_gate_recognised_wr_record_waives_census() {
+    let f = Fixture::new();
+    let p = f.store();
+    let record = p.publish(&pending(&p)).unwrap();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join(format!("{}.json", key(record.reference()).unwrap())), record.bytes()).unwrap();
+    assert!(f.store().publish(&pending(&p)).is_ok());
+}
 #[test]
 fn immutable_reopen_retry_collision_and_wrong_project() {
     let f = Fixture::new();

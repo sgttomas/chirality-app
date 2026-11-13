@@ -125,7 +125,7 @@ fn dir_names(dir: &File) -> Result<Vec<String>, String> {
     unsafe { libc::closedir(stream) };
     Ok(names)
 }
-fn validate(envelope: &Value) -> Result<(), String> {
+pub(crate) fn validate(envelope: &Value) -> Result<(), String> {
     let wr: Value = serde_json::from_str(include_str!(
         "../resources/workflow_role/workspace-registration.schema.json"
     ))

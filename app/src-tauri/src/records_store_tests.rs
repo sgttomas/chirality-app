@@ -62,6 +62,179 @@ fn legacy_project() -> PathBuf {
 
 // ---- Placement ----
 
+fn import_gate_project() -> (OwnStore, PathBuf, PathBuf) {
+    let own = OwnStore::new();
+    let root = folder("import-gate-project-");
+    let dir = write_dir(&root).unwrap();
+    let log = root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy"));
+    records::append(&log, "evidence_limit", &APP_WRITER, body("in place")).unwrap();
+    assert!(write_dir(&root).unwrap_err().contains("import needed"));
+    (own, root, dir)
+}
+
+#[test]
+fn records_store_import_gate_non_directory_is_unknown_never_authority() {
+    let mut results = Vec::new();
+    for name in ["runs", "acts", "workflow", "legacy", "connectors", "captures"] {
+        let (_own, root, dir) = import_gate_project();
+        std::fs::write(dir.join(name), b"not a folder").unwrap();
+        results.push((name, write_dir(&root)));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+#[test]
+fn records_store_import_gate_unfamiliar_member_is_unknown_never_authority() {
+    let mut results = Vec::new();
+    for name in ["runs", "acts", "workflow", "legacy", "connectors", "captures", "captures/pending"] {
+        let (_own, root, dir) = import_gate_project();
+        std::fs::create_dir_all(dir.join(name)).unwrap();
+        std::fs::write(dir.join(name).join("unfamiliar"), b"unrecognised bytes").unwrap();
+        results.push((name, write_dir(&root)));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+#[test]
+fn records_store_import_gate_empty_census_does_not_refuse_unrecognised_member() {
+    let _own = OwnStore::new();
+    let root = folder("import-gate-empty-census-");
+    let dir = write_dir(&root).unwrap();
+    std::fs::create_dir(dir.join("workflow")).unwrap();
+    std::fs::write(dir.join("workflow/unfamiliar"), b"not a recognised record").unwrap();
+    assert!(legacy_census(&root).unwrap().is_empty());
+    let result = write_dir(&root);
+    assert!(result.is_ok(), "nothing to import, so no authority is needed to waive a census: {result:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_unlistable_folder_is_unknown_never_authority() {
+    use std::os::unix::fs::PermissionsExt;
+    let mut results = Vec::new();
+    for name in ["runs", "acts", "workflow", "legacy", "connectors", "captures"] {
+        let (_own, root, dir) = import_gate_project();
+        let path = dir.join(name);
+        std::fs::create_dir(&path).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let denied = std::fs::read_dir(&path).err().map(|e| e.kind());
+        let result = write_dir(&root);
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(denied, Some(std::io::ErrorKind::PermissionDenied));
+        results.push((name, result));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+#[test]
+fn records_store_import_gate_unexaminable_member_is_unknown_never_authority() {
+    use std::os::unix::fs::PermissionsExt;
+    let (_own, root, dir) = import_gate_project();
+    let path = dir.join("acts");
+    std::fs::create_dir(&path).unwrap();
+    std::fs::write(path.join(format!("{}.jsonl", storage::key("writer"))), b"unreadable").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o400)).unwrap();
+    let inventory = crate::records_inspect::listing(&path).unwrap().unwrap();
+    let result = write_dir(&root);
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(inventory.iter().all(|e| e.metadata.is_err()));
+    assert!(result.as_ref().is_err_and(|e| e.contains("unknown")), "{result:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_capture_name_without_capture_form_is_unknown() {
+    let mut results = Vec::new();
+    for name in ["captures", "captures/pending"] {
+        let (_own, root, dir) = import_gate_project();
+        std::fs::create_dir_all(dir.join(name)).unwrap();
+        std::fs::write(dir.join(name).join(format!("{}.json", storage::key("cap:fixture"))), b"{}").unwrap();
+        results.push((name, write_dir(&root)));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+#[test]
+fn records_store_import_gate_recognised_rs_records_waive_census() {
+    for name in [storage::log_rel(Some("run:held"), "writer:held"), storage::log_rel(None, "writer:held"), REGISTERED_COPY.into()] {
+        let (_own, root, dir) = import_gate_project();
+        let destination = dir.join(name);
+        std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        std::fs::copy(root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy")), destination).unwrap();
+        assert!(write_dir(&root).is_ok());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn records_store_import_gate_recognised_capture_and_pending_waive_census() {
+    let capture: Value = serde_json::from_slice(include_bytes!("../../tests/fixtures/FX-DP1/aac/cap-decide-PKG-1.json")).unwrap();
+    crate::schema_validation::validate_capture(&capture).unwrap();
+    for pending in [false, true] {
+        let (_own, root, dir) = import_gate_project();
+        let folder = dir.join(if pending { "captures/pending" } else { "captures" });
+        std::fs::create_dir_all(&folder).unwrap();
+        let value = if pending { json!({"capture":capture,"recordId":"rec:app:pending","log":crate::recorder::LOG,"observedAt":capture["capturedAt"],"delayed":false}) } else { capture.clone() };
+        std::fs::write(folder.join(format!("{}.json", storage::key(capture["captureId"].as_str().unwrap()))), serde_json::to_vec(&value).unwrap()).unwrap();
+        assert!(write_dir(&root).is_ok());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn records_store_import_gate_completed_import_waives_census_but_incomplete_still_refuses() {
+    let (_own, root, dir) = import_gate_project();
+    import(&root).unwrap();
+    std::fs::write(root.join(".chirality/records/late.jsonl"), b"a late legacy file").unwrap();
+    assert!(write_dir(&root).is_ok());
+    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":"import:late","at":"now","storeHeld":true,"census":[]})).unwrap();
+    assert!(store_holds(&dir).unwrap());
+    assert!(write_dir(&root).unwrap_err().contains("import incomplete"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_controls_and_exact_staging_names_never_waive_census() {
+    let nonce = "12345678-1234-4234-8234-123456789abc";
+    let hash = storage::key("cap:fixture");
+    for relative in [".writer.lock".into(), "captures/.capture.lock".into(), "captures/pending".into(),
+        format!("captures/.{hash}.json.{nonce}.tmp"),
+        format!("captures/pending/.{hash}.json.{nonce}.tmp"),
+        format!("workflow/.pending-{nonce}"),
+        format!("workflow/.{nonce}.json.{nonce}.tmp"),
+        format!("connectors/route-accounts/.route-{nonce}.tmp")] {
+        let (_own, root, dir) = import_gate_project();
+        let path = dir.join(&relative);
+        if relative == "captures/pending" { std::fs::create_dir_all(&path).unwrap(); }
+        else {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"").unwrap();
+        }
+        let result = write_dir(&root);
+        assert!(result.as_ref().is_err_and(|e| e.contains("import needed")), "{relative}: {result:?}");
+        // The same preparation in a new project must admit normal recording.
+        std::fs::remove_dir_all(root.join(".chirality/records")).unwrap();
+        assert!(write_dir(&root).is_ok(), "{relative}: normal first write refused");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn records_store_import_gate_recognised_capture_during_create_link_waives_census() {
+    let (_own, root, dir) = import_gate_project();
+    let capture: Value = serde_json::from_slice(include_bytes!("../../tests/fixtures/FX-DP1/aac/cap-decide-PKG-1.json")).unwrap();
+    let check_root = root.clone();
+    storage::after_create_link_for_test(Some(Box::new(move |_| {
+        assert!(write_dir(&check_root).is_ok(), "a published capture's temporary hard-link alias must not refuse ordinary recording");
+    })));
+    storage::create_json(&dir.join("captures").join(format!("{}.json", storage::key(capture["captureId"].as_str().unwrap()))), &capture).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn placement_uses_the_override_or_app_data_and_never_falls_back() {
     // The App data folder as a release build sees it (never created here; outside every temporary folder).

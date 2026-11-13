@@ -44,6 +44,18 @@ fn failure() -> StoreError {
 }
 
 #[test]
+fn records_store_import_gate_recognised_connector_account_waives_census() {
+    let scratch = Scratch::new();
+    let root = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&root).unwrap();
+    store.write(&account("ra:import-gate")).unwrap();
+    let legacy = root.join(".chirality/records/acts");
+    fs::create_dir_all(&legacy).unwrap();
+    fs::write(legacy.join("late.jsonl"), b"late in-place evidence").unwrap();
+    assert!(crate::records_store::write_dir(&root).is_ok());
+}
+
+#[test]
 fn embedded_schemas_validate_exact_versions() {
     let v2 = account("ra:v2");
     validate_account(&v2).unwrap();
