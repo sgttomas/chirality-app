@@ -217,13 +217,18 @@ not closed.
   - The walk never confirms setup, and stops as soon as the watch shows the
     launcher's build gone, so it does not go on to operate the stray build
     (read in the script; a click or view already under way is not recalled).
-  - What it writes under the real Library before any choice: the App creates
-    its data folder there, named for the build's identifier, with a
-    `desktop-startup` folder in it (read: the first thing a start without a
-    saved request does); and the system's web view creates folders named for
-    the identifier under `WebKit` and `Caches` (seen on an earlier build
-    launched under the real home on 12 November). Whether it writes anything
-    else there before a choice has not been traced.
+  - What it writes under the real Library before any choice: the App's own
+    code writes nothing there. With no saved request it returns before it
+    takes or creates its data folder, which is first made at the confirmation
+    (read: the start asks only whether the request file exists; the review
+    computes paths and creates nothing; the consumers that would use the
+    data folder are not given one while setup is required; the page's script
+    stores nothing at a first start). What appears is what the system's web
+    view makes for any application that opens one: folders named for the
+    identifier under `WebKit` and `Caches`, and entries in the per-user cache
+    folder (seen on an earlier build launched under the real home on 12
+    November, where no Application Support folder existed afterwards). What
+    else the system records for a newly seen application has not been read.
   - It reads the owner's real home as any application the owner starts
     would. It sends nothing: no sign-in, no model request and no conversation
     exist before setup.
