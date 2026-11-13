@@ -897,13 +897,16 @@ changes the first-use setup page, or what it shows or when it opens, the
 scenario is run again on a candidate built from that main, by a walk under
 this method or by the scripted driver once it has passed
 (`app/examination/scripted_driver/`), before that change is relied on. The
-lane notices such a merge by the files it touches:
-`app/src/FirstUse.tsx`; in `app/src/App.tsx`, the branch that renders
-`FirstUseSetup`; the `desktop_setup_*` commands in `app/src-tauri/src/lib.rs`;
-and `app/src-tauri/src/desktop_startup.rs`, which decides that setup is
-required and builds what the page reviews. A merge that touches one of
-these is read to decide whether it bears on the page; where it is not clear,
-the scenario is run.
+lane notices such a merge by the files it touches, at least these (the list
+is not exclusive): `app/src/FirstUse.tsx`; in `app/src/App.tsx`, the branch
+that renders `FirstUseSetup` and decides that setup is required;
+`app/src/DailyWorkspace.tsx`, which holds the page's styles;
+`app/src/hostReads.ts`, through which the page reads the App's state; in
+`app/src-tauri/src/lib.rs`, `host_status` and the `desktop_setup_*`
+commands; and `app/src-tauri/src/desktop_startup.rs`, which decides that
+setup is required and builds what the page reviews. A merge that touches one
+of these is read to decide whether it bears on the page; where it is not
+clear, the scenario is run.
 
 What it shows when it passes:
 
@@ -1286,9 +1289,12 @@ On a development candidate built from main, in two windows the owner gave:
   prompt was reported to the operator by the walk or its tools; nobody
   watched the screen.
 - A4 was judged by App Agent 0 to be shown by A3, by the first clause of
-  the pilot's text for it: the unchanged scenario run by a worker who is not
-  its author on a candidate built from a descendant of A2's main that
-  contains a merged change to the App. Between A2's main and A3's only this
+  the pilot's text for it, which reads: "the unchanged scenario is run by a
+  worker who is not its author on a later candidate, meaning one built from a
+  descendant of A2's main revision that contains a merged change to the App;
+  or a repair on that page is verified by it. No change is manufactured to
+  obtain a second candidate." (the pilot's own text, as Inter-Project gave it
+  to App Agent 0 on 13 November 2026). Between A2's main and A3's only this
   README differed under `app/examination/standalone`, so the scenario file
   and `walk.mjs` were the ones A2 ran; A3's main held two merged changes to
   the App. Two limits: neither change was to the first-use page, so this
