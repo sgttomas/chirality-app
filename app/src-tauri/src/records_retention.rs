@@ -892,22 +892,43 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         event(&plan.dir, &s, "disposal-completed", None, &current)?;
         Ok(())
     })();
+    // What is reported follows what is known. A completion that was published
+    // is reported as one, even when the state cannot be read again for the
+    // reply; an error with the state unreadable leaves whether the completion
+    // was recorded unknown, never "incomplete", and keeps the resync path.
     match result {
-        Ok(()) => Ok(
-            json!({"state":"disposed","projectId":current["projectId"],"administration":state(&plan.dir)?.view(),"export":current["export"],"exportLogIntegrity":crate::records_export::stored_log_integrity(&current["export"]),"standing":match crate::records_export::integrity_statement(&crate::records_export::stored_log_integrity(&current["export"])) {
+        Ok(()) => {
+            let administration = match state(&plan.dir) {
+                Ok(s) => s.view(),
+                Err(read) => json!({"disposition":"unavailable","limit":format!("the completion is recorded; the retention state could not be read again for this reply: {read}")}),
+            };
+            Ok(
+            json!({"state":"disposed","projectId":current["projectId"],"administration":administration,"export":current["export"],"exportLogIntegrity":crate::records_export::stored_log_integrity(&current["export"]),"standing":match crate::records_export::integrity_statement(&crate::records_export::stored_log_integrity(&current["export"])) {
                 Some(limit) => format!("Only this project's App store payload was removed. Administrative evidence and the export survive. The export's bytes were verified against the store. {limit}"),
                 None => "Only this project's App store payload was removed. Administrative evidence and the verified export survive.".to_owned(),
             }}),
-        ),
+            )
+        }
         Err(e) => {
-            if state(&plan.dir).is_ok_and(|s| s.completed) {
+            let uncertain = || {
                 UNCERTAIN_COMPLETIONS
                     .lock()
                     .unwrap_or_else(|p| p.into_inner())
-                    .insert(plan.dir.clone());
-                Err(format!("records removed; completion publication durability uncertain; original disposal act retained and recording blocked; use Finish disposal to sync the existing completion evidence: {e}"))
-            } else {
-                Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes: {e}"))
+                    .insert(plan.dir.clone())
+            };
+            match state(&plan.dir) {
+                Ok(s) if s.completed => {
+                    uncertain();
+                    Err(format!("records removed; completion publication durability uncertain; original disposal act retained and recording blocked; use Finish disposal to sync the existing completion evidence: {e}"))
+                }
+                Ok(_) => Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes: {e}")),
+                Err(read) => {
+                    // Marked as a completion that may be uncertain: it counts
+                    // only if a completion is in fact recorded, and then
+                    // Finish disposal syncs it rather than refusing.
+                    uncertain();
+                    Err(format!("the disposal stopped, and whether its completion was recorded is not known: the retention state could not be read ({read}); original disposal act retained and recording blocked; use Finish disposal once the state can be read: {e}"))
+                }
             }
         }
     }

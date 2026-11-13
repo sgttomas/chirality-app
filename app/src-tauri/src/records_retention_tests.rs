@@ -1530,3 +1530,52 @@ fn a_disposal_whose_removal_stage_cannot_be_examined_records_no_completion() {
     }
     assert!(disposed.is_err(), "{disposed:?}");
 }
+
+/// Removal established: a true completion is reported as one. The state is
+/// made unreadable at the moment the completion's own event is read back
+/// (the payload's parent made unsearchable then), so the act's report cannot
+/// re-read the state. A published, durable completion still reads
+/// "disposed"; a published completion whose sync failed is reported as not
+/// known, never "incomplete", and keeps Finish disposal's resync path.
+#[test]
+fn a_true_completion_is_reported_as_one_when_the_state_cannot_be_read_again() {
+    use std::os::unix::fs::PermissionsExt;
+    fn on_completion_read(projects: PathBuf) {
+        AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = Some(Box::new(move |path: &Path| {
+            if path.file_name().and_then(|n| n.to_str()) == Some("00000000000000000003.json") {
+                std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o400)).unwrap();
+            } else {
+                on_completion_read(projects);
+            }
+        })));
+    }
+    for uncertain in [false, true] {
+        let f = Fixture::new();
+        f.act("close", None).unwrap();
+        let bag = f.export("bag");
+        let dir = f.dir();
+        let projects = dir.parent().unwrap().to_path_buf();
+        FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(uncertain));
+        on_completion_read(projects.clone());
+        let reply = f.act("dispose", Some(&bag));
+        let denied = std::fs::symlink_metadata(&dir).map(|_| ()).map_err(|e| e.kind());
+        std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o700)).unwrap();
+        AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = None);
+        FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(false));
+        storage::fail_directory_for_test(None);
+        assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "uncertain {uncertain}: a real permission failure");
+        let actual = state(&dir).unwrap();
+        assert!(actual.completed && !dir.exists(), "uncertain {uncertain}: the completion is true");
+        if uncertain {
+            let e = reply.unwrap_err();
+            assert!(!e.contains("disposal incomplete") && e.contains("not known"), "never reported incomplete: {e}");
+            assert_eq!(view(&dir)["disposition"], "completion durability uncertain");
+            assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed", "the resync path is kept");
+        } else {
+            let reply = reply.unwrap();
+            assert_eq!(reply["state"], "disposed", "{reply}");
+            assert_eq!(reply["administration"]["disposition"], "unavailable", "{reply}");
+            assert_eq!(view(&dir)["disposition"], "disposed");
+        }
+    }
+}
