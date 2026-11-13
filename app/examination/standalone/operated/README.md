@@ -339,16 +339,32 @@ not closed.
     exception".
   - A scenario that confirms setup, starts a Codex or types anything is not
     covered: the question is put again with that scenario's own extent.
-- **App Agent 0's note, 13 November 2026.** Two facts in the question as put
-  have since been corrected. "Starts no Codex" holds only while a start by
-  the launch service is given none of the App's configuration variables;
-  that is now stated above and checked in step 1 before every walk. "Sends
-  nothing" is now "no sign-in, no model request and no conversation; what
-  the web view or the system sends on its behalf was not examined". The
-  sentence above that a fact found wrong means no walk until the owner is
-  asked again is adopted, alongside the condition stated above. The owner's
-  confirmation on the corrected account is pending: until it is given, no
-  walk is made.
+- **App Agent 0's decision on the corrected account, 13 November 2026.**
+  "Decided by App Agent 0, 13 November 2026, under the project grant in
+  AGENTS.md. Two of the facts given to the owner with the question were
+  corrected after the owner's answer: that a stray start starts no Codex
+  holds only while none of the ten CHIRALITY_ variables is present in the
+  environment the launch service gives the build; and that it 'sends
+  nothing' was more than was read. The owner then said, in the Inter-Project
+  thread on 13 November: 'I'm AFK, no need to ask for leave. Also that
+  MacBook Pro machine is dedicated to this agentic dev session. I do my
+  personal work on other machines. So no need to ask permission to use the
+  computer or screen.' On that authorisation and the grant, Agent 0 decides
+  that the exception stands on the corrected account, for the first-use
+  setup scenario only. This is Agent 0's decision; it is not recorded as the
+  owner having accepted the corrections. What is established, by reading the
+  App's source: before setup is confirmed there is no sign-in, no model
+  request and no conversation. What is not examined: what macOS or its web
+  view sends for an application that opens one. The owner may reverse
+  this."
+  - Its condition is the one stated above, under "The condition of the
+    exception". The rule that a fact found wrong means no walk until the
+    owner is asked again also stands.
+  - What ends the exception without a further word from anyone: evidence
+    that this guarded scenario reaches the owner's credentials, the
+    installed v3, the keychain or `~/.codex`, or sends application or user
+    content. Then the walk stops, nothing is retried, and the lane tells App
+    Agent 0.
 
 ## Running a scenario
 
