@@ -2391,6 +2391,28 @@ fn u_store_2_new_a15_has_unverified_provenance_and_old_a15_is_unknown() {
     assert!(!restarted.is_held(second.identity()), "persistent attribution never restores selection authority");
 }
 
+/// The library's act log that cannot be examined (its records folder not
+/// searchable, the registration ledger beside it still readable): the
+/// registration history says its act set is incomplete, and never reads as a
+/// complete history in which no registration has an act.
+#[test]
+fn u_store_2_an_unexaminable_act_log_never_reads_as_a_complete_history_without_acts() {
+    use std::os::unix::fs::PermissionsExt;
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    register(&owner, one.revision());
+    let cold = s.persistent_owner();
+    assert!(cold.registration_evidence()["limits"].as_array().unwrap().is_empty(), "readable: no limit");
+    let records = storage::library_log(&s.0).parent().unwrap().to_path_buf();
+    fs::set_permissions(&records, fs::Permissions::from_mode(0o000)).unwrap();
+    let history = cold.registration_evidence();
+    fs::set_permissions(&records, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(history["rows"].as_array().unwrap().len(), 1, "the ledger is still read: {history}");
+    assert!(history["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains("incomplete record"))),
+        "the act set is said to be incomplete: {}", history["limits"]);
+}
+
 fn registered(outcome: &EntryOutcome) -> &RegisteredRevision {
     match outcome {
         EntryOutcome::Registered { revision, .. } => revision,
