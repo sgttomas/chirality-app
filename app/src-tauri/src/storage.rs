@@ -267,6 +267,61 @@ fn publication_step(step: PublicationStep, path: &Path) {
         }
     });
 }
+/// Observe only this direct publisher call, with all directories already made.
+#[cfg(test)]
+pub(crate) fn assert_publication_order_for_test(
+    path: &Path,
+    staging: &Path,
+    publication_directories: &[PathBuf],
+    publish: impl FnOnce() -> Result<(), String>,
+) {
+    use std::{cell::RefCell, rc::Rc};
+    let steps = Rc::new(RefCell::new(Vec::new()));
+    let observed = steps.clone();
+    observe_publication_for_test(Some(Box::new(move |step, at| {
+        observed.borrow_mut().push((step, at.to_path_buf()));
+    })));
+    let result = publish();
+    observe_publication_for_test(None);
+    result.unwrap();
+    let steps = steps.borrow();
+    let (first, temporary) = steps.first().expect("publisher emitted observations");
+    assert_eq!(*first, PublicationStep::DataSynced);
+    assert_eq!(temporary.parent(), Some(staging));
+    let name = temporary.file_name().unwrap().to_str().unwrap();
+    let prefix = format!(".{}.", path.file_name().unwrap().to_str().unwrap());
+    let id = name
+        .strip_prefix(&prefix)
+        .unwrap()
+        .strip_suffix(".tmp")
+        .unwrap();
+    assert_eq!(
+        uuid::Uuid::parse_str(id).unwrap().hyphenated().to_string(),
+        id
+    );
+    let mut expected = vec![
+        (PublicationStep::DataSynced, temporary.clone()),
+        (PublicationStep::Published, path.to_path_buf()),
+        (PublicationStep::FileSynced, path.to_path_buf()),
+    ];
+    expected.extend(
+        publication_directories
+            .iter()
+            .map(|dir| (PublicationStep::DirectorySynced, dir.clone())),
+    );
+    if Some(staging) != path.parent() {
+        expected.push((PublicationStep::DirectorySynced, staging.to_path_buf()));
+    }
+    // The last observation is the retained best-effort staging-folder sync,
+    // even when an earlier checked sync named the same folder.
+    expected.push((PublicationStep::DirectorySynced, staging.to_path_buf()));
+    assert_eq!(
+        steps.as_slice(),
+        expected.as_slice(),
+        "one direct publication of {}",
+        path.display()
+    );
+}
 pub fn sync_dir(path: &Path) -> Result<(), String> {
     #[cfg(test)]
     if FAIL_DIRECTORY.with(|p| p.borrow().as_deref() == Some(path)) {
@@ -705,30 +760,28 @@ mod tests {
         );
         std::fs::remove_file(&path).unwrap();
 
-        let steps = Rc::new(RefCell::new(Vec::new()));
-        let observed = steps.clone();
-        observe_publication_for_test(Some(Box::new(move |step, at| {
-            observed.borrow_mut().push((step, at.to_path_buf()))
-        })));
-        publish().unwrap();
-        observe_publication_for_test(None);
-        let steps = steps.borrow();
-        let published = steps
-            .iter()
-            .position(|(step, at)| *step == PublicationStep::Published && at == &path)
-            .unwrap();
-        assert!(steps[..published]
-            .iter()
-            .any(|(step, at)| *step == PublicationStep::DataSynced
-                && at.parent() == Some(root.as_path())));
-        assert!(steps[published + 1..]
-            .iter()
-            .any(|(step, at)| *step == PublicationStep::FileSynced && at == &path));
-        assert!(steps[published + 1..]
-            .iter()
-            .any(|(step, at)| *step == PublicationStep::DirectorySynced && at == &root));
+        assert_publication_order_for_test(&path, &root, std::slice::from_ref(&root), publish);
         assert_eq!(crate::records_retention::read_plain(&path).unwrap(), bytes);
         std::fs::remove_file(&path).unwrap();
+
+        // Also exercise the existing publication boundary, with every ancestor
+        // named explicitly instead of deriving expectations from the publisher.
+        let chirality = root.join(".chirality");
+        let parent = chirality.join("records");
+        ensure_directory(&parent).unwrap();
+        let nested = parent.join(path.file_name().unwrap());
+        assert_publication_order_for_test(
+            &nested,
+            &parent,
+            &[parent.clone(), chirality, root.clone()],
+            || {
+                if json {
+                    create_json(&nested, &value)
+                } else {
+                    create_bytes(&nested, &bytes)
+                }
+            },
+        );
 
         for point in [PublicationPoint::Staged, PublicationPoint::Published] {
             let staged = Rc::new(RefCell::new(None));

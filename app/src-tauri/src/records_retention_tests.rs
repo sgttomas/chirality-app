@@ -1881,7 +1881,36 @@ fn an_export_never_publishes_a_linked_member() {
 }
 
 fn publication_interruption(marker: bool) {
-    use storage::{PublicationPoint, PublicationStep};
+    use storage::PublicationPoint;
+    {
+        let f = Fixture::new();
+        let control = control(&f.dir()).unwrap();
+        let parent = if marker {
+            control.clone()
+        } else {
+            control.join("events")
+        };
+        storage::ensure_directory(&parent).unwrap();
+        let path = parent.join(if marker {
+            "history-started.json"
+        } else {
+            "00000000000000000001.json"
+        });
+        // Observe the publisher directly. No event()/durable_history() call can
+        // contribute extra observations that disguise a missing or late sync.
+        storage::assert_publication_order_for_test(
+            &path,
+            &control,
+            std::slice::from_ref(&parent),
+            || {
+                storage::create_json_staged(
+                    &path,
+                    &json!({"fixture":"direct administrative publication order"}),
+                    &control,
+                )
+            },
+        );
+    }
     for subsequent in [false, true] {
         for point in if marker {
             [PublicationPoint::Published, PublicationPoint::Staged]
@@ -1961,11 +1990,6 @@ fn publication_interruption(marker: bool) {
             // Neither ordinary recording nor the next administrative act is
             // stranded by an interrupted stage left outside events.
             f.record();
-            let steps = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
-            let observed = steps.clone();
-            storage::observe_publication_for_test(Some(Box::new(move |step, at| {
-                observed.borrow_mut().push((step, at.to_path_buf()))
-            })));
             f.act(
                 if state.hold {
                     "release-hold"
@@ -1975,33 +1999,7 @@ fn publication_interruption(marker: bool) {
                 None,
             )
             .unwrap();
-            storage::observe_publication_for_test(None);
-            let steps = steps.borrow();
             let final_path = events.join(format!("{:020}.json", expected + 1));
-            let published = steps
-                .iter()
-                .position(|(step, at)| *step == PublicationStep::Published && at == &final_path)
-                .unwrap();
-            let data = steps[..published]
-                .iter()
-                .rfind(|(step, _)| *step == PublicationStep::DataSynced)
-                .unwrap();
-            assert_eq!(data.1.parent(), Some(control(&dir).unwrap().as_path()));
-            assert!(data
-                .1
-                .file_name()
-                .unwrap()
-                .to_string_lossy()
-                .starts_with(&format!(
-                    ".{}.",
-                    final_path.file_name().unwrap().to_string_lossy()
-                )));
-            assert!(steps[published + 1..]
-                .iter()
-                .any(|(step, at)| *step == PublicationStep::FileSynced && at == &final_path));
-            for folder in [&events, &control(&dir).unwrap()] {
-                assert!(steps[published + 1..].iter().any(|(step, at)| *step == PublicationStep::DirectorySynced && at == folder), "both event and staging folders are synced after publication");
-            }
             let original = read_plain(&final_path).unwrap();
             let links = std::fs::metadata(&final_path).unwrap().nlink();
             let names = || {
