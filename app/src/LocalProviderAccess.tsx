@@ -4,7 +4,8 @@
 // latter opening a native secure field. This webview never receives a key; it
 // shows only the named nonsecret fields of the returned view.
 import { useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+// Through hostReads' marking function: a settings save can change what the guides show.
+import { invoke } from "./hostReads";
 type Json = any;
 
 export const LOCAL_MODE = "local-provider";
