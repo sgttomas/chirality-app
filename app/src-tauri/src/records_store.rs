@@ -1496,10 +1496,16 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
         }
     }
     // The explicitly registered legacy log (§13.7) is project history too.
-    // Present, absent, or not known: a log that cannot be examined is an
-    // error, never absent. Its folder (`records` at the project's root) is
-    // the project's own: a file of that name there means the log cannot
-    // exist, which is absence.
+    // Present, absent, or not known: a log that cannot be examined (its
+    // folder unsearchable, for one) is an error, never absent.
+    // One case of "not a folder" is absence and is kept as absence, on
+    // purpose: the log's folder is `records` at the project's ROOT, which is
+    // the project's own space and not the App's `.chirality` folder. A
+    // project may well have an ordinary file named `records` there, and a
+    // path beneath a regular file cannot exist (the system answers
+    // NotADirectory), so the log is observed to be absent, not left
+    // uninspected. Inside `.chirality`, where earlier builds wrote only
+    // folders, something other than a folder is an error instead (`list`).
     let registered = root.join(crate::storage::LEGACY_LOG);
     crate::storage::check_path(&registered)?;
     match std::fs::symlink_metadata(&registered) {
