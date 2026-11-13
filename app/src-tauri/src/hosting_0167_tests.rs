@@ -118,7 +118,7 @@ fn selected_0167_mismatch_refuses_before_any_version_probe() {
     let mut cfg = HostConfig::new(main, root.clone(), root.clone(), root.clone());
     cfg.expected_sha256 = Some(ASSESSMENT_SUPPLIER_SHA256.into());
     cfg.allow_unverified_dev = true;
-    let (result, label, distribution) = Host::new().verify(0, &cfg);
+    let (result, label, distribution) = Host::new().verify(0, &super::AdmittedHome::current(&cfg.codex_home), &cfg);
     assert_eq!(result["result"], "mismatch");
     assert_eq!(result["element"], "canonical .167 distribution preflight");
     assert!(label.is_none());
@@ -221,7 +221,7 @@ fn retained_canonical_0167_mutations_refuse_before_probe() {
         );
         cfg.expected_sha256 = Some(ASSESSMENT_SUPPLIER_SHA256.into());
         cfg.allow_unverified_dev = true;
-        let (result, label, distribution) = Host::new().verify(0, &cfg);
+        let (result, label, distribution) = Host::new().verify(0, &super::AdmittedHome::current(&cfg.codex_home), &cfg);
         assert_eq!(result["result"], "mismatch", "{case}");
         assert_eq!(
             result["element"], "canonical .167 distribution preflight",

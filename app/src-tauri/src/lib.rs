@@ -54,6 +54,8 @@ mod native_local_provider;
 mod dev_model_address;
 mod native_secure_entry;
 mod desktop_startup;
+mod home_hold;
+mod session_liveness;
 mod desktop_setup_confirmation;
 mod main_window;
 mod provider_endpoint_confirmation;
@@ -757,6 +759,9 @@ fn host_status(state: State<'_, AppState>) -> Value {
     if let Err(e) = &home.host_config {
         s["configurationProblem"] = json!(e);
     }
+    // The home this status is for, as `lastStartRefusal.home` names one: a
+    // refusal is shown only for the home being shown.
+    s["codexHome"] = home.host_config.as_ref().map_or(Value::Null, |cfg| json!(hosting::home_identity(&cfg.codex_home)));
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
@@ -1331,6 +1336,8 @@ fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Valu
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
+    // Whatever refuses this request, an earlier refusal is no longer the latest.
+    home.host.begin_start_request();
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App quit is under way; Codex was not started".into()); }
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
@@ -2761,12 +2768,84 @@ fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_
 #[tauri::command(async)]
 fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
+/// The environment route's App data directory, named explicitly, for
+/// development runs only. Without it the route uses the App's own data
+/// directory for its identifier, which every development run that keeps the
+/// committed identifier shares; one App at a time holds an App data
+/// directory, so parallel development runs each name their own.
+///
+/// Read only when `tauri::is_dev()` is true, as the records-store override
+/// is. A built App does not read it: it neither selects the environment
+/// route nor moves the App's data, so nothing inherited from the environment
+/// can point an installed App at other data.
+pub(crate) const APP_DATA_ENV: &str = "CHIRALITY_APP_DATA";
+/// Any of these selects the environment route; its inputs are then exclusive.
+const ENVIRONMENT_KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR", APP_DATA_ENV];
+fn environment_selected(input: impl Fn(&str)->Option<std::ffi::OsString>) -> bool {
+    ENVIRONMENT_KEYS.iter().any(|key|input(key).is_some())
+}
+/// The startup inputs as this build reads them: a build that is not a
+/// development run does not see [`APP_DATA_ENV`] at all.
+fn build_input<'a>(input: &'a impl Fn(&str)->Option<std::ffi::OsString>, is_dev: bool) -> impl Fn(&str)->Option<std::ffi::OsString> + 'a {
+    move |key| if key == APP_DATA_ENV && !is_dev { None } else { input(key) }
+}
+/// The startup admission `run` performs before any operational consumer:
+/// the App data directory (named by [`APP_DATA_ENV`] or the platform's), the
+/// launch route, and one App at a time on that data on either route. On the
+/// environment route App data must resolve and be held before any of its
+/// launch inputs is built (its probe home included); otherwise nothing
+/// operational starts and the actual reason is shown.
+pub(crate) fn admitted_startup(
+    input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
+    probe: impl Fn()->Result<PathBuf,String>,
+) -> (desktop_startup::DesktopSetup, desktop_startup::RootInputs) {
+    let input = build_input(&input, is_dev);
+    let data = environment_app_data(&input).unwrap_or(platform_data);
+    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
+    if environment_selected(&input) {
+        if let Err(reason) = data.as_ref().map_err(Clone::clone).and_then(|data| desktop.hold_environment_data(data)) {
+            let inputs = desktop.refuse_environment(&reason);
+            return (desktop, inputs);
+        }
+    }
+    let environment = explicit_environment_launch(&input, &data, &resources, is_dev, &probe);
+    let launch = desktop.resolve(environment, is_dev, &probe);
+    let inputs = desktop.admit_root(launch, data);
+    (desktop, inputs)
+}
+/// This process's exclusive hold on an App data directory, taken through the
+/// App's own lease and its registration (as both launch routes take it).
+#[doc(hidden)]
+pub struct AppDataCustody(#[allow(dead_code)] desktop_startup::DesktopSetup);
+/// Test fixtures that model an App relaunch on a ledger take App data custody
+/// of their fixture root as the App does, so that a session is started only
+/// under it. The root is created if missing and named by its canonical path
+/// (the lease refuses a path through a link). Not a bypass: the same lease and
+/// registration the App takes at launch.
+#[doc(hidden)]
+pub fn hold_app_data_for_test(data: &std::path::Path) -> Result<AppDataCustody, String> {
+    std::fs::create_dir_all(data).map_err(|e| e.to_string())?;
+    let data = data.canonicalize().map_err(|e| e.to_string())?;
+    let mut setup = desktop_startup::DesktopSetup::new(Ok(data.clone()), Err("no resources for an App data hold".into()));
+    setup.hold_environment_data(&data)?;
+    Ok(AppDataCustody(setup))
+}
+/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`.
+fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Option<Result<PathBuf,String>> {
+    let value = input(APP_DATA_ENV).filter(|v| !v.is_empty())?;
+    let path = PathBuf::from(value);
+    Some(if path.is_absolute() && !path.components().any(|c| matches!(c, std::path::Component::ParentDir | std::path::Component::CurDir)) {
+        Ok(path)
+    } else {
+        Err(format!("{APP_DATA_ENV} must be an absolute path without . or .. components"))
+    })
+}
+
 fn explicit_environment_launch(
     input: impl Fn(&str)->Option<std::ffi::OsString>, data: &Result<PathBuf,String>, resources: &Result<PathBuf,String>, is_dev: bool,
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
-    const KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR"];
-    if !KEYS.iter().any(|key|input(key).is_some()) { return None; }
+    if !environment_selected(&input) { return None; }
     let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
         host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
@@ -2789,6 +2868,19 @@ fn explicit_environment_launch(
     Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
 }
 
+/// The launch's automatic start of Codex (HOSTING §4.6, actor `app-startup`),
+/// as `run` performs it on either route: the App ledger is configured, then
+/// this App's custody is rechecked, then the Host starts.
+pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, cfg: &HostConfig, desktop: &Mutex<desktop_startup::DesktopSetup>) -> Result<Value, String> {
+    runtime_session::start_with_recovery(host, recovery, data, Some(&cfg.codex_home), || {
+        // A refusal before Host::start is kept as the host status's last
+        // start refusal too (Host::start keeps its own home refusals).
+        host.begin_start_request();
+        let admitted = desktop.lock().map_err(|_|"Desktop custody unavailable".to_string()).and_then(|desktop|desktop.recheck_active());
+        if let Err(reason) = admitted { host.note_start_refusal("app-startup", &cfg.codex_home, &reason); return Err(reason); }
+        host.start(cfg, "app-startup")
+    })
+}
 fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
     let desktop_startup::Launch { workspace, host_config, key_path, shared_paths, bootstrap, namespaces, source } = launch;
     let source = if source == "explicit environment (exclusive)" { "explicit Root native environment path inputs" } else { source };
@@ -2964,12 +3056,8 @@ pub fn run() {
             let _ = window.minimize();
         })
         .setup(move |app| {
-    let data = app.path().app_data_dir().map_err(|e| e.to_string());
     let resources = app.path().resource_dir().map_err(|e|e.to_string());
-    let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
-    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
-    let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
-    let desktop_startup::RootInputs { mut launch, data, allow_operational } = desktop.admit_root(launch, data);
+    let (desktop, desktop_startup::RootInputs { mut launch, data, allow_operational }) = admitted_startup(|key|std::env::var_os(key), app.path().app_data_dir().map_err(|e| e.to_string()), resources.clone(), tauri::is_dev(), probe_home);
     // DEL-01-05: a development build can be held to a same-machine model address.
     // Not consulted in the release configuration.
     launch.host_config = dev_model_address::apply(launch.host_config, development_inputs_admitted(tauri::is_dev()), |key|std::env::var_os(key));
@@ -3042,13 +3130,7 @@ pub fn run() {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
                 std::thread::spawn(move || {
-                    let _ = runtime_session::start_with_recovery(
-                        &h,
-                        &recovery,
-                        data.as_deref().map_err(String::as_str),
-                        Some(&cfg.codex_home),
-                        || { desktop.lock().map_err(|_|"Desktop custody unavailable")?.recheck_active()?; h.start(&cfg, "app-startup") },
-                    );
+                    let _ = automatic_start(&h, &recovery, data.as_deref().map_err(String::as_str), &cfg, &desktop);
                 });
             }
             Ok(())
