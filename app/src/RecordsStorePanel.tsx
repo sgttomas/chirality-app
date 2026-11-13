@@ -24,7 +24,7 @@ export function integrityLines(integrity: Json): string[] {
 
 const UNSIGNED = "The package is unsigned: this shows it agrees with its own manifests and recorded chain heads, not who made it.";
 const RETENTION_DONE: Record<string, string> = {
-  close: "Project closed. Nothing more is recorded for it, and Codex does not start in it, until you reopen it.",
+  close: "Project closed. Ordinary recording stops for it, and Codex does not start in it, until you reopen it. Setting or releasing a legal hold and disposal are still recorded.",
   reopen: "Project reopened. Other recording limits, if any, still apply.",
   "set-hold": "Legal hold set. This project’s records cannot be disposed of until you release it.",
   "release-hold": "Legal hold released. The App still checks all disposal preconditions.",
@@ -138,7 +138,7 @@ function LogIntegrity({ chain, heads, busy, act }: { chain: Json; heads: Json; b
     {read && Number(chain.broken) === 0 && <p>{count(chain.logs, "log")} listed in the last read.{" Chain integrity is not established by this count; check now for the reader’s limits."}{Number(chain.legacy) > 0 ? ` ${count(chain.legacy, "log has", "logs have")} lines written before chaining began.` : ""}</p>}
     {read && chain.discoveryLimit && <p role="alert">Not every log could be listed: {text(chain.discoveryLimit)}</p>}
     {!read && <p>{chain?.state && chain.state !== "not read yet in this process" ? `Log integrity: ${text(chain.state)}.` : "This project’s logs have not been read yet in this session."}</p>}
-    <p><button disabled={busy} onClick={() => act("records_chain_heads")}>Check the logs now</button>{" "}<small>Reads the project’s available logs again and reports the reader’s limits.</small></p>
+    <p><button disabled={busy} onClick={() => act("records_chain_heads")}>Check the logs now</button>{" "}<small>Refreshes the project’s log-integrity report and shows the reader’s limits.</small></p>
     {heads && <div aria-label="Logs as checked now">
       {(heads.error || heads.state === "unavailable") && <p role="alert">Log integrity unavailable: {text(heads.error ?? heads.state)}</p>}
       {heads.discoveryLimit && <p role="alert">Not every log could be listed: {text(heads.discoveryLimit)}</p>}
