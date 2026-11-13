@@ -345,6 +345,10 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       8 and 10) and returns, and it comes to App Agent 0. A process that
       predates its interval found at the end despite that look is recorded,
       left and reported; no process that predates the walk is ever signalled.
+      The lane also looks, from its own shell, at App Agent 0's go, with the
+      same command, and keeps what it finds in the evidence folder as its own
+      record. The operator's look decides; if the two disagree, no walk is
+      made, and it comes to App Agent 0.
     - **What the look cannot rule out.** Something else could start a window
       service between the look and the walk's first call. It would lie inside
       the interval, be taken for the walk's and be ended. The look cannot rule
