@@ -18,24 +18,44 @@ use std::sync::OnceLock;
 
 pub(crate) const SCHEMA: &str =
     include_str!("../resources/runtime_core/recovery.stop-request.schema.json");
+/// The 0.2 schema, kept byte for byte: rows written under it are still read.
+pub(crate) const SCHEMA_V0_2: &str =
+    include_str!("../resources/runtime_core/recovery.stop-request.v0.2.schema.json");
 
+fn build(schema: &str) -> Result<jsonschema::Validator, String> {
+    let schema: Value = serde_json::from_str(schema).map_err(|e| e.to_string())?;
+    jsonschema::options().offline().build(&schema).map_err(|e| e.to_string())
+}
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
-    VALIDATOR
-        .get_or_init(|| {
-            let schema: Value = serde_json::from_str(SCHEMA).map_err(|e| e.to_string())?;
-            jsonschema::options().offline().build(&schema).map_err(|e| e.to_string())
-        })
-        .as_ref()
-        .map_err(Clone::clone)
+    VALIDATOR.get_or_init(|| build(SCHEMA)).as_ref().map_err(Clone::clone)
+}
+fn validator_v0_2() -> Result<&'static jsonschema::Validator, String> {
+    static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
+    VALIDATOR.get_or_init(|| build(SCHEMA_V0_2)).as_ref().map_err(Clone::clone)
 }
 
-/// Validates one complete stop-request record.
+/// Validates one complete stop-request record against the current schema;
+/// every record this App writes passes here.
 pub(crate) fn validate(record: &Value) -> Result<(), String> {
     validator()?
         .validate(record)
         .map_err(|e| format!("stop-request schema refused the record: {e}"))
 }
+/// Validates a record read from the ledger: the current schema, or the 0.2
+/// schema it was written under.
+pub(crate) fn validate_stored(record: &Value) -> Result<(), String> {
+    match validate(record) {
+        Ok(()) => Ok(()),
+        Err(current) => validator_v0_2()?.validate(record).map_err(|_| current),
+    }
+}
+
+/// What the person reads for a send-unknown request (SR-13).
+pub(crate) const SEND_UNKNOWN_READING: &str = "Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known.";
+/// What the person reads for a row an earlier build recorded
+/// `not-sent(write-failed)`; the row itself is read as stored.
+pub(crate) const EARLIER_WRITE_FAILURE_READING: &str = "An earlier App build recorded an interrupt write failure; whether the interrupt reached Codex is not established.";
 
 /// The three causes of a stop request (§3.4): the person's interrupt, a
 /// confirmed App quit (K-4, SQ-Q Q-4) and the person's Stop or Restart Codex.
@@ -171,14 +191,30 @@ impl StopRequest {
         self.request_identity = Some(request_identity.clone());
         self.advance(json!({"send":"sent","clientRequest":client_request,"state":"sent","transition":"SR-02"}))
     }
-    /// SR-03: nothing was sent. `write_failed` distinguishes a failed write
-    /// from a request refused before any write; `reason` says which refusal.
-    pub(crate) fn not_sent(&mut self, write_failed: bool, reason: &str) -> Result<Value, String> {
+    /// SR-03: nothing was sent, because no write of the request began;
+    /// `reason` says why. A write that began is never recorded here: a
+    /// write error after an attempt is not evidence that nothing reached
+    /// Codex (SR-13). `not-sent(write-failed)` is no longer written.
+    pub(crate) fn not_sent(&mut self, reason: &str) -> Result<Value, String> {
         if self.state() != "requested" {
             return Err("stop request is not awaiting its send".into());
         }
-        let send = if write_failed { "not-sent(write-failed)" } else { "not-sent(not-ready)" };
-        self.advance(json!({"send":send,"response":"not-applicable","responseError":reason,"state":"not-sent","transition":"SR-03"}))
+        self.advance(json!({"send":"not-sent(not-ready)","response":"not-applicable","responseError":reason,"state":"not-sent","transition":"SR-03"}))
+    }
+    /// SR-13: the request's write began and its completion was not observed
+    /// (the write returned an error after it was attempted, for instance when
+    /// the process it was writing to was ended), so whether it reached Codex
+    /// is not known. Final once recorded: no response is linked to it and
+    /// none is awaited (`unknown-no-response`), and no later transition
+    /// applies; its turn's outcome is not recorded here. A write still in
+    /// progress is not recorded here: its request stays SR-01 until the write
+    /// returns (SR-02 if it completed). `client_request` is the HOSTING client-request record of the
+    /// attempted write, which carries the write's own error.
+    pub(crate) fn send_unknown(&mut self, client_request: &str) -> Result<Value, String> {
+        if self.state() != "requested" {
+            return Err("stop request is not awaiting its send".into());
+        }
+        self.advance(json!({"send":"unknown(write-incomplete)","clientRequest":client_request,"response":"unknown-no-response","state":"send-unknown","transition":"SR-13"}))
     }
     /// SR-04, SR-05 or SR-12 from the correlated response to the request.
     pub(crate) fn response(&mut self, frame: &Value) -> Result<Option<Value>, String> {
@@ -250,7 +286,7 @@ impl StopRequest {
     /// that its later transitions (SR-08 at startup, SR-09 after a recovery
     /// read) are written through the same path. Its generation is closed.
     pub(crate) fn from_record(record: &Value) -> Result<Self, String> {
-        validate(record)?;
+        validate_stored(record)?;
         let generation = record["generation"].as_str().and_then(|g| crate::recovery::generation_from_ref(g).ok()).unwrap_or(Value::Null);
         Ok(Self { record: record.clone(), generation, request_identity: None, last_entry: None, note: None })
     }
@@ -260,7 +296,7 @@ impl StopRequest {
 /// unsettled (sent, accepted or refused, with no final status and no SR-08):
 /// that session's generations are closed, so the turn's outcome stays
 /// *unknown*. `None` when the record needs no closing (already settled,
-/// outcome unknown, not sent, or only requested).
+/// outcome unknown, not sent, send unknown, or only requested).
 pub(crate) fn closed_at_restart(record: &Value) -> Result<Option<Value>, String> {
     StopRequest::from_record(record)?.generation_closed()
 }
@@ -358,6 +394,10 @@ pub(crate) const SOURCE_SESSION_UNAVAILABLE: &str = "A stop request was recorded
 /// session's request with no final status). A label is derived only where
 /// the source session's end is established; a request of another session
 /// whose end is not established is shown as recorded, with no label.
+/// A stop request recorded in this App session and neither sent, not sent nor
+/// of unknown write outcome yet: its write may be under way.
+pub(crate) const REQUESTED_READING: &str = "Stop requested. The App has not yet confirmed whether the interrupt was sent to Codex.";
+
 fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
     let cause = record["cause"].as_str().unwrap_or_default();
     if let Some(label) = record["outcomeLabel"].as_str() {
@@ -372,14 +412,28 @@ fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
         return (Some(label.to_owned()), reading.to_owned(), false);
     }
     let state = record["state"].as_str().unwrap_or_default();
+    // A send-unknown request of such a session keeps its own reading after
+    // the source sentence: whether its interrupt reached Codex is not known
+    // whatever became of that session.
+    if source == Source::OtherEndNotEstablished && state == "send-unknown" {
+        return (None, format!("{SOURCE_END_NOT_ESTABLISHED} {SEND_UNKNOWN_READING}"), false);
+    }
     if source == Source::OtherEndNotEstablished && state != "not-sent" {
         return (None, SOURCE_END_NOT_ESTABLISHED.to_owned(), false);
     }
     let earlier = source != Source::Current;
     let (label, reading) = match (state, earlier) {
+        // A row of 0.2, which recorded a write that failed after it began
+        // as not sent: that is not evidence that nothing reached Codex.
+        ("not-sent", _) if record["send"] == "not-sent(write-failed)" => (None, EARLIER_WRITE_FAILURE_READING.into()),
         ("not-sent", _) => (None, format!("Stop not sent: {}", record["responseError"].as_str().unwrap_or("reason not recorded"))),
+        // SR-13, in this session or an earlier one, before or after its
+        // generation closed: never a label, never sent or not sent.
+        ("send-unknown", _) => (None, SEND_UNKNOWN_READING.into()),
         ("requested", true) => (None, "Stop requested; the App session ended before its send was recorded, so whether it was sent is not known.".into()),
-        ("requested", false) => (None, "Stop requested; not yet sent.".into()),
+        // SR-01 while the interrupt's write may be under way: nothing about
+        // its transmission is established yet (REQ-002).
+        ("requested", false) => (None, REQUESTED_READING.into()),
         (_, true) => (
             label(cause, "unknown").map(str::to_owned),
             "The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.".into(),
@@ -420,7 +474,7 @@ impl LedgerIndex {
         }
         for entry in rows[self.seen..].iter().copied() {
             let record = &entry["record"];
-            if let Err(error) = validate(record) {
+            if let Err(error) = validate_stored(record) {
                 self.limits.push(format!("a stop_request ledger entry is not a valid stop-request record and is not shown: {error}"));
                 continue;
             }

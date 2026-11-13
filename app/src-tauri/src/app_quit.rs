@@ -25,7 +25,7 @@
 //! (Q-7, AS-09). Unknown settlement keeps the App running and supervised.
 //! A quit ends no workflow run and answers no request.
 
-use crate::codex_stop::{interrupt_and_wait, Interrupts, STOP_WAIT_LIMIT};
+use crate::codex_stop::{interrupt_and_wait, Interrupts, Unsent, STOP_WAIT_LIMIT};
 use crate::runtime_session::{HomeSession, WorkflowRootSession};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -225,21 +225,24 @@ pub(crate) fn assess_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSess
 
 impl<C> Interrupts for HostQuit<'_, C> {
     type Pending = (Arc<crate::hosting::Host>, crate::hosting::SourceRequest);
-    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String> {
-        let thread = turn["threadId"].as_str().ok_or("live turn without a conversation")?;
-        let id = turn["turnId"].as_str().ok_or("live turn without an identity")?;
-        let home = self.home_for(&turn["generation"]).ok_or("the turn's Codex process is no longer the current one; nothing sent")?;
-        let class = crate::stop_records::home_class(home.class().as_str()).ok_or("this home has no App-owned home class")?;
+    fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<Self::Pending, Unsent> {
+        let unsent = |reason: &str| Unsent::NotSent(reason.to_owned());
+        let thread = turn["threadId"].as_str().ok_or_else(|| unsent("live turn without a conversation"))?;
+        let id = turn["turnId"].as_str().ok_or_else(|| unsent("live turn without an identity"))?;
+        let home = self.home_for(&turn["generation"]).ok_or_else(|| unsent("the turn's Codex process is no longer the current one; nothing sent"))?;
+        let class = crate::stop_records::home_class(home.class().as_str()).ok_or_else(|| unsent("this home has no App-owned home class"))?;
         let host = Arc::clone(&home.host);
         let mut written = None;
         let person = &self.person;
         // The same guard as the person's Interrupt control; the request is
-        // written (its SR-01 record first), not awaited.
+        // written (its SR-01 record first), not awaited, and its write is
+        // waited for no later than the quit's stop deadline.
         crate::runtime_session::interrupt_conversation_turn(&host.snapshot(), &turn["generation"], thread, id, |g, t, u| {
-            written = Some(host.turn_interrupt_begin(g, t, u, crate::stop_records::Cause::Quit, class, person)?);
+            written = Some(host.turn_interrupt_within(g, t, u, crate::stop_records::Cause::Quit, class, person, deadline));
             Ok(Value::Null)
-        })?;
-        written.map(|w| (host, w)).ok_or_else(|| "interrupt request not written".to_owned())
+        }).map_err(Unsent::NotSent)?;
+        let written: Result<crate::hosting::SourceRequest, Unsent> = written.map_or_else(|| Err(unsent("interrupt request not written")), Into::into);
+        written.map(|w| (host, w))
     }
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String> {
         pending.0.turn_interrupt_acknowledgment(&pending.1, wait)

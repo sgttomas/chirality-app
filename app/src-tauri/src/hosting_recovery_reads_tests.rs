@@ -539,7 +539,7 @@ fn relaunch_sr09_reaches_an_earlier_sent_request_behind_a_later_unsent_one() {
     let sent = f.ledger().into_iter().rev().find(|e| e["kind"] == "stop_request").unwrap()["record"].clone();
     let generation = crate::recovery::generation_from_ref(sent["generation"].as_str().unwrap()).unwrap();
     let mut later = crate::stop_records::StopRequest::requested(&generation, "H-acct", "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, &crate::stop_records::person("fixture person")).unwrap();
-    let unsent = later.not_sent(false, "refused before sending: fixture").unwrap();
+    let unsent = later.not_sent("refused before sending: fixture").unwrap();
     let session = sent["appSession"].as_str().unwrap();
     let mut ledger = crate::recovery::RecoveryLedger::open(f.root.join("recovery.ledger.jsonl")).unwrap();
     ledger.append(crate::stop_records::ledger_entry(session, &unsent)).unwrap();
@@ -1269,4 +1269,45 @@ fn a_start_refusal_is_bound_to_its_home_and_cleared_when_a_later_attempt_is_admi
     assert_eq!(host.snapshot()["state"], "ready", "the refused request changed nothing else");
     let _ = host.stop("fixture", "test ended");
     let _ = std::fs::remove_dir_all(root);
+}
+
+/// The recovery read after a relaunch leaves a send-unknown request (SR-13)
+/// and a 0.2 row recorded not-sent(write-failed) as they are: neither takes
+/// SR-08 or SR-09, neither becomes the cause of the turn's outcome, even when
+/// Codex's history reports the turn interrupted, and neither reads as sent,
+/// not sent or interrupted.
+#[test]
+fn relaunch_leaves_send_unknown_and_old_write_failed_requests_as_they_are() {
+    let f = Fixture::new();
+    f.live_work();
+    let generation = f.first.clone();
+    f.crash();
+    let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.end_process_for_test();
+    let person = crate::stop_records::person("fixture person");
+    let mut unknown = crate::stop_records::StopRequest::requested(&generation, "H-acct", "thread", "turn-1", crate::stop_records::Cause::CodexStop, &person).unwrap();
+    let unknown = unknown.send_unknown("host-request:fixture:client:7").unwrap();
+    let mut old = crate::stop_records::StopRequest::requested(&generation, "H-acct", "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, &person).unwrap().record().clone();
+    for (k, v) in [("send", json!("not-sent(write-failed)")), ("response", json!("not-applicable")), ("responseError", json!("write failed: Broken pipe (os error 32)")), ("state", json!("not-sent")), ("transition", json!("SR-03"))] { old[k] = v; }
+    let session = generation["appSession"].as_str().unwrap();
+    let mut ledger = crate::recovery::RecoveryLedger::open(f.root.join("recovery.ledger.jsonl")).unwrap();
+    ledger.append(crate::stop_records::ledger_entry(session, &old)).unwrap();
+    ledger.append(crate::stop_records::ledger_entry(session, &unknown)).unwrap();
+    drop(ledger);
+    f.history(json!([{"id":"turn-1","status":"interrupted"}]));
+    let relaunched = Fixture::session(&f.root, &f.cfg);
+    crate::host_tick::recovery_tick_home(&relaunched);
+    let records = relaunched.host.snapshot()["stopRequests"]["records"].as_array().unwrap().clone();
+    let by = |id: &Value| records.iter().find(|r| r["stopRequestId"] == *id).unwrap().clone();
+    let (u, o) = (by(&unknown["stopRequestId"]), by(&old["stopRequestId"]));
+    assert_eq!((u["state"].as_str(), u["transition"].as_str(), u["reading"].as_str()), (Some("send-unknown"), Some("SR-13"), Some("Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known.")));
+    assert_eq!((o["state"].as_str(), o["transition"].as_str(), o["reading"].as_str()), (Some("not-sent"), Some("SR-03"), Some("An earlier App build recorded an interrupt write failure; whether the interrupt reached Codex is not established.")));
+    for row in [&u, &o] {
+        assert!(row["label"].is_null() && row["codexReported"].is_null(), "{row}");
+        assert!(!row.to_string().contains("interrupted"), "{row}");
+    }
+    let outcome = &Fixture::events(&relaunched, "turn_outcome")[0];
+    assert!(outcome["stopRequest"].is_null() && outcome["cause"].is_null(), "no unsent request is the cause: {outcome}");
+    let _ = relaunched.host.stop("fixture", "test ended");
 }
