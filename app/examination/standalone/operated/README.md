@@ -927,7 +927,9 @@ On a development candidate built from main, in two windows the owner gave:
   attempts' records call the operator's node runtime is that parent; nobody
   then looked below it. No service import or computer-use call occurred, and
   no helper or window service remained in the recovery checks (the
-  operator's, the lane's and App Agent 0's). The marker's identification and
+  operator's at 16:50:21 UTC and the lane's at 16:52:38 UTC, each kept in
+  the walk's evidence; App Agent 0 reported the same from its own shell at
+  16:53:40 UTC, a reading not kept in that evidence). The marker's identification and
   its closing worked. The launch, ended from outside, left the Library
   comparison unchanged and no candidate process. No product outcome was
   examined.
