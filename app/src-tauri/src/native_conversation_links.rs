@@ -141,6 +141,13 @@ impl Physical {
         Ok(())
     }
 }
+/// For a test elsewhere to establish that a project's recording context can
+/// be captured as it stands, and under which project identity (nothing is
+/// bypassed: this is `Scope::capture`).
+#[cfg(test)]
+pub(crate) fn captured_context_identity_for_test(root: &Path) -> Result<String, String> {
+    Scope::capture(root).map(|scope| scope.project_id)
+}
 #[derive(Clone)]
 struct Scope {
     project: Physical,
@@ -1060,6 +1067,11 @@ fn administrative_lines(path: &Path, format: &str) -> Result<Vec<Value>, String>
         .collect()
 }
 fn check_import_source(dir: &Path) -> Result<(), String> {
+    // An import account that exists and is empty is unknown, as it is to the
+    // store's own reader: it cannot be told from one emptied after an import.
+    if std::fs::symlink_metadata(dir.join("imports.jsonl")).is_ok_and(|m| m.len() == 0) {
+        return Err("original project import state is unknown (its import account exists and is empty); Fleet publication withheld".into());
+    }
     for row in administrative_lines(&dir.join("imports.jsonl"), "chirality.records-store.import")? {
         if row["importId"].as_str().is_none_or(str::is_empty)
             || !matches!(row["event"].as_str(), Some("started" | "completed"))

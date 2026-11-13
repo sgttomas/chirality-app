@@ -14,7 +14,13 @@ needs:
   gating: true
 - from: DEL-01-03
   condition: Delegation availability is read for a conversation at run time, and each descendant
-    thread is shown with the identity, parent and role Codex reports.
+    thread is shown with the identity, parent and role Codex reports. Of the error notices Codex
+    sends for a conversation's turns, those the host has kept (the latest for each turn, up to
+    its limit) are reported with the conversation, turn and Codex session each belongs to, the
+    order in which they were received, how many were accepted for the turn, what Codex said of
+    retrying, whether a later frame naming the turn was received and whether the App's receiving
+    ended; and each turn the host holds is reported with its conversation, and with the status
+    the host holds for it from Codex's reports.
   gating: true
 - from: DEL-01-04
   condition: The act control captures a registration the person performs, for one draft, one
@@ -61,6 +67,9 @@ needs:
     content identity, scope and purpose; a library's registration acts are kept with that library;
     a record can be validated; and entries for a run's text and its supply check are carried in
     the run's log.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
   gating: false
 - from: external:sgttomas/chirality-library release
   condition: The selected Library release publishes its source archive with a digest, and its
@@ -95,6 +104,8 @@ code_paths:
 - app/src-tauri/src/trial_flows.rs
 - app/src-tauri/src/historical_run_learning.rs
 - app/src-tauri/src/workflow_learning_pointers.rs
+# The read of a workflow's own text for the person, before choosing it or before a run starts.
+- app/src-tauri/src/workflow_text_read.rs
 - app/src-tauri/resources/workflow_role/workspace-registration.schema.json
 - app/src-tauri/resources/workflow_role/workflow-record-envelope.schema.json
 - app/src-tauri/resources/production_workflows/**
@@ -117,6 +128,7 @@ code_paths:
 # mark that withholds the Run and Make guides until a read follows the last command.
 - app/src/hostReads.ts
 - app/src/IncludedWorkflows.tsx
+- app/src/WorkflowText.tsx
 - app/src/MakeJourney.tsx
 - app/src/LibraryEntries.tsx
 - app/src/WorkflowRegistrationReview.tsx
@@ -160,6 +172,7 @@ checks:
 - app/src-tauri/src/historical_trial_flows_tests.rs
 - app/src-tauri/src/records_portable_reconstruction_tests.rs
 - app/src-tauri/src/workflow_real_backend_fixture_tests.rs
+- app/src-tauri/src/workflow_text_read_tests.rs
 # workflow_role_tests.rs is shared with DEL-02-01, DEL-02-03 and DEL-02-04. Here: the cases on
 # registered bytes, run text and the supply check.
 - app/src-tauri/src/workflow_role_tests.rs
@@ -171,6 +184,7 @@ checks:
 - app/tests/run-journey.test.mjs
 - app/tests/host-reads.test.mjs
 - app/tests/included-workflows.test.mjs
+- app/tests/workflow-text.test.mjs
 - app/tests/make-journey.test.mjs
 - app/tests/journey-navigation.test.mjs
 - app/tests/workflow-library.test.mjs

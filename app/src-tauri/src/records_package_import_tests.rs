@@ -141,6 +141,73 @@ fn package_import_preserves_original_identity_bytes_groups_and_source() {
 }
 
 #[test]
+fn package_import_of_a_store_with_a_broken_chain_is_not_refused_and_reports_the_break_before_and_after() {
+    let f = Fixture::new();
+    // The source store's log is altered in place after it was written: line 1
+    // changes, so the link line 2 carries no longer names it. The store keeps
+    // the log as it is (a broken chain is reported, never repaired).
+    Fixture::choose(&f.source);
+    let log = crate::storage::project_log(&f.root, Some("run:fixture"), "app-writer:local").unwrap();
+    let mut changed = std::fs::read(&log).unwrap();
+    let at = changed.windows(8).position(|w| w == b"invented").unwrap();
+    changed[at] = b'I';
+    std::fs::write(&log, &changed).unwrap();
+    let rel = log.strip_prefix(project_dir(&f.source, &f.project)).unwrap().to_str().unwrap().to_owned();
+    // Export is not refused, and the package records the break.
+    let bag = f.base.join("export/broken");
+    crate::records_export::export(&f.root, &bag).unwrap();
+    assert_eq!(std::fs::read(bag.join("data").join(&rel)).unwrap(), changed, "the payload is the store's file byte for byte");
+    let verified = crate::records_export::verify(&bag).unwrap();
+    // Two statements, never one pass.
+    assert_eq!(verified["state"], "package bytes consistent; log integrity limited");
+    assert_eq!(verified["packageBytes"], "consistent with the manifests and the recorded chain heads");
+    assert_eq!(verified["logIntegrity"]["state"], "limited");
+    let named = verified["logIntegrity"]["limits"].as_array().unwrap();
+    assert_eq!(named.len(), 1);
+    assert!(named[0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")), "{verified}");
+    // The standalone verifier says the same two things, with its own exit status.
+    let standalone = std::process::Command::new("python3").arg(bag.join("verify.py")).arg(&bag).output().unwrap();
+    assert_eq!(standalone.status.code(), Some(2), "{}", String::from_utf8_lossy(&standalone.stderr));
+    let stdout = String::from_utf8_lossy(&standalone.stdout);
+    assert!(stdout.starts_with("Manifests and inventory: agree.") && stdout.contains("\nLimits: 1.\n"), "{stdout}");
+    assert!(stdout.contains(&format!("  FOUND by this verifier: {rel}: chain broken at line 2")), "{stdout}");
+    // Import is not refused: the person is told before deciding, as its own
+    // statement, and in the result.
+    Fixture::choose(&f.destination);
+    let plan = prepare(&f.root, &bag, &actor(), &observed()).unwrap();
+    let asked = statement(&plan).unwrap();
+    assert!(asked.text.contains("Log integrity: LIMITED."), "{}", asked.text);
+    match &asked.in_app {
+        // The whole statement names the log and the line.
+        None => assert!(asked.text.contains(&format!("{rel}: chain broken at line 2")), "{}", asked.text),
+        // Too long for a native alert on this host: the bounded summary
+        // still names the line whole, and the App shows every limit.
+        Some(shown) => {
+            assert!(asked.text.contains("1 limit(s); each is named in full in the App under this confirmation."), "{}", asked.text);
+            assert!(shown.content["logIntegrity"]["limits"][0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")));
+        }
+    }
+    // The summary is checked directly as well, whichever form this host shows.
+    let summary = crate::records_export::integrity_summary(plan.snapshot.log_integrity()).unwrap();
+    assert!(summary.contains("1 limit(s); each is named in full in the App under this confirmation."), "{summary}");
+    let result = apply(plan, &actor(), &observed()).unwrap();
+    assert_eq!(result["state"], "package imported; log integrity limited");
+    assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "the standing sentence read alone is not a clean pass: {result}");
+    assert!(result["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")), "{result}");
+    // Afterwards the imported log is the same bytes, and this store's own
+    // reader reports the chain broken at the same line.
+    let imported = crate::storage::project_log(&f.root, Some("run:fixture"), "app-writer:local").unwrap();
+    assert_eq!(std::fs::read(&imported).unwrap(), changed);
+    let heads = crate::records_index::chain_heads(&f.root);
+    assert!(heads["broken"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("chain broken at line 2")), "{heads}");
+    // A package with no chain recorded broken says so, and nothing more.
+    let whole = crate::records_export::verify(&f.bag).unwrap();
+    assert_eq!(whole["state"], "package bytes consistent; no chain recorded broken");
+    assert_eq!(whole["logIntegrity"], json!({"state":"no chain recorded broken"}));
+    assert!(!standing(&whole["logIntegrity"]).contains("Log integrity"));
+}
+
+#[test]
 fn package_import_interrupted_phases_fence_reads_and_resume_same_intent() {
     for at in [
         "payload",
@@ -294,6 +361,7 @@ fn package_import_second_interruption_resumes_only_its_own_intent() {
         let f = Fixture::new();
         f.import();
         Fixture::choose(&f.source);
+        if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
         std::fs::write(
             project_dir(&f.source, &f.project).join("additional-evidence.json"),
             b"new exact source member",
@@ -302,6 +370,7 @@ fn package_import_second_interruption_resumes_only_its_own_intent() {
         let second = f.base.join("export/second");
         crate::records_export::export(&f.root, &second).unwrap();
         Fixture::choose(&f.destination);
+        if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
         let plan = prepare(&f.root, &second, &actor(), &observed()).unwrap();
         let id = plan.intent.id.clone();
         STOP.with(|s| *s.borrow_mut() = Some(at));
@@ -414,18 +483,25 @@ fn package_import_pending_registry_write_holds_every_other_registry_append_until
         let pending = "package import's write to the registry of project folders is pending";
         let other = f.base.join("other-folder");
         std::fs::create_dir_all(&other).unwrap();
-        let registration = attach(&other, true).unwrap_err();
-        assert!(registration.contains(pending), "{at}: registration: {registration}");
+        // Refused either way, with nothing minted: by the pending write, or,
+        // where the frozen write left the registry's last line incomplete, by
+        // the registry not read whole, which pull request 240 checks first.
+        match attach(&other, true) {
+            Err(registration) => assert!(registration.contains(pending), "{at}: registration: {registration}"),
+            Ok(refused) => assert!(at == "roots-partial" && refused.project.is_none() && refused.dir.is_none()
+                && refused.refusal.as_deref().is_some_and(|r| r.contains("was not read whole")), "{at}: registration: {refused:?}"),
+        }
         let renamed = f.base.join("renamed-folder");
         std::fs::create_dir_all(&renamed).unwrap();
         let identity = new_identity(&renamed).unwrap_err();
-        assert!(identity.contains(pending), "{at}: new identity: {identity}");
+        let torn = at == "roots-partial" && identity.contains("was not read whole");
+        assert!(identity.contains(pending) || torn, "{at}: new identity: {identity}");
         let adopted = f.base.join("adopted-folder");
         std::fs::create_dir_all(adopted.join(".chirality")).unwrap();
         let store_id: Value = serde_json::from_slice(&std::fs::read(f.destination.join("store.json")).unwrap()).unwrap();
         std::fs::write(adopted.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:invented-adopted", store_id["storeId"].as_str().unwrap())).unwrap()).unwrap();
         let adoption = adopt(&adopted).unwrap_err();
-        assert!(adoption.contains(pending), "{at}: adoption: {adoption}");
+        assert!(adoption.contains(pending) || (at == "roots-partial" && adoption.contains("was not read whole")), "{at}: adoption: {adoption}");
         let left = recover_at_startup().unwrap();
         if at == "roots-partial" {
             assert!(left.iter().any(|l| l.contains(pending)), "{at}: {left:?}");
@@ -437,8 +513,11 @@ fn package_import_pending_registry_write_holds_every_other_registry_append_until
         assert!(require_complete(&f.dir()).is_ok(), "{at}: the import finishes");
         assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
         // The refused mint wrote the folder's link first (the link-first
-        // order); the registry now takes its line.
-        assert_eq!(attach(&other, true).unwrap().how, "registered", "{at}: then the registry is appended to again");
+        // order); the registry now takes its line. Where the registry was not
+        // read whole, the mint was refused before anything was written, the
+        // link included, so the folder is minted now.
+        let expected = if at == "roots-partial" { "minted" } else { "registered" };
+        assert_eq!(attach(&other, true).unwrap().how, expected, "{at}: then the registry is appended to again");
     }
 }
 
@@ -522,7 +601,14 @@ fn package_import_a_journal_that_cannot_be_examined_refuses_the_registry_write()
     std::fs::set_permissions(&controls, mode).unwrap();
     let unknown = "so whether a registry write is pending is unknown";
     assert!(pending.unwrap_err().contains(unknown));
-    assert!(registration.unwrap_err().contains(unknown));
+    // Refused either way, with nothing minted: whether a write is pending is
+    // unknown, or, with the registry's last line incomplete, the registry is
+    // not read whole, which pull request 240 checks first.
+    match registration {
+        Err(e) => assert!(e.contains(unknown), "{e}"),
+        Ok(refused) => assert!(refused.project.is_none() && refused.dir.is_none()
+            && refused.refusal.as_deref().is_some_and(|r| r.contains("was not read whole")), "{refused:?}"),
+    }
     assert!(match left { Ok(left) => left.iter().any(|l| l.contains(unknown)), Err(e) => e.contains(unknown) });
     assert_eq!(after, before, "the registry's bytes are unchanged");
     UNCERTAIN.lock().unwrap().remove(&f.dir());

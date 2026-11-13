@@ -143,8 +143,14 @@ pub(crate) struct Snapshot {
     project_id: String,
     identity: String,
     payload: BTreeMap<String, Member>,
+    /// What the package records about its logs' own integrity, apart from its
+    /// bytes being consistent (shown to the person; never a refusal).
+    log_integrity: Value,
 }
 impl Snapshot {
+    pub(crate) fn log_integrity(&self) -> &Value {
+        &self.log_integrity
+    }
     pub(crate) fn root(&self) -> &Path {
         &self.stage.path
     }
@@ -638,6 +644,7 @@ fn validate(stage: Custody) -> Result<Snapshot, String> {
     // chain-head-profile checks. No executable from the package is run.
     stage.unchanged()?;
     crate::records_export::verify(&stage.path)?;
+    let log_integrity = crate::records_export::package_log_integrity(&stage.path)?;
     stage.unchanged()?;
     let identity = stage.members["tagmanifest-sha256.txt"].sha256.clone();
     Ok(Snapshot {
@@ -648,6 +655,7 @@ fn validate(stage: Custody) -> Result<Snapshot, String> {
         project_id,
         identity,
         payload,
+        log_integrity,
     })
 }
 

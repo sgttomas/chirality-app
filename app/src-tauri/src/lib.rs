@@ -51,6 +51,7 @@ mod publisher_selection;
 mod publisher_recipe;
 pub mod home_resources;
 mod native_local_provider;
+mod dev_model_address;
 mod native_secure_entry;
 mod desktop_startup;
 mod desktop_setup_confirmation;
@@ -88,10 +89,13 @@ pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
+#[cfg(test)] mod pinned_codex_observations;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_assurance;
 pub(crate) mod workflow_workspace;
 mod workflow_selection;
+/// A workflow's own text, read for the person; a read and nothing else.
+mod workflow_text_read;
 pub(crate) mod workflow_trial_transcript;
 mod historical_run_learning;
 mod workflow_learning_pointers;
@@ -281,6 +285,13 @@ fn complete_config_resource_continuation(
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
 fn probe_home() -> Result<PathBuf,String> {
     runtime_session::allocate_fresh_probe(&std::env::temp_dir())
+}
+
+/// Whether this build admits development startup inputs. The release
+/// configuration (built with distribution-successor, and not a development
+/// run) admits none.
+pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
+    is_dev || !cfg!(feature = "distribution-successor")
 }
 
 /// Complete explicit environment route; no private supplier/home path is built in.
@@ -949,6 +960,22 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
 #[tauri::command(async)]
 fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing changed")?;
+    // Giving the folder another identity while this session still has records
+    // waiting for the one it had would write them into the wrong history:
+    // refused, saying what waits. Restoring the link is what lets them be
+    // written, so it is never refused for this.
+    let (_links, _workflows, _acts);
+    if matches!(action.as_str(), "adopt" | "new-identity") {
+        let waiting = |what: &str| format!("{what} for the project this folder was recorded for is still waiting to be written. Restore the project file so it can be recorded, then try again; nothing changed");
+        let links = state.native_links.try_lock().map_err(|_| "a record of a related conversation is being written; try again in a moment. Nothing changed")?;
+        if links.has_pending() { return Err(waiting("A record of a related conversation")); }
+        let workflows = state.workflows.try_lock().map_err(|_| "a workflow operation is in progress; try again when it has finished. Nothing changed")?;
+        workflows.retention_ready().map_err(|e| format!("{e}. End the run, or restore the project file so its records can be written, then try again; nothing changed"))?;
+        let acts = state.act.try_lock().map_err(|_| "an act is being recorded; try again in a moment. Nothing changed")?;
+        if acts.as_ref().is_some_and(|a| !a.writer_ready()) { return Err(waiting("A captured act")); }
+        // Held until the association has changed.
+        (_links, _workflows, _acts) = (Some(links), Some(workflows), Some(acts));
+    }
     match action.as_str() {
         "adopt" => records_store::adopt(project),
         "new-identity" => records_store::new_identity(project),
@@ -1167,6 +1194,8 @@ fn oauth_cancel(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value)-
 fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
     let _operation=state.key_setup.try_lock().map_err(|_|"Another explicit key operation is pending; no duplicate/retry")?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App is quitting; no key home was created or started".into()); }
+    // DEL-01-05: the key home's start configuration is cloned from the account home's.
+    dev_model_address::check_key_home(&state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?.host_config)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     bootstrap.key_plan()?;
     if !app.dialog().message("Add or replace an API key through the separate App key home? Its explicit resource links may be prepared and its Codex child started. Existing account conversations are not transferred.").title("Separate API-key home").buttons(MessageDialogButtons::OkCancel).blocking_show(){return Ok(json!({"state":"cancelled; no key setup/login"}));}
@@ -2099,6 +2128,21 @@ fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppStat
     let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join(RESOURCE_WORKFLOWS);
     noted_selection(&state,&context,|workflows,chat|workflows.select_production_bundle(chat,root,&name))
 }
+/// A workflow's own `WORKFLOW.md` text, for the person to read before choosing
+/// it or before a run starts (`workflow_text_read`). An included entry is read
+/// as selecting it would resolve it; the conversation's current selection, of
+/// any origin, as preparing a run verifies it. Nothing is selected, written,
+/// recorded or sent.
+#[tauri::command(async)]
+fn workflow_read_text(state:State<'_,AppState>,target:workflow_text_read::Target,context:workflow_selection::Context)->Result<Value,String>{
+    workflow_text_read::kind_known(&target)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    if target.kind==workflow_text_read::INCLUDED {
+        workflow_context_home(&state,&context,wait)?;
+        return Ok(state.workflows.lock().unwrap().read_included_text(&target));
+    }
+    workflow_selection::with_choice(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,|root,_,chat|Ok(root.read_chosen_text(chat,&target)))
+}
 #[tauri::command(async)]
 fn workflow_select_production_copy(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
     noted_selection(&state,&context,|root,chat|{root.verify_library_context(&context)?;root.select_production_copy(chat,&name)})
@@ -2779,6 +2823,12 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
         let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
 
         records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        // The store is created here, once, when the App starts: no reader
+        // creates it (a read writes nothing). A failure is shown by the
+        // store's status and refuses recording; there is no fallback.
+        if allow_operational && records_store::current().is_ok() {
+            if let Err(e) = records_store::create_at_startup() { eprintln!("chirality: the records store was not opened at startup: {e}"); }
+        }
         if let Some(ws) = workspace.as_ref() {
             if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
         }
@@ -2896,7 +2946,10 @@ pub fn run() {
     let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
     let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
     let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
-    let desktop_startup::RootInputs { launch, data, allow_operational } = desktop.admit_root(launch, data);
+    let desktop_startup::RootInputs { mut launch, data, allow_operational } = desktop.admit_root(launch, data);
+    // DEL-01-05: a development build can be held to a same-machine model address.
+    // Not consulted in the release configuration.
+    launch.host_config = dev_model_address::apply(launch.host_config, development_inputs_admitted(tauri::is_dev()), |key|std::env::var_os(key));
     let host_config = launch.host_config.clone();
     let key_path = launch.key_path.clone();
     let shared_paths = launch.shared_paths.clone();
@@ -3029,7 +3082,7 @@ pub fn run() {
             continue_as_send_read,
             conversation_fork,
             set_person_name,
-            workflow_assurance_robust,workflow_assurance_relaxed,workflow_assurance_recheck,workflow_protect_with_keychain,workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
+            workflow_assurance_robust,workflow_assurance_relaxed,workflow_assurance_recheck,workflow_protect_with_keychain,workflow_select_development,workflow_select_production_bundle,workflow_read_text,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,

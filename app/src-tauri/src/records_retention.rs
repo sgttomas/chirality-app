@@ -107,7 +107,13 @@ struct State {
 }
 impl State {
     fn view(&self) -> Value {
-        json!({"closed":self.closed,"legalHold":self.hold,"disposition":if self.completed && self.completion_uncertain {"completion durability uncertain"} else if self.completed {"disposed"} else if self.disposition.is_some() {"disposal incomplete"} else {"kept"},"sequence":self.sequence,"head":self.head,"disposal":self.disposition})
+        let mut view = json!({"closed":self.closed,"legalHold":self.hold,"disposition":if self.completed && self.completion_uncertain {"completion durability uncertain"} else if self.completed {"disposed"} else if self.disposition.is_some() {"disposal incomplete"} else {"kept"},"sequence":self.sequence,"head":self.head,"disposal":self.disposition});
+        // What the export a disposal relied on stated about its logs'
+        // integrity: "not stated" for an act recorded before that was written.
+        if let Some(act) = &self.disposition {
+            view["disposalExportLogIntegrity"] = crate::records_export::stored_log_integrity(&act["export"]);
+        }
+        view
     }
     fn writable(&self) -> Result<(), String> {
         if self.disposition.is_some() {
@@ -363,16 +369,78 @@ pub(crate) fn write_path(path: &Path) -> Result<Option<storage::Ownership>, Stri
     records_store::package::check_write_binding(&dir)?;
     Ok(Some(guard))
 }
+/// A capability read's own required write (its read log), admitted through
+/// the project's admission control as it exists. A read never re-creates a
+/// missing control: with none, the write is refused, and so is the read it
+/// would have recorded.
+pub(crate) fn write_path_existing(path: &Path) -> Result<Option<storage::Ownership>, String> {
+    let Some(dir) = records_store::configured_project_dir(path) else {
+        return Ok(None);
+    };
+    if records_store::package::owns(&dir) { return Ok(None); }
+    let control = gate(&dir)?;
+    let Some(guard) = storage::lock_shared_existing(&control)? else {
+        return Err(format!("this project's admission control {} is missing from the records store; a read does not re-create it, so the read is neither recorded nor answered", control.display()));
+    };
+    state(&dir)?.writable()?;
+    records_store::package::check_write_binding(&dir)?;
+    Ok(Some(guard))
+}
+/// A reader's admission: a shared hold on the project's existing admission
+/// control. A read creates neither the control nor its folder. With nothing
+/// of the project in the store there is nothing to read and nothing to hold;
+/// records with no control beside them are unavailable, with that reason.
 pub(crate) fn read_path(path: &Path) -> Result<Option<storage::Ownership>, String> {
     let Some(dir) = records_store::configured_project_dir(path) else {
         return Ok(None);
     };
     if records_store::package::owns(&dir) { return Ok(None); }
-    let guard = storage::lock_shared(&gate(&dir)?)?;
+    let control = gate(&dir)?;
+    let Some(guard) = storage::lock_shared_existing(&control)? else {
+        return match std::fs::symlink_metadata(&dir) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Ok(_) => Err(format!("project records unavailable: their admission control {} is missing beside them; a read creates nothing", control.display())),
+            Err(e) => Err(format!("project records unavailable: {}: {e}", dir.display())),
+        };
+    };
     if state(&dir)?.disposition.is_some() {
         return Err(
             "project records disposed or disposal incomplete; no store payload available".into(),
         );
+    }
+    Ok(Some(guard))
+}
+/// Admission for writing a project's link file only: no record is read, so a
+/// disposal that stands does not refuse it; it only excludes a disposal
+/// running at the same moment.
+pub(crate) fn link_path(path: &Path) -> Result<Option<storage::Ownership>, String> {
+    let Some(dir) = records_store::configured_project_dir(path) else {
+        return Ok(None);
+    };
+    if records_store::package::owns(&dir) { return Ok(None); }
+    Ok(Some(storage::lock_shared(&gate(&dir)?)?))
+}
+/// Held while a folder is released from `project`: refused while anything
+/// still holds that project's activity (a running Codex, an open workflow
+/// run, a capture or a record waiting to be written), in this or another App
+/// process, so that nothing pending is written into another identity.
+pub(crate) fn idle_for_reassociation(dir: &Path, project: &str) -> Result<storage::Ownership, String> {
+    storage::try_lock_exclusive(&control(dir)?.join(".activity.lock"))?.ok_or_else(|| format!("project {project}, which the records store recorded at this folder, is still in use: Codex is running for it, or a workflow run, a captured act or a record of it is still open or waiting to be written, in this or another App window. Stop Codex and end the run; if a record is waiting, restore the project file so it can be written. Then try again; nothing changed"))
+}
+/// Containment, held while an association changes (`adopt`, `new_identity`)
+/// for each identity concerned: refused, never waited for, while any read or
+/// publication is admitted for its records (every writer holds this shared
+/// admission from before its binding check until it has published, the
+/// connector account writer included) in this or another App process. Held,
+/// it keeps new ones out until the association has changed; each then checks
+/// its binding again once admitted (`write_path`). Payload of a disposal that
+/// has started is refused as `read_path` refuses it. A later design that binds
+/// store and project across an operation replaces this.
+pub(crate) fn quiet_for_reassociation(dir: &Path, project: &str) -> Result<Option<storage::Ownership>, String> {
+    if records_store::package::owns(dir) { return Ok(None); }
+    let guard = storage::try_lock_exclusive(&gate(dir)?)?.ok_or_else(|| format!("a record of project {project} is being read or written at this moment, in this or another App window. Wait for it to finish and try again; nothing changed"))?;
+    if state(dir)?.disposition.is_some() {
+        return Err("project records disposed or disposal incomplete; no store payload available".into());
     }
     Ok(Some(guard))
 }
@@ -468,6 +536,15 @@ fn context(
         _ => return Err("retention action is unavailable for the current project state (legal hold blocks disposal)".into()),
     }
     let attachment = records_store::attach(project, false)?;
+    // No close, legal hold or disposal while the registry's last line is
+    // unread: which identity's records this folder is bound to cannot be
+    // established, and each of these writes to an identity's administration.
+    // A hold written to the wrong identity would be a false record of a
+    // person's act. (Decided by App Agent 0; reversed by letting "hold"
+    // through here.)
+    if let Some(registry) = &attachment.registry {
+        return Err(format!("{registry}. While it stands the App disposes of nothing in this project and writes nothing to its records, so what a legal hold would protect is protected from the App's own operations; a hold, a close and a disposal are each refused until the registry is read whole again. This build has no control that clears it, except that finishing an interrupted package import completes the line when those incomplete bytes are exactly the beginning of that import's registry line; nothing changed"));
+    }
     if attachment.refusal.is_some()
         || !attachment.limits.is_empty()
         || attachment.dir.as_deref() != Some(dir)
@@ -593,6 +670,19 @@ pub(crate) fn statement(
         "resume-disposal"=>"Finish the previously confirmed disposal? Only unchanged remaining members of the original verified export may be removed.",
         _=>return Err("unknown administrative act".into()),
     };
+    // The export relied on for a disposal may carry a log whose integrity is
+    // limited (its chain was already broken in the store). Disposal is not
+    // refused for that; the person is told here, as its own statement.
+    let relied = crate::records_export::stored_log_integrity(&plan.context["export"]);
+    let disposing = matches!(plan.action.as_str(), "dispose" | "resume-disposal");
+    let said = |limit: Option<String>| match limit {
+        Some(limit) if disposing => format!("{purpose}\n\n{limit} This is the export you are relying on, and this is recorded with the disposal."),
+        _ => purpose.to_owned(),
+    };
+    // The native summary stays bounded however many logs are named; the whole
+    // statement and the frozen context name every one.
+    let summary = said(crate::records_export::integrity_summary(&relied));
+    let purpose = said(crate::records_export::integrity_statement(&relied));
     let full=format!("{purpose}\n\nProject: {}\nRoot: {}\nClosed: {}\nLegal hold: {}\nActor (identity not verified): {}\n\nFrozen context:\n{}",plan.context["projectId"],plan.project.display(),plan.context["state"]["closed"],plan.context["state"]["legalHold"],crate::act_control::native_statement::actor_line(&plan.context["actor"]),serde_json::to_string_pretty(&plan.context).map_err(|e|e.to_string())?);
     crate::act_control::native_statement::whole_or_in_app(
         "records retention",
@@ -600,7 +690,7 @@ pub(crate) fn statement(
         full,
         &plan.context,
         |digest| {
-            format!("{purpose}\n\nThe complete project, actor, closure, hold and verified byte identity context is shown in the App under this confirmation. sha-256: {digest}\nNothing changes if it changed while this question was open.")
+            format!("{summary}\n\nThe complete project, actor, closure, hold and verified byte identity context is shown in the App under this confirmation. sha-256: {digest}\nNothing changes if it changed while this question was open.")
         },
     )
 }
@@ -735,9 +825,15 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .remove(&plan.dir);
-        return Ok(
-            json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view()}),
-        );
+        // The resumed check's own finding about the export is returned here
+        // too; the original act is not rewritten.
+        let relied = crate::records_export::stored_log_integrity(&current["export"]);
+        let mut out = json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view(),
+            "export":current["export"],"exportLogIntegrity":relied});
+        if let Some(limit) = crate::records_export::integrity_statement(&relied) {
+            out["standing"] = json!(format!("The export's bytes were verified against what remained of the store. {limit}"));
+        }
+        return Ok(out);
     }
     if plan.action != "resume-disposal" {
         event(&plan.dir, &s, &plan.action, Some(actor), &current)?;
@@ -790,7 +886,10 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     })();
     match result {
         Ok(()) => Ok(
-            json!({"state":"disposed","projectId":current["projectId"],"administration":state(&plan.dir)?.view(),"export":current["export"],"standing":"Only this project's App store payload was removed. Administrative evidence and the verified export survive."}),
+            json!({"state":"disposed","projectId":current["projectId"],"administration":state(&plan.dir)?.view(),"export":current["export"],"exportLogIntegrity":crate::records_export::stored_log_integrity(&current["export"]),"standing":match crate::records_export::integrity_statement(&crate::records_export::stored_log_integrity(&current["export"])) {
+                Some(limit) => format!("Only this project's App store payload was removed. Administrative evidence and the export survive. The export's bytes were verified against the store. {limit}"),
+                None => "Only this project's App store payload was removed. Administrative evidence and the verified export survive.".to_owned(),
+            }}),
         ),
         Err(e) => {
             if state(&plan.dir).is_ok_and(|s| s.completed) {

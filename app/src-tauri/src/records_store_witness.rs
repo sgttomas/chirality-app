@@ -174,7 +174,7 @@ pub(crate) fn legacy_import_origin(store: &Path, project: &str) -> Result<Legacy
         Err(e) => return Err(format!("the store's witness of legacy imports is unreadable: {e}")),
     };
     if !present {
-        return Ok(from_account(&dir).unwrap_or_else(|| LegacyOrigin::NotEstablished(
+        return Ok(from_account(&dir)?.unwrap_or_else(|| LegacyOrigin::NotEstablished(
             "The origin of this project's records is not established: the store's witness of legacy imports has not begun yet, and the project's own import account shows no import. Until the witness has begun, whether it holds imported records cannot be known.".into())));
     }
     let read = read_store_file(&path)?;
@@ -196,7 +196,7 @@ pub(crate) fn legacy_import_origin(store: &Path, project: &str) -> Result<Legacy
     }
     // An import the project's account shows is never read as no import, even
     // without its witness line (which the App always writes first).
-    if let Some(found) = from_account(&dir) {
+    if let Some(found) = from_account(&dir)? {
         return Ok(found);
     }
     // The boundary is a recorded fact: the projects present when the witness
@@ -219,14 +219,40 @@ fn folder_key(store: &Path, project: &str) -> Result<String, String> {
     project_dir(store, project).file_name().and_then(|n| n.to_str()).map(str::to_owned).ok_or_else(|| "project store folder has no name".into())
 }
 
-/// The imports a readable account shows, as witnessed by it alone.
-fn from_account(dir: &Path) -> Option<LegacyOrigin> {
+/// The imports a readable account shows, as witnessed by it alone. The
+/// account is read by the store's own strict reading first (`imports`): one
+/// that exists and cannot be read is an error, never "no account evidence",
+/// from which a project the witness does not list would read "no import".
+fn from_account(dir: &Path) -> Result<Option<LegacyOrigin>, String> {
     let path = dir.join("imports.jsonl");
-    let values = read_store_file(&path).ok()?.require_whole(&path).ok()?;
+    imports(dir)?;
+    let values = read_store_file(&path)?.require_whole(&path)?;
     let found: Vec<WitnessedImport> = account_imports(&values).into_iter().filter_map(|(import, at, files)| {
         witnessed_import(&json!({"importId":import,"at":at,"files":files,"basis":ACCOUNT_ONLY}))
     }).collect();
-    (!found.is_empty()).then_some(LegacyOrigin::Imported(found))
+    Ok((!found.is_empty()).then_some(LegacyOrigin::Imported(found)))
+}
+
+/// For a project's import account that exists and is empty (`dir` is the
+/// project's folder in the store): true only when the witness shows that
+/// nothing was begun for it, which is when the witness has begun, its first
+/// line lists the projects present then and this project's folder is not
+/// among them, and no line of the witness names this project. A legacy
+/// import begun after the witness began writes its witness line before
+/// anything else, so then no import was begun. Anything else (no witness
+/// yet, a witness not read whole or in an unknown form, the project listed,
+/// a line naming it, an identity that cannot be read) is false: whether an
+/// import was begun is not known, and the empty account stays unknown.
+pub(crate) fn empty_account_is_nothing_begun(dir: &Path) -> bool {
+    let (Some(store), Some(project), Some(key)) = (dir.parent().and_then(Path::parent), project_identity(dir), dir.file_name().and_then(|n| n.to_str())) else { return false };
+    if folder_key(store, &project).ok().as_deref() != Some(key) {
+        return false;
+    }
+    let path = store.join(WITNESS_FILE);
+    let Ok(values) = read_store_file(&path).and_then(|read| read.require_whole(&path)) else { return false };
+    let Some(began) = values.first().filter(|v| v["format"] == BEGAN_FORMAT && v["formatVersion"] == VERSION) else { return false };
+    let Some(present) = began["projectsPresent"].as_array().and_then(|listed| listed.iter().map(Value::as_str).collect::<Option<Vec<&str>>>()) else { return false };
+    !present.contains(&key) && values[1..].iter().all(|v| v["format"] == WITNESS_FORMAT && v["formatVersion"] == VERSION && v["projectId"] != project.as_str())
 }
 /// Each import an account's lines show: (identifier, time started, files as
 /// witness members) — a completed import's files, or a started one's census.

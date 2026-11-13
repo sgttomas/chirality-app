@@ -119,18 +119,23 @@ code_paths:
 - app/src-tauri/src/standing.rs
 # hosting.rs, runtime_session.rs, lib.rs and App.tsx are shared. Here: offering the records
 # capability to a conversation and answering its calls, handing a run's observed items to the
-# record writer and reading recorded runs back, the records-store commands, and the records
-# store panel.
+# record writer and reading recorded runs back, the records-store commands, and where the
+# records store panel is shown.
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/App.tsx
+# The records store panel: placement, project identity and its resolution, export, package
+# import and recovery, retention, legal hold and disposal.
+- app/src/RecordsStorePanel.tsx
 - app/src-tauri/schemas/RS_RECORD.schema.json
 - app/src-tauri/resources/runtime_core/records-administration.entry.schema.json
 - app/src-tauri/resources/runtime_core/records-read-log.entry.schema.json
 - app/tools/verify_records_bag.py
+- app/src-tauri/src/role_observations.rs
 checks:
 - app/src-tauri/src/record_lines_tests.rs
+- app/src-tauri/src/role_observations_tests.rs
 - app/src-tauri/src/record_lines_regression_tests.rs
 - app/src-tauri/tests/record_semantics.rs
 - app/src-tauri/tests/record_relations.rs

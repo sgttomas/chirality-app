@@ -93,7 +93,11 @@ fn the_witness_exists_before_the_first_copied_byte_at_every_interruption_point_o
         if present.is_empty() && label.starts_with("witness line") && !label.ends_with("synced") {
             assert_eq!(origin, LegacyOrigin::NoImport, "{label}: no copy and no witness: no import");
         }
-        // The import, run again, completes; the witness still holds every copy.
+        // The import, run again after the App's next start (whose recovery
+        // closes and names a fragment the interruption left in the account,
+        // which is unknown until then), completes; the witness still holds
+        // every copy.
+        recover_at_startup().unwrap();
         import(&l.root).unwrap();
         let witnessed = imported_files(&l.origin().unwrap());
         for file in l.present() {
@@ -354,3 +358,102 @@ fn a_witness_whose_listing_cannot_be_taken_whole_does_not_begin_and_refuses_the_
     assert!(l.present().is_empty(), "nothing was copied");
     assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "with no witness, never \"no import\"");
 }
+
+/// Pull requests 246 and 261 together (the merge of the two): a fragment an
+/// interrupted append left in a project's import account makes the account
+/// unknown until the store's recovery has closed and named it; then it is
+/// left out with its naming line and every line before it reads as before.
+#[test]
+fn an_import_account_reads_as_before_once_its_fragment_is_closed_and_named_and_is_unknown_until_then() {
+    let l = Legacy::new();
+    import(&l.root).unwrap();
+    let account = l.dir.join("imports.jsonl");
+    let before = std::fs::read(&account).unwrap();
+    assert_eq!(status(Some(&l.root))["project"]["reading"], "records store");
+    let imports_before = status(Some(&l.root))["project"]["imports"].clone();
+    assert_eq!(storage::read_all(&l.root).0.len(), 3);
+    // An append cut short: a partial last line.
+    let mut cut = before.clone();
+    cut.extend_from_slice(br#"{"format":"chirality.records-import","formatVersion":"#);
+    std::fs::write(&account, &cut).unwrap();
+    let refused = home(&l.root).map(|_| ()).unwrap_err();
+    assert!(refused.contains("records store unreadable") && refused.contains("its last line is not closed"), "{refused}");
+    assert!(storage::read_all(&l.root).0.is_empty(), "nothing is read from a project whose account is unknown");
+    assert!(write_dir(&l.root).is_err());
+    // The store's recovery closes and names it; the account then reads as it did.
+    recover_at_startup().unwrap();
+    let recovered = std::fs::read(&account).unwrap();
+    assert!(recovered.starts_with(&before) && recovered.len() > cut.len(), "the fragment's bytes are kept, closed and named");
+    assert!(home(&l.root).unwrap().store_mode);
+    assert_eq!(status(Some(&l.root))["project"]["reading"], "records store");
+    assert_eq!(status(Some(&l.root))["project"]["imports"], imports_before, "the fragment and its naming line are not counted");
+    assert_eq!(storage::read_all(&l.root).0.len(), 3);
+    assert!(matches!(l.origin().unwrap(), LegacyOrigin::Imported(_)));
+    // A line the rule refuses, written after the closed fragment, is still refused.
+    let mut padded = recovered.clone();
+    padded.extend_from_slice(b" {}\n");
+    std::fs::write(&account, &padded).unwrap();
+    assert!(home(&l.root).map(|_| ()).unwrap_err().contains("is not one JSON object and nothing else"));
+}
+
+/// Pull requests 246 and 261 together: an import account that exists and is
+/// empty, decided by the witness. Nothing begun (the witness began, does not
+/// list the project, and has no line for it): no import. Anything else:
+/// unknown, an error everywhere the account is read through the store.
+#[test]
+fn an_empty_import_account_is_no_import_only_where_the_witness_shows_nothing_begun() {
+    let unknown = |e: &str| e.contains("exists and is empty") && e.contains("whether an import was begun is not known");
+    // A project created after the witness began, with no import: nothing begun.
+    let l = Legacy::new();
+    let later_root = folder("empty-account-later-");
+    let later = attach(&later_root, true).unwrap();
+    let later_dir = later.dir.unwrap();
+    std::fs::write(later_dir.join("imports.jsonl"), b"").unwrap();
+    assert!(witness::empty_account_is_nothing_begun(&later_dir));
+    assert!(home(&later_root).is_ok(), "nothing begun: the empty account is no import");
+    assert_eq!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport);
+    // The same project with a witness line: an import was begun.
+    witness::record(&l.store, later.project.as_deref().unwrap(), "import:invented", &[]).unwrap();
+    assert!(!witness::empty_account_is_nothing_begun(&later_dir));
+    assert!(unknown(&home(&later_root).map(|_| ()).unwrap_err()));
+    // A project present when the witness began (listed), its account empty:
+    // not known. (In a store this build creates the witness begins before any
+    // project, so the witness is begun again here with this project present.)
+    std::fs::remove_file(l.store.join(witness::WITNESS_FILE)).unwrap();
+    recover_at_startup().unwrap();
+    std::fs::write(l.dir.join("imports.jsonl"), b"").unwrap();
+    assert!(!witness::empty_account_is_nothing_begun(&l.dir));
+    assert!(unknown(&home(&l.root).map(|_| ()).unwrap_err()));
+    // No witness at all: not known.
+    let other_root = folder("empty-account-other-");
+    let other = attach(&other_root, true).unwrap().dir.unwrap();
+    std::fs::write(other.join("imports.jsonl"), b"").unwrap();
+    assert!(witness::empty_account_is_nothing_begun(&other));
+    std::fs::rename(l.store.join(witness::WITNESS_FILE), l.store.join("witness-aside")).unwrap();
+    assert!(!witness::empty_account_is_nothing_begun(&other));
+    assert!(unknown(&home(&other_root).map(|_| ()).unwrap_err()));
+    std::fs::rename(l.store.join("witness-aside"), l.store.join(witness::WITNESS_FILE)).unwrap();
+}
+
+/// Pull requests 246 and 261 together: the witness reads a project's account
+/// through the store's strict reading, so an account that exists and cannot
+/// be read is an error, never "no account evidence" from which a project the
+/// witness does not list would read "no import".
+#[test]
+fn an_unreadable_import_account_never_reads_no_import_through_the_witness() {
+    let l = Legacy::new();
+    let later = attach(&folder("unreadable-account-later-"), true).unwrap();
+    let (project, dir) = (later.project.unwrap(), later.dir.unwrap());
+    assert_eq!(legacy_import_origin(&l.store, &project).unwrap(), LegacyOrigin::NoImport, "an account that is not there: no import");
+    for (label, content) in [
+        ("a line that is not an import line", &b"{}\n"[..]),
+        ("a padded line", &b" {}\n"[..]),
+        ("a partial line", &br#"{"format":"#[..]),
+        ("a key given twice", &br#"{"format":"chirality.records-import","format":"chirality.records-import"}"#[..]),
+    ] {
+        std::fs::write(dir.join("imports.jsonl"), content).unwrap();
+        let origin = legacy_import_origin(&l.store, &project);
+        assert!(origin.as_ref().is_err_and(|e| e.contains("records store unreadable")), "{label}: {origin:?}");
+    }
+}
+

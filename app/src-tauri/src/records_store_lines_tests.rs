@@ -295,7 +295,9 @@ fn a_line_that_was_whole_json_and_lost_only_its_newline_never_comes_into_force()
     bytes.extend(serialized(&json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"completed","importId":"import:invented-0","at":"2026-11-12T00:00:00Z","files":[],"conflicts":[],"censusChanged":[]})));
     c.put(&bytes);
     let dir = c.path.parent().unwrap();
-    assert!(!imports(dir).unwrap().completed && imports(dir).unwrap().incomplete.is_some());
+    // Until it is closed the account is unknown (pull request 246: an
+    // unclosed last line), so nothing is read from it, the completion least.
+    assert!(imports(dir).is_err_and(|e| e.contains("its last line is not closed")));
     recover_at_startup().unwrap();
     assert!(!imports(dir).unwrap().completed, "the completion does not come into force when closed");
     assert!(imports(dir).unwrap().incomplete.is_some());

@@ -9,7 +9,8 @@ impl Fixture {
         let project = root.join("project");
         std::fs::create_dir_all(&project).unwrap();
         let store = records_store::Store {root:root.join("store"),placement:records_store::Placement::Test,limits:vec![]};
-        records_store::use_store_for_test(Some(Ok(store.clone())));
+        // Not started: these tests are of a reader that must never start it.
+        records_store::use_store_not_started_for_test(Some(Ok(store.clone())));
         Self {root,project,store}
     }
     fn attached(&self) -> PathBuf { records_store::attach(&self.project,true).unwrap().dir.unwrap() }
@@ -207,6 +208,54 @@ fn fleet_reader_source_changes_and_alias_changes_withhold_protected_authority() 
     let before=inventory(&f.root);let view=crate::read_fleet_records_for_workspace(Some(&project_alias)).unwrap();
     assert_eq!(inventory(&f.root),before);assert_eq!(view["project"]["canonicalRoot"],f.project.to_string_lossy().as_ref());
     assert_eq!(observations(&view).len(),1,"canonical configured aliases retain only protected sources");
+}
+
+/// The fleet reader does not take the project's store folder from the
+/// records store's read decision: it must create nothing, so it keeps
+/// association checks of its own before it builds the protected folder (pull
+/// request 240, review round 4, as App Agent 0 required it shown). From a
+/// populated and valid read: with the project's link removed, and with it
+/// changed to name another identity or another store, (1) no protected store
+/// payload is read or returned, (2) nothing the project folder holds is
+/// promoted to an App observation, and (3) the cause is given. The project's
+/// own working file stays readable with its proper standing, a claim; and
+/// with the link put back the protected reading returns.
+#[test]
+fn fleet_reader_with_the_link_removed_or_changed_reads_no_protected_payload_and_promotes_no_claim() {
+    for case in ["removed", "another identity", "another store"] {
+        let f=Fixture::new();f.pair(&[f.row("fl:protected","protected fixture")]);
+        let rows=|view:&Value,member:&str|view["coordination"][member].as_array().unwrap().clone();
+        // The baseline, populated and valid: one row in the store, read as the App's observation.
+        let before=f.read();
+        assert_eq!(before["coordination"]["protected"]["state"],"attached","{case}: {}",before["coordination"]["protected"]);
+        assert_eq!((observations(&before).len(),rows(&before,"protectedRecords").len(),rows(&before,"projectRecords").len()),(1,1,1),"{case}");
+        let link=f.project.join(records_store::PROJECT_LINK);
+        let original=std::fs::read(&link).unwrap();
+        let mut changed:Value=serde_json::from_slice(&original).unwrap();
+        let cause=match case {
+            "removed"=>{std::fs::remove_file(&link).unwrap();"identity source missing"}
+            "another identity"=>{changed["projectId"]=json!("chirality-project:invented-other");std::fs::write(&link,serde_json::to_vec(&changed).unwrap()).unwrap();"project link names another identity"}
+            _=>{changed["storeId"]=json!("records-store:invented-other");std::fs::write(&link,serde_json::to_vec(&changed).unwrap()).unwrap();"project link names another records store"}
+        };
+        let inventory_before=inventory(&f.root);let view=f.read();
+        assert_eq!(inventory(&f.root),inventory_before,"{case}: the read created and changed nothing");
+        // (1) No protected store payload is read or returned.
+        assert!(rows(&view,"protectedRecords").is_empty()&&rows(&view,"governingStoreRecords").is_empty(),"{case}: {}",view["coordination"]);
+        assert!(view["coordination"]["protectedLog"].is_null(),"{case}: the store's log is not opened");
+        assert!(!view["coordination"]["protected"].to_string().contains("projectId"),"{case}: no identity is asserted for the folder");
+        // (2) Nothing is promoted to an App observation: the working file's row is still there, as the project's own record.
+        assert!(observations(&view).is_empty(),"{case}: {:?}",observations(&view));
+        let project_rows=rows(&view,"projectRecords");
+        assert_eq!(project_rows.len(),1,"{case}: the project's working file stays readable");
+        assert!(project_rows[0]["protectedOrder"].is_null(),"{case}: with no protected counterpart: {}",project_rows[0]);
+        // (3) The cause is given.
+        assert_eq!(view["coordination"]["protected"]["state"],"unavailable","{case}");
+        assert!(view["coordination"]["protected"]["reason"].as_str().is_some_and(|reason|reason.contains(cause)),"{case}: {}",view["coordination"]["protected"]);
+        // With the link put back, the protected reading returns.
+        std::fs::write(&link,&original).unwrap();
+        let after=f.read();
+        assert_eq!((after["coordination"]["protected"]["state"].as_str(),observations(&after).len()),(Some("attached"),1),"{case}");
+    }
 }
 
 #[test]

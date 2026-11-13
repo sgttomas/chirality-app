@@ -81,6 +81,9 @@ pub(crate) struct ProjectIndex {
     logs: BTreeMap<PathBuf, LogState>,
     db: Option<query::QueryDb>,
     cache_fault: Cell<bool>,
+    /// Why the query cache could not be written (the sources are read
+    /// directly); shown with the index's notes.
+    cache_limit: Option<String>,
     root: PathBuf,
     numbers: HashMap<u32, PathBuf>,
     next_number: u32,
@@ -181,7 +184,9 @@ pub(crate) fn chain_heads(root: &Path) -> Value {
     // Auxiliary role observations have their own schema and are read on demand
     // outside INDEXES; no role row or source bytes enter the R1 query index.
     let role=crate::role_observations::project_chain_head(root);
-    let mut heads=with_index(root, |ix| serde_json::json!({"method":crate::record_lines::LINE_METHOD,"logs":ix.chains(),
+    // A discovery that failed (no store, a replaced store, an unknown
+    // records home) is said, never shown as a project with no logs.
+    let mut heads=with_index(root, |ix| serde_json::json!({"method":crate::record_lines::LINE_METHOD,"logs":ix.chains(),"discoveryLimit":ix.discovery_error,
         "broken":ix.limits().into_iter().filter(|l| l.contains("chain broken")).collect::<Vec<_>>(),"notes":ix.notes(),
         "signedCheckpoints":"not written: signed checkpoints wait for App signing (OI-011)"}));
     match role{Ok(Some(head))=>heads["logs"].as_array_mut().unwrap().push(head),Ok(None)=>{},Err(limit)=>heads["notes"].as_array_mut().unwrap().push(serde_json::json!(format!("role supply chain not established: {limit}")))}
@@ -343,7 +348,7 @@ impl ProjectIndex {
     /// Limits that do not make the set incomplete (RS §13.8): each log's
     /// unchained (legacy) lines, and torn lines W-0 named (not chain links).
     pub(crate) fn notes(&self) -> Vec<String> {
-        let mut out = Vec::new();
+        let mut out: Vec<String> = self.cache_limit.iter().cloned().collect();
         for (path, log) in &self.logs {
             out.extend(log.prefix_notes.iter().chain(&log.tail_notes).cloned());
             out.extend(log.chain.unchained_note(&path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default()));
@@ -501,7 +506,10 @@ impl ProjectIndex {
         // Deletion, replacement, unexpected writes and query errors invalidate
         // the whole derivative cache. New process/index instances always rebuild.
         if self.cache_fault.replace(false) || self.db.as_ref().is_none_or(|d| !d.unchanged()) {
-            self.db = query::QueryDb::open(root).ok();
+            match query::QueryDb::open(root) {
+                Ok(db) => { self.db = Some(db); self.cache_limit = None; }
+                Err(e) => { self.db = None; self.cache_limit = Some(e); }
+            }
             self.logs.clear(); self.numbers.clear(); self.next_number = 0;
             self.act_epoch = next_act_epoch();
             self.generation = next_revision();

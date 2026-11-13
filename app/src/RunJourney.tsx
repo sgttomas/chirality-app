@@ -1,6 +1,8 @@
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
-import { chatWorkflow, workflowAssurance } from "./workflowSelection";
+import { errorWords } from "./NativeActivity";
+import { chatWorkflow, workflowAssurance, workflowContext } from "./workflowSelection";
+import { WorkflowTextControl, useWorkflowTexts } from "./WorkflowText";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
 import { IncludedWorkflows, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -143,7 +145,7 @@ export function runReading(run: Json, host: Json): RunReading {
     if (!same(run?.generation, host?.generation) || run?.home !== host?.generation?.home)
       return { tone: "uncertain", title: "Open in an earlier Codex session", detail: "This run was recorded open in a Codex session that isn't the current one, so the App can't see what it is doing now. Find its conversation in History." };
     const waiting = hostRequests(host).filter((request: Json) => requestThread(request) === run.conversation && request.state === "outstanding" && (request.generation === undefined || same(request.generation, run.generation))).length;
-    if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Nothing continues until you answer there.` };
+    if (waiting > 0) return { tone: "waiting", title: "Waiting for your answer", detail: `Codex is asking ${waiting === 1 ? "a question or approval" : `${waiting} questions or approvals`} in the conversation. Answer it there.` };
     const thread = list(host?.threads).find((row: Json) => row.threadId === run.conversation && same(row.generation, host?.generation));
     // The status is Codex's own last report for this conversation, and each
     // reading says that report and nothing that would follow from it: an
@@ -155,19 +157,79 @@ export function runReading(run: Json, host: Json): RunReading {
     if (thread?.status?.type === "active") {
       const flags = list(thread.status.activeFlags);
       if (flags.includes("waitingOnApproval") || flags.includes("waitingOnUserInput")) return { tone: "waiting", title: "Codex reports it is waiting for an approval or an answer", detail: "Codex reports this conversation is waiting for an approval or for your answer. The request appears in the conversation once the App has received it." };
-      return { tone: "working", title: "Working", detail: "Codex is working on this run. Follow its progress in the conversation." };
+      return { tone: "working", title: "Open — Codex reports this conversation active", detail: "Codex last reported this conversation as active. Follow its progress in the conversation." };
     }
     if (thread?.status?.type === "systemError") return { tone: "failed", title: "Codex reported an error", detail: "The conversation reported a system error. The run is still open; read the conversation, then continue or end the run." };
     if (thread?.status?.type === "idle") return { tone: "idle", title: "Open — Codex reports this conversation idle", detail: "Codex last reported this conversation as idle, which says nothing about agents it delegated work to. The run stays open until you end it. Reply in the conversation to continue, or end the run when you are done." };
     return { tone: "uncertain", title: "Open — what Codex is doing is not known", detail: `The App cannot establish what Codex is doing in this conversation: ${thread?.statusSource?.limit ? text(thread.statusSource.limit) : thread?.status?.type === "notLoaded" ? "Codex reports the conversation as not loaded" : "it holds no status from Codex for it that it can read"}. The run stays open; read the conversation before deciding what to do.` };
   }
-  if (run?.source) return { tone: "working", title: "Starting", detail: "The starting message was sent. The run opens when Codex begins it." };
+  // A source means the App issued the starting message; whether Codex received it is not established until its reply.
+  if (run?.source) return { tone: "working", title: "Starting", detail: "The App has issued the starting message and is waiting for Codex's reply. The run opens when Codex confirms the starting turn." };
   if (status.sent === false && status.limit) {
     const what = NOT_SENT[text(status.state)];
     return { tone: "failed", title: "Not started", detail: `${what ? `Nothing was sent. ${what}` : "The App reports that this run was not sent."}${typeof status.retry === "string" && status.retry ? ` What the App says to do: ${status.retry}.` : ""} The App reported: ${text(status.state)}: ${text(status.limit)}` };
   }
   return { tone: "idle", title: "Ready to start", detail: "The run is prepared and has not been sent. Start it when your inputs are ready." };
 }
+
+/** One turn's latest error notice, as the Run guide says it: attributed to its turn, with what the App holds of that turn. */
+export type HeldTurnNotice = { turnId: string; words: string; retry: string; count: number; turnStatus: string | null };
+
+/**
+ * The error notices the App holds from Codex (the supplier's `error`
+ * notification) for an open run's conversation, one for each turn that has
+ * any: that turn's latest. They are said beside the run's state because a
+ * conversation Codex reports active can be one that cannot reach its model.
+ *
+ * Each is said as a notice held for its turn, with the status the App holds
+ * for that same turn, and as nothing more. Nothing here compares one turn
+ * with another: not by start time, not by the order frames reached the App,
+ * and there is no "latest turn" or "current turn". The App is not told which
+ * turn of a conversation is current, and does not infer it.
+ *
+ * A turn's notice is left out only on evidence about that same turn: a later
+ * frame naming it was received, or the App's receiving ended. Within one turn
+ * the latest notice is the one received last, which is an order of frames
+ * about the same turn.
+ *
+ * `count` is the number of notices the host accepted for that one turn; the
+ * host keeps the latest of them only. `turnStatus` is the status the App
+ * holds for that turn from Codex's reports (not always the last one received:
+ * the host keeps a reported end over a later stale report of progress), or
+ * null where it holds none or cannot tie one to this conversation's turn.
+ * Empty for a run that is not open in the exact current source.
+ */
+export function runTurnNotices(run: Json, host: Json): HeldTurnNotice[] {
+  if (!starts(text(run?.lifecycle?.state), "open") || !same(run?.generation, host?.generation) || run?.home !== host?.generation?.home) return [];
+  if (host?.generationClosed === true) return [];
+  const view = host?.nativeView, conversation = run.conversation;
+  const turnOf = (entry: Json): string | null => (typeof entry?.turnId === "string" && entry.turnId ? entry.turnId : null);
+  const mine = list(view?.turnErrors).filter((entry: Json) => entry?.threadId === conversation && turnOf(entry) && same(entry.generation, run.generation));
+  // The host reports a turn's row with the turn's id only, and which conversation holds a turn of that id in a
+  // separate list. So a row is this conversation's turn only where exactly one record names that id, it is this
+  // conversation's, and exactly one row has the id. Where another conversation also holds a turn of that id, the
+  // App cannot tell the rows apart and says no status. The two lists are not paired by position: nothing declares it.
+  const heldStatus = (id: string): string | null => {
+    const records = list(view?.turnRecords).filter((record: Json) => turnOf(record) === id);
+    const rows = list(view?.turns).filter((row: Json) => row?.id === id);
+    if (records.length !== 1 || records[0].threadId !== conversation || rows.length !== 1) return null;
+    return typeof rows[0].status === "string" && rows[0].status ? rows[0].status : null;
+  };
+  const received = (entry: Json) => (typeof entry?.observedOrder === "number" ? entry.observedOrder : -1);
+  const said: HeldTurnNotice[] = [];
+  for (const id of new Set<string>(mine.map((entry: Json) => entry.turnId))) {
+    const ofTurn = mine.filter((entry: Json) => entry.turnId === id);
+    const notice = ofTurn.reduce((best: Json, entry: Json) => (received(entry) >= received(best) ? entry : best));
+    if (notice.laterFrameForTurn === true || notice.observationEnded === true) continue;
+    said.push({ turnId: id, words: errorWords(notice.error), turnStatus: heldStatus(id),
+      count: typeof notice.ordinalInTurn === "number" ? notice.ordinalInTurn : ofTurn.length,
+      retry: notice.willRetry === true ? "Codex said it will retry." : notice.willRetry === false ? "Codex said it will not retry." : "Codex did not say whether it will retry." });
+  }
+  return said;
+}
+const TURN_STATUS_WORDS: Record<string, string> = { inProgress: "in progress", completed: "completed", failed: "failed", interrupted: "interrupted" };
+/** What the App holds of the notice's own turn, in Codex's terms; nothing where it holds no status. */
+export const turnStatusWords = (status: string | null): string => (status === null ? "" : `The App holds Codex's report of that turn as ${TURN_STATUS_WORDS[status] ?? `“${status}”`}.`);
 
 function declaredRows(declaration: Json, key: string): Json[] {
   return list(declaration?.elements?.[key]).map((element: Json) => element?.value ?? {});
@@ -219,6 +281,10 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
 }) {
   // The unknown-start acknowledgement names one run; a later run starts unacknowledged.
   const [checkedRun, setCheckedRun] = useState<string | null>(null);
+  // Workflow texts the person asked to read. Held here, above the withheld
+  // view, so a text is still shown when the steps come back after the status
+  // read that follows the press.
+  const workflowTexts = useWorkflowTexts();
   const ready = host?.state === "ready" && host?.generationClosed !== true;
   const sourceCurrent = !!data?.context?.sourceRef && host?.workflowRoot?.context?.sourceRef === data.context.sourceRef && same(data.context.generation, host?.generation);
   const conversations = list(host?.threads).filter((row: Json) => same(row.generation, host?.generation));
@@ -258,6 +324,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const preparedUnsent = runs.filter((run: Json) => !run.source && starts(run?.lifecycle?.state, "prepared"));
   const prepared = latest ? (!latest.source && starts(latest?.lifecycle?.state, "prepared") ? latest : null) : preparedUnsent.length === 1 ? preparedUnsent[0] : null;
   const reading = latest ? runReading(latest, host) : null;
+  const turnNotices = latest ? runTurnNotices(latest, host) : [];
   // An open run, or one sent and not yet opened, is ended or followed from the studio, not re-prepared here.
   const unresolved = (latest ? [latest] : runs).filter((run: Json) => starts(run.lifecycle?.state, "start not confirmed") && !startRefused(run));
   const unresolvedStart = unresolved.length > 0;
@@ -296,6 +363,13 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : chosen.identity?.origin === "bundled" ? `a bundled copy${chosen.identity?.source_root ? ` (source ${text(chosen.identity.source_root)})` : ""}`
     : `${text(chosen.identity?.origin)} library`;
   const chosenReady = chosen?.runnable === true && !chosen?.currentLimit;
+  // A workflow's own text: an included entry read by name, the chosen one as
+  // the conversation's selection. Each is held against the identity it was read for.
+  const includedSource = `included with the App${librarySource ? `, from ${librarySource}` : ""}`;
+  const includedSlot = (entry: Json) => `included:${text(entry?.name)}`;
+  const chosenSlot = `chosen:${text(data?.context?.sourceRef)}:${thread}`;
+  const includedText = (entry: Json) => <WorkflowTextControl slot={includedSlot(entry)} identity={entry?.identity} source={includedSource} texts={workflowTexts} disabled={!canAct}
+    target={{ kind: "included", name: entry?.name, revision: entry?.identity?.revision }} context={() => workflowContext(data, host, "")}/>;
   const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
   const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
@@ -335,6 +409,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
         {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
+        {chosen && <WorkflowTextControl slot={chosenSlot} identity={chosen.identity} source={chosenSource} texts={workflowTexts} disabled={!canAct}
+          target={{ kind: "selection", revision: chosen.identity?.revision }} context={() => workflowContext(data, host, thread)}/>}
         {chosen && <RoleBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} conversation={conversations.find((row: Json) => row.threadId === thread)}/>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
         {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
@@ -358,7 +434,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
         {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}
         {active && <button disabled={!canAct} onClick={() => perform("workflow_library_entries_refresh", { libraryRef: active.reference })}>Look for other workflows in this library</button>}
-        <IncludedWorkflows catalog={data?.productionCatalog} chosen={chosen} disabled={!canAct} needsConversation={!thread} choose={name => perform("workflow_select_production_bundle", { name })}/>
+        <IncludedWorkflows catalog={data?.productionCatalog} chosen={chosen} disabled={!canAct} needsConversation={!thread} choose={name => perform("workflow_select_production_bundle", { name })}
+          readText={includedText} holdsText={entry => workflowTexts.of(includedSlot(entry), entry?.identity) !== undefined}/>
       </li>
       <li aria-labelledby="run-inputs-heading"><h3 id="run-inputs-heading">Inputs</h3>
         {inputs.length > 0 ? <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
@@ -378,7 +455,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>
       <li aria-labelledby="run-progress-heading"><h3 id="run-progress-heading">Progress</h3>
-        {reading ? <div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
+        {reading ? <><div ref={progressNode} tabIndex={-1} className={`run-journey-state run-journey-${reading.tone}`} aria-label="Run progress">
           <p role="status"><strong>{reading.title}.</strong> {reading.detail}</p>
           {(starts(latest.lifecycle?.state, "open") || reading.tone === "uncertain") && <p>{showConversation
             ? <button onClick={() => showConversation(latest.conversation, reading.tone === "waiting" ? "conversation-requests" : "conversation")}>{reading.tone === "waiting" ? "Answer in the conversation" : "Show the conversation"}</button>
@@ -387,7 +464,12 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
             <button disabled={!canAct} onClick={() => perform("workflow_end_run", { runRef: latest.reference, finishedReport: finishedOffer.message })}>End as completed, on the agent's report</button></p>}
           {starts(latest.lifecycle?.state, "open") && <p><button disabled={!canAct} onClick={() => perform("workflow_end_run", { runRef: latest.reference, finishedReport: null })}>End this run</button>{" "}
             <small>Ending here records that you ended it — not that it completed. To stop only Codex's current step, use Stop in the conversation; the run stays open.</small></p>}
-        </div> : orderUnknown ? <p role="status">This conversation has several runs, and the App can't tell which one is the latest. Each is listed under Results.</p> : <p>No run in this conversation yet.</p>}
+        </div>
+        {/* Held notices, each with its turn. Outside the state above and without its marking: they are not a reading of the run. */}
+        {turnNotices.length > 0 && <div role="note" aria-label="Error notices the App holds for this conversation">
+          {turnNotices.map(notice => <p key={notice.turnId}>The App holds an error notice from Codex for turn <code>{notice.turnId}</code> of this conversation{notice.count > 1 ? `; it is the latest of ${notice.count} for that turn` : ""}: <q>{notice.words}</q> {notice.retry}{notice.turnStatus !== null ? ` ${turnStatusWords(notice.turnStatus)}` : ""}</p>)}
+          <p>The conversation's activity shows each notice the App has kept, with its turn.</p>
+        </div>}</> : orderUnknown ? <p role="status">This conversation has several runs, and the App can't tell which one is the latest. Each is listed under Results.</p> : <p>No run in this conversation yet.</p>}
       </li>
       <li aria-labelledby="run-results-heading"><h3 id="run-results-heading">Results</h3>
         {(resultOrder.ordered.length + resultOrder.unordered.length) > 0 && <ul aria-label="Runs in this conversation">
