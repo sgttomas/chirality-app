@@ -404,22 +404,28 @@ implemented behavior and qualification limits.
     stops sending new turns and steers (text, mode, workflow or attachment) to
     that Codex process. It then assesses the live work again; if the list
     changed since it was shown, the host reopens and asks again with the
-    current list. The App writes `turn/interrupt` for every observed live turn
-    before waiting. It then waits on one shared deadline for the
-    acknowledgments and for Codex to report those turns ended, then stops the
-    process (HOSTING §4.5). All of this stays within the stop wait limit of
-    10 s (U-R4 test value). The same deadline bounds each interrupt's write.
-    Each interrupt is written on its own thread. If Codex is not reading its
-    input, another write may hold the writer, or the interrupt's own write
-    may block. Either way the host stops waiting at the deadline and goes on to
-    stop the process. Ending the process group ends the blocked write.
-    The outcome says, for each turn, whether the interrupt was acknowledged,
-    sent and not acknowledged, not sent (with the reason), or of unknown
-    write outcome. Each turn then shows one of the four TO-4 labels:
+    current list. The App attempts a `turn/interrupt` for every observed live
+    turn, each on its own thread. One shared deadline, the stop wait limit of
+    10 s (U-R4 test value), bounds the wait for each interrupt's write, the
+    acknowledgments and Codex's reports that those turns ended; the host then
+    stops the process (HOSTING §4.5) whatever is still pending. An interrupt
+    whose write has not begun by the deadline (for example, Codex has stopped
+    reading its input and another write holds the writer) is withdrawn and
+    never written: it is *not sent*, "the interrupt could not be written within
+    the stop limit". One whose write began and has not completed is of unknown
+    write outcome; ending the process group ends that write. The outcome says,
+    for each turn, whether the interrupt was acknowledged, sent and not
+    acknowledged, not sent (with the reason), or of unknown write outcome. A
+    turn whose interrupt was written, or whose end Codex reported, then shows
+    one of the four TO-4 labels:
     "interrupted by Stop Codex", "completed (Stop Codex requested)",
     "failed (Stop Codex requested)" or "interrupted by Stop Codex (final status
     not observed)". The label comes from the observed `turn/completed`, never
-    from the interrupt acknowledgment. Codex's own status is shown beside it. A
+    from the interrupt acknowledgment. Codex's own status is shown beside it.
+    A turn whose interrupt was not written and whose end Codex did not report
+    gets no label; it reads, kept apart, whether Codex's process was confirmed
+    ended, that no final status was observed, and what became of the
+    interrupt. A
     refused stop is reported as a refusal; its turns get no label and new turns
     are allowed again. Interrupts go only to a `ready` process (DEL-01-02
     §4.1). A process in another state (for example a stuck handshake) is
@@ -450,11 +456,12 @@ implemented behavior and qualification limits.
     on. A request whose App session ended before a final status was recorded
     reads *outcome unknown*, marked "(derived; not written)". *Limits:* SR records do
     not list the items or delegated agents at the outcome. An interrupt whose
-    write began and did not complete is recorded as neither sent nor not sent.
-    The Design's send values have no value for it, so its record stays at
-    SR-01. In this App process its record notes that whether it reached Codex
-    is not known; after a relaunch it reads as a request whose send was not
-    recorded. A turn that ended
+    write began and did not complete is recorded as neither sent nor not sent:
+    SR-13, *send-unknown* (`unknown(write-incomplete)`, stop-request schema
+    0.3), final once recorded, which reads that whether it reached Codex is not
+    known. A row an earlier build wrote as *not-sent(write-failed)* still
+    validates against `recovery.stop-request.v0.2.schema.json` and reads that
+    whether that interrupt reached Codex is not established. A turn that ended
     after SR-01 but before the send is recorded as SR-03 *not-sent (not-ready)*
     with the reason, a gap in the Design's send values. At the next start the
     App writes SR-08 for each stop request an earlier session left sent with
