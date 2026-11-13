@@ -604,23 +604,73 @@ class NothingAbove(Fixture):  # the project folder, no .git entry above, and wha
         self.assertIn(f'{self.root} could not be checked for a .git entry (PermissionError)', record['ended'])
         self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
 
-    def test_an_unset_or_empty_home_is_refused_as_a_guard_of_its_own(self):
-        home = self.tmp / 'invented-home'
+    def test_home_names_the_home_allocated_for_this_launch_and_nothing_else(self):
+        home, other = self.tmp / 'invented-home', self.tmp / 'another-home'
+        other.mkdir()
+        (other / 'kept').write_text('something already here')
         good = launch.child_environment(home, 'tmp', launch.DEFAULT_MODEL_ADDRESS)
         launch.check_environment(dict(good), home, 'tmp')
         for name in ('HOME', 'CFFIXED_USER_HOME'):
-            for case, change in (('unset', lambda env: env.pop(name)), ('empty', lambda env: env.update({name: ''}))):
+            for case, change, said in (
+                    ('unset', lambda env: env.pop(name), f'^{name} is unset or empty'),
+                    ('empty', lambda env: env.update({name: ''}), f'^{name} is unset or empty'),
+                    ('another folder', lambda env: env.update({name: str(other)}), f'^{name} does not name the home'),
+                    ('the account home', lambda env: env.update({name: str(self.real)}), f'^{name} does not name the home')):
                 with self.subTest(name=name, case=case):
                     env = dict(good)
                     change(env)
-                    with self.assertRaisesRegex(launch.Refusal, f'^{name} is unset or empty'):
+                    with self.assertRaisesRegex(launch.Refusal, said):
                         launch.check_environment(env, home, 'tmp')
+        both = {**good, 'HOME': str(other), 'CFFIXED_USER_HOME': str(other), 'TMPDIR': str(other / 'tmp')}
+        with self.assertRaisesRegex(launch.Refusal, '^HOME does not name the home'):
+            launch.check_environment(both, home, 'tmp')  # the two agree with each other and are still refused
         real = launch.child_environment
-        with mock.patch.object(launch, 'child_environment', lambda *a: {**real(*a), 'HOME': ''}):
-            code, record, out, folder = self.run_helper(self.candidate())
-        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
-        self.assertIn('HOME is unset or empty', record['ended'])
-        self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+        for case, change in (('empty', {'HOME': ''}),
+                             ('another folder', {'HOME': str(other), 'CFFIXED_USER_HOME': str(other)})):
+            with self.subTest(run=case), mock.patch.object(launch, 'child_environment', lambda *a: {**real(*a), **change}):
+                code, record, out, folder = self.run_helper(self.candidate(where='home-' + case.replace(' ', '-')))
+                self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+                self.assertIn('HOME ', record['ended'])
+                self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+                self.assertEqual(os.listdir(other), ['kept'])
+
+    def test_the_folder_home_names_is_the_directory_the_launcher_holds(self):
+        real_listing = launch.listing
+        moved = {}
+
+        def swap(case):
+            def listing(*args, **kwargs):  # after the allocation, before the start
+                [folder] = self.folders()
+                home = folder / launch.HOME
+                if not moved.get(case):
+                    moved[case] = True
+                    home.rename(folder / 'home-moved-aside')
+                    if case == 'another folder at the same name':
+                        home.mkdir()
+                    elif case == 'a link to the allocated one':
+                        home.symlink_to(folder / 'home-moved-aside')
+                return real_listing(*args, **kwargs)
+            return listing
+        for case, said in (('another folder at the same name', 'is not the directory allocated for this launch'),
+                           ('a link to the allocated one', 'is not the directory allocated for this launch'),
+                           ('nothing at the name', 'could not be checked (FileNotFoundError)')):
+            with self.subTest(case), mock.patch.object(launch, 'listing', swap(case)):
+                code, record, out, folder = self.run_helper(self.candidate(where='swap-' + case.replace(' ', '-')))
+                self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+                self.assertIn('the folder HOME names ' + said, record['ended'])
+                self.assertFalse(any(folder.rglob('received-env.txt')))
+                shutil.rmtree(folder)
+
+    def test_the_mapping_carries_no_codex_home_variable(self):
+        home = self.tmp / 'invented-home'
+        good = launch.child_environment(home, 'tmp', launch.DEFAULT_MODEL_ADDRESS)
+        for name in ('CODEX_HOME', 'CHIRALITY_CODEX_HOME'):
+            with self.subTest(name):
+                self.assertNotIn(name, launch.ALLOWED)
+                self.assertNotIn(name, good)
+                for value in (str(home / 'codex-home'), '/invented/elsewhere'):
+                    with self.assertRaisesRegex(launch.Refusal, 'outside the allowlist'):
+                        launch.check_environment({**good, name: value}, home, 'tmp')
 
     def test_at_the_start_the_home_holds_only_the_launchers_two_entries_and_is_the_working_folder(self):
         seen = self.tmp / 'seen-at-start.txt'

@@ -86,9 +86,16 @@ What it also does, each with its limit:
   temporary folder and the output file, each named .chirality-launch-...
   Neither is a .codex, .agents, AGENTS.md or AGENTS.override.md entry. What the
   App then makes in its home is the App's.
-- It refuses a launch whose environment would have HOME or CFFIXED_USER_HOME
-  unset or empty (check_environment), stated as a guard of its own: the
-  supplier falls back to the account's real home when HOME is unset or empty.
+- HOME and CFFIXED_USER_HOME in the mapping handed to the start name the home
+  allocated for this launch, and nothing else: each is that home's path as
+  text (check_environment), and that path, not followed if it is a link, is
+  the directory the launcher holds, by device and inode (check_home). Unset,
+  empty or any other folder refuses. This is stated as a guard of its own
+  because the supplier resolves its home-relative places from HOME and falls
+  back to the account's real home when HOME is unset or empty. The mapping
+  carries no Codex home variable: the allowlist has none, so one in the
+  mapping is refused, and where the App puts its Codex home inside that home
+  is the App's.
 - The record is published in record/, whole or absent. A launch folder whose
   record/ is empty is one whose run did not complete; nothing more is known of
   it from the folder.
@@ -661,9 +668,11 @@ def check_environment(env, home, tmp):
     """STATEMENT 1, immediately before the App starts: exactly the allowlist, with these values."""
     if not isinstance(env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in env.items()):
         raise Refusal('the App environment is not a mapping of names to text')
-    for name in ('HOME', 'CFFIXED_USER_HOME'):  # a guard of its own: unset or empty falls back to the real home
+    for name in ('HOME', 'CFFIXED_USER_HOME'):  # a guard of its own: each names the home allocated for this launch
         if not env.get(name):
             raise Refusal(f'{name} is unset or empty in the App environment; refusing to launch')
+        if env[name] != str(home):
+            raise Refusal(f'{name} does not name the home allocated for this launch; refusing to launch')
     if set(env) != set(ALLOWED):
         raise Refusal(f'App environment outside the allowlist: extra {sorted(set(env) - set(ALLOWED))}, '
                       f'missing {sorted(set(ALLOWED) - set(env))}')
@@ -677,6 +686,17 @@ def check_environment(env, home, tmp):
         raise Refusal('a proxy override differs from its fixed value; refusing to launch')
     check_model_address(env[MODEL_ADDRESS])
     return env
+
+
+def check_home(env, home_fd):
+    """The folder HOME names is the directory the launcher allocated and holds, by device and inode, asked without
+    following a link at its end. A folder that cannot be asked refuses."""
+    try:
+        named = os.stat(env['HOME'], follow_symlinks=False)
+    except (OSError, KeyError, TypeError) as error:
+        raise Refusal(f'the folder HOME names could not be checked ({type(error).__name__}); refusing to launch') from None
+    if not stat.S_ISDIR(named.st_mode) or (named.st_dev, named.st_ino) != _ident(home_fd):
+        raise Refusal('the folder HOME names is not the directory allocated for this launch; refusing to launch')
 
 
 # ---- the run ------------------------------------------------------------------------------------------
@@ -758,8 +778,9 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
             return _finish(record_fd, record, facts, code=2, label='not launched')
         prefs_before = preferences_observation()
         cache_before = observe(cache, ('',), identifier, executable, 'per-user cache folder')
-        try:  # immediately before the start: the exact mapping (STATEMENT 1), and no .git entry above
+        try:  # immediately before the start: the exact mapping (STATEMENT 1), its home, and no .git entry above
             check_environment(env, home, tmp)
+            check_home(env, home_fd)
             asked = git_marker_above(home, folder / PROJECT)
         except Refusal as error:
             facts['ended'] = f'not launched: {error}'
