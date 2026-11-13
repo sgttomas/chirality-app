@@ -1176,6 +1176,15 @@ impl Host {
         if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
         self.home_holds.lock().unwrap().clear();
     }
+    /// Whether this Host holds a process whose settlement can never be established: its
+    /// reservation is released and its group is not known empty (lost at creation or at a later
+    /// observation). No retry changes that in this App process.
+    pub(crate) fn has_unestablishable_process(&self) -> bool {
+        let lost = |p: &Arc<process_group_custody::OwnedProcess>| p.released() && !p.settled();
+        self.child.lock().unwrap().iter().any(lost)
+            || self.retired_processes.lock().unwrap().iter().any(lost)
+            || self.probe_processes.lock().unwrap().iter().any(|(_, p)| lost(p))
+    }
     /// Whether this Host may still have a Codex child on a home it holds:
     /// `true` unless it is certainly idle; state that cannot be read at once
     /// counts as busy, never as idle.
@@ -7470,6 +7479,11 @@ mod local_process_lock_tests {
         let meta = std::fs::metadata(f.root.join("home")).unwrap();
         assert_eq!(kept.home(), Some((meta.dev(), meta.ino())));
         assert!(kept.released() && !kept.settled(), "its reservation is lost and its end is not established");
+        // Every numeric operation on a process group passes one point (a signal, a census
+        // query); from here to the end of the test none is made on the kept process's behalf.
+        let operations = Arc::new(Mutex::new(Vec::<&'static str>::new()));
+        let seen = operations.clone();
+        *kept.before_group_operation.lock().unwrap() = Some(Box::new(move |_, operation| seen.lock().unwrap().push(operation)));
         assert_eq!(kept.force_if_needed(), (false, Some("group authority unavailable; no signal".into())), "nothing is signalled");
         // The created stand-in ends when its input closes; the lock it was given is then free,
         // so what refuses below is the Host's own check.
@@ -7481,12 +7495,25 @@ mod local_process_lock_tests {
             assert_eq!(host.start(cfg, "fixture").unwrap_err(), KEPT, "{}", cfg.codex_home.display());
         }
         assert_eq!(std::fs::read_to_string(f.root.join("home/started")).map(|text| text.len()).unwrap_or(0) <= 1, true, "no further process on that home");
-        // The menu quit's settlement is withheld, in the existing words, and is cancelled.
+        // The lock is free, shown independently, so every refusal here is the kept process's
+        // alone. Another Host of this process, while this one lives, is refused the home too.
+        drop(take_process_lock(&f.lock_path()).expect("the lock is free"));
+        let other_host = Arc::new(Host::new());
+        assert_eq!(other_host.start(&f.cfg, "fixture").unwrap_err(), crate::home_hold::IN_USE_HERE);
+        drop(other_host);
+        // The menu quit is withheld, and the person reads the sentence for a settlement that can
+        // never be established, not the one for a settlement that was unavailable this time.
+        assert!(host.has_unestablishable_process());
         host.begin_quit();
-        let quit = host.settle_for_quit("fixture", "quit").unwrap_err();
-        assert!(quit.starts_with("Quit withheld; owned process settlement is unavailable"), "{quit}");
+        let withheld = host.settle_for_quit("fixture", "quit").unwrap_err();
+        assert!(withheld.starts_with("Quit withheld; owned process settlement is unavailable"), "{withheld}");
         host.cancel_quit();
-        assert!(!kept.settled() && host.retired_processes.lock().unwrap().iter().any(|p| p.id() == kept.id()), "still kept after the quit attempt");
+        let session = Arc::new(crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::Account, Arc::clone(&host), Ok(f.cfg.clone())).unwrap());
+        let quit = crate::app_quit::finish_exit(&[Arc::clone(&session)], Some(Vec::new())).unwrap_err();
+        assert_eq!(quit, crate::app_quit::QUIT_CANNOT_ESTABLISH);
+        assert!(!quit.contains("Supervision is retained") && !quit.contains("retrying Quit."), "{quit}");
+        drop(session);
+        assert!(!kept.settled() && host.retired_processes.lock().unwrap().iter().any(|p| p.id() == kept.id()), "still kept after the quit attempts");
         // A second home is another home.
         let mut other = f.cfg.clone();
         other.codex_home = f.root.join("second-home");
@@ -7499,8 +7526,11 @@ mod local_process_lock_tests {
         drop(host);
         until("the Host is gone", || gone.upgrade().is_none());
         let next = Arc::new(Host::new());
+        drop(take_process_lock(&f.lock_path()).expect("the lock is still free"));
         assert_eq!(next.start(&f.cfg, "fixture").unwrap_err(), KEPT);
         assert_eq!(next.snapshot()["state"], "absent");
+        assert!(!kept.settled(), "never taken as settled");
+        assert!(operations.lock().unwrap().is_empty(), "no signal and no census query was made for the kept process: {:?}", operations.lock().unwrap());
     }
 
     /// The process that served as Codex is itself alive after Stop: a stand-in whose serving

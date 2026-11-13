@@ -1385,9 +1385,16 @@ the same home named through another spelling or a link is the same home, and a
 process with no recorded home counts for every home. A process that was
 created but whose exit reservation was already lost (another reaper had taken
 its leader) is kept too, as one that can never be established settled: the
-start fails as a failed spawn, and for the life of that App process nothing
-further is started on that home and the menu quit is withheld, as for a
-reservation lost later; ending the App from the system ends it. A start refused on
+start fails as a failed spawn (its record says the process was created and
+custody of it was lost), and for the life of that App process nothing further
+is started on that home and the menu quit is withheld. For that state, and for
+a reservation lost at any later observation, the person reads: "Chirality
+cannot establish whether a Codex process group it started has ended. Retrying
+Quit cannot resolve this in the current App session. You can end Chirality
+using macOS Force Quit, but that does not establish that Codex or its
+descendants have ended." A settlement that was only unavailable this time keeps
+its earlier sentence. Force Quit can end the App without its end being
+recorded, and a later start on that home is still answered by the home's lock. A start refused on
 the first ground alone, the lock being free, is told that this App is still
 holding the home for a Codex process not confirmed ended. A build
 before this lock takes none and is not excluded by it. The lock is the file:

@@ -732,7 +732,10 @@ for line in sys.stdin:
         // cannot strand a modeled-unknown reservation in this fixture.
         f.home.host.model_quit_census(None);
         let retry = app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec())));
-        assert!(refused.unwrap_err().contains("still running"));
+        // A settlement that was unavailable this time keeps its own sentence: it is not the
+        // one for a settlement that can never be established.
+        let refused = refused.unwrap_err();
+        assert!(refused.contains("still running") && refused.contains("before retrying Quit") && refused != crate::app_quit::QUIT_CANNOT_ESTABLISH, "{refused}");
         assert!(permission.is_none(), "no exit permission from stopped state alone");
         assert_eq!(failed_snapshot["state"], "stopped");
         assert_eq!(failed_snapshot["generation"], f.generation);
