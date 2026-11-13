@@ -4,8 +4,13 @@ name: Package reader on macOS 15 (manual)
 # system refuses a symbolic link anywhere on the path (DEL-02-01, Revision).
 # The product jobs run on macOS 26, so they are not evidence for the App's
 # minimum, macOS 15. This runs the reader's boundary tests, and nothing else,
-# on a hosted macOS 15 runner. Manual dispatch only: it is not a merge check.
+# on a hosted macOS 15 runner. It is not a merge check. It runs by manual
+# dispatch, and once on a pull request that changes this file itself, so that
+# the run is seen before such a change merges.
 on:
+  pull_request:
+    paths:
+      - .github/workflows/macos15-package-reader.yml
   workflow_dispatch:
 
 permissions:
@@ -28,6 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           filter: blob:none
       - uses: ./.github/actions/app-v4-setup
         with:
