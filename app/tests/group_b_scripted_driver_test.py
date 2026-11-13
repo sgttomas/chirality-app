@@ -10,9 +10,11 @@ import os
 import re
 import shutil
 import stat
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO = Path(__file__).resolve().parents[2]
 APP = REPO / 'app'
@@ -89,6 +91,17 @@ class KeptOutOfTheShippedApp(unittest.TestCase):
         self.assertIn('proof.py release-free', workflow)
 
 
+def failing_pgrep():
+    """pgrep listing the process group fails (status 3, empty output), as the census's error case."""
+    real = subprocess.run
+
+    def run(command, *args, **kwargs):
+        if command[:2] == ['pgrep', '-g']:
+            return subprocess.CompletedProcess(command, 3, '', 'pgrep: cannot list the group')
+        return real(command, *args, **kwargs)
+    return mock.patch.object(subprocess, 'run', run)
+
+
 STAND_IN = '''#!/bin/sh
 S="$HOME/scripted-driver/stages.jsonl"
 M=chirality-scripted-driver-test-build-v1
@@ -107,7 +120,7 @@ class TheProofSaysShownOnlyWhenItWas(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def bundle(self, stages=('process started', 'page load started', 'page load finished'), heading='Welcome to Chirality',
-               windows=1, dialogs=0, evaluated=True, tail='exit 0', ever=1, finished=True, one=True):
+               windows=1, dialogs=0, evaluated=True, tail='exec sleep 0.3', ever=1, finished=True, one=True):
         app = self.root / 'Test.app'
         executable = app / 'Contents/MacOS/chirality-app-v4'
         executable.parent.mkdir(parents=True, exist_ok=True)
@@ -165,6 +178,15 @@ class TheProofSaysShownOnlyWhenItWas(unittest.TestCase):
         self.assertEqual(report['stopped_after'], 'page load finished')
         code, report = self.verdict(self.bundle(stages=(), evaluated=False))
         self.assertEqual(report['stopped_after'], 'nothing: no stage was written')
+
+    def test_a_census_that_cannot_be_taken_or_none_at_all_is_not_shown(self):
+        with failing_pgrep():
+            code, report = self.verdict(self.bundle())
+        self.assertEqual((code, report['result']), (1, 'not shown'))
+        self.assertTrue(report['census'].startswith('a census could not be taken'))
+        self.assertEqual(report['census_failures'][0]['exit_code'], 3)
+        code, report = self.verdict(self.bundle(), timeout=0)  # ended at once: no census is made
+        self.assertEqual((code, report['result'], report['census_samples']), (1, 'not shown', 0))
 
     def test_a_run_that_does_not_end_is_ended_and_not_shown(self):
         code, report = self.verdict(self.bundle(tail='sleep 30'), timeout=2)
@@ -302,7 +324,10 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
         self.scenario = self.root / 'scenario.json'
         self.scenario.write_text(json.dumps({'scenario': 'invented', 'version': 1, 'steps': [], 'outcomes': {}}))
 
-    def verdict(self, verdict='pass', windows=1, code=0, extra='', ever=1, hold_awake=False, starts=1, one=True):
+    def verdict(self, verdict='pass', windows=1, code=0, extra=None, ever=1, hold_awake=False, starts=1, one=True):
+        # By default the stand-in stays alive briefly as the one process (exec, no child), as a real App does, so the
+        # run takes at least one census.
+        extra = ('exec sleep 0.3' if code == 0 else '') if extra is None else extra
         app = self.root / 'Test.app'
         executable = app / 'Contents/MacOS/chirality-app-v4'
         executable.parent.mkdir(parents=True, exist_ok=True)
@@ -343,6 +368,12 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
             with self.subTest(name):
                 code, report = self.verdict(**change)
                 self.assertEqual((code, report['verdict']), (1, expected))
+
+    def test_a_census_that_cannot_be_taken_does_not_pass(self):
+        with failing_pgrep():
+            code, report = self.verdict()
+        self.assertEqual((code, report['verdict']), (1, 'inconclusive'))
+        self.assertTrue(report['census'].startswith('a census could not be taken'))
 
     @unittest.skipUnless(Path('/usr/bin/caffeinate').is_file(), 'caffeinate is macOS only')
     def test_held_awake_the_app_is_still_the_launched_process_and_the_holder_is_outside_it(self):

@@ -72,7 +72,8 @@ ends its own process. **Shown** means all of these:
 - exactly one window and one web view were created, and one window is open;
 - no in-page dialog is open;
 - the build started once and finished on its main thread (below);
-- no other process was seen below the App or in its process group;
+- no other process was seen below the App or in its process group, and
+  every census was taken;
 - the build ended itself with status 0.
 
 The job is `.github/workflows/app-scripted-driver.yml`. It runs on the macOS
@@ -105,7 +106,8 @@ A pass needs all of these:
 - exactly one window and one web view were created (below), and one window
   was open at every poll;
 - the build started once;
-- no other process was seen below the App or in its process group;
+- no other process was seen below the App or in its process group, and
+  every census was taken;
 - the build ended itself with status 0.
 
 **What is counted, and what is sampled.**
@@ -117,10 +119,13 @@ A pass needs all of these:
   already queued. A window made outside Tauri (a native sheet, alert or
   dialog) passes through no such notification and is unseen.
 - **Other processes:** at each census, about every half second (each census
-  is followed by a half-second pause), every process below the App and every
-  other member of its process group is recorded. This holds in both runs, and
-  none is allowed. A process that starts and ends between two censuses, or
-  that leaves the App's process group for another session, is not seen.
+  is followed by a half-second pause) while the App runs, every process below
+  the App and every other member of its process group is recorded. This holds
+  in both runs, and none is allowed. A process that starts and ends between
+  two censuses, that starts after the last census before the App ends, or
+  that leaves the App's process group for another session, is not seen. A
+  census that cannot be taken (a listing command that fails, which is never
+  read as "no process"), or a run with no census at all, prevents a pass.
 - **Process starts:** a run whose stages show the build started more than
   once does not pass.
 

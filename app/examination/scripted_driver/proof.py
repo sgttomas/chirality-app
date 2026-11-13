@@ -46,9 +46,11 @@ LIMITS = [
     'is counted by the script at each step of the scenario.',
     'Other processes: the App is exactly the launched process; every process below it, and every other member of its '
     'process group, is recorded at each census, about every half second (each census followed by a half-second '
-    'pause), in both runs, and none is allowed. A process that starts and ends between two censuses, or that leaves '
-    'the App\'s process group for another session, is not seen. The run is held awake by a separate caffeinate that '
-    'waits on the App\'s number and is in neither.',
+    'pause) while the App runs, in both runs, and none is allowed. A process that starts and ends between two '
+    'censuses, that starts after the last census before the App ends, or that leaves the App\'s process group for '
+    'another session, is not seen. A census that cannot be taken (a listing command that fails), or a run with no '
+    'census at all, prevents a pass. The run is held awake by a separate caffeinate that waits on the App\'s number '
+    'and is in neither.',
     'Exactly one process start is accepted: a run whose stages show the build started more than once does not pass.',
 ]
 
@@ -98,11 +100,16 @@ def launch(bundle, run_dir, timeout, scenario_input=None, hold_awake=None):
     # On macOS the run is held awake by a separate caffeinate that waits on the App's number: it is not in the App's
     # tree or group, so nothing in them is exempted. Elsewhere, as in this file's tests, the run is not held awake.
     awake = Path('/usr/bin/caffeinate').is_file() if hold_awake is None else hold_awake
-    started, others_seen, samples = time.time(), set(), 0
+    started, others_seen, samples, census_failures = time.time(), set(), 0, []
 
     def numbers(*args):
-        found = subprocess.run(['pgrep', *args], capture_output=True, text=True).stdout.split()
-        return {int(p) for p in found}
+        """pgrep exits 0 when it lists processes and 1 when there are none; anything else is a census that could not be
+        taken, kept with its status and error, and it prevents a pass. It is never read as "no process"."""
+        listed = subprocess.run(['pgrep', *args], capture_output=True, text=True)
+        if listed.returncode not in (0, 1):
+            census_failures.append({'census': samples + 1, 'command': ['pgrep', *args], 'exit_code': listed.returncode,
+                                    'stderr': listed.stderr.strip()[-500:]})
+        return {int(p) for p in listed.stdout.split()}
 
     def census(app):
         """Every process below the App, and every other member of its process group (the App leads its own group and
@@ -150,8 +157,15 @@ def launch(bundle, run_dir, timeout, scenario_input=None, hold_awake=None):
     return {'command': command, 'held_awake_by': ['/usr/bin/caffeinate', '-di', '-w', '<the App\'s number>'] if awake else None,
             'environment': env, 'seconds': round(time.time() - started, 1), 'exit_code': code, 'timed_out': timed_out,
             'stages': stages, 'app_pid': process.pid, 'census_samples': samples, 'other_processes_seen': sorted(others_seen),
+            'census_failures': census_failures, 'census_taken': samples > 0 and not census_failures,
             'process_started_stages': sum(1 for s in stages if s.get('stage') == 'process started'),
             'app_stderr_tail': (run_dir / 'app.err').read_bytes()[-4000:].decode('utf-8', 'replace')}
+
+
+def census_said(ran):
+    if ran['census_failures']:
+        return f"a census could not be taken ({len(ran['census_failures'])} failed listing commands)"
+    return 'every census was taken' if ran['census_samples'] else 'a census could not be taken (none was made)'
 
 
 def run(bundle, out, timeout):
@@ -171,7 +185,7 @@ def run(bundle, out, timeout):
              and created.get('windows_ever_created') == 1 and created.get('webviews_ever_created') == 1
              and bool(finished) and finished.get('detail', {}).get('exactly_one_each') is True
              and returned.get('open_dialogs') == 0 and code == 0 and not timed_out
-             and ran['process_started_stages'] == 1 and not ran['other_processes_seen']
+             and ran['process_started_stages'] == 1 and not ran['other_processes_seen'] and ran['census_taken']
              and all(s.get('marker') == MARKER.decode() for s in stages))
     reached = [name for name in STAGES if name in names]
     report = {
@@ -183,6 +197,7 @@ def run(bundle, out, timeout):
         'expected': {'heading': EXPECTED_HEADING, 'windows': 1, 'windows_ever_created': 1, 'webviews_ever_created': 1,
                      'open_dialogs': 0, 'exit_code': 0, 'process_started_stages': 1, 'other_processes': 0},
         'app_pid': ran['app_pid'], 'held_awake_by': ran['held_awake_by'], 'census_samples': ran['census_samples'],
+        'census': census_said(ran), 'census_failures': ran['census_failures'],
         'other_processes_seen': ran['other_processes_seen'], 'process_started_stages': ran['process_started_stages'],
         'app_stderr_tail': ran['app_stderr_tail'],
         'limits': LIMITS,
@@ -196,8 +211,8 @@ def run(bundle, out, timeout):
 
 def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
     """Walk the scenario in the test build and report its verdict. A pass needs: the walk's own verdict pass; exactly
-    one window and one web view created; one process start; no other process at any sample; the build ending itself
-    with status 0."""
+    one window and one web view created; one process start; no other process at any census, and every census taken;
+    the build ending itself with status 0."""
     bundle = bundle.resolve()
     if not (bundle / 'Contents/MacOS' / EXECUTABLE).is_file():
         print(f'refused: no {EXECUTABLE} in {bundle}', file=sys.stderr)
@@ -218,7 +233,7 @@ def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
     verdict = result.get('verdict') if finished else None
     one_window = one_window and (finished or {}).get('detail', {}).get('exactly_one_each') is True
     passed = (verdict == 'pass' and one_window and ran['process_started_stages'] == 1 and not ran['other_processes_seen']
-              and ran['exit_code'] == 0 and not ran['timed_out'] and all(s.get('marker') == MARKER.decode() for s in stages))
+              and ran['census_taken'] and ran['exit_code'] == 0 and not ran['timed_out'] and all(s.get('marker') == MARKER.decode() for s in stages))
     second = any(s.get('stage', '').startswith('run ended: a second') for s in stages)
     if passed:
         overall = 'pass'
@@ -234,7 +249,8 @@ def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
         'outcomes': result.get('outcomes'), 'steps': result.get('steps'),
         'census_at_start': result.get('census_at_start'), 'census_at_end': result.get('census_at_end'),
         'most_windows': most_windows, 'created': created, 'app_pid': ran['app_pid'], 'held_awake_by': ran['held_awake_by'],
-        'census_samples': ran['census_samples'], 'other_processes_seen': ran['other_processes_seen'],
+        'census_samples': ran['census_samples'], 'census': census_said(ran), 'census_failures': ran['census_failures'],
+        'other_processes_seen': ran['other_processes_seen'],
         'process_started_stages': ran['process_started_stages'],
         'stages': [{k: v for k, v in s.items() if k != 'detail' or s.get('stage') != 'scenario finished'} for s in stages],
         'app_stderr_tail': ran['app_stderr_tail'],
@@ -254,7 +270,7 @@ def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
                 lines.append(f"  {step['id']} expected {json.dumps(check['expectation'])}, found: {json.dumps(check['found'])}")
     lines.append(f"  windows ever created {created.get('windows_ever_created')}, web views {created.get('webviews_ever_created')}; "
                  f"other processes seen {len(ran['other_processes_seen'])} in {ran['census_samples']} samples; "
-                 f"process starts {ran['process_started_stages']}; exit {ran['exit_code']}")
+                 f"process starts {ran['process_started_stages']}; exit {ran['exit_code']}; {census_said(ran)}")
     print('\n'.join(lines))
     return 0 if overall == 'pass' else 1
 
