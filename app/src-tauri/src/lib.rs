@@ -839,6 +839,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
         .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null);
 
+    s["codexSessionSettings"] = home.host_config.as_ref().ok().map(|cfg|hosting::applied_session_settings(&cfg.session_flags)).unwrap_or(Value::Null);
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
@@ -1324,7 +1325,19 @@ pub(crate) fn key_entry_refusal(error: String) -> String {
     if hosting::reading_gate::reading_sentence(&error) { format!("{KEY_HOME_READY}{error}") } else { error }
 }
 
-/// Explicit local-provider setup; no endpoint/model/key argument and no account resource links.
+/// The local home's namespace preflight, before its directory is created or prepared.
+fn local_home_preflight(state: &AppState, bootstrap: &runtime_session::HomeBootstrapSet) -> Result<(Arc<runtime_session::HomeSession>, Arc<hosting::attachment_custody::AttachmentCustody>), String> {
+    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+    state.validate_home_source(&account)?;
+    // The prospective local directory is already in the actual Root namespace set.
+    let namespaces=bootstrap.native_namespaces(state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey).is_ok())?;
+    account.host.app_runtime_custody()?.preflight_native_namespaces(&namespaces)?;
+    let attachment=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.clone();
+    attachment.preflight_binding(&namespaces)?;
+    Ok((account,attachment))
+}
+/// Explicit local-provider setup with the local model settings the person saved; no
+/// endpoint/model/key argument and no account resource links. Never writes defaults.
 #[tauri::command(async)]
 fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
     if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
@@ -1333,17 +1346,14 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
     provider_endpoint_confirmation::recheck_original(&window)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     let plan=bootstrap.local_plan()?;
-    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
-    state.validate_home_source(&account)?;
-    // The prospective local directory is already in the actual Root namespace set.
+    if native_local_provider::stored(plan)?.is_none() { return Err(native_local_provider::UNSET.into()); }
     let data=state.app_user_data_root.lock().unwrap().clone()?;
-    let namespaces=bootstrap.native_namespaces(state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey).is_ok())?;
-    account.host.app_runtime_custody()?.preflight_native_namespaces(&namespaces)?;
-    let attachment=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.clone();
-    attachment.preflight_binding(&namespaces)?;
-    native_local_provider::prepare(plan)?;
+    let (account,attachment)=local_home_preflight(&state,&bootstrap)?;
+    let settings=native_local_provider::prepare(plan)?;
     bootstrap.revalidate()?;
     let home=match state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider) { Ok(home)=>Some(home),Err(_)=>None };
+    // Settings saved after this session bound the home take effect only after the App is reopened.
+    if home.as_ref().is_some_and(|home| home.host.local_superseded() || home.host.local_settings().ok().as_ref()!=Some(&settings)) { return Err(native_local_provider::RELAUNCH.into()); }
     let home=if let Some(home)=home { home } else {
         let config=native_local_provider::config(account.host_config.as_ref().map_err(Clone::clone)?,plan)?;
         let host=Arc::new(Host::new_with_app_custody(account.host.app_runtime_custody()?)?);
@@ -1374,7 +1384,42 @@ fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state
     let field_home=home.clone(); let field_generation=generation.clone(); let field_window=window.clone();
     native_local_provider::submit(&home,bootstrap.local_plan()?,&generation,&state.local_credentials,
         || provider_endpoint_confirmation::recheck_original(&window),
-        || native_secure_entry::local(&app,field_window,move || field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+        |address| native_secure_entry::local(&app,field_window,address,move || !field_home.host.local_superseded() && field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+}
+
+/// The local model settings: the App-owned file and the settings in force for this session.
+/// Reads only the dedicated local home's config.toml; starts nothing; never a key.
+#[tauri::command(async)]
+fn local_model_settings_read(state: State<'_, AppState>) -> Value {
+    let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
+    let in_force=home.as_ref().and_then(|home| home.host.local_settings().ok());
+    let superseded=home.as_ref().is_some_and(|home| home.host.local_superseded());
+    let reading=state.home_bootstrap.lock().unwrap().clone().and_then(|bootstrap| native_local_provider::read(bootstrap.local_plan()?));
+    native_local_provider::settings_view(reading,in_force.as_ref(),superseded)
+}
+/// Saves the server address and model name after one native confirmation in the invoking
+/// window. Never takes a key. An address change first has Codex sign out of the saved key.
+#[tauri::command(async)]
+fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, endpoint: String, model: String) -> Result<Value, String> {
+    if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
+    let proposed=native_local_provider::LocalSettings::new(&endpoint,&model)?;
+    let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
+    if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
+    provider_endpoint_confirmation::recheck_original(&window)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
+    let plan=bootstrap.local_plan()?;
+    let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
+    if let Some(home)=&home {
+        state.validate_home_source(home)?;
+        native_local_provider::check_no_key_entry_before_address_change(plan,&proposed,&home.host.snapshot()["generation"],&state.local_credentials)?;
+    }
+    // A first save creates the home directory: the same namespace preflight as preparation.
+    if native_local_provider::stored(plan)?.is_none() { local_home_preflight(&state,&bootstrap)?; }
+    let saved=native_local_provider::save(plan,proposed,home.as_deref(),
+        || { if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.to_owned()); } provider_endpoint_confirmation::recheck_original(&window) },
+        |statement,action| native_local_provider::confirm_native(&window,statement,action))?;
+    if saved["outcome"]=="saved" { bootstrap.revalidate()?; }
+    Ok(saved)
 }
 
 #[tauri::command(async)]
@@ -1390,7 +1435,7 @@ fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; native_local_provider::require_no_admin_layers()?; }
+    if home.class()==home_resources::HomeClass::LocalProvider { if home.host.local_superseded() { return Err(native_local_provider::RELAUNCH.into()); } home.host.check_local_home()?; native_local_provider::require_no_admin_layers()?; }
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
         &home.host,
@@ -1716,8 +1761,8 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         .as_ref()
         .map_err(Clone::clone)?
         .cwd.to_str().ok_or("Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent")?.to_owned();
-    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>native_local_provider::fixed_selection(&entry_id,&model_provider,&model).is_ok(),home_resources::HomeClass::Probe=>false };
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; }
+    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>home.host.local_settings().is_ok_and(|settings|native_local_provider::fixed_selection(&settings,&entry_id,&model_provider,&model).is_ok()),home_resources::HomeClass::Probe=>false };
+    if home.class()==home_resources::HomeClass::LocalProvider { home.host.check_local_home()?; }
     if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
     if let Ok(set) = &*state.home_bootstrap.lock().unwrap() { set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?; }
     else if home.class()==home_resources::HomeClass::ApiKey {return Err("Explicit key source binding is unavailable".into());}
@@ -1883,11 +1928,14 @@ fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync
     ordinary_send_text_effort(home, workflows, generation, thread, text, mode, model, None)
 }
 fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
-    if home.class()==home_resources::HomeClass::LocalProvider {
-        if model.is_some_and(|m| m != native_local_provider::MODEL) { return Err(native_local_provider::LIMIT.into()); }
+    let local_model=if home.class()==home_resources::HomeClass::LocalProvider {
+        let settings=home.host.local_settings()?;
+        // A model other than the one in force names a conversation started under earlier settings.
+        if model.is_some_and(|m| m != settings.model()) { return Err(native_local_provider::EARLIER.into()); }
         home.host.require_canonical_167(generation)?;
-    }
-    let model=if home.class()==home_resources::HomeClass::LocalProvider { Some(native_local_provider::MODEL) } else { model };
+        Some(settings.model().to_owned())
+    } else { None };
+    let model=if local_model.is_some() { local_model.as_deref() } else { model };
     // TC-2: one original ordered notice/person frame, with the same mode/model.
     if let Some(sent) = runtime_session::send_with_pending_notice_effort_observed(workflows, generation, thread, text, mode, model, effort, &mut |_| {}) {
         return sent.result;
@@ -3207,6 +3255,8 @@ pub fn run() {
             add_api_key,
             prepare_local_provider,
             submit_local_provider_key,
+            local_model_settings_read,
+            local_model_settings_save,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,
             host_observe,

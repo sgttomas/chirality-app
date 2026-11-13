@@ -14,6 +14,8 @@ const {createRoot}=await import('react-dom/client');
 const {App}=loadSrc('App');
 const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
 const find=(container,tag,text)=>container.querySelectorAll(node=>node.localName===tag&&node.textContent===text)[0];
+// The account home's one connection route; the model field and this route exist only in the account home.
+const ROUTE='Use my ChatGPT account (built-in OpenAI)';
 let cached, stale;
 function producer(){
   if(cached)return cached;
@@ -82,7 +84,9 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
   const change=async(element,value)=>{assert.equal(!!props(element).disabled,false,'no edit through disabled controls');await React.act(()=>props(element).onChange({target:{value}}));};
   try{
     await React.act(async()=>root.render(React.createElement(App)));
-    await check({dto,container,calls,scrolls,press,change,settle,conversation,field,select:()=>byTag(conversation(),'select')[0],draft:()=>byTag(conversation(),'textarea')[0]});
+    const routeChosen=()=>{const b=find(container,'button',ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+    const choice=()=>({model:field('input','Model ')?props(field('input','Model ')).value:null,route:routeChosen()});
+    await check({dto,container,calls,scrolls,press,change,settle,conversation,field,routeChosen,choice,select:()=>byTag(conversation(),'select')[0],draft:()=>byTag(conversation(),'textarea')[0]});
   }finally{navigationWait?.resolve();decisionWait?.resolve();await settle();const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);document.getElementById=priorGet;}
 }
 
@@ -143,13 +147,17 @@ test('a newer conversation choice made during navigation takes precedence over i
 test('navigation invalidates the prior-home chooser at intent and preserves newer target-home edits through delayed refresh',async()=>{
   const wait=deferred();
   await mounted(async ui=>{
-    await ui.change(ui.field('input','Model '),'prior-model');await ui.change(ui.field('input','Configured Codex provider '),'prior-provider');await ui.change(ui.field('select','Access entry '),'api-key');
+    // The retained legacy home offers no connection route or model field, so no prior-home choice can be made.
+    assert.deepEqual(ui.choice(),{model:null,route:false});
     await ui.press('account · conversation shared-thread: 2');
-    assert.equal(props(ui.field('input','Model ')).value,'');
+    assert.deepEqual(ui.choice(),{model:'',route:false});
     assert.match(ui.container.textContent,/Selected home: account\./,'target source is rendered while its independent decision refresh waits');
-    await ui.change(ui.field('input','Model '),'target-model');await ui.change(ui.field('input','Configured Codex provider '),'target-provider');await ui.change(ui.field('select','Access entry '),'local-provider');
+    // While the target home's refresh is pending the route is not offered; the model field can still be edited.
+    assert.equal(props(find(ui.container,'button',ROUTE)).disabled,true);
+    await ui.change(ui.field('input','Model '),'target-model');
     wait.resolve();await ui.settle();
-    assert.equal(props(ui.field('input','Model ')).value,'target-model');assert.equal(props(ui.field('input','Configured Codex provider ')).value,'target-provider');assert.equal(props(ui.field('select','Access entry ')).value,'local-provider');
+    assert.deepEqual(ui.choice(),{model:'target-model',route:false});
+    await ui.press(ROUTE);assert.deepEqual(ui.choice(),{model:'target-model',route:true});
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,0);
   },{decisionWait:wait});
 });
@@ -157,15 +165,13 @@ test('navigation invalidates the prior-home chooser at intent and preserves newe
 test('same-home waiting navigation preserves a separate unconsumed new-conversation choice and draft',async()=>{
   for(const initial of ['account','api-key']) {
     await mounted(async ui=>{
-      const entry=initial==='account'?'chatgpt-account':'api-key';
-      await ui.change(ui.field('input','Model '),'unsent-new-model');
-      await ui.change(ui.field('input','Configured Codex provider '),'openai');
-      await ui.change(ui.field('select','Access entry '),entry);
+      // Only the account home offers a new-conversation choice; the retained legacy home offers none.
+      const kept=initial==='account'?{model:'unsent-new-model',route:true}:{model:null,route:false};
+      if(initial==='account'){await ui.press(ROUTE);await ui.change(ui.field('input','Model '),'unsent-new-model');}
+      assert.deepEqual(ui.choice(),kept);
       await ui.change(ui.draft(),'Kept unsent draft / 家');
       await ui.press(`${initial} · conversation shared-thread: ${initial==='account'?2:1}`);
-      assert.equal(props(ui.field('input','Model ')).value,'unsent-new-model');
-      assert.equal(props(ui.field('input','Configured Codex provider ')).value,'openai');
-      assert.equal(props(ui.field('select','Access entry ')).value,entry);
+      assert.deepEqual(ui.choice(),kept);
       assert.equal(props(ui.draft()).value,'Kept unsent draft / 家');
       assert.equal(props(ui.select()).value,JSON.stringify([ui.dto[initial].generation,'shared-thread']));
       assert.deepEqual(ui.scrolls,['conversation']);
@@ -181,9 +187,9 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
   const wait=deferred(),account=initial==='account';
   await mounted(async ui=>{
     await ui.change(ui.select(),JSON.stringify([ui.dto[initial].generation,'shared-thread']));
-    await ui.change(ui.field('input','Model '),'unsent-new-model');
-    await ui.change(ui.field('input','Configured Codex provider '),'openai');
-    if(account)await ui.change(ui.field('select','Access entry '),'chatgpt-account');
+    if(account){await ui.press(ROUTE);await ui.change(ui.field('input','Model '),'unsent-new-model');}
+    const kept=account?{model:'unsent-new-model',route:true}:{model:null,route:false};
+    assert.deepEqual(ui.choice(),kept);
     const waiting=`${initial} · conversation shared-thread: ${account?2:1}`;
     assert.equal(find(ui.container,'button','Use api-key home'),undefined,'no API-key home switch is offered');
     assert.equal(!!find(ui.container,'button','Use account home'),!account,'the account choice is offered only from a retained legacy home');
@@ -192,22 +198,16 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
     const queuedStart=props(find(ui.container,'button','Start thread')).onClick;
     assert.equal(!!props(find(ui.container,'button','Start thread')).disabled,!account,'a legacy home offers no new conversation');
     await ui.press(waiting);
-    assert.equal(props(ui.field('input','Model ')).value,'unsent-new-model');
-    assert.equal(props(ui.field('input','Configured Codex provider ')).value,'openai');
-    assert.equal(props(ui.field('select','Access entry ')).value,account?'chatgpt-account':'');
+    assert.deepEqual(ui.choice(),kept);
     for(const text of [waiting,...(account?[]:['Use account home']),'Start thread'])assert.equal(props(find(ui.container,'button',text)).disabled,true,text);
     await React.act(async()=>{queuedOpen();await queuedHome?.();await queuedStart();});
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1,'queued presses share the synchronous pending latch');
     assert.equal(ui.calls.filter(c=>c.command==='select_home'||c.command==='thread_start').length,0);
-    await ui.change(ui.field('input','Model '),'newer-model');
-    await ui.change(ui.field('input','Configured Codex provider '),'newer-provider');
-    if(account)await ui.change(ui.field('select','Access entry '),'local-provider');
+    if(account)await ui.change(ui.field('input','Model '),'newer-model');
     await ui.change(ui.select(),'');
     await ui.change(ui.draft(),'Newer unsent draft / 家');
     wait.resolve();await ui.settle();
-    assert.equal(props(ui.field('input','Model ')).value,'newer-model');
-    assert.equal(props(ui.field('input','Configured Codex provider ')).value,'newer-provider');
-    assert.equal(props(ui.field('select','Access entry ')).value,account?'local-provider':'');
+    assert.deepEqual(ui.choice(),account?{model:'newer-model',route:true}:{model:null,route:false});
     assert.equal(props(ui.draft()).value,'Newer unsent draft / 家');
     assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,[]);
     assert.match(ui.container.textContent,/navigation superseded/);

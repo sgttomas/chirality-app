@@ -43,6 +43,7 @@ impl Peer {
             i.state = "ready".into();
             i.generation = generation();
             i.journal.begin_generation(generation());
+            i.server_cwd = Some("/invented".into());
         }
         let mut child = Command::new("/bin/cat")
             .env_clear()
@@ -64,6 +65,12 @@ impl Peer {
             for line in BufReader::new(stdout).lines() {
                 let Ok(line) = line else { break };
                 let frame: Value = serde_json::from_str(&line).unwrap();
+                // An account Continue first reads Codex's configuration: the stand-in reports the
+                // built-in provider and keeps its scripted replies for the history frames.
+                if frame["method"] == "config/read" {
+                    h.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}})).unwrap(), &generation());
+                    continue;
+                }
                 w.lock().unwrap().push(frame.clone());
                 let reply = r.lock().unwrap().pop_front().unwrap_or(Reply::Silent);
                 let (response, correlated) = match reply {

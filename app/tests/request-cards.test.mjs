@@ -87,6 +87,9 @@ test('classification is unchanged: answer controls only for an outstanding known
 test('card states use the person words for each register state (CS)',()=>{
   const cases=[
     [{state:'settling'},'Sending your answer: not yet written to Codex'],
+    [{state:'outstanding'},'Waiting for your answer'],
+    [{state:'outstanding',originClass:'named-service'},'Waiting for a reply from the App; none has been sent to Codex'],
+    [{state:'received',classification:'known-app-unsupported',originClass:'none'},"Received; the App's reply has not been sent to Codex"],
     [{state:'answered'},'Your answer was written to Codex; Codex has not confirmed it'],
     [{state:'answered',acknowledgmentObservation:{status:'observed'}},'Your answer was written; Codex reported the request resolved'],
     [{state:'declined',settlement:{origin:{class:'person-via-interaction'}}},'You declined; written to Codex; Codex has not confirmed it'],

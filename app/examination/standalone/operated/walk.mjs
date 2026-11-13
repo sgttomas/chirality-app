@@ -290,10 +290,14 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   if (atStart) return atStart;
   let elements = [];
   // A view is whole, or the walk stops there. One that comes back as differences is kept, with the view rebuilt from
-  // it, for reading only: no check is credited from a rebuilt view and no click is made from one.
-  const view = async () => {
-    calls.push({ at: now(), call: 'get_app_state', app });
-    const state = await sky.get_app_state({ app, disableDiff: true });
+  // it, for reading only: no check is credited from a rebuilt view and no click is made from one. Whether a view is
+  // whole is read from what it returned, never assumed from what was asked.
+  // The first view asks with the application alone, as the calls that worked on 13 November did; every later view
+  // asks for the whole window (disableDiff). That the first view's form matters is not established (README.md).
+  const view = async ({ plain = false } = {}) => {
+    const asked = plain ? { app } : { app, disableDiff: true };
+    calls.push({ at: now(), call: 'get_app_state', ...asked });
+    const state = await sky.get_app_state(asked);
     if (state?.app !== bundle) throw new Error(`the view does not say it is of the bundle; it names: ${state?.app}`);
     const text = String(state?.text ?? '');
     if (text.startsWith(DIFFERENCE) || text.startsWith(NO_CHANGE)) {
@@ -306,22 +310,27 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     elements = parseView(text);
     return { whole: true, text };
   };
-  const asDifferences = id => `stopped at ${id}: the view came back as differences although the whole window was asked for; nothing is checked or clicked from a rebuilt view`;
-  // Before any click: two whole views, one after the other. The first view of an application was seen to be whole
-  // without asking; only a second one shows that asking for the whole window is honoured.
+  // What was asked, said truly for each view: the first is a plain view of an identifier not viewed before in this
+  // walk; every later view asked for the whole window.
+  const asDifferences = (id, plain = false) => `stopped at ${id}: the view came back as differences although ${plain
+    ? 'it was the first view of this build in the walk, asked with the application alone'
+    : 'the whole window was asked for'}; nothing is checked or clicked from a rebuilt view`;
+  // Before any click: two whole views, one after the other. The first asks with the application alone; the first view
+  // of an application was seen to be whole without asking, and it counts only if it came back whole. The second asks
+  // for the whole window, and only it shows that asking is honoured. Either coming back as differences stops the walk.
   report.whole_views_before_any_click = [];
   for (const ordinal of ['first', 'second']) {
     const beforeView = gate(`before the ${ordinal} view before any click`);
     if (beforeView) return beforeView;
     let seen;
     try {
-      seen = await view();
+      seen = await view({ plain: ordinal === 'first' });
     } catch (error) {
       report.view_error = readFailure(`the ${ordinal} view before any click`, error);
       return finish('inconclusive', `stopped at the ${ordinal} view before any click: the view failed (${report.view_error.message})`);
     }
     report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
-    if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`));
+    if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`, ordinal === 'first'));
     const stray = notThePage(elements, scenario);
     if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
     const afterView = gate(`after the ${ordinal} view before any click`);
