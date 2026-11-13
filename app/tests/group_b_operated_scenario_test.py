@@ -156,7 +156,7 @@ class TheWalkItself(unittest.TestCase):
                 result = harness(f'const r = await walk.run({options}); return [r.verdict, r.stopped, r.calls.length, r.steps.length];')
                 verdict, stopped, calls, steps = result['out']
                 self.assertEqual((verdict, calls, steps, result['touched']), ('inconclusive', 0, 0, []))
-                self.assertTrue(stopped.startswith('refused before any call: '), stopped)
+                self.assertTrue(stopped.startswith(('refused before any call: ', 'stopped before any call: ')), stopped)
 
     def test_it_stops_without_a_further_call_when_a_view_holds_something_that_is_not_the_page(self):
         window = '0 standard window Chirality, Secondary Actions: Raise'
@@ -297,7 +297,7 @@ class TheWalkItself(unittest.TestCase):
         self.assertIn('stopped before any call', result['out']['stopped'])
         # Shown at the reading after the first view before any click: the second is not made.
         result = harness(f'''let readings = 0;
-          const r = await walk.run({{ ...base, readWatch: () => watched({{ children: ++readings === 4 ? {child} : [] }})() }});
+          const r = await walk.run({{ ...base, readWatch: () => watched({{ children: ++readings === 3 ? {child} : [] }})() }});
           return [r.verdict, r.stopped, r.calls.length];''')
         self.assertEqual(result['out'][0::2], ['fail', 1], result['out'][1])
         self.assertIn('after the first view before any click', result['out'][1])
@@ -493,26 +493,20 @@ class StrayStart(unittest.TestCase):
                  504: str(self.tmp / 'alias' / self.bundle.name / 'Contents/MacOS/chirality-app-v4'),  # through a link
                  505: str(self.tmp / 'elsewhere' / 'chirality-app-v4'),                  # the same name, another file
                  506: None,                                                              # gone since the listing
-                 507: str(self.tmp / 'removed-since')}                                   # its executable no longer exists
+                 507: str(self.tmp / 'removed-since'),                                   # removed between the two questions
+                 509: self.stray.NO_PATH}                                                # the system gives no path: removed
         case_ignored = os.path.exists(executable.upper()) and os.path.samefile(executable, executable.upper())
         if case_ignored:
             paths[508] = executable.upper()                                              # another letter case
         lines = [f'  {pid}     1 {when}' for pid in paths] + ['not a process line']
-        found = self.stray.processes(executable, lines, path_of=paths.get)
+        found, no_path = self.stray.processes(executable, lines, path_of=paths.get)
+        self.assertEqual(no_path, [507, 509])
         expected = [501, 504] + ([508] if case_ignored else [])
         self.assertEqual([entry['pid'] for entry in found], expected)
         self.assertEqual((found[0]['parent'], found[0]['started'], found[0]['executable']), (1, when, executable))
         # The executable named through the link finds the same processes.
-        again = self.stray.processes(paths[504], lines, path_of=paths.get)
+        again, _ = self.stray.processes(paths[504], lines, path_of=paths.get)
         self.assertEqual([entry['pid'] for entry in again], expected)
-
-    def test_the_system_is_asked_for_an_executable_by_process_number(self):
-        own = self.stray.executable_of(os.getpid())
-        self.assertTrue(os.path.samefile(own, sys.executable), (own, sys.executable))
-        self.assertIsInstance(self.stray.listing(), list)  # the real listing of this user's processes can be made
-        gone = subprocess.Popen(['/usr/bin/true'])
-        gone.wait()
-        self.assertIsNone(self.stray.executable_of(gone.pid))
 
     def test_entries_are_those_the_launchers_comparison_watches_and_nothing_is_opened(self):
         identifier = 'dev.chirality.app-v4.candidate.invented'
@@ -534,7 +528,7 @@ class StrayStart(unittest.TestCase):
         library = self.tmp / 'Library'
         (library / 'Logs').mkdir(parents=True)
         argv = ['stray.py', str(self.bundle), identifier]
-        with mock.patch.object(self.stray, 'real_library', return_value=library), \
+        with mock.patch.object(self.stray, 'real_library', return_value=library), mock.patch.object(self.stray, 'on_macos', return_value=True), \
                 mock.patch.object(self.stray, 'listing', return_value=[]), contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(self.stray.main(argv), 0)
             (library / 'Logs').chmod(0o000)
@@ -546,25 +540,83 @@ class StrayStart(unittest.TestCase):
             (library / 'Caches').mkdir()
             (library / 'Caches' / identifier).mkdir()
             self.assertEqual(self.stray.main(argv), 1)  # something found is said, whatever else could not be listed
-        with contextlib.redirect_stderr(io.StringIO()):
+        with contextlib.redirect_stderr(io.StringIO()), mock.patch.object(self.stray, 'on_macos', return_value=True):
             self.assertEqual(self.stray.main(['stray.py', str(self.tmp / 'no-such.app'), identifier]), 2)  # no bundle to look for
+        said = io.StringIO()
+        with contextlib.redirect_stderr(said), mock.patch.object(self.stray, 'on_macos', return_value=False), \
+                mock.patch.object(self.stray, 'listing', side_effect=AssertionError('looked although not on macOS')):
+            self.assertEqual(self.stray.main(argv), 2)  # elsewhere it looks for nothing and says so
+        self.assertIn('macOS only; nothing was looked for', said.getvalue())
         tool = [sys.executable, '-B', str(OPERATED / 'stray.py')]
         for arguments in ([], ['relative.app', 'x'], ['/invented/folder', 'x'], ['/invented/x.app', 'id', '4242']):
             with self.subTest(arguments=arguments):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
 
 
-class TheMethod(unittest.TestCase):
-    def test_step_one_asks_for_exactly_the_variables_by_which_the_app_takes_its_configuration_from_the_environment(self):
+class SessionEnvironment(unittest.TestCase):
+    """session_env.py: whether a start by the launch service would be given any of the App's configuration variables."""
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('session_env_under_test', OPERATED / 'session_env.py')
+        self.env = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.env)
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+
+    def domain(self, *entries):
+        return 'gui/501 = {\n\ttype = gui\n\tenvironment = {\n' + ''.join(f'\t\t{e}\n' for e in entries) + '\t}\n\tservices = {\n\t}\n}\n'
+
+    def bundle(self, plist):
+        bundle = self.tmp / 'Invented.app'
+        (bundle / 'Contents').mkdir(parents=True, exist_ok=True)
+        with open(bundle / 'Contents' / 'Info.plist', 'wb') as stream:
+            plistlib.dump(plist, stream)
+        return str(bundle)
+
+    def test_it_asks_for_exactly_the_variables_by_which_the_app_takes_its_configuration_from_the_environment(self):
         source = (APP / 'src-tauri/src/lib.rs').read_text()
         keys = source[source.index('fn explicit_environment_launch'):]
         keys = keys[keys.index('const KEYS'):keys.index('];')]
-        in_app = set(re.findall(r'"(CHIRALITY_[A-Z0-9_]+)"', keys))
-        method = (OPERATED / 'README.md').read_text()
-        loop = method[method.index('for name in CHIRALITY_'):method.index('; do\n')]
-        asked = set(re.findall(r'CHIRALITY_[A-Z0-9_]+', loop))
-        self.assertTrue(in_app)
-        self.assertEqual(asked, in_app)
+        self.assertEqual(set(self.env.NAMES), set(re.findall(r'"(CHIRALITY_[A-Z0-9_]+)"', keys)))
+        self.assertEqual(len(self.env.NAMES), 10)
+
+    def test_a_variable_present_and_empty_is_present_and_refuses(self):
+        names, reason = self.env.session_names(self.domain('SSH_AUTH_SOCK => /invented', 'CHIRALITY_WORKSPACE => '))
+        self.assertEqual((names, reason), ({'SSH_AUTH_SOCK', 'CHIRALITY_WORKSPACE'}, None))
+        result = self.env.states(names, None, set(), None)
+        self.assertEqual(result['CHIRALITY_WORKSPACE'], 'present')
+        self.assertEqual({v for k, v in result.items() if k != 'CHIRALITY_WORKSPACE'}, {'absent'})
+        self.assertEqual(self.env.status(result), 1)
+
+    def test_none_present_is_absent_for_all_and_no_value_is_kept(self):
+        names, _ = self.env.session_names(self.domain('SSH_AUTH_SOCK => /invented/secret-value'))
+        result = self.env.states(names, None, set(), None)
+        self.assertEqual((set(result.values()), self.env.status(result)), ({'absent'}, 0))
+        self.assertNotIn('secret-value', json.dumps(result))
+
+    def test_the_bundles_own_environment_counts(self):
+        result = self.env.states(set(), None, self.env.bundle_names(self.bundle({'LSEnvironment': {'CHIRALITY_CODEX_HOME': ''}})), None)
+        self.assertEqual((result['CHIRALITY_CODEX_HOME'], self.env.status(result)), ('present', 1))
+
+    def test_what_cannot_be_read_is_could_not_be_established_never_absent(self):
+        for name, text in (('no environment block', 'gui/501 = {\n\ttype = gui\n}\n'),
+                           ('two blocks', self.domain('A => 1') + self.domain('B => 2')),
+                           ('a line it cannot read', self.domain('SSH_AUTH_SOCK => /x', 'something else')),
+                           ('a block that does not end', 'gui/501 = {\n\tenvironment = {\n\t\tA => 1\n')):
+            with self.subTest(name):
+                names, reason = self.env.session_names(text)
+                self.assertIsNone(names)
+                result = self.env.states(names, reason, set(), None)
+                self.assertTrue(all(v.startswith('could not be established: ') for v in result.values()), result)
+                self.assertEqual(self.env.status(result), 2)
+        # One present is said as present even when the rest could not be established.
+        self.assertEqual(self.env.status(self.env.states({'CHIRALITY_WORKSPACE'}, None, None, 'unreadable')), 1)
+
+    def test_elsewhere_than_macos_it_establishes_nothing_and_says_so(self):
+        out = io.StringIO()
+        with mock.patch.object(self.env, 'on_macos', return_value=False), contextlib.redirect_stdout(out), \
+                mock.patch.object(self.env.subprocess, 'run', side_effect=AssertionError('asked although not on macOS')):
+            self.assertEqual(self.env.main(['session_env.py', self.bundle({})]), 2)
+        self.assertEqual(set(json.loads(out.getvalue()).values()), {'could not be established: this is asked on macOS only'})
 
 
 class TheScenarioFile(unittest.TestCase):

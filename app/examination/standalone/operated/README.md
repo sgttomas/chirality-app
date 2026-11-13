@@ -62,21 +62,20 @@ All of these hold, every time:
 
 ## The steps
 
-1. **Launch.** First confirm that the login session's environment, which an
-   application started by the system's launch service is given, holds none of
-   the App's ten configuration variables (why: "A view of an application that
-   is not running", below). This prints the name of any that is set, and
-   never its value:
+1. **Launch.** First confirm that a start of the build by the system's launch
+   service would be given none of the App's ten configuration variables (why:
+   "A view of an application that is not running", below):
 
    ```sh
-   for name in CHIRALITY_CODEX_BIN CHIRALITY_CODEX_HOME CHIRALITY_WORKSPACE CHIRALITY_KEY_HOME \
-     CHIRALITY_SHARED_CONFIG CHIRALITY_SHARED_AGENTS CHIRALITY_SHARED_SKILLS \
-     CHIRALITY_CODEX_EXPECTED_SHA256 CHIRALITY_ALLOW_UNVERIFIED CHIRALITY_DISTRIBUTION_SUCCESSOR; do
-     [ -n "$(launchctl getenv "$name")" ] && echo "$name is set"; done; true
+   python3 -B app/examination/standalone/operated/session_env.py "<the bundle>"
    ```
 
-   It prints nothing. If it prints a name, stop: no walk is made, and the lane
-   tells App Agent 0.
+   It asks the login session's launch domain and the bundle's own Info.plist,
+   and prints each name with "absent", "present" (empty included) or "could
+   not be established" and why; never a value. It exits 0 only when all ten
+   are absent. Any other result, "could not be established" included, means
+   no walk is made: stop, record what it printed, and the lane tells App
+   Agent 0.
    Then, from the root of a clean checkout of main, with a new, empty
    evidence folder of your own outside every checkout, start the launcher on
    the identified candidate so that it outlives the shell call that starts it
@@ -99,9 +98,10 @@ All of these hold, every time:
    prints the outcome into `<evidence folder>/launcher.out`. If it refuses,
    `launcher.out` or `launcher.err` says so within seconds and no App is
    running: that refusal is the result. Record it and stop. If the starter
-   itself exits 3, it could not write its record and has ended the launcher
-   but cannot say that nothing the launcher started is left: stop, and tell
-   the lane at once; the lane makes step 11.
+   itself exits 3, it could not write its record: it has tried to end the
+   launcher and says in `command_gone` whether the launcher is gone, and it
+   cannot say what the launcher had started. Record what it printed, stop,
+   and tell the lane at once; the lane makes step 11.
 2. **Confirm.** The App is the launcher's one child process:
 
    ```sh
@@ -182,36 +182,48 @@ All of these hold, every time:
     shell after every run: the launcher's and the watch's process numbers are
     in the evidence folder's `*.started.json` files, and the App's is `pid` in
     the launch record (or, if the launcher wrote none, the operator's record
-    of step 2). If an operator ends half-way, those files are how
-    what it left is found: the lane's agent ends the launcher with a
-    termination, as in step 8, ends the watch by its number, confirms all
-    three are gone, and records that it did so and why. A launch left without
-    its operator is ended, not continued by someone else.
+    of step 2). If an operator ends half-way, or the starter exits 3, some of
+    these numbers may never have been recorded; step 11 is then how what was
+    left is found and ended. A launch left without its operator is ended, not
+    continued by someone else.
     The operator records whether a process named `SkyComputerUseService` is
     running at the end, with its start time, and the lane reports that.
-11. **The lane looks for a stray start.** The lane's agent, not the operator,
-    makes this from its own shell after every run, as soon as the operator
-    returns and step 10's confirmation from its own shell shows the
-    launcher's App gone; the operator returns at once when a walk stops
-    because the watch no longer shows the build running, or when the starter
-    exits 3:
+11. **The lane looks for what remains.** The lane's agent, not the operator,
+    makes this from its own shell after every run, by whatever path the run
+    ended: a normal end, a walk stopped because the watch no longer showed
+    the build running, a starter that exited 3, or an operator that failed or
+    was lost before it returned. It does not wait for step 10's observations,
+    which on some of those paths were never made. In order:
 
-    ```sh
-    python3 -B app/examination/standalone/operated/stray.py "<the bundle>" <bundle identifier>
-    ```
+    1. For each `*.started.json` in the evidence folder: if `ps -o command= -p
+       <its pid>` still shows the recorded command, end it as step 10 does
+       (the launcher by a termination, the watch by its number) and confirm
+       it is gone.
+    2. The search:
 
-    It ends nothing and opens nothing. It prints every process of this user
-    running the bundle's executable (decided by the file's identity, however
-    its path is spelled), and, by name only, every entry the launcher's own
-    comparison watches for this build in the real Library's places. Since the
-    launcher's App is gone by then, a process it finds is one the launcher did
-    not leave. It exits 0 only when it could look everywhere and found
-    neither, 1 when it found either, and 2 when it could not look; 2 is not
-    "found neither", and the run is reported as one whose check could not be
-    completed. If it found a process, the lane ends it (`kill <number>`),
-    confirms it is gone, and records its number and start time. The search
-    does not tell under which home or environment that process was started;
-    that is recorded as not known, unless something else shows it. Entries
+       ```sh
+       python3 -B app/examination/standalone/operated/stray.py "<the bundle>" <bundle identifier>
+       ```
+
+       It ends nothing and opens nothing, and runs on macOS only (elsewhere it
+       looks for nothing and exits 2). It prints the remaining candidate
+       processes: every process of this user running the bundle's executable,
+       decided by the file's identity however its path is spelled; and, by
+       name only, every entry the launcher's own comparison watches for this
+       build in the real Library's places. It exits 0 only when it could look
+       everywhere and found neither, 1 when it found either, and 2 when it
+       could not look; 2 is not "found neither", and the run is reported as
+       one whose check could not be completed.
+    3. Each remaining candidate process is ended (`kill <number>`), confirmed
+       gone, and recorded with its number and start time. Where it came from
+       is not known from the search: the launcher's App not yet ended and a
+       start the launcher did not make look the same to it, and it does not
+       tell the home or environment either was started with. Only step 10's
+       records, where they exist, can say more.
+
+    The search finds the bundle's one executable and says nothing about Codex.
+    That a stray start starts no Codex rests on the conditions stated in the
+    next section, which step 1 checks; the search does not establish it. Entries
     found stay where they are: nothing under the real Library is removed by
     any agent, and once reported they are found again by every later search
     for the same candidate. Whatever it found is reported by the lane to App
@@ -243,15 +255,17 @@ not closed.
   than three seconds, which narrows the interval to about a second and does
   not close it. A walk makes about seventeen calls.
 - **What a stray start can and cannot do in this scenario.**
-  - Both of the next two rest on a condition: the login session's environment
-    holds none of the App's ten configuration variables (`CHIRALITY_CODEX_BIN`
-    and the others step 1 names). Read in the App's source: when any of them
-    is set, the App takes its configuration from the environment and does not
-    look for a saved request at all, and with a usable configuration it
+  - Both of the next two rest on a condition: a start by the launch service
+    is given none of the App's ten configuration variables
+    (`CHIRALITY_CODEX_BIN` and the others `session_env.py` names), neither
+    from the login session's environment nor from the bundle's own
+    Info.plist. Read in the App's source: when any of them is present, empty
+    included, the App takes its configuration from the environment and does
+    not look for a saved request at all, and with a usable configuration it
     starts Codex (`lib.rs`, `explicit_environment_launch`;
-    `desktop_startup.rs`, `resolve`). On this host none was set on 13
-    November, asked by name and presence only; step 1 asks again before every
-    walk and stops if one is.
+    `desktop_startup.rs`, `resolve`). On this host all ten were absent on 13
+    November (`session_env.py`, against the candidate built from cfc22efd);
+    step 1 asks again before every walk and stops on anything but absent.
   - It opens at first-use setup: no setup has been saved for a build with a
     new identifier (read in the App's source: with no configuration from the
     environment and no saved request the launch is "setup-required").
@@ -302,6 +316,16 @@ not closed.
     Agent 0 as one; it is not an inconclusive run.
   - A scenario that confirms setup, starts a Codex or types anything is not
     covered: the question is put again with that scenario's own extent.
+- **App Agent 0's note, 13 November 2026.** Two facts in the question as put
+  have since been corrected. "Starts no Codex" holds only while a start by
+  the launch service is given none of the App's configuration variables;
+  that is now stated above and checked in step 1 before every walk. "Sends
+  nothing" is now "no sign-in, no model request and no conversation; what
+  the web view or the system sends on its behalf was not examined". The
+  sentence above that a fact found wrong means no walk until the owner is
+  asked again is adopted as a condition of the exception. The owner's
+  confirmation on the corrected account is pending: until it is given, no
+  walk is made.
 
 ## Running a scenario
 

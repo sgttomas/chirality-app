@@ -230,9 +230,11 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       || Object.values(scenario.outcomes ?? {}).some(ids => !ids.length || ids.some(id => !steps.some(step => step.id === id)))) {
     return finish('inconclusive', 'refused before any call: the scenario names no window and what it holds, has no steps, has a step with nothing expected, or has an outcome naming no such step');
   }
-  if (!Number.isInteger(pid) || pid <= 1 || !watched().running) {
-    return finish('inconclusive', 'refused before any call: the watch file does not show the build running, and a view of an application that is not running would start it outside the launcher');
+  if (!Number.isInteger(pid) || pid <= 1) {
+    return finish('inconclusive', 'refused before any call: the process number is not one');
   }
+  // The first reading of the watch, like every other, is the gate's: a view of an application that is not running
+  // would start it outside the launcher.
   const atStart = gate('before any call');
   if (atStart) return atStart;
   let elements = [];

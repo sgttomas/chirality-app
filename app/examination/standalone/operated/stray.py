@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""Look for a start of the candidate that the launcher did not make. It ends nothing and opens nothing.
+"""Look for what of the candidate remains after a run. It ends nothing and opens nothing. macOS only.
 
     python3 -B stray.py <the bundle, the path of the .app folder> <bundle identifier>
 
 A view of an application that is not running starts it through the system's launch service, outside the launcher.
 If the build ends by itself during a walk, the next view can do that. The lane runs this from its own shell after
-a run, once the launcher's App is confirmed gone (README.md, steps 10 and 11), so any process it finds is one the
-launcher did not leave. It prints, as JSON:
+every run, by whatever path the run ended (README.md, step 11). It prints, as JSON:
 
-- every process of this user running the bundle's executable (Contents/MacOS/<CFBundleExecutable>, which is what
+- the remaining candidate processes: every process of this user running the bundle's executable (Contents/MacOS/<CFBundleExecutable>, which is what
   the launch service starts), with its parent and start time. That is decided by the file, not by how its path is
   spelled: the system is asked for each process's executable path, and that file's device and inode are compared
   with the bundle executable's, so a link, another letter case or a relative path does not hide it;
@@ -18,10 +17,13 @@ launcher did not leave. It prints, as JSON:
 It reads the bundle's Info.plist for the executable's name, lists those places, and reads nothing in them. Exit
 status 0 when it looked everywhere and found neither; 1 when it found either; 2 when it could not look, including
 when one of those places could not be listed or a process of this user that was still there could not be asked
-for its executable.
+for its executable. A process whose executable has been removed is listed by number and not counted as either:
+the bundle's executable exists, so a process running it has a path.
 
-What it does not see: a process that started and ended before it listed; a process of another user. It says
-nothing of the environment or home a process it finds was started with.
+What it does not say: where a process it finds came from (the launcher's App not yet ended, or a start the launcher
+did not make, look the same here), or the environment or home it was started with; anything about Codex, which it
+does not look for; a process that started and ended before it listed; a process of another user. On any system but
+macOS it looks for nothing and exits 2.
 """
 import ctypes
 import errno
@@ -39,8 +41,12 @@ import launch  # noqa: E402  (the launcher's watched places and its rule for a n
 _PROC = None
 
 
+NO_PATH = object()
+
+
 def executable_of(pid):
-    """The system's path for a process's executable, or None when the process has gone. Other failures raise."""
+    """The system's path for a process's executable; None when the process has gone; NO_PATH when the system gives
+    none because the file it runs has been removed (ENOENT). Other failures raise."""
     global _PROC
     if _PROC is None:
         _PROC = ctypes.CDLL('/usr/lib/libproc.dylib', use_errno=True)
@@ -49,6 +55,8 @@ def executable_of(pid):
         code = ctypes.get_errno()
         if code == errno.ESRCH:
             return None
+        if code == errno.ENOENT:
+            return NO_PATH
         raise OSError(code, f'the executable of process {pid} could not be asked for')
     return os.fsdecode(buffer.value)
 
@@ -63,8 +71,9 @@ def listing():
 
 
 def processes(executable, lines=None, path_of=executable_of):
-    """Every process of this user whose executable is the same file as the given one."""
-    target, found = os.stat(executable), []
+    """Every process of this user whose executable is the same file as the given one; and, by number, those whose
+    executable has no path because it was removed, which therefore is not that file, since that file has one."""
+    target, found, no_path = os.stat(executable), [], []
     for line in listing() if lines is None else lines:
         parts = line.split()
         if len(parts) != 7 or not parts[0].isdigit():
@@ -72,13 +81,17 @@ def processes(executable, lines=None, path_of=executable_of):
         path = path_of(int(parts[0]))
         if path is None:
             continue  # gone since the listing
+        if path is NO_PATH:
+            no_path.append(int(parts[0]))
+            continue
         try:
             info = os.stat(path)
         except FileNotFoundError:
-            continue  # its executable has been removed; it is not a file of the bundle now
+            no_path.append(int(parts[0]))  # removed between the two questions
+            continue
         if (info.st_dev, info.st_ino) == (target.st_dev, target.st_ino):
             found.append({'pid': int(parts[0]), 'parent': int(parts[1]), 'started': ' '.join(parts[2:7]), 'executable': path})
-    return found
+    return found, no_path
 
 
 def library_entries(identifier, executable, library):
@@ -101,24 +114,32 @@ def real_library():
     return Path(os.path.realpath(pwd.getpwuid(os.getuid()).pw_dir)) / 'Library'
 
 
+def on_macos():
+    return sys.platform == 'darwin'
+
+
 def main(argv):
     if len(argv) != 3 or not argv[1].startswith('/') or not argv[1].endswith('.app'):
         print('usage: stray.py <bundle .app path> <bundle identifier>', file=sys.stderr)
         return 2
     bundle, identifier = argv[1], argv[2]
+    if not on_macos():
+        print(json.dumps({'error': 'this search is made on macOS only; nothing was looked for'}), file=sys.stderr)
+        return 2
     library = real_library()
     try:
         with open(os.path.join(bundle, 'Contents', 'Info.plist'), 'rb') as stream:
             executable = plistlib.load(stream)['CFBundleExecutable']
         if not isinstance(executable, str) or not executable or '/' in executable:
             raise KeyError('CFBundleExecutable is not a plain name')
-        running = processes(os.path.join(bundle, 'Contents', 'MacOS', executable))
+        running, no_path = processes(os.path.join(bundle, 'Contents', 'MacOS', executable))
         entries, not_listed = library_entries(identifier, executable, library)
     except (OSError, KeyError, plistlib.InvalidFileException) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
-    print(json.dumps({'processes_running_the_bundle_executable': running, 'entries_named_for_the_build_in_the_real_library': entries,
-                      'places_that_could_not_be_listed': not_listed}, indent=1))
+    print(json.dumps({'remaining_candidate_processes': running, 'entries_named_for_the_build_in_the_real_library': entries,
+                      'places_that_could_not_be_listed': not_listed,
+                      'processes_whose_executable_was_removed': no_path}, indent=1))
     if running or entries:
         return 1
     return 2 if not_listed else 0
