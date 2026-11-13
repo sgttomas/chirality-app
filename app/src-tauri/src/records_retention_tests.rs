@@ -1772,3 +1772,74 @@ fn a_retry_that_completes_a_disposal_clears_an_earlier_uncertainty() {
     assert_eq!(view(&dir)["disposition"], "disposed", "no stale uncertainty");
     assert!(f.act("resume-disposal", None).is_err(), "no further Finish disposal is admitted");
 }
+
+/// Export's interior syncs never pass over a folder they could not examine.
+/// After the staged export is verified, one of its interior folders is made
+/// listable but not searchable, so its entries cannot be examined: the
+/// export is refused and nothing is published, never reported "verified
+/// export created" with folders left unsynced.
+#[test]
+fn an_export_never_publishes_over_folders_it_could_not_sync() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    let bag = f.output.join("bag");
+    let blocked = std::rc::Rc::new(std::cell::RefCell::new(None::<PathBuf>));
+    let seen = blocked.clone();
+    crate::records_export::BEFORE_EXPORT_SYNC.with(|h| *h.borrow_mut() = Some(Box::new(move |stage: &Path| {
+        let data = stage.join("data");
+        assert!(std::fs::read_dir(&data).unwrap().any(|e| e.unwrap().path().is_dir()), "an interior folder with folders beneath it");
+        std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o400)).unwrap();
+        *seen.borrow_mut() = Some(data);
+    })));
+    let exported = crate::records_export::export(&f.project, &bag);
+    crate::records_export::BEFORE_EXPORT_SYNC.with(|h| *h.borrow_mut() = None);
+    let data = blocked.borrow().clone().expect("the seam ran");
+    for folder in [data.clone(), bag.join("data")] {
+        if folder.exists() { std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o700)).unwrap(); }
+    }
+    assert!(exported.is_err(), "never published over unsynced folders: {exported:?}");
+    assert!(!bag.exists(), "nothing published");
+    let _ = std::fs::remove_dir_all(data.parent().unwrap());
+}
+
+/// The export's administrative snapshot never omits history while keeping
+/// its sequence. The events folder is made unexaminable between the strict
+/// state read and its examination, in both of export's snapshot reads: the
+/// export is refused, never published as verified with its administrative
+/// history missing.
+#[test]
+fn an_export_never_carries_a_snapshot_without_the_history_its_sequence_counts() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let dir = f.dir();
+    let administration = control(&dir).unwrap();
+    let bag = f.output.join("bag");
+    let blocked = administration.clone();
+    AROUND_SNAPSHOT_EVENTS.with(|h| *h.borrow_mut() = Some(Box::new(move |before: bool| {
+        std::fs::set_permissions(&blocked, std::fs::Permissions::from_mode(if before { 0o400 } else { 0o700 })).unwrap();
+    })));
+    let exported = crate::records_export::export(&f.project, &bag);
+    AROUND_SNAPSHOT_EVENTS.with(|h| *h.borrow_mut() = None);
+    std::fs::set_permissions(&administration, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(exported.is_err(), "never a snapshot without its history: {exported:?}");
+    assert!(!bag.exists(), "nothing published");
+}
+
+/// A dangling active-association link is there, not "no active
+/// association": recording is refused as it is for an active folder whose
+/// original intent is lost.
+#[test]
+fn a_dangling_active_association_never_admits_recording() {
+    let f = Fixture::new();
+    let base = f.store.join("package-associations");
+    std::fs::create_dir_all(&base).unwrap();
+    let active = base.join("active");
+    let record = || crate::records::append_project(&f.project, None, "app-writer:fixture", "evidence_limit", &crate::records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":"invented active association"}));
+    std::fs::create_dir(&active).unwrap();
+    assert!(record().is_err(), "control: an empty active folder refuses");
+    std::fs::remove_dir(&active).unwrap();
+    std::os::unix::fs::symlink(base.join("no-target"), &active).unwrap();
+    let recorded = record();
+    assert!(recorded.is_err(), "a dangling active link is never taken for no active association: {recorded:?}");
+}

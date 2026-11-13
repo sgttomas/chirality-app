@@ -180,9 +180,20 @@ pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
         write(&stage.join("tagmanifest-sha256.txt"), &manifest(&stage, TAGS.iter().map(|s| s.to_string()))?)?;
         let verified = verify(&stage)?;
         // Flush folders before publication, deepest first.
+        // Every interior folder is synced; one whose entries cannot all be
+        // examined stops the export before anything is published, never
+        // passed over as "not a folder".
         fn sync_dirs(path: &Path) -> Result<(), String> {
-            for entry in std::fs::read_dir(path).map_err(io)? { let p = entry.map_err(io)?.path(); if p.is_dir() { sync_dirs(&p)?; } }
+            let entries = crate::records_inspect::listing(path).map_err(io)?.ok_or_else(|| format!("{}: the staged export folder is gone; nothing published", path.display()))?;
+            for entry in entries {
+                let meta = entry.metadata.map_err(|e| format!("{}: could not be examined ({e}), so whether it is a folder to sync is not known; nothing published", entry.path.display()))?;
+                if meta.is_dir() { sync_dirs(&entry.path)?; }
+            }
             crate::storage::sync_dir(path)
+        }
+        #[cfg(test)]
+        if let Some(hook) = BEFORE_EXPORT_SYNC.with(|h| h.borrow_mut().take()) {
+            hook(&stage);
         }
         sync_dirs(&stage)?;
         publish(&stage, &destination)?;
@@ -412,11 +423,9 @@ mod tests;
 /// absence. A path that cannot be examined is an error, never absent, so
 /// nothing that could not be seen is passed over as gone.
 pub(crate) fn present(path: &Path) -> Result<bool, String> {
-    match std::fs::symlink_metadata(path) {
-        Ok(_) => Ok(true),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
-        Err(e) => Err(format!("{} could not be examined: {e}; whether it is there is not known", path.display())),
-    }
+    crate::records_inspect::presence(path)
+        .map(|there| there.is_some())
+        .map_err(|e| format!("{} could not be examined: {e}; whether it is there is not known", path.display()))
 }
 /// Recovery's private staging folder contains exact original member names.
 /// A raced pathname is first moved exclusively, then checked in its private
@@ -480,6 +489,11 @@ fn remove_empty_tree(folder: &Path) -> Result<(), String> {
         )
     })
 }
+// Test-only seam: called with the staged export after its verification and
+// before its interior folders are synced, so a test can make one of them
+// unexaminable in that interval.
+#[cfg(test)]
+thread_local! {pub(crate) static BEFORE_EXPORT_SYNC: std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>> = const {std::cell::RefCell::new(None)};}
 #[cfg(test)]
 thread_local! {pub(crate) static AFTER_MEMBER_STAGE:std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const {std::cell::RefCell::new(None)};}
 

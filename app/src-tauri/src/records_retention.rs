@@ -617,7 +617,15 @@ pub(crate) fn export_snapshot(
     let s = state(dir)?;
     let folder = control(dir)?.join("events");
     let mut events = std::collections::BTreeMap::new();
-    if folder.exists() {
+    #[cfg(test)]
+    AROUND_SNAPSHOT_EVENTS.with(|h| if let Some(hook) = h.borrow_mut().as_mut() { hook(true) });
+    // Only an events folder that is not there holds no events; one that
+    // cannot be examined is an error, never an empty history.
+    let there = crate::records_inspect::presence(&folder);
+    #[cfg(test)]
+    AROUND_SNAPSHOT_EVENTS.with(|h| if let Some(hook) = h.borrow_mut().as_mut() { hook(false) });
+    let there = there.map_err(|e| format!("administrative history could not be examined: {}: {e}; no export snapshot", folder.display()))?.is_some();
+    if there {
         for entry in std::fs::read_dir(&folder).map_err(|e| e.to_string())? {
             let path = entry.map_err(|e| e.to_string())?.path();
             let name = path
@@ -635,6 +643,12 @@ pub(crate) fn export_snapshot(
             let bytes = read_plain(&path)?;
             events.insert(name, String::from_utf8(bytes).map_err(|e| e.to_string())?);
         }
+    }
+    // The snapshot holds exactly the history its sequence counts: one event
+    // for each act up to it, never fewer.
+    let sequence = before.unwrap_or(s.sequence);
+    if events.len() as u64 != sequence {
+        return Err(format!("administrative history not read whole: {} events for sequence {sequence}; no export snapshot", events.len()));
     }
     Ok(
         json!({"format":"chirality.records-administration-snapshot","formatVersion":"0.1","projectId":project_id,"projectKey":dir.file_name().unwrap().to_string_lossy(),"events":events,"standing":"Exact bytes of prior administrative acts; unsigned, identity not verified","sequence":before.unwrap_or(s.sequence)}),
@@ -791,6 +805,11 @@ fn durable_history(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+// Test-only seam: called with true just before the export snapshot examines
+// the events folder and with false just after, each time; it reaches the
+// interval between the strict state read and that examination.
+#[cfg(test)]
+thread_local! { pub(crate) static AROUND_SNAPSHOT_EVENTS: std::cell::RefCell<Option<Box<dyn FnMut(bool)>>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
 thread_local! { static AROUND_APPLY_HISTORY: std::cell::RefCell<Option<(Box<dyn FnOnce()>, Box<dyn FnOnce()>)>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
