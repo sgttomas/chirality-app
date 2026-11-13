@@ -995,30 +995,32 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
-    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter()))
+    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)))
 }
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
 /// The Codex homes the records store must stay out of, each where it is in
-/// fact used. A configured home is resolved where its child resolves it: the
-/// supplier is started in `cfg.cwd` with `CODEX_HOME` as given, and the label
-/// probe in its own folder. A raw environment value, which several consumers
-/// read, is compared under every resolution one of them might use: the
-/// App's own working folder (left relative here; `placement_problems` makes
-/// it absolute there) and each configured working folder. An absolute home
-/// is unchanged by any of this. Only refusals are added.
-fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
-    codex_homes_from(configs, |key| std::env::var_os(key))
+/// fact used, planned as well as live:
+/// - each configured home where its child resolves it: the supplier is
+///   started in `cfg.cwd` with `CODEX_HOME` as given, the label probe in its
+///   own folder. An empty configured home is kept empty, and the placement
+///   check refuses it as an invalid input. An absolute home is unchanged.
+/// - the local provider's home, which the bootstrap plans in the App data
+///   folder before any host configuration exists for it
+///   (`runtime_session::local_provider_home`).
+/// - the raw environment values, compared from the App's own working folder
+///   exactly as before: no child resolves one under its own working folder
+///   (CHIRALITY_CODEX_HOME is the configured home itself; every child is
+///   given CODEX_HOME explicitly; a relative CHIRALITY_KEY_HOME is refused
+///   by its home plan before any use).
+fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
+    codex_homes_from(configs, app_data, |key| std::env::var_os(key))
 }
-fn codex_homes_from<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
-    let configs: Vec<&hosting::HostConfig> = configs.collect();
-    let mut homes: Vec<PathBuf> = configs.iter().flat_map(|cfg| [cfg.cwd.join(&cfg.codex_home), cfg.probe_home.join(&cfg.probe_home)]).collect();
-    for raw in ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| input(key).filter(|v| !v.is_empty()).map(PathBuf::from)) {
-        if raw.is_relative() {
-            homes.extend(configs.iter().map(|cfg| cfg.cwd.join(&raw)));
-        }
-        homes.push(raw);
-    }
+fn codex_homes_from<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>, input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    let used = |cwd: &std::path::Path, home: &std::path::Path| if home.as_os_str().is_empty() { PathBuf::new() } else { cwd.join(home) };
+    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [used(&cfg.cwd, &cfg.codex_home), used(&cfg.probe_home, &cfg.probe_home)]).collect();
+    homes.extend(app_data.map(runtime_session::local_provider_home));
+    homes.extend(["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| input(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
     homes.sort();
     homes.dedup();
     homes
@@ -2840,7 +2842,7 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     // recording visibly, with no fallback. Opening the project gives it
     // its identity once (`.chirality/project.json`).
     {
-        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
+        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
 
         records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
         // The store is created here, once, when the App starts: no reader

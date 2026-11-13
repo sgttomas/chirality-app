@@ -308,6 +308,12 @@ pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[Pa
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
+        // An empty folder name is an invalid input, refused by name: never
+        // compared, so it neither overlaps everything nor nothing.
+        if outer.as_os_str().is_empty() {
+            problems.push(format!("{what} is given as an empty path, an invalid input, so whether {} overlaps it cannot be established", root.display()));
+            return;
+        }
         // Never compared while still relative: a relative folder would never
         // overlap an absolute store and so would pass silently. Made absolute
         // against the App's own working folder (the caller has already added

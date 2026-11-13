@@ -22,7 +22,7 @@ fn a_relative_home_is_never_compared_from_the_apps_own_folder() {
     let data = folder("placement-data-");
     let mut cfg = hosting::HostConfig::new(PathBuf::from("/invented/bin/codex"), PathBuf::from(RELATIVE), folder("placement-probe-"), cwd.clone());
     cfg.records_project = false;
-    let homes = codex_homes_from([&cfg].into_iter(), |_| None);
+    let homes = codex_homes_from([&cfg].into_iter(), None, |_| None);
     // The folder the child uses as its Codex home.
     let used = cwd.join(RELATIVE);
     std::fs::create_dir_all(&used).unwrap();
@@ -55,7 +55,7 @@ fn the_development_route_never_places_the_store_inside_the_childs_home() {
     let cfg = launch.host_config.unwrap();
     assert_eq!(cfg.cwd, std::env::temp_dir(), "no workspace: the temporary folder");
     let used = cfg.cwd.join(RELATIVE);
-    let homes = codex_homes_from([&cfg].into_iter(), input);
+    let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
     let placed = records_store::for_app(Some(used.join("records")), Ok(&data), true, None, &homes);
     assert!(placed.as_ref().is_err_and(|e| e.contains("Codex home")), "{placed:?}");
     let _ = std::fs::remove_dir_all(&data);
@@ -76,7 +76,7 @@ fn the_release_route_never_takes_the_default_store_for_anything_but_the_childs_h
     let data = folder("placement-release-data-");
     let cfg = hosting::successor::production_config(folder("placement-release-resources-"), PathBuf::from("records"), folder("placement-release-probe-"), data.clone());
     let input = |key: &str| (key == "CHIRALITY_CODEX_HOME").then(|| "records".into());
-    let homes = codex_homes_from([&cfg].into_iter(), input);
+    let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
     assert_eq!(cfg.cwd.join(&cfg.codex_home), data.join("records"), "the child's Codex home is the default store");
     let placed = records_store::for_app(None, Ok(&data), false, None, &homes);
     assert!(placed.as_ref().is_err_and(|e| e.contains("Codex home")), "{placed:?}");
@@ -94,7 +94,7 @@ fn the_release_environment_route_never_takes_the_default_store_for_anything_but_
     let launch = explicit_environment_launch(input, &Ok(data.clone()), &Ok(resources), false, || Ok(folder("placement-release-route-probe-"))).unwrap();
     let cfg = launch.host_config.unwrap();
     assert_eq!(cfg.cwd, data, "no workspace: the App data folder");
-    let homes = codex_homes_from([&cfg].into_iter(), input);
+    let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
     let placed = records_store::for_app(None, Ok(&data), false, None, &homes);
     assert!(placed.as_ref().is_err_and(|e| e.contains("Codex home")), "{placed:?}");
     let _ = std::fs::remove_dir_all(&data);
@@ -107,20 +107,67 @@ fn absolute_homes_are_compared_as_before() {
     let home = folder("placement-absolute-home-");
     let data = folder("placement-absolute-data-");
     let cfg = hosting::HostConfig::new(PathBuf::from("/invented/bin/codex"), home.clone(), folder("placement-absolute-probe-"), folder("placement-absolute-cwd-"));
-    let homes = codex_homes_from([&cfg].into_iter(), |_| None);
+    let homes = codex_homes_from([&cfg].into_iter(), None, |_| None);
     assert!(homes.contains(&home));
     assert!(records_store::for_app(Some(home.join("records")), Ok(&data), true, None, &homes).is_err_and(|e| e.contains("Codex home")));
     assert!(records_store::for_app(Some(folder("placement-absolute-elsewhere-").join("records")), Ok(&data), true, None, &homes).is_ok());
     let _ = (std::fs::remove_dir_all(&home), std::fs::remove_dir_all(&data));
 }
 
-/// A home that cannot be made absolute is a refusal with its reason, never
-/// "no overlap".
+/// An empty configured home is an invalid input, refused by name: never
+/// compared, so it neither overlaps every store nor none. Given on the
+/// development route (CHIRALITY_CODEX_HOME="").
 #[test]
-fn a_home_that_cannot_be_made_absolute_refuses_placement() {
-    let data = folder("placement-unresolvable-data-");
-    let placed = records_store::for_app(Some(folder("placement-unresolvable-store-").join("records")), Ok(&data), true, None, &[PathBuf::from("")]);
-    assert!(placed.as_ref().is_err_and(|e| e.contains("could not be made absolute")), "{placed:?}");
+fn an_empty_configured_home_is_refused_as_an_invalid_input() {
+    let data = folder("placement-empty-data-");
+    // A workspace, so the supplier's working folder is not where the store
+    // is: an empty home joined to it would name only the workspace.
+    let workspace = folder("placement-empty-workspace-");
+    let input = |key: &str| match key {
+        "CHIRALITY_CODEX_BIN" => Some("/invented/bin/codex".into()),
+        "CHIRALITY_CODEX_HOME" => Some("".into()),
+        "CHIRALITY_WORKSPACE" => Some(workspace.clone().into()),
+        _ => None,
+    };
+    let launch = explicit_environment_launch(input, &Ok(data.clone()), &Err("no resources".into()), true, || Ok(folder("placement-empty-probe-"))).unwrap();
+    let cfg = launch.host_config.unwrap();
+    assert!(cfg.codex_home.as_os_str().is_empty(), "the route accepts the empty home");
+    let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
+    let placed = records_store::for_app(Some(folder("placement-empty-elsewhere-").join("records")), Ok(&data), true, None, &homes);
+    assert!(placed.as_ref().is_err_and(|e| e.contains("empty path, an invalid input")), "{placed:?}");
+    let _ = (std::fs::remove_dir_all(&data), std::fs::remove_dir_all(&workspace));
+}
+
+/// The local provider's Codex home, which the bootstrap plans in the App
+/// data folder before any host configuration exists for it, is protected at
+/// the person's choice and at start-up alike.
+#[test]
+fn the_local_providers_home_is_protected_before_it_is_bound() {
+    let data = folder("placement-local-data-");
+    let local = runtime_session::local_provider_home(&data);
+    assert_eq!(local, data.join("codex-omlx"), "the path the bootstrap plans");
+    assert!(!local.exists(), "planned, not yet created");
+    // No host configuration at all: only the App data folder is known.
+    let homes = codex_homes_from(std::iter::empty(), Some(&data), |_| None);
+    let chosen = records_store::choose_location(&data, &local.join("records"), None, &homes);
+    assert!(chosen.as_ref().is_err_and(|e| e.contains("Codex home")), "the person's choice: {chosen:?}");
+    // A location chosen earlier, read at start-up.
+    std::fs::write(data.join(records_store::CHOICE_FILE), serde_json::to_vec(&serde_json::json!({"location": local.join("records").display().to_string()})).unwrap()).unwrap();
+    let started = records_store::for_app(None, Ok(&data), false, None, &homes);
+    assert!(started.as_ref().is_err_and(|e| e.contains("Codex home")), "start-up: {started:?}");
     let _ = std::fs::remove_dir_all(&data);
-    let _: &Path = &data;
+}
+
+/// Raw environment values are compared from the App's own folder, as
+/// before: an inherited relative CODEX_HOME that no child uses never refuses
+/// a store under a configured working folder.
+#[test]
+fn an_unused_inherited_codex_home_never_refuses_an_unrelated_store() {
+    let data = folder("placement-inherited-data-");
+    let cfg = hosting::successor::production_config(folder("placement-inherited-resources-"), folder("placement-inherited-account-"), folder("placement-inherited-probe-"), data.clone());
+    let input = |key: &str| (key == "CODEX_HOME").then(|| "invented-unused-home".into());
+    let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
+    let chosen = records_store::choose_location(&data, &data.join("invented-unused-home").join("records"), None, &homes);
+    assert!(chosen.as_ref().map_or_else(|e| !e.contains("Codex home"), |_| true), "never refused as a Codex home: {chosen:?}");
+    let _ = std::fs::remove_dir_all(&data);
 }

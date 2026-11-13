@@ -2885,6 +2885,13 @@ pub fn read_native_home_access(home: &HomeSession, generation: &Value) -> Result
 
 /// Consumes explicit Root OS paths. Existing account/probe are observations,
 /// never relocated or claimed as newly App-owned plans to fit this constructor.
+/// Where the local provider's Codex home is: a path in the App data folder.
+/// It only calculates the path; it creates and prepares nothing. The
+/// bootstrap plans this home here, and the records store's placement check
+/// protects the same path, whether or not the home exists yet.
+pub(crate) fn local_provider_home(app_data: &std::path::Path) -> std::path::PathBuf {
+    app_data.join("codex-omlx")
+}
 pub fn freeze_root_home_descriptors(
     app_data: &std::path::Path,
     config: &crate::hosting::HostConfig,
@@ -2924,7 +2931,7 @@ pub fn freeze_root_home_descriptors(
     };
     let mut set = HomeBootstrapSet::new(account, key, probe)?;
     set.shared_root_targets = shared_root_targets;
-    set.local = Some(OwnedHomePlan::new(app_data.to_path_buf(), app_data.join("codex-omlx"), HomeClass::LocalProvider, None)?);
+    set.local = Some(OwnedHomePlan::new(app_data.to_path_buf(), local_provider_home(app_data), HomeClass::LocalProvider, None)?);
     set.revalidate()?;
     Ok(set)
 }
