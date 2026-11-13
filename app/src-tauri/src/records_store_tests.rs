@@ -757,7 +757,7 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
     let empty = folder("unknown-import-empty-");
     attach(&empty, true).unwrap();
     // "Cannot be read" is a rule, not a list: the account is read whole, and
-    // only as line forms the App has written. A line that is not JSON, a
+    // nothing is concluded from one that is not. A line that is not JSON, a
     // value that is not an object, an empty object, an import line of
     // another version or event, a line without its identity or its files, a
     // file entry that is not one, a blank line, and a last line that is not
@@ -824,6 +824,100 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
     }
     drop(own);
     for p in [imported, empty] { let _ = std::fs::remove_dir_all(p); }
+}
+
+/// Review round 5, as App Agent 0 decided it: the rule, held as a rule. Every
+/// member the reader takes from an import line is checked for the form it is
+/// taken as, and a wrong-typed value in any of them makes the account
+/// unknown; the members it does not take are not checked, and a line lacking
+/// them is accepted. The reviewer's state is the first: a `storeHeld` that is
+/// neither true nor false was read as false, and a project whose records the
+/// store held read its kept originals in place with no limit.
+#[test]
+fn every_member_the_reader_takes_from_an_import_line_is_checked_for_its_form_and_no_other_member_is() {
+    let own = OwnStore::new();
+    let root = folder("import-line-members-");
+    let dir = attach(&root, true).unwrap().dir.unwrap();
+    let account = dir.join("imports.jsonl");
+    let put = |lines: &[&Value]| std::fs::write(&account, lines.iter().map(|l| format!("{l}\n")).collect::<String>()).unwrap();
+    let entry = json!({"original":".chirality/records/acts.jsonl","copy":"acts/a.jsonl","sha256":"00","bytes":1,"stamp":{"size":1}});
+    let started = json!({"format":"chirality.records-store.import","formatVersion":"0.1","event":"started","importId":"import:members","at":"2026-11-12T00:00:00.000Z",
+        "root":"/invented","method":"sha-256 of the exact bytes","census":[entry.clone()],"storeHeld":true,"resumes":null});
+    let completed = json!({"format":"chirality.records-store.import","formatVersion":"0.1","event":"completed","importId":"import:members","at":"2026-11-12T00:00:01.000Z",
+        "files":[entry.clone()],"conflicts":[{"original":"records/coordination.rs.jsonl","reason":"invented"}],"censusChanged":[]});
+    let mut earlier = completed.clone();
+    for member in ["event", "censusChanged"] { earlier.as_object_mut().unwrap().remove(member); }
+    earlier["root"] = json!("/invented");
+    earlier["method"] = json!("sha-256 of the exact bytes");
+    // The three forms as their writers give them are read.
+    for (form, lines) in [("started", vec![&started]), ("started and completed", vec![&started, &completed]), ("no event", vec![&earlier])] {
+        put(&lines);
+        assert!(imports(&dir).is_ok(), "{form}: {:?}", imports(&dir).err());
+    }
+    // storeHeld is taken, and acted on: true means the store held the records.
+    put(&[&started]);
+    assert!(store_holds(&dir).unwrap(), "an unfinished import that began with the records in the store: read from the store");
+    // Every taken member, in a form it is not taken as: the account is unknown.
+    let with = |line: &Value, path: &[&str], value: Value| {
+        let mut changed = line.clone();
+        let mut at = &mut changed;
+        for step in &path[..path.len() - 1] {
+            at = match step.parse::<usize>() { Ok(index) => &mut at[index], Err(_) => &mut at[*step] };
+        }
+        at[path[path.len() - 1]] = value;
+        changed
+    };
+    let wrong: Vec<(&str, Value)> = vec![
+        ("the reviewer's state: storeHeld an object", with(&started, &["storeHeld"], json!({"not":"a boolean"}))),
+        ("storeHeld a string", with(&started, &["storeHeld"], json!("true"))),
+        ("storeHeld a number", with(&started, &["storeHeld"], json!(1))),
+        ("storeHeld null", with(&started, &["storeHeld"], Value::Null)),
+        ("a started line's at an object", with(&started, &["at"], json!({"unwritten":"object"}))),
+        ("format a number", with(&started, &["format"], json!(1))),
+        ("formatVersion a number", with(&started, &["formatVersion"], json!(0.1))),
+        ("importId a number", with(&started, &["importId"], json!(7))),
+        ("importId empty", with(&started, &["importId"], json!(""))),
+        ("event a number", with(&started, &["event"], json!(7))),
+        ("census an object", with(&started, &["census"], json!({}))),
+        ("a census entry's original a number", with(&started, &["census", "0", "original"], json!(7))),
+        ("a census entry's copy a number", with(&started, &["census", "0", "copy"], json!(7))),
+        ("a census entry's sha256 a number", with(&started, &["census", "0", "sha256"], json!(7))),
+        ("a census entry's bytes a string", with(&started, &["census", "0", "bytes"], json!("1"))),
+        ("files an object", with(&completed, &["files"], json!({}))),
+        ("a file entry's original a number", with(&completed, &["files", "0", "original"], json!(7))),
+        ("a file entry's copy a number", with(&completed, &["files", "0", "copy"], json!(7))),
+        ("a file entry's sha256 a number", with(&completed, &["files", "0", "sha256"], json!(7))),
+        ("a file entry's bytes a fraction", with(&completed, &["files", "0", "bytes"], json!(1.5))),
+        ("conflicts an object", with(&completed, &["conflicts"], json!({}))),
+        ("a conflict's original a number", with(&completed, &["conflicts", "0", "original"], json!(7))),
+        ("a conflict's reason a number", with(&completed, &["conflicts", "0", "reason"], json!(7))),
+        ("the form with no event: a file entry's bytes a string", with(&earlier, &["files", "0", "bytes"], json!("1"))),
+    ];
+    for (what, line) in &wrong {
+        put(&[line]);
+        let refused = imports(&dir).err().unwrap_or_else(|| panic!("{what}: read as known"));
+        assert!(refused.contains("is not an import line"), "{what}: {refused}");
+        assert!(store_holds(&dir).is_err() && home(&root).is_err(), "{what}: never \"holds records\" and never \"no import\"");
+    }
+    // The members the reader does not take are not checked, and a line
+    // lacking them is accepted: this is the boundary, stated, not a promise
+    // that a line is one the App wrote.
+    let mut bare = started.clone();
+    for member in ["at", "root", "method", "storeHeld", "resumes"] { bare.as_object_mut().unwrap().remove(member); }
+    let mut untaken = with(&with(&completed, &["at"], json!({"unwritten":"object"})), &["censusChanged"], json!(false));
+    for (what, lines) in [("a started line lacking the members not taken, and storeHeld", vec![&bare]),
+        ("root, method and resumes in other forms", vec![&with(&with(&with(&started, &["root"], json!(7)), &["method"], json!(7)), &["resumes"], json!(7))]),
+        ("a completed line's at and censusChanged in other forms", vec![&started, &untaken]),
+        ("a file entry's stamp in another form (compared as it stands)", vec![&started, &with(&completed, &["files", "0", "stamp"], json!("not a stamp"))])] {
+        put(&lines);
+        assert!(imports(&dir).is_ok(), "{what}: {:?}", imports(&dir).err());
+    }
+    untaken.as_object_mut().unwrap().remove("at");
+    put(&[&started, &untaken]);
+    assert!(imports(&dir).is_ok());
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
 }
 
 /// Review round 4: only an import account that is NOT THERE is "no import".
@@ -1450,8 +1544,8 @@ fn a_control_that_is_not_a_regular_singly_linked_file_is_refused_without_waiting
 #[test]
 fn the_single_line_form_the_first_store_builds_wrote_for_an_import_is_read_as_completed() {
     // Before imports had a "started" line, a completed import was one line
-    // with no event (main at 0237b6b3). It is a form the App wrote: read, not
-    // rewritten, and the store's copies govern as after any completed import.
+    // with no event (main at 0237b6b3). It is one of the three forms the
+    // reader takes: read, not rewritten, and the store's copies govern as after any completed import.
     let own = OwnStore::new();
     let root = legacy_project();
     import(&root).unwrap();

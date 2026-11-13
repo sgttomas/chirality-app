@@ -1432,17 +1432,29 @@ records capability's own read-log write is admitted through the control that
 exists and is refused, with the read, when it is missing. A control that is
 not a regular, singly linked file is refused without waiting. A store whose
 state cannot be read reads as unavailable, never as empty or as "no records
-yet": a project's import account is read whole and only as line forms the
-App has written (a started line, a completed line, and the single line with
-no event that the first store builds wrote for a completed import), each line
-being one JSON object and nothing else, in UTF-8, with no key given twice
-and no member its form's writer did not give it;
-an account that exists and is empty, an unclosed last line, a blank line or
-any other content makes the account unknown, and only an account that is not
-there is "no import". (The store's appender creates the file and then
-writes, so a stop between the two leaves an empty account, which is then an
-error for that project until the safe-append change, which makes a new file
-whole or not at all, has landed.) The capability's read-log write makes only its own folder beneath
+yet": a project's import account is read whole, and nothing is concluded
+from one that is not. An account that exists and is empty, an unclosed last
+line, a blank line, bytes outside a line's one JSON object, bytes that are
+not UTF-8, a key given twice, a line that is not an object of the import
+format and version with an import identity, an unknown event, a member no
+form of import line has, a member the reader takes in a form it is not taken
+as, or a census, files or conflicts list with an entry lacking what the
+reader takes from it, each make the account unknown, and unknown is an error
+everywhere, never "no import" and never "the store holds records"; only an
+account that is not there is "no import". The reader checks every member it
+takes, for the form it takes it as (the format, the version, the import
+identity, the event, `storeHeld`, a started line's `at`, and the entries of
+the three lists), and checks no member it does not take (`root`, `method`,
+`resumes`, `censusChanged`, and `at` on a completed line), accepting a line
+that lacks them. This does not establish that a line is one the App wrote:
+the store's files are unsigned, so a well-formed line added to the account
+from outside the App reads as the App's own, a completed line after an
+interrupted import included, and an export of such a project verifies.
+Verification of a package says its bytes agree with its manifests and chain
+heads, not that the import behind them completed. (The store's appender
+creates the file and then writes, so a stop between the two leaves an empty
+account, which is then an error for that project until the safe-append
+change, which makes a new file whole or not at all, has landed.) The capability's read-log write makes only its own folder beneath
 parents that exist. A read writes
 only two things below an existing store: the records read log that the
 agents' records capability writes for each call (`reads/records-reads.jsonl`),

@@ -817,10 +817,28 @@ struct Imports {
     /// Originals the latest completed import refused, with its reason.
     refused: HashMap<String, String>,
 }
-/// One line of a project's import account, as a form the App has written:
-/// a "started" line (its census), a "completed" line (its files and
-/// conflicts), or the single-line form the first store builds wrote for a
-/// completed import, which carries no event. `None` for anything else.
+/// One line of a project's import account: a "started" line (its census), a
+/// "completed" line (its files and conflicts), or the single line with no
+/// event that the first store builds wrote for a completed import. `None`
+/// for anything else.
+///
+/// **The boundary of what is checked** (decided by App Agent 0). Every member
+/// the reader takes from a line is checked for the form it is taken as: the
+/// format, the version, the import identity (a string that is not empty),
+/// the event, `storeHeld` (true or false, where present), a started line's
+/// `at` (a string, where present; it is shown in one refusal), and each
+/// entry of the census, files and conflicts lists (`original`, `copy` and
+/// `sha256` strings that are not empty, `bytes` a whole number; a conflict's
+/// `original` and its `reason`). A file entry's `stamp` is compared for
+/// equality as it stands and needs no form. The members the reader does not
+/// take are not checked, and a line lacking them is accepted: `root`,
+/// `method`, `resumes`, `censusChanged`, and `at` on a completed line. And no
+/// line carries a member that no form of import line has.
+///
+/// This establishes that an account damaged or cut is never read as whole.
+/// It does not establish that a line is one the App wrote: the store's files
+/// are unsigned, and a well-formed line added from outside reads as the
+/// App's own.
 fn import_line(line: &Value) -> Option<&'static str> {
     let text = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty());
     let file = |f: &Value| f.is_object() && text(&f["original"]) && text(&f["copy"]) && text(&f["sha256"]) && f["bytes"].as_u64().is_some();
@@ -830,12 +848,17 @@ fn import_line(line: &Value) -> Option<&'static str> {
         return None;
     }
     let completed = || all(&line["files"], &file) && all(&line["conflicts"], &conflict);
-    // Each form carries only the members its writer gave it (the two writers
-    // of this file, and the one at 0237b6b3): a member no form has is not a
-    // form the App wrote.
+    // `storeHeld` decides where the project's records are read from while an
+    // import is unfinished, so a value that is neither true nor false is not
+    // read as false: the line is unknown.
+    let started = || all(&line["census"], &file)
+        && line.get("storeHeld").is_none_or(Value::is_boolean)
+        && line.get("at").is_none_or(Value::is_string);
+    // No line carries a member that none of the three forms has (the forms
+    // of the two writers of this file, and of the one at 0237b6b3).
     let only = |members: &[&str]| line.as_object().is_some_and(|object| object.keys().all(|key| members.contains(&key.as_str())));
     match line.get("event").map(Value::as_str) {
-        Some(Some("started")) if all(&line["census"], &file)
+        Some(Some("started")) if started()
             && only(&["format", "formatVersion", "event", "importId", "at", "root", "method", "census", "storeHeld", "resumes"]) => Some("started"),
         Some(Some("completed")) if completed()
             && only(&["format", "formatVersion", "event", "importId", "at", "files", "conflicts", "censusChanged"]) => Some("completed"),
@@ -845,12 +868,13 @@ fn import_line(line: &Value) -> Option<&'static str> {
     }
 }
 fn imports(dir: &Path) -> Result<Imports, String> {
-    // The account is read whole, and only as line forms the App has written.
-    // Any other content makes it unknown, and unknown is an error: an
-    // unclosed last line, a blank line, a line that is not JSON, a value
-    // that is not an object, another format, version or event, a line
-    // without its import identity, or a census, file or conflict entry that
-    // is not one. Never "no import", never "nothing completed".
+    // The account is read whole, and nothing is concluded from one that is
+    // not: an unclosed last line, a blank line, a line that is not JSON, a
+    // value that is not an object, another format, version or event, a line
+    // without its import identity, a member the reader takes in another
+    // form, or a census, file or conflict entry that is not one, each make
+    // it unknown, and unknown is an error. Never "no import", never "nothing
+    // completed". (What a line's form does not establish: `import_line`.)
     //
     // Only an account that is not there is "no import". One that exists and
     // is empty is unknown too: it cannot be told from an account emptied
