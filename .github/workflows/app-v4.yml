@@ -167,8 +167,8 @@ jobs:
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs tests/reading-sentences.test.mjs tests/host-reads.test.mjs tests/request-cards.test.mjs tests/prepared-message-navigation.test.mjs tests/codex-controls.test.mjs tests/plan-mode.test.mjs tests/presentation.test.mjs tests/recorded-replay.test.mjs
       - name: File-act arrival presentation
-        # The one focused web test that starts cargo: it runs a single Rust test of the library target the
-        # cohorts above built, offline (the full route runs this file through npm test).
+        # Each file runs Rust tests of the library target the cohorts above built, offline (the full route
+        # runs both files through npm test).
         run: node --test tests/file-act-arrival.test.mjs tests/file-act-panel.test.mjs
       - name: Save compiled third-party Rust dependencies
         if: ${{ !cancelled() }}
