@@ -74,6 +74,9 @@ fn active_original(store: &Path) -> Result<Option<(Intent, Vec<u8>)>, String> {
     }
     Ok(Some((intent, bytes)))
 }
+pub(super) fn active_intent(store: &Path) -> Result<Option<Intent>, String> {
+    Ok(active_original(store)?.map(|(intent, _)| intent))
+}
 fn completed(intent: &Intent, bytes: &[u8]) -> Result<bool, String> {
     match optional(&intent.completion_path()?)? {
         None => Ok(false),

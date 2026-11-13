@@ -2832,6 +2832,12 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
         if let Some(ws) = workspace.as_ref() {
             if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
         }
+        // Once, under the store lock: fragments in the store's own line files
+        // are closed and named (an append never changes earlier bytes' meaning).
+        match records_store::recover_at_startup() {
+            Ok(left) => for note in left { eprintln!("chirality: records store line file left as it is: {note}"); },
+            Err(e) => eprintln!("chirality: records store line files not examined at startup: {e}"),
+        }
     }
     // AAC §6.3 SEAL-C: install the App-owned location; the gated signed
     // provider never falls back to development file keys. Ordering unchanged.
