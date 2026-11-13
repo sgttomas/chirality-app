@@ -3235,10 +3235,14 @@ pub fn run() {
                     // DEL-06-01: what those views show of native delegation is recorded once.
                     host_tick::guarded("native-delegation", || {
                         // The session's start for the project comes first: the ends
-                        // of earlier sessions' observations, until it has run.
+                        // of earlier sessions' observations, until it has run. Its
+                        // read is made with no lock held; only its publication is
+                        // made under the links mutex, as for every delegation fact.
                         let home = state.homes.lock().unwrap().entries().into_iter().next();
+                        let pending = state.native_links.lock().unwrap().earlier_delegation_pending();
+                        let read = home.filter(|_| pending).map(|home| native_conversation_links::read_earlier_delegation(state.workspace.as_deref(), &home.host));
                         let mut links = state.native_links.lock().unwrap();
-                        if let Some(home) = home { links.reconcile_earlier_delegation(state.workspace.as_deref(), &home.host); }
+                        if let Some(read) = read { links.apply_earlier_delegation(read); }
                         for (home, views) in &received { links.observe_delegation(state.workspace.as_deref(), home, views); }
                     });
                     // Native relationship publication runs independently of web reads.

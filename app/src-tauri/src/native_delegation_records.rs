@@ -452,95 +452,61 @@ impl Session {
     /// and a line that entered by import is quoted evidence, given no end. No
     /// native source is consulted.
     pub(super) fn end_earlier_observations(&mut self, project: Option<&Path>, sessions: &dyn Fn() -> Result<(String, BTreeSet<String>), String>) {
-        if self.delegation.reconciled.is_some() {
-            return;
-        }
-        let sessions = sessions();
-        let Some(project) = project.and_then(|p| p.canonicalize().ok()) else {
-            self.delegation.reconciled = Some((json!({"state":"not needed","reason":"no selected App project"}), vec![]));
-            return;
-        };
-        let (current, ended) = match sessions {
-            Ok(sessions) => sessions,
-            Err(reason) => {
-                self.delegation.reconciled = Some((json!({"state":"unavailable",
-                    "limit":format!("An earlier App session's end could not be established ({reason}); this session records no end of an earlier session's observations, and they are left as last recorded")}), vec![]));
-                return;
-            }
-        };
-        match self.reconcile(&project, &current, &ended) {
-            Ok(done) => {
-                self.delegation.reconciled = Some(done);
-                self.delegation.unreconciled = None;
-            }
-            Err(reason) => self.delegation.unreconciled = Some(reason),
+        if self.earlier_pending() {
+            let read = read_earlier(project, sessions);
+            self.apply_earlier(read);
         }
     }
-    fn reconcile(&mut self, project: &Path, current: &str, established: &BTreeSet<String>) -> Result<(Value, Vec<String>), String> {
-        let scope = Scope::capture(project)?;
-        crate::records_retention::check_write(&scope.dir.path)?;
-        if crate::records_retention::terminal(&scope.dir.path)? {
-            return Ok((json!({"state":"not needed","reason":"the project's records are closed"}), vec![]));
+    /// Whether the reconciliation still has to run in this session.
+    pub(super) fn earlier_pending(&self) -> bool {
+        self.delegation.reconciled.is_none()
+    }
+    /// The second half of the reconciliation, under the conversation links
+    /// mutex: each end the read found is taken for recording through the
+    /// writer every delegation fact goes through. An end this session has
+    /// already taken (a read that overlapped an earlier apply) is not taken twice.
+    pub(super) fn apply_earlier(&mut self, read: EarlierRead) {
+        if !self.earlier_pending() {
+            return;
         }
-        let bytes = read_log(&published_at(&scope, 0))?;
-        let imported = crate::records_store::package::quoted_prefix(&scope.dir.path, &format!("fleet/{}", super::LOG), &bytes)?;
-        let stored = rows(&bytes, true)?;
-        scope.check()?;
-        let mut children: BTreeMap<String, (Value, Value)> = BTreeMap::new();
-        let mut statuses: BTreeMap<String, String> = BTreeMap::new();
-        let mut ended = BTreeSet::new();
-        let mut start = 0u64;
-        for (row, line) in &stored {
-            let local = start >= imported;
-            start += line.len() as u64;
-            if !local || row["formatVersion"] != "0.2" || !KINDS.contains(&row["kind"].as_str().unwrap_or("")) {
-                continue;
+        match read {
+            EarlierRead::Done(status) => {
+                self.delegation.reconciled = Some((status, vec![]));
+                self.delegation.unreconciled = None;
             }
-            let child = &row["body"]["child"];
-            let (Some(home), Some(thread)) = (child["generation"]["home"].as_str(), child["threadId"].as_str()) else { continue };
-            let end = key(json!(["ended", home, child["generation"], thread]));
-            match row["kind"].as_str() {
-                Some("observation_ended") => {
-                    ended.insert(end);
-                }
-                Some(kind) => {
-                    if kind == "child_observed" {
-                        statuses.insert(end.clone(), row["body"]["status"].as_str().unwrap_or_default().to_owned());
+            EarlierRead::Retry(reason) => self.delegation.unreconciled = Some(reason),
+            EarlierRead::Ends { scope, ends, not_established } => {
+                let mut taken = Vec::new();
+                for end in ends {
+                    if self.facts.contains_key(&end.key) {
+                        taken.push(end.key);
+                        continue;
                     }
-                    children.entry(end).or_insert_with(|| (child.clone(), row["body"]["nativeHome"].clone()));
+                    let activity = match crate::records_retention::activity(&scope.project.path) {
+                        Ok(Some(activity)) => activity,
+                        Ok(None) => { self.delegation.unreconciled = Some("recording custody unavailable".into()); return; }
+                        Err(reason) => { self.delegation.unreconciled = Some(reason); return; }
+                    };
+                    let context = SourceContext { scope: Ok(scope.clone()), native_home: Ok(end.native_home.clone()), generation: end.child["generation"].clone(),
+                        activity: Some(Arc::new(activity)), custody_limit: None };
+                    let body = json!({"child":end.child,"cause":"App relaunch","lastObserved":end.last,"nativeHome":end.native_home});
+                    match self.delegation_fact(end.key.clone(), child_slot(&end.home, &end.thread), context, "observation_ended", body) {
+                        Taken::Recorded => taken.push(end.key),
+                        Taken::Waits | Taken::Refused => {
+                            self.delegation.unreconciled = Some(self.limits.last().cloned().unwrap_or_else(|| "an earlier observation's end could not be taken for recording".into()));
+                            return;
+                        }
+                    }
                 }
-                None => {}
-            }
-        }
-        let mut taken = Vec::new();
-        let mut not_established = BTreeSet::new();
-        for (end, (child, native_home)) in children {
-            let session = child["generation"]["appSession"].as_str().unwrap_or_default().to_owned();
-            if ended.contains(&end) || self.facts.contains_key(&end) || session == current {
-                continue;
-            }
-            if !established.contains(&session) {
-                not_established.insert(session);
-                continue;
-            }
-            let (home, thread) = (child["generation"]["home"].as_str().unwrap_or_default().to_owned(), child["threadId"].as_str().unwrap_or_default().to_owned());
-            let activity = crate::records_retention::activity(&scope.project.path)?.ok_or("recording custody unavailable")?;
-            let context = SourceContext { scope: Ok(scope.clone()), native_home: Ok(native_home.clone()), generation: child["generation"].clone(),
-                activity: Some(Arc::new(activity)), custody_limit: None };
-            let body = json!({"child":child,"cause":"App relaunch","lastObserved":statuses.get(&end),"nativeHome":native_home});
-            match self.delegation_fact(end.clone(), child_slot(&home, &thread), context, "observation_ended", body) {
-                Taken::Recorded => taken.push(end),
-                Taken::Waits | Taken::Refused => {
-                    return Err(self.limits.last().cloned().unwrap_or_else(|| "an earlier observation's end could not be taken for recording".into()));
+                let mut done = json!({"state":"ran"});
+                if !not_established.is_empty() {
+                    done["limit"] = json!("An earlier App session's end could not be established, so this session records no end of that session's observations of delegated children; they are left as last recorded");
+                    done["sessionsNotEstablished"] = json!(not_established);
                 }
+                self.delegation.reconciled = Some((done, taken));
+                self.delegation.unreconciled = None;
             }
         }
-        let mut done = json!({"state":"ran"});
-        if !not_established.is_empty() {
-            done["limit"] = json!("An earlier App session's end could not be established, so this session records no end of that session's observations of delegated children; they are left as last recorded");
-            done["sessionsNotEstablished"] = json!(not_established);
-        }
-        Ok((done, taken))
     }
     /// What the reconciliation has done in this session, in words a reader of
     /// the App's view is shown beside the records. Memory only.
@@ -578,6 +544,101 @@ impl Session {
             }
         }
     }
+}
+
+/// One end the reconciliation found to record: a child an earlier session of
+/// this App left without an end, in a generation the App ledger established
+/// as ended.
+pub(super) struct EarlierEnd {
+    key: String,
+    home: String,
+    thread: String,
+    child: Value,
+    native_home: Value,
+    last: Option<String>,
+}
+/// What the first half of the reconciliation read.
+pub(super) enum EarlierRead {
+    /// Nothing to do, or nothing that can be done in this session: final.
+    Done(Value),
+    /// Could not read now; tried again at the next record tick.
+    Retry(String),
+    /// The ends to record, and the sessions not established as ended.
+    Ends { scope: Scope, ends: Vec<EarlierEnd>, not_established: BTreeSet<String> },
+}
+/// The first half of the session's start for the selected project, with no
+/// lock held: the store's governing log is read (this installation's own
+/// lines only; an imported prefix is quoted evidence and gets no end) and
+/// each child an earlier session of this App left without an end is found.
+/// `sessions` is this session and the sessions the App ledger established as
+/// ended at its start ([`crate::recovery::established_ended_sessions`]); a
+/// child of any other session is listed as not established and gets no end.
+/// No native source is consulted.
+pub(super) fn read_earlier(project: Option<&Path>, sessions: &dyn Fn() -> Result<(String, BTreeSet<String>), String>) -> EarlierRead {
+    let Some(project) = project.and_then(|p| p.canonicalize().ok()) else {
+        return EarlierRead::Done(json!({"state":"not needed","reason":"no selected App project"}));
+    };
+    let (current, established) = match sessions() {
+        Ok(sessions) => sessions,
+        Err(reason) => return EarlierRead::Done(json!({"state":"unavailable",
+            "limit":format!("An earlier App session's end could not be established ({reason}); this session records no end of an earlier session's observations, and they are left as last recorded")})),
+    };
+    match read_earlier_ends(&project, &current, &established) {
+        Ok(read) => read,
+        Err(reason) => EarlierRead::Retry(reason),
+    }
+}
+fn read_earlier_ends(project: &Path, current: &str, established: &BTreeSet<String>) -> Result<EarlierRead, String> {
+    let scope = Scope::capture(project)?;
+    crate::records_retention::check_write(&scope.dir.path)?;
+    if crate::records_retention::terminal(&scope.dir.path)? {
+        return Ok(EarlierRead::Done(json!({"state":"not needed","reason":"the project's records are closed"})));
+    }
+    let bytes = read_log(&published_at(&scope, 0))?;
+    let imported = crate::records_store::package::quoted_prefix(&scope.dir.path, &format!("fleet/{}", super::LOG), &bytes)?;
+    let stored = rows(&bytes, true)?;
+    scope.check()?;
+    let mut children: BTreeMap<String, (Value, Value)> = BTreeMap::new();
+    let mut statuses: BTreeMap<String, String> = BTreeMap::new();
+    let mut ended = BTreeSet::new();
+    let mut start = 0u64;
+    for (row, line) in &stored {
+        let local = start >= imported;
+        start += line.len() as u64;
+        if !local || row["formatVersion"] != "0.2" || !KINDS.contains(&row["kind"].as_str().unwrap_or("")) {
+            continue;
+        }
+        let child = &row["body"]["child"];
+        let (Some(home), Some(thread)) = (child["generation"]["home"].as_str(), child["threadId"].as_str()) else { continue };
+        let end = key(json!(["ended", home, child["generation"], thread]));
+        match row["kind"].as_str() {
+            Some("observation_ended") => {
+                ended.insert(end);
+            }
+            Some(kind) => {
+                if kind == "child_observed" {
+                    statuses.insert(end.clone(), row["body"]["status"].as_str().unwrap_or_default().to_owned());
+                }
+                children.entry(end).or_insert_with(|| (child.clone(), row["body"]["nativeHome"].clone()));
+            }
+            None => {}
+        }
+    }
+    let mut ends = Vec::new();
+    let mut not_established = BTreeSet::new();
+    for (end, (child, native_home)) in children {
+        let session = child["generation"]["appSession"].as_str().unwrap_or_default().to_owned();
+        if ended.contains(&end) || session == current {
+            continue;
+        }
+        if !established.contains(&session) {
+            not_established.insert(session);
+            continue;
+        }
+        ends.push(EarlierEnd { home: child["generation"]["home"].as_str().unwrap_or_default().to_owned(), thread: child["threadId"].as_str().unwrap_or_default().to_owned(),
+            last: statuses.get(&end).cloned(), key: end, child, native_home });
+    }
+    Ok(EarlierRead::Ends { scope, ends, not_established })
 }
 
 #[cfg(test)]

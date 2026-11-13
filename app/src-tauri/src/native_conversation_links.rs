@@ -383,6 +383,15 @@ fn generation_end(home: &HomeSession, generation: &Value) -> Option<&'static str
         None
     }
 }
+/// What the first half of the session's start read, for the second half.
+pub(crate) struct EarlierDelegation(delegation::EarlierRead);
+/// The first half of the session's start for the selected project, with no
+/// lock held: the store's log read for each observation an earlier session of
+/// this App left open, where the App ledger established that session ended.
+/// `host` is any App-owned home's Host: they share the one App ledger.
+pub(crate) fn read_earlier_delegation(project: Option<&Path>, host: &crate::hosting::Host) -> EarlierDelegation {
+    EarlierDelegation(delegation::read_earlier(project, &|| host.established_ended_sessions()))
+}
 impl Session {
     /// The App is exiting: this session's own observation of each child it
     /// recorded ends, with the cause the host's lifecycle gives for that
@@ -393,12 +402,15 @@ impl Session {
             Some(generation_end(home, generation).unwrap_or("App quit"))
         });
     }
-    /// The session's start for the selected project, from the record tick until
-    /// it has run: the end of each observation an earlier session of this App
-    /// left open, where the App ledger established that session ended.
-    /// `host` is any App-owned home's Host: they share the one App ledger.
-    pub(crate) fn reconcile_earlier_delegation(&mut self, project: Option<&Path>, host: &crate::hosting::Host) {
-        self.end_earlier_observations(project, &|| host.established_ended_sessions());
+    /// Whether the session's start for the project (the end of each
+    /// observation an earlier session of this App left open) has yet to run.
+    pub(crate) fn earlier_delegation_pending(&self) -> bool {
+        self.earlier_pending()
+    }
+    /// Its second half, under the conversation links mutex: the ends the read
+    /// found, taken for recording through the writer every delegation fact uses.
+    pub(crate) fn apply_earlier_delegation(&mut self, read: EarlierDelegation) {
+        self.apply_earlier(read.0);
     }
     /// What that reconciliation has done in this session. Memory only.
     pub(crate) fn delegation_reconciliation(&self) -> Value {
