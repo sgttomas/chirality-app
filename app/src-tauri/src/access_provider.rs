@@ -1168,7 +1168,8 @@ impl Host {
     /// bounds this step only. The save's own sign-out and account requests come before it and wait
     /// for the frame writer on the ordinary request route, which has no deadline, so a Codex that
     /// has stopped reading its input stalls the save there for as long as that write is blocked.
-    /// Nothing here establishes that Stop ends such a stall. Once set, the mark is final, and
+    /// Stop does not end such a stall while a turn is live in this home (its interrupts wait for
+    /// the same lock). Once set, the mark is final, and
     /// asking again returns at once without waiting.
     pub(crate) fn supersede_local(&self, wait: Duration) -> Result<(), String> {
         {
