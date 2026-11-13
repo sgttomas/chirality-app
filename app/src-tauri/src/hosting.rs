@@ -7384,13 +7384,25 @@ mod local_process_lock_tests {
         let f = Fixture::new(false, false);
         std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\ntime.sleep(60)\n").unwrap();
         let host = Arc::new(Host::new());
+        // The settlement of the process's group is unavailable from the moment it is installed,
+        // before the handshake fails and the start ends it: set there, not after, so that no
+        // retirement monitor can establish the end first.
+        let installed = host.clone();
+        *host.after_successor_publish.lock().unwrap() = Some(Box::new(move || {
+            let child = installed.child.lock().unwrap().clone().expect("the child is installed before the handshake");
+            *child.census_override.lock().unwrap() = Some(Census::Unknown("modelled: member enumeration failed".into()));
+        }));
         let failed = host.start(&f.cfg, "fixture").unwrap_err();
         assert!(std::fs::read_to_string(f.root.join("home/started")).is_ok(), "the process was created before the start failed: {failed}");
         let left = host.child.lock().unwrap().clone().or_else(|| host.retired_processes.lock().unwrap().first().cloned()).expect("the failed start's process is kept by the Host");
         let _guard = LeftBehind(left.id() as i32);
         let meta = std::fs::metadata(f.root.join("home")).unwrap();
         assert_eq!(left.home(), Some((meta.dev(), meta.ino())), "tied to the directory the start held");
-        *left.census_override.lock().unwrap() = Some(Census::Unknown("modelled: member enumeration failed".into()));
+        // The failed start ended the process it had created; wait until that is so and the lock
+        // it held is free, so that what refuses below is the Host's own check and not the lock.
+        until("the failed start's process has exited", || left.observe_exit().ok().flatten().is_some());
+        until("the lock it held is free", || take_process_lock(&f.lock_path()).is_ok());
+        assert!(left.census_override.lock().unwrap().is_some() && !left.settled(), "its end is not established");
         // Synthetic admission, as a Stop after the failure would give: the question here is only
         // what the Host's own check answers for the process the failed start left.
         host.inner.0.lock().unwrap().state = "stopped".into();
