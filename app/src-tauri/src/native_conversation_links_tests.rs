@@ -615,7 +615,7 @@ fn native_links_identity_change_at_append_boundary_refuses_original_line_then_re
 }
 
 #[test]
-fn native_links_supported_link_disagreement_keeps_original_registry_governing() {
+fn native_links_link_naming_another_identity_attaches_nothing_until_the_person_restores_it() {
     let f = Fixture::new();
     let mut p = f.pending();
     let link = f
@@ -627,6 +627,27 @@ fn native_links_supported_link_disagreement_keeps_original_registry_governing() 
     claim["projectId"] = json!("chirality-project:invented-file-claim");
     claim["storeId"] = json!("chirality-store:invented-file-claim");
     std::fs::write(&link, serde_json::to_vec(&claim).unwrap()).unwrap();
+    // The store does not choose between the registry's identity and the
+    // file's: no recording context, nothing published, nothing read.
+    let refused = Scope::capture(&f.scope.project.path).err().unwrap();
+    assert!(refused.contains("link changed; not attached"), "{refused}");
+    let before = [0, 1].map(|phase| std::fs::read(published_at(&f.scope, phase)).ok());
+    settle(&mut p);
+    assert!(!p.store_done && !p.project_done, "the pending line waits; it is not written under either identity");
+    assert_eq!([0, 1].map(|phase| std::fs::read(published_at(&f.scope, phase)).ok()), before);
+    // The fleet read stays available for the project's own files and takes
+    // nothing from the store: no protected counterpart, with the reason.
+    let unread = crate::read_fleet_records_for_workspace(Some(&f.scope.project.path)).unwrap();
+    assert_ne!(unread["coordination"]["protected"]["state"], "attached", "{}", unread["coordination"]["protected"]);
+    assert!(unread["coordination"]["protected"].get("projectId").is_none());
+    assert!(unread["coordination"]["nativeRelationships"].as_array().unwrap().is_empty());
+    assert!(unread["coordination"]["governingStoreRecords"].as_array().unwrap().is_empty());
+    assert!(unread["limits"].as_array().unwrap().iter().any(|v| v["reason"]
+        .as_str()
+        .unwrap_or("")
+        .contains("project link names another identity than the protected root association; nothing attached until the person resolves it")));
+    // The person restores the link: the waiting line is recorded once.
+    crate::records_store::restore_link(&f.scope.project.path).unwrap();
     let scope = Scope::capture(&f.scope.project.path).unwrap();
     assert_eq!(scope.project_id, f.scope.project_id);
     assert_eq!(scope.store_id, f.scope.store_id);
@@ -644,8 +665,45 @@ fn native_links_supported_link_disagreement_keeps_original_registry_governing() 
         dto["coordination"]["protected"]["projectId"],
         f.scope.project_id
     );
-    assert!(dto["limits"].as_array().unwrap().iter().any(|v| v["reason"]
+}
+
+#[test]
+fn native_links_link_naming_another_store_attaches_nothing_until_the_person_restores_it() {
+    let f = Fixture::new();
+    let mut p = f.pending();
+    let link = f
+        .scope
+        .project
+        .path
+        .join(crate::records_store::PROJECT_LINK);
+    let mut claim: Value = serde_json::from_slice(&std::fs::read(&link).unwrap()).unwrap();
+    claim["storeId"] = json!("chirality-store:invented-file-claim");
+    std::fs::write(&link, serde_json::to_vec(&claim).unwrap()).unwrap();
+    let refused = Scope::capture(&f.scope.project.path).err().unwrap();
+    assert!(refused.contains("link changed; not attached") && refused.contains("names another records store"), "{refused}");
+    let before = [0, 1].map(|phase| std::fs::read(published_at(&f.scope, phase)).ok());
+    settle(&mut p);
+    assert!(!p.store_done && !p.project_done, "the pending line waits");
+    assert_eq!([0, 1].map(|phase| std::fs::read(published_at(&f.scope, phase)).ok()), before);
+    let unread = crate::read_fleet_records_for_workspace(Some(&f.scope.project.path)).unwrap();
+    assert_ne!(unread["coordination"]["protected"]["state"], "attached");
+    assert!(unread["limits"].as_array().unwrap().iter().any(|v| v["reason"]
         .as_str()
         .unwrap_or("")
-        .contains("protected root association, which governs")));
+        .contains("project link names another records store than the protected root association")));
+    crate::records_store::restore_link(&f.scope.project.path).unwrap();
+    settle(&mut p);
+    assert!(p.store_done && p.project_done);
+    let dto = crate::read_fleet_records_for_workspace(Some(&f.scope.project.path)).unwrap();
+    assert_eq!(
+        dto["coordination"]["nativeRelationships"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    assert_eq!(
+        dto["coordination"]["protected"]["projectId"],
+        f.scope.project_id
+    );
 }

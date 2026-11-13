@@ -89,6 +89,7 @@ pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
+#[cfg(test)] mod pinned_codex_observations;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_assurance;
 pub(crate) mod workflow_workspace;
@@ -959,6 +960,22 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
 #[tauri::command(async)]
 fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing changed")?;
+    // Giving the folder another identity while this session still has records
+    // waiting for the one it had would write them into the wrong history:
+    // refused, saying what waits. Restoring the link is what lets them be
+    // written, so it is never refused for this.
+    let (_links, _workflows, _acts);
+    if matches!(action.as_str(), "adopt" | "new-identity") {
+        let waiting = |what: &str| format!("{what} for the project this folder was recorded for is still waiting to be written. Restore the project file so it can be recorded, then try again; nothing changed");
+        let links = state.native_links.try_lock().map_err(|_| "a record of a related conversation is being written; try again in a moment. Nothing changed")?;
+        if links.has_pending() { return Err(waiting("A record of a related conversation")); }
+        let workflows = state.workflows.try_lock().map_err(|_| "a workflow operation is in progress; try again when it has finished. Nothing changed")?;
+        workflows.retention_ready().map_err(|e| format!("{e}. End the run, or restore the project file so its records can be written, then try again; nothing changed"))?;
+        let acts = state.act.try_lock().map_err(|_| "an act is being recorded; try again in a moment. Nothing changed")?;
+        if acts.as_ref().is_some_and(|a| !a.writer_ready()) { return Err(waiting("A captured act")); }
+        // Held until the association has changed.
+        (_links, _workflows, _acts) = (Some(links), Some(workflows), Some(acts));
+    }
     match action.as_str() {
         "adopt" => records_store::adopt(project),
         "new-identity" => records_store::new_identity(project),
