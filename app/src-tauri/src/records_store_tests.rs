@@ -2638,12 +2638,14 @@ fn records_store_an_unexaminable_identity_record_is_never_taken_for_absent_by_ad
 }
 
 /// The guard behind it, reached directly: the store's registration of an
-/// identity whose record is a link that leads nowhere. Its create-new
-/// publication refuses, so no record is written over the link and no roots
-/// line follows. (witness::begin runs before that publication. Here the
-/// witness had begun when the identity was minted, so it writes nothing; in a
-/// store whose witness had not begun it would begin it, listing what the
-/// store holds, which says nothing about this project.)
+/// identity whose record is a link that leads nowhere. create_json refuses:
+/// here at its path check, which refuses a link, before its create-new
+/// publication (an occupied plain file is refused by that publication, "File
+/// exists"). No record is written over the link and no roots line follows.
+/// (witness::begin runs before that publication. Here the witness had begun
+/// when the identity was minted, so it writes nothing; in a store whose
+/// witness had not begun it would begin it, listing what the store holds,
+/// which says nothing about this project.)
 #[test]
 fn records_store_registration_never_writes_over_an_identity_record_it_could_not_examine() {
     let _store = OwnStore::new();
