@@ -42,9 +42,14 @@ code_paths:
 - app/src-tauri/src/native_local_provider.rs
 # The development model address: a startup input the release configuration never consults.
 - app/src-tauri/src/dev_model_address.rs
+# Observations of the pinned supplier started through the host: the development model address
+# accepted at start, and how far its search for a `.codex/config.toml` above the working folder goes.
+- app/src-tauri/src/pinned_codex_observations.rs
 - app/src-tauri/src/native_secure_entry.rs
 - app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
+# home_hold.rs is shared with DEL-01-01. Here: the receiving source's hold on the account home.
+- app/src-tauri/src/home_hold.rs
 # desktop_startup.rs is shared with DEL-01-01. Here: preparation of the homes and the saved
 # desktop setup. Selection of the supplier binary and its start are DEL-01-01's.
 - app/src-tauri/src/desktop_startup.rs
@@ -70,6 +75,7 @@ checks:
 - app/src-tauri/src/desktop_setup_confirmation.rs
 - app/src-tauri/src/desktop_startup.rs
 - app/tests/desktop-setup.test.mjs
+- app/src-tauri/src/home_hold_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 # Shared with DEL-01-01: credential and home-separation names removed from the child.

@@ -159,12 +159,16 @@ fn access_provider_access_settings_source_and_newer_read_staleness_refuse_withou
     for mode in ["home", "generation", "closed", "newer-read"] {
         *peer.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
             host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":access_settings_config(json!("file"),json!(false))})).unwrap(),source.generation());
+            if mode == "newer-read" {
+                // A newer reading of the generation, registered once this one was answered.
+                host.request_begin_scoped("config/read", json!({"cwd":"/invented/work","includeLayers":true}), json!({"kind":"synthetic newer reader"}), false, Some(source.generation())).unwrap();
+                return;
+            }
             let mut i = host.inner.0.lock().unwrap();
             match mode {
                 "home" => i.generation["home"] = json!("other-home"),
                 "generation" => i.generation["spawnCounter"] = json!(2),
-                "closed" => i.state = "stopped".into(),
-                _ => { i.provider_read_revisions.insert("/invented/work".into(),(source.generation.clone(),"newer-private-read".into())); },
+                _ => i.state = "stopped".into(),
             }
         }));
         assert!(peer.host.effective_access_settings_read_within(&peer.g,"/invented/work","account",Duration::from_millis(30)).is_err());
@@ -1853,8 +1857,10 @@ fn access_provider_actual_private_refusal_output_has_only_safe_public_consumers(
     crate::records_store::use_store_for_test(None);
     std::fs::remove_dir_all(root).unwrap();
 }
+/// Readings of one generation are one at a time and any reading supersedes every earlier proof:
+/// a reading of another folder leaves the original admission not current.
 #[test]
-fn access_provider_unrelated_folder_read_preserves_original_source_admission() {
+fn access_provider_another_folder_read_supersedes_the_original_admission() {
     let mut peer = Peer::new("home");
     peer.answer(config(json!({"anonymous":local()})));
     let original = peer.read("local-provider", "anonymous").unwrap();
@@ -1872,10 +1878,11 @@ fn access_provider_unrelated_folder_read_preserves_original_source_admission() {
         )
         .is_err());
     assert_eq!(peer.frame()["params"]["cwd"], "/invented/other");
-    peer.host
+    assert!(peer
+        .host
         .thread_start_with_access_dispatch(&original, "guidance")
-        .unwrap();
-    assert_eq!(peer.frame()["params"]["cwd"], "/invented/work");
+        .is_err());
+    assert!(peer.host.client_requests().iter().all(|r| r["method"] != "thread/start"), "nothing started on the superseded proof");
 }
 /// DEL-01-05 new-conversation chooser: a provider observation, and a row chosen
 /// from it, stay current across a read that is not a private configuration
@@ -1936,8 +1943,10 @@ fn access_provider_chooser_revision_follows_private_reads_and_admission_follows_
     peer.host.inner.0.lock().unwrap().state = "ready".into();
     peer.safe();
 }
+/// The delegation transport's configuration read supersedes the admission whatever folder it
+/// names, none included: readings of one generation are one at a time.
 #[test]
-fn access_provider_delegation_config_read_invalidates_only_its_known_folder() {
+fn access_provider_delegation_config_read_of_any_folder_or_none_supersedes_the_admission() {
     let mut peer = Peer::new("home");
     peer.answer(config(json!({})));
     let old = peer.read("chatgpt-account", "openai").unwrap();
@@ -1967,7 +1976,7 @@ fn access_provider_delegation_config_read_invalidates_only_its_known_folder() {
                 &old,
                 &json!({"cwd":"/invented/work","modelProvider":"openai","model":"chosen-model"}),
             )
-            .unwrap();
+            .unwrap_err();
     }
     let newer = peer
         .host
@@ -2334,10 +2343,12 @@ fn native_children_queued_mutation_cannot_promote_or_strip_prepared_supply() {
                 std::fs::write(file, "changed").unwrap();
             }
             "receipt" => {
-                let mut i = peer.host.inner.0.lock().unwrap();
-                i.provider_read_revisions.insert(
-                    "/invented/work".into(),
-                    (peer.g.clone(), "newer-private-read".into()),
+                // A newer reading registers while the start waits for the writer; with the writer
+                // still held it is withdrawn at its deadline, and no reading is current.
+                let deadline = std::time::Instant::now() + Duration::from_millis(50);
+                assert_eq!(
+                    peer.host.request_reading("config/read", json!({"cwd":"/invented/work","includeLayers":true}), json!({"kind":"synthetic newer reader"}), &peer.g, true, deadline).err().unwrap(),
+                    crate::hosting::reading_gate::READING_WITHDRAWN
                 );
             }
             _ => unreachable!(),
@@ -2498,6 +2509,31 @@ fn child_peer() -> Peer {
 }
 fn child_thread(id: &str, parent: Option<&str>, role: Option<&str>) -> Value {
     json!({"id":id,"cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/invented/work","ephemeral":false,"modelProvider":"openai","preview":"synthetic","projectId":null,"sessionId":"synthetic-session","source":if let Some(parent)=parent{json!({"subAgent":{"thread_spawn":{"parent_thread_id":parent,"depth":1,"agent_role":role}}})}else{json!("appServer")},"status":{"type":"idle"},"turns":[],"agentRole":role,"parentThreadId":parent,"forkedFromId":null})
+}
+/// A start's child-role reread refused (the frame writer busy past its deadline) after a completed
+/// configuration reading and with the child-role files published: the message states what is
+/// known first, then the sentence; it is shown as it is, and the durable role-supply record keeps
+/// it as refused before dispatch with that reason.
+#[test]
+fn a_child_role_reread_refused_after_the_files_are_in_place_states_and_records_that_phase() {
+    use crate::hosting::reading_gate::READING_WITHDRAWN;
+    let (root, value) = child_fixture();
+    let mut peer = child_peer();
+    peer.answer(value);
+    let mut proof = peer.read("chatgpt-account", "openai").unwrap();
+    peer.frame();
+    let mut c = crate::runtime_session::compose_role(&root.join("instructions"), Some(crate::role_supply::Role::WORKING_ITEMS)).unwrap();
+    peer.host.hold_frame_writer_for_test(Duration::from_secs(11));
+    let error = peer.host.prepare_role_children(&mut proof, &mut c, &root.join("instructions"), &root).unwrap_err();
+    assert_eq!(error, format!("{CHILD_ROLES_IN_PLACE}{READING_WITHDRAWN}"));
+    assert!(!c.children.is_empty(), "the child-role files were published before the reread");
+    assert_eq!(crate::role_supply_refusal(&error, &json!({"state":"written"})), error, "shown as it is");
+    let mut history = crate::runtime_session::HistorySession::default();
+    history.configure_role_log(&root);
+    let published = history.role_refused_continuing("sup:synthetic-child-reread", &peer.g, Some(crate::role_supply::Role::WORKING_ITEMS), Some(false), &error, true, None);
+    assert_eq!(published["state"], "written", "{published}");
+    let record = history.read_role_supply(peer.g["home"].as_str().unwrap(), None).to_string();
+    assert!(record.contains("refused-before-send") && record.contains("child-role files for this role are in place"), "{record}");
 }
 fn child_parent() -> (
     std::path::PathBuf,
@@ -3056,13 +3092,7 @@ fn native_children_167_requires_canonical_whole_source_and_does_not_rebind_after
         )
         .unwrap();
         if case == "unestablished-source" {
-            peer.host
-                .inner
-                .0
-                .lock()
-                .unwrap()
-                .provider_read_revisions
-                .clear();
+            peer.host.inner.0.lock().unwrap().reading_current = None;
         }
         peer.host
             .prepare_role_children(&mut proof, &mut c, &root.join("instructions"), &root)
@@ -3083,6 +3113,38 @@ fn native_children_167_requires_canonical_whole_source_and_does_not_rebind_after
         }
         std::fs::remove_dir_all(root).unwrap();
     }
+}
+
+/// Local key entry makes its requirements reading first and then the configuration reading it
+/// rests on (readings of one generation are one at a time, each superseding earlier proofs); a
+/// requirement that excludes key entry still refuses it, with no key frame written.
+#[test]
+fn native_local_provider_key_entry_reads_requirements_first_and_a_refusing_requirement_still_refuses() {
+    use crate::native_local_provider as local_route;
+    let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-key-order-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
+    local_route::prepare_for_test(&plan, &local_route::LocalSettings::legacy());
+    let mut peer = Peer::new(&plan.opaque_home_id());
+    canonical_167_peer(&peer);
+    peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding::for_plan(&plan, "/invented/work", local_route::LocalSettings::legacy()));
+    peer.answer(local_167_config());
+    let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
+    let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg)).unwrap();
+    let entry = local_route::CredentialEntry::default();
+    let generation = peer.g.clone();
+    let result = std::thread::scope(|scope| {
+        let work = scope.spawn(|| local_route::submit(&home, &plan, &generation, &entry, || Ok(()), |_| Ok(Some(CANARY.into()))));
+        let policy = peer.frame();
+        assert_eq!(policy["method"], "configRequirements/read", "requirements first");
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":{"allowedLoginMethods":["chatgpt"]}}})).unwrap(), &peer.g);
+        assert_eq!(peer.frame()["method"], "config/read", "then the configuration reading the entry rests on");
+        work.join().unwrap()
+    });
+    assert!(result.is_err(), "a requirement excluding key entry still refuses it");
+    assert!(peer.host.client_requests().iter().all(|r| r["method"] != "account/login/start"), "no key frame written");
+    peer.safe();
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
@@ -3126,9 +3188,10 @@ fn native_local_provider_one_private_login_frame_and_safe_receipts_without_suppl
             assert_eq!(std::fs::read(plan.native_path().join("key-address")).unwrap(),format!("{}\n",local_route::ENDPOINT).into_bytes());
             Ok(Some(CANARY.into()))
         }));
-        assert_eq!(peer.frame()["method"],"config/read");
+        // Requirements first, then the configuration reading the entry rests on.
         let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
         peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);
+        assert_eq!(peer.frame()["method"],"config/read");
         let login=peer.frame();assert_eq!(login["method"],"account/login/start");
         assert_eq!(login["params"],json!({"type":"apiKey","apiKey":CANARY}));
         peer.safe();assert!(!json!(peer.host.journal()).to_string().contains(CANARY));
@@ -3613,8 +3676,9 @@ fn native_local_provider_cancel_window_or_source_change_never_writes_or_replays_
                 if case=="window" {current.store(false,Ordering::SeqCst);}else{home.host.inner.0.lock().unwrap().generation["spawnCounter"]=json!(2);}
                 Ok(Some(CANARY.into()))
             }));
-            assert_eq!(peer.frame()["method"],"config/read");let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
-            peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);worker.join().unwrap()
+            let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
+            peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);
+            assert_eq!(peer.frame()["method"],"config/read");worker.join().unwrap()
         });
         assert_eq!(result.is_ok(),case=="cancel");
         assert!(peer.host.client_requests().iter().all(|r|r["method"]!="account/login/start"));peer.safe();

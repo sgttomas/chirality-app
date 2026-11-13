@@ -141,7 +141,9 @@ fn check_start_with(
         return Ok(());
     }
     no_managed_configuration().map_err(|_| MANAGED)?;
-    match std::fs::symlink_metadata(config.codex_home.join("auth.json")) {
+    // The home the child uses: it is given `config.cwd` as its working folder and resolves a
+    // relative CODEX_HOME there, so the sign-in file is looked for in the folder resolved the same way.
+    match std::fs::symlink_metadata(config.cwd.join(&config.codex_home).join("auth.json")) {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         _ => Err(HOLDS_SIGN_IN.into()),
     }
@@ -399,6 +401,27 @@ for line in sys.stdin:
         for root in [root, plain_root] {
             std::fs::remove_dir_all(root).unwrap();
         }
+    }
+
+    /// A relative home is the folder the child resolves it to, under the working folder it is
+    /// given, not a folder of that name under the App's own working folder: the sign-in file is
+    /// looked for there, at startup and before every start.
+    #[test]
+    fn dev_model_address_looks_for_the_sign_in_file_where_the_child_resolves_a_relative_home() {
+        let (root, cfg) = fixture();
+        let mut relative = apply(Ok(cfg), true, given(ADDRESS)).unwrap();
+        relative.cwd = root.clone();
+        relative.codex_home = PathBuf::from("account");
+        assert!(!std::env::current_dir().unwrap().join("account").join("auth.json").exists());
+        std::fs::write(root.join("account").join("auth.json"), b"INVENTED").unwrap();
+        assert_eq!(check_start(&relative).unwrap_err(), HOLDS_SIGN_IN);
+        let mut plain = relative.clone();
+        plain.session_flags.pop();
+        assert_eq!(apply(Ok(plain), true, given(ADDRESS)).unwrap_err(), HOLDS_SIGN_IN);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&relative, "fixture").unwrap_err(), HOLDS_SIGN_IN);
+        assert!(started_with(&root).is_empty());
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

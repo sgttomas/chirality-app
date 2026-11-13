@@ -52,6 +52,9 @@ needs:
   condition: A human act and a declined act can be written as direct-capture records that bind
     actor, recorder, content identity, scope and purpose and cite capture evidence; a record can
     be validated; and an act whose bound content changed is reported as lapsed.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
   gating: true
 - from: DEL-06-02
   condition: A decision package is a project file that states the exact act requested of the
@@ -63,8 +66,12 @@ needs:
     in every release, so that keychain items written by one release are readable by the next.
   gating: true
   when: Keychain protection on an installed build
-- from: external:person operating the act control
-  condition: A person confirms each act in the native confirmation while an examiner observes.
+- from: external:person or examining agent operating the act control
+  condition: A person confirms each act in the native confirmation while an examiner observes. In
+    an agent-operated journey examination as the release target defines it, the examining agent
+    confirms instead the acts of VER-005 and VER-008, on examination material only; its capture is
+    then a synthetic examination artifact that establishes no person's decision. The protection act
+    and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.

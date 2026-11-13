@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./hostReads";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -94,7 +94,7 @@ export function AvailableModels({ packet, current, reading, message, model, mode
     {packet && !current && <p role="status">This model list is out of date — Codex, the home or the project changed. Read it again.</p>}
     {packet && current && <div>
       <p><strong>{server ? <>Models Codex reports for provider <code>{server}</code></> : "Models Codex reports for its own provider"}</strong>{packet.readAt ? <small> · read {text(packet.readAt)}</small> : null}</p>
-      {packet.providerLimit && <p role="note"><small>{text(packet.providerLimit)}.</small></p>}
+      {packet.providerLimit && <p role="note"><small>{text(packet.providerLimit).replace(/\.$/, "")}.</small></p>}
       {!modelProvider ? <p role="note">Choose how this conversation connects first; then choose a model.</p>
         : match === "none" ? <p role="note">This list isn't for this conversation's provider (<code>{modelProvider}</code>{server ? <>; the list is for <code>{server}</code></> : ""}). Enter a model ID under “Advanced: enter a model ID yourself”.</p>
         : match === "unconfirmed" ? <p role="note">Codex's configuration doesn't name its provider, so the App can't confirm these models are for the built-in OpenAI route. You can still choose one. Start re-checks that the built-in OpenAI route is configured; it doesn't confirm this model is offered on it — if it isn't, Codex reports an error when the conversation starts or its first turn runs.</p> : null}

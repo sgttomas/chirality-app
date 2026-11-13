@@ -24,6 +24,12 @@ needs:
   condition: Custody facts are handed over as observed events and stated unknowns, including a request
     that ended unanswered and an acknowledgement that was not observed.
   gating: false
+- from: DEL-01-02
+  condition: A request recorded open by an App session that has ended is given by the App ledger as
+    open at App session end, with its request identity, method, subject and the session that recorded
+    it, and that fact asserts no settlement.
+  when: Deciding whether and how a run's records account for a request left open at a session's end.
+  gating: false
 - from: DEL-02-01
   condition: A workflow has a source-qualified identity whose revision changes with any byte, path or
     file of its package, a declared checkpoint names the one act it requires, and the checkpoint disposition
@@ -89,6 +95,8 @@ code_paths:
 # records_store.rs is also listed by DEL-07-02 for the placing of its route accounts. The store
 # itself is this deliverable's.
 - app/src-tauri/src/records_store.rs
+- app/src-tauri/src/records_store_lines.rs
+- app/src-tauri/src/records_store_witness.rs
 - app/src-tauri/src/records_continuity.rs
 - app/src-tauri/src/records_index.rs
 - app/src-tauri/src/records_query.rs
@@ -111,18 +119,23 @@ code_paths:
 - app/src-tauri/src/standing.rs
 # hosting.rs, runtime_session.rs, lib.rs and App.tsx are shared. Here: offering the records
 # capability to a conversation and answering its calls, handing a run's observed items to the
-# record writer and reading recorded runs back, the records-store commands, and the records
-# store panel.
+# record writer and reading recorded runs back, the records-store commands, and where the
+# records store panel is shown.
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/App.tsx
+# The records store panel: placement, project identity and its resolution, export, package
+# import and recovery, retention, legal hold and disposal.
+- app/src/RecordsStorePanel.tsx
 - app/src-tauri/schemas/RS_RECORD.schema.json
 - app/src-tauri/resources/runtime_core/records-administration.entry.schema.json
 - app/src-tauri/resources/runtime_core/records-read-log.entry.schema.json
 - app/tools/verify_records_bag.py
+- app/src-tauri/src/role_observations.rs
 checks:
 - app/src-tauri/src/record_lines_tests.rs
+- app/src-tauri/src/role_observations_tests.rs
 - app/src-tauri/src/record_lines_regression_tests.rs
 - app/src-tauri/tests/record_semantics.rs
 - app/src-tauri/tests/record_relations.rs
@@ -131,6 +144,8 @@ checks:
 - app/tests/validate-records.test.mjs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/records_store_tests.rs
+- app/src-tauri/src/records_store_lines_tests.rs
+- app/src-tauri/src/records_store_witness_tests.rs
 - app/src-tauri/src/records_store_publication_tests.rs
 - app/src-tauri/src/records_durability_tests.rs
 - app/src-tauri/src/records_scale_tests.rs

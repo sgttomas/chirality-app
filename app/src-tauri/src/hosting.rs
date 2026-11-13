@@ -308,11 +308,13 @@ pub struct HostConfig {
     pub(crate) probe_wait_limit: Duration,
     pub(crate) distribution: Option<successor::Distribution>,
     pub(crate) require_distribution_artifacts: bool,
-    /// The dedicated local home only (None for every other home): the App's lock file there. A
-    /// start takes an exclusive, non-waiting lock on it and the Codex child inherits that one
-    /// descriptor, so the lock is held while that Codex, or anything it started that kept the
-    /// descriptor, lives; held, nothing starts. A home folder that holds the lock file is locked
-    /// at every start whatever this field says (`native_local_provider::process_lock_for`).
+    /// Names the dedicated local home's lock file, and so marks that home (None for every other
+    /// home); `bind_local_destination` requires it there. It does not decide the lock: every
+    /// start, for every home, takes the App's lock file inside the held home directory
+    /// (`native_local_provider::take_process_lock_in`) and the Codex child is given that one
+    /// descriptor, so the lock is held while that Codex, or anything it passed the descriptor
+    /// to, keeps it open; held, nothing starts. What this field changes is only which sentence a
+    /// refusal uses.
     pub(crate) process_lock: Option<PathBuf>,
 }
 
@@ -368,6 +370,11 @@ impl HostConfig {
 
 #[derive(Default)]
 struct Inner {
+    /// The last start of Codex refused before its app-server was spawned: its
+    /// reason, actor, time, home (`app-home:` identity) and attempt (null when
+    /// it was refused before it was admitted as an attempt). Host status
+    /// `lastStartRefusal`; see [`Host::start`].
+    last_start_refusal: Option<Value>,
     cce_offer: Option<call_custody::Offer>,
     /// RS §13.9: the records capability offered in the App's current project,
     /// and the (generation, thread) pairs whose `thread/start` carried it.
@@ -415,12 +422,20 @@ struct Inner {
     malformed: u64,
     pending: HashMap<String, (usize, Sender<Value>)>,
     source_requests: HashMap<String, SourceEvidence>,
-    provider_read_revisions: HashMap<String,(Value,String)>,
+    /// This generation's one place for an outstanding configuration reading, and its stage
+    /// (`reading_gate`). Changed only under this lock.
+    reading_slot: Option<reading_gate::ReadingSlot>,
+    /// The newest configuration reading of the generation: what admission, the settings reading
+    /// and the native confirmations follow. Set at registration; cleared by a withdrawal, a
+    /// confirmed provider write's attempt and the generation's close; never restored by a reply.
+    reading_current: Option<reading_gate::ReadingCurrent>,
+    /// Callers waiting for the reservation, in arrival order.
+    reading_queue: reading_gate::ReadingQueue,
     /// The latest private configuration read per folder: what the chooser's
     /// provider list is compared with, and nothing else. A model list or
     /// delegation read is not one, so it leaves a chosen provider current;
-    /// `provider_read_revisions` (admission, the settings reading and the
-    /// native confirmations) still follows every read.
+    /// `reading_current` (admission, the settings reading and the native
+    /// confirmations) still follows every read.
     provider_observation_revisions: HashMap<String,(Value,String)>,
     private_config_channels: Vec<Value>,
     local_provider: Option<access_provider::LocalProviderBinding>,
@@ -478,6 +493,9 @@ struct Inner {
 
 #[path = "access_provider.rs"]
 mod access_provider;
+#[path = "hosting_reading_gate.rs"]
+pub(crate) mod reading_gate;
+use reading_gate::ReadingHold;
 #[path = "access_settings.rs"]
 mod access_settings;
 pub(crate) use access_provider::ProviderAdmission;
@@ -508,6 +526,10 @@ struct SourceEvidence {
     write_attempt_in_progress: bool,
     attempt_position: Option<u64>,
     response_position: Option<u64>,
+    /// Settlement's verdict on the reply stored in `response`, taken once on the frame exactly as
+    /// Codex sent it, at its receipt (`response_position`) and before any projection. The native
+    /// diagnostic is not retained; only settlement's verdict. Kept as long as this entry.
+    native_settlement: Option<Result<(), reading_gate::Unsettled>>,
     /// Frozen at the actual frame write; never recomputed from a late reply.
     turn_model_cut: u64,
     turn_model_context: Value,
@@ -744,6 +766,8 @@ pub struct AppRuntimeCustody {
     recovery_path:Option<PathBuf>,
     end_observation:Mutex<Option<Value>>,
     terminal_publication:Arc<TerminalPublicationController>,
+    /// The session's liveness lock, kept while any of its homes' Hosts lives.
+    liveness:Option<Arc<crate::session_liveness::Hold>>,
 }
 impl AppRuntimeCustody {
     pub(crate) fn close_distribution_publication(&self) { self.terminal_publication.lock_state().closing=true; }
@@ -902,8 +926,21 @@ pub struct Host {
     stdin: Mutex<Option<ChildStdin>>,
     child: Mutex<Option<Arc<process_group_custody::OwnedProcess>>>,
     retired_processes: Mutex<Vec<Arc<process_group_custody::OwnedProcess>>>,
+    /// The home's process lock an admitted start attempt holds until its child is spawned, with
+    /// that attempt's number. Kept here, not on the start call's stack, so that a Stop which
+    /// cancels the attempt before anything is spawned releases the lock at once: a new attempt
+    /// is then not refused by this Host's own cancelled one, whose call may still be unwinding.
+    pending_process_lock: Mutex<Option<(u64, std::fs::File)>>,
     probe_processes: Mutex<Vec<(u64, Arc<process_group_custody::OwnedProcess>)>>,
     quit_fence: std::sync::atomic::AtomicBool,
+    /// DEL-01-02: this App session's liveness lock, shared with the App
+    /// custody of the session's other homes.
+    session_liveness: Mutex<Option<Arc<crate::session_liveness::Hold>>>,
+    /// DEL-01-01/05: this Host's identity in the process's home holds, the
+    /// homes it holds, and its starts in progress (none may take a home over).
+    hold_id: usize,
+    home_holds: Mutex<Vec<crate::home_hold::HomeHold>>,
+    home_starting: Arc<std::sync::atomic::AtomicUsize>,
     #[cfg(test)]
     before_quit_stop: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
@@ -922,8 +959,6 @@ pub struct Host {
     before_reply_admission: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
     #[cfg(test)]
     pub(crate) before_reply_write: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
-    #[cfg(test)]
-    pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
     #[cfg(test)]
     pub(crate) supersede_waiting: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
     #[cfg(test)]
@@ -954,6 +989,18 @@ pub struct Host {
     before_delegation_wait: Mutex<Option<Box<dyn Fn(&SourceRequest) + Send>>>,
     #[cfg(test)]
     before_provider_wait: Mutex<Option<Box<dyn Fn(&Host,&SourceRequest) + Send>>>,
+    /// Runs once when a reading first finds the reservation held, before it waits.
+    #[cfg(test)]
+    pub(crate) reading_waiting: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Runs once after a reading takes the reservation, before it registers.
+    #[cfg(test)]
+    pub(crate) reading_after_reserve: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Runs once after a reading registers, before it asks for the frame writer.
+    #[cfg(test)]
+    pub(crate) reading_after_register: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Runs once after any request's final admission, frame writer held, before its write.
+    #[cfg(test)]
+    pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
@@ -972,6 +1019,53 @@ pub struct Host {
     before_successor_settlement: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_s1_lt09_publish: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+}
+
+/// The opaque identity of a Codex home in a generation (`app-home:` and the
+/// SHA-256 of its path), as host status and generations name it.
+pub(crate) fn home_identity(home: &std::path::Path) -> String {
+    format!("app-home:{}", sha256_hex(home.as_os_str().as_encoded_bytes()))
+}
+/// The failure a start records when the supplier process was created and its reservation was
+/// found lost at once. It does not say no process was created: one was.
+pub(crate) const CREATED_AND_LOST: &str = "the supplier process was created, but its exit reservation was lost at creation; it is kept as not established ended and nothing was started on it";
+/// DEL-01-01/05: the home one start call holds, and the identity (device,
+/// inode) of the held directory. Owned by that call alone and never changed:
+/// each process the attempt is handed to is admitted only while the path
+/// still names that directory.
+struct AdmittedHome {
+    path: PathBuf,
+    identity: crate::home_hold::Identity,
+}
+impl AdmittedHome {
+    fn check(&self) -> Result<(), String> {
+        crate::home_hold::still_names(&self.path, self.identity)
+    }
+    /// Tests that call a start step directly: the directory `path` names now.
+    #[cfg(test)]
+    fn current(path: &std::path::Path) -> Self {
+        use std::os::unix::fs::MetadataExt;
+        let meta = std::fs::metadata(path).unwrap();
+        Self { path: path.to_owned(), identity: (meta.dev(), meta.ino()) }
+    }
+}
+impl crate::home_hold::HoldOwner for Host {
+    fn may_have_child(&self) -> bool { self.may_have_child_now() }
+}
+/// DEL-01-01/02/05: a Host that goes while a process group it started has not
+/// settled does not release its homes or its session's liveness lock: they
+/// stay with those processes until their settlement is established
+/// ([`crate::home_hold::keep_until_settled`]).
+impl Drop for Host {
+    fn drop(&mut self) {
+        let holds = std::mem::take(self.home_holds.get_mut().unwrap_or_else(|e| e.into_inner()));
+        let liveness = self.session_liveness.get_mut().unwrap_or_else(|e| e.into_inner()).take();
+        let mut owned: Vec<Arc<process_group_custody::OwnedProcess>> = Vec::new();
+        owned.extend(self.child.get_mut().unwrap_or_else(|e| e.into_inner()).iter().cloned());
+        owned.extend(self.retired_processes.get_mut().unwrap_or_else(|e| e.into_inner()).iter().cloned());
+        owned.extend(self.probe_processes.get_mut().unwrap_or_else(|e| e.into_inner()).iter().map(|(_, p)| Arc::clone(p)));
+        crate::home_hold::keep_until_settled(holds, liveness, owned);
+    }
 }
 
 impl Default for Host {
@@ -1006,8 +1100,13 @@ impl Host {
             stdin: Mutex::new(None),
             child: Mutex::new(None),
             retired_processes: Mutex::new(Vec::new()),
+            pending_process_lock: Mutex::new(None),
             probe_processes: Mutex::new(Vec::new()),
             quit_fence: std::sync::atomic::AtomicBool::new(false),
+            session_liveness: Mutex::new(None),
+            hold_id: crate::home_hold::next_id(),
+            home_holds: Mutex::new(Vec::new()),
+            home_starting: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             #[cfg(test)]
             before_quit_stop: Mutex::new(None),
             records_activity: Mutex::new(None),
@@ -1021,7 +1120,6 @@ impl Host {
             #[cfg(test)] cce_before_cut: Mutex::new(None),
             #[cfg(test)] before_reply_admission: Mutex::new(None),
             #[cfg(test)] before_reply_write: Mutex::new(None),
-            #[cfg(test)] before_request_write: Mutex::new(None),
             #[cfg(test)] supersede_waiting: Mutex::new(None),
             #[cfg(test)] supersede_marking: Mutex::new(None),
             #[cfg(test)] after_continuation_reading: Mutex::new(None),
@@ -1043,6 +1141,10 @@ impl Host {
             before_delegation_wait: Mutex::new(None),
             #[cfg(test)]
             before_provider_wait: Mutex::new(None),
+            #[cfg(test)] reading_waiting: Mutex::new(None),
+            #[cfg(test)] reading_after_reserve: Mutex::new(None),
+            #[cfg(test)] reading_after_register: Mutex::new(None),
+            #[cfg(test)] before_request_write: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
             #[cfg(test)]
@@ -1172,6 +1274,7 @@ impl Host {
             "state": i.state,
             "generation": i.generation,
             "generationClosed": i.server_requests.is_closed(&i.generation),
+            "lastStartRefusal": i.last_start_refusal,
             "supplierStanding": i.supplier_standing,
             "networkDisclosure": network_disclosure(),
             "verification": i.verification,
@@ -1221,12 +1324,12 @@ impl Host {
         if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}
             if !i.home.is_empty()&&i.spawn_counter>0{let mut counters=self.spawn_counters.lock().unwrap();let current=counters.entry(i.home.clone()).or_default();*current=(*current).max(i.spawn_counter);}
             (i.app_session.clone(),i.recovery.clone(),i.recovery_initialization_error.clone().or_else(||i.recovery_error.clone()).or_else(||if i.recovery.is_none(){Some("original App ledger unavailable; pointer history memory-only/unverified".into())}else{None}),i.recovery_path.clone())};
-        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None),terminal_publication:Arc::new(TerminalPublicationController::default())});*cached=Some(Arc::clone(&custody));Ok(custody)
+        let custody=Arc::new(AppRuntimeCustody{session,ledger,writer:Arc::clone(&self.recovery_writer),counters:Arc::clone(&self.spawn_counters),contexts:Arc::clone(&self.submission_contexts),sources:Mutex::new(vec![AppRecoverySource{inner:Arc::downgrade(&self.inner),queue:Arc::clone(&self.inner.0.lock().unwrap().pending_recovery)}]),initial_limit:limit,recovery_path,end_observation:Mutex::new(None),terminal_publication:Arc::new(TerminalPublicationController::default()),liveness:self.session_liveness.lock().unwrap().clone()});*cached=Some(Arc::clone(&custody));Ok(custody)
     }
     pub fn new_with_app_custody(custody:Arc<AppRuntimeCustody>)->Result<Self,String>{
         let writer=Arc::clone(&custody.writer);let _writer=writer.lock().unwrap();if custody.end_observation.lock().unwrap().is_some(){return Err("App session end already observed; no new home source in this App session".into());}
         let recovery=custody.ledger.as_ref().map(|ledger|ledger.lock().unwrap().observation());let mut host=Self::new();host.recovery_writer=Arc::clone(&custody.writer);host.spawn_counters=Arc::clone(&custody.counters);host.submission_contexts=Arc::clone(&custody.contexts);
-        {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}
+        {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}*host.session_liveness.lock().unwrap()=custody.liveness.clone();
         custody.sources.lock().unwrap().push(AppRecoverySource{inner:Arc::downgrade(&host.inner),queue:Arc::clone(&host.inner.0.lock().unwrap().pending_recovery)});*host.runtime_custody.lock().unwrap()=Some(Arc::clone(&custody));Ok(host)
     }
     /// Safely retained source observation; no ledger lock/IO under Inner.
@@ -1245,7 +1348,58 @@ impl Host {
         if self.runtime_custody.lock().unwrap().is_some(){return Err("App custody already adopted; no second recovery ledger/session initialization".into());}
         let _writer=self.recovery_writer.lock().unwrap();if self.runtime_custody.lock().unwrap().is_some(){return Err("App custody adopted while waiting; no second recovery initialization".into());}let session={let mut i=self.inner.0.lock().unwrap();if i.state!="absent"{return Err("recovery must be configured before supplier start".into());}
         if i.app_session.is_empty(){i.app_session=opaque_id("app-session:")?;}i.recovery_path=Some(path.clone());i.app_session.clone()};
-        let opened=(||{let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path,binding)?,None=>RecoveryLedger::open(path)?};ledger.start_session(&session,"chirality-app-v4-unqualified")?;Ok::<_,String>(ledger)})();let ledger=match opened{Ok(ledger)=>ledger,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;Ok(())
+        // DEL-01-02: this session's liveness lock is taken after the ledger
+        // opens and before its session_started entry is written, and kept
+        // while this Host and the App custody it shares live.
+        let opened=(||{let liveness=crate::session_liveness::directory(&path);if let Some(binding)=&namespaces{binding.guard_domains(&[liveness])?;}
+            let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path.clone(),binding)?,None=>RecoveryLedger::open(path.clone())?};
+            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session_held(&session,"chirality-app-v4-unqualified",&hold)?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
+    }
+    /// Test model of this App session's process having ended, for a test that
+    /// still reads through this Host afterwards: only its liveness lock is
+    /// released, as the kernel releases it (the file stays, free).
+    #[cfg(test)]
+    pub(crate) fn release_session_lock_for_test(&self) {
+        if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
+    }
+    /// Test model of this Host's process being killed: only what the kernel
+    /// releases when a process dies. Its session liveness lock and its home
+    /// holds are released (the liveness file stays, free), and it writes
+    /// nothing after; facts it had queued and not yet written are lost, as a
+    /// killed process's are. The Host object stays.
+    #[cfg(test)]
+    pub(crate) fn end_process_for_test(&self) {
+        {
+            let _writer = self.recovery_writer.lock().unwrap();
+            self.inner.0.lock().unwrap().recovery = None;
+        }
+        if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
+        self.home_holds.lock().unwrap().clear();
+    }
+    /// Whether this Host holds a process whose settlement can never be established: its
+    /// reservation is released and its group is not known empty (lost at creation or at a later
+    /// observation). No retry changes that in this App process.
+    pub(crate) fn has_unestablishable_process(&self) -> bool {
+        let lost = |p: &Arc<process_group_custody::OwnedProcess>| p.released() && !p.settled();
+        self.child.lock().unwrap().iter().any(lost)
+            || self.retired_processes.lock().unwrap().iter().any(lost)
+            || self.probe_processes.lock().unwrap().iter().any(|(_, p)| lost(p))
+    }
+    /// Whether this Host may still have a Codex child on a home it holds:
+    /// `true` unless it is certainly idle; state that cannot be read at once
+    /// counts as busy, never as idle.
+    fn may_have_child_now(&self)->bool{
+        let Ok(i)=self.inner.0.try_lock() else{return true;};
+        if !matches!(i.state.as_str(),"absent"|"stopped"|"refused"|"halted-after-repeated-failure"|"exited-unexpectedly"){return true;}
+        drop(i);
+        let Ok(child)=self.child.try_lock() else{return true;};
+        if child.as_ref().is_some_and(|c|!c.settled()){return true;}
+        drop(child);
+        let Ok(retired)=self.retired_processes.try_lock() else{return true;};
+        if retired.iter().any(|p|!p.settled()){return true;}
+        drop(retired);
+        let Ok(probes)=self.probe_processes.try_lock() else{return true;};
+        probes.iter().any(|(_,p)|!p.settled())
     }
 
     /// Snapshot then all later frames in receipt order. Detach is simply ceasing
@@ -1608,11 +1762,13 @@ impl Host {
         self.quit_fence.store(false, std::sync::atomic::Ordering::SeqCst);
     }
 
-    fn run_label_probe(&self, attempt: u64, command: &mut Command, wait: Duration) -> Result<String, String> {
+    fn run_label_probe(&self, attempt: u64, home: &AdmittedHome, command: &mut Command, wait: Duration) -> Result<String, String> {
         let process = {
             let _gate = self.attachment_gate.lock().unwrap();
             self.check_quit_fence()?;
             Self::check_start_admission(&self.inner.0.lock().unwrap(), attempt)?;
+            // Child admission: this attempt's held home is still the one its path names.
+            home.check()?;
             let process = process_group_custody::OwnedProcess::spawn(command)?;
             self.probe_processes.lock().unwrap().push((attempt, Arc::clone(&process)));
             process
@@ -1685,7 +1841,7 @@ impl Host {
 
     /// HOSTING §7.1/§7.2: label probe in the probe home, content identity of the binary,
     /// generated-output identity naming the pin.
-    fn verify(&self, attempt: u64, cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
+    fn verify(&self, attempt: u64, home: &AdmittedHome, cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
         let assessment = match assessment_preflight(cfg) {
             Ok(value) => value,
             Err(reason) => return (json!({"result":"mismatch","element":"canonical .167 distribution preflight","reason":reason}),None,vec![]),
@@ -1695,7 +1851,7 @@ impl Host {
             .current_dir(&cfg.probe_home).stdin(Stdio::null())
             .stdout(Stdio::piped()).stderr(Stdio::piped());
         remove_inherited_environment(&mut probe);
-        let label = match self.run_label_probe(attempt, &mut probe, cfg.probe_wait_limit) {
+        let label = match self.run_label_probe(attempt, home, &mut probe, cfg.probe_wait_limit) {
             Ok(label) => label.trim().to_owned(),
             Err(error) => return (json!({"result":"unverifiable","reason":error}), None, vec![]),
         };
@@ -1733,37 +1889,154 @@ impl Host {
     }
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
+    ///
+    /// Host status `lastStartRefusal` says why a start of Codex was refused on
+    /// account of its home, for which home and which attempt: the home does
+    /// not exist, could not be checked or is held (by another process, by
+    /// another start in this App, or kept for a process group not confirmed
+    /// ended), all before the call is admitted as an attempt (attempt null);
+    /// or the home was replaced at child admission (that attempt's own LT-05);
+    /// or, kept by its caller ([`Self::note_start_refusal`]), the automatic
+    /// start's custody recheck. It is cleared when a later attempt is
+    /// admitted, before that attempt's first lifecycle record, and replaced by
+    /// each later refusal of these kinds. No other refusal changes it: those
+    /// that leave the state as it was keep doing so, and the rest are the
+    /// attempt's lifecycle record.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
-        // DEL-01-05: a home whose Codex would carry the development model address holds no sign-in file.
-        crate::dev_model_address::check_start(cfg)?;
+        self.start_sequence(cfg, actor)
+    }
+    fn start_refusal(actor: &str, home: &std::path::Path, attempt: Option<u64>, reason: &str) -> Value {
+        json!({"reason":reason,"actor":actor,"at":now_rfc3339(),"home":home_identity(home),"attempt":attempt})
+    }
+    /// Keeps `reason` as the last start refusal, for `home`, of a start refused
+    /// before [`Self::start`] was reached (such as a failed custody recheck).
+    /// Not a lifecycle transition.
+    /// A new request to start Codex has begun: an earlier refusal no longer
+    /// describes the latest request, whatever becomes of this one. A request
+    /// refused for a reason that is not kept leaves no refusal showing, and
+    /// never an older one. Not a lifecycle transition.
+    pub(crate) fn begin_start_request(&self) {
+        self.inner.0.lock().unwrap().last_start_refusal = None;
+    }
+    pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
+        self.inner.0.lock().unwrap().last_start_refusal = Some(Self::start_refusal(actor, home, None, reason));
+    }
+    /// What a start is told when the home's process lock was not taken. Held: another start of
+    /// this Host under way holds it; or this Host started a process group on the home that it has
+    /// not established settled, and the refusal says so with the group's census as just taken; or
+    /// the App knows nothing of the holder and says only what may hold it. The dedicated local
+    /// home (the one whose configuration names its lock) keeps its own sentences.
+    fn process_lock_refusal(&self, cfg: &HostConfig, home: crate::home_hold::Identity, refusal: crate::native_local_provider::ProcessLockRefusal) -> String {
+        use crate::native_local_provider::{ProcessLockRefusal, EARLIER_PROCESS, PROCESS_LOCK_UNAVAILABLE};
+        let local = cfg.process_lock.is_some();
+        match refusal {
+            ProcessLockRefusal::Unavailable => if local { PROCESS_LOCK_UNAVAILABLE } else { crate::home_hold::PROCESS_LOCK_UNAVAILABLE }.into(),
+            ProcessLockRefusal::Held if self.home_starting.load(std::sync::atomic::Ordering::SeqCst) > 1 => crate::home_hold::IN_USE_HERE.into(),
+            ProcessLockRefusal::Held => match self.own_unsettled_census(home) {
+                Some(census) => crate::home_hold::process_held_here(&census),
+                None => if local { EARLIER_PROCESS } else { crate::home_hold::PROCESS_HELD }.into(),
+            },
+        }
+    }
+    /// The census of the process groups this Host started on `home` and has not established
+    /// settled, or `None` when there is none. `home` is the held directory's identity (device,
+    /// inode), never its path: a home reached under another spelling is the same home. A process
+    /// with no recorded home counts for every home. Each unsettled group is asked once, as its
+    /// retirement monitor asks, and given that monitor. Of several, live members seen outweigh a
+    /// census that could not be taken, which outweighs none seen.
+    fn own_unsettled_census(&self, home: crate::home_hold::Identity) -> Option<process_group_custody::Census> {
+        use process_group_custody::Census;
+        let mut own: Vec<Arc<process_group_custody::OwnedProcess>> = self.child.lock().unwrap().iter().cloned().collect();
+        own.extend(self.retired_processes.lock().unwrap().iter().cloned());
+        let mut found: Option<Census> = None;
+        for process in own {
+            if process.settled() || process.home().is_some_and(|started_on| started_on != home) { continue; }
+            let census = process.release_if_empty();
+            if process.settled() { continue; }
+            process.maintain();
+            found = Some(match (found, census) {
+                (Some(Census::Complete(n)), _) | (_, Census::Complete(n)) if n > 0 => Census::Complete(n),
+                (Some(Census::Unknown(e)), _) | (_, Census::Unknown(e)) => Census::Unknown(e),
+                (_, census) => census,
+            });
+        }
+        found
+    }
+    fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+        self.begin_start_request();
+        // DEL-01-05: a home whose Codex would carry the development model address holds no sign-in
+        // file. First, as on main, before the home is claimed; the reason is kept as the last
+        // start refusal like the other refusals made before an attempt is admitted.
+        if let Err(reason) = crate::dev_model_address::check_start(cfg) {
+            self.note_start_refusal(actor, &cfg.codex_home, &reason);
+            return Err(reason);
+        }
+        // A state that admits no start refuses as admission would, before the home is claimed or
+        // its lock tried, so a home that cannot be opened is not reported in its place. Admission
+        // checks the state again under its lock.
+        {
+            let i = self.inner.0.lock().unwrap();
+            if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
+                return Err(format!("start not accepted in state {}", i.state));
+            }
+        }
+        // The home is the folder the child will use: it is given `cfg.cwd` as its working folder
+        // and resolves a relative CODEX_HOME there, so the hold, the identity checks and the lock
+        // are all on the folder resolved the same way.
+        let home_path = cfg.cwd.join(&cfg.codex_home);
+        // DEL-01-01/05: one App at a time on a Codex home, held while this
+        // Host lives; the claim keeps the home from being taken over while
+        // this start is under way. Refused before anything is spawned, and
+        // refused when the home does not exist: the hold is always on the
+        // actual existing directory. The held directory's identity belongs to
+        // this call alone ([`AdmittedHome`]): a concurrent call naming another
+        // home cannot change what this attempt checks. A new hold is kept by
+        // this Host only once this call is admitted as an attempt; a call
+        // refused before that drops it and keeps no claim on the home.
+        let owner: std::sync::Weak<dyn crate::home_hold::HoldOwner> = Arc::downgrade(self) as std::sync::Weak<dyn crate::home_hold::HoldOwner>;
+        let (hold, _start_claim, identity) = match crate::home_hold::claim_host(&home_path, self.hold_id, owner, &self.home_starting) {
+            Ok(claimed) => claimed,
+            Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
+        };
+        let home = AdmittedHome { path: home_path, identity };
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
-        // The dedicated local home: a start is refused while the lock taken for an earlier Codex
-        // of that home is still held. The exclusive, non-waiting lock is taken before the attempt is admitted, so a
-        // refusal is an ordinary early refusal: nothing is recorded and the state is unchanged, and
-        // Prepare or Start can be tried again. A state that admits no start refuses as admission
-        // would, before the lock is tried. The App's copy is closed as soon as the child is spawned.
-        // The lock follows the folder, not only the configuration: a start whose home folder holds
-        // the App's lock file takes it whatever its configuration names. The folder looked in is
-        // the one the child will use: it is given `cfg.cwd` as its working folder and resolves a
-        // relative CODEX_HOME there, so the home is resolved the same way here.
-        let process_lock = match crate::native_local_provider::process_lock_for(cfg.process_lock.as_deref(), &cfg.cwd.join(&cfg.codex_home)) {
-            Ok(None) => None,
-            found => {
-                {
-                    let i = self.inner.0.lock().unwrap();
-                    if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
-                        return Err(format!("start not accepted in state {}", i.state));
-                    }
-                }
-                // Met by the folder rule alone, the refusals name the folder, not the local home.
-                let worded = |reason: String| if cfg.process_lock.is_none() { crate::native_local_provider::folder_wording(reason) } else { reason };
-                match found.map_err(worded)? {
-                    Some(path) => Some(crate::native_local_provider::take_process_lock(&path).map_err(worded)?),
-                    None => None,
-                }
+        // Every home (DEL-01-02 REQ-010): no Codex is started on a home while a Codex process the
+        // App started there, or a program that process passed it to, still holds the home's
+        // process lock. The
+        // App's lock file inside the held home directory is taken exclusively and without waiting
+        // before the attempt is admitted, so a refusal is an early refusal: no lifecycle record,
+        // the state unchanged, Start can be tried again, and the reason is kept as the last start
+        // refusal. A state that admits no start refuses as admission would, before the lock is
+        // tried (this Host's own live child holds it). The App's copy is closed as soon as the
+        // child is spawned. Both the process lock and this Host's settlement of the processes
+        // it started on the home must permit the start; neither answers for the other. Taking
+        // the lock establishes that nothing still holds it, not that every program Codex started
+        // has ended.
+        {
+            let i = self.inner.0.lock().unwrap();
+            if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
+                return Err(format!("start not accepted in state {}", i.state));
             }
+        }
+        let process_lock = match crate::home_hold::open_held(&home.path, home.identity)
+            .and_then(|directory| crate::native_local_provider::take_process_lock_in(&directory).map_err(|refusal| self.process_lock_refusal(cfg, home.identity, refusal)))
+        {
+            Ok(file) => file,
+            Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
         };
+        // The Host's own obligation stands beside the lock's, and neither answers for the other
+        // (DEL-01-02 AC-010): a free lock does not settle what this Host itself has not
+        // established about a Codex it started on the home. Until every process group this Host
+        // started there is established settled (its leader's exit observed and its group known
+        // empty), no further start is admitted, whatever the lock says; and with the lock held,
+        // none is admitted whatever this Host believes.
+        if self.own_unsettled_census(home.identity).is_some() {
+            drop(process_lock);
+            let reason = crate::home_hold::KEPT.to_string();
+            self.note_start_refusal(actor, &cfg.codex_home, &reason);
+            return Err(reason);
+        }
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
             self.check_quit_fence()?;
@@ -1791,9 +2064,29 @@ impl Host {
                 "stopped" => "LT-02",
                 _ => "LT-03",
             };
+            // A later attempt is admitted: an earlier refusal no longer describes the start.
+            i.last_start_refusal = None;
             self.lt(&mut i, id, "start-requested", "verifying", json!({"actor": actor}));
+            // The lock becomes this attempt's in the Host's slot in the same step that admits
+            // the attempt, under the source gate Stop takes: a Stop that cancels the attempt
+            // always finds the lock there and releases it.
+            *self.pending_process_lock.lock().unwrap() = Some((i.start_attempt, process_lock));
             i.start_attempt
         };
+        // Admitted: the lock is this attempt's (in the Host's slot, set at admission) until its
+        // child is spawned, or until the attempt ends or is cancelled without one, whichever
+        // comes first.
+        struct PendingProcessLock<'a> { host: &'a Host, attempt: u64 }
+        impl Drop for PendingProcessLock<'_> {
+            fn drop(&mut self) {
+                let mut slot = self.host.pending_process_lock.lock().unwrap_or_else(|e| e.into_inner());
+                if slot.as_ref().is_some_and(|(held_by, _)| *held_by == self.attempt) { *slot = None; }
+            }
+        }
+        let _pending_process_lock = PendingProcessLock { host: self, attempt };
+        // Admitted: this Host keeps the hold (one per home; a second of the
+        // same home is dropped, the first still holding it).
+        { let mut holds = self.home_holds.lock().unwrap(); if !holds.iter().any(|kept| kept.same_as(&hold)) { holds.push(hold); } }
         // Successor preparation is outside the shared App writer: scanning and
         // the bounded probe must not stall other homes or App-session ending.
         let prospective = if cfg.distribution.is_some() {
@@ -1816,7 +2109,7 @@ impl Host {
             _ => successor::Reference::None,
         };
         let prepared = if let Some(distribution) = &cfg.distribution {
-            match successor::prepare_with_probe(distribution, cfg, prospective.as_ref().unwrap(), reference, |command, wait| self.run_label_probe(attempt, command, wait)) {
+            match successor::prepare_with_probe(distribution, cfg, prospective.as_ref().unwrap(), reference, |command, wait| self.run_label_probe(attempt, &home, command, wait)) {
                 Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
             }
         } else { None };
@@ -1833,7 +2126,7 @@ impl Host {
         } else { None };
         let (result, label, dist) = match &prepared {
             Some(p) => (p.verification.clone(), Some(p.label.clone()), p.legacy_inventory()),
-            None => self.verify(attempt, cfg),
+            None => self.verify(attempt, &home, cfg),
         };
         if let Some(p) = &prepared {
             if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, e); }
@@ -1875,8 +2168,25 @@ impl Host {
         if let Some(hook) = self.after_successor_check.lock().unwrap().take() { hook(); }
         let verified = result["result"] == "verified";
         let dev_ok = !verified && cfg.allow_unverified_dev && result["result"] == "unverifiable" && label.is_some();
+        // Child admission for the app-server, after every wait of this start
+        // (probe, revalidation, writer and source gates): this attempt's held
+        // home is still the one its path names. A replacement is refused
+        // (LT-05, nothing spawned). Between this check and the spawn come the
+        // lifecycle and version updates under Inner, the command's assembly,
+        // the runtime custody and spawn counter checks, and process creation;
+        // the child is handed the home by path, so a replacement after this
+        // check and before the child's exec is not detected (app/README.md).
+        let home_admission = home.check();
         {
             let mut i = self.inner.0.lock().unwrap();
+            if let Err(reason) = home_admission {
+                let refused = json!({"result":"unverifiable","reason":reason});
+                i.verification = Some(refused.clone());
+                i.supplier_standing = None;
+                i.last_start_refusal = Some(Self::start_refusal(actor, &cfg.codex_home, Some(attempt), &reason));
+                self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": refused}));
+                return Err(reason);
+            }
             i.successor_status = prepared.as_ref().map(|p|p.status.clone());
             i.successor_reference = successor_reference;
             i.verification = Some(result.clone());
@@ -1924,13 +2234,29 @@ impl Host {
         if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
         remove_inherited_environment(&mut cmd);
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
-        let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+        let home_identity=home_identity(&cfg.codex_home);
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
         // Read at the start of the child, which inherits this variable unchanged.
         let presence_only = std::env::var_os(RECORDED_PRESENCE_ONLY).is_some();
-        if let Some(file) = &process_lock {
+        // The lock this attempt took at its start. Stop cannot cancel an attempt between its last
+        // admission check and this point (it waits on the source gate held across both), so the
+        // lock is still this attempt's; were it not, nothing is spawned.
+        let process_lock = {
+            let mut slot = self.pending_process_lock.lock().unwrap();
+            match slot.take() {
+                Some((held_by, file)) if held_by == attempt => Some(file),
+                other => { *slot = other; None }
+            }
+        };
+        let Some(process_lock) = process_lock else {
+            let mut i = self.inner.0.lock().unwrap();
+            let failure = "the home's process lock was no longer held by this start attempt; native source not spawned";
+            self.lt(&mut i, "LT-08", "spawn-failed", "halted-after-repeated-failure", json!({"failure": failure, "failureCount": 1}));
+            return Err(failure.into());
+        };
+        {
             use std::os::fd::AsRawFd;
-            let fd = file.as_raw_fd();
+            let fd = process_lock.as_raw_fd();
             // In the child only, after process_group(0)'s setpgid and before exec: clear
             // close-on-exec on this one descriptor. One fcntl; async-signal-safe.
             unsafe {
@@ -1939,12 +2265,39 @@ impl Host {
                 });
             }
         }
-        let spawned = process_group_custody::OwnedProcess::spawn(&mut cmd);
-        // The App's copy is closed at once, spawned or not: the child's inherited copy is what holds
-        // the lock, for as long as that Codex or anything it left holding the descriptor lives.
+        let spawned = process_group_custody::OwnedProcess::spawn_accounted(&mut cmd);
+        // The App's copy is closed at once, spawned or not: the child's copy is what holds the
+        // lock, for as long as that Codex or anything it passed the descriptor to keeps it open.
         drop(process_lock);
+        let spawned = match spawned {
+            // Created, and its reservation already lost: not a started process. It is tied to
+            // this home and kept among the retired groups as one that can never be established
+            // settled, so that this home is not started on again by this App process (the
+            // Host's own check, and the home hold when this Host goes). Nothing is written to
+            // it, read from it or signalled. The start fails as a failed spawn.
+            Ok(process_group_custody::Spawned::CreatedLost(lost, observation)) => {
+                lost.bind_home(home.identity);
+                self.retired_processes.lock().unwrap().push(lost);
+                let mut i = self.inner.0.lock().unwrap();
+                let failure = CREATED_AND_LOST;
+                self.lt(&mut i, "LT-08", "spawn-failed", "halted-after-repeated-failure",
+                        json!({"failure": failure, "observation": observation, "failureCount": 1}));
+                return Err(failure.into());
+            }
+            Ok(process_group_custody::Spawned::Started(process)) => Ok(process),
+            Err(error) => Err(error),
+        };
         let child = match spawned {
-            Ok(c) => c,
+            // The one place an app-server process is created. It is tied here, immediately on a
+            // successful spawn, to the identity of the directory this start holds (from the handle
+            // the home hold opened at admission, never from the path again), so that every way
+            // it can then be left behind carries it. (A process created with its reservation
+            // already lost to another reaper is tied to the home and kept above, as one that can
+            // never be established settled.) The ways: a failed allocation that retires it at once, a
+            // handshake that fails, a Stop during the start, and its later move to the retired
+            // list when another child takes the slot. Label probes are not given a home: an
+            // unsettled probe refuses every start, on any home.
+            Ok(c) => { c.bind_home(home.identity); c }
             Err(e) => {
                 let mut i = self.inner.0.lock().unwrap();
                 // LT-07/08: the restart bound is not implemented; one failure halts.
@@ -2151,6 +2504,10 @@ impl Host {
 
     /// H10: every pending client request of the closing generation becomes unknown.
     fn close_generation(i: &mut Inner) -> Value {
+        // A reading outstanding in this generation ends with it, and so does its currency. Its
+        // waiter is released below (its sender dropped); reservation waiters look again within
+        // `reading_gate`'s poll interval.
+        let closing=i.generation.clone();Self::reading_close_locked(i,&closing);
         if let Some(c)=i.aa_capture.as_mut(){c.retire();}
         if let Some(o)=i.cce_offer.as_mut(){o.retire();}
         let mut unknown = 0;
@@ -2290,6 +2647,14 @@ impl Host {
 
     fn request_inner_scoped(&self, method: &str, params: Value, initiator: Value,
         wait: Duration, handshake: bool, expected_generation: Option<&Value>) -> Result<Value, String> {
+        if reading_gate::is_reading(method) {
+            // A configuration reading has one deadline, from this call's start: the reservation and
+            // the frame writer are waited for within it, and the reply only for what remains.
+            let deadline = std::time::Instant::now() + wait;
+            auth_rpc::generic_guard(method, &params)?;
+            let request = self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, false, None, None, None, None, false, None, None, None, Some(deadline))?;
+            return self.wait_source_response(&request, deadline.saturating_duration_since(std::time::Instant::now()));
+        }
         let request = self.request_begin_scoped(method, params, initiator, handshake, expected_generation)?;
         self.wait_source_response(&request, wait)
     }
@@ -2307,7 +2672,7 @@ impl Host {
         self.request_begin_with_access_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,cce_intent,records_project,false,None)
     }
     fn request_begin_with_access_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>)->Result<SourceRequest,String>{
-        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None)
+        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None, None)
     }
     fn request_begin_ordinary(&self, generation: &Value, params: Value, inherited_mode: bool) -> Result<SourceRequest, String> {
         self.request_begin_ordinary_effort(generation, params, inherited_mode, false)
@@ -2318,9 +2683,9 @@ impl Host {
             "effortGuard": inherited_effort,
             "effort": params["collaborationMode"]["settings"]["reasoning_effort"]
         }));
-        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None)
+        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None, None)
     }
-    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>)->Result<SourceRequest,String>{
+    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>)->Result<SourceRequest,String>{
         if matches!(method,"config/batchWrite"|"config/value/write") && endpoint_write.is_none() {return Err("Configuration writes require a confirmed typed provider operation; generic route refused".into());}
         if endpoint_write.is_some() && (method!="config/batchWrite" || !private_config) {return Err("Private endpoint method context differs".into());}
         if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
@@ -2328,6 +2693,12 @@ impl Host {
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
         // The dedicated local home's files are read again for every request that can reach a model.
         if !handshake { self.check_local_files(method)?; }
+        // A configuration reading first takes its generation's reservation, holding no lock while
+        // it waits (`reading_gate`). The hold is declared before every lock guard below, so it is
+        // dropped after them: an early return or a panic before the write is admitted withdraws.
+        let reading=reading_gate::is_reading(method);
+        let hold:Option<ReadingHold>=if reading {Some(self.reading_reserve(method,expected_generation,reading_deadline.unwrap_or_else(||std::time::Instant::now()+reading_gate::READING_DEFAULT_BUDGET))?)} else {None};
+        #[cfg(test)] if hold.is_some() {let hook=self.reading_after_reserve.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
         if let Some(write)=endpoint_write {write.check(self,&i)?;}
@@ -2360,9 +2731,10 @@ impl Host {
         let bytes=Self::frame_bytes(&raw_frame)?;drop(raw_frame);drop(params);
         if auth_rpc::account_method(method)&&!i.account_channels.contains(&i.generation){let g=i.generation.clone();i.account_channels.push(g);}
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
-        if method=="config/read" {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
-            i.provider_read_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
-            if private_config {i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));}
+        // Reserved to Registered: this reading becomes the newest of its generation.
+        if let Some(hold)=&hold {Self::reading_register_locked(&mut i,hold,&request,method)?;}
+        if method=="config/read"&&private_config {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
+            i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
         }}
         if private_config&&!i.private_config_channels.contains(&request.generation){i.private_config_channels.push(request.generation.clone());}
         let cce_bound=cce_intent.map(|intent|call_custody::Offer::bind(intent,&self.inner,&request)).transpose().map_err(|e|e.message())?;
@@ -2370,7 +2742,7 @@ impl Host {
         // record schema; only completion of the actual write sets sentFrame.
         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,records_project,private_config});
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,native_settlement:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,records_project,private_config});
         if let Some(mode)=oauth_mode{
             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
             let controller=oauth_control::Controller::begin(&pin);
@@ -2391,7 +2763,12 @@ impl Host {
             i.aa_capture=Some(core);
         }
         drop(i);
-        let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential||endpoint_write.is_some(){
+        #[cfg(test)] if hold.is_some() {let hook=self.reading_after_register.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if let Some(hold)=&hold{
+            // A reading asks for the frame writer only until its deadline; past it the reading is
+            // withdrawn and nothing is written.
+            loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{if std::time::Instant::now()>=hold.deadline{return Err(reading_gate::READING_WITHDRAWN.into());}std::thread::sleep(Duration::from_millis(2));}}}
+        }else if private_credential||endpoint_write.is_some(){
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
         }else{self.frame_write.lock().unwrap()};
             // Source IO has bounded work and holds neither Inner nor the
@@ -2406,7 +2783,9 @@ impl Host {
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
                 if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
-                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());i.provider_observation_revisions.remove(write.cwd());}
+                // A confirmed provider write's attempt: no reading of this generation is current, for
+                // any folder, and an earlier reading's reply arriving later restores nothing.
+                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.reading_current=None;i.provider_observation_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
@@ -2421,6 +2800,8 @@ impl Host {
                     }
                     Self::turn_requested_context(&i, &frame["params"], cut)
                 } else { Value::Null };
+                // Registered to WriteStarted, the deadline rechecked with the frame writer held.
+                if let Some(hold)=&hold {Self::reading_write_started_locked(&mut i,hold)?;}
                 i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
                 let epoch=i.aa_epoch;let cut=i.receipt_position;
                 if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
@@ -2433,10 +2814,11 @@ impl Host {
             drop(serial);result})();
         drop(bytes);
         let mut i=self.inner.0.lock().unwrap();let key=id.to_string();let closed=i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||!matches!(i.state.as_str(),"ready"|"handshaking");
-        let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
+        let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;let native_settlement=e.native_settlement;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
+        let reading_error=hold.as_ref().map(|_|write_result.as_ref().err().cloned());
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
-                match Self::completed_client_response(&mut record,response.as_ref(),response_position){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
+                match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
                 if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             }
             Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
@@ -2458,15 +2840,36 @@ impl Host {
             let epoch=i.aa_epoch;
             if let Some(c)=i.aa_capture.as_mut(){c.settle(&request.generation,epoch,request.request_ref(),pipe,written);}
         }
+        // A reading's stage after its write: written, or a failed attempt (still outstanding: bytes
+        // may have reached Codex), or refused before any attempt (withdrawn, nothing sent).
+        if let (Some(hold),Some(error))=(&hold,reading_error) {
+            let attempted=i.source_requests[&key].attempt_position.is_some();
+            match error {
+                None=>Self::reading_written_locked(&mut i,hold.token,true),
+                Some(_) if attempted=>Self::reading_written_locked(&mut i,hold.token,false),
+                Some(error)=>{
+                    if Self::reading_withdraw_locked(&mut i,hold.token,&error){self.inner.1.notify_all();}
+                    drop(i);
+                    return Err(error);
+                }
+            }
+        }
         Ok(request)
     }
 
-    fn completed_client_response(record:&mut Value,response:Option<&Value>,position:Option<u64>)->Result<(),String>{
+    /// `verdict` is settlement's verdict taken on the reply as Codex sent it, at receipt (`on_line`),
+    /// never on the stored, possibly projected `response`; the same verdict releases a reading. A
+    /// reply with no verdict is refused as malformed. Each refusal keeps its text.
+    fn completed_client_response(record:&mut Value,response:Option<&Value>,position:Option<u64>,verdict:Option<Result<(),reading_gate::Unsettled>>)->Result<(),String>{
         let Some(frame)=response else{return Ok(());};let position=position.ok_or("Native reply position unavailable; canonical settlement projection unavailable")?;
-        if frame.get("id")!=record.get("requestIdentity")||frame.get("method").is_some()||!frame.is_object()||frame.get("error").is_some()&&frame.get("result").is_some(){return Err("Native reply envelope malformed/contradictory; canonical settlement projection unavailable".into());}
-        if let Some(error)=frame.get("error"){if error["code"].as_i64().is_none()||!error["message"].is_string(){return Err("Actual native error code/message unavailable; no invented canonical error".into());}record["outcome"]=json!("response-observed-error");record["error"]=json!({"code":error["code"],"message":error["message"]});}
-        else if frame.get("result").is_some(){record["outcome"]=json!("response-observed-result");}
-        else{return Err("Native reply result missing; canonical settlement projection unavailable".into());}
+        match verdict.unwrap_or(Err(reading_gate::Unsettled::Envelope)){
+            Err(reading_gate::Unsettled::Envelope)=>return Err("Native reply envelope malformed/contradictory; canonical settlement projection unavailable".into()),
+            Err(reading_gate::Unsettled::ErrorShape)=>return Err("Actual native error code/message unavailable; no invented canonical error".into()),
+            Err(reading_gate::Unsettled::NoResult)=>return Err("Native reply result missing; canonical settlement projection unavailable".into()),
+            Ok(())=>{}
+        }
+        if let Some(error)=frame.get("error"){record["outcome"]=json!("response-observed-error");record["error"]=json!({"code":error["code"],"message":error["message"]});}
+        else{record["outcome"]=json!("response-observed-result");}
         record["responseReceiptPosition"]=json!(position);Ok(())
     }
     /// Internal one-attempt transport consumed by the trusted native callback
@@ -2496,7 +2899,7 @@ impl Host {
         self.check_account_entry_scope(generation)?;self.account_key_policy_standing(generation,policy)?;
         self.account_login_api_key(generation,input,policy).map(Some)
     }
-    pub(crate) fn account_requirements_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("configRequirements/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
+    pub(crate) fn account_requirements_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.account_requirements_read_until(generation,std::time::Instant::now()+Duration::from_secs(20))}
     pub(crate) fn account_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
     /// Account kind only; explicitly no proactive token refresh.
     pub(crate) fn account_read_no_refresh_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({"refreshToken":false}),json!({"kind":"person-directed"}),false,Some(generation))}
@@ -3066,7 +3469,7 @@ impl Host {
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
-            i.source_requests.insert(id.to_string(),SourceEvidence{private_config:false,records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+            i.source_requests.insert(id.to_string(),SourceEvidence{private_config:false,records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,native_settlement:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
         };
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
@@ -3790,11 +4193,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             if silent.get() { return Err(format!("{method} not sent: an earlier read of this reading got no response")); }
             let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
             if wait.is_zero() { return Err(format!("{method} not sent: the reading's time limit was reached")); }
-            let request = self.request_begin_scoped(method, params, initiator.clone(), false, Some(generation))?;
+            // One absolute deadline for this request: a configuration reading waits for its
+            // generation's reservation and the frame writer within it, then for its reply.
+            let until = std::time::Instant::now() + wait;
+            let request = if reading_gate::is_reading(method) { self.request_reading(method, params, initiator.clone(), generation, false, until)? }
+                else { self.request_begin_scoped(method, params, initiator.clone(), false, Some(generation))? };
             sent.borrow_mut().push(request.request_id().to_string());
             #[cfg(test)]
             if let Some(hook) = self.before_delegation_wait.lock().unwrap().as_ref() { hook(&request); }
-            let response = self.wait_source_response(&request, wait).map_err(|e| {
+            let response = self.wait_source_response(&request, until.saturating_duration_since(std::time::Instant::now())).map_err(|e| {
                 if e.contains("within the wait limit") { silent.set(true); }
                 // Any failure ends this reading's wait: a later reply is kept
                 // as its outcome only (`on_line`).
@@ -3902,10 +4309,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             if wait.is_zero() { return Err(format!("{method} not sent: the read's time limit was reached")); }
             // Only fixed wording leaves this read: native errors and schema
             // findings can quote configuration, so neither is passed on.
-            let request = self.request_begin_scoped(method, params, json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR}), false, Some(generation))
-                .map_err(|_| format!("{method} not sent in this Codex generation"))?;
+            let until = std::time::Instant::now() + wait;
+            let initiator = json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR});
+            let request = if reading_gate::is_reading(method) { self.request_reading(method, params, initiator, generation, false, until) }
+                else { self.request_begin_scoped(method, params, initiator, false, Some(generation)) }
+                .map_err(|e| reading_gate::reading_or(e, || format!("{method} not sent in this Codex generation")))?;
             sent.borrow_mut().push(request.request_id().to_string());
-            let response = self.wait_source_response(&request, wait).map_err(|e| {
+            let response = self.wait_source_response(&request, until.saturating_duration_since(std::time::Instant::now())).map_err(|e| {
                 let silence = e.contains("within the wait limit");
                 if silence { silent.set(true); }
                 self.delegation_wait_ended(&request);
@@ -3995,6 +4405,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let Some(idx) = i.source_requests.get(&key).map(|e| e.index) else { return };
         if i.client_requests[idx].is_object() { i.client_requests[idx]["waitingEnded"] = json!(true); }
         if let Some(e) = i.source_requests.get_mut(&key) { e.observation_base["waitingEnded"] = json!(true); }
+        // A reading whose caller stopped waiting stays outstanding until its reply or the close.
+        let generation = request.generation.clone();
+        Self::reading_abandoned_locked(&mut i, &generation, &key);
     }
     /// Test view: every reply body the request evidence keeps, and its count.
     #[cfg(test)]
@@ -4164,7 +4577,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 // Deferred attachment settlement can retain an unknown error
                 // without source_limit; validate its original envelope here.
                 let mut refusal = e.observation_base.clone();
-                Self::completed_client_response(&mut refusal, Some(response), Some(position))
+                Self::completed_client_response(&mut refusal, Some(response), Some(position), e.native_settlement)
                     .map_err(|error| format!("a prior turn error envelope is unavailable ({error}); outcome remains unknown"))?;
                 receipts.push(position); continue;
             }
@@ -4362,6 +4775,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read")||known_private_endpoint_channel&&f.get("result").is_some_and(|r|r.get("filePath").is_some()||r.get("overriddenMetadata").is_some())&&correlated_method.as_deref()!=Some("config/batchWrite"))
         });
         let private_create_diagnostic=known_private_create_channel.then(||parsed.as_ref().and_then(provider_create::diagnostic)).flatten();
+        // Settlement's verdict on a reply exactly as Codex sent it, taken once here at receipt and
+        // before any projection below, so no projection can make an invalid native reply acceptable.
+        // Only the verdict is kept with the reply; the native diagnostic is not retained.
+        // The request's own id comes from its source evidence, or else from its pending client record.
+        let native_settlement=parsed.as_ref().and_then(|f|{
+            let key=f.get("id")?.to_string();
+            let own=i.source_requests.get(&key).filter(|e|e.request.generation==*generation).map(|e|e.request.frame["id"].clone())
+                .or_else(||i.pending.get(&key).and_then(|(idx,_)|i.client_requests.get(*idx)).map(|record|record["requestIdentity"].clone()))?;
+            Some(reading_gate::settlement(f,Some(&own)))
+        });
         let (frame,projected)=if let Some(frame)=private_create_diagnostic {(frame,true)}else{match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
             auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
         },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)}};
@@ -4486,11 +4909,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         if class == "response" {
             let key = frame["id"].to_string();
+            // A reply settlement accepts, naming this line's generation and the outstanding
+            // reading's request, releases the reservation; one naming another generation or request,
+            // or one settlement rejects, releases nothing.
+            if native_settlement.is_some_and(|verdict|verdict.is_ok()) && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
                     let mut record=i.client_requests[idx].clone();
-                    match Self::completed_client_response(&mut record,Some(&frame),Some(pos)){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
+                    match Self::completed_client_response(&mut record,Some(&frame),Some(pos),native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
                 }
                 if !deferred&&i.client_requests[idx]["method"] == "turn/start" {
                     if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
@@ -4516,7 +4943,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 let private_write_reply_pipe = if private_config && correlated_method.as_deref()==Some("config/batchWrite") && i.state=="ready" {
                     self.capture_pipe(&i).ok().map(|bound|(bound.epoch,bound.identity))
                 } else { None };
-                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
+                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.native_settlement=native_settlement; e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
@@ -4753,6 +5180,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 let revoked=i.start_attempt.checked_add(1).ok_or("start attempt exhausted; cancellation not recorded")?;
                 let record=json!({"actor":actor,"reason":reason,"outstandingEntryHandling":"left-to-end-with-process","endingMeans":"close-input"});
                 i.start_attempt=revoked;i.start_admission=None;
+                // Nothing was spawned: the cancelled attempt's process lock is released now, not
+                // when its call has finished unwinding.
+                drop(self.pending_process_lock.lock().unwrap_or_else(|e| e.into_inner()).take());
                 i.successor_terminal_pending=false;i.successor_publication_sequence=0;
                 i.successor_reference=None;i.successor_lt09_reference=None;i.successor_lt09_installed=false;
                 i.successor_artifact_error=Some("start attempt cancelled before child installation; no terminal artifact".into());
@@ -5292,6 +5722,8 @@ mod conversation_transport_tests {
             }
             assert!(crate::runtime_session::assess_native_home_work(&home,&g()).is_err(),"closed or superseded source cannot become new live work");
             let after={let i=host.inner.0.lock().unwrap();small(&i.server_requests.entries()[0])};host.flush_recovery_observations();let ledger=host.inner.0.lock().unwrap().recovery.take().unwrap();let (hot,transitions)={let ledger=ledger.lock().unwrap();let transitions=ledger.recorded_entries().as_array().unwrap().iter().filter(|e|e["kind"]=="register_entry_summary").map(|e|e["transition"].as_str().unwrap().to_owned()).collect::<Vec<_>>();(last_request(&ledger),transitions)};drop(ledger);
+            // The cold reopens model a new App: this one's process has ended and the next holds its App data.
+            host.end_process_for_test();let _custody=crate::hold_app_data_for_test(&root).unwrap();
             std::fs::copy(path.with_extension("sqlite"),root.join("without-record.sqlite")).unwrap();let mut no_end=RecoveryLedger::open(root.join("without-record.jsonl")).unwrap();no_end.start_session("new-session-without-record","invented-reopen").unwrap();let cold_no_end=last_request(&no_end);drop(no_end);
             let mut known=RecoveryLedger::open(path.clone()).unwrap();known.append(RecoveryLedger::session_end_entry("conversation-session","system-terminated",&[]).unwrap()).unwrap();drop(known);let mut known=RecoveryLedger::open(path).unwrap();known.start_session("new-session-with-known-end","invented-reopen").unwrap();let cold_known_end=last_request(&known);drop(known);
             let expected=if mode.starts_with("queued") {"RQ-04"} else {"RQ-05"};
@@ -5648,6 +6080,28 @@ mod conversation_transport_tests {
         i.version_identity=Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
         i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
     }
+    /// A local fork whose configuration reading waits at the gate behind an earlier reading that is
+    /// never answered: the fork command returns that sentence alone, nothing else with it.
+    #[test]
+    fn a_local_fork_refused_at_its_reading_returns_that_sentence_alone() {
+        use crate::native_local_provider::{MODEL, PROVIDER};
+        let host=Arc::new(host());bind_local_history(&host);
+        {
+            let mut i=host.inner.0.lock().unwrap();
+            i.threads.push(json!({"generation":g(),"threadId":"started","model":MODEL,"modelProvider":PROVIDER,"cwd":"/invented"}));
+            i.reading_slot=Some(reading_gate::ReadingSlot{token:u64::MAX,generation:g(),request_id:Some("\"held\"".into()),request_ref:None,stage:reading_gate::ReadingStage::AwaitingReply});
+        }
+        let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider,Arc::clone(&host),Err("invented local fork source".into())).unwrap();
+        let project=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("fork-reading-record-").unwrap());std::fs::create_dir_all(&project).unwrap();
+        home.history.lock().unwrap().configure_role_log(&project);
+        let error=crate::conversation_roles::fork_conversation(&home,&g(),"started",Duration::from_secs(1)).unwrap_err();
+        assert_eq!(error,reading_gate::READING_GATE,"the sentence alone, no role supply observation");
+        // The durable role-supply record: refused before dispatch, not an unknown outcome.
+        let record=home.history.lock().unwrap().read_role_supply("conversation-home",None).to_string();
+        assert!(record.contains("refused-before-send")&&record.contains("not-attempted")&&!record.contains("not-established"),"{record}");
+        let _=std::fs::remove_dir_all(&project);
+        assert!(host.client_requests().iter().all(|r|r["method"]!="thread/fork"),"no fork was sent");
+    }
     #[test]
     fn local_provider_same_role_fork_dispatches_and_admits_local_result() {
         use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
@@ -5825,7 +6279,7 @@ mod conversation_transport_tests {
                         }));}
                         "competing-provider-write"=>{*host.after_continuation_reading.lock().unwrap()=Some(Box::new(|h:&Host|{
                             // What a confirmed provider write does to the folder's current reading at its attempt.
-                            let mut i=h.inner.0.lock().unwrap();i.provider_read_revisions.remove("/invented");i.provider_observation_revisions.remove("/invented");
+                            let mut i=h.inner.0.lock().unwrap();i.reading_current=None;i.provider_observation_revisions.remove("/invented");
                         }));}
                         _=>{}
                     }
@@ -5844,7 +6298,7 @@ mod conversation_transport_tests {
                             let running=scope.spawn(||op(&home));
                             let deadline=std::time::Instant::now()+Duration::from_secs(5);
                             while !host.inner.0.lock().unwrap().source_requests.values().any(|e|e.request.frame["method"]==method) {assert!(std::time::Instant::now()<deadline,"{method} registers");std::thread::sleep(Duration::from_millis(5));}
-                            {let mut i=host.inner.0.lock().unwrap();i.provider_read_revisions.remove("/invented");i.provider_observation_revisions.remove("/invented");}
+                            {let mut i=host.inner.0.lock().unwrap();i.reading_current=None;i.provider_observation_revisions.remove("/invented");}
                             release.send(()).unwrap();
                             let result=running.join().unwrap();
                             holder.lock().unwrap().take().unwrap().join().unwrap();
@@ -6571,6 +7025,9 @@ mod conversation_transport_tests {
         use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};
         let(host,g,root,owner,selections)=context_fixture();let p=Context::known("P",AppProjectSource::ConfiguredDirectory).unwrap();
         host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();
+        host.end_process_for_test();
+        // The successor holds its App data before it opens the ledger, as the App does.
+        let _custody=crate::hold_app_data_for_test(owner.root()).unwrap();
         let successor=Arc::new(Host::new());successor.configure_recovery(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap();
         let next={let mut i=successor.inner.0.lock().unwrap();let next=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=next.clone();i.state="ready".into();i.threads.push(json!({"generation":next,"threadId":"thread"}));next};
         successor.observe_conversation_project(&next,"thread",Some("H-acct"),&p).unwrap();
@@ -7160,6 +7617,10 @@ mod conversation_transport_tests {
 #[path = "execution_custody_tests.rs"]
 mod execution_custody_tests;
 
+#[cfg(all(test, unix))]
+#[path = "hosting_reading_gate_tests.rs"]
+mod reading_gate_tests;
+
 #[cfg(test)]
 #[path = "recovery_root_tests.rs"]
 mod recovery_root_tests;
@@ -7237,6 +7698,21 @@ mod local_process_lock_tests {
         let pid = host.inner.0.lock().unwrap().child_pid.expect("a spawned child");
         let _ = host.stop("fixture", "test");
         until("the stand-in Codex has ended", || !alive(pid));
+    }
+
+    /// A state that admits no start refuses as admission would, before a home that cannot be
+    /// opened is reported by the home's claim or its lock.
+    #[test]
+    fn local_process_lock_lookup_failure_does_not_precede_the_states_own_refusal() {
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        let home = f.root.join("home");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let refused = host.start(&f.cfg, "fixture");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(refused.unwrap_err(), "start not accepted in state ready");
+        stop_and_wait(&host);
     }
 
     #[test]
@@ -7319,94 +7795,357 @@ mod local_process_lock_tests {
         }
     }
 
-    /// The lock follows the folder: a start whose configuration names no lock, pointed at a home
-    /// folder that holds the App's lock file (the development environment route can name the
-    /// local home's folder as the account home), still takes it.
+    /// Every home: a start whose configuration names no lock takes the lock of its home folder
+    /// all the same (the account and key homes, and the development environment route, which can
+    /// name any folder). Held, the start is an early refusal kept as the last start refusal.
     #[test]
-    fn local_process_lock_is_taken_by_any_start_in_a_folder_that_holds_the_lock_file() {
-        use crate::native_local_provider::{process_lock_for, EARLIER_PROCESS_BY_FOLDER, PROCESS_LOCK_UNAVAILABLE, PROCESS_LOCK_UNAVAILABLE_BY_FOLDER};
+    fn a_start_whose_configuration_names_no_lock_takes_its_homes_lock_and_the_refusal_is_kept() {
+        use crate::home_hold::PROCESS_HELD;
         let f = Fixture::new(false, false);
         assert!(f.cfg.process_lock.is_none());
         // An earlier Codex of that home holds the lock (a stand-in holder here).
         let earlier = take_process_lock(&f.lock_path()).unwrap();
         let host = Arc::new(Host::new());
-        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS_BY_FOLDER);
-        assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), PROCESS_HELD);
+        let status = host.snapshot();
+        assert!(!f.started() && status["state"] == "absent" && host.lifecycle_events().is_empty());
+        assert_eq!(status["lastStartRefusal"]["reason"], PROCESS_HELD, "kept for the window");
+        assert_eq!(status["lastStartRefusal"]["home"], home_identity(&f.cfg.codex_home));
+        assert!(status["lastStartRefusal"]["attempt"].is_null(), "refused before the call was an attempt");
         drop(earlier);
         // Free: the same configuration starts, and its child now holds the lock itself.
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(host.snapshot()["lastStartRefusal"].is_null(), "an admitted attempt clears it");
         assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
         stop_and_wait(&host);
         drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));
-        // The rule itself: the folder's lock file is the lock whatever the configuration names;
-        // without one it is the configured lock, or none; a name that cannot be examined refuses.
-        let (home, elsewhere) = (f.root.join("home"), std::path::Path::new("/elsewhere/lock"));
-        assert_eq!(process_lock_for(Some(elsewhere), &home).unwrap(), Some(f.lock_path()));
-        assert_eq!(process_lock_for(None, &home).unwrap(), Some(f.lock_path()));
-        assert_eq!(process_lock_for(Some(elsewhere), &f.root.join("probe")).unwrap().as_deref(), Some(elsewhere));
-        assert_eq!(process_lock_for(None, &f.root.join("probe")).unwrap(), None);
-        assert_eq!(process_lock_for(None, &f.root.join("no-such-home")).unwrap(), None);
-        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
-        let unexaminable = (process_lock_for(None, &home), Arc::new(Host::new()).start(&f.cfg, "fixture"));
-        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
-        assert_eq!(unexaminable.0.unwrap_err(), PROCESS_LOCK_UNAVAILABLE);
-        assert_eq!(unexaminable.1.unwrap_err(), PROCESS_LOCK_UNAVAILABLE_BY_FOLDER, "a start by the folder rule names the folder");
     }
-    /// A relative home is looked up where the child will resolve it (its working folder), not in
-    /// the App's own working folder, which here holds no folder of that name.
+    /// A relative home is held and locked where the child will resolve it (its working folder),
+    /// not in the App's own working folder, which here holds no folder of that name.
     #[test]
-    fn local_process_lock_is_looked_for_where_the_child_resolves_a_relative_home() {
+    fn a_relative_home_is_held_and_locked_where_the_child_resolves_it() {
         let f = Fixture::new(false, false);
         let mut cfg = f.cfg.clone();
         assert!(cfg.process_lock.is_none() && cfg.codex_home == f.root.join("home") && cfg.cwd.is_absolute());
         cfg.cwd = f.root.clone();
         cfg.codex_home = PathBuf::from("home");
-        assert!(!std::env::current_dir().unwrap().join("home").join(PROCESS_LOCK).exists());
+        // The plain development route: a start through a distribution tree resolves the home in
+        // the App's own working folder first and so does not reach a child with a relative home.
+        cfg.distribution = None;
+        assert!(!std::env::current_dir().unwrap().join("home").exists());
         let earlier = take_process_lock(&f.lock_path()).unwrap();
         let host = Arc::new(Host::new());
-        assert_eq!(host.start(&cfg, "fixture").unwrap_err(), crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER);
+        assert_eq!(host.start(&cfg, "fixture").unwrap_err(), crate::home_hold::PROCESS_HELD);
         assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
         drop(earlier);
-    }
-    /// A state that admits no start refuses as admission would, before a folder that cannot be
-    /// searched is reported.
-    #[test]
-    fn local_process_lock_lookup_failure_does_not_precede_the_states_own_refusal() {
-        let f = Fixture::new(false, false);
-        let host = Arc::new(Host::new());
-        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
-        let home = f.root.join("home");
-        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
-        let refused = host.start(&f.cfg, "fixture");
-        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
-        assert_eq!(refused.unwrap_err(), "start not accepted in state ready");
+        // Free: the child starts in that folder and holds the lock that is in it.
+        assert_eq!(host.start(&cfg, "fixture").unwrap()["state"], "ready");
+        assert!(f.started(), "the child resolved the relative home to the same folder");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
+        assert!(!std::env::current_dir().unwrap().join("home").exists(), "nothing was created in the App's own working folder");
         stop_and_wait(&host);
     }
-    /// Lexical only: the claims withdrawn from this sentence stay out of it. Whether the sentence
-    /// is true of what was observed is a reader's judgment, not this test's.
+    /// While a start verifies its supplier, before it is spawned, it already holds its home's
+    /// lock: a start that looked at the home before the file existed cannot be passed by another
+    /// start that creates it.
+    #[test]
+    fn a_first_start_holds_its_homes_lock_from_before_verification() {
+        let f = Fixture::new(false, false);
+        assert!(!f.lock_path().exists());
+        let host = Arc::new(Host::new());
+        let (path, seen) = (f.lock_path(), Arc::new(Mutex::new(None)));
+        let (probe, started) = (seen.clone(), f.root.join("home/started"));
+        *host.before_successor_gate.lock().unwrap() = Some(Box::new(move || {
+            *probe.lock().unwrap() = Some((started.exists(), take_process_lock(&path).map(drop)));
+        }));
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert_eq!(seen.lock().unwrap().clone(), Some((false, Err(EARLIER_PROCESS.to_string()))), "held by the start itself before anything was spawned");
+        stop_and_wait(&host);
+    }
+    /// Lexical only: the claims withdrawn from these sentences stay out of them. Whether a
+    /// sentence is true of what was observed is a reader's judgment, not this test's.
     #[test]
     fn local_process_lock_refusal_does_not_carry_the_withdrawn_claims() {
-        for sentence in [EARLIER_PROCESS, crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER] {
+        use process_group_custody::Census;
+        let here = [Census::Complete(0), Census::Complete(3), Census::Unknown("errno 1 at /x".into())].map(|c| crate::home_hold::process_held_here(&c));
+        for sentence in [EARLIER_PROCESS, crate::home_hold::PROCESS_HELD, here[0].as_str(), here[1].as_str(), here[2].as_str()] {
             for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "has to end before"] {
                 assert!(!sentence.contains(claim), "{claim}");
             }
-            assert!(!sentence.contains('/') && !sentence.chars().any(|c| c.is_ascii_digit()));
+            assert!(!sentence.contains('/') && !sentence.chars().any(|c| c.is_ascii_digit()), "{sentence}");
         }
-        assert!(!crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER.contains("local model"));
-        assert!(!crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE_BY_FOLDER.contains("local model"));
+        assert!(!crate::home_hold::PROCESS_HELD.contains("local model") && !crate::home_hold::PROCESS_LOCK_UNAVAILABLE.contains("local model"));
+        assert!(!crate::home_hold::PROCESS_HELD.contains("another copy of the App"), "the home hold refuses another copy of the App before the lock is tried");
     }
 
+    /// A home that has no lock file gets one at its first start: one small private file, held by
+    /// the child and by nothing of the App. A held lock file in another folder is never consulted.
     #[test]
-    fn account_home_start_takes_no_process_lock() {
+    fn a_home_without_the_lock_file_gets_one_private_file_at_its_first_start() {
+        use std::os::unix::fs::MetadataExt;
         let f = Fixture::new(false, false);
         assert!(f.cfg.process_lock.is_none() && HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into()).process_lock.is_none());
-        // A held lock file elsewhere is never consulted by an account start.
-        let held = take_process_lock(&f.root.join("probe").join(PROCESS_LOCK)).unwrap();
+        assert!(!f.lock_path().exists());
+        let elsewhere = take_process_lock(&f.root.join("probe").join(PROCESS_LOCK)).unwrap();
         let host = Arc::new(Host::new());
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
-        assert!(!f.lock_path().exists(), "no lock file in the account home");
+        let m = std::fs::symlink_metadata(f.lock_path()).expect("the lock file is in the home");
+        assert!(m.is_file() && m.mode() & 0o777 == 0o600 && m.nlink() == 1 && m.len() == 0, "one small private file");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
         stop_and_wait(&host);
-        drop(held);
+        drop(take_process_lock(&f.lock_path()).expect("free once the child has exited: the App keeps no descriptor"));
+        drop(elsewhere);
+    }
+
+    /// The lock decides and the census informs: after a Stop whose settlement this Host could not
+    /// establish, while something the stand-in started still holds the lock, a start is refused
+    /// and the refusal says what this App knows of the process it started, with its census as
+    /// taken. Once the group is established settled the App knows nothing of the holder and says
+    /// only what may hold it. No second stand-in is started until the holder has ended.
+    #[test]
+    fn a_start_after_an_unestablished_stop_is_refused_and_says_what_this_app_knows() {
+        use crate::home_hold::{process_held_here, PROCESS_HELD};
+        use process_group_custody::Census;
+        let f = Fixture::new(false, true);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        until("the stand-in left a process behind", || std::fs::read_to_string(f.root.join("home/left-behind")).is_ok_and(|v| v.parse::<i32>().is_ok()));
+        let mut left = LeftBehind(std::fs::read_to_string(f.root.join("home/left-behind")).unwrap().parse().unwrap());
+        // The settlement of the group is unavailable from before the Stop.
+        host.model_quit_census(Some(Census::Unknown("modelled: member enumeration failed".into())));
+        // Stop, then wait for the leader's exit as this Host observes it: with no settlement the
+        // leader is not reaped, so its process number still answers a signal probe.
+        let _ = host.stop("fixture", "test");
+        let stopped = host.child.lock().unwrap().clone().expect("the stopped child is retained");
+        until("the stand-in's exit is observed", || stopped.observe_exit().ok().flatten().is_some());
+        assert!(!stopped.settled(), "its group's settlement is not established");
+        assert_eq!(host.snapshot()["state"], "stopped");
+        let starts = || std::fs::read_to_string(f.root.join("home/started")).unwrap().len();
+        assert_eq!(starts(), 1);
+        let unknown = host.start(&f.cfg, "fixture").unwrap_err();
+        assert_eq!(unknown, process_held_here(&Census::Unknown(String::new())));
+        assert!(unknown.contains("has not confirmed that it ended") && unknown.contains("could not be checked"), "{unknown}");
+        assert_eq!(host.snapshot()["lastStartRefusal"]["reason"], unknown.as_str());
+        assert_eq!((host.snapshot()["state"].as_str(), starts()), (Some("stopped"), 1), "an early refusal: nothing started, the state as it was");
+        host.model_quit_census(Some(Census::Complete(2)));
+        let seen = host.start(&f.cfg, "fixture").unwrap_err();
+        assert!(seen.contains("processes of its group were running") && !seen.bytes().any(|b| b.is_ascii_digit()), "{seen}");
+        // Settlement becomes available: the leader's exit was observed and its group is empty.
+        // The holder is outside what this App can see, and the refusal claims no more.
+        host.model_quit_census(None);
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), PROCESS_HELD);
+        assert_eq!(starts(), 1, "no second stand-in while the lock is held");
+        for sentence in [unknown.as_str(), seen.as_str(), PROCESS_HELD, crate::home_hold::PROCESS_LOCK_UNAVAILABLE] {
+            for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "has to end before", "/", "pid"] {
+                assert!(!sentence.contains(claim), "{claim}: {sentence}");
+            }
+        }
+        assert!(PROCESS_HELD.contains("is held") && PROCESS_HELD.contains("may hold it") && PROCESS_HELD.contains("cannot tell which program") && PROCESS_HELD.contains("your own Codex settings"));
+        unsafe { libc::kill(left.0, libc::SIGKILL); }
+        until("the left-behind process has ended", || !alive(left.0));
+        left.0 = 0;
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "the same Host starts again once the holder has ended");
+        assert_eq!(starts(), 2);
+        stop_and_wait(&host);
+        if let Ok(pid) = std::fs::read_to_string(f.root.join("home/left-behind")).unwrap_or_default().parse::<i32>() { drop(LeftBehind(pid)); }
+    }
+
+    /// The Host's own obligation, beside the lock's: with the lock free, a start is still refused
+    /// while this Host has not established the end of the Codex it started on the home. The
+    /// stand-in has exited and nothing else was given the lock, so an independent attempt takes
+    /// it; the Host, whose settlement of that process's group is unavailable, starts nothing.
+    /// Once the settlement is established the same start is admitted.
+    #[test]
+    fn a_free_lock_does_not_admit_a_start_while_this_hosts_own_codex_is_not_established_ended() {
+        use crate::home_hold::KEPT;
+        use process_group_custody::Census;
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        host.model_quit_census(Some(Census::Unknown("modelled: member enumeration failed".into())));
+        let _ = host.stop("fixture", "test");
+        let stopped = host.child.lock().unwrap().clone().expect("the stopped child is retained");
+        until("the stand-in's exit is observed", || stopped.observe_exit().ok().flatten().is_some());
+        assert!(!stopped.settled(), "its group's settlement is not established");
+        assert_eq!(host.snapshot()["state"], "stopped");
+        drop(take_process_lock(&f.lock_path()).expect("the lock is free: nothing holds it"));
+        let starts = || std::fs::read_to_string(f.root.join("home/started")).unwrap().len();
+        // The check is on the home's physical identity, not on how its path is spelled: the same
+        // directory named another way, and through a link, is the same home.
+        let mut respelled = f.cfg.clone();
+        respelled.codex_home = f.root.join("home").join("..").join("home");
+        let mut linked = f.cfg.clone();
+        linked.codex_home = f.root.join("home-by-link");
+        std::os::unix::fs::symlink(f.root.join("home"), &linked.codex_home).unwrap();
+        for cfg in [&f.cfg, &respelled, &linked, &f.cfg] {
+            assert_eq!(host.start(cfg, "fixture").unwrap_err(), KEPT, "refused by the Host's own check, the lock being free: {}", cfg.codex_home.display());
+            let status = host.snapshot();
+            assert_eq!((status["state"].as_str(), status["lastStartRefusal"]["reason"].as_str(), starts()), (Some("stopped"), Some(KEPT), 1));
+            drop(take_process_lock(&f.lock_path()).expect("the refused start left the lock free"));
+        }
+        host.model_quit_census(None);
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "admitted once the end is established");
+        assert_eq!(starts(), 2);
+        stop_and_wait(&host);
+    }
+
+    /// A process left by a start that failed after it was created is tied to its home like any
+    /// other: here the stand-in never answers the handshake, the start fails, and the process it
+    /// left carries the identity of the directory the start held. While its end is not
+    /// established it holds that home against a further start, under any spelling of the home.
+    #[test]
+    fn a_process_left_by_a_failed_start_is_tied_to_its_home_and_holds_it_under_any_spelling() {
+        use crate::home_hold::KEPT;
+        use process_group_custody::Census;
+        use std::os::unix::fs::MetadataExt;
+        let f = Fixture::new(false, false);
+        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\ntime.sleep(60)\n").unwrap();
+        let host = Arc::new(Host::new());
+        // The settlement of the process's group is unavailable from the moment it is installed,
+        // before the handshake fails and the start ends it: set there, not after, so that no
+        // retirement monitor can establish the end first.
+        let installed = host.clone();
+        *host.after_successor_publish.lock().unwrap() = Some(Box::new(move || {
+            let child = installed.child.lock().unwrap().clone().expect("the child is installed before the handshake");
+            *child.census_override.lock().unwrap() = Some(Census::Unknown("modelled: member enumeration failed".into()));
+        }));
+        let failed = host.start(&f.cfg, "fixture").unwrap_err();
+        assert!(std::fs::read_to_string(f.root.join("home/started")).is_ok(), "the process was created before the start failed: {failed}");
+        let left = host.child.lock().unwrap().clone().or_else(|| host.retired_processes.lock().unwrap().first().cloned()).expect("the failed start's process is kept by the Host");
+        let _guard = LeftBehind(left.id() as i32);
+        let meta = std::fs::metadata(f.root.join("home")).unwrap();
+        assert_eq!(left.home(), Some((meta.dev(), meta.ino())), "tied to the directory the start held");
+        // The failed start ended the process it had created; wait until that is so and the lock
+        // it held is free, so that what refuses below is the Host's own check and not the lock.
+        until("the failed start's process has exited", || left.observe_exit().ok().flatten().is_some());
+        until("the lock it held is free", || take_process_lock(&f.lock_path()).is_ok());
+        assert!(left.census_override.lock().unwrap().is_some() && !left.settled(), "its end is not established");
+        // Synthetic admission, as a Stop after the failure would give: the question here is only
+        // what the Host's own check answers for the process the failed start left.
+        host.inner.0.lock().unwrap().state = "stopped".into();
+        let mut respelled = f.cfg.clone();
+        respelled.codex_home = f.root.join("home").join("..").join("home");
+        for cfg in [&f.cfg, &respelled] {
+            assert_eq!(host.start(cfg, "fixture").unwrap_err(), KEPT, "{}", cfg.codex_home.display());
+        }
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).unwrap().len(), 1, "no second process");
+        // Another home is another home: the process left on the first does not hold it.
+        assert!(host.own_unsettled_census((meta.dev(), meta.ino())).is_some());
+        let other = std::fs::metadata(f.root.join("probe")).unwrap();
+        assert!(host.own_unsettled_census((other.dev(), other.ino())).is_none());
+    }
+
+    /// A process created with its reservation already lost is not thrown away. The start fails
+    /// as a failed spawn, in words that do not say no process was created; no caller takes the
+    /// kept process for a started one; it is tied to its home and can never be established
+    /// settled, so this App process starts nothing further on that home under any spelling,
+    /// while a second home is admitted; the menu quit's settlement is withheld; and the home
+    /// stays held when the Host goes. Nothing is signalled or waited on for it.
+    #[test]
+    fn a_process_whose_reservation_is_lost_at_creation_is_kept_and_holds_its_home() {
+        use crate::home_hold::KEPT;
+        use std::os::unix::fs::MetadataExt;
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        // The loss is modelled at the app-server's creation, after the label probe's own.
+        *host.after_successor_check.lock().unwrap() = Some(Box::new(|| process_group_custody::model_next_mint_error(libc::ECHILD)));
+        let failed = host.start(&f.cfg, "fixture").unwrap_err();
+        assert_eq!(failed, CREATED_AND_LOST);
+        assert!(failed.contains("was created") && !failed.contains("spawn failed"), "the record does not say no process was created");
+        let event = host.lifecycle_events().last().unwrap().clone();
+        assert_eq!(event["transitionId"], "LT-08", "{event}");
+        assert!(serde_json::to_string(&event).unwrap().contains(CREATED_AND_LOST), "{event}");
+        // Not a started process for any caller: no child, no input pipe, no generation.
+        let status = host.snapshot();
+        assert!(host.child.lock().unwrap().is_none() && host.stdin.lock().unwrap().is_none() && status["generation"].is_null(), "{status}");
+        assert_eq!(status["state"], "halted-after-repeated-failure");
+        let kept = host.retired_processes.lock().unwrap().first().cloned().expect("kept among the retired groups");
+        let _guard = LeftBehind(kept.id() as i32);
+        let meta = std::fs::metadata(f.root.join("home")).unwrap();
+        assert_eq!(kept.home(), Some((meta.dev(), meta.ino())));
+        assert!(kept.released() && !kept.settled(), "its reservation is lost and its end is not established");
+        // Every numeric operation on a process group passes one point (a signal, a census
+        // query); from here to the end of the test none is made on the kept process's behalf.
+        let operations = Arc::new(Mutex::new(Vec::<&'static str>::new()));
+        let seen = operations.clone();
+        *kept.before_group_operation.lock().unwrap() = Some(Box::new(move |_, operation| seen.lock().unwrap().push(operation)));
+        assert_eq!(kept.force_if_needed(), (false, Some("group authority unavailable; no signal".into())), "nothing is signalled");
+        // The created stand-in ends when its input closes; the lock it was given is then free,
+        // so what refuses below is the Host's own check.
+        until("the lock is free", || take_process_lock(&f.lock_path()).is_ok());
+        host.inner.0.lock().unwrap().state = "stopped".into();
+        let mut respelled = f.cfg.clone();
+        respelled.codex_home = f.root.join("home").join("..").join("home");
+        for cfg in [&f.cfg, &respelled] {
+            assert_eq!(host.start(cfg, "fixture").unwrap_err(), KEPT, "{}", cfg.codex_home.display());
+        }
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).map(|text| text.len()).unwrap_or(0) <= 1, true, "no further process on that home");
+        // The lock is free, shown independently, so every refusal here is the kept process's
+        // alone. Another Host of this process, while this one lives, is refused the home too.
+        drop(take_process_lock(&f.lock_path()).expect("the lock is free"));
+        let other_host = Arc::new(Host::new());
+        assert_eq!(other_host.start(&f.cfg, "fixture").unwrap_err(), crate::home_hold::IN_USE_HERE);
+        drop(other_host);
+        // The menu quit is withheld, and the person reads the sentence for a settlement that can
+        // never be established, not the one for a settlement that was unavailable this time.
+        assert!(host.has_unestablishable_process());
+        host.begin_quit();
+        let withheld = host.settle_for_quit("fixture", "quit").unwrap_err();
+        assert!(withheld.starts_with("Quit withheld; owned process settlement is unavailable"), "{withheld}");
+        host.cancel_quit();
+        let session = Arc::new(crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::Account, Arc::clone(&host), Ok(f.cfg.clone())).unwrap());
+        let quit = crate::app_quit::finish_exit(&[Arc::clone(&session)], Some(Vec::new())).unwrap_err();
+        assert_eq!(quit, crate::app_quit::QUIT_CANNOT_ESTABLISH);
+        assert!(!quit.contains("Supervision is retained") && !quit.contains("retrying Quit."), "{quit}");
+        drop(session);
+        assert!(!kept.settled() && host.retired_processes.lock().unwrap().iter().any(|p| p.id() == kept.id()), "still kept after the quit attempts");
+        // A second home is another home.
+        let mut other = f.cfg.clone();
+        other.codex_home = f.root.join("second-home");
+        std::fs::create_dir(&other.codex_home).unwrap();
+        assert_eq!(host.start(&other, "fixture").unwrap()["state"], "ready");
+        stop_and_wait(&host);
+        // When the Host goes, the home stays held for the kept process: another Host of this
+        // process is refused it.
+        let gone = Arc::downgrade(&host);
+        drop(host);
+        until("the Host is gone", || gone.upgrade().is_none());
+        let next = Arc::new(Host::new());
+        drop(take_process_lock(&f.lock_path()).expect("the lock is still free"));
+        assert_eq!(next.start(&f.cfg, "fixture").unwrap_err(), KEPT);
+        assert_eq!(next.snapshot()["state"], "absent");
+        assert!(!kept.settled(), "never taken as settled");
+        assert!(operations.lock().unwrap().is_empty(), "no signal and no census query was made for the kept process: {:?}", operations.lock().unwrap());
+    }
+
+    /// The process that served as Codex is itself alive after Stop: a stand-in whose serving
+    /// process left the process group the App reserved, so that Stop ends the group, this Host
+    /// establishes it settled and publishes `stopped`, and the serving process lives on. The
+    /// census is wrong about it; the lock is not. No second stand-in is started on the home until
+    /// that process has ended.
+    #[test]
+    fn a_serving_process_that_outlives_stop_holds_the_home_whatever_the_census_says() {
+        use crate::home_hold::PROCESS_HELD;
+        let f = Fixture::new(false, false);
+        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,json,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nhome=os.environ['CODEX_HOME']\nif os.fork():\n while not os.path.exists(home+'/input-closed'): time.sleep(0.02)\n os._exit(0)\nos.setsid()\nopen(home+'/started','a').write('x')\nopen(home+'/serving','w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\nnull=os.open(os.devnull,os.O_RDWR)\nos.dup2(null,1); os.dup2(null,2)\nopen(home+'/input-closed','w').write('x')\nwhile not os.path.exists(home+'/release'): time.sleep(0.02)\n").unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        let serving: i32 = std::fs::read_to_string(f.root.join("home/serving")).unwrap().parse().unwrap();
+        let _guard = LeftBehind(serving);
+        stop_and_wait(&host);
+        assert_eq!(host.snapshot()["state"], "stopped");
+        assert!(alive(serving), "the process that served as Codex is alive after Stop");
+        until("this Host establishes the reserved group settled", || host.child.lock().unwrap().as_ref().is_some_and(|c| c.settled()));
+        std::fs::remove_file(f.root.join("home/input-closed")).unwrap();
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), PROCESS_HELD, "the lock refuses what the census would have let through");
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).unwrap().len(), 1, "no second stand-in");
+        std::fs::write(f.root.join("home/release"), "x").unwrap();
+        until("the serving process has ended", || !alive(serving));
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).unwrap().len(), 2);
+        let second: i32 = std::fs::read_to_string(f.root.join("home/serving")).unwrap().parse().unwrap();
+        let _ = host.stop("fixture", "test");
+        until("the second serving process has ended", || !alive(second));
     }
 
     #[test]

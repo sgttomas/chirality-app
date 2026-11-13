@@ -414,7 +414,8 @@ export const turnStatusWords = (native: Json | null, observationEnded: boolean) 
   : text(native.status);
 
 /** One error notice in the supplier's own words: its message, then its details where it sent any. */
-const errorWords = (error: Json) => `${text(error?.message)}${typeof error?.additionalDetails === "string" && error.additionalDetails ? ` — ${error.additionalDetails}` : ""}`;
+/** A Codex error in Codex's own words: its message and, where given, its additional details. */
+export const errorWords = (error: Json) => `${text(error?.message)}${typeof error?.additionalDetails === "string" && error.additionalDetails ? ` — ${error.additionalDetails}` : ""}`;
 
 /**
  * The supplier's `error` notifications for one turn, as received. The words

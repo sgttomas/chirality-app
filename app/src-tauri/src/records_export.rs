@@ -78,13 +78,45 @@ fn manifest(folder: &Path, paths: impl Iterator<Item = String>) -> Result<Vec<u8
     for path in paths { out.push_str(&format!("{}  {}\n", digest(&folder.join(&path))?, encode(&path))); }
     Ok(out.into_bytes())
 }
-fn heads_profile(folder: &Path, paths: impl Iterator<Item = String>, roles: bool) -> Value {
-    let logs: Vec<Value> = paths.filter(|p| p.ends_with(".jsonl") && (p.starts_with("runs/") || p.starts_with("acts/") || p == crate::records_store::REGISTERED_COPY || (roles && p == crate::role_observations::RELATIVE_LOG)))
-        .map(|path| {let chain=if path==crate::role_observations::RELATIVE_LOG{crate::role_observations::copied_chain_head(&folder.join(&path))}else{crate::record_lines::chain_head(&folder.join(&path))};json!({"log":path,"chain":chain})}).collect();
-    json!({"format":"chirality.records-export-chain-heads","formatVersion":if roles{"0.2"}else{"0.1"},"method":crate::record_lines::LINE_METHOD,"logs":logs})
+/// The chain-head tag's profiles. 0.1 recorded a head for each record log;
+/// 0.2 added the role supply log's; 0.3 (written by this build) adds to each
+/// log's head the reader's account of its lines, `setAside` and `torn`
+/// (`record_lines::chain_account`), and to a role supply log the reader could
+/// not take, the `line` and `kind` of its fault. Earlier profiles are read.
+#[derive(Clone, Copy, PartialEq)]
+enum Profile { V01, V02, V03 }
+impl Profile {
+    fn version(self) -> &'static str { match self { Profile::V01 => "0.1", Profile::V02 => "0.2", Profile::V03 => "0.3" } }
+    fn of(version: Option<&str>) -> Result<Self, String> {
+        match version { Some("0.1") => Ok(Profile::V01), Some("0.2") => Ok(Profile::V02), Some("0.3") => Ok(Profile::V03), _ => Err("unsupported chain-head tag profile".into()) }
+    }
+    fn describes(self) -> &'static str {
+        match self {
+            Profile::V01 => "0.1: legacy RS-only heads; role supply log heads unestablished",
+            Profile::V02 => "0.2: RS and role supply log heads",
+            Profile::V03 => "0.3: RS and role supply log heads, with the reader's account of each log's lines",
+        }
+    }
 }
-fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_profile(folder,paths,true) }
-fn publish(from: &Path, to: &Path) -> Result<(), String> {
+fn heads_profile(folder: &Path, paths: impl Iterator<Item = String>, profile: Profile) -> Value {
+    let (roles, account) = (profile != Profile::V01, profile == Profile::V03);
+    let logs: Vec<Value> = paths.filter(|p| p.ends_with(".jsonl") && (p.starts_with("runs/") || p.starts_with("acts/") || p == crate::records_store::REGISTERED_COPY || (roles && p == crate::role_observations::RELATIVE_LOG)))
+        .map(|path| {
+            let file = folder.join(&path);
+            let chain = match (path == crate::role_observations::RELATIVE_LOG, account) {
+                (true, true) => crate::role_observations::copied_chain_account(&file),
+                (true, false) => crate::role_observations::copied_chain_head(&file),
+                (false, true) => crate::record_lines::chain_account(&file),
+                (false, false) => crate::record_lines::chain_head(&file),
+            };
+            json!({"log":path,"chain":chain})
+        }).collect();
+    json!({"format":"chirality.records-export-chain-heads","formatVersion":profile.version(),"method":crate::record_lines::LINE_METHOD,"logs":logs})
+}
+fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_profile(folder,paths,Profile::V03) }
+/// Puts `from` in place at `to` by an exclusive rename: never replaces a file
+/// already at `to` (also used for a new records store line file).
+pub(crate) fn publish(from: &Path, to: &Path) -> Result<(), String> {
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
     let to = std::ffi::CString::new(to.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
@@ -102,8 +134,8 @@ fn publish(from: &Path, to: &Path) -> Result<(), String> {
 /// Exports the already attached project's store to a new folder. No identity
 /// is minted by this read; import-needed and identity refusals stay explicit.
 pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
-    let home = crate::records_store::home(project)?;
-    let source = home.attachment.dir.ok_or("project has no attached records in the store; nothing exported")?;
+    let home = crate::records_store::readable_home(project)?;
+    let source = home.attachment.dir.clone().ok_or("project has no attached records in the store; nothing exported")?;
     crate::records_store::export_permitted(&source,&home.attachment.root)?;
     let project_id = home.attachment.project.ok_or("project identity unavailable")?;
     crate::storage::check_path(destination)?;
@@ -155,7 +187,8 @@ pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
         sync_dirs(&stage)?;
         publish(&stage, &destination)?;
         crate::storage::sync_dir(&parent).map_err(|e| format!("export published at {}; folder durability not established: {e}", destination.display()))?;
-        Ok(json!({"state":"verified export created","folder":destination,"files":before.len(),"projectId":project_id,"verification":verified,"signing":"unsigned; waits for App signing (OI-011)"}))
+        let limited = verified["logIntegrity"]["state"] == LIMITED;
+        Ok(json!({"state":if limited {"export created: package bytes verified; log integrity limited"} else {"verified export created"},"logIntegrity":verified["logIntegrity"],"folder":destination,"files":before.len(),"projectId":project_id,"verification":verified,"signing":"unsigned; waits for App signing (OI-011)"}))
     })();
     if stage.exists() { let _ = std::fs::remove_dir_all(stage); }
     result
@@ -198,10 +231,126 @@ pub fn verify(folder: &Path) -> Result<Value, String> {
     inventory.insert("tagmanifest-sha256.txt".into());
     if file_inventory.into_keys().collect::<BTreeSet<_>>() != inventory { return Err("package inventory differs from manifests".into()); }
     let expected: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
-    let role_heads=match expected["formatVersion"].as_str(){Some("0.1")=>false,Some("0.2")=>true,_=>return Err("unsupported chain-head tag profile".into())};
-    let observed = heads_profile(&folder.join("data"), actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned()),role_heads);
+    let profile=Profile::of(expected["formatVersion"].as_str())?;
+    let role_heads=profile!=Profile::V01;
+    let names=||actual.iter().map(|p| p.strip_prefix("data/").unwrap().to_owned());
+    let observed = heads_profile(&folder.join("data"), names(), profile);
     if observed != expected { return Err("copied log chain heads differ from export manifest".into()); }
-    Ok(json!({"state":"verified package bytes and chain heads","files":payload.len(),"administration":administration,"chainHeadProfile":if role_heads{"0.2: RS and role supply log heads"}else{"0.1: legacy RS-only heads; role supply log heads unestablished"},"signing":"unsigned; no origin or human act authenticated"}))
+    // What the reader finds in the payload now, with its account of each
+    // log's lines, whatever profile the package was written in: a line set
+    // aside is an integrity limit for a package of any profile.
+    let found = if profile==Profile::V03 { observed } else { heads_profile(&folder.join("data"), names(), Profile::V03) };
+    // Two statements, never one: the bytes agree with the manifests and the
+    // recorded heads; and, separately, whether a log's own integrity is
+    // limited. A chain already broken in the store at export is carried as
+    // it stood: the package is not refused, and its log is not whole.
+    let integrity = log_integrity(&found, !role_heads && actual.contains(&format!("data/{}", crate::role_observations::RELATIVE_LOG)));
+    let limited = integrity["state"] == LIMITED;
+    Ok(json!({"state":if limited {"package bytes consistent; log integrity limited"} else {"package bytes consistent; no chain recorded broken"},
+        "packageBytes":"consistent with the manifests and the recorded chain heads",
+        // Its own statement: equal bytes say each log is the log that was
+        // exported, and nothing about whether its records are intact.
+        "exportedLogs":if profile==Profile::V03 {"each chained log is byte for byte the log the chain-head tag records; this says it is the log that was exported, not that its records are intact"} else {"not pinned: this package's chain-head profile does not record each log's bytes in its tag"},
+        "logIntegrity":integrity,
+        "files":payload.len(),"administration":administration,"chainHeadProfile":profile.describes(),"signing":"unsigned; no origin or human act authenticated"}))
+}
+/// The two states a build that states log integrity writes.
+pub(crate) const LIMITED: &str = "limited";
+/// What is said of a line the reader set aside, after its log and line.
+const SET_ASIDE: &str = " was set aside by the App as invalid: it is not read as a record, and its own link is not examined";
+/// What is said of an unclosed final part, after its log and its length.
+const UNCLOSED: &str = " bytes after the last complete line";
+pub(crate) const WHOLE: &str = "no chain recorded broken";
+/// What a package's chain-head tag records about its logs' own integrity,
+/// apart from whether the package's bytes are consistent: each chain the
+/// store's reader reported broken at export, as `<log>: chain broken at line
+/// N: ...`, and each log whose chain it could not read.
+pub(crate) fn log_integrity(heads: &Value, role_log_without_head: bool) -> Value {
+    // Anything not stated, not readable or not checked is a limit: only a
+    // head that states an empty list of breaks counts as not recorded broken.
+    let mut limits: Vec<String> = Vec::new();
+    match heads["logs"].as_array() {
+        None => limits.push("NOT CHECKED: the chain-head tag lists no logs".into()),
+        Some(items) => for item in items {
+            let log = item["log"].as_str().unwrap_or("a log the tag does not name");
+            let chain = &item["chain"];
+            if let Some(state) = chain["state"].as_str() {
+                limits.push(format!("{log}: the App's reader could not read this log's chain ({state}: {}){}", chain["error"].as_str().unwrap_or("no cause recorded"),
+                    match (chain["line"].as_u64(), chain["kind"].as_str()) { (Some(line), Some(kind)) => format!("; the fault is at line {line}: {kind}"), _ => String::new() }));
+            } else if let Some(broken) = chain["broken"].as_array() {
+                // The reader names a log by its file name; what follows that
+                // name is the break. Taken by position, never by its words.
+                let name = format!("{}: ", if log == crate::role_observations::RELATIVE_LOG { "role supply observations" } else { log.rsplit('/').next().unwrap_or(log) });
+                limits.extend(broken.iter().map(|limit| match limit.as_str() {
+                    Some(limit) => format!("{log}: {}", limit.strip_prefix(name.as_str()).unwrap_or(limit)),
+                    None => format!("{log}: a recorded break that is not text"),
+                }));
+            } else {
+                limits.push(format!("{log}: NOT CHECKED: the package records no list of breaks for this chain"));
+            }
+            // A line the reader set aside is a limit, never part of a clean result.
+            limits.extend(chain["setAside"].as_array().into_iter().flatten().map(|line| format!("{log}: line {line}{SET_ASIDE}")));
+            // A partly present unit at the log's end is a limit too (AC-009).
+            if let Some(bytes) = chain["unclosedEnd"].as_u64() { limits.push(format!("{log}: partial entry at end (not read): {bytes}{UNCLOSED}")); }
+        },
+    }
+    if role_log_without_head {
+        limits.push(format!("{}: NOT CHECKED: this package's chain-head profile (0.1) records no head for this log to compare with", crate::role_observations::RELATIVE_LOG));
+    }
+    if limits.is_empty() { json!({"state":WHOLE}) } else { json!({"state":LIMITED,"limits":limits}) }
+}
+/// A stored `logIntegrity` member as a reader takes it. A record written
+/// before the member existed does not state it: that reads as "not stated",
+/// never as no chain recorded broken.
+pub(crate) fn stored_log_integrity(export: &Value) -> Value {
+    // Only the two forms this build writes are read, whole: the clean state
+    // with nothing else, or the limited state with at least one limit, each
+    // a text. Anything else, malformed or self-contradictory, is not stated.
+    let Some(members) = export.get("logIntegrity").and_then(Value::as_object) else { return json!({"state":"not stated"}) };
+    let whole = members.len() == 1 && members.get("state").is_some_and(|s| s == WHOLE);
+    let limited = members.len() == 2 && members.get("state").is_some_and(|s| s == LIMITED)
+        && members.get("limits").and_then(Value::as_array).is_some_and(|limits| !limits.is_empty() && limits.iter().all(|l| l.as_str().is_some_and(|t| !t.is_empty())));
+    if whole || limited { Value::Object(members.clone()) } else { json!({"state":"not stated"}) }
+}
+/// What a person is shown where a package they are verifying, importing or
+/// relying on carries limits on log integrity; `None` when there is none.
+/// Each limit is what the App's reader found in the package's logs, unless
+/// the limit itself is marked NOT CHECKED. Nothing is said of when or why.
+pub(crate) fn integrity_statement(integrity: &Value) -> Option<String> {
+    if integrity["state"] == "not stated" {
+        return Some("Log integrity: NOT STATED. Package bytes consistent. No statement of log integrity is recorded here.".into());
+    }
+    let limits: Vec<&str> = integrity["limits"].as_array()?.iter().filter_map(Value::as_str).collect();
+    (integrity["state"] == LIMITED).then(|| format!("Log integrity: LIMITED. Package bytes consistent. {} limit(s), found by the App's reader unless marked NOT CHECKED: {}.",
+        limits.len(), limits.join("; ")))
+}
+/// The same in a bounded form for a native confirmation's summary: the
+/// number of limits, and where each is named. No limit is quoted or read
+/// here, so nothing in a limit's own text can be taken for a log or a line.
+pub(crate) fn integrity_summary(integrity: &Value) -> Option<String> {
+    if integrity["state"] == "not stated" {
+        return integrity_statement(integrity);
+    }
+    if integrity["state"] != LIMITED { return None; }
+    let count = integrity["limits"].as_array()?.len();
+    Some(format!("Log integrity: LIMITED. Package bytes consistent. {count} limit(s); each is named in full in the App under this confirmation."))
+}
+/// The log integrity recorded by the chain-head tag of a package this module
+/// has verified (`verify`).
+pub(crate) fn package_log_integrity(folder: &Path) -> Result<Value, String> {
+    let heads: Value = serde_json::from_slice(&read_tag(&folder.join(HEADS))?).map_err(|e| e.to_string())?;
+    let profile = Profile::of(heads["formatVersion"].as_str())?;
+    let data = folder.join("data");
+    let names: Vec<String> = files(&data, false)?.into_keys().collect();
+    let role_log = names.iter().any(|name| name == crate::role_observations::RELATIVE_LOG);
+    // Read from the payload, with the reader's account, for any profile.
+    Ok(log_integrity(&heads_profile(&data, names.into_iter(), Profile::V03), role_log && profile == Profile::V01))
+}
+#[cfg(test)]
+thread_local! {
+    /// Makes `matches_current` write its result as a build before the
+    /// `logIntegrity` member did (a stored disposal entry of that age).
+    pub(crate) static BEFORE_LOG_INTEGRITY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 /// A verified bag must match every current retained payload byte, not just RS
@@ -218,7 +367,9 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     if remaining && prior.is_none(){return Err("original disposal context absent".into());}
     if admin!=crate::records_retention::export_snapshot(source,project_id,prior)? {return Err("export administrative history is stale or unrelated; create a current export".into());}
     let exported=files(&folder.join("data"),false)?;
-    let before=if source.exists(){files(source,true)?}else if remaining{BTreeMap::new()}else{return Err("current project payload unavailable".into());};
+    // Only a payload that is not there is an empty remainder; one that cannot
+    // be examined is never verified as empty (`present`).
+    let before=if present(source)?{files(source,true)?}else if remaining{BTreeMap::new()}else{return Err("current project payload unavailable".into());};
     if (!remaining && before.keys().collect::<Vec<_>>()!=exported.keys().collect::<Vec<_>>()) || before.keys().any(|k|!exported.contains_key(k)) {return Err("verified export does not cover the current complete project payload".into());}
     let mut payload=BTreeMap::new();
     for (rel,stamp) in &before {
@@ -228,13 +379,24 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
         if crate::records_index::Stamp::of(&std::fs::metadata(&input).map_err(io)?)!=*stamp {return Err("payload changed during verification".into());}
         payload.insert(rel.clone(),json!({"sha256":hash,"bytes":std::fs::metadata(input).map_err(io)?.len()}));
     }
-    if source.exists() && files(source,true)?!=before {return Err("payload inventory changed during verification".into());}
+    if present(source)? && files(source,true)?!=before {return Err("payload inventory changed during verification".into());}
     // tagmanifest hashes the payload manifest, chain-head tag and other tags.
     let identity=digest(&folder.join("tagmanifest-sha256.txt"))?;
     verify(&folder)?;
     if identity!=digest(&folder.join("tagmanifest-sha256.txt"))? {return Err("export changed during verification".into());}
     let bytes=serde_json::to_vec(&payload).map_err(|e|e.to_string())?;
-    Ok(json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"chainHeadProfile":verified["chainHeadProfile"],"verification":"complete package bytes, prior administration and declared chain-head profile verified; matches current store payload"}))
+    // Recorded with a disposal act (decided by App Agent 0, 2026-11-12): what
+    // the export relied on states about its logs' integrity, apart from its
+    // bytes matching. Always written; a reader takes its absence as not stated.
+    let integrity=package_log_integrity(&folder)?;
+    let mut out=json!({"folder":folder,"folderIdentity":{ "device":std::os::unix::fs::MetadataExt::dev(&std::fs::metadata(&folder).map_err(io)?),"inode":std::os::unix::fs::MetadataExt::ino(&std::fs::metadata(&folder).map_err(io)?)},"identity":identity,"identityMethod":"sha256 exact tagmanifest bytes","payload":{"files":payload.len(),"identity":crate::util::sha256_hex(&bytes),"identityMethod":"sha256 sorted relative file names, exact byte hashes and lengths"},"administrationIdentity":digest(&folder.join(ADMIN))?,"chainHeadProfile":verified["chainHeadProfile"],"verification":"complete package bytes, prior administration and declared chain-head profile verified; matches current store payload"});
+    #[cfg(test)]
+    if BEFORE_LOG_INTEGRITY.with(|b|b.get()) {return Ok(out);}
+    // Read alone, this sentence speaks of bytes and says what it does not cover.
+    out["verification"]=json!(format!("package bytes, prior administration and recorded chain heads agree with the manifests and match the current store payload; separately, log integrity: {}",
+        match integrity["limits"].as_array() { Some(limits) => format!("limited ({}, each named in logIntegrity)", limits.len()), None => WHOLE.to_owned() }));
+    out["logIntegrity"]=integrity;
+    Ok(out)
 }
 
 #[cfg(test)]
@@ -246,12 +408,22 @@ pub(crate) fn legacy_for_test(dir:&Path){std::fs::remove_file(dir.join(ADMIN)).u
 #[path = "records_export_tests.rs"]
 mod tests;
 
+/// Whether `path` is there, for disposal and its staging: only NotFound is
+/// absence. A path that cannot be examined is an error, never absent, so
+/// nothing that could not be seen is passed over as gone.
+pub(crate) fn present(path: &Path) -> Result<bool, String> {
+    match std::fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(format!("{} could not be examined: {e}; whether it is there is not known", path.display())),
+    }
+}
 /// Recovery's private staging folder contains exact original member names.
 /// A raced pathname is first moved exclusively, then checked in its private
 /// location. Unverified bytes survive there rather than being unlinked.
 pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String> {
     let exported = files(&bag.join("data"), false)?;
-    let inventory = if folder.exists() {
+    let inventory = if present(folder)? {
         files(folder, false)?
     } else {
         BTreeMap::new()
@@ -277,7 +449,7 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
         }
         payload.insert(rel,json!({"bytes":std::fs::metadata(&member).map_err(io)?.len(),"sha256":digest(&member)?}));
     }
-    if folder.exists() && files(folder, false)? != inventory {
+    if present(folder)? && files(folder, false)? != inventory {
         return Err("staged payload changed during verification".into());
     }
     Ok(
@@ -285,7 +457,7 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
     )
 }
 fn remove_empty_tree(folder: &Path) -> Result<(), String> {
-    if !folder.exists() {
+    if !present(folder)? {
         return Ok(());
     }
     crate::storage::check_path(folder)?;
@@ -364,7 +536,7 @@ pub(crate) fn dispose_members(
     for rel in expected {
         let input = source.join(&rel);
         let staged = stage.join(&rel);
-        if !staged.exists() && input.exists() {
+        if !present(&staged)? && present(&input)? {
             crate::storage::check_path(&input)?;
             let meta = std::fs::symlink_metadata(&input).map_err(io)?;
             if !meta.is_file() {
@@ -381,7 +553,7 @@ pub(crate) fn dispose_members(
                 hook();
             }
         }
-        if staged.exists() {
+        if present(&staged)? {
             crate::storage::check_path(&staged)?;
             let before = std::fs::symlink_metadata(&staged).map_err(io)?;
             if !before.is_file() {
@@ -423,7 +595,7 @@ pub(crate) fn dispose_members(
             std::fs::remove_file(&staged).map_err(io)?;
             crate::storage::sync_dir(staged.parent().unwrap())?;
         }
-        if input.exists() {
+        if present(&input)? {
             return Err(format!(
                 "member reappeared after staging; bytes retained: {}",
                 input.display()
@@ -435,6 +607,15 @@ pub(crate) fn dispose_members(
     remove_empty_tree(stage)?;
     crate::storage::sync_dir(source.parent().ok_or("project source has no parent")?)?;
     crate::storage::sync_dir(stage.parent().ok_or("staging has no parent")?)
+}
+/// Rewrites a package's chain-head tag in an earlier profile, as a build of
+/// that profile exported it, and its tag manifest with it.
+#[cfg(test)]
+pub(crate) fn reprofile_as_for_test(folder:&Path,version:&str){
+    let paths=files(&folder.join("data"),false).unwrap().into_keys().collect::<Vec<_>>();
+    std::fs::write(folder.join(HEADS),serde_json::to_vec_pretty(&heads_profile(&folder.join("data"),paths.into_iter(),Profile::of(Some(version)).unwrap())).unwrap()).unwrap();
+    let tags:Vec<String>=TAGS.iter().filter(|p|folder.join(p).exists()).map(|p|p.to_string()).collect();
+    std::fs::write(folder.join("tagmanifest-sha256.txt"),manifest(folder,tags.into_iter()).unwrap()).unwrap();
 }
 #[cfg(test)]
 pub(crate) fn reprofile_for_test(folder:&Path){

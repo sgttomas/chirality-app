@@ -59,13 +59,13 @@ test('actual two-home Host requests remain visible in the App overview after sel
 });
 
 const deferred=()=>{let resolve;const promise=new Promise(yes=>{resolve=yes;});return {promise,resolve};};
-async function mounted(check,{initial='api-key',navigationWait,decisionWait,wrongRefresh=false,refuse=false}={}){
+async function mounted(check,{initial='api-key',navigationWait,decisionWait,wrongRefresh=false,refuse=false,failAfterOpen=false}={}){
   const dto=producer();const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
   let active=initial,opened=false;const calls=[],scrolls=[];const priorGet=document.getElementById;
   document.getElementById=id=>{const element=container.querySelectorAll(node=>node.getAttribute('id')===id)[0];if(element)element.scrollIntoView=()=>scrolls.push(id);return element;};
   const idle=installIdleNativeWaiting(async(command,args)=>{
     calls.push({command,args});
-    if(command==='host_status')return dto[wrongRefresh&&opened?'api-key':active];
+    if(command==='host_status'){if(failAfterOpen&&opened)throw 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_92';return dto[wrongRefresh&&opened?'api-key':active];}
     if(command==='decision_view'){if(opened&&decisionWait)await decisionWait.promise;return {rows:[]};}
     if(command==='native_confirmation_content')return [];
     if(command==='host_observe')return {sourceUnavailable:true,error:'Synthetic fixture does not replay observer journal frames',frames:[]};
@@ -215,4 +215,18 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
     assert.equal(!!props(find(ui.container,'button','Start thread')).disabled,!account);
     assert.equal(ui.calls.filter(c=>c.command==='select_home'||c.command==='thread_start').length,0);
   },{initial,navigationWait:wait});
+});
+
+// Navigation whose command succeeds and whose status refresh then fails: no navigation is claimed
+// or made, the line shows the fixed refresh line once, and the raw refresh text is never shown.
+test('a waiting-request navigation whose refresh fails shows only the fixed line and navigates nothing',async()=>{
+  const {REFRESH_FAILED}=loadSrc('statusRefresh');
+  await mounted(async ui=>{
+    const before=props(ui.select()).value;
+    await ui.press('account · conversation shared-thread: 2');await ui.settle();
+    assert.ok(ui.container.textContent.includes(REFRESH_FAILED),'the fixed refresh line');
+    assert.doesNotMatch(ui.container.textContent,/INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_92|Waiting-request navigation:|superseded or its original source/);
+    assert.equal(props(ui.select()).value,before,'nothing is navigated without a status read');
+    assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
+  },{failAfterOpen:true});
 });

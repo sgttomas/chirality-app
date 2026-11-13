@@ -200,7 +200,7 @@ for(const[name,mutate]of Object.entries(changes))test(`Open refuses ${name} afte
 });
 
 test('failed refresh refuses without changing the view or retrying preparation/navigation on a later poll',async()=>{
- await mounted({},async ui=>{ui.fail();await ui.open();assert.equal(ui.selected(),key('A'));assert.match(ui.c.textContent,/refresh failed: Error: controlled original refresh failure/);await ui.poll();assert.equal(ui.selected(),key('A'));ui.assertIndependent();});
+ await mounted({},async ui=>{ui.fail();await ui.open();assert.equal(ui.selected(),key('A'));assert.ok(ui.c.textContent.includes("The original view refresh failed: The App could not read Codex's status afterwards, so what is shown may be out of date. Open again from a current view."),'a failed status read is shown only as the fixed line (App Agent 0)');assert.doesNotMatch(ui.c.textContent,/controlled original refresh failure/);await ui.poll();assert.equal(ui.selected(),key('A'));ui.assertIndependent();});
 });
 
 for(const name of ['selection','selection away and back','chooser edit','home','home away and back','Start refused','newer observation','source changed then restored'])test(`delayed Open cannot win over ${name}`,async()=>{
@@ -304,7 +304,7 @@ for(const supersession of ['newer Start','workflow source','home'])test(`old tri
   assert.equal(startResult(ui.c),newer,'old observation must not append to or replace the newer global result');
   const limit=region(ui.c,'Trial view observation limit');assert.ok(limit,'the observer failure retains a separately identified original subject');
   assert.match(limit.textContent,/workflow_trial_send/);assert.match(limit.textContent,/trial:original/);assert.match(limit.textContent,/attempt 1/);
-  assert.match(limit.textContent,/original-workflow-source/);assert.match(limit.textContent,/original-home/);assert.match(limit.textContent,/prepared-fixture/);assert.match(limit.textContent,/"spawnCounter":1/);assert.match(limit.textContent,/Original trial observer rejected late/);
+  assert.match(limit.textContent,/original-workflow-source/);assert.match(limit.textContent,/original-home/);assert.match(limit.textContent,/prepared-fixture/);assert.match(limit.textContent,/"spawnCounter":1/);assert.ok(limit.textContent.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."),'a failed refresh is shown only as the fixed line');assert.doesNotMatch(limit.textContent,/Original trial observer rejected late/,'the raw refresh diagnostic is withheld');
   assert.match(limit.textContent,/"threadId":"D"/,'the requested Send target is captured separately from the original render owner B');
   assert.doesNotMatch(limit.textContent,/replacement-workflow-source|foreign-home|new-choice/);
   if(supersession==='newer Start'){assert.equal(ui.composer(),original);assert.match(original.textContent,/Sent to conversation D/);}

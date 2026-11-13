@@ -332,7 +332,7 @@ test('an admitted start consumes its chooser before an independent refresh failu
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);ui.failStatus();await ui.press('Start thread');
     assert.deepEqual(ui.values(),blankChoice);assert.equal(props(ui.start()).disabled,true);
-    assert.match(ui.container.textContent,/current host view unavailable/);
+    assert.ok(ui.container.textContent.includes("thread_start: ")&&ui.container.textContent.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."),'the start outcome stands, then the fixed refresh line');assert.doesNotMatch(ui.container.textContent,/Current status read unavailable/);
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
   });
 });
@@ -576,7 +576,8 @@ test('ordinary native result is immutable across observer failure, with refusal/
     await ui.press('Send text');
     const shown = region(ui.panel(), 'Ordinary text submission outcome').textContent;
     assert.match(shown, /Original ordinary text turn · conversation thread-a · Home h · App session s · spawn 1/);
-    assert.match(shown, /Ordinary text view refresh unavailable.*Original observer unavailable/);
+    // A failed refresh is shown only as the fixed line (App Agent 0's decision), never its raw diagnostic.
+    assert.ok(shown.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."), shown); assert.doesNotMatch(shown, /Original observer unavailable/);
     if (outcome === 'acknowledged') {
       assert.match(shown, /Native turn\/start response received/); assert.doesNotMatch(shown, /Original native/);
       assert.equal(props(ui.model()).value, ''); assert.equal(props(ui.text()).value, '');
@@ -782,7 +783,9 @@ for (const command of ['conversation_steer_text', 'conversation_interrupt']) {
         const outcome = region(ui.container, 'Original conversation action outcome');
         assert.ok(outcome);
         assert.match(outcome.textContent, refused ? /Original native refusal/ : /Native (steering|interrupt) acknowledgment received/);
-        assert.match(outcome.textContent, superseded ? /superseded/ : /Original refresh failure/);
+        // A supersession keeps its own message; a failed refresh is shown only as the fixed line (App Agent 0's decision).
+        if (superseded) assert.match(outcome.textContent, /superseded/); else assert.ok(outcome.textContent.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."), outcome.textContent);
+        assert.doesNotMatch(outcome.textContent, /Original refresh failure/);
         assert.match(outcome.textContent, /command outcome.*unchanged/i);
         assert.equal(ui.panel().querySelectorAll(e => e.getAttribute('role') === 'alert').filter(e => e.textContent.includes('Original native refusal')).length, 0,
           'old refusal is not assigned to the selected conversation error');

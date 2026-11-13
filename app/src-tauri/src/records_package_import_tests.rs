@@ -17,11 +17,14 @@ fn observed() -> Value {
 }
 impl Fixture {
     fn new() -> Self {
+        Self::named("project")
+    }
+    fn named(name: &str) -> Self {
         let base = std::env::temp_dir()
             .canonicalize()
             .unwrap()
             .join(crate::util::opaque_id("package-import-test-").unwrap());
-        let root = base.join("project");
+        let root = base.join(name);
         std::fs::create_dir_all(&root).unwrap();
         let source = base.join("source-store");
         let destination = base.join("destination-store");
@@ -135,6 +138,73 @@ fn package_import_preserves_original_identity_bytes_groups_and_source() {
     let bag2 = f.base.join("export/reexport");
     crate::records_export::export(&f.root, &bag2).unwrap();
     assert!(bag2.join("data/package-imports").is_dir());
+}
+
+#[test]
+fn package_import_of_a_store_with_a_broken_chain_is_not_refused_and_reports_the_break_before_and_after() {
+    let f = Fixture::new();
+    // The source store's log is altered in place after it was written: line 1
+    // changes, so the link line 2 carries no longer names it. The store keeps
+    // the log as it is (a broken chain is reported, never repaired).
+    Fixture::choose(&f.source);
+    let log = crate::storage::project_log(&f.root, Some("run:fixture"), "app-writer:local").unwrap();
+    let mut changed = std::fs::read(&log).unwrap();
+    let at = changed.windows(8).position(|w| w == b"invented").unwrap();
+    changed[at] = b'I';
+    std::fs::write(&log, &changed).unwrap();
+    let rel = log.strip_prefix(project_dir(&f.source, &f.project)).unwrap().to_str().unwrap().to_owned();
+    // Export is not refused, and the package records the break.
+    let bag = f.base.join("export/broken");
+    crate::records_export::export(&f.root, &bag).unwrap();
+    assert_eq!(std::fs::read(bag.join("data").join(&rel)).unwrap(), changed, "the payload is the store's file byte for byte");
+    let verified = crate::records_export::verify(&bag).unwrap();
+    // Two statements, never one pass.
+    assert_eq!(verified["state"], "package bytes consistent; log integrity limited");
+    assert_eq!(verified["packageBytes"], "consistent with the manifests and the recorded chain heads");
+    assert_eq!(verified["logIntegrity"]["state"], "limited");
+    let named = verified["logIntegrity"]["limits"].as_array().unwrap();
+    assert_eq!(named.len(), 1);
+    assert!(named[0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")), "{verified}");
+    // The standalone verifier says the same two things, with its own exit status.
+    let standalone = std::process::Command::new("python3").arg(bag.join("verify.py")).arg(&bag).output().unwrap();
+    assert_eq!(standalone.status.code(), Some(2), "{}", String::from_utf8_lossy(&standalone.stderr));
+    let stdout = String::from_utf8_lossy(&standalone.stdout);
+    assert!(stdout.starts_with("Manifests and inventory: agree.") && stdout.contains("\nLimits: 1.\n"), "{stdout}");
+    assert!(stdout.contains(&format!("  FOUND by this verifier: {rel}: chain broken at line 2")), "{stdout}");
+    // Import is not refused: the person is told before deciding, as its own
+    // statement, and in the result.
+    Fixture::choose(&f.destination);
+    let plan = prepare(&f.root, &bag, &actor(), &observed()).unwrap();
+    let asked = statement(&plan).unwrap();
+    assert!(asked.text.contains("Log integrity: LIMITED."), "{}", asked.text);
+    match &asked.in_app {
+        // The whole statement names the log and the line.
+        None => assert!(asked.text.contains(&format!("{rel}: chain broken at line 2")), "{}", asked.text),
+        // Too long for a native alert on this host: the bounded summary
+        // still names the line whole, and the App shows every limit.
+        Some(shown) => {
+            assert!(asked.text.contains("1 limit(s); each is named in full in the App under this confirmation."), "{}", asked.text);
+            assert!(shown.content["logIntegrity"]["limits"][0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")));
+        }
+    }
+    // The summary is checked directly as well, whichever form this host shows.
+    let summary = crate::records_export::integrity_summary(plan.snapshot.log_integrity()).unwrap();
+    assert!(summary.contains("1 limit(s); each is named in full in the App under this confirmation."), "{summary}");
+    let result = apply(plan, &actor(), &observed()).unwrap();
+    assert_eq!(result["state"], "package imported; log integrity limited");
+    assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "the standing sentence read alone is not a clean pass: {result}");
+    assert!(result["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")), "{result}");
+    // Afterwards the imported log is the same bytes, and this store's own
+    // reader reports the chain broken at the same line.
+    let imported = crate::storage::project_log(&f.root, Some("run:fixture"), "app-writer:local").unwrap();
+    assert_eq!(std::fs::read(&imported).unwrap(), changed);
+    let heads = crate::records_index::chain_heads(&f.root);
+    assert!(heads["broken"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("chain broken at line 2")), "{heads}");
+    // A package with no chain recorded broken says so, and nothing more.
+    let whole = crate::records_export::verify(&f.bag).unwrap();
+    assert_eq!(whole["state"], "package bytes consistent; no chain recorded broken");
+    assert_eq!(whole["logIntegrity"], json!({"state":"no chain recorded broken"}));
+    assert!(!standing(&whole["logIntegrity"]).contains("Log integrity"));
 }
 
 #[test]
@@ -291,6 +361,7 @@ fn package_import_second_interruption_resumes_only_its_own_intent() {
         let f = Fixture::new();
         f.import();
         Fixture::choose(&f.source);
+        if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
         std::fs::write(
             project_dir(&f.source, &f.project).join("additional-evidence.json"),
             b"new exact source member",
@@ -299,6 +370,7 @@ fn package_import_second_interruption_resumes_only_its_own_intent() {
         let second = f.base.join("export/second");
         crate::records_export::export(&f.root, &second).unwrap();
         Fixture::choose(&f.destination);
+        if attach(&f.root, false).is_ok_and(|a| a.fault == Some("link names another store")) { restore_link(&f.root).unwrap(); }
         let plan = prepare(&f.root, &second, &actor(), &observed()).unwrap();
         let id = plan.intent.id.clone();
         STOP.with(|s| *s.borrow_mut() = Some(at));
@@ -386,4 +458,277 @@ fn package_import_resume_preserves_unrelated_newer_roots_tail() {
         std::fs::read(f.destination.join("roots.jsonl")).unwrap(),
         before
     );
+}
+
+// ---- The registry's frozen write and the store's own appender ----
+
+/// While an interrupted package import's frozen registry write is pending,
+/// a registration, an adoption and a new identity each refuse and leave the
+/// registry's bytes as they were, the startup recovery leaves them too, and
+/// finishing the import then succeeds as before; afterwards the registry is
+/// appended to again.
+#[test]
+fn package_import_pending_registry_write_holds_every_other_registry_append_until_finished() {
+    for at in ["payload", "administration", "roots-partial"] {
+        let f = Fixture::new();
+        let plan = f.plan();
+        assert!(plan.intent.roots_final.len() > plan.intent.roots_original.len(), "{at}: the import appends registry rows");
+        STOP.with(|s| *s.borrow_mut() = Some(at));
+        assert!(apply(plan, &actor(), &observed()).unwrap_err().contains("test interruption"));
+        let path = f.destination.join("roots.jsonl");
+        let before = std::fs::read(&path).ok();
+        if at == "roots-partial" {
+            assert!(!before.as_ref().unwrap().ends_with(b"\n"), "the frozen write left a fragment");
+        }
+        let pending = "package import's write to the registry of project folders is pending";
+        let other = f.base.join("other-folder");
+        std::fs::create_dir_all(&other).unwrap();
+        // Refused either way, with nothing minted: by the pending write, or,
+        // where the frozen write left the registry's last line incomplete, by
+        // the registry not read whole, which pull request 240 checks first.
+        match attach(&other, true) {
+            Err(registration) => assert!(registration.contains(pending), "{at}: registration: {registration}"),
+            Ok(refused) => assert!(at == "roots-partial" && refused.project.is_none() && refused.dir.is_none()
+                && refused.refusal.as_deref().is_some_and(|r| r.contains("was not read whole")), "{at}: registration: {refused:?}"),
+        }
+        let renamed = f.base.join("renamed-folder");
+        std::fs::create_dir_all(&renamed).unwrap();
+        let identity = new_identity(&renamed).unwrap_err();
+        let torn = at == "roots-partial" && identity.contains("was not read whole");
+        assert!(identity.contains(pending) || torn, "{at}: new identity: {identity}");
+        let adopted = f.base.join("adopted-folder");
+        std::fs::create_dir_all(adopted.join(".chirality")).unwrap();
+        let store_id: Value = serde_json::from_slice(&std::fs::read(f.destination.join("store.json")).unwrap()).unwrap();
+        std::fs::write(adopted.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:invented-adopted", store_id["storeId"].as_str().unwrap())).unwrap()).unwrap();
+        let adoption = adopt(&adopted).unwrap_err();
+        assert!(adoption.contains(pending) || (at == "roots-partial" && adoption.contains("was not read whole")), "{at}: adoption: {adoption}");
+        let left = recover_at_startup().unwrap();
+        if at == "roots-partial" {
+            assert!(left.iter().any(|l| l.contains(pending)), "{at}: {left:?}");
+        }
+        assert_eq!(std::fs::read(&path).ok(), before, "{at}: the registry's bytes are unchanged");
+        UNCERTAIN.lock().unwrap().remove(&f.dir());
+        let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+        apply(retry, &actor(), &observed()).unwrap();
+        assert!(require_complete(&f.dir()).is_ok(), "{at}: the import finishes");
+        assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
+        // The refused mint wrote the folder's link first (the link-first
+        // order); the registry now takes its line. Where the registry was not
+        // read whole, the mint was refused before anything was written, the
+        // link included, so the folder is minted now.
+        let expected = if at == "roots-partial" { "minted" } else { "registered" };
+        assert_eq!(attach(&other, true).unwrap().how, expected, "{at}: then the registry is appended to again");
+    }
+}
+
+/// Review round 1, finding 1. A package import publishes its own registry
+/// write and does not go through the store's appender, so the appender's
+/// refusal did not reach it: a second import froze and published its write
+/// while another's was pending, and the first could then never finish. Now a
+/// new import is refused while another's registry write is pending, when it
+/// is prepared and again, under the store lock, before its intent is made
+/// durable; nothing of it is left, and both finish in turn.
+#[test]
+fn package_import_a_second_import_is_refused_while_anothers_registry_write_is_pending() {
+    for at in ["payload", "roots-partial"] {
+        let f = Fixture::new();
+        // Another project with a package of its own, exported from the source store.
+        Fixture::choose(&f.source);
+        let second_root = f.base.join("second-project");
+        std::fs::create_dir_all(&second_root).unwrap();
+        crate::records::append_project(&second_root, Some("run:fixture"), "app-writer:local", "evidence_limit", &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"invented second fixture"})).unwrap();
+        let second_project = attach(&second_root, false).unwrap().project.unwrap();
+        let second_bag = f.base.join("export/second-bag");
+        crate::records_export::export(&second_root, &second_bag).unwrap();
+        Fixture::choose(&f.destination);
+        // Prepared before the first import freezes anything durable.
+        let early = prepare(&second_root, &second_bag, &actor(), &observed()).unwrap();
+        let plan = f.plan();
+        STOP.with(|s| *s.borrow_mut() = Some(at));
+        assert!(apply(plan, &actor(), &observed()).unwrap_err().contains("test interruption"));
+        let path = f.destination.join("roots.jsonl");
+        let before = std::fs::read(&path).ok();
+        assert!(roots_write_pending(&f.destination, before.as_deref().unwrap_or_default()).unwrap(), "{at}: the first import's registry write is pending");
+        let pending = "package import's write to the registry of project folders is pending";
+        let prepared = prepare(&second_root, &second_bag, &actor(), &observed()).err().expect("a new import is not prepared");
+        assert!(prepared.contains(pending), "{at}: {prepared}");
+        let applied = apply(early, &actor(), &observed()).unwrap_err();
+        if at == "payload" {
+            assert!(applied.contains(pending), "{at}: {applied}");
+        }
+        let second_dir = project_dir(&f.destination, &second_project);
+        assert!(std::fs::symlink_metadata(journal(&second_dir).unwrap()).is_err(), "{at}: the second import left no durable intent");
+        assert_eq!(std::fs::read(&path).ok(), before, "{at}: the registry's bytes are unchanged");
+        // The first finishes, as before; then the second imports.
+        UNCERTAIN.lock().unwrap().remove(&f.dir());
+        let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+        apply(retry, &actor(), &observed()).unwrap();
+        assert!(require_complete(&f.dir()).is_ok(), "{at}: the first import finishes");
+        let second = prepare(&second_root, &second_bag, &actor(), &observed()).unwrap();
+        apply(second, &actor(), &observed()).unwrap();
+        assert!(require_complete(&second_dir).is_ok(), "{at}: then the second imports");
+        assert_eq!(attach(&second_root, false).unwrap().project.as_deref(), Some(second_project.as_str()));
+    }
+}
+
+/// Review round 1, finding 2. Whether a registry write is pending is read
+/// from each project's package import journal. A journal that is not there
+/// is passed over; one that cannot be examined is a refusal, never "nothing
+/// pending": with the project's administration folder unsearchable, a
+/// registration is refused, the startup recovery writes nothing, the
+/// registry's bytes are unchanged, and the import still finishes once the
+/// folder can be read again.
+#[test]
+fn package_import_a_journal_that_cannot_be_examined_refuses_the_registry_write() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    let plan = f.plan();
+    STOP.with(|s| *s.borrow_mut() = Some("roots-partial"));
+    assert!(apply(plan, &actor(), &observed()).unwrap_err().contains("test interruption"));
+    let path = f.destination.join("roots.jsonl");
+    let before = std::fs::read(&path).unwrap();
+    assert!(!before.ends_with(b"\n"), "the frozen write left a fragment");
+    let controls = journal(&f.dir()).unwrap().parent().unwrap().to_path_buf();
+    let mode = std::fs::metadata(&controls).unwrap().permissions();
+    std::fs::set_permissions(&controls, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let pending = roots_write_pending(&f.destination, &before);
+    let other = f.base.join("other-folder");
+    std::fs::create_dir_all(&other).unwrap();
+    let registration = attach(&other, true);
+    let left = recover_at_startup();
+    let after = std::fs::read(&path).unwrap();
+    std::fs::set_permissions(&controls, mode).unwrap();
+    let unknown = "so whether a registry write is pending is unknown";
+    assert!(pending.unwrap_err().contains(unknown));
+    // Refused either way, with nothing minted: whether a write is pending is
+    // unknown, or, with the registry's last line incomplete, the registry is
+    // not read whole, which pull request 240 checks first.
+    match registration {
+        Err(e) => assert!(e.contains(unknown), "{e}"),
+        Ok(refused) => assert!(refused.project.is_none() && refused.dir.is_none()
+            && refused.refusal.as_deref().is_some_and(|r| r.contains("was not read whole")), "{refused:?}"),
+    }
+    assert!(match left { Ok(left) => left.iter().any(|l| l.contains(unknown)), Err(e) => e.contains(unknown) });
+    assert_eq!(after, before, "the registry's bytes are unchanged");
+    UNCERTAIN.lock().unwrap().remove(&f.dir());
+    let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+    apply(retry, &actor(), &observed()).unwrap();
+    assert!(require_complete(&f.dir()).is_ok(), "the import finishes once its journal can be examined");
+}
+
+/// Without a pending import, a fragment in the registry is closed and named,
+/// and the package import's readers (its frozen-prefix comparison and its
+/// registry reading) ignore the naming line and the set-aside line.
+#[test]
+fn package_import_readers_ignore_a_closed_and_named_fragment_in_a_later_tail() {
+    let f = Fixture::new();
+    let plan = f.plan();
+    STOP.with(|s| *s.borrow_mut() = Some("roots"));
+    assert!(apply(plan, &actor(), &observed()).is_err());
+    let path = f.destination.join("roots.jsonl");
+    let mut bytes = std::fs::read(&path).unwrap();
+    bytes.extend(b"{\"format\":\"chirality.records-store.root\",\"how\":\"rele");
+    std::fs::write(&path, &bytes).unwrap();
+    *ROOTS.lock().unwrap() = None;
+    assert!(recover_at_startup().unwrap().is_empty());
+    let after = std::fs::read(&path).unwrap();
+    assert!(after.starts_with(&bytes) && after.len() > bytes.len(), "closed and named");
+    let read = lines::read(&after, &path);
+    assert_eq!(read.set_aside.len(), 1);
+    let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+    apply(retry, &actor(), &observed()).unwrap();
+    assert!(require_complete(&f.dir()).is_ok());
+    assert_eq!(std::fs::read(&path).unwrap(), after, "the import's recovery wrote nothing more");
+    assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
+}
+
+/// The package import's own registry write emits no raw 0x1E, even for a
+/// project folder whose name holds one: serde_json escapes it.
+#[test]
+fn package_import_registry_write_emits_no_raw_record_separator() {
+    let f = Fixture::named("project\u{1e}folder");
+    f.import();
+    let registry = std::fs::read(f.destination.join("roots.jsonl")).unwrap();
+    assert!(!registry.contains(&lines::MARK));
+    assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
+}
+
+/// A registry that already holds a closed and named fragment when an import
+/// begins: the import freezes those bytes as its original prefix, and every
+/// reading of them (the frozen-prefix comparison, the discovery of its own
+/// intents from the frozen bytes, the root association) sets the fragment
+/// aside and ignores its naming line.
+#[test]
+fn package_import_reads_a_registry_holding_a_named_fragment_before_it_began() {
+    let f = Fixture::new();
+    let store = opened().unwrap().0;
+    let path = store.join("roots.jsonl");
+    let other = json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":"chirality-project:invented-other","root":f.base.join("elsewhere"),"at":"2026-11-12T00:00:00.000Z","how":"registered"});
+    let mut bytes = std::fs::read(&path).unwrap_or_default();
+    bytes.extend(serde_json::to_vec(&other).unwrap());
+    bytes.extend(b"\n{\"format\":\"chirality.records-store.root\",\"projectId\":\"");
+    std::fs::write(&path, &bytes).unwrap();
+    *ROOTS.lock().unwrap() = None;
+    recover_at_startup().unwrap();
+    let closed = std::fs::read(&path).unwrap();
+    assert_eq!(lines::read(&closed, &path).set_aside.len(), 1);
+    let plan = f.plan();
+    assert_eq!(plan.intent.roots_original, closed, "the frozen prefix holds the named fragment");
+    STOP.with(|s| *s.borrow_mut() = Some("roots"));
+    assert!(apply(plan, &actor(), &observed()).is_err());
+    UNCERTAIN.lock().unwrap().remove(&f.dir());
+    let retry = prepare_resume(&f.root, &actor(), &observed()).unwrap();
+    apply(retry, &actor(), &observed()).unwrap();
+    assert!(require_complete(&f.dir()).is_ok());
+    assert_eq!(status(&f.root)["state"], "complete");
+    assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
+    assert!(roots(&store).unwrap().iter().all(|r| r["format"] == ROOT_FORMAT));
+}
+
+/// Review round 3's package-import consequence, as App Agent 0 decided after
+/// round 4: an account that exists and yields no import line is unknown,
+/// always. A project whose
+/// records arrived by package import into this store, with its account then
+/// emptied or left holding only closed fragments, reads unknown and is
+/// refused, never "no import", through reading and export alike; so does one
+/// whose package import is unfinished. The destination's witness is begun
+/// before the import, so the project is not listed and no witness line names
+/// it: the state in which an exception for "nothing begun" would have read
+/// "no import".
+#[test]
+fn package_import_an_emptied_or_fragments_only_account_is_unknown_never_no_import() {
+    let tail = br#"{"format":"chirality.records-import","formatVersion":"#;
+    let (closing, line) = crate::records_store::lines::closure(tail);
+    let fragments_only = [tail.as_slice(), &closing, &crate::records_store::lines::naming_line(1, &line).unwrap()].concat();
+    // `said`: the account's own refusal is the one given; an unfinished
+    // import's publication refuses first, with its own words.
+    let check = |f: &Fixture, label: &str, account_said: bool| {
+        let dir = f.dir();
+        for (form, content, said) in [("emptied", Vec::new(), "exists and is empty"), ("fragments only", fragments_only.clone(), "holds no import line, only closed fragments")] {
+            std::fs::write(dir.join("imports.jsonl"), &content).unwrap();
+            let refused = crate::records_store::home(&f.root).map(|_| ()).unwrap_err();
+            assert!(!account_said || (refused.contains(said) && refused.contains("whether an import was begun is not known")), "{label}, {form}: {refused}");
+            let (entries, limits) = crate::storage::read_all(&f.root);
+            assert!(entries.is_empty() && !limits.is_empty() && (!account_said || limits.iter().any(|l| l.contains(said))), "{label}, {form}: {entries:?} {limits:?}");
+            let destination = f.base.join(format!("export-{}-{}", label.replace(' ', "-"), form.replace(' ', "-")));
+            let exported = crate::records_export::export(&f.root, &destination);
+            assert!(exported.is_err() && !destination.exists(), "{label}, {form}: no verified export: {exported:?}");
+        }
+        std::fs::remove_file(dir.join("imports.jsonl")).unwrap();
+    };
+    // A finished package import.
+    let f = Fixture::new();
+    crate::records_store::witness::begin(&f.destination).unwrap();
+    f.import();
+    let began = std::fs::read(f.destination.join(crate::records_store::witness::WITNESS_FILE)).unwrap();
+    assert!(!String::from_utf8_lossy(&began).contains(&f.project), "the project is neither listed nor named by a witness line");
+    check(&f, "finished", true);
+    // An unfinished package import (stopped after its payload began).
+    let f = Fixture::new();
+    crate::records_store::witness::begin(&f.destination).unwrap();
+    STOP.with(|flag| *flag.borrow_mut() = Some("payload"));
+    assert!(apply(f.plan(), &actor(), &observed()).is_err());
+    STOP.with(|flag| *flag.borrow_mut() = None);
+    check(&f, "unfinished", false);
 }

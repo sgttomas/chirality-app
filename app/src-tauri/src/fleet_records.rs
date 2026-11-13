@@ -319,9 +319,12 @@ fn protected(census: &mut Census, root: &Path, limits: &mut Vec<Value>) -> Resul
     let roots_path = store.join("roots.jsonl");
     let bytes = census.read(&roots_path)?.ok_or("protected root registry absent; nothing attached")?;
     if !bytes.is_empty() && !bytes.ends_with(b"\n") { return Err("protected root registry has an unclosed final line; association unknown".into()); }
+    // The store's one reading of its registry: a naming line and the closed
+    // fragment it names are not rows; anything else not read is refused.
+    let rows = records_store::lines::read(&bytes, &roots_path).require_settled(&bytes, &roots_path)
+        .map_err(|_| "protected root registry unreadable")?;
     let mut roots = BTreeMap::new();
-    for line in bytes.split_inclusive(|b| *b == b'\n') {
-        let row: Value = serde_json::from_slice(line).map_err(|_| "protected root registry unreadable")?;
+    for row in rows {
         if row["format"] != "chirality.records-store.root" || row["formatVersion"] != "0.1"
             || row["root"].as_str().is_none_or(str::is_empty) || row["projectId"].as_str().is_none_or(str::is_empty)
             || !matches!(row["how"].as_str(),Some("minted" | "registered" | "adopted" | "released")) {
@@ -340,8 +343,14 @@ fn protected(census: &mut Census, root: &Path, limits: &mut Vec<Value>) -> Resul
         || link["projectId"].as_str().is_none_or(str::is_empty) || link["storeId"].as_str().is_none_or(str::is_empty) {
         return Err("project identity link missing/unreadable; nothing attached".into());
     }
-    if link["projectId"] != project || link["storeId"] != identity["storeId"] {
-        limits.push(issue(&source(&link_path,root,false,None), "project link differs from the protected root association, which governs"));
+    // As the records store attaches (records_store::attach): a link naming
+    // another identity or another store attaches nothing until the person
+    // resolves it.
+    if link["projectId"] != project {
+        return Err("project link names another identity than the protected root association; nothing attached until the person resolves it".into());
+    }
+    if link["storeId"] != identity["storeId"] {
+        return Err("project link names another records store than the protected root association; nothing attached until the person resolves it".into());
     }
     let dir = records_store::project_dir(&store,&project);
     let admin = store.join("administration").join(storage::key(&project));

@@ -9,7 +9,8 @@ impl Fixture {
         let project = root.join("project");
         std::fs::create_dir_all(&project).unwrap();
         let store = records_store::Store {root:root.join("store"),placement:records_store::Placement::Test,limits:vec![]};
-        records_store::use_store_for_test(Some(Ok(store.clone())));
+        // Not started: these tests are of a reader that must never start it.
+        records_store::use_store_not_started_for_test(Some(Ok(store.clone())));
         Self {root,project,store}
     }
     fn attached(&self) -> PathBuf { records_store::attach(&self.project,true).unwrap().dir.unwrap() }
@@ -207,6 +208,54 @@ fn fleet_reader_source_changes_and_alias_changes_withhold_protected_authority() 
     let before=inventory(&f.root);let view=crate::read_fleet_records_for_workspace(Some(&project_alias)).unwrap();
     assert_eq!(inventory(&f.root),before);assert_eq!(view["project"]["canonicalRoot"],f.project.to_string_lossy().as_ref());
     assert_eq!(observations(&view).len(),1,"canonical configured aliases retain only protected sources");
+}
+
+/// The fleet reader does not take the project's store folder from the
+/// records store's read decision: it must create nothing, so it keeps
+/// association checks of its own before it builds the protected folder (pull
+/// request 240, review round 4, as App Agent 0 required it shown). From a
+/// populated and valid read: with the project's link removed, and with it
+/// changed to name another identity or another store, (1) no protected store
+/// payload is read or returned, (2) nothing the project folder holds is
+/// promoted to an App observation, and (3) the cause is given. The project's
+/// own working file stays readable with its proper standing, a claim; and
+/// with the link put back the protected reading returns.
+#[test]
+fn fleet_reader_with_the_link_removed_or_changed_reads_no_protected_payload_and_promotes_no_claim() {
+    for case in ["removed", "another identity", "another store"] {
+        let f=Fixture::new();f.pair(&[f.row("fl:protected","protected fixture")]);
+        let rows=|view:&Value,member:&str|view["coordination"][member].as_array().unwrap().clone();
+        // The baseline, populated and valid: one row in the store, read as the App's observation.
+        let before=f.read();
+        assert_eq!(before["coordination"]["protected"]["state"],"attached","{case}: {}",before["coordination"]["protected"]);
+        assert_eq!((observations(&before).len(),rows(&before,"protectedRecords").len(),rows(&before,"projectRecords").len()),(1,1,1),"{case}");
+        let link=f.project.join(records_store::PROJECT_LINK);
+        let original=std::fs::read(&link).unwrap();
+        let mut changed:Value=serde_json::from_slice(&original).unwrap();
+        let cause=match case {
+            "removed"=>{std::fs::remove_file(&link).unwrap();"identity source missing"}
+            "another identity"=>{changed["projectId"]=json!("chirality-project:invented-other");std::fs::write(&link,serde_json::to_vec(&changed).unwrap()).unwrap();"project link names another identity"}
+            _=>{changed["storeId"]=json!("records-store:invented-other");std::fs::write(&link,serde_json::to_vec(&changed).unwrap()).unwrap();"project link names another records store"}
+        };
+        let inventory_before=inventory(&f.root);let view=f.read();
+        assert_eq!(inventory(&f.root),inventory_before,"{case}: the read created and changed nothing");
+        // (1) No protected store payload is read or returned.
+        assert!(rows(&view,"protectedRecords").is_empty()&&rows(&view,"governingStoreRecords").is_empty(),"{case}: {}",view["coordination"]);
+        assert!(view["coordination"]["protectedLog"].is_null(),"{case}: the store's log is not opened");
+        assert!(!view["coordination"]["protected"].to_string().contains("projectId"),"{case}: no identity is asserted for the folder");
+        // (2) Nothing is promoted to an App observation: the working file's row is still there, as the project's own record.
+        assert!(observations(&view).is_empty(),"{case}: {:?}",observations(&view));
+        let project_rows=rows(&view,"projectRecords");
+        assert_eq!(project_rows.len(),1,"{case}: the project's working file stays readable");
+        assert!(project_rows[0]["protectedOrder"].is_null(),"{case}: with no protected counterpart: {}",project_rows[0]);
+        // (3) The cause is given.
+        assert_eq!(view["coordination"]["protected"]["state"],"unavailable","{case}");
+        assert!(view["coordination"]["protected"]["reason"].as_str().is_some_and(|reason|reason.contains(cause)),"{case}: {}",view["coordination"]["protected"]);
+        // With the link put back, the protected reading returns.
+        std::fs::write(&link,&original).unwrap();
+        let after=f.read();
+        assert_eq!((after["coordination"]["protected"]["state"].as_str(),observations(&after).len()),(Some("attached"),1),"{case}");
+    }
 }
 
 #[test]
@@ -604,4 +653,55 @@ fn replacing_a_package_origin_receipt_with_identical_bytes_during_read_withholds
     assert!(has_limit(&view, "package provenance changed while reading"));
     assert_eq!(view["coordination"]["governingStoreRecords"].as_array().unwrap().len(), 2,
         "stable Fleet bytes keep their quoted store order when only provenance sources change");
+}
+
+/// The registry holding a closed fragment and its naming line (the store's own
+/// recovery): refused while the fragment is unclosed, then read as before,
+/// with the fragment left out and nothing in its place.
+#[test]
+fn fleet_reader_registry_with_a_closed_and_named_fragment_reads_the_association_as_before() {
+    let f=Fixture::new();f.pair(&[f.row("fl:registry","fixture")]);
+    let ids=|v:&Value|observations(v).iter().map(|r|r["record"]["recordId"].clone()).collect::<Vec<_>>();
+    let before=f.read();assert_eq!(ids(&before),vec![json!("fl:registry")]);
+    let roots=f.store.root.join("roots.jsonl");
+    let mut torn=std::fs::read(&roots).unwrap();torn.extend(b"{\"format\":\"chirality.records-store.root\",\"how\":\"rel");f.put(&roots,&torn);
+    let view=f.read();assert!(observations(&view).is_empty());assert!(has_limit(&view,"unclosed final line"));
+    records_store::recover_at_startup().unwrap();
+    let closed=std::fs::read(&roots).unwrap();assert!(closed.starts_with(&torn)&&closed.len()>torn.len());
+    let after=f.read();assert_eq!(ids(&after),ids(&before));
+    assert!(!has_limit(&after,"protected root registry"),"{:?}",after["limits"]);
+    assert_eq!(after["project"],before["project"],"the same association, nothing invented");
+}
+
+/// Review round 1, finding 3, on this reader directly: it returns no row it
+/// refused before for any reason but a closed fragment named exactly once.
+/// The reviewer's two inputs (an exact naming line for a complete unreadable
+/// line without the mark; a naming line of another version for a closed
+/// fragment) each still refuse.
+#[test]
+fn fleet_reader_registry_a_naming_line_for_an_unmarked_line_or_of_another_version_still_refuses() {
+    for which in 0..2 {
+        let f=Fixture::new();f.pair(&[f.row("fl:registry","fixture")]);
+        assert_eq!(observations(&f.read()).len(),1,"read while the registry is whole");
+        let roots=f.store.root.join("roots.jsonl");
+        let whole=std::fs::read(&roots).unwrap();
+        let mut bytes=whole.clone();bytes.extend(&records_store::lines::naming_inputs_that_set_nothing_aside(&whole)[which]);f.put(&roots,&bytes);
+        let view=f.read();assert!(observations(&view).is_empty(),"input {which}: no row is returned");
+        assert!(has_limit(&view,"protected root registry"),"{:?}",view["limits"]);
+    }
+}
+
+/// The shared reading has not widened what the registry reader accepts: a line
+/// of an unknown format, a naming line that names nothing, an unnamed closed
+/// line and an empty line each still refuse.
+#[test]
+fn fleet_reader_registry_unknown_line_stray_naming_unnamed_closure_or_empty_line_still_refuses() {
+    let stray=String::from_utf8(records_store::lines::naming_line(1,b"invented other bytes").unwrap()).unwrap();
+    for extra in [b"{\"format\":\"unknown\",\"formatVersion\":\"0.1\"}\n".to_vec(),stray.into_bytes(),b"{\"cut\x1e\n".to_vec(),b"\n".to_vec()] {
+        let f=Fixture::new();f.pair(&[f.row("fl:registry","fixture")]);
+        let roots=f.store.root.join("roots.jsonl");
+        let mut bytes=std::fs::read(&roots).unwrap();bytes.extend(&extra);f.put(&roots,&bytes);
+        let view=f.read();assert!(observations(&view).is_empty(),"{}",String::from_utf8_lossy(&extra));
+        assert!(has_limit(&view,"protected root registry"),"{:?}",view["limits"]);
+    }
 }

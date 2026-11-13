@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { sameActivityGeneration } from "./NativeActivity";
+import { readingSentence } from "./readingSentences";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type ReadAccountStatus = (generation: Json, modeHomeClass: string, isCurrent: () => boolean) => Promise<void>;
@@ -66,7 +67,7 @@ export function AccountStatus({ host, navigating, busy, read }: { host: Json; na
     if (!ready || busy || pending.current || !current()) return;
     pending.current = true; setReadEpoch(epoch); setFailure(null);
     try { await read(generation, mode, current); }
-    catch { if (current()) setFailure({ epoch, checkpoint: accountCheckpoint(host), message: "Account status could not be confirmed. Try checking again; this does not mean you are signed out." }); }
+    catch (error) { if (current()) setFailure({ epoch, checkpoint: accountCheckpoint(host), message: readingSentence(error) ?? "Account status could not be confirmed. Try checking again; this does not mean you are signed out." }); }
     finally { pending.current = false; if (mounted.current) setReadEpoch(null); }
   };
   const oauth = host?.homeOAuth, source = oauth?.source;

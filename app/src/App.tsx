@@ -3,12 +3,12 @@ import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, 
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
+import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
@@ -31,6 +31,10 @@ import { ConversationContext, ProjectLibraryContext, conversationFromKey, workfl
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
+// Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
+import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
+import { readingAfterWrite, readingSentence } from "./readingSentences";
+import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -189,7 +193,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     }
     setOrdinaryOutcome(outcome);
     try { await observeOrdinaryView?.(request, isCurrent); }
-    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: String(error) }); }
+    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: observationText(error) }); }
     finally { turnActionPending.current = false; setBusy(""); }
   };
   const steerText = async () => {
@@ -226,7 +230,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     } catch (nativeError) { outcome = { request, result: { acknowledged: false, nativeError } }; }
     setAttachmentOutcome(outcome);
     try { await observeAttachmentView?.(request); }
-    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: String(e) }); }
+    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: observationText(e) }); }
     finally { turnActionPending.current = false; setBusy(""); }
     return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
@@ -454,7 +458,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       {ordinaryOutcome.result.acknowledged
         ? <p role="status">Native turn/start response received. Model adoption, execution and completion remain unestablished; reported model facts are separate.</p>
         : <p role="alert">{String(ordinaryOutcome.result.nativeError)} Text and model choice retained unless superseded by a newer edit or conversation. No automatic retry or substitution.</p>}
-      {ordinaryOutcome.observationLimit && <p role="alert">Ordinary text view refresh unavailable for this original request: {ordinaryOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      {ordinaryOutcome.observationLimit && <p role="alert">{observationLine(ordinaryOutcome.observationLimit, "Ordinary text view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
     </div>}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <div>
       <button disabled={!sourceReady || !selected || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(null)}>Send text and ordered attachments</button>{" "}
@@ -467,7 +471,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       {attachmentOutcome.result.acknowledged
         ? <p role="status">Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.</p>
         : <p role="alert">{String(attachmentOutcome.result.nativeError)} No automatic retry.</p>}
-      {attachmentOutcome.observationLimit && <p role="alert">Attachment view refresh unavailable for this original request: {attachmentOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      {attachmentOutcome.observationLimit && <p role="alert">{observationLine(attachmentOutcome.observationLimit, "Attachment view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
       <details><summary>Original attachment request identity</summary>
         <p>App session: {attachmentOutcome.request.generation?.appSession} · spawn: {attachmentOutcome.request.generation?.spawnCounter} · selection owner: {attachmentOutcome.request.ownerRef} · list revision: {attachmentOutcome.request.listRevision}.</p>
         <ol>{attachmentOutcome.request.selectionRefs.map((ref, index) => <li key={`${index}:${ref}`}>{ref}</li>)}</ol>
@@ -657,10 +661,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     }
     catch (e) { setError(String(e)); }
     finally {
-      try {
-        if (navigation) await navigation.observe();
-        else await refresh();
-      } catch (e) { setError(String(e)); }
+      await refreshAfterAction(async () => { if (navigation) await navigation.observe(); else await refresh(); }, () => setError(withRefreshFailure));
       if (navigation) {
         setPendingContinue(ticket);
         setContinueNotice(ticket ? "Continue admission confirmed; waiting for its matched current conversation view. No automatic retry."
@@ -679,7 +680,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     setBusy(true); setError(""); setProgress("Selecting the stored conversation for inspection…");
     try { await invoke("history_select", { generation, selectionEpoch: epoch, threadId }); }
     catch (e) { setError(String(e)); }
-    finally { try { await refresh(); } catch (e) { setError(String(e)); } busyRef.current = false; setBusy(false); setProgress(""); }
+    // The selection's own error stands; a failed refresh adds the fixed line once and nothing raw.
+    finally { await refreshAfterAction(refresh, () => setError(withRefreshFailure)); busyRef.current = false; setBusy(false); setProgress(""); }
   };
   const pageButtons = (action: string, page: Json, reference: string | null = null, pageDirection = direction) => <span className="history-pagination">
     {typeof page?.nextCursor === "string" && <button aria-label={`Next ${action === "list" ? "conversations" : action} page`} disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
@@ -920,81 +922,7 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
       : ` ${String(newer.offered)}.`}</p>;
 }
 
-/** RS §13.8: the records store, project identity, package recovery and the
- *  separate explicit import of §13.7 records still in the project. */
-export function RecordsStorePanel({ store, act }: { store: Json; act: (command: string, args?: Record<string, unknown>) => Promise<void> }) {
-  if (!store) return null;
-  const project = store.project;
-  const attachment = project?.attachment;
-  const retention = project?.retention;
-  const packageImport = store.packageImport;
-  const packageBlocked = packageImport?.state === "incomplete" || packageImport?.state === "unavailable";
-  const kept = retention?.disposition === "kept";
-  const identityRepair = !packageBlocked && (retention == null || kept);
-  const holdable = kept || retention?.disposition === "disposal incomplete";
-  const terminalDisposition = ["disposed", "disposal incomplete", "completion durability uncertain"].includes(retention?.disposition);
-  const packageImportable = store.state === "available" && !packageBlocked && !terminalDisposition;
-  const packageRepairable = store.state === "available" && !terminalDisposition && packageImport?.canRepair === true;
-  return <section aria-label="Records store">
-    <h3>Records store</h3>
-    {store.state === "available"
-      ? <p>Store: {String(store.root)} ({String(store.placement)}).</p>
-      : <p role="alert">No records store: {String(store.error)}. Nothing is recorded; there is no fallback.</p>}
-    {(store.limits ?? []).map((l: string) => <p key={l} role="note">{l}</p>)}
-    {project && <>
-      <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
-      {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
-      {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
-      {attachment?.projectId && !attachment?.refusal && kept && !packageBlocked && project.reading === "records store" && <p>
-        <button onClick={() => act("records_store_export")}>Export project records</button>{" "}
-        <small>Creates a verified package in a folder you choose.</small>
-      </p>}
-      {packageImportable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "import" })}>Import verified package</button>{" "}
-        <small>Choose a package for the identity already named by this folder’s project file. Exact bytes and the original identity are retained; conflicting files are refused. Unsigned package content stays quoted evidence.</small>
-      </p>}
-      {packageImportable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "restore" })}>Restore project from package</button>{" "}
-        <small>Recover the package’s original project identity. The App checks whether this folder has no identity or only an unused identity created at startup. It refuses to replace an identity with records, a legal hold, closure or disposal, and retains existing bytes.</small>
-      </p>}
-      {packageImport?.state === "incomplete" && <p role="alert">
-        Package import is interrupted. Project records remain unavailable until it is finished.{" "}
-        <button onClick={() => act("records_store_import_package", { action: "resume" })}>Finish package import</button>
-      </p>}
-      {packageImport?.state === "unavailable" && <p role="alert">Package import status is unavailable. Project records remain unavailable.</p>}
-      {packageRepairable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "repair" })}>Repair package controls</button>{" "}
-        <small>Uses the original native intent and retained evidence. Differing control bytes or a missing original act keep recovery held. Package claims stay quoted evidence and grant no authority to replay acts.</small>
-      </p>}
-      {packageImport?.reason && <p role="note">Package recovery: {String(packageImport.reason)}</p>}
-      {packageImport?.repairReason && packageImport.repairReason !== packageImport.reason && packageImport.repairReason !== packageImport.limit && <p role="note">Package repair: {String(packageImport.repairReason)}</p>}
-      {typeof packageImport?.needsPackage === "boolean" && <p role="note">Original package needed for repair: {packageImport.needsPackage ? "yes; the native selector will ask you to choose it again" : "no"}.</p>}
-      {packageImport?.limit && packageImport.limit !== packageImport.reason && <p role="note">Package import: {String(packageImport.limit)}</p>}
-      {(packageImport?.importId || packageImport?.packageIdentity) && <p>Package import: {String(packageImport.state)}. {packageImport.importId && <>Import reference: {String(packageImport.importId)}. </>}{packageImport.packageIdentity && <>Package identity: {String(packageImport.packageIdentity)}.</>}</p>}
-      {retention && <p role="note">{retention.disposition === "unavailable"
-        ? "Retention state unavailable. Project closure and legal hold are unknown."
-        : <>{retention.closed ? "Project closed to recording." : "Project open."} Legal hold: {retention.legalHold ? "set" : "not set"}. Records: {String(retention.disposition)}.</>}{" "}{retention.limit && String(retention.limit)}</p>}
-      {attachment?.projectId && !attachment?.refusal && holdable && !packageBlocked && <p>
-        {kept && <><button onClick={()=>act("records_store_retention",{action:retention.closed ? "reopen" : "close"})}>{retention.closed ? "Reopen project" : "Close project"}</button>{" "}</>}
-        <button onClick={()=>act("records_store_retention",{action:retention.legalHold ? "release-hold" : "set-hold"})}>{retention.legalHold ? "Release legal hold" : "Set legal hold"}</button>{" "}
-        {kept && retention.closed && !retention.legalHold && <button onClick={()=>act("records_store_retention",{action:"dispose"})}>Dispose of records after verified export</button>}
-      </p>}
-      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : !packageBlocked && <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button>}</p>}
-      {project.notImported > 0 && kept && !retention.closed && !packageBlocked && <p>
-        <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
-        <small>{String(project.importStanding ?? "")}</small>
-      </p>}
-      {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && identityRepair && <p>
-        <button onClick={() => act("records_store_identity", { action: "adopt" })}>This folder is that project</button>{" "}
-        <button onClick={() => act("records_store_identity", { action: "new-identity" })}>Give this folder a new identity</button>{" "}
-        <button onClick={() => act("records_store_identity", { action: "restore-link" })}>Restore the project file</button>
-      </p>}
-    </>}
-    <p><button onClick={() => act("records_store_verify_export")}>Verify an exported package</button></p>
-  </section>;
-}
-
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -1034,7 +962,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
     setOutcome({relation,message:"",limits:[]});
     const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
-    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${String(error)}. The original command response is retained as reported.`);}};
+    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${observationLine(observationText(error),"")} The original command response is retained as reported.`);}};
     // Capture this metadata request before awaiting the command or a new view.
     let draftRequest:Record<string,unknown>|undefined,draftRequestError:unknown;
     if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
@@ -1094,10 +1022,10 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={guideOutcome} showConversation={showConversation}/>
+      outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
     </div>
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
-    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
     {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
     <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined}>
@@ -1182,7 +1110,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
     <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
     {data?.reopened&&<article><h3>Recorded runs (reopened from project records)</h3><p>{data.reopened.standing}</p>
-      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart interruptions: ${r.restartInterruptions.length}`:""}
+      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart facts recorded for this conversation: ${r.restartInterruptions.length}`:""}
         {r.workflow&&<p>Recorded workflow {r.workflow.origin}:{r.workflow.name}, revision {String(r.workflow.revision??"").slice(0,12)}.</p>}
         {!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<RunBringBack run={r} conversations={conversations} defaultThread={runBringBackDefault(data,r.run)} busy={busy} act={action}/>}
         {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>)}</ul>
@@ -1335,8 +1263,8 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
         || (context.current.host?.accessSettingsReadRevision !== original.accessSettingsReadRevision
           && context.current.host?.accessSettingsReadRevision !== packet.scope.readRevision)) return;
       setObservation({ packet, epoch, sequence: attempt });
-    } catch {
-      if (current()) setError("Effective access settings unavailable; private diagnostic withheld. Read again from the current Codex source.");
+    } catch (error) {
+      if (current()) setError(readingSentence(error) ?? "Effective access settings unavailable; private diagnostic withheld. Read again from the current Codex source.");
     } finally { pending.current = false; if (mounted.current) setReading(false); }
   };
   const current = ready && observation?.epoch === epoch && observation.sequence === sequence.current
@@ -1512,7 +1440,8 @@ export function App() {
       setRouteRead(s => routeReadTransition(s, {type: "failure", error: String(error)}));
     }
   };
-  const [host, setHost] = useState<Json>(null);
+  // Every status read is numbered when it starts and applied only if newer than the one shown (hostReads.ts).
+  const { host, hostReads, readHost, applyHost } = useOrderedHost();
   // Safe reply observations outlive a card's move between the selected chat
   // and other requests. They are transient App UI facts, never register rows.
   const [replyObservations, setReplyObservations] = useState<Record<string, RequestReplyObservation>>({});
@@ -1694,12 +1623,12 @@ export function App() {
         || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null)
         || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Unavailable endpoint offer");
-      const latest: Json = await invoke("host_status");
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
       if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
-      setHost(latest);
+      applyHost(latestRead);
       updateEndpointEditor({ ...editor, offer: packet, message: "Review the exact endpoint change. Saving opens two separate native decisions." });
-    } catch {
-      if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
+    } catch (error) {
+      if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
     } finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const saveEndpoint = async () => {
@@ -1719,8 +1648,12 @@ export function App() {
         "overridden": "Write observed with an override reported; the current source has not been continued.",
         "continued": "Endpoint write and current source continuation observed. Current choices and drafts stay unchanged.",
       };
-      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
-      const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+      // A reading again after the write that was not sent: the write's outcome first, then why.
+      updateEndpointEditor({ ...editor, offer: null, message: readingAfterWrite(outcome?.message) ?? messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
+      // A refresh cannot revoke the save outcome already received; its failure is withheld.
+      try {
+        const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot; if (current() && providerSource(latest) === editor.source) applyHost(latestRead);
+      } catch { /* Retain the known save outcome; private refresh diagnostics withheld. */ }
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint change unavailable. No automatic retry; a write may already have occurred." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
@@ -1747,10 +1680,10 @@ export function App() {
       if (packet?.kind !== "add-provider" || typeof packet.token !== "string" || packet.providerId !== editor.id || packet.submittedName !== editor.name || packet.endpoint !== editor.endpoint
         || packet.wireApi !== "responses" || packet.requiresOpenaiAuth !== false || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null) || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Add offer unavailable");
-      const latest: Json = await invoke("host_status");
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
       if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
-      setHost(latest); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
-    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
+      applyHost(latestRead); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
+    } catch (error) { if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const saveProviderCreate = async () => {
@@ -1769,13 +1702,17 @@ export function App() {
         "overridden": "Provider addition write observed with an override reported; the current source has not been continued.",
         "continued": "Provider addition write and current source continuation observed. Read configured providers to see current rows. Your provider/model choice is unchanged.",
       };
-      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Provider Add outcome unavailable; no automatic retry." });
+      // A reading again after the write that was not sent: the write's outcome first, then why.
+      updateEndpointEditor({ ...editor, offer: null, message: readingAfterWrite(outcome?.message) ?? messages[outcome?.state] ?? "Provider Add outcome unavailable; no automatic retry." });
       // A refresh cannot revoke the factual save outcome already received.
       // Its failure also cannot attach an old outcome to a newer editor/source.
       try {
-        const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+        const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot; if (current() && providerSource(latest) === editor.source) applyHost(latestRead);
       } catch { /* Retain the known save outcome; private refresh diagnostics withheld. */ }
-    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; no automatic retry. Private diagnostics withheld." }); }
+    } catch (error) {
+      // Refused at the configuration reading before the write: nothing was written; that sentence alone.
+      if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Provider Add unavailable; no automatic retry. Private diagnostics withheld." });
+    }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const configuredRowChoiceStale = () => {
@@ -1808,12 +1745,12 @@ export function App() {
         && packet.rows.every((row: Json) => typeof row.id === "string" && /^[A-Za-z][A-Za-z0-9._-]{0,63}$/.test(row.id)
           && row.label === "Configured local provider" && typeof row.endpoint === "string" && row.wireApi === "responses");
       if (!valid) throw Error("unavailable projection");
-      const latest: Json = await invoke("host_status");
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
       if (!current() || providerSource(latest) !== source || latest?.state !== "ready" || latest?.generationClosed
         || latest?.configuredProviderReadRevision !== packet.scope.readRevision
         || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
           && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
-      setHost(latest);
+      applyHost(latestRead);
       // A row chosen from an earlier read of this same source (home, Codex
       // generation and project) stays chosen when this read still lists it;
       // otherwise, and after a Codex restart, it stays retired.
@@ -1821,8 +1758,8 @@ export function App() {
       if (chosen && chosen.source === source && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
         && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
-    } catch {
-      if (current()) setProviderObservationMessage("Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
+    } catch (error) {
+      if (current()) setProviderObservationMessage(readingSentence(error) ?? "Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
     } finally {
       providerReadPending.current = false; setProviderReading(false);
     }
@@ -1946,11 +1883,11 @@ export function App() {
     try {
       // A current-pending navigation is just one observation. In particular it
       // never uses a prepare command's result or invokes a workflow operation.
-      const snapshot: Json = await invoke("host_status");
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       const limit = ticket.check() ?? (currentHost.current !== source ? "A newer host observation superseded this delayed read; open again from the current view." : null)
         ?? preparedMessageLimit(snapshot, item);
       if (limit) { refuse(limit); return; }
-      setHost(snapshot);
+      applyHost(snapshotRead);
       setThreadKey(conversationKey(findConversation(snapshot.threads, item.owner)));
       const revealRevision = threadChoiceRevision.current;
       const reveal: PreparedComposerReveal = { sequence, item,
@@ -1966,7 +1903,7 @@ export function App() {
         } };
       showView("conversation");
       setPreparedReveal(reveal);
-    } catch (error) { refuse(`The original view refresh failed: ${String(error)}. Open again from a current view.`); }
+    } catch (error) { refuse(`The original view refresh failed: ${observationLine(observationText(error), "")} Open again from a current view.`); }
     finally { if (preparedNavigation.current === ticket) preparedNavigation.current = null; }
   };
   const roleInitialized = useRef(false);
@@ -1979,8 +1916,8 @@ export function App() {
 
 
   const refresh = useCallback(async () => {
-    const snapshot: Json = await invoke("host_status");
-    setHost(snapshot);
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+    applyHost(snapshotRead);
     try {
       setView(await invoke("decision_view"));
     } catch (e) {
@@ -1991,10 +1928,10 @@ export function App() {
 
   const refreshEffectiveAccessSettings = useCallback(async (isCurrent: () => boolean) => {
     const sourceAtRead = currentHost.current;
-    const snapshot: Json = await invoke("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     // This explicit settings refresh cannot replace a newer App observation.
     // Other refresh and polling behavior keeps its existing semantics.
-    if (isCurrent() && currentHost.current === sourceAtRead) setHost(snapshot);
+    if (isCurrent() && currentHost.current === sourceAtRead) applyHost(snapshotRead);
     return snapshot;
   }, []);
 
@@ -2010,11 +1947,11 @@ export function App() {
     await invoke("read_home_access", { generation, modeHomeClass });
     if (!current()) return;
     const viewAtRead = currentHost.current;
-    const snapshot: Json = await invoke("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     if (!current() || currentHost.current !== viewAtRead) return;
     // A current host_status may itself report a replacement source. It is a
     // new observation, never confirmation of the original account read.
-    setHost(snapshot);
+    applyHost(snapshotRead);
   }, []);
 
   const captureContinueNavigation = (generation: Json, historyCurrent: (history: Json) => boolean): ContinueNavigation => {
@@ -2034,8 +1971,8 @@ export function App() {
     return { isCurrent, observe: async () => {
       // The same two observer reads as refresh, bounded to this original
       // navigation's last-known source/intent. Shared refresh semantics stay put.
-      const snapshot: Json = await invoke("host_status");
-      if (isCurrent()) setHost(snapshot);
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+      if (isCurrent()) applyHost(snapshotRead);
       try {
         const decision: Json = await invoke("decision_view");
         if (isCurrent()) setView(decision);
@@ -2046,7 +1983,7 @@ export function App() {
 
   useEffect(() => {
     refresh();
-    const t = setInterval(() => invoke("host_status").then(setHost).catch(e => setMessage(String(e))), 1000);
+    const t = setInterval(() => refreshAfterAction(() => readHost(invoke<Json>("host_status")).then(applyHost), () => setMessage(withRefreshFailure)), POLL_MS);
     // RECOVERY SQ-W W-4, W-5: when the window is shown again after it was
     // closed (hidden; DEF-1), the view replaces what it rendered with the
     // host's current snapshot at once. Nothing is sent to Codex.
@@ -2062,7 +1999,9 @@ export function App() {
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     }
-    await refresh();
+    // The command's own message stands and the act resolves: a failed refresh adds the fixed line
+    // once and never stops what a caller does after it (decide closes its offer).
+    await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
   };
   // A local Start is bound to the current fixed route of this exact ready generation.
   const localStartBound = (submitted: { model: string; modelProvider: string; entryId: string }, source: Json) => {
@@ -2103,8 +2042,7 @@ export function App() {
     } finally {
       startPendingRef.current = false;
       setStartPending(false);
-      try { await refresh(); }
-      catch (error) { setMessage(previous => `${previous}; current host view unavailable: ${String(error)}`); }
+      await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
     }
   };
   // Keyed oMLX: one local command at a time. Its view is shown only while it
@@ -2133,8 +2071,10 @@ export function App() {
     finally {
       // The latch is held through this refresh, which cannot replace a newer
       // observation or home navigation that arrived while it was read.
-      try { await refreshEffectiveAccessSettings(() => sequence === localSequence.current && !homePendingRef.current); }
-      catch (error) { setLocalMessage(previous => ({ kind: "alert", text: `${previous ? `${previous.text} ` : ""}Current view unavailable: ${String(error)}` })); }
+      try {
+        await refreshAfterAction(() => refreshEffectiveAccessSettings(() => sequence === localSequence.current && !homePendingRef.current),
+          () => setLocalMessage(previous => ({ kind: "alert", text: withRefreshFailure(previous?.text) })));
+      }
       finally { localPendingRef.current = false; setLocalPending(false); }
     }
   };
@@ -2157,7 +2097,13 @@ export function App() {
         reviseChoice(emptyConversationChoice);
       }
     }
-    try { const result: Json = await invoke(command, args); const snapshot = await refresh(); return { result, snapshot }; }
+    try {
+      const result: Json = await invoke(command, args);
+      // The command's outcome stands: a refresh that fails after it does not make the command look
+      // failed. It adds the fixed line once to the App line, nothing raw, and gives no snapshot.
+      const snapshot: Json = await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
+      return { result, snapshot };
+    }
     finally { if (navigating) { homePendingRef.current = false; setHomePending(false); } }
   };
   // Start / Stop / Restart Codex: one at a time; the host asks first for Stop and Restart.
@@ -2170,8 +2116,9 @@ export function App() {
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     } finally {
+      // The outcome and the busy state are set first; a failed refresh adds the fixed line once.
       setProcessBusy(false);
-      await refresh();
+      await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
     }
   };
 
@@ -2180,11 +2127,11 @@ export function App() {
   const observeOrdinaryView = async (request: OrdinaryTextRequest, isCurrent: () => boolean) => {
     const viewAtRead = currentHost.current;
     if (!isCurrent() || !sameActivityGeneration(viewAtRead?.generation, request.generation)) throw new Error("The original conversation/source was superseded; its view was not applied");
-    const snapshot = await invoke<Json>("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     if (!isCurrent() || currentHost.current !== viewAtRead || !sameActivityGeneration(currentHost.current?.generation, request.generation) || !sameActivityGeneration(snapshot?.generation, request.generation)) {
       throw new Error("A newer conversation/source observation superseded this original refresh; its view was not applied");
     }
-    setHost(snapshot);
+    applyHost(snapshotRead);
   };
   const conversationAction = async (command: "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>): Promise<boolean> => {
     // Capture before native dispatch, not after it. Epochs also invalidate an
@@ -2205,12 +2152,12 @@ export function App() {
     setConversationOutcome(outcome);
     try {
       if (!current() || currentHost.current !== sourceAtDispatch) throw new Error("Original view refresh superseded before reading; no old snapshot was applied");
-      const snapshot = await invoke<Json>("host_status");
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       if (!current() || currentHost.current !== sourceAtDispatch || !sameActivityGeneration(snapshot?.generation, args.generation)) {
         throw new Error("Original view refresh superseded while reading; no old snapshot was applied");
       }
-      setHost(snapshot);
-    } catch (e) { setConversationOutcome({ ...outcome, observationLimit: String(e) }); }
+      applyHost(snapshotRead);
+    } catch (e) { setConversationOutcome({ ...outcome, observationLimit: observationText(e) }); }
     // A refusal never clears text. A skipped/failed read never rewrites the
     // native result, and a superseded acknowledgment never clears a new owner.
     return acknowledged && current();
@@ -2276,6 +2223,8 @@ export function App() {
       const opened = await homeAction("open_waiting_requests", { modeHomeClass: group.modeHomeClass, generation: group.generation, threadId: group.threadId });
       if (!opened) return;
       const { result, snapshot } = opened;
+      // No status was read after the command: the fixed line is shown; nothing is navigated.
+      if (snapshot === undefined) return;
       const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
       // React may batch the new snapshot until this callback finishes. Use it
       // when no newer view rendered; otherwise the newer rendered source wins.
@@ -2326,14 +2275,14 @@ export function App() {
         setMessage(`Fork ${target.threadId} was admitted as a same-role copy from conversation ${sourceThread} in the original ${scope.modeHomeClass} home. ${current ? "Reading its original source view." : "Navigation was superseded; no switch was made."} Record publication remains separate.`);
         if (current) setPendingFork({ ...scope, ...target });
       }
-    } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(`Fork outcome is not confirmed: ${String(error)}`); }
+    } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(readingSentence(error) ?? `Fork outcome is not confirmed: ${String(error)}`); }
     finally {
-      try {
-        const snapshot = await invoke("host_status");
+      await refreshAfterAction(async () => {
+        const snapshotRead = await readHost(invoke<Json>("host_status"));
         // Ignore a response to an older intent/source; it cannot restore that
         // home over a newer choice or make a stale fork current.
-        if (forkContextCurrent(scope, currentHost.current)) setHost(snapshot);
-      } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(previous => `${previous}; original source view refresh unavailable: ${String(error)}`); }
+        if (forkContextCurrent(scope, currentHost.current)) applyHost(snapshotRead);
+      }, () => { if (forkContextCurrent(scope, currentHost.current)) setMessage(withRefreshFailure); });
       forkInFlight.current = false;
     }
   };
@@ -2347,11 +2296,11 @@ export function App() {
       outcome = { state: "unknown", reason: "The original send observation was unavailable." };
     }
     setMessage(`Continue-as: ${outcome.state}${outcome.reason ? ` (${outcome.reason})` : ""}`);
-    try { await refresh(); }
-    catch (error) {
-      outcome = { ...outcome, observationFailure: String(error) };
-      setMessage(`Continue-as: ${outcome.state}; view refresh failed: ${String(error)}`);
-    }
+    // The send's outcome stands; a failed refresh adds the fixed line once and nothing raw.
+    await refreshAfterAction(refresh, () => {
+      outcome = { ...outcome, observationFailure: REFRESH_FAILED };
+      setMessage(withRefreshFailure);
+    });
     return outcome;
   };
   const runAct: RunAct = async (command, args) => {
@@ -2360,7 +2309,7 @@ export function App() {
       setMessage(`${command}: ${JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); }
-    finally { await refresh(); }
+    finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // As runAct, but a host error rejects with the host's message, for a start
   // whose own panel reports the outcome (Continue as).
@@ -2370,7 +2319,7 @@ export function App() {
       setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
-    finally { await refresh(); }
+    finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // A bring-back send the host could not confirm withdraws its pre-fill, so its
   // composer and outcome would disappear. Its original attempt (trial or run,
@@ -2412,8 +2361,7 @@ export function App() {
     } catch (e) { setMessage(`${command}: ${String(e)}`); if (bringBack && !prefillKept(e)) noteBringBackDoubt({ ...bringBack, message: hostMessage(e), acknowledged: false }); throw e; }
     finally {
       if (flight) endBringBack(flight);
-      try { await refresh(); }
-      catch (error) { setTrialObservation(previous => previous?.relation === relation ? { relation, limit: String(error) } : previous); }
+      await refreshAfterAction(refresh, () => setTrialObservation(previous => previous?.relation === relation ? { relation, limit: REFRESH_FAILED } : previous));
     }
   };
   // The conversation the panel actually shows (current generation only), so no request is hidden.
@@ -2469,16 +2417,17 @@ export function App() {
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
-  const setupRequired = host?.desktopSetup?.launch?.state === "setup-required";
+  // App data held by another process shows the same focused surface, with its reason.
+  const setupRequired = ["setup-required", "data-held", "home-held"].includes(host?.desktopSetup?.launch?.state);
   return (<DailyWorkspace>
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
-        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => { const result = await invoke(command, args); await refresh(); return result; }}/>
+        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed}/>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome}/>
         </div>
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2525,7 +2474,7 @@ export function App() {
         {trialObservation?.limit && <p role="status" aria-label="Trial view observation limit">
           Trial view refresh unavailable for {trialObservation.relation.command} (attempt {trialObservation.relation.attempt}; prepared message {JSON.stringify(trialObservation.relation.reference)};
           source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
-          requested target {JSON.stringify(trialObservation.relation.target)}): {trialObservation.limit}. The original command outcome is unchanged.
+          requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
         <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
         <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model, provider, access entry and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
@@ -2556,19 +2505,22 @@ export function App() {
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
             <ConversationPanel localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
-          try {
-              await invoke("collaboration_modes_read", { generation });
-          }
-          finally {
-              setHost(await invoke("host_status"));
-          }
+          // The check's own failure stands, with the fixed line after it when the refresh failed too.
+          // A completed check whose refresh fails rejects with the fixed line alone: its result is
+          // visible only through the refreshed status, and that line says the status was not read.
+          let failure: unknown = null, failed = false, refreshFailed = false;
+          try { await invoke("collaboration_modes_read", { generation }); }
+          catch (error) { failure = error; failed = true; }
+          await refreshAfterAction(async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => { refreshFailed = true; });
+          if (failed) throw refreshFailed ? withRefreshFailure(String(failure)) : failure;
+          if (refreshFailed) throw REFRESH_FAILED;
       }} steer={async (generation, threadId, expectedTurnId, text) => {
           return await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
           return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
       }} observeAttachmentView={async (request) => {
           const viewAtRead = currentHost.current;
-          const snapshot = await invoke<Json>("host_status");
+          const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
           // This read belongs to the original attachment request, not a Home or
           // generation selected while its native response/read was pending.
           if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
@@ -2577,7 +2529,7 @@ export function App() {
           if (currentHost.current !== viewAtRead) {
               throw new Error("A newer view arrived while this original request's refresh was pending; its snapshot was not applied");
           }
-          setHost(snapshot);
+          applyHost(snapshotRead);
       }} interrupt={async (generation, threadId, turnId) => {
           return await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }}/>
@@ -2587,16 +2539,11 @@ export function App() {
                 : conversationOutcome.native === "failed" ? `Original native request failed: ${conversationOutcome.error}`
                 : conversationOutcome.command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events."
                 : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment."} No automatic retry.</p>
-              {conversationOutcome.observationLimit && <p role="status">{conversationOutcome.observationLimit}. The original command outcome is unchanged.</p>}
+              {conversationOutcome.observationLimit && <p role="status">{observationLine(conversationOutcome.observationLimit, "")} The original command outcome is unchanged.</p>}
             </div>}
             <WorkspaceDisclosure id="workspace-attachments" title="Message attachments" description="Select and review files for a message">
               <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
-          try {
-              await invoke(command, args);
-          }
-          finally {
-              setHost(await invoke("host_status"));
-          }
+          await commandThenRefresh(() => invoke(command, args), async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
             </WorkspaceDisclosure>
           </div>
@@ -2604,7 +2551,7 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
@@ -2641,17 +2588,15 @@ export function App() {
           catch (e) {
               setMessage(String(e));
           }
-          setHost(await invoke("host_status"));
+          // The selection's own message stands; a failed refresh adds the fixed line once.
+          await refreshAfterAction(async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
 
         <TraceReceivingPanel data={host?.traceReceiving} currentContext={{ hostState: host?.state, generation: host?.generation, nativeSupplier: host?.versionIdentity, supplierStanding: host?.supplierStanding, accessSelection: host?.accessSelection, accountObservation: host?.accountObservation, appExecutableIdentity: "not established by this selector" }} select={async (recordKind, evidenceKind) => {
-          try {
+          await commandThenRefresh(async () => {
               const received: Json = await invoke("select_trace_record", { recordKind, evidenceKind });
               setMessage(`Supplied trace selection: ${received.selection?.state ?? "unknown"}`);
-          }
-          finally {
-              setHost(await invoke("host_status"));
-          }
+          }, async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
   <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl}/>
           </WorkspaceDisclosure>

@@ -64,11 +64,7 @@ pub fn library_pending_path(library: &Path, id: &str) -> PathBuf {
 /// The project's capture evidence folder as it is read now: the store's, or
 /// before an import the §13.7 folder in place.
 pub fn capture_dir(root: &Path) -> Result<PathBuf, String> {
-    let home = records_store::home(root)?;
-    Ok(match (home.store_mode, home.attachment.dir) {
-        (true, Some(dir)) => dir.join("captures"),
-        _ => root.join(CAPTURES),
-    })
+    Ok(records_store::readable_home(root)?.captures())
 }
 /// The project's capture evidence folder for a write (store only).
 pub fn write_capture_dir(root: &Path) -> Result<PathBuf, String> {
@@ -147,6 +143,31 @@ pub fn lock_shared(path: &Path) -> Result<Ownership, String> {
 /// or another process) has the file locked now; `None` otherwise. Never waits.
 pub fn try_lock_exclusive(path: &Path) -> Result<Option<Ownership>, String> {
     flock(path, libc::LOCK_EX | libc::LOCK_NB, false)
+}
+/// A shared lock on a lock file that already exists, for a reader: it creates
+/// neither the file nor a folder. `None` when the file does not exist.
+pub(crate) fn lock_shared_existing(path: &Path) -> Result<Option<Ownership>, String> {
+    use std::os::unix::fs::OpenOptionsExt;
+    check_path(path)?;
+    // Opened without blocking: a control replaced by a FIFO or a device must
+    // not hold a reader for ever. Only a regular, singly linked file is a
+    // control; anything else at its path is refused before any lock.
+    let file = match OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK).open(path) {
+        Ok(file) => file,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("owning lock: {}: {e}", path.display())),
+    };
+    {
+        use std::os::unix::fs::MetadataExt;
+        let meta = file.metadata().map_err(|e| format!("owning lock: {}: {e}", path.display()))?;
+        if !meta.file_type().is_file() || meta.nlink() != 1 {
+            return Err(format!("owning lock: {} is not a regular, singly linked file; it is not this project's control and nothing is read under it", path.display()));
+        }
+    }
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_SH) } != 0 {
+        return Err(format!("owning lock: {}", std::io::Error::last_os_error()));
+    }
+    Ok(Some(Ownership(file, None)))
 }
 /// Read ownership allows a closed retained payload (for export), while the
 /// stable admission lease still prevents removal during the read.
@@ -393,7 +414,10 @@ pub fn discover(root: &Path) -> Result<Vec<PathBuf>, String> {
             let entry = entry.map_err(|e| e.to_string())?;
             let path = entry.path();
             check_path(&path)?;
-            if path.is_dir() {
+            // An entry that cannot be examined is not left out: the set is
+            // incomplete, never shown whole without it.
+            let meta = std::fs::symlink_metadata(&path).map_err(|e| format!("incomplete record discovery: {} could not be examined: {e}", path.display()))?;
+            if meta.is_dir() {
                 walk(&path, out)?;
             } else if path.extension().is_some_and(|e| e == "jsonl") {
                 out.push(path);
@@ -431,29 +455,41 @@ pub(crate) struct Sources {
 /// (`records::library_record_set`) so its lines never make the project's
 /// set incomplete (U-STORE-2).
 pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
-    let home = records_store::home(root)?;
+    let home = records_store::readable_home(root)?;
     let library = library_log(root);
     check_path(&library)?;
-    match (home.store_mode, home.attachment.dir) {
-        (true, Some(dir)) => {
-            let registered = dir.join(records_store::REGISTERED_COPY);
-            let files = if registered.exists() { vec![registered] } else { vec![] };
+    let registered = home.registered_log();
+    match home.in_store() {
+        Some(dir) => {
+            let files = if registered_present(&registered, false)? { vec![registered] } else { vec![] };
             Ok(Sources { walk: vec![dir.join("runs"), dir.join("acts")], files, exclude: vec![] })
         }
-        _ => {
-            let legacy = root.join(LEGACY_LOG);
-            check_path(&legacy)?;
-            let files = if legacy.exists() { vec![legacy] } else { vec![] };
-            Ok(Sources { walk: vec![root.join(LEGACY_RECORDS)], files, exclude: vec![library] })
+        None => {
+            check_path(&registered)?;
+            let files = if registered_present(&registered, true)? { vec![registered] } else { vec![] };
+            Ok(Sources { walk: vec![home.records()], files, exclude: vec![library] })
         }
+    }
+}
+/// Whether the registered legacy log is there: only what is not there is
+/// absent, and a log that cannot be examined leaves the set incomplete. In
+/// place, the log's folder is `records` at the project's root, the
+/// project's own space: an ordinary file of that name means the log cannot
+/// exist beneath it (NotADirectory), so it is observed absent there, as the
+/// import's census holds (`records_store::legacy_census`). In the store,
+/// where only the App writes, that is an error like any other.
+fn registered_present(path: &Path, in_place: bool) -> Result<bool, String> {
+    match std::fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) if in_place && e.kind() == std::io::ErrorKind::NotADirectory => Ok(false),
+        Err(e) => Err(format!("incomplete record discovery: the registered legacy log {} could not be examined: {e}", path.display())),
     }
 }
 /// The registered legacy log as it is read now: the imported copy in the
 /// project's store subtree, or before an import the file in place.
 pub fn registered_legacy_log(root: &Path) -> Result<PathBuf,String> {
-    let home=records_store::home(root)?;
-    if home.store_mode {Ok(home.attachment.dir.ok_or("records store source identity unavailable")?.join(records_store::REGISTERED_COPY))}
-    else{Ok(root.join(LEGACY_LOG))}
+    Ok(records_store::readable_home(root)?.registered_log())
 }
 
 pub fn read_all(root: &Path) -> (Vec<Value>, Vec<String>) {

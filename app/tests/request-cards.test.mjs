@@ -325,7 +325,8 @@ test('supplier resolution after interruption remains a supplier resolution and i
     await ui.answer();
     assert.equal(ui.custody.state,'resolved-by-supplier');
     assert.match(ui.container.textContent,/Native answer command reported: already-resolved/);
-    assert.match(ui.container.textContent,/Request state unavailable: Error: reconnect snapshot unavailable/);
+    // A failed status read is shown only as the fixed line (App Agent 0's decision), never its raw diagnostic.
+    assert.ok(ui.container.textContent.includes("Request state unavailable: The App could not read Codex's status afterwards, so what is shown may be out of date."),ui.container.textContent.slice(-500));assert.doesNotMatch(ui.container.textContent,/reconnect snapshot unavailable/);
     assert.equal(ui.send(),undefined);
     const call=ui.calls.find(call=>call.command==='answer_native_request');
     assert.deepEqual(call.args,{generation:g,requestId:'original-permission',answer:{decision:'decline'}});

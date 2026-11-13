@@ -108,7 +108,8 @@ test('actual create result remains unchanged through a failed view refresh and o
     assert.equal(returned,view.source.nativeResult,'the leaf receives the unchanged native Value, not a UI envelope');
     assert.equal(resultText(view.container),JSON.stringify(view.source.nativeResult));
     assert.equal(limits(view.container).length,1);
-    assert.ok(limits(view.container)[0].includes('View refresh after workflow_create_draft failed: Error: Controlled original view refresh unavailable'));
+    // A failed status read is shown only as the fixed line (App Agent 0's decision), never its raw diagnostic.
+    assert.ok(limits(view.container)[0].includes("View refresh after workflow_create_draft failed: The App could not read Codex's status afterwards, so what is shown may be out of date. The original command response is retained as reported."),limits(view.container)[0]);assert.ok(!view.container.textContent.includes('Controlled original view refresh unavailable'));
     assert.ok(limits(view.container)[0].includes('response is retained as reported'));
     assert.deepEqual(relation(view.container),{command:view.source.command,source:view.source.beforeHostStatus.workflowRoot.context,request:view.source.args});
     assert.deepEqual(view.calls.slice(start).map(([command]) => command),['workflow_create_draft','host_status','workflow_observe_drafts','host_status','decision_view']);
@@ -256,3 +257,8 @@ test('one pending create owns workflow controls through observation and duplicat
     assert.equal(resultText(view.container),JSON.stringify(view.source.nativeResult));
   } finally {gate.reply.resolve(actualPacket().afterWriteHostStatus);if(pending)await pending;await view.close();}
 });
+
+// The ordered status reads' tests run with this file, which the web suite's
+// script and both hosted presentation steps already list. The script itself
+// is not changed: app/package.json's bytes are pinned by the notices basis.
+await import('./host-reads.test.mjs');

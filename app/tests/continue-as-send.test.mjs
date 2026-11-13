@@ -93,7 +93,8 @@ for(const refreshFails of [false,true])test(`actual native receipt remains sent 
     assert.equal(props(ui.send()).disabled,true);
     assert.equal(ui.draft(),sent.editedText);
     assert.equal(ui.calls.filter(c=>c.name==='continue_as_send').length,1);
-    if(refreshFails)assert.match(ui.panel().textContent,/View refresh unavailable: Error: synthetic observer refresh unavailable/);
+    // A failed refresh is shown only as the fixed line (App Agent 0's decision), never its raw diagnostic.
+    if(refreshFails){assert.ok(ui.panel().textContent.includes("The App could not read Codex's status afterwards, so what is shown may be out of date. The original send outcome above is retained."),ui.panel().textContent);assert.ok(ui.container.textContent.includes("Continue-as: sent The App could not read Codex's status afterwards, so what is shown may be out of date."),'the App line: the outcome, then the fixed line');assert.doesNotMatch(ui.container.textContent,/synthetic observer refresh unavailable/);}
   },{refreshFails});
 });
 
