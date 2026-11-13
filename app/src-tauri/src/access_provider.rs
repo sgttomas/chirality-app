@@ -1401,7 +1401,11 @@ impl Host {
         let reading = self
             .private_provider_config_read(generation, &cwd, wait, PrivateConfigPurpose::Admission)
             .map_err(|e| reading_gate::reading_or(e, || refusal.to_owned()))?;
-        if reading.config["config"]["model_provider"] != "openai" { return Err(refusal.into()); }
+        // The built-in provider, as a start's admission (`classify`) requires it: named `openai`, and
+        // not shadowed by a provider definition the configuration gives under that name.
+        let config = &reading.config["config"];
+        let shadowed = config.get("model_providers").and_then(Value::as_object).is_some_and(|definitions| definitions.contains_key("openai"));
+        if config["model_provider"] != "openai" || shadowed { return Err(refusal.into()); }
         #[cfg(test)] {let hook=self.after_continuation_reading.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         Ok(Some(ProviderAdmission {
             source: reading.source,

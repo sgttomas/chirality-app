@@ -6209,6 +6209,8 @@ mod conversation_transport_tests {
                 let frame=match now.lock().unwrap().as_str(){
                     "error"=>json!({"id":source.request_id(),"error":{"code":-32603,"message":"invented"}}),
                     "absent"=>json!({"id":source.request_id(),"result":{"config":{},"origins":{}}}),
+                    // `openai` named, and a definition under that name in the configuration shadows the built-in provider.
+                    "shadowed"=>json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai","model_providers":{"openai":{"name":"invented","base_url":"http://invented.invalid/v1"}}},"origins":{}}}),
                     provider=>json!({"id":source.request_id(),"result":{"config":{"model_provider":provider},"origins":{}}}),
                 };
                 h.on_line(&serde_json::to_vec(&frame).unwrap(),source.generation());
@@ -6230,16 +6232,17 @@ mod conversation_transport_tests {
     fn resume(home:&ReportingHome)->Result<(),String>{let mut view=history_selected();let query=view.continue_query().unwrap();home.home.host.history_dispatch(&query).map(|_|())}
     fn fork(home:&ReportingHome)->Result<(),String>{home.home.host.thread_fork_dispatch(&g(),"thread").map(|_|())}
     /// DEL-01-05 AC-005: an account or key-home Continue or fork rests on Codex's own report, read at
-    /// its own admission, of the built-in provider; otherwise nothing is sent for it.
+    /// its own admission, of the built-in provider (named `openai` and not shadowed by a definition
+    /// under that name, as a start requires); otherwise nothing is sent for it.
     #[test]
     fn cloud_resume_and_fork_rest_on_codex_reporting_the_built_in_provider_at_their_own_admission(){
         use crate::home_resources::HomeClass;
         let ops:[(&str,fn(&ReportingHome)->Result<(),String>,&str);2]=[("thread/resume",resume,access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME),("thread/fork",fork,access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK)];
         for class in [HomeClass::Account,HomeClass::ApiKey] {
             for (method,op,refusal) in ops {
-                for case in ["built-in","requirement-names-another","not-reported","unreadable"] {
+                for case in ["built-in","requirement-names-another","not-reported","unreadable","shadowed"] {
                     let home=ReportingHome::new(class);
-                    home.reports(match case{"built-in"=>"openai","requirement-names-another"=>"invented-corporate-gateway","not-reported"=>"absent",_=>"error"});
+                    home.reports(match case{"built-in"=>"openai","requirement-names-another"=>"invented-corporate-gateway","not-reported"=>"absent","shadowed"=>"shadowed",_=>"error"});
                     let result=op(&home);
                     match case {
                         "built-in"=>assert!(result.is_ok(),"{class:?} {method}: sent as before"),
