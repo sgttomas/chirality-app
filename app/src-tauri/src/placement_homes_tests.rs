@@ -295,7 +295,8 @@ fn a_start_without_app_data_places_no_records_store() {
     crate::initialize_startup_consumers(&state, &home, data, allow_operational, true, Some(store.clone()), None, [None, None, None]);
     let configured = records_store::configured_for_test();
     let later = records_store::current();
-    let after_read = (store.exists(), would_be.exists());
+    // Asked so that an examination failure fails the test: only NotFound is "not there".
+    let after_read = [&store, &would_be].map(|p| std::fs::symlink_metadata(p).err().map(|e| e.kind()));
     records_store::restore_configured_for_test(saved);
     // 1. The store start-up configured is the admission's refusal.
     let refusal = match &configured { Some(Err(e)) => e.clone(), other => panic!("for_app's answer, not the admission's refusal, was configured: {other:?}") };
@@ -303,6 +304,6 @@ fn a_start_without_app_data_places_no_records_store() {
     // 3. Every later reader is given that refusal; nothing falls back.
     assert_eq!(later.as_ref().err(), Some(&refusal), "no later fallback to the override: {later:?}");
     // 2. Nothing opened or created the override, or the App data it would be in.
-    assert_eq!(after_read, (false, false), "no store placed, opened or created");
+    assert_eq!(after_read, [Some(std::io::ErrorKind::NotFound); 2], "no store placed, opened or created");
     let _ = std::fs::remove_dir_all(&root);
 }
