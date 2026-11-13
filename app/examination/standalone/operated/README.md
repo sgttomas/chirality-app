@@ -58,12 +58,13 @@ times, on 13 November 2026), observed by App Agent 0, or not examined:
   A2's second, third, fifth, sixth and seventh attempts, each time with a
   freshly started service and app-server (observed). The cause, established
   by App Agent 0 with Inter-Project on 13 November and confirmed by its
-  remedy: the provider's Codex then running (process 34237, started 12
-  November) ran an executable that had been replaced on disk, and the window
-  service refused it as unauthenticated. The replacement predates all five:
-  before the third attempt, at 07:55 UTC, `stray.py` already listed that
-  process as one whose executable had been removed, and the file was replaced
-  again at about 15:52 UTC. The owner's restart of T3 Code at about 20:42 UTC
+  remedy: the provider's Codex then running (started 12 November) ran an
+  executable that had been replaced on disk, and the window service refused
+  it as unauthenticated. The replacement predates all five: before the third
+  attempt, at 07:55:55 UTC, `stray.py` already listed that process as one
+  whose executable had been removed (the lane's record before that attempt,
+  `a2-third-preconditions.txt` in its evidence folder), and the file was
+  replaced again at about 15:52 UTC. The owner's restart of T3 Code at about 20:42 UTC
   started the provider again from the executable on disk; a delegate's view
   worked at 20:45 UTC, and A2's eighth attempt passed. This explains the
   native-pipe failures only. A2's first attempt stopped at identification's
@@ -250,7 +251,11 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
    `/Applications/T3 Code (Beta).app/Contents/MacOS/T3 Code (Beta)`). It is
    found in the process table at the go, never by a number remembered from
    before. Exactly one such process must exist, and its start must be later
-   than the modification time of its executable on disk:
+   than the modification time of its executable on disk. If none is found
+   (on another host, or after an update that moves or renames the
+   delegates' application or the provider), or more than one, that is not
+   exactly one: no walk, and it comes to App Agent 0, who corrects this
+   description; it is never worked around by picking a process:
 
    ```sh
    ps -axo pid=,ppid=,command=                 # find it: parent the delegates' application, command `<path>/codex app-server`
@@ -540,7 +545,8 @@ Its last line is the verdict, or "no walk", and the evidence folder.
       (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl`),
       a child of the provider's Codex: the host's parent is the process the
       lane's provider check named at the go (its number is in
-      `lane-provider.pid`; "At the go"). If `lsof` names none or more than one,
+      `lane-provider.pid`; "At the go"); if that file is missing, or names
+      another process, it is not. If `lsof` names none or more than one,
       or the runtime or its host is anything other than that, the runtime is
       not identified and no walk is made: nothing has been launched, and the
       operator closes the marker and returns. That call imports only the
