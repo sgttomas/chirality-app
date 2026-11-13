@@ -780,6 +780,7 @@ impl Host {
                 None,
                 None,
                 Some(deadline),
+                None,
             )
             .map_err(|e| reading_gate::reading_or(e, unavailable))?;
         #[cfg(test)]

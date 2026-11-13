@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:stop-request:0.2",
+  "$id": "urn:chirality:app-v4:del-01-02:stop-request:0.3",
   "title": "DEL-01-02 stop request — the record of one turn interrupt (PROPOSED)",
-  "description": "EXECUTION_AND_RECOVERY.md §3.4 and table SR. One record per request to interrupt one turn (R17-3 operation 1), by the person or by a confirmed quit (K-4). Written before the supplier request is sent and again at every SR transition (append-only; the latest record for a stopRequestId is current). Element names are Chirality's own; supplier identities are carried as data. Not a human-act record and never a run end.",
+  "description": "EXECUTION_AND_RECOVERY.md §3.4 and table SR. One record per request to interrupt one turn (R17-3 operation 1), by the person or by a confirmed quit (K-4). Written before the supplier request is sent and again at every SR transition (append-only; the latest record for a stopRequestId is current). Element names are Chirality's own; supplier identities are carried as data. Not a human-act record and never a run end. 0.3 adds send unknown(write-incomplete) with state send-unknown (SR-13): the request's write began and did not complete, so whether it reached Codex is not known; 0.2 rows remain valid. not-sent(write-failed) is kept for rows already written and is no longer written.",
   "type": "object",
   "required": [
     "kind",
@@ -65,11 +65,13 @@
       "$ref": "#/$defs/nonempty"
     },
     "send": {
+      "description": "not-sent(not-ready): no write of the request began. unknown(write-incomplete): its write began and did not complete (blocked until the process ended, or failed after it was attempted), so whether it reached Codex is not known. not-sent(write-failed) is read only from rows already written.",
       "enum": [
         "pending",
         "sent",
         "not-sent(write-failed)",
-        "not-sent(not-ready)"
+        "not-sent(not-ready)",
+        "unknown(write-incomplete)"
       ]
     },
     "response": {
@@ -163,7 +165,8 @@
         "refused",
         "settled",
         "outcome-unknown",
-        "outcome-recovered"
+        "outcome-recovered",
+        "send-unknown"
       ]
     },
     "transition": {
@@ -270,6 +273,50 @@
           },
           "turnOutcome": {
             "const": "pending"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "send-unknown"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "clientRequest"
+        ],
+        "properties": {
+          "send": {
+            "const": "unknown(write-incomplete)"
+          },
+          "response": {
+            "const": "unknown-no-response"
+          },
+          "turnOutcome": {
+            "const": "pending"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "send"
+        ],
+        "properties": {
+          "send": {
+            "const": "unknown(write-incomplete)"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "state": {
+            "const": "send-unknown"
           }
         }
       }

@@ -28,10 +28,15 @@ struct Ops {
     waits: Vec<Duration>,
     stop_ok: bool,
     fail_second_assess: bool,
+    /// A turn whose interrupt is not written: Some(true) not sent,
+    /// Some(false) write outcome unknown.
+    unwritten: fn(&str) -> Option<bool>,
+    /// Whether the stop established the process's end.
+    established: bool,
 }
 impl Ops {
     fn new(materials: Vec<Value>, answers: Vec<bool>) -> Self {
-        Self { log: vec![], materials, answers, asked: vec![], ends: |_| None, unacknowledged: vec![], waits: vec![], stop_ok: true, fail_second_assess: false }
+        Self { log: vec![], materials, answers, asked: vec![], ends: |_| None, unacknowledged: vec![], waits: vec![], stop_ok: true, fail_second_assess: false, unwritten: |_| None, established: true }
     }
     fn run(&mut self, restart: bool) -> Result<Value, String> {
         stop_or_restart(self, restart, Duration::from_millis(150))
@@ -59,10 +64,14 @@ impl StopOps for Ops {
     fn reopen_to_new_turns(&mut self) {
         self.log.push("reopen".into());
     }
-    fn interrupt(&mut self, turn: &Value) -> Result<String, String> {
+    fn interrupt(&mut self, turn: &Value, _deadline: Instant) -> Result<String, crate::codex_stop::Unsent> {
         let id = turn["turnId"].as_str().unwrap().to_owned();
         self.log.push(format!("interrupt {id}"));
-        Ok(id)
+        match (self.unwritten)(&id) {
+            Some(true) => Err(Unsent::NotSent("fixture: not written".into())),
+            Some(false) => Err(Unsent::WriteUnknown("write outcome unknown".into())),
+            None => Ok(id),
+        }
     }
     fn acknowledgment(&mut self, pending: &String, wait: Duration) -> Result<Value, String> {
         self.log.push(format!("ack {pending}"));
@@ -85,7 +94,7 @@ impl StopOps for Ops {
     }
     fn stop(&mut self) -> Result<Value, String> {
         self.log.push("stop".into());
-        if self.stop_ok { Ok(json!({"state":"stopped"})) } else { Err("stop not accepted in state stopping".into()) }
+        if self.stop_ok { Ok(json!({"state":"stopped","processEndEstablished":self.established})) } else { Err("stop not accepted in state stopping".into()) }
     }
     fn start(&mut self) -> Result<Value, String> {
         self.log.push("start".into());
@@ -160,6 +169,43 @@ fn an_unacknowledged_first_interrupt_does_not_starve_the_others() {
     assert_eq!(out["turns"][0]["label"], "interrupted by Stop Codex (final status not observed)");
     assert_eq!(out["turns"][1]["interruptRequest"]["state"], "acknowledged");
     assert_eq!(out["turns"][1]["label"], "interrupted by Stop Codex");
+}
+
+/// Decision 2: no Stop label for a turn whose interrupt was not written and
+/// whose end Codex did not report, but an explanation that keeps apart the
+/// process's end, the turn's own outcome and the interrupt's transmission. A
+/// written interrupt keeps today's label, and an end Codex reported keeps its
+/// label and is shown as reported.
+#[test]
+fn an_unwritten_interrupt_with_no_reported_end_gets_no_label_but_an_explanation() {
+    for established in [true, false] {
+        let mut ops = Ops::new(vec![view_material(json!([live("sent"), live("unsent"), live("unknown"), live("unsent-ended")]), json!([]), json!([]))], vec![true]);
+        ops.unwritten = |turn| match turn { "unsent" | "unsent-ended" => Some(true), "unknown" => Some(false), _ => None };
+        ops.ends = |turn| if turn == "unsent-ended" { ended("completed") } else { None };
+        ops.established = established;
+        let out = ops.run(false).unwrap();
+        assert_eq!(out["state"], "stopped");
+        let by = |id: &str| out["turns"].as_array().unwrap().iter().find(|t| t["turnId"] == id).unwrap().clone();
+        assert_eq!(by("sent")["label"], "interrupted by Stop Codex (final status not observed)", "a written interrupt keeps today's label");
+        let first = if established { "Codex's process was confirmed ended during Stop." } else { "Whether Codex's process ended during Stop was not established." };
+        let unsent = by("unsent");
+        assert!(unsent["label"].is_null(), "{unsent}");
+        assert_eq!(unsent["reading"], format!("{first} No final status for this turn was observed. Stop not sent: fixture: not written"));
+        let unknown = by("unknown");
+        assert!(unknown["label"].is_null(), "{unknown}");
+        assert_eq!(unknown["reading"], format!("{first} No final status for this turn was observed. Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known."));
+        for turn in [&unsent, &unknown] {
+            let shown = format!("{} {} {}", turn["label"], turn["reading"], turn["interruptRequest"]);
+            assert!(!shown.contains("interrupted"), "{shown}");
+            if !established {
+                assert!(!shown.contains("ended during Stop.") || shown.contains("not established"), "never says it ended: {shown}");
+                assert!(!shown.contains("running"), "never says it is running: {shown}");
+            }
+        }
+        let reported = by("unsent-ended");
+        assert_eq!((reported["label"].as_str(), reported["codexReported"].as_str()), (Some("completed (Stop Codex requested)"), Some("completed")), "Codex's reported status is kept and shown");
+        assert!(reported.get("reading").is_none());
+    }
 }
 
 #[test]
@@ -908,7 +954,9 @@ for line in sys.stdin:
         std::fs::write(f.root.join("interrupt-mode"), "silent").unwrap();
         f.live_turn("turn-1");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
-        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(1), |_| true, || Err("no start".into()));
+        // The limit leaves time for the interrupt's write to begin (a write
+        // not begun by the limit is withdrawn); the peer never answers it.
+        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(300), |_| true, || Err("no start".into()));
         // The process stop closed it in this session; the crash case is the
         // ledger as it stood at the last `sent` record.
         let rows = ledger_rows(&f);

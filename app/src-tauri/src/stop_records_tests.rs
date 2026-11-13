@@ -1,4 +1,4 @@
-//! REC stop requests: schema copy, transitions SR-01…SR-12, labels, the
+//! REC stop requests: schema copy, transitions SR-01…SR-13, labels, the
 //! `codex_stop` ledger entry and the read-back after a relaunch.
 use super::*;
 
@@ -97,10 +97,10 @@ fn closed_generation_refusal_wait_and_late_response_keep_their_own_rows() {
     late.turn_completed("interrupted").unwrap().unwrap();
     let twelve = late.response(&json!({"id":3,"result":{}})).unwrap().unwrap();
     assert_eq!((twelve["transition"].as_str(), twelve["response"].as_str(), twelve["outcomeLabel"].as_str()), (Some("SR-12"), Some("result"), Some("interrupted by the person")));
-    // SR-03: nothing sent.
+    // SR-03: nothing sent (no write began).
     let mut unsent = requested(Cause::PersonInterrupt);
-    let not_sent = unsent.not_sent(true, "write failed: broken pipe").unwrap();
-    assert_eq!((not_sent["state"].as_str(), not_sent["send"].as_str(), not_sent["response"].as_str()), (Some("not-sent"), Some("not-sent(write-failed)"), Some("not-applicable")));
+    let not_sent = unsent.not_sent("refused before sending: fixture").unwrap();
+    assert_eq!((not_sent["state"].as_str(), not_sent["send"].as_str(), not_sent["response"].as_str()), (Some("not-sent"), Some("not-sent(not-ready)"), Some("not-applicable")));
     assert!(unsent.turn_completed("interrupted").unwrap().is_none(), "an unsent request never takes a turn's end");
     assert!(unsent.generation_closed().unwrap().is_none());
 }
@@ -205,4 +205,166 @@ fn the_ledger_index_reads_appended_entries_once_and_rebuilds_on_a_different_ledg
     index.update(json!([started.clone(), second.clone()]).as_array().unwrap());
     assert!(!index.contains(&first) && index.contains(&second), "a ledger that does not continue the read prefix is read afresh");
     assert!(outcomes_indexed(&index, &[], "session-b")["limits"].as_array().unwrap().is_empty());
+}
+
+// ---- SR-13 (send unknown) and rows of the 0.2 schema.
+
+const SEND_UNKNOWN: &str = "Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known.";
+const WRITE_FAILED_OLD: &str = "An earlier App build recorded an interrupt write failure; whether the interrupt reached Codex is not established.";
+
+fn v0_2() -> jsonschema::Validator {
+    jsonschema::options().offline().build(&serde_json::from_str::<Value>(SCHEMA_V0_2).unwrap()).unwrap()
+}
+/// A row as the 0.2 App wrote it for a write that failed after it began.
+fn old_write_failed(cause: Cause) -> Value {
+    let mut r = requested(cause).record().clone();
+    for (k, v) in [("send", json!("not-sent(write-failed)")), ("response", json!("not-applicable")), ("responseError", json!("write failed: Broken pipe (os error 32)")), ("state", json!("not-sent")), ("transition", json!("SR-03"))] {
+        r[k] = v;
+    }
+    r
+}
+/// A row as the 0.2 App wrote it for a request refused before any write.
+fn old_not_ready(cause: Cause) -> Value {
+    let mut r = old_write_failed(cause);
+    r["send"] = json!("not-sent(not-ready)");
+    r["responseError"] = json!("refused before sending: fixture reason");
+    r
+}
+
+#[test]
+fn the_schema_version_moved_and_the_earlier_one_is_kept() {
+    let current: Value = serde_json::from_str(SCHEMA).unwrap();
+    let earlier: Value = serde_json::from_str(SCHEMA_V0_2).unwrap();
+    assert_eq!(current["$id"], "urn:chirality:app-v4:del-01-02:stop-request:0.3");
+    assert_eq!(earlier["$id"], "urn:chirality:app-v4:del-01-02:stop-request:0.2");
+    assert!(!earlier["properties"]["state"]["enum"].as_array().unwrap().contains(&json!("send-unknown")));
+    // Every 0.2 row stays valid under 0.3 and is read.
+    for row in [requested(Cause::Quit).record().clone(), old_write_failed(Cause::CodexStop), old_not_ready(Cause::PersonInterrupt)] {
+        assert!(v0_2().is_valid(&row), "{row}");
+        validate(&row).unwrap();
+        validate_stored(&row).unwrap();
+        StopRequest::from_record(&row).unwrap();
+    }
+}
+
+#[test]
+fn sr13_send_unknown_is_neither_sent_nor_not_sent_and_takes_no_later_transition() {
+    for cause in [Cause::PersonInterrupt, Cause::Quit, Cause::CodexStop] {
+        let mut sr = requested(cause);
+        let record = sr.send_unknown("host-request:x:client:9").unwrap();
+        assert_eq!((record["state"].as_str(), record["send"].as_str(), record["response"].as_str(), record["transition"].as_str()),
+            (Some("send-unknown"), Some("unknown(write-incomplete)"), Some("unknown-no-response"), Some("SR-13")));
+        assert_eq!((record["turnOutcome"].as_str(), record["outcomeSource"].as_str()), (Some("pending"), Some("not-observed")));
+        assert_eq!(record["clientRequest"], "host-request:x:client:9");
+        assert!(record.get("outcomeLabel").is_none());
+        assert!(!v0_2().is_valid(&record), "a 0.3 state");
+        // Only from requested, and once.
+        assert!(sr.send_unknown("again").is_err());
+        assert!(sr.not_sent("x").is_err() && sr.sent("x", &json!(1)).is_err());
+        // No response is linked, no turn end, no SR-08 at the generation's
+        // end or at a later App's start, no wait end, no recovery.
+        assert!(sr.response(&json!({"id":9,"result":{}})).unwrap().is_none());
+        assert!(sr.turn_completed("interrupted").unwrap().is_none());
+        assert!(sr.generation_closed().unwrap().is_none());
+        assert!(sr.waiting_ended().unwrap().is_none());
+        assert!(sr.recovered("interrupted").unwrap().is_none());
+        assert!(closed_at_restart(sr.record()).unwrap().is_none());
+        assert_eq!(sr.record()["state"], "send-unknown");
+    }
+    // Not reachable from any later state.
+    let mut sent = requested(Cause::CodexStop);
+    sent.sent("cr", &json!(1)).unwrap();
+    assert!(sent.send_unknown("cr").is_err());
+    let mut unsent = requested(Cause::CodexStop);
+    unsent.not_sent("refused before sending: x").unwrap();
+    assert!(unsent.send_unknown("cr").is_err());
+}
+
+#[test]
+fn the_schema_holds_send_unknown_to_its_own_values() {
+    let mut sr = requested(Cause::CodexStop);
+    let good = sr.send_unknown("cr").unwrap();
+    for (key, value) in [("send", json!("sent")), ("send", json!("not-sent(write-failed)")), ("response", json!("pending")), ("response", json!("result")), ("turnOutcome", json!("interrupted"))] {
+        let mut bad = good.clone();
+        bad[key] = value.clone();
+        assert!(validate(&bad).is_err(), "send-unknown with {key}={value}");
+    }
+    let mut no_request = good.clone();
+    no_request.as_object_mut().unwrap().remove("clientRequest");
+    assert!(validate(&no_request).is_err(), "an attempted write names its client request");
+    for state in ["sent", "not-sent", "requested", "outcome-unknown"] {
+        let mut bad = good.clone();
+        bad["state"] = json!(state);
+        assert!(validate(&bad).is_err(), "unknown(write-incomplete) only with send-unknown, not {state}");
+    }
+}
+
+#[test]
+fn every_reading_of_send_unknown_and_of_old_rows_says_neither_sent_nor_interrupted() {
+    let mut unknown = requested(Cause::CodexStop);
+    let unknown = unknown.send_unknown("cr").unwrap();
+    let cases = [
+        (unknown, SEND_UNKNOWN.to_owned()),
+        (old_write_failed(Cause::PersonInterrupt), WRITE_FAILED_OLD.to_owned()),
+        (old_write_failed(Cause::Quit), WRITE_FAILED_OLD.to_owned()),
+        (old_not_ready(Cause::CodexStop), "Stop not sent: refused before sending: fixture reason".to_owned()),
+    ];
+    for (record, expected) in cases {
+        let session = record["appSession"].as_str().unwrap().to_owned();
+        let entry = ledger_entry(&session, &record);
+        // In this App session (live and from the ledger) and in a later one.
+        for (held, live, current) in [(vec![], vec![(record.clone(), "kept".to_owned())], session.as_str()), (vec![entry.clone()], vec![], session.as_str()), (vec![entry.clone()], vec![], "later-session")] {
+            let view = outcomes(&held, &live, current);
+            let row = &view["records"][0];
+            assert_eq!(row["reading"], expected.as_str(), "{row}");
+            assert!(row["label"].is_null() && row["labelDerived"] == false && row["codexReported"].is_null(), "{row}");
+            let shown = format!("{} {} {}", row["reading"], row["label"], row["state"]);
+            assert!(!shown.contains("interrupted"), "{shown}");
+            if record["send"] != "not-sent(not-ready)" {
+                assert!(!shown.contains("not sent") && !shown.contains("was sent."), "{shown}");
+            }
+        }
+    }
+}
+
+#[test]
+fn the_ledger_index_reads_rows_of_both_versions() {
+    let mut unknown = requested(Cause::Quit);
+    let unknown = unknown.send_unknown("cr").unwrap();
+    let rows = vec![ledger_entry("session-a", &old_write_failed(Cause::Quit)), ledger_entry("session-a", &unknown)];
+    let mut index = LedgerIndex::default();
+    index.update(&rows);
+    assert!(index.limits.is_empty(), "{:?}", index.limits);
+    let all = index.all_for(&crate::recovery::generation_ref(&g()).unwrap(), "thread", "turn");
+    assert_eq!(all.len(), 2);
+    assert!(index.contains(&rows[0]) && index.contains(&rows[1]));
+}
+
+#[test]
+fn the_startup_closure_and_session_end_leave_send_unknown_and_old_rows_as_they_are() {
+    let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("sr13-").unwrap());
+    std::fs::create_dir_all(&root).unwrap();
+    let path = root.join("ledger.jsonl");
+    let mut unknown = requested(Cause::CodexStop);
+    let unknown = unknown.send_unknown("cr").unwrap();
+    let records = [unknown.clone(), old_write_failed(Cause::PersonInterrupt), old_not_ready(Cause::Quit)];
+    {
+        let mut ledger = crate::recovery::RecoveryLedger::open(path.clone()).unwrap();
+        ledger.start_session("session-a", "candidate").unwrap();
+        for r in &records { ledger.append(ledger_entry("session-a", r)).unwrap(); }
+        // session_ended carries the state as held; its schema admits it.
+        let stops: Vec<Value> = records.iter().map(|r| json!({"stopRequestId":r["stopRequestId"],"state":r["state"]})).collect();
+        let ids: Vec<String> = records.iter().map(|r| r["stopRequestId"].as_str().unwrap().to_owned()).collect();
+        let (how, carried) = crate::app_quit::session_end(Some(ids), &records);
+        assert_eq!((how, carried.clone()), ("quit", stops.clone()));
+        assert_eq!(carried[0]["state"], "send-unknown");
+        ledger.append(crate::recovery::RecoveryLedger::session_end_entry("session-a", "quit", &carried).unwrap()).unwrap();
+    }
+    let mut later = crate::recovery::RecoveryLedger::open(path.clone()).unwrap();
+    let before = crate::recovery::stored_entries(&path).len();
+    later.start_session("session-b", "candidate").unwrap();
+    assert!(later.close_earlier_stop_requests("session-b").is_empty());
+    let added: Vec<Value> = crate::recovery::stored_entries(&path)[before..].iter().filter(|e| e["kind"] == "stop_request").cloned().collect();
+    assert!(added.is_empty(), "nothing written for them: {added:?}");
+    std::fs::remove_dir_all(root).unwrap();
 }

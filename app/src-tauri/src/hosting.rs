@@ -857,6 +857,59 @@ fn observed_response_outcome(response: &Value) -> &'static str {
 fn delegation_now_ms() -> u64 {
     std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
 }
+/// The stop limit over one interrupt made by Stop Codex, Restart Codex or
+/// the App quit (`Host::turn_interrupt_within`). `phase` is the one
+/// synchronisation point between the caller and the interrupt's thread: the
+/// caller's withdrawal at the deadline and the thread's beginning of the
+/// write are each decided under it, so exactly one of them happens.
+/// `gave_up` holds why no write began.
+pub(crate) struct WriteBound {
+    deadline: std::time::Instant,
+    phase: Arc<Mutex<SendPhase>>,
+    gave_up: Mutex<Option<String>>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SendPhase {
+    /// Neither has happened yet.
+    Pending,
+    /// The caller withdrew at the deadline: no write of this interrupt begins.
+    Withdrawn,
+    /// The write has begun: the caller's result is never "not sent".
+    Writing,
+}
+impl WriteBound {
+    /// The thread's side, under the Host's internal lock just before the
+    /// attempt is registered: Ok if the write may begin (now `Writing`), Err
+    /// if the caller has withdrawn (nothing is written; recorded not sent).
+    fn begin_write(&self) -> Result<(), String> {
+        let mut phase = self.phase.lock().unwrap();
+        if *phase == SendPhase::Withdrawn {
+            *self.gave_up.lock().unwrap() = Some(NOT_WRITTEN_IN_LIMIT.to_owned());
+            return Err(NOT_WRITTEN_IN_LIMIT.to_owned());
+        }
+        *phase = SendPhase::Writing;
+        Ok(())
+    }
+    fn withdrawn(&self) -> bool {
+        *self.phase.lock().unwrap() == SendPhase::Withdrawn
+    }
+}
+/// Which of three things happened to a bounded interrupt's write.
+pub(crate) enum InterruptSend {
+    /// The write completed: the request was sent.
+    Written(SourceRequest),
+    /// No write began; the reason.
+    NotSent(String),
+    /// A write began and its completion was not observed (it had not
+    /// returned at the stop limit, or it failed after it was attempted):
+    /// whether it reached Codex is not known.
+    WriteUnknown(String),
+}
+pub(crate) const NOT_WRITTEN_IN_LIMIT: &str = "the interrupt could not be written within the stop limit";
+const GATE_NOT_HAD_IN_LIMIT: &str = "the interrupt could not be written within the stop limit (another interrupt to this Codex process had not finished its own send)";
+const PROCESS_ENDING: &str = "the Codex process was ending before the interrupt could be written";
+pub(crate) const WRITE_OUTCOME_UNKNOWN: &str = "write outcome unknown: the interrupt's write to Codex began and its completion was not observed, so whether it reached Codex is not known";
+const WRITE_UNFINISHED_AT_LIMIT: &str = "write outcome unknown: the interrupt's write to Codex began and its completion was not observed within the stop limit, so whether it reached Codex is not known";
 pub struct Host {
     recovery_writer: Arc<Mutex<()>>,
     runtime_custody:Mutex<Option<Arc<AppRuntimeCustody>>>,
@@ -904,6 +957,16 @@ pub struct Host {
     before_interrupt_send: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     after_interrupt_send: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// A bounded interrupt's thread, before it takes the recovery writer.
+    #[cfg(test)]
+    before_interrupt_records: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// A bounded interrupt's thread, holding the frame writer, before the
+    /// withdraw-or-write decision.
+    #[cfg(test)]
+    before_interrupt_decision: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// A bounded interrupt's thread, after deciding to write, before writing.
+    #[cfg(test)]
+    after_interrupt_decision: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     cce_before_prepare: Mutex<Option<Box<dyn FnOnce(&Host,&call_custody::IncomingCall)+Send>>>,
     #[cfg(test)]
@@ -1059,6 +1122,12 @@ impl Host {
             before_interrupt_send: Mutex::new(None),
             #[cfg(test)]
             after_interrupt_send: Mutex::new(None),
+            #[cfg(test)]
+            before_interrupt_records: Mutex::new(None),
+            #[cfg(test)]
+            before_interrupt_decision: Mutex::new(None),
+            #[cfg(test)]
+            after_interrupt_decision: Mutex::new(None),
             #[cfg(test)] cce_before_prepare: Mutex::new(None),
             #[cfg(test)] cce_before_cut: Mutex::new(None),
             #[cfg(test)] cce_after_cut: Mutex::new(None),
@@ -2562,7 +2631,7 @@ impl Host {
             // the frame writer are waited for within it, and the reply only for what remains.
             let deadline = std::time::Instant::now() + wait;
             auth_rpc::generic_guard(method, &params)?;
-            let request = self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, false, None, None, None, None, false, None, None, None, Some(deadline))?;
+            let request = self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, false, None, None, None, None, false, None, None, None, Some(deadline), None)?;
             return self.wait_source_response(&request, deadline.saturating_duration_since(std::time::Instant::now()));
         }
         let request = self.request_begin_scoped(method, params, initiator, handshake, expected_generation)?;
@@ -2582,7 +2651,7 @@ impl Host {
         self.request_begin_with_access_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,cce_intent,records_project,false,None)
     }
     fn request_begin_with_access_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>)->Result<SourceRequest,String>{
-        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None, None)
+        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None, None, None)
     }
     fn request_begin_ordinary(&self, generation: &Value, params: Value, inherited_mode: bool) -> Result<SourceRequest, String> {
         self.request_begin_ordinary_effort(generation, params, inherited_mode, false)
@@ -2593,9 +2662,9 @@ impl Host {
             "effortGuard": inherited_effort,
             "effort": params["collaborationMode"]["settings"]["reasoning_effort"]
         }));
-        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None, None)
+        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None, None, None)
     }
-    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>)->Result<SourceRequest,String>{
+    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>,write_bound:Option<&WriteBound>)->Result<SourceRequest,String>{
         if matches!(method,"config/batchWrite"|"config/value/write") && endpoint_write.is_none() {return Err("Configuration writes require a confirmed typed provider operation; generic route refused".into());}
         if endpoint_write.is_some() && (method!="config/batchWrite" || !private_config) {return Err("Private endpoint method context differs".into());}
         if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
@@ -2678,7 +2747,8 @@ impl Host {
             loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{if std::time::Instant::now()>=hold.deadline{return Err(reading_gate::READING_WITHDRAWN.into());}std::thread::sleep(Duration::from_millis(2));}}}
         }else if private_credential||endpoint_write.is_some(){
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
-        }else{self.frame_write.lock().unwrap()};
+        }else if let Some(limit)=write_bound{self.lock_within(&self.frame_write,limit,&request.generation,NOT_WRITTEN_IN_LIMIT)?}else{self.frame_write.lock().unwrap()};
+            #[cfg(test)] if write_bound.is_some() {let hook=self.before_interrupt_decision.lock().unwrap().take();if let Some(h)=hook{h();}}
             // Source IO has bounded work and holds neither Inner nor the
             // attachment/Stop gate. Recheck cheap context/receipt custody below.
             if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
@@ -2707,9 +2777,13 @@ impl Host {
                 } else { Value::Null };
                 // Registered to WriteStarted, the deadline rechecked with the frame writer held.
                 if let Some(hold)=&hold {Self::reading_write_started_locked(&mut i,hold)?;}
+                // The withdraw-or-write decision (`WriteBound`): withdrawn, no
+                // attempt is registered and nothing is written.
+                if let Some(limit)=write_bound{limit.begin_write()?;}
                 i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
                 let epoch=i.aa_epoch;let cut=i.receipt_position;
                 if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
+            #[cfg(test)] if write_bound.is_some() {let hook=self.after_interrupt_decision.lock().unwrap().take();if let Some(h)=hook{h();}}
             #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
             #[cfg(test)] {let hook=self.before_request_write.lock().unwrap().take();if let Some(h)=hook{h(self);}}
             #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else{None};
@@ -3757,13 +3831,36 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// The request is not awaited, so Stop Codex can write every interrupt
     /// before waiting on one shared deadline (SR-10).
     pub fn turn_interrupt_begin(&self, generation: &Value, thread_id: &str, turn_id: &str, cause: crate::stop_records::Cause, home: &str, person: &Value) -> Result<SourceRequest, String> {
+        self.turn_interrupt_begin_bound(generation, thread_id, turn_id, cause, home, person, None)
+    }
+    /// As `turn_interrupt_begin`; with `limit` (Stop, Restart, quit) the waits
+    /// for the interrupt gate and the frame writer end at the stop deadline.
+    /// What is recorded follows what happened, for every cause: the write
+    /// completed (SR-02), no write began (SR-03, with the reason), or a
+    /// write began and its completion was not observed (SR-13, send unknown,
+    /// recorded when the write returns with an error): a write error
+    /// after an attempt is not evidence that nothing reached Codex, and part
+    /// or all of the frame may have.
+    #[allow(clippy::too_many_arguments)]
+    fn turn_interrupt_begin_bound(&self, generation: &Value, thread_id: &str, turn_id: &str, cause: crate::stop_records::Cause, home: &str, person: &Value, limit: Option<&WriteBound>) -> Result<SourceRequest, String> {
         if thread_id.is_empty() || turn_id.is_empty() { return Err("thread and turn identity required".into()); }
         crate::recovery::generation_ref(generation)?;
         let params = json!({"threadId":thread_id,"turnId":turn_id});
         // The guard, SR-01 and the send are not interleaved with another stop
         // request of this Host, so a second press is refused (SR-11). Lock
         // order: interrupt gate, then the App's recovery writer, then Inner.
-        let _gate = self.interrupt_gate.lock().unwrap();
+        // A bounded interrupt whose gate is still held at the deadline (by
+        // another interrupt that has not finished its own send), or whose
+        // caller has withdrawn, records SR-01 and SR-03 and sends nothing.
+        let gate = match limit {
+            None => Some(self.interrupt_gate.lock().unwrap()),
+            Some(limit) => self.lock_within(&self.interrupt_gate, limit, generation, GATE_NOT_HAD_IN_LIMIT).ok(),
+        };
+        #[cfg(test)]
+        if limit.is_some() { let hook = self.before_interrupt_records.lock().unwrap().take(); if let Some(hook) = hook { hook(); } }
+        // Not bounded: its holders do App ledger work only, never a write to
+        // Codex. A bounded caller does not wait on it: it withdraws at the
+        // deadline (`turn_interrupt_within`).
         let writer = self.recovery_writer.lock().unwrap();
         let id = {
             let mut i = self.inner.0.lock().unwrap();
@@ -3784,6 +3881,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 }
             }
         };
+        if gate.is_none() || limit.is_some_and(WriteBound::withdrawn) {
+            let reason = limit.and_then(|l| l.gave_up.lock().unwrap().clone()).unwrap_or_else(|| NOT_WRITTEN_IN_LIMIT.to_owned());
+            if let Some(id) = &id {
+                let mut i = self.inner.0.lock().unwrap();
+                Self::stop_request_update(&mut i, id, |r| r.not_sent(&reason).map(Some));
+            }
+            self.drain_recovery_owned();
+            drop(writer);
+            self.flush_recovery_observations();
+            return Err(reason);
+        }
         // SR-01 is durable (or visibly queued) before the send. The App-wide
         // writer is released before the pipe write, which can block on a
         // Codex that stops reading, so other homes' records are not held up.
@@ -3791,7 +3899,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         drop(writer);
         #[cfg(test)]
         if let Some(hook) = self.before_interrupt_send.lock().unwrap().take() { hook(); }
-        let begun = self.request_begin_scoped("turn/interrupt", params, json!({"kind":"person-directed"}), false, Some(generation));
+        let begun = auth_rpc::generic_guard("turn/interrupt", &params).and_then(|()| self.request_begin_with_access_offer_guarded("turn/interrupt", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, None, None, None, limit));
         let evidence = begun.as_ref().ok().map(SourceRequest::evidence);
         #[cfg(test)]
         if let Some(hook) = self.after_interrupt_send.lock().unwrap().take() { hook(); }
@@ -3799,18 +3907,100 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             let mut i = self.inner.0.lock().unwrap();
             match (&begun, &evidence) {
                 (Ok(source), Some(evidence)) if evidence["writeResult"] == "written" => Self::stop_request_sent(&mut i, &id, source),
-                (Ok(_), Some(evidence)) if evidence["writeResult"] == "write-failed" => { Self::stop_request_update(&mut i, &id, |r| r.not_sent(true, evidence["writeError"].as_str().unwrap_or("write failed")).map(Some)); }
+                // SR-13: the write began and its completion was not observed; only here.
+                (Ok(source), Some(evidence)) if evidence["actualWriteAttemptObserved"] == true => { Self::stop_request_update(&mut i, &id, |r| r.send_unknown(source.request_ref()).map(Some)); }
                 (Ok(_), evidence) => {
-                    let reason = evidence.as_ref().and_then(|e| e["noAttemptCause"].as_str()).unwrap_or("no complete write of the request was observed").to_owned();
-                    Self::stop_request_update(&mut i, &id, |r| r.not_sent(false, &format!("refused before sending: {reason}")).map(Some));
+                    let reason = match limit.and_then(|l| l.gave_up.lock().unwrap().clone()) {
+                        Some(reason) => reason,
+                        None => format!("refused before sending: {}", evidence.as_ref().and_then(|e| e["noAttemptCause"].as_str()).unwrap_or("no complete write of the request was observed")),
+                    };
+                    Self::stop_request_update(&mut i, &id, |r| r.not_sent(&reason).map(Some));
                 }
-                (Err(error), _) => { Self::stop_request_update(&mut i, &id, |r| r.not_sent(false, &format!("refused before sending: {error}")).map(Some)); }
+                (Err(error), _) => { Self::stop_request_update(&mut i, &id, |r| r.not_sent(&format!("refused before sending: {error}")).map(Some)); }
             }
         }
         // SR-02/03 go through the deferred flush: written now if the writer is
         // free, otherwise kept queued in order and written by the next flush.
         self.flush_recovery_observations();
+        drop(gate);
         begun
+    }
+    /// One interrupt of Stop Codex, Restart Codex or the App quit, bounded by
+    /// the stop deadline. The interrupt is made on its own thread, off the
+    /// path that goes on to end the Codex process; this waits for its result
+    /// until the deadline and no longer. At the deadline, under the bound's
+    /// phase lock, it either withdraws (no write has begun: the result is
+    /// "not sent", and the thread, whatever it is waiting on, can no longer
+    /// begin the write; it records not sent if its generation is still open)
+    /// or finds the write begun (the result is "write outcome unknown"; the
+    /// thread is left in the write, which fails when the process group is
+    /// ended, and records what happened). Neither side waits for the other.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn turn_interrupt_within(self: &Arc<Self>, generation: &Value, thread_id: &str, turn_id: &str, cause: crate::stop_records::Cause, home: &str, person: &Value, deadline: std::time::Instant) -> InterruptSend {
+        // Past the deadline already (a later turn of the same stop): withdrawn
+        // from the start, so this interrupt is not written; its thread still
+        // records SR-01 and SR-03 if its generation is open when it gets there.
+        let late = std::time::Instant::now() >= deadline;
+        let phase = Arc::new(Mutex::new(if late { SendPhase::Withdrawn } else { SendPhase::Pending }));
+        let (tx, rx) = channel();
+        let (host, shared) = (Arc::clone(self), Arc::clone(&phase));
+        let (g, t, u, h, p) = (generation.clone(), thread_id.to_owned(), turn_id.to_owned(), home.to_owned(), person.clone());
+        let worker = std::thread::Builder::new().name("stop-interrupt".into()).spawn(move || {
+            let limit = WriteBound { deadline, phase: shared, gave_up: Mutex::new(None) };
+            let sent = match host.turn_interrupt_begin_bound(&g, &t, &u, cause, &h, &p, Some(&limit)) {
+                Err(reason) => InterruptSend::NotSent(reason),
+                Ok(source) => {
+                    let evidence = source.evidence();
+                    if evidence["writeResult"] == "written" {
+                        InterruptSend::Written(source)
+                    } else if evidence["actualWriteAttemptObserved"] == true {
+                        InterruptSend::WriteUnknown(format!("{WRITE_OUTCOME_UNKNOWN} ({})", evidence["writeError"].as_str().unwrap_or("error not reported")))
+                    } else {
+                        InterruptSend::NotSent(limit.gave_up.lock().unwrap().clone().unwrap_or_else(|| format!("refused before sending: {}", evidence["noAttemptCause"].as_str().unwrap_or("no write of the request was attempted"))))
+                    }
+                }
+            };
+            let _ = tx.send(sent);
+        });
+        if let Err(error) = worker {
+            return InterruptSend::NotSent(format!("the interrupt could not be started ({error}); nothing was written"));
+        }
+        if late {
+            return InterruptSend::NotSent(NOT_WRITTEN_IN_LIMIT.into());
+        }
+        if let Ok(sent) = rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+            return sent;
+        }
+        let mut decided = phase.lock().unwrap();
+        // The thread may have finished meanwhile; its own result then stands.
+        if let Ok(sent) = rx.try_recv() {
+            return sent;
+        }
+        match *decided {
+            SendPhase::Pending => {
+                *decided = SendPhase::Withdrawn;
+                InterruptSend::NotSent(NOT_WRITTEN_IN_LIMIT.into())
+            }
+            SendPhase::Writing => InterruptSend::WriteUnknown(WRITE_UNFINISHED_AT_LIMIT.into()),
+            SendPhase::Withdrawn => InterruptSend::NotSent(NOT_WRITTEN_IN_LIMIT.into()),
+        }
+    }
+    /// Takes `lock` for a bounded interrupt: tries until it is had, the
+    /// generation is no longer the ready current one, or the deadline passes.
+    /// It is tried at least once, so a free lock is had even at the deadline.
+    fn lock_within<'a>(&self, lock: &'a Mutex<()>, limit: &WriteBound, generation: &Value, reason: &str) -> Result<std::sync::MutexGuard<'a, ()>, String> {
+        loop {
+            let gave_up = match lock.try_lock() {
+                Ok(guard) => return Ok(guard),
+                Err(std::sync::TryLockError::Poisoned(_)) => "the App's interrupt writer is unavailable; nothing was written".to_owned(),
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    let ended = { let i = self.inner.0.lock().unwrap(); i.generation != *generation || i.server_requests.is_closed(generation) || i.state != "ready" };
+                    if ended { PROCESS_ENDING.to_owned() } else if limit.withdrawn() || std::time::Instant::now() >= limit.deadline { reason.to_owned() } else { std::thread::sleep(Duration::from_millis(2)); continue; }
+                }
+            };
+            *limit.gave_up.lock().unwrap() = Some(gave_up.clone());
+            return Err(gave_up);
+        }
     }
     /// SR-02, then any response or turn end the reader observed before the
     /// request was linked, in receipt order (SR-04/05, SR-06/07, SR-12).
@@ -7318,6 +7508,9 @@ mod recovery_root_tests;
 #[cfg(test)]
 #[path = "stop_records_host_tests.rs"]
 mod stop_records_host_tests;
+#[cfg(all(test, unix))]
+#[path = "hosting_stop_bound_tests.rs"]
+mod stop_bound_tests;
 
 #[cfg(test)]
 #[path = "hosting_delegation_reply_tests.rs"]
