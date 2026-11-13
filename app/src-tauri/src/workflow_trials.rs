@@ -514,6 +514,7 @@ impl TrialLinks {
         1 + self
             .pointers
             .iter()
+            .chain(self.pending.values())
             .filter(|p| &p["draft"] == key)
             .filter_map(|p| p["trial"]["sequence"].as_u64())
             .max()

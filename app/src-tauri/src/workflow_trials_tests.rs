@@ -713,6 +713,7 @@ fn records_store_sync_trial_link_retry_keeps_exact_record_until_durable() {
     storage::fail_directory_for_test(None);
     assert!(first.is_err() && again.is_err());
     assert!(links.all_links().is_empty() && cold.all_links().is_empty());
+    assert_eq!(links.next_sequence(&trial.key), 2, "the pending trial keeps its original display number reserved");
     assert!(!links.limits().is_empty() && !cold.limits().is_empty());
     assert_eq!(entries(&dir).len(), 1);
     assert_eq!(links.record_sent(&trial, &ack).unwrap(), retained);
