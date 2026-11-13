@@ -119,8 +119,75 @@ pub struct Snapshot {
 /// 16 MiB of regular-file bytes per package.
 pub const PACKAGE_MAX_FILES: usize = 1000;
 pub const PACKAGE_MAX_BYTES: u64 = 16 * 1024 * 1024;
+/// What the reader says when the path to a package folder passes through a
+/// symbolic link. Callers may look for it to word their own refusal.
+pub(crate) const LINK_IN_PACKAGE_PATH: &str = "the path to the package folder passes through a link";
+
+/// How the package folder is opened. On macOS the system itself refuses a
+/// symbolic link at ANY component of the path, from the filesystem root to the
+/// folder, inside the lookup that opens it (`O_NOFOLLOW_ANY`: "do not follow
+/// symlinks in the entire path", open(2)), so there is no check beside the
+/// open and nothing above the folder is opened by the App. It needs only
+/// search permission on the folders above, as an ordinary open does. The flag
+/// replaces `O_NOFOLLOW`; the system rejects the two together. Other unix
+/// targets, which the App does not ship, keep the last-component flag.
+#[cfg(target_os = "macos")]
+const PACKAGE_ROOT_FLAGS: i32 = libc::O_DIRECTORY | libc::O_NOFOLLOW_ANY | libc::O_CLOEXEC;
+#[cfg(all(unix, not(target_os = "macos")))]
+const PACKAGE_ROOT_FLAGS: i32 = libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC;
+
+/// The path to a package folder is absolute and has no `.` or `..` component.
+/// The system resolves `..` even when it follows no link, so such a path is
+/// refused here and never resolved. The path's own bytes are read, because
+/// `Path::components` silently drops an interior `.`.
+#[cfg(unix)]
+fn fixed_package_path(root: &Path) -> Result<(), String> {
+    use std::os::unix::ffi::OsStrExt;
+    let bytes = root.as_os_str().as_bytes();
+    if bytes.first() != Some(&b'/') {
+        return Err("non-regular package root: a fixed absolute path is required".into());
+    }
+    if bytes.split(|b| *b == b'/').any(|part| part == b"." || part == b"..") {
+        return Err("non-regular package root: the path has a `.` or `..` component".into());
+    }
+    Ok(())
+}
+
+/// For the refusal's words only: the first folder on the path that is a
+/// symbolic link, looked for by path AFTER the system refused the open. The
+/// system reports the refusal for the whole path and does not say which
+/// component it met, so this names a link found on looking, not the thing the
+/// system refused; if the link has gone in between, none is named.
+#[cfg(unix)]
+fn link_on_path(root: &Path) -> Option<std::path::PathBuf> {
+    let mut ancestors: Vec<&Path> = root.ancestors().collect();
+    ancestors.reverse();
+    ancestors
+        .into_iter()
+        .find(|ancestor| fs::symlink_metadata(ancestor).is_ok_and(|m| m.file_type().is_symlink()))
+        .map(Path::to_path_buf)
+}
+
+/// The package folder, opened for the walk below it.
+#[cfg(unix)]
+fn open_package_root(root: &Path) -> Result<fs::File, String> {
+    use std::os::unix::fs::OpenOptionsExt;
+    fs::OpenOptions::new().read(true).custom_flags(PACKAGE_ROOT_FLAGS).open(root).map_err(|e| {
+        // With the whole-path flag every link the lookup would follow is ELOOP, as a loop of links is.
+        if e.raw_os_error() == Some(libc::ELOOP) {
+            return match link_on_path(root) {
+                Some(link) => format!("non-regular package root: {LINK_IN_PACKAGE_PATH} ({} is a link); a package is read only through a path with no link in it", link.display()),
+                None => format!("non-regular package root: {LINK_IN_PACKAGE_PATH}; a package is read only through a path with no link in it"),
+            };
+        }
+        format!("non-regular package root: {e}")
+    })
+}
+
 impl Snapshot {
     pub fn capture(root: &Path) -> Result<Self, String> {
+        #[cfg(unix)]
+        fixed_package_path(root)?;
         if fs::symlink_metadata(root)
             .map_err(|e| e.to_string())?
             .file_type()
@@ -131,13 +198,8 @@ impl Snapshot {
         let mut files = BTreeMap::new();
         #[cfg(unix)]
         {
-            use std::os::unix::fs::OpenOptionsExt;
             // The opened root descriptor, not the path, is the authority below.
-            let dir = fs::OpenOptions::new()
-                .read(true)
-                .custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC)
-                .open(root)
-                .map_err(|e| format!("non-regular package root: {e}"))?;
+            let dir = open_package_root(root)?;
             let mut budget = (0usize, 0u64);
             walk_fd(&dir, root, "", &mut files, &mut budget)?;
         }
