@@ -216,7 +216,8 @@ def test_fork_pull_requests_neither_restore_nor_save():
     save = (root / '.github/actions/app-v4-rust-cache-save/action.yml').read_text()
     lines = [line.strip() for line in setup]
     assert 'SAME_REPOSITORY: ${{ ' + same + ' }}' in lines
-    assert "cache: ${{ (" + same + ") && 'npm' || '' }}" in lines
+    # The npm cache also needs the caller not to have turned it off (npm-cache: 'false'); that only narrows it.
+    assert "cache: ${{ inputs.npm-cache != 'false' && (" + same + ") && 'npm' || '' }}" in lines
     assert sum(line.startswith('cache:') for line in lines) == 1
     assert "if [ \"$SAME_REPOSITORY\" != 'true' ]; then" in lines
     assert '{ echo "key="; echo "prefix="; } >> "$GITHUB_OUTPUT"' in lines
