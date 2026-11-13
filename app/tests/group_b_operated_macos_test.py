@@ -24,20 +24,39 @@ def load(name):
 
 @unittest.skipUnless(sys.platform == 'darwin', MACOS_ONLY)
 class StraySearchOnMacOS(unittest.TestCase):
+    # The process whose executable is known is one this test starts from a path it chose (STAND_IN), never the
+    # interpreter running the test: a framework Python (the hosted runner's, or Xcode's) is started through a
+    # launcher, so sys.executable names a file the test's own process does not run.
+    STAND_IN = '/bin/sleep'
+
+    def started(self):
+        child = subprocess.Popen([self.STAND_IN, '60'])
+
+        def end():
+            child.kill()
+            child.wait()
+        self.addCleanup(end)
+        return child
+
     def test_the_system_is_asked_for_an_executable_by_process_number(self):
         stray = load('stray')
+        child = self.started()
+        asked = stray.executable_of(child.pid)
+        self.assertTrue(os.path.samefile(asked, self.STAND_IN), (asked, self.STAND_IN))
         own = stray.executable_of(os.getpid())
-        self.assertTrue(os.path.samefile(own, sys.executable), (own, sys.executable))
+        self.assertTrue(os.path.isfile(own), own)
         gone = subprocess.Popen(['/usr/bin/true'])
         gone.wait()
         self.assertIsNone(stray.executable_of(gone.pid))
 
-    def test_this_users_processes_are_listed_and_this_one_is_found_by_its_executable(self):
+    def test_this_users_processes_are_listed_and_one_this_test_started_is_found_by_its_executable(self):
         stray = load('stray')
+        child = self.started()
         lines = [line.split() for line in stray.listing()]
-        self.assertIn(str(os.getpid()), [parts[0] for parts in lines if parts])
-        found, _ = stray.processes(os.path.realpath(sys.executable))
-        self.assertIn(os.getpid(), [entry['pid'] for entry in found])
+        self.assertIn(str(child.pid), [parts[0] for parts in lines if parts])
+        found, _ = stray.processes(self.STAND_IN)
+        self.assertIn(child.pid, [entry['pid'] for entry in found])
+        self.assertNotIn(os.getpid(), [entry['pid'] for entry in found])
 
 
 @unittest.skipUnless(sys.platform == 'darwin', MACOS_ONLY)
