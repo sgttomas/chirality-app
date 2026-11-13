@@ -3027,6 +3027,38 @@ fn native_children_167_requires_canonical_whole_source_and_does_not_rebind_after
     }
 }
 
+/// Local key entry makes its requirements reading first and then the configuration reading it
+/// rests on (readings of one generation are one at a time, each superseding earlier proofs); a
+/// requirement that excludes key entry still refuses it, with no key frame written.
+#[test]
+fn native_local_provider_key_entry_reads_requirements_first_and_a_refusing_requirement_still_refuses() {
+    use crate::native_local_provider as local_route;
+    let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-key-order-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let plan = crate::home_resources::OwnedHomePlan::new(root.clone(), root.join("local"), crate::home_resources::HomeClass::LocalProvider, None).unwrap();
+    local_route::prepare(&plan).unwrap();
+    let mut peer = Peer::new(&plan.opaque_home_id());
+    canonical_167_peer(&peer);
+    peer.host.inner.0.lock().unwrap().local_provider = Some(LocalProviderBinding { home: plan.opaque_home_id(), cwd: "/invented/work".into() });
+    peer.answer(local_167_config());
+    let cfg = HostConfig::new(root.join("not-run"), plan.native_path().into(), root.join("probe"), "/invented/work".into());
+    let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider, peer.host.clone(), Ok(cfg)).unwrap();
+    let entry = local_route::CredentialEntry::default();
+    let generation = peer.g.clone();
+    let result = std::thread::scope(|scope| {
+        let work = scope.spawn(|| local_route::submit(&home, &plan, &generation, &entry, || Ok(()), || Ok(Some(CANARY.into()))));
+        let policy = peer.frame();
+        assert_eq!(policy["method"], "configRequirements/read", "requirements first");
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":{"allowedLoginMethods":["chatgpt"]}}})).unwrap(), &peer.g);
+        assert_eq!(peer.frame()["method"], "config/read", "then the configuration reading the entry rests on");
+        work.join().unwrap()
+    });
+    assert!(result.is_err(), "a requirement excluding key entry still refuses it");
+    assert!(peer.host.client_requests().iter().all(|r| r["method"] != "account/login/start"), "no key frame written");
+    peer.safe();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn native_local_provider_one_private_login_frame_and_safe_receipts_without_supplier_or_endpoint() {
     use crate::native_local_provider as local_route;

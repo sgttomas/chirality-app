@@ -902,6 +902,9 @@ pub struct Host {
     /// Runs once when a reading first finds the reservation held, before it waits.
     #[cfg(test)]
     pub(crate) reading_waiting: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Runs once after a reading takes the reservation, before it registers.
+    #[cfg(test)]
+    pub(crate) reading_after_reserve: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
     /// Runs once after a reading registers, before it asks for the frame writer.
     #[cfg(test)]
     pub(crate) reading_after_register: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
@@ -992,6 +995,7 @@ impl Host {
             #[cfg(test)]
             before_provider_wait: Mutex::new(None),
             #[cfg(test)] reading_waiting: Mutex::new(None),
+            #[cfg(test)] reading_after_reserve: Mutex::new(None),
             #[cfg(test)] reading_after_register: Mutex::new(None),
             #[cfg(test)] before_request_write: Mutex::new(None),
             #[cfg(test)]
@@ -2215,6 +2219,7 @@ impl Host {
         // dropped after them: an early return or a panic before the write is admitted withdraws.
         let reading=reading_gate::is_reading(method);
         let hold:Option<ReadingHold>=if reading {Some(self.reading_reserve(method,expected_generation,reading_deadline.unwrap_or_else(||std::time::Instant::now()+reading_gate::READING_DEFAULT_BUDGET))?)} else {None};
+        #[cfg(test)] if hold.is_some() {let hook=self.reading_after_reserve.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
         if let Some(write)=endpoint_write {write.check(self,&i)?;}
@@ -6866,6 +6871,10 @@ mod conversation_transport_tests {
 #[cfg(test)]
 #[path = "execution_custody_tests.rs"]
 mod execution_custody_tests;
+
+#[cfg(all(test, unix))]
+#[path = "hosting_reading_gate_tests.rs"]
+mod reading_gate_tests;
 
 #[cfg(test)]
 #[path = "recovery_root_tests.rs"]
