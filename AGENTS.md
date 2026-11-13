@@ -381,8 +381,15 @@ reviewed head, and it triages `nightly` issues when arming. It disarms before
 any further push to the branch. `main` does not require an up-to-date branch:
 before merging or arming, Agent 0 updates the branch and waits for a fresh run
 when a PR merged since the branch's base touched the same files or the same
-deliverable. Open PRs that overlap this way merge in turn: the later one stays
-unarmed until the earlier has landed and the later has been updated. A later
+deliverable. One case is Agent 0's to judge: where the two share no file and
+bear on the same deliverable only because a file one of them changes is
+declared under several deliverables, Agent 0 decides whether a fresh run is
+needed. It compares the merged tree with the tree the checks passed on, reads
+the place where the two changes meet, and states its decision and reason in the
+PR so that the owner can reverse it. Open PRs that overlap this way merge in
+turn, unless Agent 0 has decided in that one case that no fresh run is needed:
+the later one stays unarmed until the earlier has landed and the later has been
+updated. A later
 PR whose head already contains the exact reviewed head of each earlier one may
 instead be merged first by hand and so land them, when its required checks are
 green on its exact head, a comparison made at merge time shows that the merge
