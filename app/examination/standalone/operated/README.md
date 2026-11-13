@@ -648,7 +648,9 @@ What it shows when it passes:
   the App's data folder under the throwaway home.
 
 It is agent-operated development evidence on a development build. It is neither
-setup completed nor a person's observation.
+setup completed nor a person's observation. A pass records the checks on views
+returned by the supplier's client; that client is part of the trusted
+examination tooling (its limit is stated beside `failure` in `walk.mjs`).
 
 **Before a window: the same walk on recorded views.** No application and no
 screen are involved.
@@ -669,6 +671,46 @@ home, Review setup available with existing settings; and one where a control
 has other words that begin the same way, which the walk does not click (it
 stops, inconclusive, exit 2). This is the check rejecting wrong states; it
 says nothing about a build.
+
+**The lane's sample of the service's socket folder.** From App Agent 0's go, the
+lane's agent (not the operator) samples, from its own shell, the names and times
+in the window service's socket folder once a second, until the walk's result
+file exists and fifteen seconds more, or thirty minutes at most. Names and times
+only: no file there is opened, read, connected to or removed, and nothing is
+written there. The output goes in the walk's evidence folder:
+
+```sh
+F="$HOME/Library/Group Containers/2DC432GLL2.com.openai.sky.CUAService/IPC"
+end=; stop=$(( $(date +%s) + 1800 ))
+while [ "$(date +%s)" -lt "$stop" ]; do
+  now=$(date -u +%FT%TZ)
+  if out=$(ls -laT "$F" 2>&1); then
+    if printf '%s\n' "$out" | grep -q ' computeruse\.sock$'; then seen='LISTED: computeruse.sock present'
+    else seen='LISTED: no computeruse.sock among the names'; fi
+    printf '%s %s\n%s\n' "$now" "$seen" "$out"
+  else
+    printf '%s NOT EXAMINED: ls exited %s: %s\n' "$now" "$?" "$out"
+  fi
+  [ -z "$end" ] && [ -e "<evidence folder>/scenario-result.json" ] && end=$(( $(date +%s) + 15 ))
+  [ -n "$end" ] && [ "$(date +%s)" -ge "$end" ] && break
+  sleep 1
+done > "<evidence folder>/socket-folder-sample.txt"
+```
+
+Why this folder: the supplier's client for the service, read where it lies
+inside ChatGPT.app (nothing copied into this repository, nothing run), first
+tries the service's socket in that folder for a fraction of a second; if
+nothing answers, it asks for the service to be started, then tries the socket
+again for up to five seconds, connecting and asking for a reply. "Sky Computer
+Use native pipe startup failed" is what it reports when those five seconds pass
+without an answer. Each sample says one of two things: the folder was listed,
+and whether a name `computeruse.sock` was among its entries; or it was NOT
+EXAMINED, with the listing's exit status and message. A sample not examined
+is not a sample that saw no socket. The sample shows whether the socket was
+present at each moment the folder was listed, about a second apart, against
+the walk's first call. What
+happens between two samples (a socket present for less than a second, for
+instance) is not seen, and it cannot show why anything happened.
 
 **In a window.** Steps 1 to 3 above first: the launcher running, the App's
 process number confirmed, the identifier taken from the identification record.
@@ -751,6 +793,19 @@ nodeRepl.write(walk.summary(report));
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
 - The result file holds every call made and every view's returned text whole.
+  When a view fails, it also holds the failure as messages only, in
+  `view_error`: where it failed, the error's own message, and each cause the
+  error carries, in order and whole (at most eight); the summary prints the
+  causes under the line that says where the walk stopped. The causes are
+  diagnostic evidence supplied by the supplier's client, not causes
+  established independently. Nothing else of the
+  error is kept: a message is kept only when it is text, anything else is
+  named for what it is, and a part that cannot be read is said to be so.
+  What it cannot do: reading an error's message and cause can run code the
+  error carries, in the same runtime as the walk. The error comes from the
+  supplier's client, which runs there too and could change anything the walk
+  holds without throwing at all; so the walk's result rests on that client, as
+  every call does, not on how a failure is read.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt appearing, or the focus leaving the build) to its own
   record.
@@ -798,7 +853,9 @@ On a development candidate built from main, in two windows the owner gave:
 - Walk A2's second and third attempts, each by a fresh operator from this
   method alone, reached the walk's first call. Each call failed within about
   five seconds with "Sky Computer Use native pipe startup failed"; nothing was
-  clicked (observed). Why is not established.
+  clicked (observed). Why is not established. The walk then kept only that
+  message and dropped the causes the supplier's client attaches to it; it now
+  keeps them (`view_error`).
 - Each of those calls started, within the same second, a Codex app-server
   (`codex app-server --listen stdio://` from inside ChatGPT.app, a child of
   the operator's node runtime, which is itself inside ChatGPT.app) and a window
