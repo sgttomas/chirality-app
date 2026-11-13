@@ -335,7 +335,14 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       and then asks which process holds it (`lsof -t`, above). That one
       process is its runtime, recorded by number and start time. If `lsof`
       names none or more than one, the runtime is not identified and no walk
-      is made.
+      is made. That call imports nothing but the standard library and makes
+      no computer-use call, so it is not the call that starts the helper; the
+      look comes after it and before the permitted import. The marker file is
+      in the operator's evidence folder, never under either Codex home; when
+      the walk ends the operator closes it (`await runtimeMarker.close()`) and
+      it is kept, not removed. The first walk is also the first trial of this
+      identification: if it fails, that is "no walk", recorded as a finding
+      about this method.
     - **The look, before the import and before the first call.** Then, as the
       last thing before the `js` block that imports the service ("Running a
       scenario"), the operator looks, with the first `ps` command above, for
