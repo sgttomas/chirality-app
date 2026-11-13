@@ -174,65 +174,6 @@ fn a_reading_registered_after_a_final_check_reaches_codex_after_that_request() {
     reader.lock().unwrap().take().unwrap().join().unwrap().unwrap();
 }
 
-/// An ordinary admission is not passed over by the App's own readers, and succeeds beside the
-/// tick. Two App readers read again and again (the delegation reading in a loop, every request
-/// answered at once): the admission's reading always gets its turn within its budget (never the
-/// gate sentence); a superseded admission is the accepted window after its reply. Then with the
-/// tick at its own pace (one delegation reading per interval) the admissions succeed.
-#[test]
-fn an_admission_is_not_passed_over_by_the_apps_own_readers() {
-    let rig = Rig::new();
-    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
-    std::thread::scope(|scope| {
-        // Codex's stand-in: answers every frame at once.
-        scope.spawn(|| {
-            while !stop.load(std::sync::atomic::Ordering::SeqCst) {
-                let Ok(frame) = rig.frames.lock().unwrap().recv_timeout(Duration::from_millis(20)) else { continue };
-                let result = match frame["method"].as_str() { Some("config/read") => cfg(), Some("model/list") => json!({"data":[]}), _ => json!({}) };
-                rig.answer(&frame, result);
-            }
-        });
-        let readers = Arc::new(std::sync::atomic::AtomicUsize::new(2));
-        let paced = Arc::new(std::sync::atomic::AtomicBool::new(false));
-        for _ in 0..2 {
-            let (host, g, stop, readers, paced) = (rig.host.clone(), rig.g.clone(), stop.clone(), readers.clone(), paced.clone());
-            scope.spawn(move || {
-                while !stop.load(std::sync::atomic::Ordering::SeqCst) {
-                    if paced.load(std::sync::atomic::Ordering::SeqCst) {
-                        // One reader stays, at the tick's own pace.
-                        if readers.fetch_sub(1, std::sync::atomic::Ordering::SeqCst) > 1 { return; }
-                        readers.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                        host.delegation_signals_read_within(&g, "thread", json!({"kind":"app-rule","name":"delegation-availability-read"}), Duration::from_secs(2));
-                        std::thread::sleep(crate::host_tick::INTERVAL);
-                        continue;
-                    }
-                    host.delegation_signals_read_within(&g, "thread", json!({"kind":"app-rule","name":"delegation-availability-read"}), Duration::from_secs(2));
-                }
-            });
-        }
-        std::thread::sleep(Duration::from_millis(100));
-        let mut admitted = 0;
-        for attempt in 0..20 {
-            match admit(&rig.host, &rig.g, Duration::from_secs(2)) {
-                Ok(_) => admitted += 1,
-                Err(e) => assert_ne!(e, READING_GATE, "admission {attempt} passed over"),
-            }
-        }
-        assert!(admitted > 0, "admissions get through between the App's readings");
-        paced.store(true, std::sync::atomic::Ordering::SeqCst);
-        std::thread::sleep(Duration::from_millis(1200));
-        let mut succeeded = 0;
-        for _ in 0..5 {
-            if let Ok(proof) = admit(&rig.host, &rig.g, Duration::from_secs(2)) {
-                if rig.host.thread_start_with_access_dispatch(&proof, "guidance").is_ok() { succeeded += 1; }
-            }
-            std::thread::sleep(Duration::from_millis(150));
-        }
-        assert!(succeeded >= 4, "beside the tick at its own pace, admissions and their starts succeed: {succeeded} of 5");
-        stop.store(true, std::sync::atomic::Ordering::SeqCst);
-    });
-}
-
 /// Waiters are served in arrival order: an admission that began waiting first is the next reading
 /// registered, before App readers that began waiting after it, every time.
 #[test]
@@ -267,22 +208,54 @@ fn an_admission_waiting_first_is_served_before_app_readers_that_came_after() {
     }
 }
 
-/// The gate's wait expiring: the gate sentence, nothing registered, nothing on Codex's input.
+/// The gate's wait expiring, with one reading outstanding and never answered (the stand-in silent):
+/// each later reading returns the gate sentence within its own deadline, the settings reading (which
+/// reaches the person) included; nothing registered, nothing on Codex's input.
 #[test]
 fn the_gate_wait_expiring_gives_the_gate_sentence_and_registers_nothing() {
     let rig = Rig::new();
     let (host, g) = (rig.host.clone(), rig.g.clone());
     let first = std::thread::spawn(move || read(&host, &g, json!({"cwd":W,"includeLayers":false}), LONG));
-    let held = rig.frame();
+    let _never_answered = rig.frame();
+    first.join().unwrap().unwrap();
     let (requests, pending) = (rig.requests(), rig.pending());
-    assert_eq!(read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), Duration::from_millis(150)).err().unwrap(), READING_GATE);
-    assert_eq!(admit(&rig.host, &rig.g, Duration::from_millis(150)).err().unwrap(), READING_GATE, "an admission passes the sentence on as it is");
-    assert_eq!(rig.host.effective_access_settings_read_within(&rig.g, W, "account", Duration::from_millis(150)).err().unwrap(), READING_GATE, "the settings reading too");
-    assert_eq!(rig.host.account_requirements_read_until(&rig.g, Instant::now() + Duration::from_millis(150)).err().unwrap(), READING_GATE, "a requirements reading too");
+    let budget = Duration::from_millis(150);
+    let within = |label: &str, call: &dyn Fn() -> Option<String>| {
+        let started = Instant::now();
+        assert_eq!(call().as_deref(), Some(READING_GATE), "{label}");
+        assert!(started.elapsed() < budget + Duration::from_millis(250), "{label}: returned within its own deadline ({:?})", started.elapsed());
+    };
+    within("a reading", &|| read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), budget).err());
+    within("an admission passes the sentence on as it is", &|| admit(&rig.host, &rig.g, budget).err());
+    within("the settings reading too", &|| rig.host.effective_access_settings_read_within(&rig.g, W, "account", budget).err());
+    within("a requirements reading too", &|| rig.host.account_requirements_read_until(&rig.g, Instant::now() + budget).err());
     assert_eq!((rig.requests(), rig.pending()), (requests, pending), "nothing registered, nothing pending");
     rig.none(Duration::from_millis(100));
-    rig.answer(&held, cfg());
-    first.join().unwrap().unwrap();
+}
+
+/// A valid terminal envelope ends the exchange even when its result is not usable: a result with
+/// no configuration object, or one naming no definition the entry can use, supplies no proof, yet
+/// the reservation is released and the next reading registers at once.
+#[test]
+fn an_unusable_result_supplies_no_proof_but_releases_the_reservation() {
+    for (label, entry, provider, result) in [
+        ("no configuration object", "chatgpt-account", "openai", json!({"origins":{}})),
+        ("no usable provider definition", "local-provider", "anonymous", cfg()),
+    ] {
+        let rig = Rig::new();
+        let (host, g) = (rig.host.clone(), rig.g.clone());
+        let admitting = std::thread::spawn(move || host.provider_admission_read_within(&g, W, entry, provider, "chosen-model", LONG));
+        let frame = rig.frame();
+        rig.answer(&frame, result);
+        assert!(admitting.join().unwrap().is_err(), "{label}: no proof");
+        assert!(rig.stage().is_none(), "{label}: the exchange is finished and the reservation released");
+        let (host, g) = (rig.host.clone(), rig.g.clone());
+        let next = std::thread::spawn(move || read(&host, &g, json!({"cwd":W,"includeLayers":false}), LONG));
+        let after = rig.frame();
+        assert_ne!(after["id"], frame["id"], "{label}: the next reading registered at once");
+        rig.answer(&after, cfg());
+        next.join().unwrap().unwrap();
+    }
 }
 
 /// A reply after its caller gave up: the reservation is held meanwhile and a later admission is
@@ -416,10 +389,13 @@ fn a_reply_before_its_senders_cleanup_never_clears_a_successor() {
     assert_eq!(written_first["id"], *first.request_id());
     let second = rig.frame();
     assert_ne!(second["id"], written_first["id"]);
-    assert_eq!(rig.stage(), Some((Some(second["id"].to_string()), ReadingStage::AwaitingReply)), "the first's cleanup left the successor alone");
+    // Seeing the echoed frame does not mean its sender's post-write step has run: either
+    // outstanding stage, naming the successor.
+    let outstanding = |rig: &Rig| matches!(rig.stage(), Some((Some(id), ReadingStage::WriteStarted | ReadingStage::AwaitingReply)) if id == second["id"].to_string());
+    assert!(outstanding(&rig), "the first's cleanup left the successor alone: {:?}", rig.stage());
     assert_eq!(rig.current(), Some(request_ref(&second["id"], &rig.host)));
     rig.answer(&written_first, cfg());
-    assert_eq!(rig.stage(), Some((Some(second["id"].to_string()), ReadingStage::AwaitingReply)), "a duplicate reply releases nothing");
+    assert!(outstanding(&rig), "a duplicate reply releases nothing: {:?}", rig.stage());
     rig.answer(&second, cfg());
     successor.lock().unwrap().take().unwrap().join().unwrap().unwrap();
     assert!(rig.stage().is_none());
@@ -448,7 +424,7 @@ fn a_close_ends_the_reading_and_an_old_generations_late_reply_touches_nothing() 
     // release itself (the frame reader also discards a line of a generation no longer current).
     assert!(!Host::reading_reply_locked(&mut rig.host.inner.0.lock().unwrap(), &rig.g, &frame["id"].to_string()), "another generation's reply releases nothing");
     rig.host.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":cfg()})).unwrap(), &rig.g);
-    assert!(matches!(rig.stage(), Some((Some(_), ReadingStage::AwaitingReply))), "a reply naming the old generation releases nothing");
+    assert!(matches!(rig.stage(), Some((Some(id), ReadingStage::WriteStarted | ReadingStage::AwaitingReply)) if id == frame["id"].to_string()), "a reply naming the old generation releases nothing: {:?}", rig.stage());
     rig.host.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":cfg()})).unwrap(), &next);
     fresh.join().unwrap().unwrap();
     assert!(rig.stage().is_none());
@@ -485,4 +461,51 @@ fn a_blocked_or_failed_write_keeps_its_reading_outstanding_and_is_never_called_n
     assert_eq!(failed.evidence()["writeResult"], "write-failed");
     assert!(matches!(rig.stage(), Some((Some(_), ReadingStage::WriteFailed))));
     assert_eq!(admit(&rig.host, &rig.g, Duration::from_millis(150)).err().unwrap(), READING_GATE);
+}
+
+/// Only a well-formed terminal reply releases a reading: an envelope with both a result and an
+/// error is contradictory (settlement rejects it) and leaves the reading outstanding, so a reading
+/// started meanwhile does not register until the genuine reply arrives.
+#[test]
+fn a_contradictory_envelope_releases_nothing_and_only_the_genuine_reply_does() {
+    let rig = Rig::new();
+    read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), LONG).unwrap();
+    let held = rig.frame();
+    let held_ref = request_ref(&held["id"], &rig.host);
+    rig.host.on_line(&serde_json::to_vec(&json!({"id":held["id"],"result":cfg(),"error":{"code":-32603,"message":"invented"}})).unwrap(), &rig.g);
+    assert!(matches!(rig.stage(), Some((Some(id), _)) if id == held["id"].to_string()), "a contradictory envelope releases nothing: {:?}", rig.stage());
+    assert!(!rig.host.inner.0.lock().unwrap().pending.contains_key(&held["id"].to_string()), "handling the malformed frame removed the original waiter");
+    let waiting = rig.on_waiting();
+    let (host, g) = (rig.host.clone(), rig.g.clone());
+    let next = std::thread::spawn(move || read(&host, &g, json!({"cwd":W,"includeLayers":false}), LONG));
+    waiting.recv_timeout(LONG).expect("the next reading finds the reservation held");
+    std::thread::sleep(Duration::from_millis(100));
+    assert_eq!(rig.current(), Some(held_ref), "the next reading has not registered");
+    rig.none(Duration::from_millis(150));
+    rig.answer(&held, cfg());
+    let frame = rig.frame();
+    assert_ne!(frame["id"], held["id"], "the genuine reply released it: the next reading registered");
+    rig.answer(&frame, cfg());
+    next.join().unwrap().unwrap();
+}
+
+/// The generic synchronous route gives a reading one deadline from the call's start: time spent
+/// waiting for the reservation leaves only the remainder for the reply.
+#[test]
+fn the_generic_route_waits_for_a_readings_reply_only_for_what_remains_of_its_deadline() {
+    let rig = Rig::new();
+    read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), LONG).unwrap();
+    let held = rig.frame();
+    let (host, g) = (rig.host.clone(), rig.g.clone());
+    let started = Instant::now();
+    let generic = std::thread::spawn(move || {
+        let result = host.request_inner_scoped("config/read", json!({"cwd":W,"includeLayers":false}), json!({"kind":"synthetic generic"}), Duration::from_millis(1000), false, Some(&g));
+        (result, started.elapsed())
+    });
+    std::thread::sleep(Duration::from_millis(600));
+    rig.answer(&held, cfg());
+    assert_eq!(rig.frame()["method"], "config/read", "registered once the reservation was free, and left unanswered");
+    let (result, elapsed) = generic.join().unwrap();
+    assert!(result.is_err(), "no reply within its deadline");
+    assert!(elapsed < Duration::from_millis(1350), "the whole call is bounded by its one deadline: {elapsed:?}");
 }

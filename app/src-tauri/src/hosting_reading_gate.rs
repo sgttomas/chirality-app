@@ -27,6 +27,9 @@ pub(crate) const READING_GATE: &str = "An earlier configuration reading for this
 /// found passed once it had it. "Configuration" covers both reading methods. Nothing was written;
 /// never given for a write that was attempted.
 pub(crate) const READING_WITHDRAWN: &str = "This configuration request was not sent because its time limit expired while waiting to write to Codex for this home.";
+/// Before either sentence when the configuration reading after a confirmed provider write fails
+/// that way: the write's known outcome comes first and is not put in doubt by the sentence.
+pub(crate) const WRITE_THEN_READING: &str = "Write observed; no retry. Reading the configuration again afterwards: ";
 /// The deadline a reading gets when its sender names none (the generic request route).
 pub(crate) const READING_DEFAULT_BUDGET: Duration = Duration::from_secs(10);
 /// The longest a waiter sleeps before looking at the generation again: a close is seen without
@@ -35,6 +38,13 @@ const READING_POLL: Duration = Duration::from_millis(50);
 
 pub(super) fn is_reading(method: &str) -> bool {
     matches!(method, "config/read" | "configRequirements/read")
+}
+/// A terminal reply envelope as settlement accepts one (`completed_client_response`): an object
+/// with no method and exactly one of a result and an error. Only such a reply releases a reading's
+/// reservation; a contradictory or incomplete envelope leaves the reading outstanding until a
+/// genuine reply or the generation's close.
+pub(super) fn terminal_reply(frame: &Value) -> bool {
+    frame.is_object() && frame.get("method").is_none() && (frame.get("result").is_some() != frame.get("error").is_some())
 }
 /// Whether an error is one of the two sentences a sender must pass on as it is.
 pub(crate) fn reading_sentence(error: &str) -> bool {

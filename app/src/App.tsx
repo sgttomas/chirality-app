@@ -32,6 +32,7 @@ import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
+import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -1325,8 +1326,8 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
         || (context.current.host?.accessSettingsReadRevision !== original.accessSettingsReadRevision
           && context.current.host?.accessSettingsReadRevision !== packet.scope.readRevision)) return;
       setObservation({ packet, epoch, sequence: attempt });
-    } catch {
-      if (current()) setError("Effective access settings unavailable; private diagnostic withheld. Read again from the current Codex source.");
+    } catch (error) {
+      if (current()) setError(readingSentence(error) ?? "Effective access settings unavailable; private diagnostic withheld. Read again from the current Codex source.");
     } finally { pending.current = false; if (mounted.current) setReading(false); }
   };
   const current = ready && observation?.epoch === epoch && observation.sequence === sequence.current
@@ -1685,8 +1686,8 @@ export function App() {
       if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
       applyHost(latestRead);
       updateEndpointEditor({ ...editor, offer: packet, message: "Review the exact endpoint change. Saving opens two separate native decisions." });
-    } catch {
-      if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
+    } catch (error) {
+      if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
     } finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const saveEndpoint = async () => {
@@ -1706,7 +1707,8 @@ export function App() {
         "overridden": "Write observed with an override reported; the current source has not been continued.",
         "continued": "Endpoint write and current source continuation observed. Current choices and drafts stay unchanged.",
       };
-      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
+      // A reading again after the write that was not sent: the write's outcome first, then why.
+      updateEndpointEditor({ ...editor, offer: null, message: readingAfterWrite(outcome?.message) ?? messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
       const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot; if (current() && providerSource(latest) === editor.source) applyHost(latestRead);
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint change unavailable. No automatic retry; a write may already have occurred." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
@@ -1737,7 +1739,7 @@ export function App() {
       const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
       if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
       applyHost(latestRead); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
-    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
+    } catch (error) { if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const saveProviderCreate = async () => {
@@ -1756,7 +1758,8 @@ export function App() {
         "overridden": "Provider addition write observed with an override reported; the current source has not been continued.",
         "continued": "Provider addition write and current source continuation observed. Read configured providers to see current rows. Your provider/model choice is unchanged.",
       };
-      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Provider Add outcome unavailable; no automatic retry." });
+      // A reading again after the write that was not sent: the write's outcome first, then why.
+      updateEndpointEditor({ ...editor, offer: null, message: readingAfterWrite(outcome?.message) ?? messages[outcome?.state] ?? "Provider Add outcome unavailable; no automatic retry." });
       // A refresh cannot revoke the factual save outcome already received.
       // Its failure also cannot attach an old outcome to a newer editor/source.
       try {
@@ -1808,8 +1811,8 @@ export function App() {
       if (chosen && chosen.source === source && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
         && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
-    } catch {
-      if (current()) setProviderObservationMessage("Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
+    } catch (error) {
+      if (current()) setProviderObservationMessage(readingSentence(error) ?? "Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
     } finally {
       providerReadPending.current = false; setProviderReading(false);
     }

@@ -327,7 +327,13 @@ pub(crate) fn save(
             after(candidate, &effects)
         })
     })();
-    Ok(
-        json!({"state":if result==Ok(true) {"continued"}else if overridden{"overridden"}else{"write-observed-source-unconfirmed"}}),
-    )
+    let mut outcome = json!({"state":if result==Ok(true) {"continued"}else if overridden{"overridden"}else{"write-observed-source-unconfirmed"}});
+    // The configuration reading after the write was refused at the reading gate or withdrawn: the
+    // known write outcome first and unqualified, then that reading's own sentence.
+    if let Err(error) = &result {
+        if crate::hosting::reading_gate::reading_sentence(error) {
+            outcome["message"] = json!(format!("{}{error}", crate::hosting::reading_gate::WRITE_THEN_READING));
+        }
+    }
+    Ok(outcome)
 }

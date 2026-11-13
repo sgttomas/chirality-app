@@ -494,6 +494,11 @@ pub(crate) fn save(
         Ok(false) => Ok(
             json!({"state":unconfirmed,"message":"Write observed; the current source has not been continued","endpointRereadMatched":observed}),
         ),
+        // The configuration reading after the write was refused at the reading gate or withdrawn:
+        // the known write outcome first and unqualified, then that reading's own sentence.
+        Err(error) if crate::hosting::reading_gate::reading_sentence(&error) => Ok(
+            json!({"state":unconfirmed,"message":format!("{}{error}", crate::hosting::reading_gate::WRITE_THEN_READING)}),
+        ),
         Err(_) => Ok(
             json!({"state":unconfirmed,"message":"Write observed; current source continuation unavailable or unknown; no retry"}),
         ),

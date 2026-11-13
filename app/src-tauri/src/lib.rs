@@ -385,8 +385,11 @@ fn provider_endpoint_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
-    endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch)
-        .map_err(|_| "Endpoint edit unavailable; private values and diagnostics withheld".into())
+    endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch).map_err(endpoint_offer_refusal)
+}
+/// What the endpoint offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
+pub(crate) fn endpoint_offer_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Endpoint edit unavailable; private values and diagnostics withheld".into())
 }
 fn endpoint_save_result(
     state: &AppState,
@@ -516,8 +519,11 @@ fn provider_create_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
-    create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch)
-        .map_err(|_| "Provider Add unavailable; private values and diagnostics withheld".into())
+    create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch).map_err(create_offer_refusal)
+}
+/// What the Add offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
+pub(crate) fn create_offer_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Provider Add unavailable; private values and diagnostics withheld".into())
 }
 #[tauri::command(async)]
 fn provider_create_save(

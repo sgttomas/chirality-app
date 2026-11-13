@@ -3524,6 +3524,67 @@ mod tests {
         peer.endpoint_private_taps();
         f.public_endpoint_records_safe();
     }
+    /// At the confirmed write's final admission, a configuration reading registers and stays
+    /// unanswered, so the configuration reading after the write is refused at the reading gate.
+    fn reading_outstanding_at_the_write(host: &Arc<crate::hosting::Host>) {
+        let held = Arc::clone(host);
+        *host.before_request_write.lock().unwrap() = Some(Box::new(move |h| {
+            if h.writing_method_for_test().as_deref() != Some("config/batchWrite") { return reading_outstanding_at_the_write(&held); }
+            let (registered_tx, registered) = std::sync::mpsc::channel();
+            *h.reading_after_register.lock().unwrap() = Some(Box::new(move |_| { let _ = registered_tx.send(()); }));
+            let (reader, generation) = (Arc::clone(&held), h.snapshot()["generation"].clone());
+            std::thread::spawn(move || reader.request_reading("config/read", json!({"cwd":"/invented/elsewhere","includeLayers":false}), json!({"kind":"synthetic reader"}), &generation, false, std::time::Instant::now() + std::time::Duration::from_secs(5)));
+            registered.recv_timeout(std::time::Duration::from_secs(5)).expect("the reading registers while the write holds the writer");
+        }));
+    }
+    /// The endpoint and Add offer commands pass either reading sentence on as it is and keep their
+    /// fixed sentence for anything else.
+    #[test]
+    fn access_provider_offer_commands_pass_the_reading_sentences_on_unchanged() {
+        use crate::hosting::reading_gate::{READING_GATE, READING_WITHDRAWN};
+        for (label, refusal, fixed) in [
+            ("endpoint", crate::endpoint_offer_refusal as fn(String) -> String, "Endpoint edit unavailable; private values and diagnostics withheld"),
+            ("Add", crate::create_offer_refusal, "Provider Add unavailable; private values and diagnostics withheld"),
+        ] {
+            for sentence in [READING_GATE, READING_WITHDRAWN] { assert_eq!(refusal(sentence.into()), sentence, "{label}"); }
+            assert_eq!(refusal("INVENTED_PRIVATE_OFFER_DIAGNOSTIC".into()), fixed, "{label}: anything else is withheld");
+            assert_eq!(refusal(format!("{READING_GATE} ")), fixed, "{label}: only the exact sentence passes");
+        }
+    }
+    /// A save whose configuration reading after the write is not sent states the write first and
+    /// unqualified, then that reading's own sentence; endpoint and Add alike.
+    #[test]
+    fn access_provider_saves_state_the_write_first_when_reading_again_is_not_sent() {
+        use crate::hosting::reading_gate::{READING_GATE, WRITE_THEN_READING};
+        let f = Fixture::new();
+        let (_desktop, state, _home, mut peer) = f.continuation();
+        peer.endpoint_replies(f.shared[0].clone(), f.shared[0].clone(), "fixture.dot", "https://example.invalid/new");
+        let offer = crate::hosting::provider_endpoint::offer(&state, "fixture.dot", "https://example.invalid/new").unwrap();
+        reading_outstanding_at_the_write(&peer.host);
+        let outcome = crate::hosting::provider_endpoint::save(
+            &state,
+            offer,
+            |_| Ok(tauri_plugin_dialog::MessageDialogResult::Custom(crate::hosting::provider_endpoint::WRITE_ACTION.into())),
+            |candidate, _| Ok(Some(candidate.accept_checked_current_object())),
+        ).unwrap();
+        assert_eq!(outcome["message"], format!("{WRITE_THEN_READING}{READING_GATE}"), "endpoint: {outcome}");
+        assert_eq!(peer.continuation_frame()["method"], "config/read");
+        assert_eq!(peer.continuation_frame()["method"], "config/batchWrite", "the write was made");
+        let f = Fixture::new();
+        let (_desktop, state, _home, peer) = f.continuation();
+        peer.create_replies(f.shared[0].clone(), f.shared[0].clone(), "fixture.new", "ok");
+        let view = crate::create_offer_result(&state, &peer.g, "fixture.new", "Invented name", "https://example.invalid/new", &crate::endpoint_checkpoint(&state).unwrap()).unwrap();
+        reading_outstanding_at_the_write(&peer.host);
+        let outcome = crate::create_save_result(
+            &state,
+            view["token"].as_str().unwrap(),
+            || Ok(()),
+            |_| Ok(tauri_plugin_dialog::MessageDialogResult::Custom(crate::hosting::provider_create::WRITE_ACTION.into())),
+            |candidate, _| Ok(Some(candidate.accept_checked_current_object())),
+        ).unwrap();
+        assert_eq!(outcome["message"], format!("{WRITE_THEN_READING}{READING_GATE}"), "Add: {outcome}");
+        assert_eq!(outcome["state"], "write-observed-source-unconfirmed");
+    }
     /// A confirmed provider write's attempt, made through the real endpoint write, leaves no
     /// configuration reading of the generation current; the offer reading's reply arriving again
     /// after the attempt restores nothing.

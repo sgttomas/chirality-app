@@ -2228,6 +2228,14 @@ impl Host {
 
     fn request_inner_scoped(&self, method: &str, params: Value, initiator: Value,
         wait: Duration, handshake: bool, expected_generation: Option<&Value>) -> Result<Value, String> {
+        if reading_gate::is_reading(method) {
+            // A configuration reading has one deadline, from this call's start: the reservation and
+            // the frame writer are waited for within it, and the reply only for what remains.
+            let deadline = std::time::Instant::now() + wait;
+            auth_rpc::generic_guard(method, &params)?;
+            let request = self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, false, None, None, None, None, false, None, None, None, Some(deadline))?;
+            return self.wait_source_response(&request, deadline.saturating_duration_since(std::time::Instant::now()));
+        }
         let request = self.request_begin_scoped(method, params, initiator, handshake, expected_generation)?;
         self.wait_source_response(&request, wait)
     }
@@ -4419,9 +4427,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         if class == "response" {
             let key = frame["id"].to_string();
-            // A terminal reply naming this line's generation and the outstanding reading's request
-            // releases the reservation; one naming another generation or request releases nothing.
-            if Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
+            // A well-formed terminal reply naming this line's generation and the outstanding
+            // reading's request releases the reservation; one naming another generation or request,
+            // or a contradictory or incomplete envelope, releases nothing.
+            if reading_gate::terminal_reply(&frame) && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
