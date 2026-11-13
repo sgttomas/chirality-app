@@ -63,9 +63,11 @@ What it also does, each with its limit:
   exclusive create through the root's held handle, and within it home/,
   record/ and project/ the same way (make_folder). An exclusive create fails
   if anything already exists there under any spelling the volume treats as the
-  same, so the App is never launched into a home that existed before the run.
-  Limit: HOME is passed to the App as a pathname, and the launcher does not
-  re-check it.
+  same. The launcher does not reuse an existing entry when allocating these
+  directories.
+  Limit: HOME is passed to the App as a pathname. The launcher checks once,
+  immediately before the start, that the pathname is the directory it holds
+  (check_home); it does not hold the pathname from that check to the start.
 - project/ is the project folder for an operated run: the folder to choose in
   the App, and no other. It is created empty and the launcher puts nothing in
   it; its path is in the record.
@@ -82,10 +84,12 @@ What it also does, each with its limit:
   App's window, which the launcher never learns; it is presence at one moment;
   it says nothing of the system folder or of managed preferences; and it
   encodes a reading of the supplier at the pin, not an observation of it.
-- At the start the home holds two entries, both made by the launcher: the
+- The launcher itself puts two entries in the new home before the start: the
   temporary folder and the output file, each named .chirality-launch-...
-  Neither is a .codex, .agents, AGENTS.md or AGENTS.override.md entry. What the
-  App then makes in its home is the App's.
+  Neither is a .codex, .agents, AGENTS.md or AGENTS.override.md entry. It does
+  not list the home, so an entry something else put there between the home's
+  creation and the start is not seen. What the App then makes in its home is
+  the App's.
 - HOME and CFFIXED_USER_HOME in the mapping handed to the start name the home
   allocated for this launch, and nothing else: each is that home's path as
   text (check_environment), the path is absolute, and, not followed if it is
@@ -137,11 +141,16 @@ What it also does, each with its limit:
   (found at its first real run). What it no longer observes: an entry named
   for the build appearing in either folder. A before-listing that cannot be
   made still refuses the launch, and the record names the place.
-- A launch ended from outside is recorded in the launcher's own words: when the
-  launcher received a signal and passed a termination to the App, `ended` says
-  so, beside how the App's process ended and whether its process group was gone
-  after the settle time. Such a run is not clean, and the record does not say
-  it was; it says why.
+- When the launcher received a signal before the outcome was fixed and
+  attempted to pass a termination to the App, `ended` says so in the launcher's
+  own words, beside how the App's process ended and what its process group was
+  after the settle time. It names the signals and does not say when each
+  arrived (their times are in `signals_received`) or whether the termination
+  is what ended the App. Such a run is not clean, and the record does not say
+  it was; it says why. What a caller may not rely on: a signal received after
+  the last check and before the start does not prevent the App's process
+  being created; it is terminated after creation, and may have begun starting
+  up.
 - The folder Codex works in, when the App starts one, is the App's choice: the
   project chosen in the App, the App's data folder under the home, or the
   temporary folder in the home. Each is the project folder, or lies under the
@@ -700,8 +709,6 @@ def check_environment(env, home, tmp):
     if set(env) != set(ALLOWED):
         raise Refusal(f'App environment outside the allowlist: extra {sorted(set(env) - set(ALLOWED))}, '
                       f'missing {sorted(set(ALLOWED) - set(env))}')
-    if env['HOME'] != str(home) or env['CFFIXED_USER_HOME'] != str(home):
-        raise Refusal('HOME and CFFIXED_USER_HOME must both be the new home; refusing to launch')
     if env['TMPDIR'] != str(Path(home, tmp)):
         raise Refusal("TMPDIR is not this launch's folder in the new home; refusing to launch")
     if env['PATH'] != SYSTEM_PATH or env['LANG'] != LANG:
@@ -837,10 +844,11 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         record['ended_at'] = now()
         time.sleep(SETTLE_SECONDS)
         facts['process_group'] = record['process_group_after_settle'] = group_state(proc.pid)
-        if facts.get('passed_on'):  # ended from outside, in the launcher's own words
+        if facts.get('passed_on'):  # in the launcher's own words; when each signal arrived is not said here
             received = ', '.join(entry['signal'] for entry in facts['signals'])
-            facts['ended'] += (f'; the launcher received {received} while the App ran and passed a termination to it; '
-                               f"its process group was {facts['process_group']} after the settle time")
+            facts['ended'] += (f'; before the outcome was fixed the launcher received {received} and attempted to pass '
+                               f"a termination to the App; its process group was {facts['process_group']} after the "
+                               f'settle time')
         after = again = None
         try:
             after = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)

@@ -364,12 +364,58 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                     thread.join()
                 self.assertEqual(sent, [1])
                 self.assertEqual((code, record['outcome'], len(record['signals_received'])), (1, 'failed', 1), out)
-                said = ('the launcher received SIGTERM while the App ran and passed a termination to it; '
-                        'its process group was gone after the settle time')
-                if step == 'while the App runs':  # ended from outside: the record says so in the launcher's words
+                said = ('before the outcome was fixed the launcher received SIGTERM and attempted to pass a termination '
+                        'to the App; its process group was gone after the settle time')
+                if step == 'while the App runs':  # the record says so in the launcher's words
                     self.assertTrue(record['ended'].endswith('; ' + said), record['ended'])
                 else:  # the App had already ended by itself: nothing was passed to it
                     self.assertEqual(record['ended'], 'exited with status 0')
+
+    def test_the_record_does_not_say_when_a_signal_arrived(self):
+        real_popen, real_sleep = subprocess.Popen, launch.time.sleep
+        # A signal that arrives after the last check before the start, and before the process exists.
+        def popen(*args, **kwargs):
+            os.kill(os.getpid(), signal.SIGTERM)
+            real_sleep(0.05)
+            return real_popen(*args, **kwargs)
+        script = "trap 'exit 0' TERM\nwhile :; do sleep 0.1; done\n"
+        with mock.patch.object(launch.subprocess, 'Popen', popen):
+            code, record, out, _ = self.run_helper(self.candidate(script, where='before-the-process'))
+        self.assertEqual((code, record['outcome'], [s['signal'] for s in record['signals_received']]), (1, 'failed', ['SIGTERM']), out)
+        self.assertEqual(record['app_started'], 'started')  # the process was created, and then signalled
+        self.assertIsInstance(record['pid'], int)
+        self.assertRegex(record['ended'], r'^(exited with status 0|ended by signal 15 \(SIGTERM\)); before the outcome was fixed '
+                         r'the launcher received SIGTERM and attempted to pass a termination to the App; its process group was '
+                         r'gone after the settle time$')
+        self.assertNotIn('while the App ran', record['ended'])
+        # One signal while the App runs, and another during the settle time, after the App has exited.
+        sent = []
+
+        def sleep(seconds):
+            if sent == ['running']:
+                sent.append('settle')
+                os.kill(os.getpid(), signal.SIGINT)
+                real_sleep(0.05)
+            return real_sleep(seconds)
+
+        def later():
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline and not list(self.root.glob('launch-*/home/started-twice')):
+                real_sleep(0.05)
+            if launch._forwarding.is_set():
+                sent.append('running')
+                os.kill(os.getpid(), signal.SIGTERM)
+        script = 'touch "$HOME/started-twice"\n' + script
+        thread = threading.Thread(target=later)
+        thread.start()
+        with mock.patch.object(launch.time, 'sleep', sleep):
+            code, record, out, _ = self.run_helper(self.candidate(script, where='two-signals'))
+        thread.join()
+        self.assertEqual(sent, ['running', 'settle'], out)
+        self.assertEqual((code, record['outcome'], [s['signal'] for s in record['signals_received']]),
+                         (1, 'failed', ['SIGTERM', 'SIGINT']), out)
+        self.assertEqual(record['ended'], 'exited with status 0; before the outcome was fixed the launcher received SIGTERM, '
+                         'SIGINT and attempted to pass a termination to the App; its process group was gone after the settle time')
 
 
 KILLED_RUNNER = '''
@@ -533,7 +579,7 @@ class NewHomeOnly(Fixture):  # the home is new: exclusive creates under the root
 
     def test_each_create_inside_the_launch_folder_is_exclusive_and_its_failure_launches_nothing(self):
         real_mkdir = os.mkdir
-        for child in (launch.HOME, launch.RECORD_FOLDER):
+        for child in (launch.HOME, launch.RECORD_FOLDER, launch.PROJECT):
             for name, failure in (('something already there', None), ('no space', OSError(errno.ENOSPC, 'invented'))):
                 with self.subTest(child=child, case=name):
                     def mkdir(path, mode=0o777, *, dir_fd=None):
@@ -649,7 +695,8 @@ class NothingAbove(Fixture):  # the project folder, no .git entry above, and wha
             launch.check_environment(both, home, 'tmp')  # the two agree with each other and are still refused
         real = launch.child_environment
         for case, change in (('empty', {'HOME': ''}),
-                             ('another folder', {'HOME': str(other), 'CFFIXED_USER_HOME': str(other)})):
+                             ('another folder', {'HOME': str(other), 'CFFIXED_USER_HOME': str(other)}),
+                             ('the frameworks home alone another folder', {'CFFIXED_USER_HOME': str(other)})):
             with self.subTest(run=case), mock.patch.object(launch, 'child_environment', lambda *a: {**real(*a), **change}):
                 code, record, out, folder = self.run_helper(self.candidate(where='home-' + case.replace(' ', '-')))
                 self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
