@@ -2926,14 +2926,16 @@ pub fn hold_app_data_for_test(data: &std::path::Path) -> Result<AppDataCustody, 
     setup.hold_environment_data(&data)?;
     Ok(AppDataCustody(setup))
 }
-/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`.
+/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`
+/// components, by the same check as the environment route's other paths
+/// ([`environment_path_problem`]). Set and empty is refused by name, never
+/// read as unset: an empty value selects the environment route, and read as
+/// unset it would hold the platform App data folder unannounced.
 fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Option<Result<PathBuf,String>> {
-    let value = input(APP_DATA_ENV).filter(|v| !v.is_empty())?;
-    let path = PathBuf::from(value);
-    Some(if path.is_absolute() && !path.components().any(|c| matches!(c, std::path::Component::ParentDir | std::path::Component::CurDir)) {
-        Ok(path)
-    } else {
-        Err(format!("{APP_DATA_ENV} must be an absolute path without . or .. components"))
+    let value = input(APP_DATA_ENV)?;
+    Some(match environment_path_problem(APP_DATA_ENV, &value) {
+        Some(problem) => Err(problem),
+        None => Ok(PathBuf::from(value)),
     })
 }
 

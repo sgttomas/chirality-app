@@ -6386,6 +6386,41 @@ mod tests {
         assert!(!f.root.join("relative").exists());
     }
 
+    /// A CHIRALITY_APP_DATA that is set and empty, or that has a `.` or `..`
+    /// component, is refused by name. In particular an empty value no longer
+    /// selects the environment route and then holds the platform App data
+    /// folder: the platform folder is never created or held, no probe home is
+    /// allocated, nothing operational starts. A clean absolute value is held
+    /// as before.
+    #[test]
+    fn an_empty_or_dotted_app_data_is_refused_and_the_platform_folder_is_not_held() {
+        let f = Fixture::new();
+        let platform = f.root.join("platform-app-data-never-held");
+        let dotted_in = { let mut v = f.root.clone().into_os_string(); v.push("/./dotted-app-data"); v };
+        let dotted_up = { let mut v = f.root.clone().into_os_string(); v.push("/x/../dotted-app-data"); v };
+        for (value, expected) in [
+            (std::ffi::OsString::new(), "CHIRALITY_APP_DATA is empty: it must be an absolute path without . or .. components"),
+            (dotted_in, "CHIRALITY_APP_DATA must be an absolute path without . or .. components"),
+            (dotted_up, "CHIRALITY_APP_DATA must be an absolute path without . or .. components"),
+        ] {
+            let input = |key: &str| (key == crate::APP_DATA_ENV).then(|| value.clone());
+            let (desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, || {
+                panic!("no probe home is allocated without held App data")
+            });
+            assert!(!inputs.allow_operational, "{expected}");
+            assert!(inputs.data.as_ref().is_err_and(|e| e.contains(expected)), "{:?}", inputs.data);
+            assert!(desktop.view()["launch"]["reason"].as_str().unwrap().contains(expected), "{}", desktop.view());
+            assert!(!platform.exists(), "the platform App data folder is neither created nor held");
+            assert!(!f.root.join("dotted-app-data").exists() && !f.root.join("x").exists(), "no folder is made for the dotted value");
+        }
+        // A clean absolute value is held, as before.
+        let held = f.root.join("named-app-data");
+        let input = |key: &str| (key == crate::APP_DATA_ENV).then(|| held.clone().into_os_string());
+        let (_desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe home"));
+        assert_eq!(inputs.data.as_ref().ok(), Some(&held));
+        assert!(!platform.exists());
+    }
+
     /// Finding 6: the environment route's App data custody is rechecked by
     /// identity before each start, with no saved request.
     #[test]

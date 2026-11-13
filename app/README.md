@@ -1360,8 +1360,9 @@ Chirality releases it. If App data cannot be resolved or held (an invalid
 and the reason is shown. Every committed configuration uses the identifier
 `dev.chirality.app-v4.skeleton`, so development runs that do not name their
 App data share one directory and only the first of them starts. To run in
-parallel, give each run its own `CHIRALITY_APP_DATA` (an absolute path; it is
-created if missing, and setting it alone selects this route) and its own
+parallel, give each run its own `CHIRALITY_APP_DATA` (an absolute path
+without `.` or `..` components; it is created if missing, and setting it alone
+selects this route; an empty value is refused, not read as unset) and its own
 existing `CHIRALITY_CODEX_HOME`.
 
 When the App data hold is taken. On the environment route, at launch, after
