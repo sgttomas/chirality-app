@@ -1,8 +1,21 @@
 # Operating a development build's window
 
+**HELD. This route is held by App Agent 0 since 13 November 2026 and is not to
+be used by anyone.** Each walk's first call starts a Codex app-server from
+inside ChatGPT.app, configured to use the owner's own Codex home (`~/.codex`),
+which the continuing boundary in AGENTS.md forbids for development and tests.
+The owner's decision is pending. The terms of use below ("When it may be
+used", the cautions, what ends the exception, and the operator's terms) are to
+be rewritten when the owner has answered; until then they do not permit a
+walk. What was seen is under "What was observed", and the full record is the
+examination lane's.
+
 This is how an agent reads and clicks the window of an identified development
 build of the App during an examination. It uses the supplier's own computer-use
-service, reached from inside a Codex session.
+service, reached from inside a Codex session. Reaching it runs binaries inside
+ChatGPT.app (the operator's node runtime, and a Codex app-server it starts),
+and the service itself is installed under the owner's Codex home
+(`~/.codex/computer-use/`) (see the hold notice at the top).
 
 It is development tooling. What it yields is what an agent saw and did in a
 development build. It is never evidence that the product does something for a
@@ -33,8 +46,10 @@ All of these hold, every time:
   name and the permission it asks for; the owner answers it. An App
   confirmation is operated only where a scenario names it and the governing
   text below allows it; the first-use setup scenario names none.
-- No Codex is started unless launches that start a real Codex are open for the
-  lane.
+- A walk by this route starts a Codex: each walk's first call starts a Codex
+  app-server from inside ChatGPT.app, configured to use `~/.codex`, whatever
+  the scenario (see the hold notice at the top). The App itself starts no Codex in the
+  first-use setup scenario.
 
 ## What governs it
 
@@ -59,7 +74,7 @@ does not restate them and does not contradict them. In short:
   below).
 
 A scenario may be narrower than that, and the first-use setup scenario is, on
-purpose: no setup confirmed, nothing typed, no Codex started, no macOS prompt
+purpose: no setup confirmed, nothing typed, no Codex started by the App, no macOS prompt
 answered (see "Running a scenario"). The governing text does not enlarge the
 exception the owner accepted, and App Agent 0 decided, for its live runs.
 
@@ -188,8 +203,9 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    var sky = (await import('@oai/sky')).sky;
    ```
 
-   It must be this dynamic import inside that tool. This step touches nothing
-   on the desktop.
+   It must be this dynamic import inside that tool. Whether the import alone
+   starts anything is not known: it and the first call are made in one block,
+   and by that block a Codex app-server is started (see the hold notice at the top).
 5. **A view.**
 
    ```js
@@ -243,7 +259,10 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 10. **What is ended, and what is left.** The launcher, the App and the watch
     are ended; the supplier's window service, which the first view starts, is
     left as it is, its state is recorded, and what becomes of it is the
-    owner's. The operator ends what it started: the
+    owner's. The first call also starts a Codex app-server, a child of the
+    operator's node runtime, which outlives the walk; this method neither
+    names nor ends it, so a walk under it leaves a Codex running on `~/.codex`
+    (see the hold notice at the top). The operator ends what it started: the
     launcher as in step 8, which ends the App, and the watch, which ends by
     itself when the App does and is otherwise ended by its process number
     (`kill <the watch's process number>`). It then confirms, for the launcher,
@@ -308,15 +327,19 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
        the lane to App Agent 0 within the hour.
 
     The search finds the bundle's one executable and says nothing about Codex;
-    that a stray start starts no Codex rests on what step 1 checks, and the
-    search does not establish it. It looks at nothing in the real Library;
+    that a stray start of the App starts no Codex rests on what step 1 checks,
+    and the search does not establish it. Step 11 does not cover the route's
+    own processes, the window service and the Codex app-server a walk's first
+    call starts: a recovery complete under this step can leave a Codex
+    app-server running on `~/.codex` (see the hold notice at the top). It looks at nothing in the real Library;
     nothing under the real Library is removed by any agent. This step is part
     of the condition of the exception stated in the next section.
 
 ## A view of an application that is not running
 
-This is the one way the method can act outside the throwaway home, and it is
-not closed.
+This is one way the method can act outside the throwaway home, and it is not
+closed. It is not the only one: the route's own Codex app-server and window
+service act outside it on every call (see the hold notice at the top).
 
 - **What happens.** A view of an application that is not running starts it:
   the service launches it in the background through the system's launch
@@ -351,7 +374,7 @@ not closed.
   - It opens at first-use setup: no setup has been saved for a build with a
     new identifier (read in the App's source: with no configuration from the
     environment and no saved request the launch is "setup-required").
-  - It starts no Codex: the App starts Codex only when it has a
+  - The App so started starts no Codex: it starts Codex only when it has a
     configuration, which setup required does not give (read).
   - The walk never confirms setup, and stops as soon as the watch shows the
     launcher's build gone, so it does not go on to operate the stray build
@@ -390,6 +413,9 @@ not closed.
   link, from identification through recovery. The search's comparisons of
   the bundle's executable detect a change; they do not prove the file
   stayed unchanged.
+  The condition does not cover the route's own processes: a walk's first
+  call starts a Codex app-server on `~/.codex` and the window service, and
+  neither is ended or searched for by step 11 (see the hold notice at the top).
   What the two checks do not see: a stray start that began after the
   launcher's last listing and ended by itself before the search is seen by
   neither. **Neither a clean process search nor an unchanged Library
@@ -454,7 +480,8 @@ operator loads. There is one: `first-use-setup.scenario.json`, "first-use setup
 without a project, new settings". It is the opening of the first-use setup page
 up to, and not including, the App's own confirmation. Its acts are views and
 clicks; nothing is typed, no file or folder is chosen, no confirmation is
-answered and no setup is confirmed. It starts no Codex and needs no sign-in.
+answered and no setup is confirmed. The App starts no Codex in it and it needs
+no sign-in; a walk of it by this route does start a Codex app-server (see the hold notice at the top).
 These prohibitions are narrower than the governing text on purpose (see "What
 governs it"). Its controls (a project choice, two settings choices, "Review
 setup", "Change my choices" and two disclosures) are none of the act controls
@@ -601,7 +628,9 @@ On a development candidate built from main, in two windows the owner gave:
 - The import in step 4 returned the service with its methods.
 - No computer-use service was running beforehand. The first view started one,
   through the system's launch service; the supplier's desktop application was
-  not running.
+  not running. That it also started a Codex app-server on `~/.codex` is
+  inferred (the same route and call; see below), not observed: nobody listed
+  processes for it.
 - No call reported a macOS prompt.
 - A view returned within seconds, with the first-use setup page as about fifty
   elements. Later views, made without `disableDiff`, returned differences.
@@ -616,3 +645,16 @@ On a development candidate built from main, in two windows the owner gave:
   `python3` had no jsonschema. The lane's preparation and the operator's
   shell used different interpreters, so preparation that passes for the lane
   shows nothing about the operator's environment.
+- Walk A2's second and third attempts, each by a fresh operator from this
+  method alone, reached the walk's first call. Each call failed within about
+  five seconds with "Sky Computer Use native pipe startup failed"; nothing was
+  clicked (observed). Why is not established.
+- Each of those calls started, within the same second, a Codex app-server
+  (`codex app-server --listen stdio://` from inside ChatGPT.app, a child of
+  the operator's node runtime, which is itself inside ChatGPT.app) and a window
+  service (from `~/.codex/computer-use/`, under launchd) (observed). The
+  app-servers ran with CODEX_HOME set to `~/.codex` and HOME the real home
+  (observed by App Agent 0). They outlived the walks, and App Agent 0 ended
+  them. Which files they read, whether they used a credential, and what they
+  sent is not established. The two occasions that made no call (A2's first
+  attempt and a rehearsal of the shell half) started neither (observed).
