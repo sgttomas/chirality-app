@@ -306,8 +306,10 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    from outside, not a defect.
 9. **What stays.** The launch folder with its record, and the evidence
    folder. Nobody opens the home.
-10. **What is ended.** The launcher, the App and the watch are ended, and so
-    are the route's own processes (see "What the route starts"). The operator ends what it started: the
+10. **What is ended.** The launcher, the App and the watch are ended. Of the
+    route's own processes (see "What the route starts"), those attributable to
+    the walk are ended; unresolved ones are reported, and a walk with an
+    unresolved process has not been recovered. The operator ends what it started: the
     launcher as in step 8, which ends the App, and the watch, which ends by
     itself when the App does and is otherwise ended by its process number
     (`kill <the watch's process number>`). It then confirms, for the launcher,
