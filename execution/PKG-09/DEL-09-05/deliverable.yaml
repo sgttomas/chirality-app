@@ -39,11 +39,12 @@ needs:
     and a part that needs native evidence passes only on a native route.
   gating: true
 - from: DEL-09-02
-  condition: A native-step form exists on which the examiner records each step a person operates
-    on the candidate.
+  condition: A native-step form exists on which the examiner records each step operated on the
+    candidate, with who operated it and by what means.
   gating: true
-- from: external:person deciding the matter
-  condition: A person performs the one decision at the act control while the examiner observes.
+- from: external:computer-use ability of the examining agent's harness
+  condition: The examining agent can operate the candidate's shipped controls, including the act
+    control, as a user would, through the computer-use ability native to its harness.
 - from: external:DEP-005
   condition: The stock supplier is available at the pin the candidate was built with, with native
     delegation events readable.
