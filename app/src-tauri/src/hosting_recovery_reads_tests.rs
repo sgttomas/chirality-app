@@ -944,8 +944,26 @@ fn home_host_peer_process() {
     let mut line = String::new();
     let _ = std::io::stdin().read_line(&mut line);
 }
-/// The first line `home_host_peer_process` reports for `root`, with the child.
-fn host_peer(root: &std::path::Path) -> (std::process::Child, String) {
+/// The peer process, ended and waited for when it is dropped: a test that fails between the
+/// spawn and its own wait leaves no peer behind on a home it then removes.
+struct Peer(std::process::Child);
+impl std::ops::Deref for Peer {
+    type Target = std::process::Child;
+    fn deref(&self) -> &std::process::Child { &self.0 }
+}
+impl std::ops::DerefMut for Peer {
+    fn deref_mut(&mut self) -> &mut std::process::Child { &mut self.0 }
+}
+impl Drop for Peer {
+    fn drop(&mut self) {
+        if matches!(self.0.try_wait(), Ok(None)) {
+            let _ = self.0.kill();
+        }
+        let _ = self.0.wait();
+    }
+}
+/// The first line `home_host_peer_process` reports for `root`, with the peer.
+fn host_peer(root: &std::path::Path) -> (Peer, String) {
     use std::io::BufRead;
     let mut child = std::process::Command::new(std::env::current_exe().unwrap())
         .args(["--exact", "hosting::recovery_reads::tests::home_host_peer_process", "--nocapture", "--test-threads=1"])
@@ -955,11 +973,24 @@ fn host_peer(root: &std::path::Path) -> (std::process::Child, String) {
         .spawn()
         .unwrap();
     let mut lines = std::io::BufReader::new(child.stdout.take().unwrap()).lines();
-    loop {
+    let seen = loop {
         // libtest prints "test <name> ... " before the body, without a newline.
-        let line = lines.next().expect("peer process reported").unwrap();
-        if let Some(at) = line.find("READY").or_else(|| line.find("REFUSED")) {
-            return (child, line[at..].to_owned());
+        match lines.next() {
+            Some(Ok(line)) => {
+                if let Some(at) = line.find("READY").or_else(|| line.find("REFUSED")) {
+                    break Ok(line[at..].to_owned());
+                }
+            }
+            other => break Err(format!("{other:?}")),
+        }
+    };
+    match seen {
+        Ok(seen) => (Peer(child), seen),
+        // The peer is ended and reaped before the test fails, so it leaves no process behind.
+        Err(other) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("the peer process reported neither READY nor REFUSED: {other}");
         }
     }
 }
