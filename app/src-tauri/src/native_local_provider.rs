@@ -54,11 +54,12 @@ const RECORD_NOT_REMOVED_NO_KEY: &str = "Codex reports no saved key, but the App
 const KEY_ADDRESS: &str = "key-address";
 pub(crate) const KEY_ENTRY_BEGUN: &str = "Key entry was used in this Codex session, and Codex may still be saving that key. Restart Codex for the local model home, then change the address. The local model settings were not changed.";
 pub(crate) const PREPARE_FIRST: &str = "Prepare the local connection first, so that Codex can remove the saved key; the local model settings were not changed.";
-/// The save waited `ACCOUNT_WAIT` for a write to this Codex's input that had already been admitted
-/// and stopped waiting; the binding was not marked, so nothing was changed.
-pub(crate) const WRITE_IN_PROGRESS: &str = "The App was still sending something to Codex for the local model home after 20 seconds, so the local model settings were not changed. Try again.";
-pub(crate) const WRITE_IN_PROGRESS_KEY_REMOVED: &str = "Codex removed the saved key, but the App was still sending something to Codex for the local model home after 20 seconds, so the local model settings were not changed. Try again.";
-pub(crate) const WRITE_IN_PROGRESS_NO_KEY: &str = "Codex reports no saved key, but the App was still sending something to Codex for the local model home after 20 seconds, so the local model settings were not changed. Try again.";
+/// The save waited `ACCOUNT_WAIT` for the frame writer lock and did not get it, so the binding was
+/// not marked and nothing was changed. What that shows is that the lock was not free; its holder
+/// may have been writing or waiting on something before its write.
+pub(crate) const WRITE_IN_PROGRESS: &str = "The App could not get its turn to write to Codex for the local model home within 20 seconds, so the local model settings were not changed. Try again.";
+pub(crate) const WRITE_IN_PROGRESS_KEY_REMOVED: &str = "Codex removed the saved key, but the App could not get its turn to write to Codex for the local model home within 20 seconds, so the local model settings were not changed. Try again.";
+pub(crate) const WRITE_IN_PROGRESS_NO_KEY: &str = "Codex reports no saved key, but the App could not get its turn to write to Codex for the local model home within 20 seconds, so the local model settings were not changed. Try again.";
 const SIGN_OUT_UNCONFIRMED: &str = "Codex's removal of the saved key could not be confirmed; the local model settings were not changed. Prepare the local connection and try again.";
 const ADDRESS_RULE: &str = "The server address must be http:// or https:// on 127.0.0.1 or [::1], with an optional port from 1 to 65535 and a path of letters, digits and . _ ~ / - only; nothing was saved.";
 const MODEL_RULE: &str = "The model name must be 1 to 128 characters of letters, digits and . _ : / @ + - only; nothing was saved.";
