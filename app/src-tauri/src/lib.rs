@@ -77,6 +77,7 @@ mod records_index;
 pub mod record_lines;
 pub mod records_store;
 pub mod records_export;
+pub(crate) mod records_inspect;
 use records_store::custody as records_package;
 pub mod records_retention;
 pub mod recovery;
@@ -91,6 +92,9 @@ pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
+#[cfg(test)]
+#[path = "placement_homes_tests.rs"]
+mod placement_homes_tests;
 #[cfg(test)] mod pinned_codex_observations;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_assurance;
@@ -1007,16 +1011,60 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
-    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter()))
+    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)))
 }
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
-fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
-    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [cfg.codex_home.clone(), cfg.probe_home.clone()]).collect();
-    homes.extend(["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
+/// The Codex homes the records store must stay out of, on two separate
+/// paths so that the second can never discard the first's protection.
+/// - STRICT: every home the App uses or plans, made absolute where its child
+///   resolves it: each configured supplier home under `cfg.cwd`, each probe
+///   home in its own folder (an empty configured home is kept empty, and
+///   placement refuses it by name as an invalid input), and the local
+///   provider's home (`runtime_session::local_provider_home`), before any
+///   host configuration exists for it. (The folder where the App allocates
+///   its account homes is reserved by placement itself, from the App data
+///   folder: `desktop_startup::desktop_account_homes`.)
+/// - RAW, a compatibility rule: for raw environment inputs, the legacy
+///   comparison's result is retained. A result left relative could not
+///   overlap the absolute store accepted by either entrypoint, so it is not
+///   given to placement (whose own rule would otherwise make it absolute
+///   against the App's folder and refuse a location no Codex home occupies).
+///   This is not an inference that such a home is absent, and it is no rule
+///   for homes the App uses or plans. No child resolves a raw value under
+///   its own working folder: CHIRALITY_CODEX_HOME is the configured home
+///   itself; every Codex child is given CODEX_HOME explicitly; a relative
+///   CHIRALITY_KEY_HOME is refused by its home plan before any use. (An
+///   earlier version said raw values were compared "exactly as before"
+///   while making them absolute; the second reading showed that wrong.)
+fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
+    codex_homes_from(configs, app_data, |key| std::env::var_os(key))
+}
+fn codex_homes_from<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>, input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    let mut homes = strict_codex_homes(configs, app_data);
+    homes.extend(raw_codex_home_inputs(input));
     homes.sort();
     homes.dedup();
     homes
+}
+/// Every Codex home the App uses or plans, made absolute where its child
+/// resolves it; one that cannot be made absolute is left relative, and
+/// placement refuses it.
+fn strict_codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
+    let absolute = |path: PathBuf| std::path::absolute(&path).unwrap_or(path);
+    let used = |cwd: &std::path::Path, home: &std::path::Path| if home.as_os_str().is_empty() { PathBuf::new() } else { absolute(cwd.join(home)) };
+    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [used(&cfg.cwd, &cfg.codex_home), used(&cfg.probe_home, &cfg.probe_home)]).collect();
+    homes.extend(app_data.map(|data| absolute(runtime_session::local_provider_home(data))));
+    homes
+}
+/// The raw environment inputs, by the compatibility rule above: the legacy
+/// comparison's result, kept where it is absolute.
+fn raw_codex_home_inputs(input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter()
+        .filter_map(|key| input(key).filter(|v| !v.is_empty()).map(PathBuf::from))
+        .map(|raw| records_store::resolve_lexically(&raw))
+        .filter(|resolved| resolved.is_absolute())
+        .collect()
 }
 
 #[tauri::command(async)]
@@ -2983,7 +3031,7 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     // recording visibly, with no fallback. Opening the project gives it
     // its identity once (`.chirality/project.json`).
     {
-        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
+        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
 
         records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
         // The store is created here, once, when the App starts: no reader

@@ -48,6 +48,11 @@ pub const STOP_WAIT_LIMIT: Duration = Duration::from_secs(10);
 /// Kept in memory for display; older outcomes are dropped first.
 pub const OUTCOMES_KEPT: usize = 20;
 
+/// The process's end as established by the stop (its exit observed and its
+/// process group counted empty), or not.
+pub(crate) const PROCESS_ENDED: &str = "Codex's process was confirmed ended during Stop.";
+pub(crate) const PROCESS_END_NOT_ESTABLISHED: &str = "Whether Codex's process ended during Stop was not established.";
+
 pub(crate) const RECORDS_LIMIT: &str = "Recorded in the App's recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process; the stop still proceeds. The outcome panel itself is kept in this App process only.";
 
 fn action(restart: bool) -> &'static str {
@@ -156,8 +161,9 @@ pub(crate) trait StopOps {
     /// From now on no new turn or steer is sent to this Codex process.
     fn close_to_new_turns(&mut self) -> Result<(), String>;
     fn reopen_to_new_turns(&mut self);
-    /// Writes one interrupt request; does not wait for its acknowledgment.
-    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String>;
+    /// Writes one interrupt request, waiting for it no later than
+    /// `deadline`; does not wait for its acknowledgment.
+    fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<Self::Pending, Unsent>;
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String>;
     fn turn_reading(&mut self, turn: &Value) -> Option<Value>;
     /// The ledger `codex_stop` entry for the confirmed list, written before
@@ -173,15 +179,15 @@ pub(crate) trait StopOps {
 /// Q-4, Q-5): write one interrupt per live turn, then wait for them.
 pub(crate) trait Interrupts {
     type Pending;
-    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String>;
+    fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<Self::Pending, Unsent>;
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String>;
     fn turn_reading(&mut self, turn: &Value) -> Option<Value>;
 }
 struct ViaStop<'a, O>(&'a mut O);
 impl<O: StopOps> Interrupts for ViaStop<'_, O> {
     type Pending = O::Pending;
-    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String> {
-        self.0.interrupt(turn)
+    fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<Self::Pending, Unsent> {
+        self.0.interrupt(turn, deadline)
     }
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String> {
         self.0.acknowledgment(pending, wait)
@@ -191,17 +197,41 @@ impl<O: StopOps> Interrupts for ViaStop<'_, O> {
     }
 }
 
+/// Why an interrupt was not written (as far as the App knows).
+#[derive(Debug)]
+pub(crate) enum Unsent {
+    /// No write began; the reason.
+    NotSent(String),
+    /// A write began and did not complete by the stop deadline, or failed
+    /// after it was attempted: whether it reached Codex is not known.
+    WriteUnknown(String),
+}
+impl From<crate::hosting::InterruptSend> for Result<crate::hosting::SourceRequest, Unsent> {
+    fn from(sent: crate::hosting::InterruptSend) -> Self {
+        match sent {
+            crate::hosting::InterruptSend::Written(source) => Ok(source),
+            crate::hosting::InterruptSend::NotSent(reason) => Err(Unsent::NotSent(reason)),
+            crate::hosting::InterruptSend::WriteUnknown(reason) => Err(Unsent::WriteUnknown(reason)),
+        }
+    }
+}
+
 /// SR-01: every interrupt is written before any wait (and before any process
 /// stop); then one shared deadline, so an unanswered interrupt cannot starve
-/// the others. Q-5: waits until each turn is observed ended or the deadline
-/// passes. Returns each turn's interrupt request reading and its observed
-/// end (None: not observed ended).
+/// the others. The same deadline bounds each interrupt's send: one the App
+/// could not write, or whose write it did not see complete, within it is not
+/// waited for past it (`Host::turn_interrupt_within`).
+/// Q-5: waits until each turn is observed ended or the deadline passes.
+/// Returns each turn's interrupt request reading, which says whether it was
+/// sent, not sent, or of unknown outcome, and its observed end (None: not
+/// observed ended).
 pub(crate) fn interrupt_and_wait<I: Interrupts>(ops: &mut I, live: &[Value], deadline: Instant) -> (Vec<Value>, Vec<Option<String>>) {
-    let pending: Vec<Result<I::Pending, String>> = live.iter().map(|turn| ops.interrupt(turn)).collect();
+    let pending: Vec<Result<I::Pending, Unsent>> = live.iter().map(|turn| ops.interrupt(turn, deadline)).collect();
     let mut turns = Vec::new();
     for (turn, written) in live.iter().zip(&pending) {
         let request = match written {
-            Err(error) => json!({"state":"not sent","reading":error}),
+            Err(Unsent::NotSent(reason)) => json!({"state":"not sent","reading":reason}),
+            Err(Unsent::WriteUnknown(reason)) => json!({"state":"write outcome unknown","reading":reason}),
             Ok(written) => match ops.acknowledgment(written, deadline.saturating_duration_since(Instant::now())) {
                 Ok(ack) => json!({"state":"acknowledged","reading":"Codex acknowledged the interrupt request. An acknowledgment is not the turn's end.","acknowledgment":ack.get("result").cloned().unwrap_or(Value::Null)}),
                 Err(error) => json!({"state":"sent; not acknowledged","reading":error}),
@@ -258,6 +288,7 @@ pub(crate) fn stop_or_restart<O: StopOps>(ops: &mut O, restart: bool, wait_limit
     let (mut turns, ends) = interrupt_and_wait(&mut ViaStop(ops), &live, deadline);
     let stop = ops.stop();
     let stopped = stop.is_ok();
+    let process_ended = stop.as_ref().is_ok_and(|s| s["processEndEstablished"] == true);
     if !stopped {
         ops.reopen_to_new_turns();
     }
@@ -266,7 +297,23 @@ pub(crate) fn stop_or_restart<O: StopOps>(ops: &mut O, restart: bool, wait_limit
         live_at_stop |= end.is_none();
         turn["codexReported"] = json!(end);
         // A refused stop is reported as a refusal; no turn gets a Stop label.
-        turn["label"] = if stopped { json!(outcome_label(end.as_deref())) } else { Value::Null };
+        // Nor does a turn whose interrupt was not written (not sent, or its
+        // write's outcome unknown) and whose end Codex did not report: its
+        // stop-request record's reading says what happened.
+        let written = matches!(turn["interruptRequest"]["state"].as_str(), Some("acknowledged" | "sent; not acknowledged"));
+        let labelled = stopped && (written || end.is_some());
+        turn["label"] = if labelled { json!(outcome_label(end.as_deref())) } else { Value::Null };
+        if stopped && !labelled {
+            // Kept apart: whether the process ended, the turn's own reported
+            // outcome (none), and whether the interrupt was transmitted.
+            let process = if process_ended { PROCESS_ENDED } else { PROCESS_END_NOT_ESTABLISHED };
+            let reason = turn["interruptRequest"]["reading"].as_str().unwrap_or("reason not reported").to_owned();
+            let send = match turn["interruptRequest"]["state"].as_str() {
+                Some("write outcome unknown") => crate::stop_records::SEND_UNKNOWN_READING.to_owned(),
+                _ => format!("Stop not sent: {reason}"),
+            };
+            turn["reading"] = json!(format!("{process} No final status for this turn was observed. {send}"));
+        }
         turn["stopRequest"] = ops.stop_record(turn);
     }
     let start = match (restart, stopped) {
@@ -340,20 +387,21 @@ impl<C: FnMut(&Value) -> bool, S: FnOnce() -> Result<Value, String>> StopOps for
             self.home.host.reopen_to_new_turns(self.generation)
         }
     }
-    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String> {
-        let thread = turn["threadId"].as_str().ok_or("live turn without a conversation")?;
-        let id = turn["turnId"].as_str().ok_or("live turn without an identity")?;
+    fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<Self::Pending, Unsent> {
+        let thread = turn["threadId"].as_str().ok_or(Unsent::NotSent("live turn without a conversation".into()))?;
+        let id = turn["turnId"].as_str().ok_or(Unsent::NotSent("live turn without an identity".into()))?;
         let host = &self.home.host;
         let mut written = None;
         // The same guard as the person's Interrupt control (live turn, no
-        // interrupt already requested); the request is written, not awaited.
-        let home = self.home_class()?;
+        // interrupt already requested); the request is written, not awaited,
+        // and its write is waited for no later than the stop deadline.
+        let home = self.home_class().map_err(Unsent::NotSent)?;
         let person = &self.person;
         crate::runtime_session::interrupt_conversation_turn(&host.snapshot(), self.generation, thread, id, |g, t, u| {
-            written = Some(host.turn_interrupt_begin(g, t, u, crate::stop_records::Cause::CodexStop, home, person)?);
+            written = Some(host.turn_interrupt_within(g, t, u, crate::stop_records::Cause::CodexStop, home, person, deadline));
             Ok(Value::Null)
-        })?;
-        written.ok_or_else(|| "interrupt request not written".to_owned())
+        }).map_err(Unsent::NotSent)?;
+        written.map_or_else(|| Err(Unsent::NotSent("interrupt request not written".into())), Into::into)
     }
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String> {
         self.home.host.turn_interrupt_acknowledgment(pending, wait)
@@ -375,7 +423,15 @@ impl<C: FnMut(&Value) -> bool, S: FnOnce() -> Result<Value, String>> StopOps for
             .cloned().unwrap_or(Value::Null)
     }
     fn stop(&mut self) -> Result<Value, String> {
-        self.home.host.stop_scoped(self.generation, "the person", action(self.restart))
+        let mut result = self.home.host.stop_scoped(self.generation, "the person", action(self.restart))?;
+        // Established only by this generation's LT-23: an exit observed and
+        // the original process group counted with no live member.
+        let ended = self.home.host.lifecycle_events().iter().rev()
+            .find(|e| e["transitionId"] == "LT-23" && e["generation"] == *self.generation)
+            .is_some_and(|e| (!e["exitFacts"]["exitCode"].is_null() || !e["exitFacts"]["signal"].is_null())
+                && e["descendants"]["checked"] == true && e["descendants"]["surviving"] == 0);
+        result["processEndEstablished"] = json!(ended);
+        Ok(result)
     }
     fn start(&mut self) -> Result<Value, String> {
         (self.start.take().ok_or("Codex start already attempted")?)()?;

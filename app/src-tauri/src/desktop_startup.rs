@@ -157,6 +157,15 @@ struct RequestedInputs {
     project: Option<Reference>,
 }
 
+/// The folder in the App data folder where desktop setup plans every account
+/// home: each planned home is a new leaf directly in it. It only calculates
+/// the path; it creates nothing. The records store's placement check
+/// protects this whole folder, so every planned, pending and future desktop
+/// account home is protected whether or not it exists yet.
+pub(crate) fn desktop_account_homes(app_data: &Path) -> PathBuf {
+    app_data.join("account-homes")
+}
+
 fn clean(path: &Path) -> Result<(), String> {
     if !path.is_absolute()
         || path
@@ -975,7 +984,7 @@ impl DesktopSetup {
         let data = self.data.as_ref().map_err(Clone::clone)?;
         // Only this allocation namespace can be received from a saved request;
         // setup creates a new leaf and cannot adopt an existing foreign home.
-        if account.parent() != Some(data.join("account-homes").as_path()) {
+        if account.parent() != Some(desktop_account_homes(&data).as_path()) {
             return Err(
                 "desktop account must be a new leaf in the actual App-data account-homes directory"
                     .into(),
@@ -994,7 +1003,7 @@ impl DesktopSetup {
             data.join("instructions"),
             data.join("capture-seal"),
             data.join("installation.json"),
-            data.join("account-homes"),
+            desktop_account_homes(&data),
         ];
         for source in sources {
             clean(source)?;
@@ -1601,8 +1610,7 @@ impl DesktopSetup {
             return Err("explicit owner-use development supplier selection required".into());
         }
         let data = self.data.as_ref().map_err(Clone::clone)?;
-        let account = data
-            .join("account-homes")
+        let account = desktop_account_homes(data)
             .join(crate::util::opaque_id("account-")?);
         let [config_toml, global_agents_md, skills] = shared;
         let shared = SharedResourceTargets {
@@ -1707,7 +1715,7 @@ impl DesktopSetup {
             source_refs = refs;
             created = Some((made, settings.clone()));
         }
-        protected_directory(&data.join("account-homes"))?;
+        protected_directory(&desktop_account_homes(&data))?;
         // Reserve a NEW directory atomically: OwnedHomePlan's create-only links
         // must never turn setup into implicit adoption of a pre-existing home.
         std::fs::DirBuilder::new()

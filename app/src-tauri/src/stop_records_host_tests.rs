@@ -401,3 +401,77 @@ fn entries_repeated_by_a_retried_drain_read_as_one_copy() {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+const SEND_UNKNOWN: &str = "Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known.";
+
+/// A person's own Interrupt whose write fails after it began records SR-13
+/// (send unknown), never SR-03; its generation's end and a later App leave
+/// it as it is, and nothing shown for it says it was sent, not sent or
+/// interrupted.
+#[test]
+fn a_person_interrupt_whose_write_fails_after_it_began_is_send_unknown() {
+    let root = scratch();
+    // Held as the App holds its App data: the relaunch below models a new App.
+    let _custody = crate::hold_app_data_for_test(&root).unwrap();
+    let (host, g, path) = ledger_host(&root);
+    event(&host, &g, "turn", "inProgress");
+    install_broken_test_input(&host);
+    let begun = host.turn_interrupt_begin(&g, "thread", "turn", crate::stop_records::Cause::PersonInterrupt, "H-acct", &person()).unwrap();
+    assert_eq!((begun.evidence()["actualWriteAttemptObserved"].as_bool(), begun.evidence()["writeResult"].as_str()), (Some(true), Some("write-failed")), "the write began and failed");
+    host.flush_recovery_observations();
+    assert_eq!(transitions(&path), ["SR-01", "SR-13"]);
+    let shown = |host: &Host| host.snapshot()["stopRequests"]["records"][0].clone();
+    let row = shown(&host);
+    assert_eq!((row["state"].as_str(), row["send"].as_str(), row["reading"].as_str(), row["persistence"].as_str()),
+        (Some("send-unknown"), Some("unknown(write-incomplete)"), Some(SEND_UNKNOWN), Some("recorded in the App ledger")));
+    assert!(row["label"].is_null());
+    // The generation's end (SR-08 applies to sent requests only).
+    { let mut i = host.inner.0.lock().unwrap(); Host::close_generation(&mut i); }
+    host.flush_recovery_observations();
+    assert_eq!(transitions(&path), ["SR-01", "SR-13"], "no SR-08 for it");
+    assert_eq!(shown(&host)["reading"], SEND_UNKNOWN);
+    // A later App session.
+    drop(host);
+    let later = relaunch(&path, "later-session");
+    let back = shown(&later);
+    assert_eq!((back["earlierSession"].as_bool(), back["state"].as_str(), back["reading"].as_str()), (Some(true), Some("send-unknown"), Some(SEND_UNKNOWN)));
+    assert!(back["label"].is_null() && back["labelDerived"] == false);
+    for v in [&row, &back] {
+        let text = v.to_string();
+        assert!(!text.contains("interrupted") && !text.contains("not sent") && !text.contains("was sent."), "{text}");
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A person's own Interrupt whose write never began (its generation closed
+/// while it waited for the frame writer) records SR-03 not sent, never SR-13.
+#[test]
+fn a_person_interrupt_whose_write_never_began_is_not_sent() {
+    let root = scratch();
+    let (host, g, path) = ledger_host(&root);
+    event(&host, &g, "turn", "inProgress");
+    let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+    *host.stdin.lock().unwrap() = child.stdin.take();
+    let serial = host.frame_write.lock().unwrap();
+    let caller = Arc::clone(&host);
+    let generation = g.clone();
+    let worker = std::thread::spawn(move || caller.turn_interrupt_begin(&generation, "thread", "turn", crate::stop_records::Cause::PersonInterrupt, "H-acct", &person()));
+    let deadline = std::time::Instant::now() + Duration::from_secs(3);
+    while !transitions(&path).contains(&"SR-01".to_owned()) || host.inner.0.lock().unwrap().source_requests.is_empty() {
+        assert!(std::time::Instant::now() < deadline, "the interrupt did not reach the frame writer");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    std::thread::sleep(Duration::from_millis(50));
+    { let mut i = host.inner.0.lock().unwrap(); Host::close_generation(&mut i); }
+    drop(serial);
+    let begun = worker.join().unwrap().unwrap();
+    assert_eq!(begun.evidence()["actualWriteAttemptObserved"], false, "no write began");
+    host.flush_recovery_observations();
+    assert_eq!(transitions(&path), ["SR-01", "SR-03"]);
+    let row = host.snapshot()["stopRequests"]["records"][0].clone();
+    assert_eq!((row["state"].as_str(), row["send"].as_str()), (Some("not-sent"), Some("not-sent(not-ready)")));
+    assert!(row["reading"].as_str().unwrap().starts_with("Stop not sent: refused before sending: "), "{row}");
+    *host.stdin.lock().unwrap() = None;
+    let _ = child.wait();
+    std::fs::remove_dir_all(root).unwrap();
+}
