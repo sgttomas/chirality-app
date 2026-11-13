@@ -52,6 +52,8 @@ use std::sync::{Mutex, RwLock};
 
 #[path = "records_package_import.rs"]
 pub(crate) mod package;
+#[path = "records_payload.rs"]
+pub(crate) mod payload;
 #[path = "records_package.rs"]
 pub(crate) mod custody;
 #[path = "records_store_lines.rs"]
@@ -1579,50 +1581,8 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
         i if i.completed => true,
         i if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
         i if i.any => false,
-        _ => {
-            for name in ["runs", "acts", "workflow", "legacy", "connectors"] {
-                let folder = dir.join(name);
-                match crate::records_inspect::presence(&folder) {
-                    Ok(Some(meta)) if meta.is_dir() => {
-                        let entries = crate::records_inspect::listing(&folder)
-                            .map_err(|e| unknown(format!("{}: inventory incomplete: {e}", folder.display())))?;
-                        if let Some(entries) = entries {
-                            for entry in &entries {
-                                entry.metadata.as_ref().map_err(|e| unknown(format!("{}: inventory incomplete: {e}", entry.path.display())))?;
-                            }
-                            if !entries.is_empty() { return Ok(true); }
-                        }
-                    }
-                    Ok(Some(_)) => return Ok(true), // Caution for readers, never write authority.
-                    Ok(None) => {}
-                    Err(e) => return Err(unknown(format!("{}: {e}", dir.join(name).display()))),
-                }
-            }
-            captures_hold_records(dir).map_err(unknown)?
-        }
+        _ => payload::census(dir).map_err(unknown)?.holds_records,
     })
-}
-
-/// Export may acquire capture ownership before any capture was recorded.
-/// That exact control file (or an empty folder) establishes no RS home. Any
-/// unknown/non-control member or unreadable inventory remains conservative.
-fn captures_hold_records(dir: &Path) -> Result<bool, String> {
-    use std::os::unix::fs::MetadataExt;
-    let folder = dir.join("captures");
-    match std::fs::symlink_metadata(&folder) {
-        Ok(meta) if meta.is_dir() => {},
-        Ok(_) => return Ok(true),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
-        Err(error) => return Err(format!("{}: {error}", folder.display())),
-    }
-    let entries = std::fs::read_dir(&folder).map_err(|e| format!("{}: {e}", folder.display()))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("{}: {e}", folder.display()))?;
-        if entry.file_name() != ".capture.lock" || !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1) {
-            return Ok(true);
-        }
-    }
-    Ok(false)
 }
 
 /// Cautious read routing is not authority to waive the import census. Only
@@ -1678,9 +1638,8 @@ impl WriteFolder {
         if matches!(self, Self::Captures) && name == ".capture.lock" { return true; }
         if matches!(self, Self::Workflow) && name.strip_prefix(".pending-").is_some_and(record_uuid) { return true; }
         if matches!(self, Self::Accounts) && name.strip_prefix(".route-").and_then(|n| n.strip_suffix(".tmp")).is_some_and(record_uuid) { return true; }
-        let Some((final_name, nonce)) = name.strip_prefix('.').and_then(|n| n.strip_suffix(".tmp")).and_then(|n| n.rsplit_once('.')) else { return false };
-        record_uuid(nonce) && (self.record_name(final_name)
-            || matches!(self, Self::Captures) && final_name == ".capture.lock")
+        let Some(final_name) = payload::publication_name(name) else { return false };
+        self.record_name(final_name) || matches!(self, Self::Captures) && final_name == ".capture.lock"
     }
 }
 /// A positive member suffices; an error never becomes an empty inventory.
@@ -1780,7 +1739,7 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
         return Err("project import incomplete; finish the explicit import before export".into());
     }
     if store_holds(dir).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
-    if !state.any && ["fleet","role-supply"].iter().any(|name|std::fs::symlink_metadata(dir.join(name)).is_ok()) && legacy_census(root)?.is_empty() {
+    if !state.any && payload::census(dir)?.members.keys().any(|name| ["fleet/", "role-supply/", "connectors/"].iter().any(|prefix| name.starts_with(prefix))) && legacy_census(root)?.is_empty() {
         return Ok(());
     }
     Err("project records need import before export".into())

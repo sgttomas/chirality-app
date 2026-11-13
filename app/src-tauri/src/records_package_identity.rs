@@ -174,7 +174,7 @@ pub(super) fn entry_bytes(intent: &Intent, original_raw: &[u8]) -> Result<Vec<u8
 }
 fn referenced_intents(store: &Path, root: &Path) -> Result<Vec<Intent>, String> {
     let folder = root_locators(store, root)?;
-    let before = bag::payload_inventory(&folder)?;
+    let before = bag::plain_inventory(&folder)?;
     let before_stamp = stamp(&folder)?;
     let mut result = Vec::new();
     for name in before.keys() {
@@ -195,7 +195,7 @@ fn referenced_intents(store: &Path, root: &Path) -> Result<Vec<Intent>, String> 
         }
         result.push(intent);
     }
-    if bag::payload_inventory(&folder)? != before || stamp(&folder)? != before_stamp {
+    if bag::plain_inventory(&folder)? != before || stamp(&folder)? != before_stamp {
         return Err("root association locators changed during lookup".into());
     }
     Ok(result)

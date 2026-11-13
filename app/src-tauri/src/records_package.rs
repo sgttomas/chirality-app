@@ -800,25 +800,27 @@ pub(crate) fn snapshot(source: &Path, destination: &Path) -> Result<Snapshot, St
     })
 }
 
-/// Complete coherent hashes for a retained payload. Only actual plain owning
-/// lock files are excluded; similarly named connector evidence stays present.
+/// Exact administrative inventory: these folders are not live payload and
+/// none of their native intents, completions or receipts may be omitted.
+pub(crate) fn plain_inventory(root: &Path) -> Result<BTreeMap<String, Member>, String> {
+    let root = absolute(root)?;
+    if optional_root(&root)?.is_none() {
+        return Ok(BTreeMap::new());
+    }
+    Ok(custody(&root)?.members)
+}
+
+/// Coherent retained-payload hashes after the shared live-payload census.
+/// Validated controls/preparation are omitted; unresolved publications refuse.
 pub(crate) fn payload_inventory(root: &Path) -> Result<BTreeMap<String, Member>, String> {
     let root = absolute(root)?;
     if optional_root(&root)?.is_none() {
         return Ok(BTreeMap::new());
     }
     let mut held = custody(&root)?;
-    for control in [".writer.lock", "captures/.capture.lock"] {
-        if held
-            .census
-            .get(control)
-            .is_some_and(|stamp| !stamp.regular() || stamp.links != 1)
-        {
-            return Err("owning control is not a regular single-link file".into());
-        }
-    }
-    held.members.remove(".writer.lock");
-    held.members.remove("captures/.capture.lock");
+    let classified = super::payload::census(&root)?;
+    held.members.retain(|name, _| classified.members.contains_key(name));
+    held.unchanged()?;
     Ok(held.members)
 }
 
@@ -1211,6 +1213,9 @@ fn create_control_in(path: &Path, bytes: &[u8], staging: Option<&Path>) -> Resul
     let temporary_directory = ensure_root(&staging_path)?;
     if staging.is_some() {
         let metadata = temporary_directory.metadata().map_err(io)?;
+        if metadata.dev() != directory.metadata().map_err(io)?.dev() {
+            return Err("control staging is not on the final filesystem".into());
+        }
         if metadata.uid() != unsafe { libc::geteuid() } || metadata.mode() & 0o077 != 0 {
             return Err("control staging is not private to its owner".into());
         }

@@ -70,7 +70,7 @@
   reason: the metadata of a file handle already opened, its error returned; anything but a regular file is refused.
 - file: records_export.rs
   kind: metadata
-  line: if meta.is_dir() { walk(root, &path, omit, out)?; }
+  line: if meta.is_dir() { walk(root, &path, out)?; }
   reason: symlink_metadata, its error returned or refused where it is made.
 - file: records_export.rs
   kind: metadata
@@ -198,22 +198,8 @@
     and records_store_registration_never_writes_over_an_identity_record_it_could_not_examine).'
 - file: records_store.rs
   kind: metadata
-  line: Ok(meta) if meta.is_dir() => {},
-  reason: symlink_metadata, its error returned or refused where it is made.
-- file: records_store.rs
-  kind: metadata
-  line: Ok(Some(meta)) if meta.is_dir() => {
-  reason: records_inspect::presence returned this entry's metadata; an examination error refuses routing before this branch.
-- file: records_store.rs
-  kind: metadata
   line: 'if !meta.is_file() { return Err(format!("{}: not a plain record or preparation file", entry.path.display())); }'
   reason: records_inspect::listing retained the entry's metadata result; every examination error is handled before this type check and never grants write authority.
-- file: records_store.rs
-  kind: metadata
-  line: if entry.file_name() != ".capture.lock" || !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1)
-    {
-  reason: 'symlink_metadata folded by is_ok_and: an error reads as not the control file, so the captures folder is taken to
-    hold records (conservative).'
 - file: records_store.rs
   kind: metadata
   line: Ok(meta) if meta.is_file() => Ok(true),
@@ -283,3 +269,11 @@
   reason: storage::check_path, shared code outside the records modules, skips an ancestor whose metadata it cannot read, so
     it passes a path it could not examine. Every caller traced then opens or lists the path itself and fails on the same error;
     no admission was seen. Whether to change it is App Agent 0's question; it is recorded here so that it is not forgotten.
+- file: records_payload.rs
+  kind: metadata
+  line: if !meta.is_file() {
+  reason: records_inspect::listing retained the symlink_metadata result; an examination error refuses before this type check.
+- file: records_payload.rs
+  kind: metadata
+  line: if meta.is_dir() {
+  reason: records_inspect::listing retained the symlink_metadata result; only a successfully examined directory is recursed into.

@@ -348,8 +348,11 @@ impl Drop for Lease {
         }
     }
 }
-fn exclusive(path: &Path) -> Result<Lease, String> {
-    bag::create_or_match(path, b"")?;
+fn exclusive(path: &Path, staging: Option<&Path>) -> Result<Lease, String> {
+    match staging {
+        Some(staging) => bag::create_or_match_staged(path, b"", staging)?,
+        None => bag::create_or_match(path, b"")?,
+    }
     let f = crate::records_index::open_log(path).map_err(|e| e.to_string())?;
     if f.metadata().map_err(|e| e.to_string())?.nlink() != 1 {
         return Err("import lock is hardlinked".into());
@@ -381,7 +384,7 @@ fn lock_for(store: &Path, dir: &Path, prior: Option<&Path>) -> Result<Guards, St
     dirs.sort();
     let mut leases = Vec::new();
     for dir in &dirs {
-        leases.push(exclusive(&controls(dir)?.join(".admission.lock"))?);
+        leases.push(exclusive(&controls(dir)?.join(".admission.lock"), None)?);
     }
     // Stable admission also excludes disposal. Refuse its validated terminal
     // history before creating any lock inside a removed payload subtree.
@@ -393,13 +396,13 @@ fn lock_for(store: &Path, dir: &Path, prior: Option<&Path>) -> Result<Guards, St
     let owner = Owner::enter(dir)?;
     OWNER.with(|o| *o.borrow_mut() = dirs.clone());
     for dir in &dirs {
-        leases.push(exclusive(&controls(dir)?.join(".activity.lock"))?);
+        leases.push(exclusive(&controls(dir)?.join(".activity.lock"), None)?);
     }
     for dir in &dirs {
-        leases.push(exclusive(&dir.join("captures/.capture.lock"))?);
+        leases.push(exclusive(&dir.join("captures/.capture.lock"), Some(&controls(dir)?.join("package-preparation")))?);
     }
     for dir in &dirs {
-        leases.push(exclusive(&dir.join(".writer.lock"))?);
+        leases.push(exclusive(&dir.join(".writer.lock"), Some(&controls(dir)?.join("package-preparation")))?);
     }
     Ok(Guards {
         _owner: owner,

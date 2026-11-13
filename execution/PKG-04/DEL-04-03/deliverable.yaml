@@ -105,6 +105,7 @@ code_paths:
 - app/src-tauri/src/records_administration.rs
 - app/src-tauri/src/records_export.rs
 - app/src-tauri/src/records_inspect.rs
+- app/src-tauri/src/records_payload.rs
 - app/src-tauri/src/records_package.rs
 - app/src-tauri/src/records_package_import.rs
 - app/src-tauri/src/records_package_identity.rs
@@ -145,6 +146,8 @@ checks:
 - app/tests/validate-records.test.mjs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/records_store_tests.rs
+- app/src-tauri/src/records_store_routing_trace_tests.rs
+- app/src-tauri/src/records_store_routing_payload_tests.rs
 - app/src-tauri/src/placement_homes_tests.rs
 - app/src-tauri/src/records_inspect_tests.rs
 - tools/ci/check_records_presence.py

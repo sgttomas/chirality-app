@@ -45,27 +45,26 @@ fn decode(path: &str) -> Result<String, String> {
     relative(Path::new(&out))?;
     Ok(out)
 }
+// Disposal validates these controls separately before removing any bytes.
 fn excluded(rel: &Path) -> bool {
-    // Omit only actual owning controls. Imported connector publication files
-    // (including .tmp/.lock names) are retained evidence, not scratch to drop.
     rel == Path::new(".writer.lock") || rel == Path::new("captures/.capture.lock")
 }
 fn files(root: &Path, omit_controls: bool) -> Result<BTreeMap<String, crate::records_index::Stamp>, String> {
-    fn walk(root: &Path, dir: &Path, omit: bool, out: &mut BTreeMap<String, crate::records_index::Stamp>) -> Result<(), String> {
+    if omit_controls { return Ok(crate::records_store::payload::census(root)?.members); }
+    fn walk(root: &Path, dir: &Path, out: &mut BTreeMap<String, crate::records_index::Stamp>) -> Result<(), String> {
         crate::storage::check_path(dir)?;
         for item in std::fs::read_dir(dir).map_err(io)? {
             let path = item.map_err(io)?.path();
             let rel = path.strip_prefix(root).map_err(|e| e.to_string())?;
-            if omit && excluded(rel) { continue; }
             let meta = std::fs::symlink_metadata(&path).map_err(io)?;
-            if meta.is_dir() { walk(root, &path, omit, out)?; }
+            if meta.is_dir() { walk(root, &path, out)?; }
             else if meta.is_file() { out.insert(relative(rel)?, crate::records_index::Stamp::of(&meta)); }
             else { return Err(format!("unsupported or linked export member: {}", path.display())); }
         }
         Ok(())
     }
     let mut out = BTreeMap::new();
-    walk(root, root, omit_controls, &mut out)?;
+    walk(root, root, &mut out)?;
     Ok(out)
 }
 fn write(path: &Path, bytes: &[u8]) -> Result<(), String> {

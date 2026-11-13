@@ -8,6 +8,9 @@ use crate::storage;
 use serde_json::json;
 use std::collections::BTreeMap;
 
+mod routing_traces { include!("records_store_routing_trace_tests.rs"); }
+mod routing_payload { include!("records_store_routing_payload_tests.rs"); }
+
 mod publication { include!("records_store_publication_tests.rs"); }
 mod safe_append { include!("records_store_lines_tests.rs"); }
 mod legacy_witness { include!("records_store_witness_tests.rs"); }

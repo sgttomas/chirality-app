@@ -596,12 +596,15 @@ impl ProjectRecords {
             }
             publication_boundary()?;
             dir.sync_all().map_err(|e| e.to_string())?;
-            self.resolve(reference).map_err(|e| format!("{e:?}"))
+            Ok(())
         })();
         if let Ok(n) = name(&staging) {
             unsafe { libc::unlinkat(dir.as_raw_fd(), n.as_ptr(), 0) };
         }
-        result
+        // Reader admission must see the completed publication after this
+        // operation's temporary alias is removed, never its two-link window.
+        result?;
+        self.resolve(reference).map_err(|e| format!("{e:?}"))
     }
 }
 /// Durable historical evidence only. There is deliberately no deserializer or send API.
