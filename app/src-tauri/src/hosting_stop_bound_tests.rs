@@ -1534,3 +1534,30 @@ fn a_lock_held_past_its_deadline_is_not_waited_for() {
     holder.join().unwrap();
     assert!(crate::util::lock_by(&mutex, Instant::now()).is_some(), "free, it is had at once");
 }
+
+/// Round 2 (the reader's reproduction): the quit's acknowledgment wait for a
+/// written interrupt Codex never acknowledges ends at its limit without
+/// waiting on the ledger, even with the recovery writer free; its SR-10 stays
+/// queued for the quit's bounded recording. Stop Codex's own wait is unchanged.
+#[test]
+fn the_quits_acknowledgment_wait_ends_at_its_limit_without_waiting_on_the_ledger() {
+    use crate::codex_stop::Interrupts;
+    let mut f = Fixture::new();
+    f.live_turn("thread", "turn-ack");
+    f.stop_reading();
+    let sent = f.host().turn_interrupt_within(&f.generation, "thread", "turn-ack", crate::stop_records::Cause::Quit, "account", &crate::stop_records::person("fixture person"), Instant::now() + Duration::from_secs(2));
+    let InterruptSend::Written(source) = sent else { panic!("the interrupt was written") };
+    let release = f.hold_ledger();
+    assert!(f.host().recovery_writer.try_lock().is_ok(), "the writer is free");
+    let home = Arc::clone(&f.home);
+    let host = Arc::clone(f.host());
+    let (tx, rx) = channel();
+    std::thread::spawn(move || {
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut ops = crate::app_quit::HostQuit::new(vec![home], &workflows, "fixture person", |_: &Value| -> Result<bool, String> { Ok(true) });
+        let _ = tx.send(ops.acknowledgment(&(host, source), Duration::from_millis(30)));
+    });
+    let outcome = rx.recv_timeout(Duration::from_millis(300)).expect("the acknowledgment wait ended at its limit, not after the ledger");
+    assert!(outcome.is_err(), "Codex never acknowledged: {outcome:?}");
+    let _ = release.send(());
+}

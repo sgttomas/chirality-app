@@ -143,10 +143,16 @@ pub(crate) fn close_all() {
     INDEXES.lock().unwrap_or_else(|p| p.into_inner()).clear();
 }
 /// The same at the App's exit, waiting for a reader or writer that holds the
-/// indexes (across its file reads) no later than `deadline`. Not had in time,
-/// the caches are left as a crash leaves them; false.
+/// indexes (across its file reads) no later than `deadline`. The caches are
+/// taken out under the lock and released on their own thread, waited for no
+/// later than `deadline` (releasing one removes its file, which can wait on
+/// the filesystem). Not done in time, what is left is what a crash leaves;
+/// false.
 pub(crate) fn close_all_by(deadline: std::time::Instant) -> bool {
-    crate::util::lock_by(&INDEXES, deadline).map(|mut all| all.clear()).is_some()
+    let Some(caches) = crate::util::lock_by(&INDEXES, deadline).map(|mut all| std::mem::take(&mut *all)) else { return false };
+    let (done, finished) = std::sync::mpsc::channel();
+    let released = std::thread::Builder::new().name("records-index-close".into()).spawn(move || { drop(caches); let _ = done.send(()); });
+    released.is_ok() && finished.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())).is_ok()
 }
 /// How many log names the host status carries for each chain state.
 pub(crate) const STATUS_NAMES: usize = 5;

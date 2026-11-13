@@ -326,7 +326,7 @@ impl<C> Interrupts for HostQuit<'_, C> {
         written.map(|w| (host, w))
     }
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String> {
-        pending.0.turn_interrupt_acknowledgment(&pending.1, wait)
+        pending.0.turn_interrupt_acknowledgment_for_quit(&pending.1, wait)
     }
     fn turn_reading(&mut self, turn: &Value) -> Option<Value> {
         let home = self.home_for(&turn["generation"])?;

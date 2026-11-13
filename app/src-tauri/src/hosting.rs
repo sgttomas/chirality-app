@@ -4271,14 +4271,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.generation() == generation).map(|r| r.id().to_owned()).collect();
         for id in ids { Self::stop_request_update(i, &id, |r| r.generation_closed()); }
     }
-    /// SR-10: the caller's wait for this interrupt's response ended.
-    fn stop_request_wait_ended(&self, source: &SourceRequest) {
+    /// SR-10: the caller's wait for this interrupt's response ended. `flush`:
+    /// write it now; the quit leaves it queued for its bounded recording.
+    fn stop_request_wait_ended(&self, source: &SourceRequest, flush: bool) {
         {
             let mut i = self.inner.0.lock().unwrap();
             let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.generation() == source.generation() && r.request_identity() == Some(source.request_id())).map(|r| r.id().to_owned()).collect();
             for id in ids { Self::stop_request_update(&mut i, &id, |r| r.waiting_ended()); }
         }
-        self.flush_recovery_observations();
+        if flush { self.flush_recovery_observations(); }
     }
     /// The stop requests the person can see: the ledger's (every App session)
     /// and this process's, each with whether its latest record is in the
@@ -4374,11 +4375,19 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// ends the request stays pending and its stop request records SR-10;
     /// nothing is resent. An acknowledgment is not the turn's end.
     pub fn turn_interrupt_acknowledgment(&self, source: &SourceRequest, wait: Duration) -> Result<Value, String> {
+        self.interrupt_acknowledgment(source, wait, true)
+    }
+    /// The same wait for the quit: its SR-10 stays queued, written by the
+    /// quit's bounded recording, so the quit's thread waits on no ledger.
+    pub(crate) fn turn_interrupt_acknowledgment_for_quit(&self, source: &SourceRequest, wait: Duration) -> Result<Value, String> {
+        self.interrupt_acknowledgment(source, wait, false)
+    }
+    fn interrupt_acknowledgment(&self, source: &SourceRequest, wait: Duration, flush: bool) -> Result<Value, String> {
         if source.frame["method"] != "turn/interrupt" { return Err("not an interrupt request".into()); }
         let response = match self.wait_source_response(source, wait) {
             Ok(response) => response,
             Err(error) => {
-                if error.contains("within the wait limit") { self.stop_request_wait_ended(source); }
+                if error.contains("within the wait limit") { self.stop_request_wait_ended(source, flush); }
                 return Err(error);
             }
         };
