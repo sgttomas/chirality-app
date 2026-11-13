@@ -584,6 +584,98 @@
         }
       ],
       "outcome": "fail"
+    },
+    {
+      "scenario": "J1",
+      "run_ref": "RUN-J1",
+      "steps": [
+        {
+          "step": "J1-1",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J1-2",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J1-3",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J1-4",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J1-5",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J1-6",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        }
+      ],
+      "basis": "not_established"
+    },
+    {
+      "scenario": "J2",
+      "run_ref": "RUN-J2",
+      "steps": [
+        {
+          "step": "J2-1",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J2-2",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J2-3",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J2-4",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J2-5",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J2-6",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        },
+        {
+          "step": "J2-7",
+          "state": "planned",
+          "counts": true,
+          "supplier_cases": []
+        }
+      ],
+      "basis": "not_established"
     }
   ],
   "handoff": {

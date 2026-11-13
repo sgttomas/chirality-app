@@ -2,7 +2,7 @@
 //! the A-IN-S3 attested reference, and a supplied tree is compared with it in
 //! full before any supplier execution. S4 requires typed installed observation;
 //! the compiled publisher requirement remains None, so production still refuses.
-use super::{HostConfig, CREDENTIAL_VARS, DECLARED_PIN, GENERATED_MANIFEST_SHA256};
+use super::{remove_inherited_environment, removed_environment_names, secret_environment_names, HostConfig, DECLARED_PIN, GENERATED_MANIFEST_SHA256};
 use crate::distribution_preflight::{self as tree, selection::Selected, Inventory, LaunchPlan};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -130,12 +130,12 @@ pub(crate) struct Prepared {
 impl Prepared {
     pub(crate) fn observation(&self,cfg:&HostConfig,g:&Value)->(Value,Value){
         let mut argv=Vec::new();for flag in &cfg.session_flags{argv.push("-c".to_owned());argv.push(flag.clone());}argv.push("app-server".into());
-        let removed:Vec<_>=CREDENTIAL_VARS.iter().copied().chain(self.plan.removed).collect();
+        let removed:Vec<_>=removed_environment_names().chain(self.plan.removed).collect();
         let configuration=json!({"resolved_root":self.root,"resolved_executable":self.plan.executable,"working_directory":cfg.cwd,"argv":argv,
             "path_prefix":self.root.join("codex-path"),"path_remainder_provenance":"Inherited process PATH; remainder bytes omitted from this nonsecret record",
             "app_supplied_nonsecret":{"CODEX_HOME":cfg.codex_home.to_string_lossy()},"removed_environment_names":removed,
             "probe_home":cfg.probe_home,"account_home":cfg.codex_home,"home_link_states":"Root fixed namespace metadata reobserved by protected publication guard; not native discovery proof",
-            "k12_flags":cfg.session_flags,"secret_redactions":CREDENTIAL_VARS});
+            "k12_flags":cfg.session_flags,"secret_redactions":secret_environment_names()});
         let facts=json!({"format":"distribution-preflight-facts.s3","generation":g,"inventory":self.inventory,"raw_version_label":self.status["rawVersionLabel"],"configuration":configuration,"limit":"Bounded source observations; no installed integrity/custody issuer or qualification"});
         let check=|outcome:&str,reason:&str|json!({"outcome":outcome,"evidence":null,"reason":reason});
         let checks=match &self.comparison {
@@ -176,9 +176,12 @@ impl Prepared {
             .collect()
     }
 }
+/// Sets the plan's PATH and removes, by name, the host's listed inherited
+/// variables and the plan's wrapper settings. Callers set nothing listed after it.
 pub(crate) fn configure(cmd: &mut Command, plan: &LaunchPlan) {
     cmd.env("PATH", &plan.path);
-    for name in CREDENTIAL_VARS.iter().copied().chain(plan.removed) {
+    remove_inherited_environment(cmd);
+    for name in plan.removed {
         cmd.env_remove(name);
     }
 }
@@ -324,11 +327,12 @@ fn short(sha: &Value) -> String {
 }
 fn probe(plan: &LaunchPlan, cfg: &HostConfig, run: impl FnOnce(&mut Command, Duration) -> Result<String, String>) -> Result<String, String> {
     let mut command = Command::new(&plan.executable);
-    configure(&mut command, plan);
     for flag in &cfg.session_flags { command.args(["-c", flag]); }
     command.arg("--version").env("CODEX_HOME", &cfg.probe_home)
         .current_dir(&cfg.probe_home).stdin(Stdio::null())
         .stdout(Stdio::piped()).stderr(Stdio::piped());
+    // Last, after every `env` set here, so no listed name is set after its removal.
+    configure(&mut command, plan);
     run(&mut command, cfg.probe_wait_limit)
 }
 
@@ -757,9 +761,12 @@ for line in sys.stdin:
         let mut cmd = Command::new("unused");
         configure(&mut cmd, &plan);
         let env: std::collections::HashMap<_, _> = cmd.get_envs().collect();
-        for name in CREDENTIAL_VARS.iter().copied().chain(plan.removed) {
-            assert_eq!(env.get(std::ffi::OsStr::new(name)), Some(&None));
+        // The decided names and the wrapper settings, from the test's own lists.
+        use crate::hosting::child_environment_tests::{decided_names, WRAPPER};
+        for name in decided_names().chain(WRAPPER) {
+            assert_eq!(env.get(std::ffi::OsStr::new(name)), Some(&None), "{name}");
         }
+        assert_eq!(env.len(), 1 + decided_names().count() + WRAPPER.len(), "configure touches PATH and the listed names only");
         assert_eq!(
             env[std::ffi::OsStr::new("PATH")].unwrap(),
             std::ffi::OsStr::new(&plan.path)

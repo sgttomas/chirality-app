@@ -2928,7 +2928,13 @@ pub fn run() {
                 std::thread::Builder::new().name("chirality-host-tick".into()).spawn(move || loop {
                     std::thread::sleep(host_tick::INTERVAL);
                     let state = handle.state::<AppState>();
-                    host_tick::guarded("record", || host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
+                    let mut received = Vec::new();
+                    host_tick::guarded("record", || received = host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
+                    // DEL-06-01: what those views show of native delegation is recorded once.
+                    host_tick::guarded("native-delegation", || {
+                        let mut links = state.native_links.lock().unwrap();
+                        for (home, views) in &received { links.observe_delegation(state.workspace.as_deref(), home, views); }
+                    });
                     // Native relationship publication runs independently of web reads.
                     host_tick::guarded("native-links", || {state.native_links.lock().unwrap().retry(state.workspace.as_deref());});
                 }).map_err(|e| format!("host tick thread not started: {e}"))?;
@@ -3070,6 +3076,10 @@ pub fn run() {
                     if let Err(error) = app_quit::finish_exit(&homes, None) {
                         eprintln!("chirality: system termination observation unavailable: {error}");
                     }
+                }
+                // DEL-06-01: this session's observation of each child it recorded ends with it.
+                if let Ok(mut links) = st.native_links.lock() {
+                    links.end_delegation_at_exit(&homes);
                 }
                 records_index::close_all();
             }

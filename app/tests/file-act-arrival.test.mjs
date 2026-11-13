@@ -216,20 +216,40 @@ test('an unresolved arrival review disables other rows and standing selection an
   }
 });
 
+const FIXTURE = 'file_act_arrival_production_connecting_path_and_dto';
+// A Rust output counts as passed only when every test binary's summary in it is ok with none failed, and at
+// least one test ran. Reading only the last summary would take a saved log with an earlier failed binary as passed.
+const everyRustBinaryPassed = output => {
+  const summaries = Array.from(output.matchAll(/^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed;/gm));
+  return summaries.length >= 1 && summaries.every(summary => summary[1] === 'ok' && Number(summary[3]) === 0) && summaries.some(summary => Number(summary[2]) >= 1);
+};
+test('a Rust output is taken as passed only when every test binary in it passed', () => {
+  const ok = 'test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2134 filtered out; finished in 9.39s\n';
+  const failed = 'test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s\n';
+  const none = 'test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2135 filtered out; finished in 0.00s\n';
+  assert.equal(everyRustBinaryPassed(`running 1 test\ntest a::${FIXTURE} ... ok\n${ok}`), true);
+  assert.equal(everyRustBinaryPassed(`${none}${ok}`), true, 'a binary the filter matched nothing in, beside one that passed');
+  assert.equal(everyRustBinaryPassed(`${failed}running 1 test\ntest a::${FIXTURE} ... ok\n${ok}`), false, 'an earlier failed binary and a later passing one');
+  assert.equal(everyRustBinaryPassed(`${ok}${failed}`), false);
+  assert.equal(everyRustBinaryPassed('test result: ok. 3 passed; 1 failed; 0 ignored\n'), false, 'a summary that says ok and counts a failure');
+  assert.equal(everyRustBinaryPassed(none), false, 'the filter matched nothing');
+  assert.equal(everyRustBinaryPassed('error: could not compile\n'), false, 'no summary at all');
+});
 test('actual Rust arrival previews and capture records pass through the mounted App for each file-act kind', async () => {
   let output;
   if (process.env.CHIRALITY_FILE_ACT_ARRIVAL_DTO_LOG) output = readFileSync(process.env.CHIRALITY_FILE_ACT_ARRIVAL_DTO_LOG,'utf8');
   else {
-    const result = spawnSync('cargo',['test','--offline','--locked','--lib','file_act_arrival','--','--nocapture','--test-threads=1'],{
+    // Only the one Rust test whose packet this test reads. The other file_act_arrival tests print nothing read
+    // here; they run with the Rust suite (the hosted `file_act` cohort and the full suite). The limit bounds this fixture.
+    const result = spawnSync('cargo',['test','--offline','--locked','--lib',FIXTURE,'--','--nocapture','--test-threads=1'],{
       cwd:fileURLToPath(new URL('../src-tauri/',import.meta.url)),encoding:'utf8',timeout:180000,maxBuffer:8*1024*1024,
       env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CARGO_NET_OFFLINE:'true'},
     });
     assert.equal(result.status,0,result.error?.message ?? result.stderr+result.stdout);
     output = result.stdout;
   }
-  const summary = Array.from(output.matchAll(/^test result: (ok|FAILED)\. (\d+) passed; (\d+) failed;/gm)).at(-1);
-  assert.ok(summary?.[1] === 'ok' && Number(summary[2]) >= 1 && Number(summary[3]) === 0,'completed Rust test binary passed');
-  assert.match(output,/test .*file_act_arrival/);
+  assert.ok(everyRustBinaryPassed(output),'every completed Rust test binary passed, and at least one test ran');
+  assert.match(output,new RegExp(`test .*${FIXTURE}`));
   const marker = 'FILE_ACT_ARRIVAL_DTO:';
   const lines = output.split('\n').filter(line => line.includes(marker));
   assert.equal(lines.length,1,'one actual production-path DTO packet');
