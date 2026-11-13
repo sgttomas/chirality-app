@@ -1,9 +1,9 @@
 # The reviewed list for tools/ci/check_records_presence.py.
 #
 # Every line of the records modules' files (app/src-tauri/src/records*.rs, except
-# files named *_tests.rs) whose raw text spells .exists(), .is_dir(), .is_file() or
-# .is_symlink(), in code, a comment or a string alike, is listed here by its file
-# and its own text, with its kind and reason:
+# files named *_tests.rs) whose raw text spells exists, is_dir, is_file or
+# is_symlink as a whole word after a dot or ::, in code, a comment or a string
+# alike, is listed here by its file and its own text, with its kind and reason:
 #   metadata  called on metadata already examined; the reason names that examination.
 #   path      called on a path; cannot_tell says what the caller concludes when it
 #             cannot tell, and why that admits nothing.
@@ -41,6 +41,16 @@
   reason: 'The read log: whether this append created the file.'
   cannot_tell: created becomes true, and the only consequence is one extra sync of the parent folder after the append. Nothing
     is skipped.
+- file: records_access.rs
+  kind: path
+  line: if !read_log.parent().is_some_and(Path::is_dir) {
+  reason: 'RecordsCapability::with_source: the folder of a read log given explicitly, outside the project. Production builds
+    the capability through RecordsCapability::new (lib.rs), whose read log is in the project''s records store; with_source
+    is reached only through RecordsCapability::at and from tests.'
+  cannot_tell: 'is_dir() false, whether the folder is not there, cannot be examined or is a link to something else, refuses
+    the capability ("records read log folder unavailable"): nothing is read and no log is written. A link at the parent that
+    leads to a folder passes here, but every append first runs storage::check_path on the log''s path, which refuses a link
+    it can examine; a read whose append is refused is not answered.'
 - file: records_access.rs
   kind: metadata
   line: if !metadata.is_dir() { return Err("records capability physical project is not a directory".into()); }

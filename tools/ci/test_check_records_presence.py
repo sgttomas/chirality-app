@@ -263,11 +263,45 @@ def test_each_candidate_fails_on_the_unchanged_list(repository_copy, tmp_path, c
         assert f"{presence.SOURCE / 'records_unreviewed.rs'}:{number}:" in reported, (name, number, reported)
 
 
-def test_a_spelling_split_across_lines_is_a_stated_limit(repository_copy, tmp_path):
-    # The second reading's split_across_lines candidate: the check reads one line
-    # at a time, so this passes. Its docstring names the limit.
+def test_a_split_after_the_name_is_seen_and_a_split_before_it_is_a_stated_limit(repository_copy, tmp_path, capsys):
+    # The second reading's split_across_lines candidate breaks the line after the
+    # name, which the check now sees. A line boundary between the dot and the
+    # name is the limit its docstring states.
     root = tmp_path / "root"
     shutil.copytree(repository_copy, root)
-    (root / presence.SOURCE / "records_unreviewed.rs").write_text(function("    path.exists\n    ()"), encoding="utf-8")
-    assert presence.main(["--root", str(root), "--list", str(presence.ROOT / presence.LIST)]) == 0
-    assert "split across lines" in presence.__doc__
+    probe = root / presence.SOURCE / "records_unreviewed.rs"
+    probe.write_text(function("    path.exists\n    ()"), encoding="utf-8")
+    assert presence.main(["--root", str(root), "--list", str(presence.ROOT / presence.LIST)]) == 1
+    assert f"{presence.SOURCE / 'records_unreviewed.rs'}:2: path.exists" in capsys.readouterr().err
+    for boundary in ("\n", "\u2028", "\x0c"):
+        probe.write_text(function(f"    path.{boundary}exists()"), encoding="utf-8")
+        assert presence.main(["--root", str(root), "--list", str(presence.ROOT / presence.LIST)]) == 0, repr(boundary)
+    assert "divided by a line boundary" in presence.__doc__
+
+
+# App Agent 0's third look (pull request 291): forms that spell one of the names
+# without the dot-and-empty-parentheses shape, each passing the check at
+# b0985f1a. The first is in the records code today.
+@pytest.mark.parametrize("name, body, line", [
+    ("a function reference", "    path.parent().is_some_and(Path::is_dir)", 2),
+    ("a comment between the parentheses", "    path.exists(/**/)", 2),
+    ("a break between the name and the parentheses", "    path.exists\n    ()", 2),
+    ("a path-qualified call", "    std::path::Path::exists(path)", 2),
+    ("a line separator after the name", "    path.exists\u2028()", 2),
+    ("a form feed after the name", "    path.exists\x0c()", 2),
+])
+def test_the_third_looks_forms_are_seen(tmp_path, name, body, line):
+    write(tmp_path, "records_probe.rs", function(body))
+    problems = presence.check(tmp_path, listed())
+    assert [p for p in problems if p.startswith(f"{presence.SOURCE / 'records_probe.rs'}:{line}:")], (name, problems)
+
+
+def test_the_read_log_folder_check_in_records_access_is_found_and_listed():
+    # records_access.rs, RecordsCapability::with_source: a presence check on a
+    # path through a function reference, missed until the third look.
+    text = "if !read_log.parent().is_some_and(Path::is_dir) {"
+    source = (presence.ROOT / presence.SOURCE / "records_access.rs").read_text(encoding="utf-8")
+    assert text in (line.strip() for line in source.splitlines())
+    assert ("records_access.rs", text) in {(name, found) for name, _, found in presence.occurrences(presence.ROOT)}
+    entries, _ = presence.parse_list((presence.ROOT / presence.LIST).read_text(encoding="utf-8"))
+    assert [e["kind"] for e in entries if e["file"] == "records_access.rs" and e["line"] == text] == ["path"]
