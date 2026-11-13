@@ -20,6 +20,7 @@ import plistlib
 import pwd
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -36,6 +37,7 @@ launch = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(launch)
 identify = launch.identify
 REAL_HOMES_ROOT = launch.homes_root  # the function itself, before any test replaces it
+REAL_TOP_OF_SEARCH = launch.top_of_search  # likewise
 
 MAC = sys.platform == 'darwin'
 IDENTIFIER = 'dev.chirality.app-v4.candidate.invented'
@@ -53,7 +55,7 @@ echo invented > "$HOME/Library/WebKit/{id}/WebsiteData/store"
 SHELL_OWN = {'PWD', 'SHLVL', '_', 'OLDPWD', '__CF_USER_TEXT_ENCODING'}  # set by /bin/sh or the macOS runtime itself
 OVERRIDES = {**{n: v for n, (v, _) in launch.PROXY_OVERRIDES.items()}, launch.MODEL_ADDRESS: 'http://127.0.0.1:9/v1'}
 CLEAN_RECORD_FIELDS = {'note', 'made_by', 'made_at', 'candidate_key', 'identifier', 'candidate_folder', 'bundle',
-                       'launch_folder', 'home', 'codex', 'address_override', 'environment_constructed_for_the_app',
+                       'launch_folder', 'home', 'project', 'git_marker_above', 'codex', 'address_override', 'environment_constructed_for_the_app',
                        'output', 'started_at', 'pid', 'ended_at', 'process_group_after_settle', 'disclosed',
                        'app_started', 'ended', 'real_library', 'signals_received', 'failures', 'outcome'}
 
@@ -114,6 +116,7 @@ class Fixture(unittest.TestCase):
         self.root.mkdir()
         patches = [mock.patch.object(launch, 'real_home', return_value=self.real),
                    mock.patch.object(launch, 'homes_root', return_value=self.root),
+                   mock.patch.object(launch, 'top_of_search', return_value=self.tmp),  # not what lies above the fixture
                    mock.patch.object(launch, 'user_cache_dir', return_value=self.cache),
                    mock.patch.object(launch, 'SETTLE_SECONDS', 0.0)]
         if self.identification is not None:
@@ -247,7 +250,7 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
         self.assertEqual((record['real_library']['result'], record['signals_received'], record['app_started']),
                          ('unchanged', [], 'started'))
         self.assertEqual(record['codex'], launch.CODEX_NOTE)
-        self.assertEqual(sorted(os.listdir(folder)), [launch.HOME, launch.RECORD_FOLDER])
+        self.assertEqual(sorted(os.listdir(folder)), [launch.HOME, launch.PROJECT, launch.RECORD_FOLDER])
         self.assertEqual(os.listdir(folder / launch.RECORD_FOLDER), [launch.RECORD])
 
     def test_links_at_or_beneath_a_watched_place_make_the_comparison_incomplete(self):
@@ -526,6 +529,110 @@ class NewHomeOnly(Fixture):  # the home is new: exclusive creates under the root
                     [folder] = sorted(self.folders() - before)
                     self.assertFalse((folder / launch.HOME / 'received-env.txt').exists())  # the App never ran
                     self.assertFalse((folder / launch.RECORD_FOLDER / launch.RECORD).exists())  # and no record says it did
+
+
+class NothingAbove(Fixture):  # the project folder, no .git entry above, and what the home holds at the start
+    def test_the_project_folder_is_new_empty_beside_the_home_and_named_in_the_record(self):
+        code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
+        self.assertEqual(record['project'], str(folder / launch.PROJECT))
+        self.assertEqual(Path(record['project']).parent, Path(record['home']).parent)
+        self.assertEqual(os.listdir(record['project']), [])
+        self.assertEqual(stat.S_IMODE(os.stat(record['project']).st_mode), 0o700)
+        self.assertIn('none: ', record['git_marker_above'])
+
+    def test_a_git_entry_in_any_folder_above_refuses_and_the_refusal_names_the_folder(self):
+        real_mkdir = os.mkdir
+        for place in ('the launch folder', 'the homes root', 'above the homes root'):
+            for kind in ('a folder', 'a file', 'a link to nothing'):
+                with self.subTest(place=place, kind=kind):
+                    def put(folder):
+                        marker = Path(folder) / '.git'
+                        if kind == 'a folder':
+                            marker.mkdir()
+                        elif kind == 'a file':
+                            marker.write_text('gitdir: /invented/elsewhere')
+                        else:
+                            marker.symlink_to('/invented/nowhere')
+                        return marker
+
+                    def take_away(marker):
+                        if marker is not None and os.path.lexists(marker):
+                            marker.rmdir() if marker.is_dir() and not marker.is_symlink() else marker.unlink()
+
+                    def mkdir(path, mode=0o777, *, dir_fd=None):  # the entry appears in the new launch folder
+                        result = real_mkdir(path, mode, dir_fd=dir_fd)
+                        if path == launch.PROJECT and dir_fd is not None:
+                            put(fd_path(dir_fd))
+                        return result
+                    marker = None if place == 'the launch folder' else put(self.root if place == 'the homes root' else self.tmp)
+                    candidate = self.candidate(where=f'above-{place}-{kind}'.replace(' ', '-'))
+                    try:
+                        with mock.patch.object(os, 'mkdir', mkdir if place == 'the launch folder' else real_mkdir):
+                            code, record, out, folder = self.run_helper(candidate)
+                    finally:
+                        take_away(marker)
+                    holder = str(folder if place == 'the launch folder' else marker.parent)
+                    self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+                    self.assertIn(f'{holder} holds a .git entry', record['ended'])
+                    self.assertNotIn('git_marker_above', record)
+                    self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+                    self.assertEqual(os.listdir(record['project']), [])
+
+    def test_the_search_asks_by_lstat_alone_goes_to_the_top_and_stops_there(self):
+        self.assertEqual(REAL_TOP_OF_SEARCH(), Path('/'))
+        (self.tmp.parent / '.git').mkdir()  # above the fixture's top: never asked
+        self.addCleanup((self.tmp.parent / '.git').rmdir)
+        with touches(names=('.git',)) as touched:
+            code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
+        asked = [Path(path).parent for name, path in touched]
+        self.assertEqual({name for name, path in touched}, {'lstat'})
+        self.assertEqual(asked, [folder, self.root, self.tmp])  # the launch folder, the root, the top; each once
+        self.assertEqual(record['git_marker_above'], 'none: 3 folders above the home and the project folder asked by presence')
+
+    def test_a_folder_that_cannot_be_asked_refuses_and_is_named(self):
+        real_lstat = os.lstat
+
+        def lstat(path, *args, **kwargs):
+            if os.fspath(path) == str(self.root / '.git'):
+                raise PermissionError(errno.EACCES, 'invented')
+            return real_lstat(path, *args, **kwargs)
+        with mock.patch.object(os, 'lstat', lstat):
+            code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+        self.assertIn(f'{self.root} could not be checked for a .git entry (PermissionError)', record['ended'])
+        self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+
+    def test_an_unset_or_empty_home_is_refused_as_a_guard_of_its_own(self):
+        home = self.tmp / 'invented-home'
+        good = launch.child_environment(home, 'tmp', launch.DEFAULT_MODEL_ADDRESS)
+        launch.check_environment(dict(good), home, 'tmp')
+        for name in ('HOME', 'CFFIXED_USER_HOME'):
+            for case, change in (('unset', lambda env: env.pop(name)), ('empty', lambda env: env.update({name: ''}))):
+                with self.subTest(name=name, case=case):
+                    env = dict(good)
+                    change(env)
+                    with self.assertRaisesRegex(launch.Refusal, f'^{name} is unset or empty'):
+                        launch.check_environment(env, home, 'tmp')
+        real = launch.child_environment
+        with mock.patch.object(launch, 'child_environment', lambda *a: {**real(*a), 'HOME': ''}):
+            code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+        self.assertIn('HOME is unset or empty', record['ended'])
+        self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+
+    def test_at_the_start_the_home_holds_only_the_launchers_two_entries_and_is_the_working_folder(self):
+        seen = self.tmp / 'seen-at-start.txt'
+        script = f'pwd > "{seen}"\nls -A "$HOME" >> "{seen}"\n'
+        code, record, out, folder = self.run_helper(self.candidate(script, plays=False))
+        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
+        working, *names = seen.read_text().splitlines()
+        self.assertEqual(os.path.realpath(working), os.path.realpath(record['home']))
+        self.assertEqual(len(names), 2, names)
+        self.assertEqual(sorted(name.rsplit('-', 1)[0] for name in names),
+                         ['.chirality-launch-output', '.chirality-launch-tmp'])
+        self.assertEqual(set(names) & {'.codex', '.agents', 'AGENTS.md', 'AGENTS.override.md', '.git'}, set())
 
 
 class CandidateAdmission(Fixture):  # the only caller path
