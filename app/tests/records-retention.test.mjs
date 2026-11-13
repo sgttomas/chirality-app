@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {spawnSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import './support/rust-prebuild.mjs';
 import {loadSrc} from './support/load-src.mjs';
 const recordsPanel=loadSrc('RecordsStorePanel');
 const RecordsStorePanel=recordsPanel.RecordsStoreView ?? recordsPanel.RecordsStorePanel;
@@ -356,7 +360,6 @@ test('regression 5: discovery or unavailable logs are limits, never an empty cle
  }
  for(const heads of [
   {logs:[],broken:[],notes:['role supply chain not established: invented read failure']},
-  {logs:[{log:'invented.jsonl',chain:{state:'unavailable',error:'invented read failure'}}],broken:[],notes:[]},
  ]){
   const checked=view(value,{heads});
   assert.match(checked,/invented read failure/);assert.doesNotMatch(checked,/no chain.*broken|notes? that limit no chain/i);
@@ -504,4 +507,73 @@ test('the mounted panel stays busy through refresh, ignores a second press, and 
   await React.act(async()=>root.render(mounted(other)));
   assert.doesNotMatch(container.textContent,/invented\/export/);
  }finally{resolveAction({});resolveRefresh();await React.act(async()=>root.unmount());document.body.removeChild(container);}
+});
+
+
+// Independent reading repairs: the first guard consumes the actual index DTO.
+test('review repair: an actual host log-open failure makes integrity UNKNOWN',()=>{
+ let output;
+ if(process.env.CHIRALITY_RECORDS_CHAIN_DTO_LOG){
+  output=readFileSync(process.env.CHIRALITY_RECORDS_CHAIN_DTO_LOG,'utf8');
+ }else{
+  const run=spawnSync('cargo',['test','--offline','--locked','--lib','records_index_chain_heads_keeps_log_read_failure_dto','--','--nocapture','--test-threads=1'],{
+   cwd:fileURLToPath(new URL('../src-tauri/',import.meta.url)),encoding:'utf8',timeout:180000,maxBuffer:8*1024*1024,
+   env:{...process.env,CHIRALITY_SKIP_CODEX:'1',CARGO_NET_OFFLINE:'true'},
+  });
+  assert.equal(run.status,0,run.error?.message ?? run.stderr+run.stdout);
+  output=run.stdout;
+ }
+ assert.match(output,/test records_index::tests::records_index_chain_heads_keeps_log_read_failure_dto \.\.\. /);
+ assert.match(output,/test result: ok\. 1 passed; 0 failed;/);
+ const marker='RECORDS_CHAIN_HEADS_READ_FAILURE_DTO:';
+ const lines=output.split('\n').filter(line=>line.includes(marker));assert.equal(lines.length,1);
+ const heads=JSON.parse(lines[0].slice(lines[0].indexOf(marker)+marker.length));
+ assert.equal(heads.discoveryLimit,null);assert.deepEqual(heads.broken,[]);assert.deepEqual(heads.notes,[]);
+ assert.equal(heads.logs.length,1);assert.deepEqual(Object.keys(heads.logs[0]).sort(),['head','lines','linked','log','unchained']);
+ assert.ok(heads.limits.some(limit=>limit.startsWith('incomplete record:')));
+ const html=view(store({closed:false,legalHold:false,disposition:'kept'}),{heads});
+ assert.match(html,/Log integrity: UNKNOWN/);
+ assert.ok(html.includes(heads.limits[0]));
+ assert.doesNotMatch(html,/no chain.*broken/i);
+});
+
+test('review repair: duplicates inside a newly imported package are reported beside copied files',()=>{
+ const result={state:'package imported',copied:2,alreadyPresent:0,duplicateIdentities:['rec:invented-repeat'],
+  logIntegrity:{state:'limited',limits:['duplicate record identity: rec:invented-repeat']},standing:'Unsigned package content remains quoted evidence.'};
+ const lines=recordsPanel.outcomeWords({command:'records_store_import_package',result}).lines.join('\n');
+ assert.match(lines,/2 files copied, 0 files already here/);
+ assert.match(lines,/the package reports 1 duplicate record identity: rec:invented-repeat/i);
+ assert.doesNotMatch(lines,/already held here|not written again/);
+});
+
+test('review repair: disposed replies retain unavailable administration, standing and limits',()=>{
+ for(const completion of [undefined,'existing completion evidence synced; no new disposal act']){
+  const result={state:'disposed',administration:{disposition:'unavailable',limit:'Invented completion synced; administrative reread failed.'},
+   standing:'Invented host standing: export bytes checked against what remained.',limit:'Invented reply limit.',completion,
+   exportLogIntegrity:{state:'not stated'}};
+  const lines=recordsPanel.outcomeWords({command:'records_store_retention',result}).lines.join('\n');
+  assert.match(lines,/Records disposed/);assert.match(lines,/Retention state unavailable/);
+  assert.match(lines,/Invented completion synced; administrative reread failed/);
+  assert.ok(lines.includes(result.standing));assert.ok(lines.includes(result.limit));
+  if(completion)assert.ok(lines.includes(completion));
+  assert.doesNotMatch(lines,/The export, and the record.*remain/);
+ }
+});
+
+test('review repair: a known unattached identity is never described as no identity yet',()=>{
+ for(const identity of [{recordedHere:'invented-P'},{linkedIdentity:'invented-Q'}]){
+  const value=store(undefined);value.project.attachment={projectId:null,refusal:'not attached',resolutions:[],...identity};
+  const html=view(value);
+  assert.match(html,/attached identity not reported/);assert.doesNotMatch(html,/no identity yet/);
+ }
+});
+
+test('review repair: restoring a link promises only the file rewrite, including after disposal',()=>{
+ for(const disposition of ['kept','disposed','disposal incomplete']){
+  const value=store({closed:true,legalHold:false,disposition});
+  value.project.attachment={projectId:null,recordedHere:'invented-P',fault:'link missing',refusal:'not attached',resolutions:['restore-link']};
+  const html=view(value);assert.match(html,RESTORE);
+  assert.match(html,/refreshed status shows whether its records are attached/);
+  assert.doesNotMatch(html,/and that project’s records are attached/);
+ }
 });

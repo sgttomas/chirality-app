@@ -59,11 +59,13 @@ export function outcomeWords(outcome: RecordsOutcome | null): { tone: "done" | "
       return done(state.startsWith("package already present")
           ? "This package’s records are already here. Nothing was copied or overwritten."
           : `Package imported: ${count(result?.copied, "file")} copied, ${count(result?.alreadyPresent, "file")} already here and left as they were.`,
-        Array.isArray(result?.duplicateIdentities) && result.duplicateIdentities.length > 0 && `${count(result.duplicateIdentities.length, "record identity", "record identities")} already held here: reported, and not written again.`,
+        Array.isArray(result?.duplicateIdentities) && result.duplicateIdentities.length > 0 && `The package reports ${count(result.duplicateIdentities.length, "duplicate record identity", "duplicate record identities")}: ${result.duplicateIdentities.map(text).join(", ")}.`,
         ...integrityLines(result?.logIntegrity), text(result?.standing));
     case "records_store_retention":
-      if (state === "disposed") return done("Records disposed. Only this project’s records in the App’s store were removed.",
-        "The export, and the record of closing, holding and disposing, remain.", ...integrityLines(result?.exportLogIntegrity), text(result?.completion));
+      if (state === "disposed") return done("Records disposed.",
+        result?.administration?.disposition === "unavailable" && "Retention state unavailable. Project closure and legal hold are unknown.",
+        text(result?.administration?.limit), text(result?.limit), text(result?.standing),
+        ...integrityLines(result?.exportLogIntegrity), text(result?.completion));
       if (state === "recorded") return done(RETENTION_DONE[text(result?.action)] ?? `Recorded: ${text(result?.action)}.`);
       break;
     case "records_store_identity":
@@ -126,10 +128,10 @@ function LogIntegrity({ chain, heads, busy, act }: { chain: Json; heads: Json; b
   const broken: string[] = Array.isArray(heads?.broken) ? heads.broken.map(text) : [];
   const notes: string[] = Array.isArray(heads?.notes) ? heads.notes.map(text) : [];
   const logs: Json[] = Array.isArray(heads?.logs) ? heads.logs : [];
-  const unavailable = logs.filter(log => log?.chain?.state || log?.state || log?.error);
+  const limits: string[] = Array.isArray(heads?.limits) ? heads.limits.map(text) : [];
   // Notes can include a role-reader failure: retain them as limits without
   // interpreting their prose as proof that every chain was examined.
-  const limited = heads && (heads.discoveryLimit || heads.error || heads.state === "unavailable" || notes.length > 0 || unavailable.length > 0 || !Array.isArray(heads.logs));
+  const limited = heads && (heads.discoveryLimit || heads.error || heads.state === "unavailable" || notes.length > 0 || limits.length > 0 || !Array.isArray(heads.limits) || !Array.isArray(heads.logs));
   return <div role="group" aria-label="Log integrity">
     {read && <p>As last read{chain.readAt ? ` (${text(chain.readAt)})` : ""}:</p>}
     {read && Number(chain.broken) > 0 && <p role="alert">{count(chain.broken, "log has", "logs have")} a broken chain, of {count(chain.logs, "log")} read{Array.isArray(chain.brokenLogs) && chain.brokenLogs.length ? ` (${chain.brokenLogs.map(text).join(", ")})` : ""}. The records are kept as they are and nothing is repaired. Check the logs now to see each line.</p>}
@@ -140,10 +142,11 @@ function LogIntegrity({ chain, heads, busy, act }: { chain: Json; heads: Json; b
     {heads && <div aria-label="Logs as checked now">
       {(heads.error || heads.state === "unavailable") && <p role="alert">Log integrity unavailable: {text(heads.error ?? heads.state)}</p>}
       {heads.discoveryLimit && <p role="alert">Not every log could be listed: {text(heads.discoveryLimit)}</p>}
+      {limited && <p role="alert">Log integrity: UNKNOWN. Chain integrity is not established for every log.</p>}
+      {limits.length > 0 && <ul>{limits.map((limit, i) => <li key={i}>{limit}</li>)}</ul>}
       {broken.length > 0
         ? <><p role="alert">Checked now: {count(broken.length, "broken chain link")} in {count(logs.length, "log")}. Each is kept as it is and never repaired:</p><ul>{broken.map((line, i) => <li key={i}>{line}</li>)}</ul></>
-        : <p role={limited ? "alert" : "status"}>Checked now: {limited || logs.length === 0 ? "chain integrity is not established for every log." : `${count(logs.length, "log")}; no chain is reported broken.`}</p>}
-      {unavailable.map((log, i) => <p key={i} role="alert">{text(log.log)}: {text(log.chain?.state ?? log.state)} {text(log.chain?.error ?? log.error)}</p>)}
+        : !limited && <p role="status">Checked now: {logs.length === 0 ? "chain integrity is not established for every log." : `${count(logs.length, "log")}; no chain is reported broken.`}</p>}
       {notes.length > 0 && <details><summary>{count(notes.length, "reader note or limit", "reader notes or limits")}</summary><ul>{notes.map((note, i) => <li key={i}>{note}</li>)}</ul></details>}
     </div>}
     <p><small>{CHAIN_LIMIT}</small></p>
@@ -181,7 +184,7 @@ export function IdentityResolution({ attachment, act, linkOnly = false, busy = f
     {attachment?.fault && <p role="note">{IDENTITY_FAULTS[String(attachment.fault)] ?? String(attachment.fault)}{attachment?.refusal ? (offered.length === 1 ? " Nothing is recorded for this project until you do this." : " Nothing is recorded for this project until you choose one of these.") : ""}</p>}
     {offered.includes("restore-link") && <p>
       <button disabled={busy} onClick={identity("restore-link")}>Restore the project file</button>{" "}
-      <small>For a file that was deleted or edited by mistake. The file is written again to name the project recorded for this folder{recorded ? ` (${recorded})` : ""}, and that project’s records are attached.</small>
+      <small>For a file that was deleted or edited by mistake. The file is written again to name the project recorded for this folder{recorded ? ` (${recorded})` : ""}. The refreshed status shows whether its records are attached.</small>
     </p>}
     {offered.includes("adopt") && <p>
       <button disabled={busy} onClick={identity("adopt")}>This folder is the project its file names</button>{" "}
@@ -224,7 +227,7 @@ export function RecordsStoreView({ store, chain, outcome = null, heads = null, b
     <PlacementChoice choice={store.placementChoice} busy={busy} act={act}/>
     {store.registry && <p role="alert">{String(store.registry)}</p>}
     {project && <>
-      <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
+      <p>Project: {attachment?.projectId ? String(attachment.projectId) : "attached identity not reported"}; reading {String(project.reading ?? project.state)}.</p>
       {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
       {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
       {attachment?.projectId && !attachment?.refusal && kept && !packageBlocked && project.reading === "records store" && <p>
