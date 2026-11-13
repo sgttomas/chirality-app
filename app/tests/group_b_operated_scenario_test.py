@@ -280,6 +280,20 @@ class TheWalkItself(unittest.TestCase):
                 self.assertEqual((verdict, calls, steps), ('inconclusive', ' '.join(['get_app_state'] * made), 0), stopped)
                 self.assertIn(f'stopped at {name} view before any click: the view came back as differences', stopped)
 
+    def test_the_first_view_asks_with_the_application_alone_and_every_later_view_for_the_whole_window(self):
+        result = harness('''const asked = [];
+          const service2 = { get_app_state: async options => { asked.push(options); return { app: viewOf.app, text: nextView() }; },
+                             click: async () => {} };
+          const r = await walk.run({ ...base, sky: service2 });
+          return [r.verdict, asked, r.calls.filter(c => c.call === 'get_app_state').map(c => c.disableDiff ?? null)];''')
+        verdict, asked, recorded = result['out']
+        self.assertEqual(verdict, 'pass')
+        app = 'dev.chirality.app-v4.candidate.invented'
+        self.assertEqual(asked[0], {'app': app})  # no disableDiff key at all
+        self.assertEqual(asked[1:], [{'app': app, 'disableDiff': True}] * (len(asked) - 1))
+        self.assertEqual(len(asked), 10)
+        self.assertEqual(recorded, [None] + [True] * 9)  # the result says how each view was asked for
+
     def test_a_child_process_of_the_app_stops_the_walk_and_fails_it_at_whichever_reading_shows_it(self):
         child = "[{ pid: 4242, command: '/invented/codex' }]"
         # Shown once, at the reading after the fourth step's click and wait, and gone by the next reading: no view follows.
