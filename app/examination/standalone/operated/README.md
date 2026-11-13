@@ -75,6 +75,23 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 
 ## What the operator is given
 
+- **The Python, written `<python>` in every command below.** A Python 3 that
+  has the repository's checking dependencies (jsonschema and PyYAML, as the
+  repository checks install them), named by the assignment by its full path.
+  Put that path wherever a command here shows `<python>`, including the
+  launcher's own command line and both `detached.py` lines, where it appears
+  twice. Identification's check and the launcher need jsonschema, and a
+  `python3` found on the operator's own path may not have it. On a
+  development host the lane names an interpreter that already has both;
+  nothing is installed or downloaded for a walk. The operator's first act,
+  before anything else, is to confirm it:
+
+  ```sh
+  <python> -c "import jsonschema, yaml"
+  ```
+
+  It exits 0. If it does not, or the assignment names no interpreter, stop:
+  the assignment named the wrong interpreter.
 - **The candidate folder.** The operator does not build one. A candidate folder
   is made beforehand by the lane with `app/examination/candidate_identity`:
   `build_candidate.py` builds an unsigned development bundle from a named
@@ -83,7 +100,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
   folder and its candidate key. The operator confirms it is the one meant:
 
   ```sh
-  python3 -B app/examination/candidate_identity/identify.py check \
+  <python> -B app/examination/candidate_identity/identify.py check \
     --record <candidate folder>/identification/candidate-identification.json \
     --app "$(ls -d <candidate folder>/target/debug/bundle/macos/*.app)"
   ```
@@ -93,12 +110,6 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
   the bundle; it is needed again below. The lane keeps that bundle unchanged
   from identification through recovery: no rebuild, replacement, renaming or
   added link (see "The condition of the exception").
-- **The Python.** A Python 3 that has the repository's checking dependencies
-  (jsonschema and PyYAML, as the repository checks install them), named by the
-  assignment by its full path. Every `python3` in this method means that
-  interpreter: identification's check and the launcher need jsonschema, and a
-  Python found on the operator's own path may not have it. If the assignment
-  names none, or the named one lacks either, stop before the first step.
 - **The homes root.** The launcher makes each launch folder under the lane's
   homes root, which must already exist; it never creates it. If it does not
   exist the launcher refuses and says so. The lane makes it, once.
@@ -111,7 +122,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    "A view of an application that is not running", below):
 
    ```sh
-   python3 -B app/examination/standalone/operated/session_env.py "<the bundle>"
+   <python> -B app/examination/standalone/operated/session_env.py "<the bundle>"
    ```
 
    It asks the login session's launch domain and the bundle's own Info.plist,
@@ -127,8 +138,8 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    enough):
 
    ```sh
-   python3 -B app/examination/standalone/operated/detached.py <evidence folder> launcher -- \
-     python3 -B app/examination/standalone/launch.py launch --candidate <candidate folder>
+   <python> -B app/examination/standalone/operated/detached.py <evidence folder> launcher -- \
+     <python> -B app/examination/standalone/launch.py launch --candidate <candidate folder>
    ```
 
    It prints the launcher's process number and returns, and writes
@@ -160,7 +171,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    not from a name on screen:
 
    ```sh
-   python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['bundle']['identifier'])" \
+   <python> -c "import json,sys; print(json.load(open(sys.argv[1]))['bundle']['identifier'])" \
      <candidate folder>/identification/candidate-identification.json
    ```
 4. **The service.** In the operator's Codex session, in the node runtime's
@@ -256,7 +267,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     2. The search:
 
        ```sh
-       python3 -B app/examination/standalone/operated/stray.py "<the bundle>"
+       <python> -B app/examination/standalone/operated/stray.py "<the bundle>"
        ```
 
        It ends nothing and opens nothing, and runs on macOS only (elsewhere it
@@ -485,8 +496,8 @@ processes it has, which the script reads because the node runtime cannot ask
 the system itself:
 
 ```sh
-python3 -B app/examination/standalone/operated/detached.py <evidence folder> watch -- \
-  python3 -B app/examination/standalone/operated/watch.py <the App's process number> <evidence folder>/watch.json
+<python> -B app/examination/standalone/operated/detached.py <evidence folder> watch -- \
+  <python> -B app/examination/standalone/operated/watch.py <the App's process number> <evidence folder>/watch.json
 ```
 
 The watch ends by itself when the App does.
@@ -569,8 +580,9 @@ only as far as the steps need it:
 - A click takes the application and the index of an element from the latest
   view.
 - The service also has methods that type, set a field's value, press keys,
-  scroll, drag, paste and list applications. None is used unless the owner's
-  word for the window names the act, and `list_apps` is never used.
+  scroll, drag, paste and list applications. None is used unless the scenario
+  and App Agent 0's go for the walk name the act, and `list_apps` is never
+  used.
 
 ## What was observed on 13 November 2026
 
@@ -590,3 +602,7 @@ On a development candidate built from main, in two windows the owner gave:
 - The launcher on main at that time could not launch on that host, because
   macOS refused a listing of two Library folders it watched. The launches were
   made with those two names removed; the launcher's own change followed.
+- Walk A2's first attempt stopped at identification's check: the operator's
+  `python3` had no jsonschema. The lane's preparation and the operator's
+  shell used different interpreters, so preparation that passes for the lane
+  shows nothing about the operator's environment.
