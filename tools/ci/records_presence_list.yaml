@@ -1,11 +1,15 @@
 # The reviewed list for tools/ci/check_records_presence.py.
 #
-# Every line of the records modules' non-test code (app/src-tauri/src/records*.rs)
-# that spells .exists(), .is_dir(), .is_file() or .is_symlink() is listed here by
-# its file and its own text, with its kind and reason:
+# Every line of the records modules' files (app/src-tauri/src/records*.rs, except
+# files named *_tests.rs) that spells .exists(), .is_dir(), .is_file() or
+# .is_symlink() is listed here by its file and its own text, with its kind and
+# reason:
 #   metadata  called on metadata already examined; the reason names that examination.
 #   path      called on a path; cannot_tell says what the caller concludes when it
 #             cannot tell, and why that admits nothing.
+#   test      in test code inside a records module; the reason names the module or
+#             attribute it is under. The kind is the reviewer's statement: the check
+#             does not verify that the line is test-only.
 #   outside   a known site outside the records modules, recorded, not scanned.
 # A new such line fails the check until it is asked through records_inspect or listed
 # here with its reason; a listed line no longer found fails it too.
@@ -127,9 +131,9 @@
   kind: path
   line: if !active(intent.store_path()).exists() {
   reason: 'publish_intent: whether the active association location is there.'
-  cannot_tell: It is reached only after active_original examined that location through records_inspect::presence (an error
-    or a dangling link refuses there). What it gates is an exclusive rename (RENAME_EXCL / RENAME_NOREPLACE), which refuses
-    rather than replaces.
+  cannot_tell: 'It is reached only after active_original has examined that location: with no readable intent it asks records_inspect::presence
+    (an error or a dangling link refuses there); with a readable intent it validates the intent and lists the active folder.
+    What it gates is an exclusive rename (RENAME_EXCL / RENAME_NOREPLACE), which refuses rather than replaces.'
 - file: records_package_import.rs
   kind: metadata
   line: if !m.is_dir() {
@@ -223,6 +227,30 @@
   kind: metadata
   line: if !before.is_file() {
   reason: the metadata of a file handle already opened, its error returned.
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records_export.rs
+  kind: test
+  line: let tags:Vec<String>=TAGS.iter().filter(|p|folder.join(p).exists()).map(|p|p.to_string()).collect();
+  reason: In `reprofile_as_for_test`, a function under `#[cfg(test)]` (line 632) that rewrites a test package's tags.
 - file: app/src-tauri/src/storage.rs
   kind: outside
   line: if let Ok(meta) = std::fs::symlink_metadata(ancestor) {

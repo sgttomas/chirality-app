@@ -66,29 +66,50 @@ def test_moving_a_line_does_not_fail_it(root):
     assert presence.check(root, listed(entry("records_a.rs", "if meta.is_dir() { go(); }"))) == []
 
 
-def test_test_code_comments_and_strings_are_left_out(root):
+def test_comments_and_strings_are_left_out_and_test_code_is_read(root):
     write(root, "records_b.rs", "\n".join([
         "fn b() {",
         '    let s = "path.exists() in a string, with a { brace";',
         "    let r = r#\"raw path.is_file() } \"#;",
         "    // a comment: path.exists()",
-        "    /* a block comment: path.is_dir() */",
+        "    /* a block comment: path.is_dir() /* nested */ still */",
         "    let c = '{';",
         "}",
         "#[cfg(test)]",
-        "fn helper() { if path.exists() { let s = \"}\"; } }",
-        "#[cfg(test)]",
-        "#[allow(dead_code)]",
         "mod tests {",
         "    fn t() { assert!(path.exists()); }",
         "}",
         "fn after<'a>(meta: &'a Metadata) -> bool { meta.is_file() }",
     ]) + "\n")
     write(root, "records_b_tests.rs", "fn t() { assert!(path.exists()); }\n")
-    found = [(name, number) for name, number, _ in presence.occurrences(root)]
-    assert ("records_b.rs", 15) in found, found
-    assert [f for f in found if f[0] == "records_b.rs"] == [("records_b.rs", 15)], found
-    assert not any(name == "records_b_tests.rs" for name, _ in found)
+    found, unreadable = presence.occurrences(root)
+    assert unreadable == []
+    assert [(name, number) for name, number, _ in found if name != "records_a.rs"] == [("records_b.rs", 10), ("records_b.rs", 12)]
+
+
+def test_the_same_test_line_four_times_needs_four_entries_and_a_fifth_fails(root):
+    line = "assert!(!path.exists());"
+    def module(times: int) -> str:
+        return "#[cfg(test)]\nmod tests {\n" + "".join(f"    fn t{i}() {{\n        {line}\n    }}\n" for i in range(times)) + "}\n"
+    write(root, "records_a.rs", module(4))
+    four = listed(*[entry("records_a.rs", line, "test", reason="in mod tests under #[cfg(test)]") for _ in range(4)])
+    assert presence.check(root, four) == []
+    write(root, "records_a.rs", module(5))
+    problems = presence.check(root, four)
+    assert len(problems) == 1 and "assert!(!path.exists());" in problems[0], problems
+
+
+@pytest.mark.parametrize("name, source, line", [
+    ("a string that does not close", 'fn a() {\n    let s = "open;\n    path.exists();\n}\n', 2),
+    ("a raw string that does not close", 'fn a() {\n    let s = r##"open"#;\n    path.exists();\n}\n', 2),
+    ("a block comment that does not close", "fn a() {\n    /* open\n    path.exists();\n}\n", 2),
+    ("a string prefix it does not know", 'fn a() {\n    let s = f"{x}";\n    path.exists();\n}\n', 2),
+])
+def test_what_it_cannot_read_fails_naming_the_line(tmp_path, name, source, line):
+    write(tmp_path, "records_probe.rs", source)
+    problems = presence.check(tmp_path, listed())
+    assert any(p.startswith(f"{presence.SOURCE / 'records_probe.rs'}:{line}:") and "cannot tell what follows" in p for p in problems), (name, problems)
+    assert presence.main(["--root", str(tmp_path), "--list", str(tmp_path / "missing.yaml")]) == 1
 
 
 def test_a_path_entry_must_say_what_its_caller_concludes(root):
@@ -114,3 +135,33 @@ def test_this_repository_lists_every_such_spelling():
     root = presence.ROOT
     problems = presence.check(root, (root / presence.LIST).read_text(encoding="utf-8"))
     assert problems == [], "\n".join(problems)
+
+
+# The first reading's counterexamples (pull request 291, round 1). Test code is
+# read like the rest, and every raw or C string is masked to its true end, so
+# no spelling is hidden: each one here is seen.
+@pytest.mark.parametrize("name, source, expected", [
+    ("a production call on the line of a test-only item",
+     "#[cfg(test)] fn helper() {} fn production(path: &Path) -> bool { path.exists() }\n", [1]),
+    ("an attributed if with an else",
+     "fn production(path: &Path) -> bool {\n#[cfg(test)]\nif true {} else {\n    let _ = path.exists();\n}\npath.is_file()\n}\n", [4, 6]),
+    ("an attributed else if chain",
+     "fn production(path: &Path) -> bool {\n#[cfg(test)]\nif a {} else if b { path.exists(); } else { path.is_dir(); }\npath.is_file()\n}\n", [3, 4]),
+    ("an array type in a test-only item's signature",
+     "#[cfg(test)]\nfn helper(path: &Path, _: [u8; 1]) -> bool {\n    path.exists()\n}\nfn production(path: &Path) -> bool { path.is_file() }\n", [3, 5]),
+    ("a test-only static with an array type",
+     "#[cfg(test)]\nstatic HELD: [u8; 2] = [0, 1]; fn production(path: &Path) -> bool { path.exists() }\n", [2]),
+    ("a raw string with seven hashes",
+     "fn production(path: &Path) -> bool {\n    let _text = r#######\"a raw quote: \" .exists()\"#######;\n    path.is_file()\n}\n", [3]),
+    ("a byte raw string with six hashes",
+     "fn production(path: &Path) -> bool {\n    let _text = br######\"a raw quote: \" .exists()\"######;\n    path.is_file()\n}\n", [3]),
+    ("a raw C string",
+     "fn production(path: &Path) -> bool {\n    let _text = cr#\"a raw quote: \" .exists()\"#;\n    path.is_file()\n}\n", [3]),
+    ("a C string",
+     "fn production(path: &Path) -> bool {\n    let _text = c\"a quote: \\\" .exists()\";\n    path.is_file()\n}\n", [3]),
+])
+def test_no_production_spelling_is_hidden(tmp_path, name, source, expected):
+    write(tmp_path, "records_probe.rs", source)
+    found, unreadable = presence.occurrences(tmp_path)
+    assert unreadable == [], (name, unreadable)
+    assert [number for _, number, _ in found] == expected, name

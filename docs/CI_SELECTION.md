@@ -221,22 +221,29 @@ than `*.test.mjs`, such as `group_b_runner_test.mjs`.
 ## Records presence spelling
 
 The records store asks whether something is there through `records_inspect`, which
-keeps "not there" apart from "not known" and does not follow a link.
+keeps "not there" apart from "not known" and does not follow a link at the final
+entry (a link among the ancestors can still be followed).
 `tools/ci/check_records_presence.py`, run by `repository-checks` through
-`tools/ci/test_check_records_presence.py`, finds every line of the records modules'
-non-test code (`app/src-tauri/src/records*.rs`, without `*_tests.rs` files or items
-under `#[cfg(test)]`) that spells `.exists()`, `.is_dir()`, `.is_file()` or
-`.is_symlink()`. Each such line must be on the reviewed list
-`tools/ci/records_presence_list.yaml`, keyed by its file and the line's own text,
-with its kind and reason. A call on a path also says what its caller concludes when
-it cannot tell. The check fails on a new such line and on a listed line no longer
-found, so a change that adds one lists it with its reason in the same PR, or asks
-through `records_inspect` instead.
+`tools/ci/test_check_records_presence.py`, reads every line of the records modules'
+files (`app/src-tauri/src/records*.rs`, leaving out only files named `*_tests.rs`)
+and finds each line that spells `.exists()`, `.is_dir()`, `.is_file()` or
+`.is_symlink()` outside comments and strings. Each such line must be on the reviewed
+list `tools/ci/records_presence_list.yaml`, keyed by its file and the line's own
+text, with its kind and reason: `metadata`, `path` (which also says what its caller
+concludes when it cannot tell), `test`, or `outside`. The check fails on a new such
+line, on a listed line no longer found, and on text it cannot read with certainty
+(a string or comment that does not close, or a string prefix it does not know). A
+form it does not know fails the check until someone changes the code or the check;
+that cost is intended.
 
-The check reads spelling, not meaning. It does not see `try_exists()`, a call
-through an alias, wrapper or macro, a spelling split across lines, or a module
-outside `records*.rs` that reads the store. Its passing says only that no new such
-spelling appeared in its scope.
+The check reads spelling, not meaning. A `test` entry's kind is the reviewer's
+statement: the check does not verify that the line is test-only. It does not see
+`try_exists()`, a call through an alias, wrapper or macro, a spelling split across
+lines, or a module outside `records*.rs` that reads the store. Files named
+`*_tests.rs` are left out by name; each such records file is compiled only under a
+test configuration (found by searching the crate for each file's name and reading
+the attribute or enclosing module of its one declaration). Its passing says only
+that no new such spelling appeared in its scope.
 
 ## Rust dependency cache
 

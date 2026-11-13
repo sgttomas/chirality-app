@@ -4,35 +4,46 @@
 ``Path::exists()``, ``is_dir()`` and ``is_file()`` answer false both when a
 path is not there and when it could not be examined, and they follow a link.
 The records store asks instead through ``records_inspect`` (``presence``,
-``listing``), which keeps "not there" apart from "not known" and leaves a link
-as itself. This check finds, in the non-test code of the records modules
-(``app/src-tauri/src/records*.rs``, files named ``*_tests.rs`` and items
-under ``#[cfg(test)]`` left out), every line spelling ``.exists()``,
-``.is_dir()``, ``.is_file()`` or ``.is_symlink()``. Each such line must be on
-the reviewed list ``tools/ci/records_presence_list.yaml``, keyed by its file
-and the line's own text (not its number, so that moving code does not fail
-it), with its kind and its reason:
+``listing``), which keeps "not there" apart from "not known" and does not
+follow a link at the final entry. This check reads every line of the records
+modules' files (``app/src-tauri/src/records*.rs``, leaving out only files
+named ``*_tests.rs``) and finds every line spelling ``.exists()``,
+``.is_dir()``, ``.is_file()`` or ``.is_symlink()`` outside comments and
+strings. Each such line must be on the reviewed list
+``tools/ci/records_presence_list.yaml``, keyed by its file and the line's own
+text (not its number, so that moving code does not fail it), with its kind and
+its reason:
 
 - ``metadata``: called on metadata already examined, whose error was handled
   where the examination was made; the reason names that examination.
 - ``path``: called on a path. The entry also says, in ``cannot_tell``, what
   the caller concludes when it cannot tell, and why that admits nothing.
+- ``test``: in test code inside a records module (under ``#[cfg(test)]``);
+  the reason names the module or attribute it is under.
 - ``outside``: a known site in a file outside the records modules, recorded
   with what was traced. It is not scanned; the check only keeps it from going
   stale (its line must still be in its file).
 
 The check fails, naming the file, line and text, on a spelling not on the
 list, and on a listed line no longer found (so the list follows the code).
-The same text twice in one file needs two entries.
+The same text twice in one file needs two entries. It also fails, naming the
+line, on text it cannot read with certainty: a string or comment that does
+not close, or a string prefix it does not know. Its masking knows ordinary,
+byte and C strings, raw strings with any number of ``#`` (``r``, ``br``,
+``cr``), character and byte literals, line comments and nested block
+comments; any other form fails the check until someone changes the code or
+this scanner. That cost is intended: what it cannot read is never taken for
+"nothing there".
 
 Limits. It reads spelling, not meaning: a call on metadata is the same
-spelling as a call on a path, and is told apart only by its entry. It does not
-see ``try_exists()`` (which keeps the error but follows a link), a call
-reached through an alias, a wrapper or a macro, a spelling split across
-lines, or any module outside ``records*.rs`` that reads the store (only the
-``outside`` entries name such sites, and only those found). It does not
-recognise test-only code by any attribute but ``#[cfg(test)]`` itself. Its
-passing says only that no new such spelling appeared in its scope.
+spelling as a call on a path, and is told apart only by its entry, and a
+``test`` entry's kind is the reviewer's statement: the scanner does not check
+that the line is test-only. It does not see ``try_exists()`` (which keeps the
+error but follows a link), a call reached through an alias, a wrapper or a
+macro, a spelling split across lines, or any module outside ``records*.rs``
+that reads the store (only the ``outside`` entries name such sites, and only
+those found). Files named ``*_tests.rs`` are left out by name. Its passing
+says only that no new such spelling appeared in its scope.
 """
 from __future__ import annotations
 
@@ -48,25 +59,38 @@ ROOT = Path(__file__).resolve().parents[2]
 SOURCE = Path("app/src-tauri/src")
 LIST = Path("tools/ci/records_presence_list.yaml")
 SPELLING = re.compile(r"\.(?:exists|is_dir|is_file|is_symlink)\(\)")
-CFG_TEST = re.compile(r"#\[\s*cfg\s*\(\s*test\s*\)\s*\]")
-KINDS = {"metadata", "path", "outside"}
+KINDS = {"metadata", "path", "test", "outside"}
+RAW = re.compile(r'(?:br|cr|r)(#*)"')
+STRING_PREFIXES = {"", "b", "c"}
+CHARACTER = re.compile(r"b?'(?:\\(?:x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\}|[nrt0\\'\"])|[^\\'\n])'")
 
 
-def masked(text: str) -> str:
-    """The text with comments, string and character literals blanked.
+def _identifier(c: str) -> bool:
+    return c.isalnum() or c == "_"
 
-    Newlines are kept, so line numbers and columns agree with the original.
-    Raw strings (``r"..."``, ``r#"..."#``), byte strings and escapes are
-    handled; a lifetime (``'a``) is left as code.
+
+def masked(text: str) -> tuple[str, list[tuple[int, str]]]:
+    """The text with comments, strings and character literals blanked, and
+    what could not be read: (line, what) for each.
+
+    Newlines are kept, so line numbers agree with the original. A string or
+    comment that does not close, or a string prefix not known here, is
+    returned as a problem; masking stops there, since nothing after it can
+    be read with certainty.
     """
     out = list(text)
-    i, n = 0, len(text)
+    problems: list[tuple[int, str]] = []
+    n = len(text)
+
+    def line(at: int) -> int:
+        return text.count("\n", 0, at) + 1
 
     def blank(start: int, end: int) -> None:
         for k in range(start, min(end, n)):
             if out[k] != "\n":
                 out[k] = " "
 
+    i = 0
     while i < n:
         c = text[i]
         if text.startswith("//", i):
@@ -83,87 +107,64 @@ def masked(text: str) -> str:
                     depth, k = depth - 1, k + 2
                 else:
                     k += 1
+            if depth:
+                problems.append((line(i), "a block comment that does not close"))
+                blank(i, n)
+                break
             blank(i, k)
             i = k
-        elif re.match(r'b?r#*"', text[i:i + 8]) and (i == 0 or not (text[i - 1].isalnum() or text[i - 1] == "_")):
-            m = re.match(r'b?r(#*)"', text[i:])
+        elif (m := RAW.match(text, i)) and (i == 0 or not _identifier(text[i - 1])):
             close = '"' + m.group(1)
-            end = text.find(close, i + len(m.group(0)))
-            end = n if end < 0 else end + len(close)
-            blank(i, end)
-            i = end
-        elif c == '"' or (c == "b" and text.startswith('b"', i) and (i == 0 or not (text[i - 1].isalnum() or text[i - 1] == "_"))):
-            k = i + (2 if c == "b" else 1)
+            end = text.find(close, m.end())
+            if end < 0:
+                problems.append((line(i), "a raw string that does not close"))
+                blank(i, n)
+                break
+            blank(i, end + len(close))
+            i = end + len(close)
+        elif c == '"':
+            start = i
+            while start > 0 and _identifier(text[start - 1]):
+                start -= 1
+            prefix = text[start:i]
+            if prefix not in STRING_PREFIXES:
+                problems.append((line(i), f"a string with a prefix this check does not know ({prefix!r})"))
+                blank(start, n)
+                break
+            k = i + 1
             while k < n and text[k] != '"':
                 k += 2 if text[k] == "\\" else 1
-            blank(i, k + 1)
+            if k >= n:
+                problems.append((line(i), "a string that does not close"))
+                blank(start, n)
+                break
+            blank(start, k + 1)
             i = k + 1
-        elif c == "'":
-            m = re.match(r"'(?:\\(?:x[0-9a-fA-F]{2}|u\{[0-9a-fA-F]{1,6}\}|.)|[^\\'\n])'", text[i:])
-            if m:
-                blank(i, i + len(m.group(0)))
-                i += len(m.group(0))
-            else:
-                i += 1  # a lifetime or label
+        elif c in "'b" and (m := CHARACTER.match(text, i)) and (i == 0 or not _identifier(text[i - 1])):
+            blank(i, m.end())
+            i = m.end()
         else:
             i += 1
-    return "".join(out)
+    return "".join(out), problems
 
 
-def test_only_lines(code: str) -> set[int]:
-    """Line numbers (1-based) inside items or statements under ``#[cfg(test)]``.
-
-    ``code`` is masked text. An attributed item ends at its first ``;`` when
-    that comes before any ``{``, and otherwise at the brace that closes its
-    first ``{``.
-    """
-    lines: set[int] = set()
-    for m in CFG_TEST.finditer(code):
-        k = m.end()
-        # Further attributes on the same item.
-        while True:
-            while k < len(code) and code[k].isspace():
-                k += 1
-            if code.startswith("#[", k):
-                depth = 0
-                while k < len(code):
-                    depth += code[k] == "["
-                    depth -= code[k] == "]"
-                    k += 1
-                    if depth == 0:
-                        break
-                continue
-            break
-        semi, brace = code.find(";", k), code.find("{", k)
-        if brace < 0 or (0 <= semi < brace):
-            end = len(code) if semi < 0 else semi + 1
-        else:
-            depth, end = 0, brace
-            while end < len(code):
-                depth += code[end] == "{"
-                depth -= code[end] == "}"
-                end += 1
-                if depth == 0:
-                    break
-        first = code.count("\n", 0, m.start()) + 1
-        last = code.count("\n", 0, end) + 1
-        lines.update(range(first, last + 1))
-    return lines
+def scanned(root: Path) -> list[Path]:
+    return [p for p in sorted((root / SOURCE).glob("records*.rs")) if not p.name.endswith("_tests.rs")]
 
 
-def occurrences(root: Path) -> list[tuple[str, int, str]]:
-    """Each production line in scope that spells one of the calls: (file, number, text)."""
-    found = []
-    for path in sorted((root / SOURCE).glob("records*.rs")):
-        if path.name.endswith("_tests.rs"):
-            continue
+def occurrences(root: Path) -> tuple[list[tuple[str, int, str]], list[str]]:
+    """Each line in scope that spells one of the calls, (file, number, text),
+    and what could not be read."""
+    found, unreadable = [], []
+    for path in scanned(root):
         text = path.read_text(encoding="utf-8")
-        code = masked(text)
-        skipped = test_only_lines(code)
+        code, problems = masked(text)
+        for number, what in problems:
+            unreadable.append(f"{SOURCE / path.name}:{number}: {what}; this check cannot tell what follows, so it fails until the code or the check changes")
         for number, (line, masked_line) in enumerate(zip(text.split("\n"), code.split("\n")), start=1):
-            if number not in skipped and SPELLING.search(masked_line):
+            if SPELLING.search(masked_line):
                 found.append((path.name, number, line.strip()))
-    return found
+    return found, unreadable
 
 
 def parse_list(text: str) -> tuple[list[dict], list[str]]:
@@ -196,9 +197,10 @@ def parse_list(text: str) -> tuple[list[dict], list[str]]:
 
 def check(root: Path, list_text: str) -> list[str]:
     entries, problems = parse_list(list_text)
-    found = occurrences(root)
-    if not found and not entries:
-        problems.append(f"no records module found under {SOURCE}")
+    if not scanned(root):
+        return problems + [f"no records module found under {SOURCE}"]
+    found, unreadable = occurrences(root)
+    problems += unreadable
     listed = Counter((e["file"], str(e["line"]).strip()) for e in entries if e["kind"] != "outside")
     seen = Counter((name, text) for name, _, text in found)
     remaining = listed.copy()
@@ -222,12 +224,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--list", type=Path, help="reviewed list to read (default: the root's list)")
-    parser.add_argument("--scan", action="store_true", help="print every occurrence found, with its line number, and exit")
+    parser.add_argument("--scan", action="store_true", help="print every occurrence found, with its line number, and what could not be read, and exit")
     args = parser.parse_args(argv)
     if args.scan:
-        for name, number, text in occurrences(args.root):
+        found, unreadable = occurrences(args.root)
+        for name, number, text in found:
             print(f"{name}:{number}: {text}")
-        return 0
+        for problem in unreadable:
+            print(problem, file=sys.stderr)
+        return 1 if unreadable else 0
     list_path = args.list or args.root / LIST
     problems = check(args.root, list_path.read_text(encoding="utf-8") if list_path.exists() else "")
     for problem in problems:
