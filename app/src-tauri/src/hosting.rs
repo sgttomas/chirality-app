@@ -1878,6 +1878,15 @@ impl Host {
             self.note_start_refusal(actor, &cfg.codex_home, &reason);
             return Err(reason);
         }
+        // A state that admits no start refuses as admission would, before the home is claimed or
+        // its lock tried, so a home that cannot be opened is not reported in its place. Admission
+        // checks the state again under its lock.
+        {
+            let i = self.inner.0.lock().unwrap();
+            if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
+                return Err(format!("start not accepted in state {}", i.state));
+            }
+        }
         // The home is the folder the child will use: it is given `cfg.cwd` as its working folder
         // and resolves a relative CODEX_HOME there, so the hold, the identity checks and the lock
         // are all on the folder resolved the same way.
@@ -7246,6 +7255,21 @@ mod local_process_lock_tests {
         let pid = host.inner.0.lock().unwrap().child_pid.expect("a spawned child");
         let _ = host.stop("fixture", "test");
         until("the stand-in Codex has ended", || !alive(pid));
+    }
+
+    /// A state that admits no start refuses as admission would, before a home that cannot be
+    /// opened is reported by the home's claim or its lock.
+    #[test]
+    fn local_process_lock_lookup_failure_does_not_precede_the_states_own_refusal() {
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        let home = f.root.join("home");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let refused = host.start(&f.cfg, "fixture");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(refused.unwrap_err(), "start not accepted in state ready");
+        stop_and_wait(&host);
     }
 
     #[test]

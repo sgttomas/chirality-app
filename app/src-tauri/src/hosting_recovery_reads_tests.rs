@@ -1223,13 +1223,16 @@ fn a_start_refusal_is_bound_to_its_home_and_cleared_when_a_later_attempt_is_admi
     };
     assert_eq!(ready["state"], "ready");
     assert_eq!(ready["lastStartRefusal"], Value::Null, "the returned snapshot carries no earlier refusal");
-    // A home refusal is kept, and then a later request is refused for a reason
-    // that is not kept, before it is admitted: the earlier reason does not
-    // stay as why Codex was not started.
-    assert_eq!(host.start(&pausing_cfg(&root, "absent-again"), "missing").unwrap_err(), crate::home_hold::MISSING);
+    // A home refusal is kept while the Host is ready (as the launch's automatic
+    // start keeps a reason it refuses before the Host is asked), and then a
+    // later request is refused for a reason that is not kept, before it is
+    // admitted: the earlier reason does not stay as why Codex was not started.
+    // A ready Host refuses by its state before its home is claimed, so even a
+    // missing home is not reported in place of that refusal.
+    host.note_start_refusal("app-startup", &root.join("absent-again"), crate::home_hold::MISSING);
     assert_eq!(host.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::MISSING);
-    let other = host.start(&missing, "start while ready").unwrap_err();
-    assert_ne!(other, crate::home_hold::MISSING, "{other}");
+    let other = host.start(&pausing_cfg(&root, "absent-again"), "start while ready").unwrap_err();
+    assert_eq!(other, "start not accepted in state ready");
     let after = host.snapshot()["lastStartRefusal"].clone();
     assert!(after.is_null() || after["reason"] == other, "the latest request's refusal, or none, never an older one: {after}");
     assert_eq!(host.snapshot()["state"], "ready", "the refused request changed nothing else");
