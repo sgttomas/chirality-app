@@ -2153,7 +2153,7 @@ pub fn import(root: &Path) -> Result<Value, String> {
     if same_import.is_none() || orphan.is_some() {
         if orphan.is_none() {
             witness::record(&store, &project, &id, &witnessed)
-                .map_err(|e| format!("import {id}: witness publication not confirmed: {e}; the same attempt is retained"))?;
+                .map_err(|e| format!("import {id}: witness publication not confirmed: {e}; the import did not complete"))?;
         }
         append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
             "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
