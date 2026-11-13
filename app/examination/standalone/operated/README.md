@@ -49,7 +49,10 @@ All of these hold, every time:
      python3 -B app/examination/standalone/launch.py launch --candidate <candidate folder>
    ```
 
-   It prints the launcher's process number and returns. The launcher's first
+   It prints the launcher's process number and returns, and writes
+   `launcher.started.json` in the evidence folder with that number and the
+   command. It starts exactly the command given, with no shell reading it,
+   and does not watch or end it. The launcher's first
    line, in `<evidence folder>/launcher.err`, names the launch folder; the home
    is `home/` in it and the project folder is `project/`. The launcher stays
    until the App ends, then publishes the launch record in `record/` and
@@ -119,7 +122,22 @@ All of these hold, every time:
    number prints no process). The launch record then says a termination was
    passed to the App, and the outcome is "failed": that is the truthful record
    of a launch ended from outside, not a defect.
-9. **What stays.** The launch folder with its record. Nobody opens the home.
+9. **What stays.** The launch folder with its record, and the evidence
+   folder. Nobody opens the home.
+10. **Nothing is left running.** The operator ends what it started: the
+    launcher as in step 8, which ends the App, and the watch, which ends by
+    itself when the App does and is otherwise ended by its process number
+    (`kill <the watch's process number>`). It then confirms, for the launcher,
+    the watch and the App, that `ps -p <number>` shows no process, and that
+    the App's process group is gone (`pgrep -g <the App's process number>`
+    prints nothing).
+    The lane's agent, not the operator, then confirms the same from its own
+    shell after every run, from the process numbers in the evidence folder's
+    `*.started.json` files. If an operator ends half-way, those files are how
+    what it left is found: the lane's agent ends the launcher with a
+    termination, as in step 8, ends the watch by its number, confirms all
+    three are gone, and records that it did so and why. A launch left without
+    its operator is ended, not continued by someone else.
 
 ## Running a scenario
 

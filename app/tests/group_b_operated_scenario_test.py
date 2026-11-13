@@ -239,8 +239,24 @@ class Detached(unittest.TestCase):
         while time.monotonic() < deadline and not Path(started['err']).read_text():
             time.sleep(0.05)
         self.assertEqual((Path(started['out']).read_text(), Path(started['err']).read_text()), ('to-out\n', 'to-err\n'))
-        self.assertEqual(sorted(os.listdir(folder)), ['stand-in.err', 'stand-in.out'])
+        self.assertEqual(sorted(os.listdir(folder)), ['stand-in.err', 'stand-in.out', 'stand-in.started.json'])
         os.kill(started['pid'], 0)  # still running after the starter returned
+        written = json.loads((folder / 'stand-in.started.json').read_text())
+        self.assertEqual(written, started)
+        self.assertEqual(written['command'], ['/bin/sh', '-c', 'echo to-out; echo to-err >&2; sleep 30'])
+
+    def test_no_shell_reads_the_command_and_nothing_else_is_started(self):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        marker = folder / 'made-by-a-shell'
+        done = subprocess.run([sys.executable, '-B', str(OPERATED / 'detached.py'), str(folder), 'plain', '--',
+                               '/bin/echo', f'$(touch {marker})', ';', 'touch', str(marker), '*'], capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not (folder / 'plain.out').read_text():
+            time.sleep(0.05)
+        self.assertEqual((folder / 'plain.out').read_text(), f'$(touch {marker}) ; touch {marker} *\n')  # printed, not run
+        self.assertFalse(marker.exists())
 
     def test_it_refuses_a_missing_folder_existing_output_and_a_malformed_call(self):
         folder = Path(tempfile.mkdtemp())
@@ -256,6 +272,8 @@ class Detached(unittest.TestCase):
             with self.subTest(name):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
         self.assertEqual((folder / 'taken.out').read_text(), 'earlier')
+        self.assertFalse((folder / 'taken.started.json').exists())
+        self.assertEqual(json.loads((folder / 'y.started.json').read_text())['not_started'], 'FileNotFoundError')
 
 
 class TheScenarioFile(unittest.TestCase):
