@@ -182,10 +182,10 @@ focused lib cohort filter sits in exactly one of two shards and still runs as
 its own serial libtest process, because some tests read process-wide state that
 others set. The workflow's `App v4 checks` job
 requires all three to succeed. Selection tests execute that gate, check the
-event conditions and reject a filter listed twice; they do not detect a removed
-filter, so cohort changes need review like any other check change.
-Web test files have their own listing check; see
-[Web test listing](#web-test-listing).
+event conditions and reject a filter listed twice. The
+[library test listing](#library-test-listing) catches a new test module that
+no filter selects and most removed filters, with the limits it states; web test
+files have the [web test listing](#web-test-listing).
 Manual App workflow dispatch
 retains the broader supplier-dependent route; it is not a release and remains
 subject to the owner's authorization and App hold. No release workflow is present.
@@ -217,6 +217,60 @@ test executes or passes, and does not read `app/package.json`'s test script. It
 does not see a file reached only through a shell variable, a `node --test` line
 that is not at the start of a command, or a web test under a name pattern other
 than `*.test.mjs`, such as `group_b_runner_test.mjs`.
+
+## Library test listing
+
+`tools/ci/check_lib_cohorts.py` runs in `rust-integration` right after the
+test-target compile. It lists the library's default-feature tests and its
+ignored tests from that build and checks them against the workflow and
+`tools/ci/lib_cohort_exclusions.txt`, reading the workflow with the Python
+standard library (the macOS job has no YAML library). Its logic is tested with
+invented lists in `repository-checks` (`tools/ci/test_lib_cohorts.py`), which
+also compares its reading of the committed workflow with PyYAML's, job by job
+(job ids, conditions, `LIB_COHORTS`, and each step's name, `if`,
+`LIB_COHORTS` and run text, exactly) and fails on any difference. Listing a built target
+took 0.2 seconds locally on this project's Mac; no hosted figure is recorded.
+
+What it establishes: every test in the supplied default-feature listing is
+either matched by name by a default-feature pull-request filter (a
+`LIB_COHORTS` entry of a shard whose cohort step's run text is exactly the
+cohort loop the check holds as `COHORT_LOOP`, compared by equality, or the one
+literal filter of a `cargo test --lib` command in a pull-request job's step),
+or ignored, or covered by a line of the
+exclusion file with its reason. "Selected" is that name match; it does not show
+that the test's body runs. An ignored (`#[ignore]`) test counts as neither
+selected nor left to the full route: the full route runs `cargo test` without
+`--ignored`, so it does not select ignored tests directly, though a parent test
+it runs may start one as a child process. Each has a line saying so, either
+opt-in, run by no hosted job unless someone names it, or a child process that a
+named parent test starts, running only where that parent runs.
+
+It fails, naming them, on a test in none of those, an ignored test without such
+a line, a default-feature pull-request filter that selects no test that is not
+ignored, and an exclusion line that covers no test. It refuses, naming the job
+and step and giving the line, what it does not read: more than one test
+filter, `--skip` or `--ignored` on a library test command; a step-level
+`LIB_COHORTS`; a step-level `if` on a step that has a library test command
+(it does not evaluate step conditions); a filter containing `$` in any run
+text that is not exactly `COHORT_LOOP` (restore the script, or change the
+constant with it and say why in the pull request); `LIB_COHORTS` without that
+step, or that step without `LIB_COHORTS`; an anchor, alias or merge key
+anywhere in the jobs; a
+line it does not recognise (including a value on the next line), flow forms
+where it reads below, and value forms it does not read exactly.
+
+What it does not establish: that a selected test passes; anything about tests
+compiled only with a feature; anything about a reason's text beyond the ignored
+marker, such as the named feature step, web fixture, parent test or the full
+route's command. A test left to the full route runs on main nightly and on a
+product dispatch, not on the pull request that changes it. A module line covers
+the tests directly in that module that no filter selects, so a new submodule
+needs its own cohort or line, but a new direct test in an excluded module is
+covered without notice; and removing a filter that selected a direct test of an
+excluded module is absorbed the same way, with the check still passing.
+
+The file is refreshed after cohorts change by the command in its header, which
+removes lines that cover no test or name a selected test and adds none.
 
 ## Records presence spelling
 

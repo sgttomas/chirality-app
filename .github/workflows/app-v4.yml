@@ -59,6 +59,7 @@ jobs:
           runtime_session::workflow_root_tests::supply_dispatch_tests
           runtime_session::workflow_root_tests::trial_restart_source_tests
           hosting::reading_gate_tests native_local_provider::
+          hosting::access_settings::tests native_secure_entry::tests
           tc2_mode_turn_carries_the_end_notice_with_its_collaboration_mode
           v10_r1_notice_accepted_but_never_written_stays_pending
           handoff_notice_sources_survive_native_error_and_observation_loss
@@ -78,6 +79,13 @@ jobs:
       - name: Compile every Rust test target once
         # Supersedes the separate `cargo check --tests` pass; later runs reuse these artifacts.
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --tests --no-run
+      - name: Every library test is in a pull-request cohort or left to the full route
+        # Lists the lib test target the step above built; standard-library Python only (no YAML library here).
+        # tools/ci/lib_cohort_exclusions.txt says what is left out and why.
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --list > "$RUNNER_TEMP/lib-tests.txt"
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --list --ignored > "$RUNNER_TEMP/lib-ignored.txt"
+          python ../tools/ci/check_lib_cohorts.py --list "$RUNNER_TEMP/lib-tests.txt" --ignored-list "$RUNNER_TEMP/lib-ignored.txt"
       - name: Clippy correctness and suspicious lints
         # Gates only these deny-level groups; every other lint stays a warning.
         run: |
@@ -226,6 +234,7 @@ jobs:
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib installed_custody::tests -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib hosting::successor::tests::installed_s4 -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib production_cannot_be_overridden_by_development_fields -- --test-threads=1
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib compiled_successor_does_not_take_the_desktop_development_fallback -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib the_release_environment_route_never_takes_the_default_store_for_anything_but_the_childs_home -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib the_release_environment_route_refuses_a_relative_or_empty_home_and_admits_an_absolute_one -- --test-threads=1
       - name: Development model address is absent from the release configuration (fixture supplier)
