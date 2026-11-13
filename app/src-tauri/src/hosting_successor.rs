@@ -189,7 +189,9 @@ fn isolated(root: &Path, cfg: &HostConfig) -> Result<(), String> {
     // Canonical equality also catches ancestor aliases. Scanner checks vendor
     // no-follow traversal independently; homes must already have been admitted.
     let root = root.canonicalize().map_err(|e| e.to_string())?;
-    let account = cfg.codex_home.canonicalize().map_err(|e| e.to_string())?;
+    // The account home the child uses: it is given `cfg.cwd` as its working
+    // folder and resolves a relative CODEX_HOME there.
+    let account = cfg.cwd.join(&cfg.codex_home).canonicalize().map_err(|e| e.to_string())?;
     let probe = cfg.probe_home.canonicalize().map_err(|e| e.to_string())?;
     for (a, b) in [(&root, &account), (&root, &probe), (&account, &probe)] {
         if a.starts_with(b) || b.starts_with(a) {
@@ -351,6 +353,24 @@ mod tests {
     use crate::hosting::Host;
     use std::os::unix::fs::PermissionsExt;
     use std::sync::Arc;
+
+    /// Isolation reads the account home as the child resolves it: under the
+    /// working folder the child is given, not the App's own. Defence for a
+    /// configuration built directly; the App's launch routes admit only
+    /// absolute homes.
+    #[test]
+    fn isolation_resolves_a_relative_home_where_the_child_does() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("isolation-relative-").unwrap());
+        for d in ["vendor/inside", "work/account", "probe"] { std::fs::create_dir_all(root.join(d)).unwrap(); }
+        assert!(!std::env::current_dir().unwrap().join("account").exists(), "the App's own folder holds no account folder");
+        let mut cfg = HostConfig::new(root.join("vendor/bin/codex"), PathBuf::from("account"), root.join("probe"), root.join("work"));
+        assert_eq!(isolated(&root.join("vendor"), &cfg), Ok(()), "the home the child uses is outside the vendor root");
+        // A relative home that the child resolves inside the vendor root overlaps it.
+        cfg.cwd = root.join("vendor");
+        cfg.codex_home = PathBuf::from("inside");
+        assert_eq!(isolated(&root.join("vendor"), &cfg), Err("mismatch: vendor/probe/account domains overlap".to_owned()));
+        let _ = std::fs::remove_dir_all(&root);
+    }
     struct Fixture {
         root: PathBuf,
         cfg: HostConfig,

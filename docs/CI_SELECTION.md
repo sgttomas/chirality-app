@@ -13,6 +13,30 @@ it selects: deliverable structure and utility tests, selection regressions, and
 the existing conflict and credential checks. The workflow itself has no PR path
 filter. This standalone repository does not execute SWBPIPE checks.
 
+## Which commit each job tests
+
+On a pull request GitHub reads the workflow from the merge of the head with
+`main` (`github.sha`, the event's merge commit), so a command added on `main`
+names a file that a branch cut earlier lacks. `repository-checks` therefore
+checks out that merge commit: it tests the head merged with `main` as `main`
+stood when the event created the run, and a re-run of the same run keeps that
+merge commit. Its step "Name the commits under test" prints the tested commit,
+the pull request head and the base it merges (its two parents) and the event's
+base, and fails if the tested commit is not the event's merge of that head. Its
+conflict and credential checks still examine the pull request's own change,
+from the event's base to the head, which they read from Git objects, not from
+the checkout. `change-selection`, the product jobs in `app-v4.yml` and the
+`harness` gate check out the head itself. GitHub reports all of them against
+the head. On a manual dispatch every job tests the dispatched commit.
+
+A pull request that conflicts with `main` has no merge commit, and GitHub
+starts no `pull_request` run for it. If the conflict is there when the head is
+pushed, the required `harness` check stays expected and never reports; if it
+arises later because `main` moved, the head keeps its earlier result. Either
+way GitHub shows that the branch has conflicts and does not merge it until they
+are resolved, and the push that resolves them starts a new run. This was the
+same before repository checks moved to the merge commit.
+
 ## Change selection
 
 `tools/ci/select_checks.py` reads the complete committed change between the PR
@@ -22,7 +46,9 @@ pagination or extension-wide skip is used.
 
 The `change-selection` job checks out the PR's head and runs that head's own
 `select_checks.py`, not main's. A branch cut before a selector change is
-therefore judged by the old selector until it takes main.
+therefore judged by the old selector until it takes main. The `inventory`
+command, by contrast, runs in `repository-checks` and so reads the merged tree
+with the merged selector.
 
 Only additions and modifications of ordinary non-executable files at these
 exact documentary paths, and all paths under the guarded declarative `execution/` tree, select repository checks without product verification:
