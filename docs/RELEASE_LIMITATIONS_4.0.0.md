@@ -194,11 +194,12 @@ An entry is added in the same pull request that makes the limitation standing.
   first so Codex can sign out, even if no key was saved. After key entry has
   been begun in a Codex session, including an entry that was cancelled or
   failed, the address cannot be changed until Codex is restarted for the
-  local model home. After the App has ended unexpectedly,
-  the local connection is refused while the earlier Codex process for the
-  local model home, or a program it started, still holds the App's lock for
-  that home; that process normally ends by itself within a minute, and
-  quitting and reopening the App does not end it. If an otherwise
+  local model home. After the App has ended unexpectedly, the local
+  connection is refused while an earlier Codex process for the local model
+  home, or a program it started, still holds the App's lock for that home.
+  The App cannot tell which program holds it or when it will release it.
+  Quitting and reopening the App does not end that earlier process. If an
+  otherwise
   valid local-home configuration is changed outside the App to name an
   address different from the one recorded for its saved key, preparation is
   refused and the App offers to restore the recorded address. A local-home
