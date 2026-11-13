@@ -145,7 +145,10 @@ What it also does, each with its limit:
 - The folder Codex works in, when the App starts one, is the App's choice: the
   project chosen in the App, the App's data folder under the home, or the
   temporary folder in the home. Each is the project folder, or lies under the
-  home; the folders above both are what git_marker_above asks.
+  home. The folders the launcher asks are those above the home and above the
+  project folder, and no others: it does not ask a folder the App resolves by
+  itself, nor any folder the App makes between the home and the one it works
+  in.
 
 Limits: the comparison sees names, kinds, sizes and modification times, not
 content; the App's working directory is given by pathname; the launcher sends
