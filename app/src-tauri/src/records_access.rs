@@ -521,17 +521,19 @@ impl ReadLog {
 }
 
 /// The refusal for a read log whose last line was cut short (an append
-/// interrupted before its newline): the file, where it is, and the one act
-/// that recovers it, said so that a person can act on it without knowing the
-/// store's layout. The App never reads, cuts or closes that line; the renamed
-/// file stays in the records store, unread, and travels in any export
-/// (RELEASE_LIMITATIONS LIM-014).
+/// interrupted before its newline): the one act that recovers it, with the
+/// file as the App resolved it and the exact new name, first, so that a
+/// person can act on it without knowing the store's layout; then why. The App
+/// never cuts or closes that line. The new name does not end in `.jsonl`, so
+/// that no log inventory (a package import's collision check among them)
+/// takes the torn file for a log; it stays in the records store and travels,
+/// byte for byte, in exports (RELEASE_LIMITATIONS LIM-014).
 fn torn_read_log(path: &Path) -> String {
     let stamp = now_rfc3339().replace(':', "-");
-    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "records-reads".into());
-    let renamed = format!("{stem}.torn-{stamp}.jsonl");
+    let name = path.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "records-reads.jsonl".into());
+    let renamed = format!("{name}.torn-{stamp}");
     format!(
-        "agents cannot read this project's records: the read log {} ends in a read that was not recorded completely, so no further read can be recorded or answered. Nothing already recorded is lost. To let agents read again, rename that file, in the same folder, to {renamed}. The App then starts a new read log at the next read, and keeps the renamed file in the records store without reading it",
+        "agents cannot read this project's records until its read log is set aside: rename {}, in the same folder, to exactly {renamed}. That file ends in a read that was not recorded completely, so no further read can be recorded or answered; nothing already recorded is lost. The App then starts a new read log at the next read, and keeps the renamed file in the records store without using it to answer records reads",
         path.display()
     )
 }

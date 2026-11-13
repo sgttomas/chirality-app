@@ -251,7 +251,8 @@ An entry is added in the same pull request that makes the limitation standing.
   interruption has left the project's read log ending in a read that was not
   recorded completely (the App was stopped, or the Mac lost power, while it
   was recording a read). Until the person acts, every read an agent asks for
-  is refused, and the refusal, shown with the records capability, says why.
+  is refused, and the refusal, shown in full with the conversation records
+  capability, says why.
   Nothing already recorded is lost: the cut-short read was never answered, and
   every read that was answered stays in the read log.
 - **Why:** every read an agent makes is recorded before it is answered, and
@@ -259,8 +260,9 @@ An entry is added in the same pull request that makes the limitation standing.
   record another read after an unfinished one. In 4.0.0 the App does not set
   the file aside by itself.
 - **What the person does instead:** rename the read log, in the same folder,
-  to the name the refusal gives (it begins `records-reads.torn-`); the
-  refusal names the file with its full path. The App then starts a new read
-  log at the next read. The renamed file stays in the records store, is never
-  read by the App, and is included in any export of the project's records.
+  to exactly the name the refusal gives (it begins `records-reads.jsonl.torn-`);
+  the refusal names the file with its full path. The App then starts a new
+  read log at the next read. The renamed file stays in the records store and
+  is included byte for byte in exports of the project's records. The records
+  capability does not use it to answer reads.
 - **Basis:** DEL-04-03 (REQ-011, AC-012; REQ-012).

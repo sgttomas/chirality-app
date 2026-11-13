@@ -250,16 +250,17 @@ fn records_access_a_torn_read_log_names_its_file_and_recovery_and_reads_again_af
     // What the person is shown with the records capability: the whole sentence.
     let said = cap.snapshot()["readLogLimit"].as_str().unwrap().to_owned();
     let path = f.read_log().display().to_string();
-    assert!(said.contains(&format!("the read log {path} ends in a read that was not recorded completely")), "the file, where it is: {said}");
-    assert!(said.contains("Nothing already recorded is lost"), "{said}");
-    let start = said.find("in the same folder, to ").expect("the act and the new name") + "in the same folder, to ".len();
+    assert!(said.contains(&format!("rename {path}, in the same folder, to exactly ")), "the act, the file and where it is: {said}");
+    assert!(said.contains("ends in a read that was not recorded completely") && said.contains("nothing already recorded is lost"), "{said}");
+    let start = said.find("to exactly ").expect("the new name") + "to exactly ".len();
     let name = said[start..].split(". ").next().unwrap().to_owned();
-    assert!(name.starts_with("records-reads.torn-") && name.ends_with(".jsonl") && !name.contains('/'), "a name in the same folder: {name}");
-    // What the agent is told: the same sentence, within the refusal's bound,
-    // with the file and the new name before any cut.
+    assert!(name.starts_with("records-reads.jsonl.torn-") && !name.ends_with(".jsonl") && !name.contains('/'), "a name in the same folder that no log inventory takes for a log: {name}");
+    // What the agent is told: the same sentence, within the refusal's bound.
+    // The act comes first, so here (a short path) the file and the new name
+    // are before any cut.
     let agent = returned(&refused)["refused"].as_str().unwrap().to_owned();
     let told = agent.trim_start_matches("the read could not be recorded (");
-    let kept = told.split(" … (cut").next().unwrap().trim_end_matches("); nothing returned");
+    let kept = told.split("… (cut;").next().unwrap().trim_end_matches("); nothing returned");
     assert!(said.starts_with(kept) && kept.contains(&path) && kept.contains(&name), "the agent is told the same sentence: {agent}");
     assert_eq!(std::fs::read(f.read_log()).unwrap(), torn, "nothing appended, nothing cut");
     // The person's act, as the sentence says it.
