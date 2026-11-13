@@ -622,3 +622,80 @@ fn the_generic_route_waits_for_a_readings_reply_only_for_what_remains_of_its_dea
     assert!(result.is_err(), "no reply within its deadline");
     assert!(elapsed < Duration::from_millis(1350), "the whole call is bounded by its one deadline: {elapsed:?}");
 }
+
+fn continue_query(rig: &Rig) -> HistoryQuery {
+    let mut view = NativeHistory::new("reading-gate-home", rig.g.clone()).unwrap();
+    let q = view.list_threads(None, crate::native_history::Direction::Desc).unwrap();
+    let stored = json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"openai","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
+    view.receive(&q, "reading-gate-home", &rig.g, &json!({"data":[stored],"nextCursor":null})).unwrap();
+    view.select("stored").unwrap();
+    view.continue_query().unwrap()
+}
+
+/// Option A's account Continue and fork rest on their own configuration reading: with an earlier
+/// reading of the generation unanswered, the operation's reading is not registered (nothing of it
+/// on Codex's input) until that reading is answered; then it registers, is answered, and the
+/// operation is sent. Each kind of competitor.
+#[test]
+fn an_account_continue_or_fork_reads_only_after_an_earlier_reading_is_answered() {
+    for operation in ["thread/resume", "thread/fork"] {
+        for competitor in ["settings", "delegation-transport", "no-folder", "other-spelling", "requirements"] {
+            let rig = Rig::new();
+            rig.host.inner.0.lock().unwrap().server_cwd = Some(W.into());
+            let (host, g) = (rig.host.clone(), rig.g.clone());
+            let first = std::thread::spawn(move || match competitor {
+                "settings" => host.effective_access_settings_read_within(&g, W, "account", LONG).map(|_| ()),
+                "delegation-transport" => read(&host, &g, json!({"cwd":"/invented/other","includeLayers":false}), LONG).map(|_| ()),
+                "no-folder" => read(&host, &g, json!({"includeLayers":false}), LONG).map(|_| ()),
+                "other-spelling" => read(&host, &g, json!({"cwd":"/invented/work/","includeLayers":false}), LONG).map(|_| ()),
+                _ => host.account_requirements_read_until(&g, Instant::now() + LONG).map(|_| ()),
+            });
+            let held = rig.frame();
+            let held_ref = request_ref(&held["id"], &rig.host);
+            let waiting = rig.on_waiting();
+            let query = continue_query(&rig);
+            let (host, g) = (rig.host.clone(), rig.g.clone());
+            let second = std::thread::spawn(move || if operation == "thread/resume" { host.history_dispatch(&query).map(|_| ()) } else { host.thread_fork_dispatch(&g, "thread").map(|_| ()) });
+            waiting.recv_timeout(LONG).expect("the operation's reading finds the reservation held");
+            std::thread::sleep(Duration::from_millis(100));
+            assert_eq!(rig.current(), Some(held_ref.clone()), "{operation} {competitor}: the newest is still the first");
+            rig.none(Duration::from_millis(150));
+            rig.answer(&held, if competitor == "requirements" { json!({"requirements":null}) } else { cfg() });
+            let reading = rig.frame();
+            assert_eq!((reading["method"].as_str(), reading["params"]["cwd"].as_str()), (Some("config/read"), Some(W)), "{operation} {competitor}");
+            rig.answer(&reading, cfg());
+            assert_eq!(rig.frame()["method"], operation, "{operation} {competitor}: sent on its own reading");
+            second.join().unwrap().unwrap_or_else(|e| panic!("{operation} {competitor}: {e}"));
+            let _ = first.join().unwrap();
+        }
+    }
+}
+
+/// A requirements reading that registers between an account Continue's final check and its write
+/// reaches Codex after the Continue's bytes.
+#[test]
+fn a_requirements_reading_after_continues_final_check_reaches_codex_after_it() {
+    let rig = Rig::new();
+    rig.host.inner.0.lock().unwrap().server_cwd = Some(W.into());
+    let query = continue_query(&rig);
+    let (host, g) = (rig.host.clone(), rig.g.clone());
+    let reader: Arc<Mutex<Option<std::thread::JoinHandle<Result<SourceRequest, String>>>>> = Arc::default();
+    let slot = reader.clone();
+    let (registered_tx, registered) = channel();
+    let host_for = rig.host.clone();
+    let continuing = std::thread::spawn(move || host_for.history_dispatch(&query).map(|_| ()));
+    let reading = rig.frame();
+    // The Continue's own reading is answered; its request is then held after its final check.
+    *rig.host.before_request_write.lock().unwrap() = Some(Box::new(move |h| {
+        *h.reading_after_register.lock().unwrap() = Some(Box::new(move |_| { let _ = registered_tx.send(()); }));
+        *slot.lock().unwrap() = Some(std::thread::spawn(move || host.account_requirements_read_until(&g, Instant::now() + LONG)));
+        registered.recv_timeout(LONG).expect("the requirements reading registers while the Continue holds the writer");
+    }));
+    rig.answer(&reading, cfg());
+    assert_eq!(rig.frame()["method"], "thread/resume", "the Continue's bytes are first");
+    let requirements = rig.frame();
+    assert_eq!(requirements["method"], "configRequirements/read", "then the requirements reading's");
+    continuing.join().unwrap().unwrap();
+    rig.answer(&requirements, json!({"requirements":null}));
+    reader.lock().unwrap().take().unwrap().join().unwrap().unwrap();
+}
