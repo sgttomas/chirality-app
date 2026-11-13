@@ -38,23 +38,41 @@ All of these hold, every time:
 
 ## The steps
 
-1. **Launch.** From a clean checkout of main, run the launcher on the
-   identified candidate and leave it running:
+1. **Launch.** From the root of a clean checkout of main, with a new, empty
+   evidence folder of your own outside every checkout, start the launcher on
+   the identified candidate so that it outlives the shell call that starts it
+   (an agent's shell ends what it started when a call returns, so `&` is not
+   enough):
 
    ```sh
-   python3 -B app/examination/standalone/launch.py launch --candidate <candidate folder>
+   python3 -B app/examination/standalone/operated/detached.py <evidence folder> launcher -- \
+     python3 -B app/examination/standalone/launch.py launch --candidate <candidate folder>
    ```
 
-   Its first line on standard error names the launch folder; the home is
-   `home/` in it and the project folder is `project/`. The launcher stays until
-   the App ends, then publishes the launch record in `record/`. If it refuses,
-   that refusal is the result: record it and stop.
-2. **Confirm.** From the shell, find the process whose executable is inside the
-   candidate's bundle and whose parent is the launcher. Note its number. If the
-   run must start no Codex, confirm it has no child process, and check again
-   after each click.
-3. **The identifier.** Take it from the candidate's identification record
-   (`bundle.identifier`), not from a name on screen.
+   It prints the launcher's process number and returns. The launcher's first
+   line, in `<evidence folder>/launcher.err`, names the launch folder; the home
+   is `home/` in it and the project folder is `project/`. The launcher stays
+   until the App ends, then publishes the launch record in `record/` and
+   prints the outcome into `<evidence folder>/launcher.out`. If it refuses,
+   `launcher.out` or `launcher.err` says so within seconds and no App is
+   running: that refusal is the result. Record it and stop.
+2. **Confirm.** The App is the launcher's one child process:
+
+   ```sh
+   pgrep -P <the launcher's process number>     # the App's process number
+   ps -o comm= -p <the App's process number>    # its executable: inside the candidate's bundle
+   pgrep -P <the App's process number>          # its child processes: prints nothing
+   ```
+
+   If the first prints nothing, or the executable is not inside the candidate
+   folder, stop: nothing is to be viewed.
+3. **The identifier.** Take it from the candidate's identification record,
+   not from a name on screen:
+
+   ```sh
+   python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['bundle']['identifier'])" \
+     <candidate folder>/identification/candidate-identification.json
+   ```
 4. **The service.** In the operator's Codex session, in the node runtime's
    `js` tool:
 
@@ -90,9 +108,17 @@ All of these hold, every time:
    page's own words; nothing is claimed beyond it. Words on the page about a
    dialog are page text, not a dialog.
 8. **End.** When the App's own quit is not among the allowed acts, send a
-   termination to the launcher; it passes it to the App. Confirm that neither
-   process remains. The launch record then says the launch was ended from
-   outside, and is not a clean run.
+   termination to the launcher; it passes it to the App:
+
+   ```sh
+   kill -TERM <the launcher's process number>
+   ```
+
+   Wait until `<evidence folder>/launcher.out` holds the outcome (about fifteen
+   seconds), then confirm that neither process remains (`ps -p` on each
+   number prints no process). The launch record then says a termination was
+   passed to the App, and the outcome is "failed": that is the truthful record
+   of a launch ended from outside, not a defect.
 9. **What stays.** The launch folder with its record. Nobody opens the home.
 
 ## Running a scenario
@@ -139,13 +165,16 @@ This is the check rejecting a wrong state; it says nothing about a build.
 
 **In a window.** Steps 1 to 3 above first: the launcher running, the App's
 process number confirmed, the identifier taken from the identification record.
-Then start the watch from the shell and leave it running; it keeps a small file
+Then start the watch, in the same way as the launcher. It keeps a small file
 saying whether that process is running and what child processes it has, which
 the script reads because the node runtime cannot ask the system itself:
 
 ```sh
-python3 -B app/examination/standalone/operated/watch.py <the App's process number> <evidence folder>/watch.json &
+python3 -B app/examination/standalone/operated/detached.py <evidence folder> watch -- \
+  python3 -B app/examination/standalone/operated/watch.py <the App's process number> <evidence folder>/watch.json
 ```
+
+The watch ends by itself when the App does.
 
 Then, in the operator's `js` tool, with the values filled in:
 
@@ -174,6 +203,13 @@ nodeRepl.write(walk.summary(report));
   pass: report it as it is.
 - This scenario starts no process. If the watch file shows the App with a
   child process, the script stops and the result is a failure.
+- A watch file that is missing, cannot be read, is for another process, says
+  the process has gone, or was last written more than five seconds ago is read
+  as the build not running: the script refuses before any call, or stops
+  between steps. It is never read as "no child process"; a step whose watch
+  file could not be used records its child processes as not known.
+- `nodeRepl.write` joins what successive calls write without a separator, so
+  write the summary once.
 - The result file holds every call made and every view's returned text whole.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt, the pointer or the focus moving) to its own record.

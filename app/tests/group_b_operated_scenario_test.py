@@ -224,6 +224,40 @@ class TheWatchFile(unittest.TestCase):
                 self.assertEqual(done.returncode, 2)
 
 
+class Detached(unittest.TestCase):
+    def test_the_command_runs_in_a_session_of_its_own_with_its_output_in_the_folder(self):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        done = subprocess.run([sys.executable, '-B', str(OPERATED / 'detached.py'), str(folder), 'stand-in', '--',
+                               '/bin/sh', '-c', 'echo to-out; echo to-err >&2; sleep 30'], capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        started = json.loads(done.stdout)
+        self.addCleanup(lambda: subprocess.run(['/bin/kill', str(started['pid'])], capture_output=True))
+        self.assertEqual(os.getsid(started['pid']), started['pid'])  # the leader of a new session
+        self.assertNotEqual(os.getsid(started['pid']), os.getsid(0))
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline and not Path(started['err']).read_text():
+            time.sleep(0.05)
+        self.assertEqual((Path(started['out']).read_text(), Path(started['err']).read_text()), ('to-out\n', 'to-err\n'))
+        self.assertEqual(sorted(os.listdir(folder)), ['stand-in.err', 'stand-in.out'])
+        os.kill(started['pid'], 0)  # still running after the starter returned
+
+    def test_it_refuses_a_missing_folder_existing_output_and_a_malformed_call(self):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        (folder / 'taken.out').write_text('earlier')
+        tool = [sys.executable, '-B', str(OPERATED / 'detached.py')]
+        for name, arguments in (('no folder', [str(folder / 'absent'), 'x', '--', '/usr/bin/true']),
+                                ('output exists', [str(folder), 'taken', '--', '/usr/bin/true']),
+                                ('no separator', [str(folder), 'x', '/usr/bin/true']),
+                                ('a path as the name', [str(folder), '../x', '--', '/usr/bin/true']),
+                                ('no command', [str(folder), 'x', '--']),
+                                ('a command that does not exist', [str(folder), 'y', '--', '/invented/no-such-program'])):
+            with self.subTest(name):
+                self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
+        self.assertEqual((folder / 'taken.out').read_text(), 'earlier')
+
+
 class TheScenarioFile(unittest.TestCase):
     def setUp(self):
         self.scenario = json.loads(SCENARIO.read_text())
