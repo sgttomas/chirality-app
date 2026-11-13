@@ -226,20 +226,18 @@ All of these hold, every time:
        start the launcher did not make look the same to it, and it does not
        tell the home or environment either was started with. Only step 10's
        records, where they exist, can say more.
+    4. The launch record's Library comparison (`real_library` in
+       `record/launch-record.json` in the launch folder) is read: what
+       changed in the real Library, in places named for the build, while the
+       launcher ran. Where the launcher wrote no record, that is said.
+    5. What steps 1 to 4 found, and what could not be done, is reported by
+       the lane to App Agent 0 within the hour.
 
-    The search finds the bundle's one executable and says nothing about Codex.
-    That a stray start starts no Codex rests on the conditions stated in the
-    next section, which step 1 checks; the search does not establish it. It
-    looks at nothing in the real Library: what changed there in places named
-    for the build while the launcher ran is in the launch record's
-    comparison, which the lane reads and reports with it. A stray start that
-    began after the launcher's last listing and ended by itself before the
-    search is seen by neither. Nothing under the real Library is removed by
-    any agent. Whatever was found is reported by the lane to App Agent 0
-    within the hour. This step is not optional: it and that report
-    are the conditions on which the owner accepted the exposure described in
-    the next section, and a run after which it was not made is reported as a
-    breach.
+    The search finds the bundle's one executable and says nothing about Codex;
+    that a stray start starts no Codex rests on what step 1 checks, and the
+    search does not establish it. It looks at nothing in the real Library;
+    nothing under the real Library is removed by any agent. This step is part
+    of the condition of the exception stated in the next section.
 
 ## A view of an application that is not running
 
@@ -264,7 +262,7 @@ not closed.
   than three seconds, which narrows the interval to about a second and does
   not close it. A walk makes about seventeen calls.
 - **What a stray start can and cannot do in this scenario.**
-  - Both of the next two rest on a condition: a start by the launch service
+  - Both of the next two hold only while a start by the launch service
     is given none of the App's ten configuration variables
     (`CHIRALITY_CODEX_BIN` and the others `session_env.py` names), neither
     from the login session's environment nor from the bundle's own
@@ -304,6 +302,17 @@ not closed.
     exists before setup (read). Whether the system's web view or the
     operating system sends anything on its behalf was not examined.
 - **How it is found and ended.** Step 11.
+- **The condition of the exception.** Before every walk, the ten names are
+  absent in the login session and in the bundle's own launch environment
+  (step 1, `session_env.py`), or the walk is refused. After every run, by
+  whatever path it ended, the lane ends what the started files show,
+  searches for remaining candidate processes by the executable's file, ends
+  what it finds, reads the launch record's Library comparison, and reports
+  the same hour (step 11). A run after which any of that was not done is a
+  breach, reported to App Agent 0 as one; it is not an inconclusive run.
+  What the two checks do not see: a stray start that began after the
+  launcher's last listing and ended by itself before the search is seen by
+  neither.
 - **The owner's decision, 13 November 2026, relayed by App Agent 0.** This
   exposure is accepted for the scenario "first-use setup without a project,
   new settings" and for no other. The question as it was put to the owner:
@@ -326,9 +335,8 @@ not closed.
   - It rests on the facts in this section as they are stated. If one of them
     is found to be wrong, no walk is made until the owner has been asked
     again.
-  - Step 11's check and the report within the hour are its conditions. A walk
-    whose check after the run was not made is a breach, reported to App
-    Agent 0 as one; it is not an inconclusive run.
+  - Its condition is stated once, above, under "The condition of the
+    exception".
   - A scenario that confirms setup, starts a Codex or types anything is not
     covered: the question is put again with that scenario's own extent.
 - **App Agent 0's note, 13 November 2026.** Two facts in the question as put
@@ -338,7 +346,7 @@ not closed.
   nothing" is now "no sign-in, no model request and no conversation; what
   the web view or the system sends on its behalf was not examined". The
   sentence above that a fact found wrong means no walk until the owner is
-  asked again is adopted as a condition of the exception. The owner's
+  asked again is adopted, alongside the condition stated above. The owner's
   confirmation on the corrected account is pending: until it is given, no
   walk is made.
 
