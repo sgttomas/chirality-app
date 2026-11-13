@@ -13,8 +13,15 @@ compared with the bundle executable's, so a link, another letter case or a relat
 
 It reads the bundle's Info.plist for the executable's name and nothing else. Exit status 0 when it found none; 1
 when it found one or more; 2 when it could not look, including when a process of this user that was still there
-could not be asked for its executable. A process whose executable has been removed is listed by number and not
-counted as either: the bundle's executable exists, so a process running it has a path.
+could not be asked for its executable, or gave a path that was gone when it was examined.
+
+One kind of process is listed by number and not counted: one for which the system gives no path at all (ENOENT),
+which it does for a file that no longer has a name. That is sound only while the bundle's executable has exactly
+one name and stays the same file for the whole search, so both are required: its link count is 1 and its device,
+inode and link count are the same before and after the search, or the search exits 2. Then a process running it is
+running a file with a name, the bundle's own. That the system gives a path for every file that has a name is how
+the call is documented and what the third reviewer saw on this host (a hard link removed: the system gave the
+surviving name), not something this search proves.
 
 What it does not say: where a process it finds came from (the launcher's App not yet ended, or a start the launcher
 did not make, look the same here), or the environment or home it was started with; anything about Codex, which it
@@ -61,9 +68,11 @@ def listing():
 
 
 def processes(executable, lines=None, path_of=None):
-    """Every process of this user whose executable is the same file as the given one; and, by number, those whose
-    executable has no path because it was removed, which therefore is not that file, since that file has one."""
+    """Every process of this user whose executable is the same file as the given one; and, by number, those for
+    which the system gives no path (see the module's docstring for why those are not that file, and when)."""
     path_of, target, found, no_path = path_of or executable_of, os.stat(executable), [], []
+    if target.st_nlink != 1:
+        raise OSError(f"the bundle's executable has {target.st_nlink} names, not one")
     for line in listing() if lines is None else lines:
         parts = line.split()
         if len(parts) != 7 or not parts[0].isdigit():
@@ -76,11 +85,13 @@ def processes(executable, lines=None, path_of=None):
             continue
         try:
             info = os.stat(path)
-        except FileNotFoundError:
-            no_path.append(int(parts[0]))  # removed between the two questions
-            continue
+        except FileNotFoundError:  # a path that is gone by now says nothing of which file the process runs
+            raise OSError(f'process {parts[0]} gave an executable path that was gone when it was examined')
         if (info.st_dev, info.st_ino) == (target.st_dev, target.st_ino):
             found.append({'pid': int(parts[0]), 'parent': int(parts[1]), 'started': ' '.join(parts[2:7]), 'executable': path})
+    after = os.stat(executable)
+    if (after.st_dev, after.st_ino, after.st_nlink) != (target.st_dev, target.st_ino, target.st_nlink):
+        raise OSError("the bundle's executable changed during the search")
     return found, no_path
 
 

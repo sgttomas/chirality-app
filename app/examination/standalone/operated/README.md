@@ -218,8 +218,12 @@ All of these hold, every time:
        processes: every process of this user running the bundle's executable,
        decided by the file's identity however its path is spelled. It exits 0
        when it found none, 1 when it found one or more, and 2 when it could
-       not look; 2 is not "found none", and the run is reported as one whose
-       check could not be completed.
+       not look, which includes a process it could not tie to a file and a
+       bundle executable with more than one name or changed during the
+       search; 2 is not "found none", and the run is reported as one whose
+       check could not be completed. Processes for which the system gives no
+       path at all are listed by number and not counted; why, and when that
+       holds, is in `stray.py`.
     3. Each remaining candidate process is ended (`kill <number>`), confirmed
        gone, and recorded with its number and start time. Where it came from
        is not known from the search: the launcher's App not yet ended and a
@@ -249,7 +253,8 @@ not closed.
   service. Read in the supplier's own guidance for this service on the Mac,
   which presents it as intended, and seen once on 8 to 9 November. A build
   started that way is outside the launcher: it has the login session's
-  environment and the account's real home.
+  environment (the system's documented behaviour for an application the
+  launch service starts, not observed here) and the account's real home.
 - **No refusing route was found by reading.** On the Mac the service has one
   way to read a window, addressed by the application's identifier or name; it
   takes no option that refuses when the application is not running, and no
@@ -307,8 +312,8 @@ not closed.
   (step 1, `session_env.py`), or the walk is refused. After every run, by
   whatever path it ended, the lane ends what the started files show,
   searches for remaining candidate processes by the executable's file, ends
-  what it finds, reads the launch record's Library comparison, and reports
-  the same hour (step 11). A run after which any of that was not done is a
+  what it finds, reads the launch record's Library comparison (or records
+  that the launcher wrote none), and reports the same hour (step 11). A run after which any of that was not done is a
   breach, reported to App Agent 0 as one; it is not an inconclusive run.
   What the two checks do not see: a stray start that began after the
   launcher's last listing and ended by itself before the search is seen by

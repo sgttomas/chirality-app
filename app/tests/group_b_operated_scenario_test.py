@@ -242,7 +242,7 @@ class TheWalkItself(unittest.TestCase):
         verdict, stopped, children = result['out']
         self.assertEqual(verdict, 'inconclusive')
         self.assertIn('stopped after S8', stopped)
-        self.assertEqual(children, 'see why the walk stopped')
+        self.assertTrue(children.startswith('not known'), children)
 
     def test_a_control_is_the_one_whose_words_are_exactly_the_scenarios(self):
         for words in ('Use my existing Codex settingsBackup', 'Use my existing Codex settings and delete my sign-in\u2026'):
@@ -301,8 +301,9 @@ class TheWalkItself(unittest.TestCase):
           return [r.verdict, r.stopped, r.calls.length];''')
         self.assertEqual(result['out'][0::2], ['fail', 1], result['out'][1])
         self.assertIn('after the first view before any click', result['out'][1])
-        result = harness(f'scenario.starts_no_process = false; return (await walk.run({{ ...base, readWatch: watched({{ children: {child} }}) }})).verdict;')
-        self.assertEqual(result['out'], 'pass')  # a scenario that may start a process is not stopped by one
+        result = harness(f'scenario.starts_no_process = false; const r = await walk.run({{ ...base, readWatch: watched({{ children: {child} }}) }}); return [r.verdict, r.steps.map(s => s.child_processes)];')
+        self.assertEqual(result['out'][0], 'pass')  # a scenario that may start a process is not stopped by one
+        self.assertEqual(set(result['out'][1]), {1})  # and the child it allowed is recorded, not reported as none
 
     def test_a_watch_file_without_its_list_of_children_is_not_taken_as_running(self):
         result = harness('return await walk.run({ ...base, readWatch: watched({ children: undefined }) });')
@@ -493,20 +494,38 @@ class StrayStart(unittest.TestCase):
                  504: str(self.tmp / 'alias' / self.bundle.name / 'Contents/MacOS/chirality-app-v4'),  # through a link
                  505: str(self.tmp / 'elsewhere' / 'chirality-app-v4'),                  # the same name, another file
                  506: None,                                                              # gone since the listing
-                 507: str(self.tmp / 'removed-since'),                                   # removed between the two questions
                  509: self.stray.NO_PATH}                                                # the system gives no path: removed
         case_ignored = os.path.exists(executable.upper()) and os.path.samefile(executable, executable.upper())
         if case_ignored:
             paths[508] = executable.upper()                                              # another letter case
         lines = [f'  {pid}     1 {when}' for pid in paths] + ['not a process line']
         found, no_path = self.stray.processes(executable, lines, path_of=paths.get)
-        self.assertEqual(no_path, [507, 509])
+        self.assertEqual(no_path, [509])
         expected = [501, 504] + ([508] if case_ignored else [])
         self.assertEqual([entry['pid'] for entry in found], expected)
         self.assertEqual((found[0]['parent'], found[0]['started'], found[0]['executable']), (1, when, executable))
         # The executable named through the link finds the same processes.
         again, _ = self.stray.processes(paths[504], lines, path_of=paths.get)
         self.assertEqual([entry['pid'] for entry in again], expected)
+
+    def test_what_it_cannot_tie_to_a_file_is_a_search_not_made_never_none_found(self):
+        executable = self.bundle / 'Contents/MacOS/chirality-app-v4'
+        line = ['  701     1 Thu Nov 12 22:07:34 2026']
+        # A path given for the process that is gone when examined (a link removed in between): not "removed".
+        with self.assertRaisesRegex(OSError, 'gone when it was examined'):
+            self.stray.processes(str(executable), line, path_of=lambda pid: str(self.tmp / 'gone-since'))
+        # The bundle's executable with a second name: a process could be running it under that name.
+        os.link(executable, self.tmp / 'second-name')
+        with self.assertRaisesRegex(OSError, '2 names, not one'):
+            self.stray.processes(str(executable), line, path_of=lambda pid: self.stray.NO_PATH)
+        os.unlink(self.tmp / 'second-name')
+        # The bundle's executable replaced during the search.
+        def replaced(pid):
+            executable.unlink()
+            executable.write_text('another file now')
+            return self.stray.NO_PATH
+        with self.assertRaisesRegex(OSError, 'changed during the search'):
+            self.stray.processes(str(executable), line, path_of=replaced)
 
     def test_its_exit_status_says_whether_it_looked_and_what_it_found(self):
         argv = ['stray.py', str(self.bundle)]

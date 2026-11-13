@@ -190,8 +190,10 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   // Every reading of the watch file is made through this one gate, and every one of them decides: the build gone
   // stops the walk, and a child process, in a scenario that starts none, stops it and fails it. A reading is never
   // taken and then set aside. Returns the finished report, or null to go on.
+  let lastChildren = null;  // the number of child processes the latest reading showed, as it showed them
   const gate = where => {
     const seen = watched();
+    lastChildren = seen.running ? seen.children.length : null;
     if (!seen.running) return finish('inconclusive', `stopped ${where}: the watch file no longer shows the build running`);
     if (scenario.starts_no_process && seen.children.length) {
       return finish('fail', `stopped ${where}: the App has a child process (${seen.children.length}), and this scenario starts none`);
@@ -313,7 +315,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
     entry.checks = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values));
     const after = gate(`after ${step.id}`);
-    entry.child_processes = after ? 'see why the walk stopped' : 0;
+    entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';
     if (after) return after;
   }
   return finish(report.steps.every(step => step.checks.every(check => check.pass)) ? 'pass' : 'fail');
