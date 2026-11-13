@@ -233,6 +233,40 @@ fn an_admission_is_not_passed_over_by_the_apps_own_readers() {
     });
 }
 
+/// Waiters are served in arrival order: an admission that began waiting first is the next reading
+/// registered, before App readers that began waiting after it, every time.
+#[test]
+fn an_admission_waiting_first_is_served_before_app_readers_that_came_after() {
+    let wait_for = |rig: &Rig, n: usize| {
+        let deadline = Instant::now() + LONG;
+        while rig.host.reading_waiting_count_for_test() < n { assert!(Instant::now() < deadline, "{n} waiting"); std::thread::sleep(Duration::from_millis(2)); }
+    };
+    for round in 0..10 {
+        let rig = Rig::new();
+        let (host, g) = (rig.host.clone(), rig.g.clone());
+        let first = std::thread::spawn(move || read(&host, &g, json!({"cwd":"/invented/other","includeLayers":false}), LONG));
+        let held = rig.frame();
+        let (host, g) = (rig.host.clone(), rig.g.clone());
+        let admission = std::thread::spawn(move || admit(&host, &g, LONG));
+        wait_for(&rig, 1);
+        let readers: Vec<_> = (0..4).map(|_| {
+            let (host, g) = (rig.host.clone(), rig.g.clone());
+            std::thread::spawn(move || read(&host, &g, json!({"cwd":"/invented/other","includeLayers":false}), LONG))
+        }).collect();
+        wait_for(&rig, 5);
+        rig.answer(&held, cfg());
+        let next = rig.frame();
+        assert_eq!((next["params"]["cwd"].as_str(), next["params"]["includeLayers"].as_bool()), (Some(W), Some(true)), "round {round}: the admission is served first");
+        rig.answer(&next, cfg());
+        // Its reply frees the reservation and a reader already waiting registers at once, so the
+        // admission's own proof may already be superseded: the decided window after a reply.
+        let _ = admission.join().unwrap();
+        for _ in 0..4 { let frame = rig.frame(); rig.answer(&frame, cfg()); }
+        for reader in readers { reader.join().unwrap().unwrap(); }
+        first.join().unwrap().unwrap();
+    }
+}
+
 /// The gate's wait expiring: the gate sentence, nothing registered, nothing on Codex's input.
 #[test]
 fn the_gate_wait_expiring_gives_the_gate_sentence_and_registers_nothing() {
@@ -410,6 +444,9 @@ fn a_close_ends_the_reading_and_an_old_generations_late_reply_touches_nothing() 
     let fresh = std::thread::spawn(move || read(&host, &g, json!({"cwd":W,"includeLayers":false}), LONG));
     let frame = rig.frame();
     assert_ne!(frame["id"], old["id"]);
+    // A reply naming the old generation and this request's identity releases nothing, at the
+    // release itself (the frame reader also discards a line of a generation no longer current).
+    assert!(!Host::reading_reply_locked(&mut rig.host.inner.0.lock().unwrap(), &rig.g, &frame["id"].to_string()), "another generation's reply releases nothing");
     rig.host.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":cfg()})).unwrap(), &rig.g);
     assert!(matches!(rig.stage(), Some((Some(_), ReadingStage::AwaitingReply))), "a reply naming the old generation releases nothing");
     rig.host.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":cfg()})).unwrap(), &next);

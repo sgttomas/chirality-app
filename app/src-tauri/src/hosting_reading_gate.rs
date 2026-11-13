@@ -246,6 +246,11 @@ impl Host {
     pub(crate) fn reading_stage_for_test(&self) -> Option<(Option<String>, ReadingStage)> {
         self.inner.0.lock().unwrap().reading_slot.as_ref().map(|s| (s.request_id.clone(), s.stage))
     }
+    /// How many callers are waiting for the reservation.
+    #[cfg(test)]
+    pub(crate) fn reading_waiting_count_for_test(&self) -> usize {
+        self.inner.0.lock().unwrap().reading_queue.waiting.len()
+    }
     /// The request identity the reservation names, if any.
     #[cfg(test)]
     pub(crate) fn reading_request_id_for_test(&self) -> Option<String> {
