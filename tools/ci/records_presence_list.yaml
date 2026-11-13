@@ -264,6 +264,11 @@
   kind: test
   line: let tags:Vec<String>=TAGS.iter().filter(|p|folder.join(p).exists()).map(|p|p.to_string()).collect();
   reason: In `reprofile_as_for_test`, a function under `#[cfg(test)]` (line 632) that rewrites a test package's tags.
+- file: records_store.rs
+  kind: metadata
+  line: if !meta.file_type().is_dir() || (meta.dev(), meta.ino()) != at {
+  reason: 'hold_folder: the metadata of the folder handle just opened (its error refused as not known), compared with the
+    folder examined without following a link; anything but that one folder is refused.'
 - file: app/src-tauri/src/storage.rs
   kind: outside
   line: if let Ok(meta) = std::fs::symlink_metadata(ancestor) {
