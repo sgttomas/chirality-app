@@ -40,6 +40,14 @@ MACOS_INPUTS_IN_CLASS_ROOTS = (
     "app/examination/standalone/fixtures/", "app/tests/group_b_fixture_consumer.rs",
     "app/tests/group_b_fixtures/", "app/tests/group_b_sq_receiving_fixtures/",
 )
+# The macOS examination job runs app/tests/group_b_*_macos_test.py (tests that
+# need macOS itself) without the frontend, Rust or supplier. Any change under
+# these roots, to the job's definition, or to an unmatched path selects it.
+EXAMINATION_MACOS_ROOTS = ("app/examination/", "app/tests/group_b_")
+EXAMINATION_MACOS_DEFINITION = frozenset({
+    "tools/ci/examination_macos.py", "tools/ci/select_checks.py",
+    ".github/workflows/governance-harness.yml",
+})
 # These domains contain code, contracts, fixtures or retained source inputs.
 # Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
 PRODUCT_DOMAINS = (
@@ -130,10 +138,16 @@ def classify(change: dict[str, str]) -> dict[str, str]:
     return {**change, "rule": rule, "checks": "product", "reason": reason}
 
 
+def examination_macos(changes: list[dict[str, str]]) -> bool:
+    return not changes or any(
+        change["path"].startswith(EXAMINATION_MACOS_ROOTS) or change["rule"] == "unmatched"
+        or change["path"] in EXAMINATION_MACOS_DEFINITION for change in changes)
+
+
 def select(repo: Path, event: str, base: str, head: str) -> dict:
     head = commit(repo, head)
     if event == "workflow_dispatch":
-        return {"head": head, "mode": "product", "run_product": True,
+        return {"head": head, "mode": "product", "run_product": True, "run_examination_macos": True,
                 "reason": "Manual dispatch retains product verification", "changes": []}
     if event != "pull_request":
         raise ValueError("Unsupported CI event")
@@ -150,12 +164,14 @@ def select(repo: Path, event: str, base: str, head: str) -> dict:
     run_product = not changes or any(change["checks"] == "product" for change in changes)
     return {"base": base, "merge_base": bases[0], "head": head,
             "mode": "product" if run_product else "prose", "run_product": run_product,
+            "run_examination_macos": examination_macos(changes),
             "reason": "Empty change set retains product verification" if not changes else
                       "Union of checks required by all changed paths", "changes": changes}
 
 
 def require_success(needs: dict) -> None:
-    if not isinstance(needs, dict) or set(needs) != {"change-selection", "repository-checks", "app-v4"}:
+    if not isinstance(needs, dict) or set(needs) != {
+            "change-selection", "repository-checks", "app-v4", "examination-macos"}:
         raise ValueError("Aggregate requires exactly the declared verification jobs")
     selected = needs["change-selection"]
     if selected.get("result") != "success":
@@ -166,9 +182,13 @@ def require_success(needs: dict) -> None:
     mode, product = outputs.get("selection_mode"), outputs.get("run_product")
     if (mode, product) not in {("prose", "false"), ("product", "true")}:
         raise ValueError("Missing or inconsistent change-selection outputs")
-    expected = "skipped" if product == "false" else "success"
-    if needs["app-v4"].get("result") != expected:
-        raise ValueError(f"Selected verification did not complete as required: app-v4 expected {expected}")
+    examination = outputs.get("run_examination_macos")
+    if examination not in {"true", "false"}:
+        raise ValueError("Missing or inconsistent change-selection outputs")
+    for job, selected in (("app-v4", product), ("examination-macos", examination)):
+        expected = "success" if selected == "true" else "skipped"
+        if needs[job].get("result") != expected:
+            raise ValueError(f"Selected verification did not complete as required: {job} expected {expected}")
 
 
 def main() -> int:
@@ -206,6 +226,7 @@ def main() -> int:
                 with args.github_output.open("a") as stream:
                     stream.write(f"selection_mode={result['mode']}\n")
                     stream.write(f"run_product={str(result['run_product']).lower()}\n")
+                    stream.write(f"run_examination_macos={str(result['run_examination_macos']).lower()}\n")
     except (ValueError, KeyError, TypeError, AttributeError, OSError, subprocess.CalledProcessError) as exc:
         print(f"CI selection/gate failed: {exc}", file=sys.stderr)
         return 2

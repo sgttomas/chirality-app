@@ -112,10 +112,8 @@ for the paths, not by file extension.
 takes. It uses only the standard library.
 
 The Group B suites never ran in a macOS PR job, so the narrowing removes no
-macOS PR coverage from them: the one Darwin-only test,
-`group_b_launch_home_test.py`'s identification check, is skipped on Ubuntu and
-runs only in the nightly full suite, as before. `group_b_runner_test.mjs` is run
-by no CI route.
+macOS PR coverage from them. Their tests that need macOS itself get their own
+route, below. `group_b_runner_test.mjs` is run by no CI route.
 
 Deletions, mode or type changes, renames (each side examined), other file types
 in these roots, lookalike paths and any change with a product input keep the
@@ -125,6 +123,45 @@ with its reason, so a new reader must be placed in this table, or the path it
 reads kept as a product input. It also fails if `repository-checks` stops
 running a reader listed here.
 
+## macOS examination tests
+
+Some examination tests need macOS itself: libproc, live bundle metadata, macOS
+process behaviour. They cannot run in the Ubuntu `repository-checks`, and the
+three product jobs do not run the Group B suites. The `examination-macos` job in
+`governance-harness.yml` runs them on `macos-26` with Python only: no setup
+action, frontend build, Rust compile or supplier.
+
+- **What it runs.** Every module named `app/tests/group_b_<name>_macos_test.py`,
+  found by that pattern, each in its own pytest run through
+  `tools/ci/examination_macos.py`. A module that collects no test, a test that
+  skips, fails or errors, or a run off macOS fails the job. A test skipped on
+  macOS would run nowhere.
+- **When it is selected.** On any change under `app/examination/` or to a path
+  starting `app/tests/group_b_` (including deletions and either side of a
+  rename); on a change to `tools/ci/examination_macos.py`, the selector or
+  `governance-harness.yml`; on an unmatched path; on an empty change set; and on
+  manual dispatch. It is selected alongside whatever else the change selects:
+  a class B change alone selects repository checks and this job, and no product
+  job. The `run_examination_macos` output carries the choice.
+- **How a test joins it.** Put a test that needs macOS in a module matching the
+  pattern, and make the module skip elsewhere by an explicit platform condition
+  (for example `unittest.skipUnless(sys.platform == 'darwin', reason)` on each
+  class, or `setUpModule` raising `unittest.SkipTest` off Darwin). The Ubuntu
+  glob `app/tests/group_b*test.py` still collects it and skips it there.
+  Portable tests stay in other `group_b_*_test.py` modules.
+- **When there is nothing to run.** With no matching module the job succeeds,
+  and says plainly, in its log, a notice annotation and the step summary, that
+  nothing ran. On main when the job was added, no module matched. The one
+  Darwin-gated test then on main, `group_b_launch_home_test.py`'s
+  identification check, runs only in the nightly full suite until it moves into
+  a matching module.
+- **Guard.** `tools/ci/test_selection.py` fails when a `group_b` test module
+  outside the pattern carries a Darwin-conditioned skip, apart from that one
+  existing test.
+
+`harness` requires `examination-macos` to succeed when selected and to be
+skipped when not, exactly as for `app-v4`.
+
 ## Required result
 
 The macOS reusable product workflow is called only when explicitly selected. It
@@ -133,7 +170,8 @@ known, not after the slower repository checks. `harness` runs with `always()`
 and requires a successful `change-selection` with valid outputs and successful
 repository checks. It accepts `app-v4: skipped` only for the explicit `prose`
 selection, which every documentary, governing-text and examination change
-alone receives. A product selection requires `app-v4: success`; failures,
+alone receives, and `examination-macos: skipped` only when
+`run_examination_macos` is `false`. A product selection requires `app-v4: success`; failures,
 cancellations, unexpected skips and missing/inconsistent outputs block merging.
 A failing repository check therefore blocks the merge although the product jobs
 still run to completion.

@@ -304,13 +304,14 @@ def test_malformed_diff_fails(raw):
         subject.parse_changes(raw)
 
 
-def needs(product="true", mode="product", result="success"):
+def needs(product="true", mode="product", result="success", examination="false", exam_result="skipped"):
     return {
         "change-selection": {"result": "success", "outputs": {
-            "selection_mode": mode, "run_product": product,
+            "selection_mode": mode, "run_product": product, "run_examination_macos": examination,
         }},
         "repository-checks": {"result": "success", "outputs": {}},
         "app-v4": {"result": result},
+        "examination-macos": {"result": exam_result},
     }
 
 
@@ -346,10 +347,17 @@ def test_aggregate_rejects_failed_repository_and_invalid_or_missing_outputs():
     value = needs()
     value["repository-checks"]["outputs"] = value["change-selection"].pop("outputs")
     examples.append(value)
-    for job in ["change-selection", "repository-checks", "app-v4"]:
+    for job in ["change-selection", "repository-checks", "app-v4", "examination-macos"]:
         value = needs()
         del value[job]
         examples.append(value)
+    for examination in ["", None, "True", "yes"]:
+        value = needs()
+        value["change-selection"]["outputs"]["run_examination_macos"] = examination
+        examples.append(value)
+    value = needs()
+    del value["change-selection"]["outputs"]["run_examination_macos"]
+    examples.append(value)
     value = needs()
     value["unexpected"] = {"result": "success"}
     examples.append(value)
@@ -369,7 +377,7 @@ def test_cli_emits_report_and_outputs_only_on_success(repo, tmp_path):
     passed = subprocess.run([*command, "--base", base], capture_output=True, text=True)
     assert passed.returncode == 0, passed.stderr
     assert json.loads(passed.stdout)["mode"] == "prose"
-    assert output.read_text() == "selection_mode=prose\nrun_product=false\n"
+    assert output.read_text() == "selection_mode=prose\nrun_product=false\nrun_examination_macos=false\n"
     assert '"path": "AGENTS.md"' in summary.read_text()
     output.unlink()
     failed = subprocess.run([*command, "--base", "not-a-sha"], capture_output=True)
@@ -403,14 +411,15 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert selecting["outputs"] == {
         "selection_mode": "${{ steps.selection.outputs.selection_mode }}",
         "run_product": "${{ steps.selection.outputs.run_product }}",
+        "run_examination_macos": "${{ steps.selection.outputs.run_examination_macos }}",
     }
     assert jobs["app-v4"]["needs"] == "change-selection"
     assert jobs["app-v4"]["if"] == "needs.change-selection.outputs.run_product == 'true'"
     assert jobs["app-v4"]["uses"] == "./.github/workflows/app-v4.yml"
-    assert set(jobs) == {"change-selection", "repository-checks", "app-v4", "harness"}
+    assert set(jobs) == {"change-selection", "repository-checks", "app-v4", "examination-macos", "harness"}
     gate = jobs["harness"]
     assert gate["if"] == "always()"
-    assert set(gate["needs"]) == {"change-selection", "repository-checks", "app-v4"}
+    assert set(gate["needs"]) == {"change-selection", "repository-checks", "app-v4", "examination-macos"}
     assert gate["steps"][-1]["env"]["RESULTS"] == "${{ toJSON(needs) }}"
     assert gate["steps"][-1]["run"] == "python3 tools/ci/select_checks.py gate"
 
@@ -902,6 +911,7 @@ KNOWN_REFERRERS = {
     "tools/library_workflows/test_bundle.py": "invented docs/ paths of a synthetic Library release",
     "app/tests/check_git_checkout_bytes.py": "invented docs/ control path in a temporary repository",
     "app/examination/repin.py": "pin check; runs in repository checks and examination_repin_test",
+    "tools/ci/examination_macos.py": "the macOS examination job (group_b_*_macos_test.py)",
     "app/examination/pins.lock.json": "pin lock read by repin.py",
     "app/examination/native_forms/pre_run_form.py": "run only by group_b_native_forms_test",
     "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "read by pre_run_form.py",
@@ -937,8 +947,8 @@ def test_no_unreviewed_reader_of_a_narrowed_class():
     assert found == set(KNOWN_REFERRERS)
 
 
-@pytest.mark.parametrize("paths", [PR228_GOVERNING_TEXT, PR270_EXAMINATION])
-def test_narrowed_selection_reaches_a_harness_that_still_requires_repository_checks(repo, tmp_path, paths):
+@pytest.mark.parametrize("paths, examination", [(PR228_GOVERNING_TEXT, "false"), (PR270_EXAMINATION, "true")])
+def test_narrowed_selection_reaches_a_harness_that_still_requires_repository_checks(repo, tmp_path, paths, examination):
     base = git(repo, "rev-parse", "HEAD")
     for path in paths:
         write(repo, path)
@@ -948,17 +958,147 @@ def test_narrowed_selection_reaches_a_harness_that_still_requires_repository_che
                "--repo", str(repo), "--base", base, "--head", head, "--github-output", str(output)]
     assert subprocess.run(command, capture_output=True).returncode == 0
     outputs = dict(line.split("=", 1) for line in output.read_text().splitlines())
-    assert outputs == {"selection_mode": "prose", "run_product": "false"}
+    assert outputs == {"selection_mode": "prose", "run_product": "false", "run_examination_macos": examination}
+    selected = "success" if examination == "true" else "skipped"
 
-    def gate(repository, product):
+    def gate(repository, product, macos=selected):
         results = {"change-selection": {"result": "success", "outputs": outputs},
-                   "repository-checks": {"result": repository}, "app-v4": {"result": product}}
+                   "repository-checks": {"result": repository}, "app-v4": {"result": product},
+                   "examination-macos": {"result": macos}}
         subject.require_success(results)
 
     gate("success", "skipped")  # the product jobs correctly not selected
+    for macos in {"success", "failure", "cancelled", "skipped", None} - {selected}:
+        with pytest.raises(ValueError):
+            gate("success", "skipped", macos)  # the macOS examination job exactly as selected
     for repository in ["failure", "cancelled", "skipped", None]:
         with pytest.raises(ValueError):
             gate(repository, "skipped")  # the jobs that run every reader must pass
     for product in ["success", "failure", "cancelled", None]:
         with pytest.raises(ValueError):
             gate("success", product)  # an unexpected product run is not accepted either
+
+
+# The macOS examination job (docs/CI_SELECTION.md, "macOS examination tests").
+from tools.ci import examination_macos as macos
+
+
+@pytest.mark.parametrize("path", [
+    "app/examination/standalone/launch.py", "app/examination/standalone/operated/watch.py",
+    "app/examination/standalone/fixtures/inputs/initial.csv",
+    "app/examination/candidate_identity/build_candidate.py", "app/examination/native_forms/native_form.py",
+    "app/tests/group_b_launch_home_test.py", "app/tests/group_b_new_macos_test.py",
+    "app/tests/group_b_fixture_consumer.rs", "app/tests/group_b_operated_fixtures/x.json",
+    "tools/ci/examination_macos.py", "tools/ci/select_checks.py",
+    ".github/workflows/governance-harness.yml", "new-domain/README.md",
+])
+def test_examination_macos_job_is_selected_by_any_examination_change(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "docs/PRD.md")
+    write(repo, path)
+    assert selection(repo, base)["run_examination_macos"] is True
+
+
+@pytest.mark.parametrize("paths", [
+    PR228_GOVERNING_TEXT, ["app/src/App.tsx"], ["app/src-tauri/src/lib.rs"],
+    ["app/tests/candidate_identity_test.py"], ["tools/ci/test_selection.py"], ["AGENTS.md"],
+    [".github/workflows/app-v4.yml"],
+])
+def test_examination_macos_job_is_not_selected_without_an_examination_change(repo, paths):
+    assert modified(repo, paths)["run_examination_macos"] is False
+
+
+@pytest.mark.parametrize("old, new", [
+    ("app/examination/standalone/launch.py", "app/src-tauri/launch.py"),
+    ("app/src-tauri/x_test.py", "app/tests/group_b_x_macos_test.py"),
+])
+def test_examination_macos_job_sees_both_sides_of_a_rename_and_deletions(repo, old, new):
+    write(repo, old)
+    base = commit(repo)
+    target = repo / new
+    target.parent.mkdir(parents=True, exist_ok=True)
+    (repo / old).rename(target)
+    assert selection(repo, base)["run_examination_macos"] is True
+
+
+def test_examination_macos_job_runs_on_empty_change_and_manual_dispatch(repo):
+    head = git(repo, "rev-parse", "HEAD")
+    assert subject.select(repo, "pull_request", head, head)["run_examination_macos"] is True
+    assert subject.select(repo, "workflow_dispatch", "", head)["run_examination_macos"] is True
+
+
+def test_examination_macos_job_is_python_only_on_macos_and_runs_the_pattern():
+    root = Path(subject.__file__).resolve().parents[2]
+    job = yaml.safe_load((root / ".github/workflows/governance-harness.yml").read_text())["jobs"]["examination-macos"]
+    assert job["needs"] == "change-selection"
+    assert job["if"] == "needs.change-selection.outputs.run_examination_macos == 'true'"
+    assert job["runs-on"].startswith("macos-")
+    text = json.dumps(job)
+    for absent in ["app-v4-setup", "npm", "cargo", "codex", "rust"]:
+        assert absent not in text.lower(), absent
+    assert job["steps"][-1]["run"] == 'python tools/ci/examination_macos.py --summary "$GITHUB_STEP_SUMMARY"'
+    assert macos.PATTERN == "group_b_*_macos_test.py" and macos.TESTS == Path("app/tests")
+
+
+PASSING = "import unittest\nclass T(unittest.TestCase):\n    def test_a(self):\n        self.assertTrue(True)\n"
+SKIPPING = PASSING + "    @unittest.skip('needs something absent')\n    def test_b(self):\n        pass\n"
+FAILING = PASSING + "    def test_b(self):\n        self.assertTrue(False)\n"
+EMPTY = "import unittest\n"
+
+
+def exam_root(tmp_path, modules):
+    for name, text in modules.items():
+        write(tmp_path, f"app/tests/{name}", text)
+    write(tmp_path, "app/tests/group_b_portable_test.py", FAILING)  # not a macOS module: never run here
+    return tmp_path
+
+
+def test_macos_examination_with_no_module_reports_plainly(tmp_path, capsys):
+    root = exam_root(tmp_path, {})
+    summary = tmp_path / "summary.md"
+    assert macos.main(["--root", str(root), "--summary", str(summary)], platform="darwin") == 0
+    out = capsys.readouterr().out
+    assert "::notice title=macOS examination tests::No macOS examination tests on this revision" in out
+    assert "nothing ran" in summary.read_text()
+
+
+@pytest.mark.parametrize("modules, code", [
+    ({"group_b_a_macos_test.py": PASSING}, 0),
+    ({"group_b_a_macos_test.py": PASSING, "group_b_b_macos_test.py": PASSING}, 0),
+    ({"group_b_a_macos_test.py": SKIPPING}, 1),
+    ({"group_b_a_macos_test.py": EMPTY}, 1),
+    ({"group_b_a_macos_test.py": FAILING}, 1),
+    ({"group_b_a_macos_test.py": PASSING, "group_b_b_macos_test.py": FAILING}, 1),
+    ({"group_b_a_macos_test.py": "raise RuntimeError('broken import')\n"}, 1),
+])
+def test_macos_examination_passes_only_when_every_module_runs_tests_and_none_skips(tmp_path, modules, code):
+    summary = tmp_path / "summary.md"
+    root = exam_root(tmp_path, modules)
+    assert macos.main(["--root", str(root), "--summary", str(summary)], platform="darwin") == code
+    assert summary.read_text().count("group_b_") == len(modules)
+
+
+@pytest.mark.parametrize("platform", ["linux", "win32"])
+def test_macos_examination_refuses_to_report_off_macos(tmp_path, platform):
+    assert macos.main(["--root", str(exam_root(tmp_path, {"group_b_a_macos_test.py": PASSING}))],
+                      platform=platform) == 2
+
+
+# A Darwin-conditioned skip outside a *_macos_test.py module runs on no PR route.
+DARWIN_SKIP = re.compile(r"skipUnless|skipIf|SkipTest|mark\.skipif")
+DARWIN = re.compile(r"darwin|sys\.platform|platform\.system|mac_ver")
+# Present on main before the job existed; it runs only in the nightly full suite
+# until the Examination lane moves it into a *_macos_test.py module.
+DARWIN_GATED_OUTSIDE_PATTERN = {"app/tests/group_b_launch_home_test.py"}
+
+
+def test_darwin_gated_examination_tests_live_in_macos_modules():
+    root = Path(subject.__file__).resolve().parents[2]
+    gated = set()
+    for path in sorted((root / "app/tests").glob("group_b*test.py")):
+        if path.match(macos.PATTERN):
+            continue
+        text = path.read_text()
+        if DARWIN_SKIP.search(text) and DARWIN.search(text):
+            gated.add(path.relative_to(root).as_posix())
+    assert gated <= DARWIN_GATED_OUTSIDE_PATTERN, gated - DARWIN_GATED_OUTSIDE_PATTERN
