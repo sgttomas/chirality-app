@@ -234,7 +234,20 @@ fn from_environment() -> Result<Store, String> {
 /// `<App data>/records/`. A development build uses only the override, never
 /// the real App data folder. `project` and `codex_homes` are the folders the
 /// store must stay out of.
+///
+/// Precondition: its production caller (`initialize_startup_consumers`)
+/// calls it only after admission has admitted operational inputs, which a
+/// start whose App data cannot be resolved and held never has
+/// (`admitted_startup`). It answers truly only with complete protected-home
+/// inputs: every Codex home in `codex_homes`, and the App data folder this
+/// start uses, from which the folder reserved for the App's account homes is
+/// computed. Given no App data, it cannot compute that reservation and, as a
+/// function, still admits an explicit override; the App's start never gives
+/// it that input.
 pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Store, String> {
+    // The App data folder as placement needs it (its reserved folders),
+    // taken before the branches below consume it.
+    let data_for_placement: Option<&Path> = app_data.as_ref().ok().copied();
     // The override is honoured only in a development (or debug) build.
     let mut limits = Vec::new();
     let override_root = match override_root {
@@ -260,7 +273,7 @@ pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, 
     }
     // Refused in every build; only the development override may name a
     // temporary folder (a test store).
-    let problems = placement_problems(&root, project, codex_homes, placement == Placement::Override);
+    let problems = placement_problems_in(&root, project, codex_homes, placement == Placement::Override, data_for_placement);
     if !problems.is_empty() {
         return Err(format!("records store refused: {}", problems.join("; ")));
     }
@@ -290,7 +303,7 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
     if !location.is_absolute() {
         return Err("choose an absolute folder for the records store".into());
     }
-    let problems = placement_problems(location, project, codex_homes, false);
+    let problems = placement_problems_in(location, project, codex_homes, false, Some(app_data));
     if !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -305,16 +318,46 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
 pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool) -> Vec<String> {
+    placement_problems_in(root, project, codex_homes, allow_temporary, None)
+}
+/// As `placement_problems`, with the App data folder known: the folder where
+/// the App allocates its account homes (`desktop_startup::desktop_account_homes`)
+/// is reserved, whether or not any home has been planned or created in it,
+/// so a store equal to it, inside it or containing it is refused.
+fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
-        let outer = resolve_lexically(outer);
+        // An empty folder name is an invalid input, refused by name: never
+        // compared, so it neither overlaps everything nor nothing.
+        if outer.as_os_str().is_empty() {
+            problems.push(format!("{what} is given as an empty path, an invalid input, so whether {} overlaps it cannot be established", root.display()));
+            return;
+        }
+        // Never compared while still relative: a relative folder would never
+        // overlap an absolute store and so would pass silently. Made absolute
+        // against the App's own working folder (the caller has already added
+        // the resolution its child uses); a folder that cannot be made
+        // absolute is a refusal, never "no overlap".
+        let outer = match resolve_lexically(outer) {
+            relative if relative.is_relative() => match std::path::absolute(&relative) {
+                Ok(absolute) => resolve_lexically(&absolute),
+                Err(e) => {
+                    problems.push(format!("{what} {} could not be made absolute ({e}), so whether {} overlaps it is not known", relative.display(), root.display()));
+                    return;
+                }
+            },
+            resolved_outer => resolved_outer,
+        };
         if resolved.starts_with(&outer) || outer.starts_with(&resolved) {
             problems.push(format!("{} overlaps {what} {}", root.display(), outer.display()));
         }
     };
     if let Some(project) = project {
         inside(project, "the project working tree");
+    }
+    if let Some(data) = app_data {
+        inside(&crate::desktop_startup::desktop_account_homes(data), "the folder reserved for the App's account homes");
     }
     for home in codex_homes {
         inside(home, "the Codex home");
@@ -332,7 +375,7 @@ fn is_temporary(root: &Path) -> bool {
     [std::env::temp_dir(), PathBuf::from("/tmp")].iter().any(|t| resolved.starts_with(resolve_lexically(t)))
 }
 /// The canonical form of the longest existing ancestor, with the rest appended.
-fn resolve_lexically(path: &Path) -> PathBuf {
+pub(crate) fn resolve_lexically(path: &Path) -> PathBuf {
     let mut tail = Vec::new();
     let mut at = path.to_path_buf();
     loop {
@@ -397,7 +440,10 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
             return still_bound(bound);
         }
     }
-    if !store.root.exists() {
+    // Only a store that is not there is "not created yet"; one that cannot
+    // be examined is reported with that cause (S1).
+    let there = crate::records_inspect::presence(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?.is_some();
+    if !there {
         if !create {
             return Err(format!("records store not created yet: {} does not exist; a read creates nothing", store.root.display()));
         }
@@ -407,8 +453,10 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
     }
 
     let root = std::fs::canonicalize(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
-    if !root.is_dir() {
-        return Err(format!("records store unavailable: {} is not a folder", root.display()));
+    match crate::records_inspect::presence(&root) {
+        Ok(Some(meta)) if meta.is_dir() => {}
+        Ok(Some(_)) | Ok(None) => return Err(format!("records store unavailable: {} is not a folder", root.display())),
+        Err(e) => return Err(format!("records store unavailable: {}: {e}", root.display())),
     }
     let identity = root.join("store.json");
     let read = |path: &Path| -> Result<Option<String>, String> {
@@ -2307,29 +2355,34 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
                 Some(reason) => notes.push(format!("{} is a §13.7 record not imported into the records store: {reason}; it is not read", file.rel)),
                 None => notes.push(format!("{} is a §13.7 record not imported into the records store; it is not read (import to include it)", file.rel)),
             },
-            Some((copy, sha, stamp)) => {
-                if drifted(&file.original, sha, stamp) {
-                    notes.push(format!("{} differs from its imported copy {copy} (sha256 {sha} at import); the records store copy governs", file.rel));
-                }
-            }
+            Some((copy, sha, stamp)) => match drifted(&file.original, sha, stamp) {
+                Ok(false) => {}
+                Ok(true) => notes.push(format!("{} differs from its imported copy {copy} (sha256 {sha} at import); the records store copy governs", file.rel)),
+                // S2: an original that cannot be examined or read is not
+                // known to differ; it is said to be not known.
+                Err(e) => notes.push(format!("{} could not be examined or read ({e}), so whether it differs from its imported copy {copy} is not known; the records store copy governs", file.rel)),
+            },
         }
     }
     notes
 }
-fn drifted(path: &Path, sha: &str, stamp: &Value) -> bool {
-    let Ok(meta) = std::fs::metadata(path) else { return true };
+/// Whether an imported original now differs from its copy: `Ok(true)` or
+/// `Ok(false)` from what was examined and read; an error when it could not
+/// be examined or read, which is never taken for a difference (S2).
+fn drifted(path: &Path, sha: &str, stamp: &Value) -> Result<bool, String> {
+    let meta = std::fs::metadata(path).map_err(|e| e.to_string())?;
     if stamp_value(&meta) == *stamp {
-        return false;
+        return Ok(false);
     }
     let now = crate::records_index::Stamp::of(&meta);
     let mut cache = DRIFT.lock().unwrap_or_else(|p| p.into_inner());
     if let Some((_, _, d)) = cache.iter().find(|(p, s, _)| p == path && *s == now) {
-        return *d;
+        return Ok(*d);
     }
-    let d = std::fs::read(path).map_or(true, |b| sha256_hex(&b) != sha);
+    let d = sha256_hex(&std::fs::read(path).map_err(|e| e.to_string())?) != sha;
     cache.retain(|(p, _, _)| p != path);
     cache.push((path.to_path_buf(), now, d));
-    d
+    Ok(d)
 }
 
 /// Host status: which store the App writes, and the project's standing in it.
