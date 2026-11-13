@@ -139,25 +139,41 @@ This is the check rejecting a wrong state; it says nothing about a build.
 
 **In a window.** Steps 1 to 3 above first: the launcher running, the App's
 process number confirmed, the identifier taken from the identification record.
-Then, in the operator's `js` tool, with the four values filled in:
+Then start the watch from the shell and leave it running; it keeps a small file
+saying whether that process is running and what child processes it has, which
+the script reads because the node runtime cannot ask the system itself:
+
+```sh
+python3 -B app/examination/standalone/operated/watch.py <the App's process number> <evidence folder>/watch.json &
+```
+
+Then, in the operator's `js` tool, with the values filled in:
 
 ```js
 var fs = await import('node:fs');
 var walk = await import('file://<repository>/app/examination/standalone/operated/walk.mjs');
 var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalone/operated/first-use-setup.scenario.json', 'utf8'));
 var sky = (await import('@oai/sky')).sky;
-var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home', pid: <the App's process number>});
+var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
+  pid: <the App's process number>, watch: '<evidence folder>/watch.json'});
 fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(report, null, 2));
 nodeRepl.write(walk.summary(report));
 ```
 
+- The loading forms above were tried in a Codex session's node runtime with a
+  stand-in for the service: the file imports work, bindings last from one call
+  to the next, and `process` does not exist there, which is why the watch file
+  does.
 - The script refuses, before any call, an application not named by a
-  development build's bundle identifier, and a process number that is not
-  running. It makes views and clicks and nothing else, and clicks only the
-  controls the scenario's steps name.
+  development build's bundle identifier, and a process the watch file does not
+  show running within the last five seconds. It makes views and clicks and
+  nothing else, and clicks only the controls the scenario's steps name.
 - It stops, and says where, if a view holds a sheet, a dialog or an alert, if
-  the view is not of the App's own window, or if the build has ended. A result
-  that stopped is inconclusive, not a pass: report it as it is.
+  the view is not of the App's own window, or if the watch file stops showing
+  the build running. A result that stopped this way is inconclusive, not a
+  pass: report it as it is.
+- This scenario starts no process. If the watch file shows the App with a
+  child process, the script stops and the result is a failure.
 - The result file holds every call made and every view's returned text whole.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt, the pointer or the focus moving) to its own record.

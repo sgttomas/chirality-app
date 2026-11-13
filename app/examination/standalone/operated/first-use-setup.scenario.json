@@ -13,6 +13,7 @@
     "the menu bar"
   ],
   "window": "Chirality",
+  "starts_no_process": true,
   "steps": [
     {
       "id": "S1",

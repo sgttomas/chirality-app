@@ -31,7 +31,8 @@ const standIn = {  // every other method of the service is absent here, so a cal
   },
   async click(input) { made.push(['click', input]); },
 };
-const report = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, pid: process.pid, sleep: async () => {} });
+const running = () => ({ pid: process.pid, running: true, at_ms: Date.now(), children: [] });  // stands in for watch.py's file
+const report = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, pid: process.pid, readWatch: running, sleep: async () => {} });
 report.replayed = { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length };
 console.log(JSON.stringify(report, null, 2));
 console.error(summary(report));

@@ -9,6 +9,9 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
+import tempfile
+import time
 import unittest
 
 APP = Path(__file__).resolve().parents[1]
@@ -37,7 +40,8 @@ const service = new Proxy({}, { get(_, name) {
   if (name === 'click') return async () => {};
   throw new Error('a method the walk must never use: ' + String(name));
 } });
-const base = { sky: service, scenario, app: recorded.app, home: recorded.home, pid: process.pid, sleep: async () => {} };
+const watched = (change = {}) => () => ({ pid: process.pid, running: true, at_ms: Date.now(), children: [], ...change });
+const base = { sky: service, scenario, app: recorded.app, home: recorded.home, pid: process.pid, readWatch: watched(), sleep: async () => {} };
 const out = await (async () => { CASE })();
 console.log(JSON.stringify({ out, touched }));
 '''
@@ -108,7 +112,11 @@ class TheWalkItself(unittest.TestCase):
                  'the release identifier': "{ ...base, app: 'com.chirality.app' }",
                  'another application': "{ ...base, app: 'com.apple.finder' }",
                  'no identifier': '{ ...base, app: undefined }',
-                 'a process that is not running': '{ ...base, alive: () => false }',
+                 'a watch file that says the process has gone': '{ ...base, readWatch: watched({ running: false }) }',
+                 'a watch file last written a minute ago': '{ ...base, readWatch: watched({ at_ms: Date.now() - 60000 }) }',
+                 'a watch file for another process': '{ ...base, readWatch: watched({ pid: 1 }) }',
+                 'a watch file that cannot be read': '{ ...base, readWatch: () => null }',
+                 'no watch file': '{ ...base, readWatch: undefined }',
                  'no process number': '{ ...base, pid: undefined }',
                  'a home that is not absolute': "{ ...base, home: 'relative/home' }"}
         for name, options in cases.items():
@@ -141,10 +149,20 @@ class TheWalkItself(unittest.TestCase):
         self.assertEqual(result['out'][0], 'inconclusive')
         self.assertIn('not of the window "Chirality"', result['out'][1])
         self.assertEqual(result['out'][2], 3)
-        result = harness('let asked = 0; const r = await walk.run({ ...base, alive: () => ++asked < 4 }); '
+        result = harness('let asked = 0; const r = await walk.run({ ...base, readWatch: () => watched({ running: ++asked < 4 })() }); '
                          'return [r.verdict, r.stopped];')
         self.assertEqual(result['out'][0], 'inconclusive')
-        self.assertIn('no longer running', result['out'][1])
+        self.assertIn('no longer shows the build running', result['out'][1])
+
+    def test_a_child_process_of_the_app_stops_the_walk_and_fails_it(self):
+        child = "[{ pid: 4242, command: '/invented/codex' }]"
+        result = harness(f'let asked = 0; const r = await walk.run({{ ...base, readWatch: () => watched({{ children: ++asked > 4 ? {child} : [] }})() }}); '
+                         'return [r.verdict, r.stopped, r.calls.length, r.steps.map(s => s.child_processes)];')
+        verdict, stopped, calls, counts = result['out']
+        self.assertEqual((verdict, calls, counts), ('fail', 3, [0, 1]), stopped)  # seen at the reading after the first click's view; nothing more is called
+        self.assertIn('the App has a child process (1), and this scenario starts none', stopped)
+        result = harness(f'scenario.starts_no_process = false; return (await walk.run({{ ...base, readWatch: watched({{ children: {child} }}) }})).verdict;')
+        self.assertEqual(result['out'], 'pass')  # a scenario that may start a process is not stopped by one
 
     def test_it_never_clicks_a_control_whose_words_end_with_an_ellipsis_or_one_it_cannot_find_exactly_once(self):
         result = harness("scenario.steps[4] = { id: 'S5', act: 'click', control: { kind: 'button', label: 'Create settings and save for next launch\\u2026' } }; "
@@ -171,6 +189,39 @@ class TheWalkItself(unittest.TestCase):
           return [after.map(e => e.index + ':' + e.depth + ':' + e.content), same.length];''')
         self.assertEqual(result['out'], [['0:0:standard window Chirality', '1:1:button Review setup', '5:1:container (expanded)',
                                           '6:2:summary Details, Value: on', '4:1:close button'], 5])
+
+
+class TheWatchFile(unittest.TestCase):
+    def test_it_says_running_with_the_children_and_then_that_the_process_has_gone(self):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        parent = subprocess.Popen(['/bin/sh', '-c', 'sleep 30 & wait'])
+        self.addCleanup(lambda: (parent.poll() is None and parent.kill(), parent.wait()))
+        watch = subprocess.Popen([sys.executable, '-B', str(OPERATED / 'watch.py'), str(parent.pid), str(folder / 'watch.json')])
+        self.addCleanup(lambda: (watch.poll() is None and watch.kill(), watch.wait()))
+        deadline = time.monotonic() + 10
+        seen = None
+        while time.monotonic() < deadline:
+            if (folder / 'watch.json').exists():
+                seen = json.loads((folder / 'watch.json').read_text())
+                if seen['children']:
+                    break
+            time.sleep(0.1)
+        self.assertEqual((seen['pid'], seen['running']), (parent.pid, True))
+        self.assertTrue(abs(seen['at_ms'] - time.time() * 1000) < 5000)
+        self.assertEqual([child['command'].rsplit('/', 1)[-1] for child in seen['children']], ['sleep'])
+        subprocess.run(['/bin/kill', str(seen['children'][0]['pid'])])
+        parent.wait(timeout=10)
+        self.assertEqual(watch.wait(timeout=10), 0)
+        last = json.loads((folder / 'watch.json').read_text())
+        self.assertEqual((last['running'], last['children'], last['executable']), (False, [], None))
+        self.assertEqual(os.listdir(folder), ['watch.json'])
+
+    def test_it_refuses_anything_but_one_process_number_and_a_file(self):
+        for arguments in ([], ['12'], ['abc', 'file'], ['1', 'file'], ['12', 'file', 'more']):
+            with self.subTest(arguments=arguments):
+                done = subprocess.run([sys.executable, '-B', str(OPERATED / 'watch.py'), *arguments], capture_output=True, text=True)
+                self.assertEqual(done.returncode, 2)
 
 
 class TheScenarioFile(unittest.TestCase):

@@ -127,14 +127,25 @@ export function checkOne(elements, expectation, values) {
  *   app       the development build's bundle identifier
  *   home      the throwaway home the launcher made for this launch (launch folder + /home)
  *   pid       the running App's process number, confirmed from the shell
- *   alive     optional: (pid) => whether that process exists (default: asks the system without signalling it)
+ *   watch     the path of the file watch.py keeps while that process runs; the walk reads it before the first view
+ *             and at every step, since the node runtime cannot ask the system about a process itself
+ *   readWatch optional: () => the parsed watch file, or null (default: reads `watch`)
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
  *   now       optional: () => the time as text (default: the UTC time)
  * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped}. verdict is 'pass', 'fail' or
  * 'inconclusive'; a refusal before any call is 'inconclusive' with nothing called.
  */
-export async function run({ sky, scenario, app, home, pid, alive, sleep, now }) {
-  alive ??= number => { try { process.kill(number, 0); return true; } catch { return false; } };
+export async function run({ sky, scenario, app, home, pid, watch, readWatch, sleep, now }) {
+  if (!readWatch && typeof watch === 'string') {
+    const fs = await import('node:fs');
+    readWatch = () => { try { return JSON.parse(fs.readFileSync(watch, 'utf8')); } catch { return null; } };
+  }
+  // The build is running when the watch file is for this process, says so, and was written in the last five seconds.
+  const watched = () => {
+    const seen = readWatch ? readWatch() : null;
+    const running = !!seen && seen.pid === pid && seen.running === true && Math.abs(Date.now() - seen.at_ms) <= 5000;
+    return { running, children: running ? (seen.children ?? []) : [] };
+  };
   sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
   now ??= () => new Date().toISOString();
   const values = { identifier: app, home, app_data: `${home}/Library/Application Support/${app}` };
@@ -158,8 +169,8 @@ export async function run({ sky, scenario, app, home, pid, alive, sleep, now }) 
   if (typeof home !== 'string' || !home.startsWith('/') || home.endsWith('/')) {
     return finish('inconclusive', 'refused before any call: the home is not an absolute path');
   }
-  if (!Number.isInteger(pid) || pid <= 1 || !alive(pid)) {
-    return finish('inconclusive', 'refused before any call: the build is not running, and a view of an application that is not running would start it outside the launcher');
+  if (!Number.isInteger(pid) || pid <= 1 || !watched().running) {
+    return finish('inconclusive', 'refused before any call: the watch file does not show the build running, and a view of an application that is not running would start it outside the launcher');
   }
   let elements = [];
   const view = async () => {
@@ -173,7 +184,11 @@ export async function run({ sky, scenario, app, home, pid, alive, sleep, now }) 
   for (const step of scenario.steps) {
     const entry = { id: step.id, at: now(), act: step.act, says: step.says, checks: [] };
     report.steps.push(entry);
-    if (!alive(pid)) return finish('inconclusive', `stopped at ${step.id}: the build is no longer running`);
+    const before = watched();
+    if (!before.running) return finish('inconclusive', `stopped at ${step.id}: the watch file no longer shows the build running`);
+    if (scenario.starts_no_process && before.children.length) {
+      return finish('fail', `stopped at ${step.id}: the App has a child process (${before.children.length}), and this scenario starts none`);
+    }
     if (step.act === 'click') {
       const label = step.control.label;
       if (label.endsWith('…') || label.endsWith('...')) return finish('inconclusive', `stopped at ${step.id}: a control whose words end with an ellipsis is never clicked`);
@@ -203,6 +218,11 @@ export async function run({ sky, scenario, app, home, pid, alive, sleep, now }) 
       return finish('inconclusive', `stopped at ${step.id}: the view is not of the window "${scenario.window}"`);
     }
     entry.checks = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values));
+    const after = watched();
+    entry.child_processes = after.running ? after.children.length : 'not known: the watch file does not show the build running';
+    if (scenario.starts_no_process && after.children.length) {
+      return finish('fail', `stopped after ${step.id}: the App has a child process (${after.children.length}), and this scenario starts none`);
+    }
   }
   return finish(report.steps.every(step => step.checks.every(check => check.pass)) ? 'pass' : 'fail');
 }
