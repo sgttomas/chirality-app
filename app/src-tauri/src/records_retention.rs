@@ -203,9 +203,10 @@ fn ensure_history_marker(dir: &Path) -> Result<(), String> {
                 return Err("administrative first event changed since history began".into());
             }
         } else {
-            storage::create_json(
+            storage::create_json_staged(
                 &history_marker(dir)?,
                 &json!({"format":"chirality.records-administration-started","formatVersion":"0.1","projectKey":dir.file_name().unwrap().to_string_lossy(),"firstHead":head}),
+                &control(dir)?,
             )?;
         }
     }
@@ -768,7 +769,7 @@ fn event(
     {
         storage::fail_directory_for_test(Some(control(dir)?.join("events")));
     }
-    let published = storage::create_json(&path, &v);
+    let published = storage::create_json_staged(&path, &v, &control(dir)?);
     // A visible event whose fsync failed is still an observed native fact: keep
     // its accepted prefix before reporting uncertainty, never guess it away.
     let _ = state(dir);

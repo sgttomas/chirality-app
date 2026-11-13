@@ -1879,3 +1879,163 @@ fn an_export_never_publishes_a_linked_member() {
         assert!(kept == before, "readable target {readable}: every byte of the link's target is preserved through cleanup");
     }
 }
+
+fn publication_interruption(marker: bool) {
+    use storage::{PublicationPoint, PublicationStep};
+    for subsequent in [false, true] {
+        for point in if marker {
+            [PublicationPoint::Published, PublicationPoint::Staged]
+        } else {
+            [PublicationPoint::Staged, PublicationPoint::Published]
+        } {
+            let f = Fixture::new();
+            let dir = f.dir();
+            if subsequent {
+                f.act("set-hold", None).unwrap();
+                if marker {
+                    // Exercise marker creation for a surviving first event.
+                    std::fs::remove_file(history_marker(&dir).unwrap()).unwrap();
+                }
+            }
+            let before = history_state(&dir).unwrap();
+            let events = control(&dir).unwrap().join("events");
+            let path = if marker {
+                history_marker(&dir).unwrap()
+            } else {
+                events.join(format!("{:020}.json", before.sequence + 1))
+            };
+            let staged = std::rc::Rc::new(std::cell::RefCell::new(None));
+            let observed = staged.clone();
+            storage::publication_hook_for_test(path.clone(), point, move |temporary| {
+                *observed.borrow_mut() = Some(temporary.to_path_buf());
+                panic!("injected administrative publication interruption at {point:?}");
+            });
+            let stopped = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                if marker && subsequent {
+                    ensure_history_marker(&dir)
+                } else {
+                    f.act(
+                        if subsequent {
+                            "release-hold"
+                        } else {
+                            "set-hold"
+                        },
+                        None,
+                    )
+                    .map(|_| ())
+                }
+            }));
+            assert!(stopped.is_err());
+            let temporary = staged.borrow().clone().expect("interruption hook ran");
+            assert_ne!(
+                temporary.parent(),
+                Some(events.as_path()),
+                "a temporary must never appear inside events"
+            );
+            assert_eq!(temporary.parent(), Some(control(&dir).unwrap().as_path()));
+            match point {
+                PublicationPoint::Staged => assert!(!path.exists()),
+                PublicationPoint::Published => {
+                    assert_eq!(std::fs::metadata(&path).unwrap().nlink(), 1);
+                    read_plain(&path).unwrap();
+                    assert!(!temporary.exists());
+                }
+            }
+            let state = history_state(&dir)
+                .expect("interrupted publication leaves strict history readable");
+            let expected = if marker {
+                before.sequence.max(1)
+            } else {
+                before.sequence + u64::from(point == PublicationPoint::Published)
+            };
+            assert_eq!(state.sequence, expected);
+            let entries = match std::fs::read_dir(&events) {
+                Ok(entries) => entries.map(|e| e.unwrap().file_name()).collect::<Vec<_>>(),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => vec![],
+                Err(e) => panic!("events inventory: {e}"),
+            };
+            assert_eq!(entries.len() as u64, expected);
+            for seq in 1..=expected {
+                assert!(entries.contains(&format!("{seq:020}.json").into()));
+            }
+            // Neither ordinary recording nor the next administrative act is
+            // stranded by an interrupted stage left outside events.
+            f.record();
+            let steps = std::rc::Rc::new(std::cell::RefCell::new(Vec::new()));
+            let observed = steps.clone();
+            storage::observe_publication_for_test(Some(Box::new(move |step, at| {
+                observed.borrow_mut().push((step, at.to_path_buf()))
+            })));
+            f.act(
+                if state.hold {
+                    "release-hold"
+                } else {
+                    "set-hold"
+                },
+                None,
+            )
+            .unwrap();
+            storage::observe_publication_for_test(None);
+            let steps = steps.borrow();
+            let final_path = events.join(format!("{:020}.json", expected + 1));
+            let published = steps
+                .iter()
+                .position(|(step, at)| *step == PublicationStep::Published && at == &final_path)
+                .unwrap();
+            let data = steps[..published]
+                .iter()
+                .rfind(|(step, _)| *step == PublicationStep::DataSynced)
+                .unwrap();
+            assert_eq!(data.1.parent(), Some(control(&dir).unwrap().as_path()));
+            assert!(data
+                .1
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with(&format!(
+                    ".{}.",
+                    final_path.file_name().unwrap().to_string_lossy()
+                )));
+            assert!(steps[published + 1..]
+                .iter()
+                .any(|(step, at)| *step == PublicationStep::FileSynced && at == &final_path));
+            for folder in [&events, &control(&dir).unwrap()] {
+                assert!(steps[published + 1..].iter().any(|(step, at)| *step == PublicationStep::DirectorySynced && at == folder), "both event and staging folders are synced after publication");
+            }
+            let original = read_plain(&final_path).unwrap();
+            let links = std::fs::metadata(&final_path).unwrap().nlink();
+            let names = || {
+                std::fs::read_dir(control(&dir).unwrap())
+                    .unwrap()
+                    .map(|entry| entry.unwrap().file_name())
+                    .collect::<std::collections::BTreeSet<_>>()
+            };
+            let before_names = names();
+            let error = storage::create_json_staged(
+                &final_path,
+                &json!({"different":"bytes"}),
+                &control(&dir).unwrap(),
+            )
+            .unwrap_err();
+            assert!(
+                error.contains("create-once evidence publication") && error.contains("File exists"),
+                "{error}"
+            );
+            assert_eq!(read_plain(&final_path).unwrap(), original);
+            assert_eq!(std::fs::metadata(&final_path).unwrap().nlink(), links);
+            assert_eq!(
+                names(),
+                before_names,
+                "failed staged publication cleans only its own temporary"
+            );
+        }
+    }
+}
+#[test]
+fn records_store_publication_events_stage_outside_strict_history_at_both_windows() {
+    publication_interruption(false);
+}
+#[test]
+fn records_store_publication_history_marker_is_single_link_at_both_windows() {
+    publication_interruption(true);
+}
