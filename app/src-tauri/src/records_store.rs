@@ -222,11 +222,36 @@ fn from_environment() -> Result<Store, String> {
     }
     #[cfg(test)]
     {
-        let root = std::env::temp_dir().join(format!("chirality-test-records-{}", std::process::id()));
+        let root = std::env::temp_dir().join(test_store_name());
         Ok(Store { root, placement: Placement::Test, limits: vec![] })
     }
     #[cfg(not(test))]
     Err(format!("no records store configured ({OVERRIDE_ENV} unset); nothing is recorded"))
+}
+
+/// A test build's default store, one per process. A process id alone is
+/// reused by later processes, which then opened an earlier process's store
+/// and met its records; a fresh nonce beside the id makes the store this
+/// process's own. The process registers best-effort removal of its default
+/// test store on normal exit. Kill or abort may leave it behind; the fresh
+/// nonce prevents a later process from reusing it.
+#[cfg(test)]
+static TEST_STORE_NAME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+#[cfg(test)]
+fn test_store_name() -> &'static str {
+    TEST_STORE_NAME.get_or_init(|| {
+        extern "C" fn remove_test_store() {
+            if let Some(name) = TEST_STORE_NAME.get() { let _ = std::fs::remove_dir_all(std::env::temp_dir().join(name)); }
+        }
+        // SAFETY: registers a plain function with no arguments, run once at exit.
+        unsafe { libc::atexit(remove_test_store) };
+        fresh_test_store_name(std::process::id())
+    })
+}
+/// A new name for a test store of process `pid`: its id and a fresh nonce.
+#[cfg(test)]
+pub(crate) fn fresh_test_store_name(pid: u32) -> String {
+    crate::util::opaque_id(&format!("chirality-test-records-{pid}-")).expect("a test store's nonce")
 }
 
 /// The App's store at startup: the override (`CHIRALITY_RECORDS_STORE`) when

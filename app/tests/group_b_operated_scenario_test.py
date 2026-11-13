@@ -264,7 +264,7 @@ class TheWalkItself(unittest.TestCase):
                          'r.outcomes, typeof r.steps.at(-1).rebuilt_for_reading, r.steps.at(-1).returned.slice(0, 30)];')
         verdict, stopped, calls, steps, outcomes, rebuilt, returned = result['out']
         self.assertEqual(verdict, 'inconclusive', stopped)
-        self.assertIn('stopped at S2: the view came back as differences', stopped)
+        self.assertIn('stopped at S2: the view came back as differences although the whole window was asked for;', stopped)
         self.assertEqual(calls, 'get_app_state get_app_state get_app_state click get_app_state')  # and none after it
         self.assertEqual(steps[-1], ['S2', 0])
         self.assertEqual(outcomes['STARTING STATE: SETUP REQUIRED, APP DATA UNDER THE THROWAWAY HOME'], 'not shown')
@@ -279,6 +279,23 @@ class TheWalkItself(unittest.TestCase):
                 verdict, stopped, calls, steps = result['out']
                 self.assertEqual((verdict, calls, steps), ('inconclusive', ' '.join(['get_app_state'] * made), 0), stopped)
                 self.assertIn(f'stopped at {name} view before any click: the view came back as differences', stopped)
+                asked = ('it was the first view of this build in the walk, asked with the application alone' if name == 'the first'
+                         else 'the whole window was asked for')
+                self.assertIn(f'although {asked};', stopped)  # what was asked, said truly for each view
+
+    def test_the_first_view_asks_with_the_application_alone_and_every_later_view_for_the_whole_window(self):
+        result = harness('''const asked = [];
+          const service2 = { get_app_state: async options => { asked.push(options); return { app: viewOf.app, text: nextView() }; },
+                             click: async () => {} };
+          const r = await walk.run({ ...base, sky: service2 });
+          return [r.verdict, asked, r.calls.filter(c => c.call === 'get_app_state').map(c => c.disableDiff ?? null)];''')
+        verdict, asked, recorded = result['out']
+        self.assertEqual(verdict, 'pass')
+        app = 'dev.chirality.app-v4.candidate.invented'
+        self.assertEqual(asked[0], {'app': app})  # no disableDiff key at all
+        self.assertEqual(asked[1:], [{'app': app, 'disableDiff': True}] * (len(asked) - 1))
+        self.assertEqual(len(asked), 10)
+        self.assertEqual(recorded, [None] + [True] * 9)  # the result says how each view was asked for
 
     def test_a_child_process_of_the_app_stops_the_walk_and_fails_it_at_whichever_reading_shows_it(self):
         child = "[{ pid: 4242, command: '/invented/codex' }]"

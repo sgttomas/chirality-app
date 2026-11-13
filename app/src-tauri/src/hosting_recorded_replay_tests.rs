@@ -228,6 +228,13 @@ runpy.run_path({peer},run_name='__main__')
             .iter()
             .filter(|e| matches!(e["event"].as_str(), Some("frame" | "constructed-frame")) && e["direction"] == "codex->app")
             .map(|e| {
+                if e["event"]=="constructed-frame" && e["recipe"]=="config-read-reply-constructed-for-continue" {
+                    // The player's constructed stand-in for the configuration reading, not a captured frame.
+                    assert!(e.get("frame_index").is_none() && e.get("source_frame_index").is_none(),"no recorded frame stands behind it");
+                    assert!(e["constructed_standing"].as_str().is_some_and(|s|s.contains("no such frame was captured from the supplier")));
+                    // The App journals a private configuration reply only in its withheld projection.
+                    return super::access_provider::withheld(&json!({"id":e["actual_rpc_id"],"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}}));
+                }
                 if e["event"]=="constructed-frame" {
                     assert_eq!(e["recipe"],"thread-list-envelope-from-thread-read");
                     assert_eq!(e["source_frame_index"],25);
@@ -251,7 +258,7 @@ runpy.run_path({peer},run_name='__main__')
             .filter(|e| e["generation"] == *generation)
             .filter_map(|e| e.get("frame").cloned())
             .collect::<Vec<_>>();
-        assert_eq!(actual, expected, "every delivered supplier payload must equal its recorded value except correlated reply ID");
+        assert_eq!(actual, expected, "every delivered recorded payload must equal its recorded value except correlated reply ID; the player's declared constructed frames are compared with their fixed constructed content");
     }
     fn lose_acknowledgment(&self) -> SourceRequest {
         self.until("recorded approval received", || {
@@ -555,6 +562,8 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
             "thread/turns/list",
             "thread/loaded/list",
             "thread/list",
+            // The account Continue's admitting reading, answered by the player's constructed stand-in.
+            "config/read",
             "thread/resume"
         ]
     );
@@ -571,13 +580,10 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
         .unwrap();
     f.assert_recorded_frames(&generation, 2);
     let audit = f.audit(2);
-    assert_eq!(
-        audit
-            .iter()
-            .filter(|e| e["event"] == "constructed-frame")
-            .count(),
-        2
-    );
+    // The constructed catalog and the constructed stand-in for the App's configuration reading,
+    // each a request and a reply; the App made the reading before it resumed.
+    let constructed: Vec<_> = audit.iter().filter(|e| e["event"] == "constructed-frame").map(|e| (e["direction"].as_str().unwrap_or("").to_owned(), e["method"].as_str().unwrap_or("").to_owned())).collect();
+    assert_eq!(constructed, [("app->codex", "thread/list"), ("codex->app", "thread/list"), ("app->codex", "config/read"), ("codex->app", "config/read")].map(|(d, m)| (d.to_owned(), m.to_owned())));
     let binding = audit.iter().find(|e| e["event"] == "binding").unwrap();
     let adapted_resume = audit
         .iter()

@@ -1512,6 +1512,11 @@ ancestry. Put this stand-in configuration in the scratch home's `config.toml`:
 ```toml
 model_provider = "skeleton_local"
 model = "skeleton-no-model"
+# The App starts this home's Codex on the built-in provider whatever
+# model_provider says (DEL-01-05). The next line gives that provider a
+# same-machine address in this file. A file alone does not decide where a
+# launch's model requests go: also set CHIRALITY_DEV_OPENAI_BASE_URL, below.
+openai_base_url = "http://127.0.0.1:9/v1"
 [model_providers.skeleton_local]
 name = "Offline development stand-in"
 base_url = "http://127.0.0.1:9/v1"
@@ -1580,8 +1585,12 @@ which does not qualify the account route to the real service.
 
 Copy the maintained `tests/fixtures/FX-DP1/project/decisions` files into the
 scratch workspace's `project/decisions/`, then run `npx --offline tauri dev`.
-For the offline thread exercise, enter model `skeleton-no-model` and provider
-`skeleton_local` explicitly. These are test choices, not product defaults.
+For the offline thread exercise, start a new conversation with the ChatGPT
+account entry and, under **Advanced: enter a model ID yourself**, type the
+model `skeleton-no-model`. No provider is entered: the conversation runs on
+the built-in provider, at the address `CHIRALITY_DEV_OPENAI_BASE_URL` gives.
+This is a test choice, not a
+product default.
 Open a package, choose an alternative and confirm its full native text.
 Authenticated/live model work remains coordinated with the owner.
 
@@ -1630,6 +1639,32 @@ inspect the submission's retained source/outcome instead of assuming no send or
 retrying automatically.
 
 The App routes configured account (`H-acct`) and explicitly prepared API-key (`H-key`) homes separately. Per-home resource and metadata guards preserve existing account use when a prospective key proposal fails. Key entry and OAuth controls use native source-bound adapters; their actual OS/auth/provider journeys remain unqualified. A continued conversation without a trustworthy home-class association stays unknown and may remain hot-only. Home class is independent of model/provider choice.
+
+### A local model home made by a development build before the key's address was recorded
+
+The App records the address a local model server's key is entered for, in the
+file `key-address` beside `config.toml` in the dedicated local home (the
+folder `codex-omlx` in that build's App data folder), and uses a saved key
+only at the recorded address. A development build made before that record
+existed could leave a home that holds a key and no record; no released build
+can. Such a home is refused: the local model settings show that a key is
+saved, that the App has no record of the address it was entered for, and that
+this cannot be put right from the App. To use that home again:
+
+1. Quit the App.
+2. In that build's App data folder (under a throwaway home, the folder
+   `Library/Application Support/<identifier>` inside it), open `codex-omlx`
+   and remove the one file `auth.json`. Remove nothing else; the file holds
+   the key, so do not open, copy or print it.
+3. Open the App, prepare the local connection and enter the key again in the
+   secure field. The App writes the record before the field opens.
+
+Do not remove or replace anything else in that folder, and not the folder
+itself. If the App ended unexpectedly before step 1, an earlier Codex process
+of that home may still be running: make sure none is (Activity Monitor, a
+process named `codex`), or log out of the Mac and back in, before removing the
+file. The App's protection of a saved key does not survive files of that home
+being removed or replaced from outside while such a process runs.
 
 ## Storage and remaining work
 

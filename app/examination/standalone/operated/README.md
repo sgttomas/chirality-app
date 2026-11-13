@@ -3,7 +3,7 @@
 This is how an agent reads and clicks the window of an identified development
 build of the App during an examination. It uses the supplier's own computer-use
 service, reached from inside a Codex session. Reaching it runs binaries inside
-ChatGPT.app (the operator's node runtime, and a Codex app-server it starts),
+ChatGPT.app (the operator's node runtime and its host, and a Codex app-server),
 and the service itself is installed under the owner's Codex home
 (`~/.codex/computer-use/`) (see "What the route starts").
 
@@ -20,11 +20,17 @@ has accepted them as they are. What is known of each, marked as read, observed
 times, on 13 November 2026), observed by App Agent 0, or not examined:
 
 - **A Codex app-server.** `codex app-server --listen stdio://`, run from inside
-  ChatGPT.app (`/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex`),
-  a child of the operator's node runtime (observed, twice), which is itself a
-  binary inside ChatGPT.app (observed by App Agent 0). It starts within the same second as the walk's
-  first call; whether the import in step 4 or the first call starts it is not
-  known, since both are made in one block (observed; the cause not
+  ChatGPT.app (`/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex`).
+  Its parent was ChatGPT.app's `node_repl` (observed, twice), a binary inside
+  ChatGPT.app (observed by App Agent 0) and a child of the provider's Codex.
+  Those observers took that `node_repl` for the process that runs the `js`
+  tool; they did not look at which process holds the tool's own files, or
+  whether `node_repl` has children of its own. A later observation did (step
+  10, "The operator's node runtime and its host"): the tool runs in a node
+  kernel whose parent is `node_repl`. Which of the two starts the app-server
+  has not been observed. It starts within the same second as the walk's
+  first call; whether the import in step 4 or the first call starts it was not
+  known, since both were made in one block (observed; the cause not
   established). It outlives the walk and its operator (observed, twice). It runs
   with CODEX_HOME set to the owner's own Codex home, `~/.codex`, and HOME the
   account's real home (observed by App Agent 0).
@@ -185,11 +191,22 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 - **The homes root.** The launcher makes each launch folder under the lane's
   homes root, which must already exist; it never creates it. If it does not
   exist the launcher refuses and says so. The lane makes it, once.
+- **The evidence folder.** Outside every checkout, made new by the lane at App
+  Agent 0's go, because the lane keeps its own look and its sample of the
+  service's socket folder there (step 10, "The look"; "The lane's sample of
+  the service's socket folder"). The assignment names it. Before anything
+  else in it, the operator confirms it holds only the lane's files (names
+  beginning `lane-`, and `socket-folder-sample.txt`, which grows while the
+  walk runs) and leaves them alone; anything else in it means no walk.
+  Everything else the method writes there is the operator's.
 - **App Agent 0's go for the walk**, and the acts it allows.
 
 ## The steps
 
-1. **Launch.** First confirm that a start of the build by the system's launch
+1. **Launch.** Before this step, the operator identifies its node runtime
+   and its host by the marker (step 10, "The operator's node runtime and its
+   host"); if they are not identified, no walk is made and nothing has been
+   launched. Then confirm that a start of the build by the system's launch
    service would be given none of the App's eleven configuration variables (why:
    "A view of an application that is not running", below):
 
@@ -203,8 +220,8 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    are absent. Any other result, "could not be established" included, means
    no walk is made: stop, record what it printed, and the lane tells App
    Agent 0.
-   Then, from the root of a clean checkout of main, with a new, empty
-   evidence folder of your own outside every checkout, start the launcher on
+   Then, from the root of a clean checkout of main, with the walk's evidence
+   folder, start the launcher on
    the identified candidate so that it outlives the shell call that starts it
    (an agent's shell ends what it started when a call returns, so `&` is not
    enough):
@@ -253,16 +270,20 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    var sky = (await import('@oai/sky')).sky;
    ```
 
-   It must be this dynamic import inside that tool. Whether the import alone
-   starts anything is not known: it and the first call are made in one block,
-   and by that block a Codex app-server is started (see "What the route starts").
+   It must be this dynamic import inside that tool, made as a call of its own
+   (see "In a window"). Whether the import alone starts anything was not known
+   when it and the first call were made in one block; a walk now records what
+   is running after the import and before the first view.
 5. **A view.**
 
    ```js
-   var state = await sky.get_app_state({app: '<bundle identifier>', disableDiff: true});
+   var state = await sky.get_app_state({app: '<bundle identifier>'});
+   var whole = await sky.get_app_state({app: '<bundle identifier>', disableDiff: true});
    ```
 
-   The result gives the application's path, a reference to a screenshot, and
+   The first form, with the application alone, is how the views that worked
+   on 13 November asked; a walk's first view asks so. The second asks for the
+   whole window, and every later view of a walk asks so. The result gives the application's path, a reference to a screenshot, and
    the window as text: one line for each element, with its index, its kind
    (button, text, radio button, heading and so on) and its words or value;
    indentation shows what contains what. A disabled control says so. Without
@@ -330,49 +351,88 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     ps -o stat= -p <number>                  # nothing, or a state beginning with Z: it has ended
     ```
 
-    - **The operator's node runtime**, identified before the look and before
-      the walk's import: the operator makes one call in its `js`
-      tool that opens a marker file in the evidence folder and keeps it open,
+    - **The operator's node runtime and its host**, identified before step
+      1, after the operator's prerequisites and its confirmation of the
+      evidence folder ("What the operator is given"), so that a runtime that
+      is not the one expected costs no launch. The operator makes one call in
+      its `js` tool that opens a marker file in the evidence folder and keeps
+      it open,
       `globalThis.runtimeMarker = await (await import('node:fs')).promises.open('<evidence folder>/runtime.marker', 'w');`,
       and then asks which process holds it (`lsof -t`, above). That one
-      process is its runtime, recorded by number and start time. If `lsof`
-      names none or more than one, the runtime is not identified and no walk
-      is made. That call imports only the standard library and invokes no
-      computer-use method; whether it starts anything has not been tried. The
-      look comes after it and before the permitted import, and an unexpected
-      helper the look finds means no walk. This one call, by the operator, at
-      a walk, is the only use of the node runtime's `js` tool before the
-      walk's own block: App Agent 0 held that tool, and narrows its hold for
-      this call alone, not for any other agent or use. The marker file is in
-      the operator's evidence folder, never under either Codex home. When the
-      walk ends, and whenever a walk is refused after the marker was opened
-      while its runtime is still available (the look finds a process, `lsof`
-      names none or more than one, or the two looks disagree), the operator
-      closes it (`await runtimeMarker.close()`) and it is kept, not removed. The first walk is also the first trial of this
-      identification: if it fails, that is "no walk", recorded as a finding
+      process is its runtime, and the runtime's parent is its host. Each is
+      recorded as an identity, by its process number, start time and
+      executable (`ps -o lstart=,ppid=,command=` on each), and so is the
+      relationship between them: the runtime's parent is the host. Wherever
+      this method speaks of the runtime or the host, it means these two
+      recorded identities, never any process that merely has the same name.
+      What is expected is what was observed on 13 November 2026 at 16:48 UTC,
+      under the provider's Codex process then running: the runtime was
+      ChatGPT.app's node
+      (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node`)
+      running a `kernel.js` with a session identifier, and its host was
+      ChatGPT.app's `node_repl`
+      (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl`),
+      a child of the provider's Codex. If `lsof` names none or more than one,
+      or the runtime or its host is anything other than that, the runtime is
+      not identified and no walk is made: nothing has been launched, and the
+      operator closes the marker and returns. That call imports only the
+      standard library and invokes no computer-use method; whether it starts
+      anything has not been tried. The marker stays open, held by the
+      runtime, through the launch and the watch until the walk ends. At a walk
+      the operator uses its `js` tool for four things and nothing else: this
+      marker call; the import of the service, a call of its own; the walk's
+      call; and the marker's close. A walk refused before the import uses two
+      (the marker call and its close), and one refused after the import and
+      before the walk's call uses three (the marker call, the import and the
+      close). App Agent 0 held that tool, and narrows
+      its hold for the marker call alone, not for any other agent or use.
+      The marker file is in the operator's evidence folder, never under
+      either Codex home. When the walk ends, and whenever a walk is refused
+      after the marker was opened while its runtime is still available (the
+      runtime or its host is not the one expected, the identities differ at
+      the look or at the recheck before the walk's call, the import throws,
+      the look finds a process, or the two looks disagree), the
+      operator closes it (`await runtimeMarker.close()`) and it is kept, not
+      removed. The identification worked on its first trial (A2's fourth
+      attempt, below); if it fails, that is "no walk", recorded as a finding
       about this method.
-    - **The look, before the import and before the first call.** Then, as the
-      last thing before the `js` block that imports the service ("Running a
-      scenario"), the operator looks, with the first `ps` command above, for
-      a window service (by its command, below) and for any process whose
-      command is the app-server's, whatever its parent. If one is running, no
-      walk is made: it is recorded with its number, start time and parent, the
-      operator ends what it started (steps 8 and 10) and returns, and it comes
-      to App Agent 0. A helper left by an earlier attempt blocks the walk in
-      the same way; who owns it is decided from that attempt's evidence, never
-      by assigning it to the new walk. The lane also looks, from its own
-      shell, at App Agent 0's go, with the same command, and keeps what it
-      finds in the evidence folder as its own record. The operator's look
-      decides; if the two disagree, no walk is made, and it comes to App
-      Agent 0.
+    - **The look, before the import and before the first call.** Then, after
+      the launcher and the watch, as the last things before the `js` call
+      that imports the service ("Running a scenario"), the operator checks
+      its two identities again and looks. The check: `lsof -t` on the marker
+      names the same one process as before, and the second `ps` command above,
+      on the runtime and on the host, shows for each the same number, start
+      time and executable as recorded, with the runtime's parent still the
+      host. A runtime replaced between the marker call and the import would
+      otherwise leave the identification stale. The look: the first `ps`
+      command above, for a window service (by its command, below) and for
+      any process whose command is the app-server's, whatever its parent.
+      Any difference in the check, or any such process running, means no walk
+      is made: what was found is recorded (a process with its number, start
+      time and parent), the operator ends what it started (steps 8 and 10),
+      closes the marker and returns, and it comes to App Agent 0. A helper
+      left by an earlier attempt blocks the walk in the same way; who owns it
+      is decided from that attempt's evidence, never by assigning it to the
+      new walk. The lane also looks, from its own shell, at App Agent 0's go,
+      with the same command, and keeps what it finds in the evidence folder as
+      its own record. The operator's look decides; if the two disagree, no
+      walk is made, and it comes to App Agent 0.
     - **The walk's app-server** is a process whose command is exactly
       `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex app-server --listen stdio://`
       (the whole command, compared as text, not a part of it); whose parent
-      is the operator's own node runtime (its number, and that process's start
-      time the one recorded); and whose start, in UTC, is no earlier than the
-      look and no later than the walk's end. A process meeting all three is
-      ended. One with that command that fails either of the others is not the
-      walk's: it is recorded, left and reported.
+      is one of the two recorded identities, the operator's runtime or its
+      host (the parent's number and start time those recorded); and whose
+      start, in UTC, is no earlier than the look and no later than the walk's
+      end. A process meeting all three is ended. In A2's fifth attempt the
+      helper's parent was the host (observed, once); the earlier record saw
+      `node_repl` as its parent too, before anyone looked for the kernel below
+      it. The rule accepts either, since once is not always. Whether the
+      walk's first call succeeds or fails, each route process is recorded
+      with its number, start time, command and parent, so a walk records the
+      helper's actual parent. One with that command whose parent is neither
+      recorded identity, or that fails the interval, is unresolved: it is
+      recorded, left and reported, and the walk has not been recovered. The
+      rule is not extended during a walk.
     - **The walk's window service** is a process whose command is exactly
       `$HOME/.codex/computer-use/Codex Computer Use.app/Contents/MacOS/SkyComputerUseService` (with `$HOME` as the account's home, compared as text),
       whose parent is launchd (process 1), and whose start, in UTC, is no
@@ -396,7 +456,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     - An ended process may stay listed with a state beginning with `Z` until
       its parent collects it; that is ended. No process that predates the
       walk is ever signalled. The operator signals nothing else: not the node
-      runtime, not the provider's Codex, not a process group. None of these
+      runtime or its host, not the provider's Codex, not a process group. None of these
       commands opens anything under `~/.codex`.
     The lane's agent, not the operator, then confirms the same from its own
     shell after every run: the launcher's and the watch's process numbers are
@@ -441,7 +501,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
        tell the home or environment either was started with. Only step 10's
        records, where they exist, can say more.
     4. The route's processes, identified as step 10 says, from the operator's
-       records of its runtime and its look (where there are none, nothing is
+       records of its runtime, its host and its look (where there are none, nothing is
        attributable): attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered. Each is recorded with its number, start
        time, parent and command, and whether the operator or the lane ended it.
     5. The launch record's Library comparison (`real_library` in
@@ -726,22 +786,75 @@ the system itself:
 
 The watch ends by itself when the App does.
 
-Then the operator identifies its node runtime by the marker, and makes its
-look for route processes (step 10, "The operator's node runtime" and "The
-look"), as the last things before the block; if either fails, no walk. Then,
-in the operator's `js` tool, with the values filled in:
+Then the operator checks its runtime and host again and makes its look for
+route processes (step 10, "The look"), as the last things before the import;
+if either fails, no walk. (Its runtime and host were identified before step
+1: step 10, "The operator's node runtime and its host".)
+
+**Two calls, as the calls that worked were made.** The views that worked on
+13 November imported the service in one `js` call and made the first view
+in a later call, about ten seconds after, asking with the application alone.
+Every first view that failed since was made in the same block as the import,
+asking for the whole window (`disableDiff`). Both differences are observed;
+neither is shown to be the cause of the failures, and if a walk made this way
+succeeds, which of the two mattered is not known. So the import is a call of
+its own, and the walk's first view asks with the application alone (`walk.mjs`
+asks every later view for the whole window, and still requires each view
+before any click to come back whole).
+
+First, in the operator's `js` tool, the import alone, printing the time it
+returned:
+
+```js
+var sky = (await import('@oai/sky')).sky;
+nodeRepl.write(new Date().toISOString());
+```
+
+If it throws, the error is kept whole, no walk is made, and the operator ends
+what it started (steps 8 and 10), closes the marker and returns. Then the
+operator waits until at least ten seconds have passed since the time the
+import printed. Then, from the operator's shell, as the last thing before the
+walk's call, the record after the import, into the evidence folder:
+
+```sh
+{ date -u +%FT%TZ
+  lsof -t "<evidence folder>/runtime.marker"
+  ps -o pid=,ppid=,lstart=,command= -p <the runtime's number>,<the host's number>
+  ps -axo pid=,ppid=,lstart=,command= | grep -F 'CodexCLI.app/Contents/MacOS/codex app-server' | grep -v grep || echo 'no app-server'
+  ps -axo pid=,ppid=,lstart=,command= | grep -F 'SkyComputerUseService' | grep -v grep || echo 'no window service'
+} > "<evidence folder>/after-import.txt"
+```
+
+It holds two things, read differently:
+
+- **The recheck of the operator's identities, which can stop the walk.** As at
+  the look: `lsof` names the same one process, and the runtime and the host
+  show the same numbers, start times and executables as recorded, with the
+  runtime's parent still the host. A change, or an identity that cannot be
+  examined (`lsof` naming none or more than one, a process not listed), is no
+  walk: the operator ends what it started (steps 8 and 10), closes the marker
+  and returns, and it comes to App Agent 0.
+- **Whether a helper app-server or a window service exists after the import,
+  which is a record and not a refusal.** A helper or a service started by the
+  import is what it records; neither stops the walk here.
+
+Its first line is a time at least ten seconds after the time the import
+printed, and the operator records both. If the recheck holds, the walk's call
+follows at once, in the operator's `js` tool, with the values filled in:
 
 ```js
 var fs = await import('node:fs');
 var walk = await import('file://<repository>/app/examination/standalone/operated/walk.mjs');
 var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalone/operated/first-use-setup.scenario.json', 'utf8'));
-var sky = (await import('@oai/sky')).sky;
 var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
   bundle: '<the bundle, the path of the .app folder>',
   pid: <the App's process number>, watch: '<evidence folder>/watch.json'});
 fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(report, null, 2));
 nodeRepl.write(walk.summary(report));
 ```
+
+Nothing else changes: no retry inside the walk, no second view after a
+failure, the same scenario and acts.
 
 - The loading forms above were tried in a Codex session's node runtime with a
   stand-in for the service: the file imports work, bindings last from one call
@@ -773,11 +886,15 @@ nodeRepl.write(walk.summary(report));
   App, and the operator ends it only after the walk. A process the App started
   that has been given another parent, or that came and went between samples,
   is not seen as a child.
-- **Whole views, or nothing.** Before any click the script asks for two whole
-  views, one after the other; the first view of an application was seen to be
-  whole without asking, so only the second shows that asking is honoured. If
-  either of them, or any later view, comes back as differences, the walk stops
-  there. That view, and the window rebuilt from it, are kept in the result for
+- **Whole views, or nothing.** Before any click the script asks for two
+  views, one after the other, and both must come back whole. The first asks
+  with the application alone; the first view of an application was seen to be
+  whole without asking, and it counts only if what it returned is whole. The
+  second asks for the whole window, and only it shows that asking is
+  honoured. Whether a view is whole is read from what it returned, never from
+  how it was asked. If either of them, or any later view, comes back as
+  differences, the walk stops there. The result records how each view was
+  asked. That view, and the window rebuilt from it, are kept in the result for
   reading; no check is credited from a rebuilt view and no click is made from
   one, because how differences place what they add has not been established.
 - The App starts no process in this scenario. If the watch file shows the App
@@ -841,7 +958,7 @@ On a development candidate built from main, in two windows the owner gave:
   elements. Later views, made without `disableDiff`, returned differences.
 - Clicks by index worked on a disclosure, a button and a radio button.
 - Not yet observed: `disableDiff` (the supplier's guidance says it returns a
-  fresh whole view; a walk's first two calls observe it); any method other
+  fresh whole view; a walk's second view observes it); any method other
   than a view and a click.
 - The launcher on main at that time could not launch on that host, because
   macOS refused a listing of two Library folders it watched. The launches were
@@ -865,3 +982,36 @@ On a development candidate built from main, in two windows the owner gave:
   them. Which files they read, whether they used a credential, and what they
   sent is not established. The two occasions that made no call (A2's first
   attempt and a rehearsal of the shell half) started neither (observed).
+- Walk A2's fourth attempt, at 16:45 UTC, by a fresh operator, made no walk:
+  it was refused at the runtime check, before the look, the import and any
+  call, because its assignment expected the marker's holder to be `node_repl`
+  itself. The marker, held open and asked of by `lsof`, named one process: ChatGPT.app's
+  `cua_node/bin/node` running a `kernel.js` with a session identifier,
+  started at 16:48:29 UTC, whose parent was ChatGPT.app's
+  `cua_node/bin/node_repl`, started at 16:46:08 UTC, a child of the
+  provider's Codex (observed). The `node_repl` that the second and third
+  attempts' records call the operator's node runtime is that parent; nobody
+  then looked below it. No service import or computer-use call occurred, and
+  no helper or window service remained in the recovery checks (the
+  operator's at 16:50:21 UTC and the lane's at 16:52:38 UTC, each kept in
+  the walk's evidence; App Agent 0 reported the same from its own shell at
+  16:53:40 UTC, a reading not kept in that evidence). The marker's identification and
+  its closing worked. The launch, ended from outside, left the Library
+  comparison unchanged and no candidate process. No product outcome was
+  examined.
+- Walk A2's fifth attempt, at 17:18 UTC, by a fresh operator under the
+  corrected identification, reached its first view at 17:22:56 UTC, in the
+  same block as the import and asking for the whole window. The view failed
+  within about five seconds with "Sky Computer Use native pipe startup
+  failed", with no cause attached; nothing was clicked (observed). The view
+  started a helper app-server whose parent was the recorded host, and a
+  window service; the operator ended both by their rules, and none remained
+  in the recovery checks (observed). A `computeruse.sock` pathname was listed
+  in the service's socket folder at every sample from 17:22:57 to 17:23:17
+  UTC and none at the samples before; a pathname does not establish a
+  listening, responsive service. The one-minute load near the call was about
+  two. Set beside the two calls that worked, from the records only, the
+  failing first views differ in two things the operator's `js` tool does:
+  the import and the first view in one block, and the first view asking for
+  the whole window ("Two calls, as the calls that worked were made", under
+  "In a window").

@@ -9,6 +9,7 @@ fn role_observations_exchange<F>(
 where
     F: FnOnce() -> Result<Value, String>,
 {
+    super::started_in_folder(host);
     let mut child = Command::new("/bin/cat")
         .env_clear()
         .stdin(Stdio::piped())
@@ -22,9 +23,7 @@ where
     let generation = generation.clone();
     let (tx, rx) = channel();
     let worker = std::thread::spawn(move || {
-        let mut line = String::new();
-        BufReader::new(stdout).read_line(&mut line).unwrap();
-        let outbound: Value = serde_json::from_str(&line).unwrap();
+        let outbound = super::next_operation_frame(&mut BufReader::new(stdout)).unwrap();
         tx.send(outbound.clone()).unwrap();
         let mut response = response;
         response["id"] = outbound["id"].clone();

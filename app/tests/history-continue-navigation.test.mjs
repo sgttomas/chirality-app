@@ -30,7 +30,9 @@ const elements=(c,tag)=>c.querySelectorAll(e=>e.localName===tag);
 const button=(c,label)=>elements(c,'button').find(e=>e.textContent===label);
 const labelled=(c,tag,label)=>elements(c,tag).find(e=>e.parentNode.textContent.startsWith(label));
 const conversation=c=>c.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0];
-const choice={model:'person-choice',modelProvider:'configured',entryId:'local-provider'};
+// The account home's one connection route (built-in OpenAI with the ChatGPT account); the model distinguishes a choice.
+const ROUTE='Use my ChatGPT account (built-in OpenAI)';
+const choice={model:'person-choice',route:true};
 const draft='Existing unsent text é / 家\n';
 
 async function mounted(options,check){
@@ -48,7 +50,7 @@ async function mounted(options,check){
   if(command==='native_confirmation_content')return [];
   if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
   if(command==='thread_start'){
-   assert.deepEqual(args,{...choice,modeHomeClass:'account',generation:g,role:null,preselected:false});
+   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:g,role:null,preselected:false});
    if(options.startError)throw options.startError;
    account.threads.push(thread('new-choice'));return {id:91,startGeneration:g,result:{thread:{id:'new-choice'}}};
   }
@@ -80,8 +82,9 @@ async function mounted(options,check){
  const change=async(e,value)=>React.act(()=>{if(e===labelled(c,'select','Stored conversation '))selects++;track(props(e).onChange({target:{value}}));});
  const press=async label=>React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Start thread')starts++;if(label==='Use account home')homes++;track(props(e).onClick());});
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
- const edit=async values=>{for(const[name,value]of Object.entries(values)){const[tag,label]=name==='model'?['input','Model ']:name==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(labelled(c,tag,label),value);}};
- const values=()=>({model:props(labelled(c,'input','Model ')).value,modelProvider:props(labelled(c,'input','Configured Codex provider ')).value,entryId:props(labelled(c,'select','Access entry ')).value});
+ const routeChosen=()=>{const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+ const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
+ const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  const context=()=>conversation(c).querySelectorAll(e=>e.getAttribute('aria-label')==='Prior work in continued conversation')[0];
  try{
   await React.act(async()=>root.render(React.createElement(App)));await change(elements(conversation(c),'select')[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
@@ -157,9 +160,9 @@ test('newer successful Start and later chooser edits survive a delayed Continue'
  const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Start thread');assert.equal(ui.selected(),key('new-choice'));await ui.edit({model:'newer-unsent-choice'});const newer=ui.values();await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('new-choice'));assert.deepEqual(ui.values(),newer);});
 });
 // No API-key switch is offered; the newer home is the observed retained legacy
-// home, whose chooser offers no access entry.
+// home, which offers no new-conversation choice.
 test('stale Continue observer cannot restore the original home over a newer observed home',async()=>{
- const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');await ui.edit({model:'new-key-choice',modelProvider:'configured'});const newer=ui.values();assert.equal(newer.entryId,'');await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Selected home: api-key\./);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
+ const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');const newer=ui.values();assert.deepEqual(newer,{model:null,route:false});await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Selected home: api-key\./);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
 });
 // The first Continue observer has already captured its old admitted view.
 // A later normal poll renders supersession before that old response returns.
