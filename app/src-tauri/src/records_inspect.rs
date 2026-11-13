@@ -15,6 +15,13 @@
 //!
 //! Links are not followed. A dangling link is there. A caller that needs a
 //! link's target examines the target itself, and says so.
+//!
+//! What this does NOT establish: it examines THE FINAL ENTRY of a path
+//! without following it. It does not stop a link among the path's
+//! ANCESTORS being followed, and it does not guarantee that a later
+//! operation on the same path meets the same object. Containment and
+//! identity stay with the callers' own path and identity checks
+//! (`storage::check_path`, stamps, held handles); none is credited to this.
 
 use std::fs::Metadata;
 use std::io;

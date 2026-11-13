@@ -1864,8 +1864,13 @@ fn an_export_never_publishes_a_linked_member() {
         let bag = f.output.join("bag");
         let exported = crate::records_export::export(&f.project, &bag);
         crate::records_export::BEFORE_EXPORT_SYNC.with(|h| *h.borrow_mut() = None);
-        std::fs::set_permissions(&moved, std::fs::Permissions::from_mode(0o700)).unwrap();
+        if moved.exists() { std::fs::set_permissions(&moved, std::fs::Permissions::from_mode(0o700)).unwrap(); }
         assert!(exported.is_err(), "readable target {readable}: never published with a link inside: {exported:?}");
-        assert!(!bag.exists(), "readable target {readable}: nothing published");
+        assert!(!bag.exists(), "readable target {readable}: no published destination exists");
+        // The refused export's cleanup removes its own staging, never what a
+        // link in it pointed to: the target keeps every byte it had.
+        let kept = files_with_bytes(&moved);
+        assert!(!kept.is_empty(), "readable target {readable}: the link's target is preserved through cleanup");
+        assert!(kept.keys().any(|rel| rel.ends_with(".jsonl")), "readable target {readable}: its records are still there: {:?}", kept.keys().collect::<Vec<_>>());
     }
 }
