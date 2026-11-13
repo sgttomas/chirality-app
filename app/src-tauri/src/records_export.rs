@@ -367,7 +367,9 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     if remaining && prior.is_none(){return Err("original disposal context absent".into());}
     if admin!=crate::records_retention::export_snapshot(source,project_id,prior)? {return Err("export administrative history is stale or unrelated; create a current export".into());}
     let exported=files(&folder.join("data"),false)?;
-    let before=if source.exists(){files(source,true)?}else if remaining{BTreeMap::new()}else{return Err("current project payload unavailable".into());};
+    // Only a payload that is not there is an empty remainder; one that cannot
+    // be examined is never verified as empty (`present`).
+    let before=if present(source)?{files(source,true)?}else if remaining{BTreeMap::new()}else{return Err("current project payload unavailable".into());};
     if (!remaining && before.keys().collect::<Vec<_>>()!=exported.keys().collect::<Vec<_>>()) || before.keys().any(|k|!exported.contains_key(k)) {return Err("verified export does not cover the current complete project payload".into());}
     let mut payload=BTreeMap::new();
     for (rel,stamp) in &before {
@@ -377,7 +379,7 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
         if crate::records_index::Stamp::of(&std::fs::metadata(&input).map_err(io)?)!=*stamp {return Err("payload changed during verification".into());}
         payload.insert(rel.clone(),json!({"sha256":hash,"bytes":std::fs::metadata(input).map_err(io)?.len()}));
     }
-    if source.exists() && files(source,true)?!=before {return Err("payload inventory changed during verification".into());}
+    if present(source)? && files(source,true)?!=before {return Err("payload inventory changed during verification".into());}
     // tagmanifest hashes the payload manifest, chain-head tag and other tags.
     let identity=digest(&folder.join("tagmanifest-sha256.txt"))?;
     verify(&folder)?;
@@ -406,12 +408,22 @@ pub(crate) fn legacy_for_test(dir:&Path){std::fs::remove_file(dir.join(ADMIN)).u
 #[path = "records_export_tests.rs"]
 mod tests;
 
+/// Whether `path` is there, for disposal and its staging: only NotFound is
+/// absence. A path that cannot be examined is an error, never absent, so
+/// nothing that could not be seen is passed over as gone.
+pub(crate) fn present(path: &Path) -> Result<bool, String> {
+    match std::fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(format!("{} could not be examined: {e}; whether it is there is not known", path.display())),
+    }
+}
 /// Recovery's private staging folder contains exact original member names.
 /// A raced pathname is first moved exclusively, then checked in its private
 /// location. Unverified bytes survive there rather than being unlinked.
 pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String> {
     let exported = files(&bag.join("data"), false)?;
-    let inventory = if folder.exists() {
+    let inventory = if present(folder)? {
         files(folder, false)?
     } else {
         BTreeMap::new()
@@ -437,7 +449,7 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
         }
         payload.insert(rel,json!({"bytes":std::fs::metadata(&member).map_err(io)?.len(),"sha256":digest(&member)?}));
     }
-    if folder.exists() && files(folder, false)? != inventory {
+    if present(folder)? && files(folder, false)? != inventory {
         return Err("staged payload changed during verification".into());
     }
     Ok(
@@ -445,7 +457,7 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
     )
 }
 fn remove_empty_tree(folder: &Path) -> Result<(), String> {
-    if !folder.exists() {
+    if !present(folder)? {
         return Ok(());
     }
     crate::storage::check_path(folder)?;
@@ -524,7 +536,7 @@ pub(crate) fn dispose_members(
     for rel in expected {
         let input = source.join(&rel);
         let staged = stage.join(&rel);
-        if !staged.exists() && input.exists() {
+        if !present(&staged)? && present(&input)? {
             crate::storage::check_path(&input)?;
             let meta = std::fs::symlink_metadata(&input).map_err(io)?;
             if !meta.is_file() {
@@ -541,7 +553,7 @@ pub(crate) fn dispose_members(
                 hook();
             }
         }
-        if staged.exists() {
+        if present(&staged)? {
             crate::storage::check_path(&staged)?;
             let before = std::fs::symlink_metadata(&staged).map_err(io)?;
             if !before.is_file() {
@@ -583,7 +595,7 @@ pub(crate) fn dispose_members(
             std::fs::remove_file(&staged).map_err(io)?;
             crate::storage::sync_dir(staged.parent().unwrap())?;
         }
-        if input.exists() {
+        if present(&input)? {
             return Err(format!(
                 "member reappeared after staging; bytes retained: {}",
                 input.display()

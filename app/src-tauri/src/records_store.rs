@@ -702,8 +702,14 @@ fn recover_file(path: &Path) -> Result<Option<String>, String> {
 /// if it has not been (`witness`). A store not yet created is left alone. Returns what was left as it was.
 pub fn recover_at_startup() -> Result<Vec<String>, String> {
     let configured = current()?;
-    if !configured.root.join("store.json").exists() {
-        return Ok(vec![]);
+    // Only a store that is not there is left alone; one whose record cannot
+    // be examined is not a store not yet created. What recovery could not
+    // examine is shown, never passed over as though nothing were there.
+    let record = configured.root.join("store.json");
+    match std::fs::symlink_metadata(&record) {
+        Ok(_) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) => return Err(format!("records store unreadable: {}: {e}", record.display())),
     }
     let (store, _) = opened()?;
     let _lock = store_lock(&store)?;
@@ -711,16 +717,27 @@ pub fn recover_at_startup() -> Result<Vec<String>, String> {
     left.extend(recover_file(&store.join("roots.jsonl"))?);
     left.extend(recover_file(&store.join(witness::WITNESS_FILE))?);
     let projects = store.join("projects");
-    let mut dirs: Vec<PathBuf> = match std::fs::read_dir(&projects) {
-        Ok(rd) => rd.filter_map(|e| e.ok().map(|e| e.path())).collect(),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => vec![],
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    match std::fs::read_dir(&projects) {
+        Ok(rd) => for entry in rd {
+            match entry {
+                Ok(entry) => dirs.push(entry.path()),
+                Err(e) => left.push(format!("{}: a project folder could not be listed ({e}), so its import account could not be examined; left as it is", projects.display())),
+            }
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
         Err(e) => return Err(format!("records store unreadable: {}: {e}", projects.display())),
-    };
+    }
     dirs.sort();
     for dir in dirs {
         let path = dir.join("imports.jsonl");
-        if !path.exists() {
-            continue;
+        match std::fs::symlink_metadata(&path) {
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => {
+                left.push(format!("{}: could not be examined ({e}); left as it is", path.display()));
+                continue;
+            }
         }
         if let Err(e) = crate::records_retention::check_write(&dir) {
             left.push(format!("{}: left as it is: {e}", path.display()));
@@ -1045,7 +1062,7 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
                 // confirms it; never read as a project with no records, and
                 // never registered here on the link alone.
                 let released = lines.iter().any(|l| l["projectId"] == project.as_str());
-                let known = released || project_dir(&store, project).join("project.json").is_file();
+                let known = released || identity_held(&project_dir(&store, project))?;
                 if mint && !released {
                     // A link the store does not know yet, or an identity whose
                     // minting stopped before its first roots line.
@@ -1624,6 +1641,19 @@ pub(crate) struct LegacyFile {
     /// still this one.
     pub stamp: Value,
 }
+/// Whether the store holds `dir`'s identity record (`project.json`): a
+/// regular file there, yes; nothing there, no; anything else, or a record
+/// that cannot be examined, is an error, never "not held" (the census's
+/// premise: what could not be inspected is not absent).
+fn identity_held(dir: &Path) -> Result<bool, String> {
+    let record = dir.join("project.json");
+    match std::fs::symlink_metadata(&record) {
+        Ok(meta) if meta.is_file() => Ok(true),
+        Ok(_) => Err(format!("records store unreadable: {} is not a regular file, so whether the store holds this project is not known", record.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(format!("records store unreadable: {}: {e}; whether the store holds this project is not known", record.display())),
+    }
+}
 /// The §13.7 project records in the project: run and act logs, WR WP-1
 /// records, and capture evidence (with pending submissions) other than A15
 /// captures, which stay with their library (U-STORE-2). The library's own act
@@ -1634,9 +1664,15 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     let captures = root.join(".chirality/captures");
     fn list(dir: &Path) -> Result<Vec<(PathBuf, bool)>, String> {
         crate::storage::check_path(dir)?;
+        // Only a folder that is not there holds nothing. One that cannot be
+        // listed, or something else in its place (inside the App's own
+        // `.chirality` folder, where earlier builds wrote only folders), is
+        // an error: a census that could not inspect the records never says
+        // there are none.
         let rd = match std::fs::read_dir(dir) {
             Ok(rd) => rd,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::NotADirectory => return Ok(vec![]),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+            Err(e) if e.kind() == std::io::ErrorKind::NotADirectory => return Err(format!("§13.7 records could not all be listed: {} (or a folder above it) is not a folder, so what it holds is not known", dir.display())),
             Err(e) => return Err(format!("§13.7 records could not all be listed: {}: {e}", dir.display())),
         };
         let mut v = Vec::new();
@@ -1689,10 +1725,23 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
         }
     }
     // The explicitly registered legacy log (§13.7) is project history too.
+    // Present, absent, or not known: a log that cannot be examined (its
+    // folder unsearchable, for one) is an error, never absent.
+    // One case of "not a folder" is absence and is kept as absence, on
+    // purpose: the log's folder is `records` at the project's ROOT, which is
+    // the project's own space and not the App's `.chirality` folder. A
+    // project may well have an ordinary file named `records` there, and a
+    // path beneath a regular file cannot exist (the system answers
+    // NotADirectory), so the log is observed to be absent, not left
+    // uninspected. Inside `.chirality`, where earlier builds wrote only
+    // folders, something other than a folder is an error instead (`list`).
     let registered = root.join(crate::storage::LEGACY_LOG);
     crate::storage::check_path(&registered)?;
-    if registered.is_file() {
-        out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered, refusal: None, stamp: Value::Null });
+    match std::fs::symlink_metadata(&registered) {
+        Ok(meta) if meta.is_file() => out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered, refusal: None, stamp: Value::Null }),
+        Ok(_) => return Err(format!("§13.7 records could not all be listed: {} is not a regular file, so what it holds is not known", registered.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::NotADirectory => {}
+        Err(e) => return Err(format!("§13.7 records could not all be listed: {}: {e}", registered.display())),
     }
     out.extend(connector_census(root)?);
     for file in &mut out {
@@ -1717,9 +1766,11 @@ fn connector_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     use std::os::unix::fs::MetadataExt;
     let dir = root.join(crate::connector_route_store::LEGACY_DIRECTORY);
     crate::storage::check_path(&dir)?;
+    // As the census: only a folder that is not there holds nothing.
     let rd = match std::fs::read_dir(&dir) {
         Ok(rd) => rd,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::NotADirectory => return Ok(vec![]),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) if e.kind() == std::io::ErrorKind::NotADirectory => return Err(format!("connector route accounts could not all be listed: {} (or a folder above it) is not a folder, so what it holds is not known", dir.display())),
         Err(e) => return Err(format!("connector route accounts could not all be listed: {}: {e}", dir.display())),
     };
     let mut out = Vec::new();
@@ -2009,16 +2060,19 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":format!("the store already holds a different file there (sha256 {}); not overwritten", sha256_hex(&existing))}));
                 continue;
             }
-            // A late log that would bring a record identity the store's set
-            // already holds is not copied: R-1 counts each identity once.
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound && store_held && file.copy.ends_with(".jsonl")
-                && !held_identities(&attachment.root, bytes).is_empty() => {
-                let held = held_identities(&attachment.root, bytes);
-                conflicts.push(json!({"original":file.rel,"copy":file.copy,"heldIdentities":held.iter().take(HELD_SHOWN).collect::<Vec<_>>(),"heldCount":held.len(),
-                    "reason":format!("it holds record identities the records store already holds ({}); not copied, so each identity is counted once (R-1)", name_bounded(&held))}));
-                continue;
-            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                // A late log that would bring a record identity the store's
+                // set already holds is not copied: R-1 counts each identity
+                // once. Whether the set holds one is known only from a set
+                // read whole (`held_identities`).
+                if store_held && file.copy.ends_with(".jsonl") {
+                    let held = held_identities(&attachment.root, bytes)?;
+                    if !held.is_empty() {
+                        conflicts.push(json!({"original":file.rel,"copy":file.copy,"heldIdentities":held.iter().take(HELD_SHOWN).collect::<Vec<_>>(),"heldCount":held.len(),
+                            "reason":format!("it holds record identities the records store already holds ({}); not copied, so each identity is counted once (R-1)", name_bounded(&held))}));
+                        continue;
+                    }
+                }
                 #[cfg(test)]
                 if IMPORT_STOP_AFTER.with(|c| c.get()) == Some(copied) {
                     return Err("import interrupted (injected); it did not complete".into());
@@ -2045,14 +2099,22 @@ pub fn import(root: &Path) -> Result<Value, String> {
     Ok(outcome(&attachment, Some(id), census.len(), copied, present, conflicts, census_changed))
 }
 /// Every record identity in a log's `bytes` that the project's record set
-/// (the store, read through the index) already holds, in log order.
-fn held_identities(root: &Path, bytes: &[u8]) -> Vec<String> {
+/// (the store, read through the index) already holds, in log order. A set
+/// not read whole cannot say that it holds none of them, so the import is
+/// refused rather than copying what may be a duplicate.
+fn held_identities(root: &Path, bytes: &[u8]) -> Result<Vec<String>, String> {
     let ids: Vec<String> = bytes.split(|b| *b == b'\n').filter_map(|l| serde_json::from_slice::<Value>(l).ok())
         .filter_map(|v| v["recordId"].as_str().map(str::to_owned)).collect();
-    let mut held = crate::records_index::with_index(root, |ix| ids.into_iter().filter(|id| ix.holds(id)).collect::<Vec<_>>());
+    let mut held = crate::records_index::with_index(root, |ix| {
+        let limits = ix.limits();
+        if !limits.is_empty() {
+            return Err(format!("the project's record set is not read whole ({limits:?}), so whether it already holds this log's record identities is not known; the import did not complete"));
+        }
+        Ok(ids.into_iter().filter(|id| ix.holds(id)).collect::<Vec<_>>())
+    })?;
     let mut seen = std::collections::HashSet::new();
     held.retain(|id| seen.insert(id.clone()));
-    held
+    Ok(held)
 }
 /// How many held identities a conflict names before "and N more".
 const HELD_SHOWN: usize = 20;
@@ -2096,8 +2158,9 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     // the store holds it: one adopted from another store has none yet, and
     // registering it publishes under that admission.
     let adopted = project_dir(&store, &project);
+    let held = identity_held(&adopted)?;
     let mut _admissions = Vec::new();
-    if adopted.join("project.json").is_file() {
+    if held {
         _admissions.push(crate::records_retention::quiet_for_reassociation(&adopted, &project)?);
     } else {
         _admissions.push(crate::records_retention::read_path(&adopted)?);
@@ -2105,7 +2168,7 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     for other in here.iter().filter(|p| **p != project) { _admissions.push(crate::records_retention::quiet_for_reassociation(&project_dir(&store,other), other)?); }
     let mut _idle = Vec::new();
     for other in here.iter() { _idle.push(crate::records_retention::idle_for_reassociation(&project_dir(&store,other), other)?); }
-    if !here.contains(&project) && adopted.join("project.json").is_file() {
+    if !here.contains(&project) && held {
         _idle.push(crate::records_retention::idle_for_reassociation(&adopted, &project)?);
     }
     if roots_of(&lines, &project).iter().any(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
