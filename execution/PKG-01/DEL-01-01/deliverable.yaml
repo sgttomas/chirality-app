@@ -42,6 +42,9 @@ code_paths:
 # The reading gate: configuration readings of one Codex generation are made one at a time.
 - app/src-tauri/src/hosting_reading_gate.rs
 - app/src-tauri/src/hosting_reading_gate_tests.rs
+# Its two sentences, held once in the web view and checked against the gate's constants.
+- app/src/readingSentences.ts
+- app/tests/reading-sentences.test.mjs
 - app/src-tauri/src/hosting_probe.rs
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/hosting_observation_facts.rs
