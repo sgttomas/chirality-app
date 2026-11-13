@@ -44,6 +44,9 @@ needs:
   condition: Entries are written to a run's log through one writer and can be validated; a human
     act binds actor, recorder, content identity, scope and purpose; and an act whose bound content
     changed is reported as lapsed.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
   gating: false
 - from: DEL-03-02
   condition: Each change item has a content identity and its own disposition, an item leaving
