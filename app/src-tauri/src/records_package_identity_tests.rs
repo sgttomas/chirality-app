@@ -380,3 +380,33 @@ fn package_identity_lost_roots_registry_does_not_release_a_completed_physical_ro
         assert!(attach(&f.root, true).is_err());
     }
 }
+
+/// The unused-identity inventory is never skipped. The prior identity holds
+/// administrative evidence beyond its locks, which the inventory refuses;
+/// its administration folder is made unexaminable in the interval after the
+/// retention view and before the inventory: the restore is refused, never
+/// planned as the reassociation of an unused identity.
+#[test]
+fn package_identity_an_unexaminable_inventory_never_reads_as_an_unused_identity() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    let q = f.minted();
+    let administration_of_q = controls(&q).unwrap();
+    // Evidence only the inventory refuses (the retention view reads the
+    // history, not this): an unexplained member beside the locks.
+    bag::create_or_match(&administration_of_q.join("unknown.json"), b"{}").unwrap();
+    // Control: with everything readable, the inventory refuses.
+    let readable = prepare_restore(&f.root, &f.bag, &actor(), &observed());
+    assert!(readable.as_ref().is_err_and(|e| e.contains("administrative or import history")), "control: {:?}", readable.as_ref().err());
+    let administration = administration_of_q.parent().unwrap().to_path_buf();
+    let blocked = administration.clone();
+    AROUND_UNUSED_INVENTORY.with(|h| *h.borrow_mut() = Some(Box::new(move |before: bool| {
+        std::fs::set_permissions(&blocked, std::fs::Permissions::from_mode(if before { 0o400 } else { 0o700 })).unwrap();
+    })));
+    let planned = prepare_restore(&f.root, &f.bag, &actor(), &observed());
+    let refused = planned.as_ref().err().cloned();
+    let applied = planned.ok().map(|plan| apply(plan, &actor(), &observed()));
+    AROUND_UNUSED_INVENTORY.with(|h| *h.borrow_mut() = None);
+    std::fs::set_permissions(&administration, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(refused.is_some(), "never planned over an inventory that was not taken; applied: {:?}", applied.as_ref().map(|r| r.as_ref().map(|v| v["projectId"].clone())));
+}
