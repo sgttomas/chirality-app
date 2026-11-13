@@ -1262,9 +1262,9 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
     let generation=home.host.snapshot()["generation"].clone();
     runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app)).map_err(key_entry_refusal)
 }
-/// Known when the key entry's configuration reading is refused: the separate key home is set up and
-/// its Codex is running (the reading is sent only to that ready Codex), and no key was entered.
-pub(crate) const KEY_HOME_READY: &str = "The separate key home is set up and its Codex is running; no key was entered. ";
+/// Known when the key entry's configuration reading is refused: the separate key home is set up,
+/// and the reading comes before the secure key field opens, so no key was sent or saved.
+pub(crate) const KEY_HOME_READY: &str = "The separate key home is set up; the key field was not opened, so no key was sent or saved. ";
 /// What `add_api_key` returns for a failure: either reading sentence after what is already known,
 /// otherwise the failure as before.
 pub(crate) fn key_entry_refusal(error: String) -> String {
@@ -1647,7 +1647,7 @@ fn start_conversation(
 /// the refusal is still recorded in role supply, and nothing else is shown with the sentence.
 /// Any other reason keeps its role supply observation.
 pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Display) -> String {
-    if hosting::reading_gate::reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
+    if hosting::reading_gate::carries_reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
 }
 #[allow(clippy::too_many_arguments)]
 fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{

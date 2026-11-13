@@ -364,7 +364,7 @@ pub(crate) fn fork_conversation_tracked(home: &crate::runtime_session::HomeSessi
         Err(reason)=>{
             let actual=home.host.snapshot()["generation"].clone();
             let source=if actual==*generation{actual}else{Value::Null};
-            let publication=home.history.lock().unwrap().fork_refused(&supply_ref,&source,source_thread,&reason,reason.starts_with("refused-not-sent:"));
+            let publication=home.history.lock().unwrap().fork_refused(&supply_ref,&source,source_thread,&reason,reason.starts_with("refused-not-sent:")||crate::hosting::reading_gate::carries_reading_sentence(&reason));
             return Err(crate::role_supply_refusal(&reason, &publication));
         }
     };

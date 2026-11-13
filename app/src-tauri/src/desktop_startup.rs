@@ -3585,7 +3585,7 @@ mod tests {
         let publication = json!({"state":"refused"});
         for sentence in [READING_GATE, READING_WITHDRAWN] {
             assert_eq!(crate::role_supply_refusal(sentence, &publication), sentence);
-            assert_eq!(crate::key_entry_refusal(sentence.into()), format!("The separate key home is set up and its Codex is running; no key was entered. {sentence}"));
+            assert_eq!(crate::key_entry_refusal(sentence.into()), format!("The separate key home is set up; the key field was not opened, so no key was sent or saved. {sentence}"));
         }
         assert_eq!(crate::role_supply_refusal("refused-not-sent: invented", &publication), format!("refused-not-sent: invented; role supply observation: {publication}"));
         assert_eq!(crate::role_supply_refusal(&format!("{READING_GATE} "), &publication), format!("{READING_GATE} ; role supply observation: {publication}"), "only the exact sentence");

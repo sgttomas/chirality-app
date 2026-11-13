@@ -580,3 +580,42 @@ test('in the App, a null send result that leaves the pre-fill visible is not sho
     assert.match(notice().textContent, /You've said you checked/, 'the original record stays');
   });
 });
+
+// A Continue as start refused at its reading, then a failed status refresh: the panel still
+// reports the host's message (the sentence), the App line shows it then the fixed refresh line,
+// and the raw refresh diagnostic is never shown. Before, the refresh's own error replaced it.
+test('in the App, a Continue as start refused at its reading keeps that sentence when the refresh after it fails', async () => {
+  const {App} = loadSrc('App');
+  const {READING_GATE} = loadSrc('readingSentences'); const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  const status = {state:'ready', generation:g, homeRouting:{activeModeHomeClass:'account'}, threads:[], roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet, continueAs:[handoff()]};
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); let failStatus = false;
+  const idle = installIdleNativeWaiting(async command => {
+    if (command === 'host_status') { if (failStatus) throw 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_31'; return structuredClone(status); }
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    if (command === 'read_available_models') return packet();
+    if (command === 'thread_start') { failStatus = true; throw READING_GATE; }
+    throw Error(`unexpected ${command}`);
+  });
+  const previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById};
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
+  const panel = () => region(c, 'Continue as');
+  const settle = () => React.act(async () => { for (let i = 0; i < 10; i++) await Promise.resolve(); });
+  const press = async label => { await React.act(async () => { const node = button(panel(), label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }); await settle(); };
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    await React.act(async () => { props(labelled(panel(), 'textarea', 'Handoff message')).onChange({target:{value:'Edited handoff'}}); });
+    await press('Use my ChatGPT account (built-in OpenAI)');
+    await press('Read available models');
+    await press('Use Model B');
+    await press('Start new conversation as WORKING_ITEMS');
+    const outcome = region(panel(), 'Start outcome');
+    assert.ok(outcome && outcome.textContent.includes(READING_GATE), 'the panel reports the host message, the sentence');
+    assert.ok(c.textContent.includes(`thread_start: ${READING_GATE} ${REFRESH_FAILED}`), 'the App line: the outcome, then the fixed refresh line');
+    assert.doesNotMatch(c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_31/, 'the raw refresh diagnostic is withheld');
+  } finally {
+    const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
+    Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById;
+  }
+});

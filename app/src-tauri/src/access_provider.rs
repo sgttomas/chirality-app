@@ -40,6 +40,9 @@ const PROVIDER_FIELDS: &[&str] = &[
     "supports_standalone_web_search",
     "project_id", "location", "credential_file", "capabilities",
 ];
+/// Before either reading sentence when a start's child-role reread is refused: what is already
+/// known (PROPOSED wording).
+pub(crate) const CHILD_ROLES_IN_PLACE: &str = "The configuration was read and this role's child-role files are in place in the App's data, but the conversation was not started. ";
 const OBSERVATION_LIMIT: &str = "Configured provider observation unavailable; private values and diagnostics withheld. Manual explicit choices remain independent and Start requires a fresh private reading.";
 pub(super) struct PrivateConfigReading {
     pub(super) source: SourceRequest,
@@ -971,13 +974,16 @@ impl Host {
             // Config-layer/source coherence is a separate requirement from an
             // equal filesystem rereading. A newer native read always replaces
             // the provider proof; a changed response never promotes absence.
+            // Refused here, after a completed configuration reading and with this role's child-role
+            // files in place in the App's data (`child_roles::prepare` keeps only published ones):
+            // what is known is stated first, then the reading's sentence.
             let refreshed = self.provider_admission_read(
                 &proof.source.generation,
                 &proof.cwd,
                 &proof.entry,
                 &proof.provider,
                 &proof.model,
-            )?;
+            ).map_err(|e| if reading_gate::reading_sentence(&e) { format!("{CHILD_ROLES_IN_PLACE}{e}") } else { e })?;
             let stable = refreshed.config == proof.config
                 && namespace.as_ref().is_some_and(|n| n.recheck().is_ok());
             let link = proof.config_link.clone();

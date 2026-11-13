@@ -65,6 +65,11 @@ pub(super) fn settlement(frame: &Value, id: Option<&Value>) -> Result<(), Unsett
         _ => Ok(()),
     }
 }
+/// Whether a message ends with either sentence: the sentence alone, or what is already known to
+/// have happened stated first, then the sentence (a start refused at its child-role reread).
+pub(crate) fn carries_reading_sentence(message: &str) -> bool {
+    message.ends_with(READING_GATE) || message.ends_with(READING_WITHDRAWN)
+}
 /// Whether an error is one of the two sentences a sender must pass on as it is.
 pub(crate) fn reading_sentence(error: &str) -> bool {
     error == READING_GATE || error == READING_WITHDRAWN

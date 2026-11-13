@@ -2444,6 +2444,31 @@ fn child_peer() -> Peer {
 fn child_thread(id: &str, parent: Option<&str>, role: Option<&str>) -> Value {
     json!({"id":id,"cliVersion":"0.160.0","createdAt":1,"updatedAt":2,"cwd":"/invented/work","ephemeral":false,"modelProvider":"openai","preview":"synthetic","projectId":null,"sessionId":"synthetic-session","source":if let Some(parent)=parent{json!({"subAgent":{"thread_spawn":{"parent_thread_id":parent,"depth":1,"agent_role":role}}})}else{json!("appServer")},"status":{"type":"idle"},"turns":[],"agentRole":role,"parentThreadId":parent,"forkedFromId":null})
 }
+/// A start's child-role reread refused (the frame writer busy past its deadline) after a completed
+/// configuration reading and with the child-role files published: the message states what is
+/// known first, then the sentence; it is shown as it is, and the durable role-supply record keeps
+/// it as refused before dispatch with that reason.
+#[test]
+fn a_child_role_reread_refused_after_the_files_are_in_place_states_and_records_that_phase() {
+    use crate::hosting::reading_gate::READING_WITHDRAWN;
+    let (root, value) = child_fixture();
+    let mut peer = child_peer();
+    peer.answer(value);
+    let mut proof = peer.read("chatgpt-account", "openai").unwrap();
+    peer.frame();
+    let mut c = crate::runtime_session::compose_role(&root.join("instructions"), Some(crate::role_supply::Role::WORKING_ITEMS)).unwrap();
+    peer.host.hold_frame_writer_for_test(Duration::from_secs(11));
+    let error = peer.host.prepare_role_children(&mut proof, &mut c, &root.join("instructions"), &root).unwrap_err();
+    assert_eq!(error, format!("{CHILD_ROLES_IN_PLACE}{READING_WITHDRAWN}"));
+    assert!(!c.children.is_empty(), "the child-role files were published before the reread");
+    assert_eq!(crate::role_supply_refusal(&error, &json!({"state":"written"})), error, "shown as it is");
+    let mut history = crate::runtime_session::HistorySession::default();
+    history.configure_role_log(&root);
+    let published = history.role_refused_continuing("sup:synthetic-child-reread", &peer.g, Some(crate::role_supply::Role::WORKING_ITEMS), Some(false), &error, true, None);
+    assert_eq!(published["state"], "written", "{published}");
+    let record = history.read_role_supply(peer.g["home"].as_str().unwrap(), None).to_string();
+    assert!(record.contains("refused-before-send") && record.contains("child-role files are in place"), "{record}");
+}
 fn child_parent() -> (
     std::path::PathBuf,
     Peer,

@@ -43,7 +43,7 @@ async function mounted(options,check) {
    if(options.refreshFails)statusFailure=true;return options.fork?options.fork(result):result;
   }
   if(command==='thread_start'){
-   assert.deepEqual(args,{...choice,modeHomeClass:'account',generation:g,role:null,preselected:false});
+   assert.deepEqual(args,{...choice,modeHomeClass:'account',generation:g,role:null,preselected:false});if(options.refreshFails)statusFailure=true;
    if(options.start)return options.start(args);const row=thread('new-choice',g,args.role);homes.account.threads.push(row);
    return {id:91,startGeneration:g,result:{thread:{id:row.threadId},model:'fixture-model',modelProvider:'fixture-provider'},roleSupplyRecord:{state:'not-confirmed'}};
   }
@@ -146,4 +146,14 @@ for(const sentence of [READING_GATE,READING_WITHDRAWN])test(`a Fork refused at i
 });
 for(const sentence of [READING_GATE,READING_WITHDRAWN])test(`a Start refused at its reading shows that sentence: ${sentence.slice(0,40)}`,async()=>{
  await mounted({start:async()=>{throw sentence;}},async ui=>{await ui.press('Start thread');assert.ok(ui.c.textContent.includes(`thread_start: ${sentence}`),'the sentence is shown');assert.doesNotMatch(ui.c.textContent,/role supply observation/);assert.deepEqual(ui.values(),choice);});
+});
+
+// A status refresh that fails after a refused Fork or Start adds the fixed line once, after the
+// action's own message, and never its raw diagnostic; an ordinary refusal keeps its own message.
+const {REFRESH_FAILED}=loadSrc('statusRefresh');
+for(const [label,reason,shown] of [['the gate sentence',READING_GATE,READING_GATE],['an ordinary refusal','refused-not-sent: invented fork refusal','Fork outcome is not confirmed: refused-not-sent: invented fork refusal']])test(`a Fork refused (${label}) then a failed refresh: its message, then the fixed line`,async()=>{
+ await mounted({admit:false,refreshFails:true,fork:async()=>{throw reason;}},async ui=>{await ui.press('Fork (same role)');assert.ok(ui.c.textContent.includes(`${shown} ${REFRESH_FAILED}`),ui.c.textContent.slice(-600));assert.doesNotMatch(ui.c.textContent,/controlled observer refresh unavailable/);ui.recover();});
+});
+for(const [label,reason] of [['the withdrawn sentence',READING_WITHDRAWN],['an ordinary refusal','refused-not-sent: invented start refusal']])test(`a Start refused (${label}) then a failed refresh: its message, then the fixed line`,async()=>{
+ await mounted({refreshFails:true,start:async()=>{throw reason;}},async ui=>{await ui.press('Start thread');assert.ok(ui.c.textContent.includes(`thread_start: ${reason} ${REFRESH_FAILED}`),ui.c.textContent.slice(-600));assert.doesNotMatch(ui.c.textContent,/controlled observer refresh unavailable/);ui.recover();});
 });

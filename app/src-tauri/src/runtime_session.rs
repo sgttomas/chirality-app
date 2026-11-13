@@ -10077,7 +10077,7 @@ for line in sys.stdin:
         for sentence in [crate::hosting::reading_gate::READING_GATE, crate::hosting::reading_gate::READING_WITHDRAWN] {
             let r=prepare();
             let err=trial_flows::start_clean_trial(&root,&r,||Err(sentence.to_owned()),|_,_|panic!("nothing is sent")).unwrap_err();
-            assert_eq!(err.message,format!("The trial conversation was not started; the pre-filled trial was withdrawn and nothing was recorded. {sentence}"));
+            assert_eq!(err.message,format!("The trial conversation was not started; the pre-filled trial was withdrawn. {sentence}"));
             assert!(!err.prefill_kept&&!pending_refs(&root).contains(&r),"withdrawn as any failed start");
         }
         // The start named no thread id: withdrawn.

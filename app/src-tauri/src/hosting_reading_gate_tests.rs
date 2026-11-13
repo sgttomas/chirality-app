@@ -1,7 +1,7 @@
 //! Configuration readings of one generation are made one at a time (`reading_gate`): stand-in
 //! children only (`/bin/cat` echoes what reaches Codex's input; `/bin/sleep` never reads it).
 use super::*;
-use reading_gate::{ReadingStage, READING_GATE, READING_WITHDRAWN};
+use reading_gate::{settlement, ReadingStage, Unsettled, READING_GATE, READING_WITHDRAWN};
 use std::io::{BufRead, BufReader};
 use std::sync::mpsc::{channel, Receiver};
 use std::time::{Duration, Instant};
@@ -539,12 +539,66 @@ fn settlement_keeps_its_refusal_for_each_way_a_reply_is_rejected() {
         (json!({"id":7}), RESULT),
     ] {
         let mut record = json!({"requestIdentity":7});
-        assert_eq!(Host::completed_client_response(&mut record, Some(&frame), Some(1)).unwrap_err(), expected, "{frame}");
+        let verdict = settlement(&frame, record.get("requestIdentity"));
+        assert_eq!(Host::completed_client_response(&mut record, Some(&frame), Some(1), Some(verdict)).unwrap_err(), expected, "{frame}");
     }
+    let mut record = json!({"requestIdentity":7});
+    assert_eq!(Host::completed_client_response(&mut record, Some(&json!({"id":7,"result":{}})), Some(1), None).unwrap_err(), ENVELOPE, "a reply with no verdict taken at receipt is not accepted");
     for (frame, outcome) in [(json!({"id":7,"error":{"code":-32603,"message":"m"}}), "response-observed-error"), (json!({"id":7,"result":{}}), "response-observed-result")] {
         let mut record = json!({"requestIdentity":7});
-        Host::completed_client_response(&mut record, Some(&frame), Some(2)).unwrap();
+        let verdict = settlement(&frame, record.get("requestIdentity"));
+        Host::completed_client_response(&mut record, Some(&frame), Some(2), Some(verdict)).unwrap();
         assert_eq!(record["outcome"], outcome);
+    }
+}
+
+/// Settlement's verdict is taken on the reply exactly as Codex sent it, before the host's privacy
+/// projections. A private configuration reading's error with a code and no message, and a
+/// requirements reading's error with no message or a message that is not a string, are rejected as
+/// sent, though each projection (`access_provider::withheld`, `auth_rpc::project_received_frame`)
+/// replaces the message with a fixed one. Each leaves the reading held; the later valid reply
+/// releases it, and a reading queued meanwhile registers only then. Lines go through `on_line`.
+#[test]
+fn a_reply_invalid_as_codex_sent_it_releases_nothing_though_its_projection_looks_valid() {
+    for (label, error) in [
+        ("private configuration, no message", json!({"code":-32603})),
+        ("requirements, no message", json!({"code":-32603})),
+        ("requirements, a message that is not a string", json!({"code":-32603,"message":7})),
+    ] {
+        let rig = Rig::new();
+        let private = label.starts_with("private");
+        let admitting = if private {
+            let (host, g) = (rig.host.clone(), rig.g.clone());
+            Some(std::thread::spawn(move || admit(&host, &g, LONG)))
+        } else {
+            rig.host.account_requirements_read_until(&rig.g, Instant::now() + LONG).unwrap();
+            None
+        };
+        let held = rig.frame();
+        assert_eq!(held["method"], if private { "config/read" } else { "configRequirements/read" }, "{label}");
+        let held_ref = request_ref(&held["id"], &rig.host);
+        rig.host.on_line(&serde_json::to_vec(&json!({"id":held["id"],"error":error})).unwrap(), &rig.g);
+        if let Some(admitting) = admitting { assert!(admitting.join().unwrap().is_err(), "{label}: no proof"); }
+        {
+            let i = rig.host.inner.0.lock().unwrap();
+            let e = &i.source_requests[&held["id"].to_string()];
+            assert!(e.response.as_ref().is_some_and(|r| r["error"]["message"].is_string()), "{label}: the stored reply was projected to a valid-looking error: {:?}", e.response);
+            assert_eq!(e.native_settlement, Some(Err(Unsettled::ErrorShape)), "{label}: the verdict was taken on the reply as sent");
+            assert_eq!(e.source_limit.as_deref(), Some("Actual native error code/message unavailable; no invented canonical error"), "{label}: settlement refused it with the same verdict");
+        }
+        assert!(matches!(rig.stage(), Some((Some(id), _)) if id == held["id"].to_string()), "{label}: releases nothing: {:?}", rig.stage());
+        let waiting = rig.on_waiting();
+        let (host, g) = (rig.host.clone(), rig.g.clone());
+        let next = std::thread::spawn(move || read(&host, &g, json!({"cwd":W,"includeLayers":false}), LONG));
+        waiting.recv_timeout(LONG).expect("the next reading finds the reservation held");
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(rig.current(), Some(held_ref), "{label}: the next reading has not registered");
+        rig.none(Duration::from_millis(150));
+        rig.error(&held);
+        let frame = rig.frame();
+        assert_ne!(frame["id"], held["id"], "{label}: the valid reply released it and the next reading registered");
+        rig.answer(&frame, cfg());
+        next.join().unwrap().unwrap();
     }
 }
 

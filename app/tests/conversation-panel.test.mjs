@@ -329,7 +329,7 @@ test('an admitted start consumes its chooser before an independent refresh failu
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);ui.failStatus();await ui.press('Start thread');
     assert.deepEqual(ui.values(),blankChoice);assert.equal(props(ui.start()).disabled,true);
-    assert.match(ui.container.textContent,/current host view unavailable/);
+    assert.ok(ui.container.textContent.includes("thread_start: ")&&ui.container.textContent.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."),'the start outcome stands, then the fixed refresh line');assert.doesNotMatch(ui.container.textContent,/Current status read unavailable/);
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
   });
 });

@@ -34,6 +34,7 @@ import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
+import { refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -660,10 +661,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     }
     catch (e) { setError(String(e)); }
     finally {
-      try {
-        if (navigation) await navigation.observe();
-        else await refresh();
-      } catch (e) { setError(String(e)); }
+      await refreshAfterAction(async () => { if (navigation) await navigation.observe(); else await refresh(); }, () => setError(withRefreshFailure));
       if (navigation) {
         setPendingContinue(ticket);
         setContinueNotice(ticket ? "Continue admission confirmed; waiting for its matched current conversation view. No automatic retry."
@@ -1969,7 +1967,7 @@ export function App() {
 
   useEffect(() => {
     refresh();
-    const t = setInterval(() => readHost(invoke<Json>("host_status")).then(applyHost).catch(e => setMessage(String(e))), POLL_MS);
+    const t = setInterval(() => refreshAfterAction(() => readHost(invoke<Json>("host_status")).then(applyHost), () => setMessage(withRefreshFailure)), POLL_MS);
     // RECOVERY SQ-W W-4, W-5: when the window is shown again after it was
     // closed (hidden; DEF-1), the view replaces what it rendered with the
     // host's current snapshot at once. Nothing is sent to Codex.
@@ -2026,8 +2024,7 @@ export function App() {
     } finally {
       startPendingRef.current = false;
       setStartPending(false);
-      try { await refresh(); }
-      catch (error) { setMessage(previous => `${previous}; current host view unavailable: ${String(error)}`); }
+      await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
     }
   };
   // Keyed oMLX: one local command at a time. Its view is shown only while it
@@ -2056,8 +2053,10 @@ export function App() {
     finally {
       // The latch is held through this refresh, which cannot replace a newer
       // observation or home navigation that arrived while it was read.
-      try { await refreshEffectiveAccessSettings(() => sequence === localSequence.current && !homePendingRef.current); }
-      catch (error) { setLocalMessage(previous => ({ kind: "alert", text: `${previous ? `${previous.text} ` : ""}Current view unavailable: ${String(error)}` })); }
+      try {
+        await refreshAfterAction(() => refreshEffectiveAccessSettings(() => sequence === localSequence.current && !homePendingRef.current),
+          () => setLocalMessage(previous => ({ kind: "alert", text: withRefreshFailure(previous?.text) })));
+      }
       finally { localPendingRef.current = false; setLocalPending(false); }
     }
   };
@@ -2247,12 +2246,12 @@ export function App() {
       }
     } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(readingSentence(error) ?? `Fork outcome is not confirmed: ${String(error)}`); }
     finally {
-      try {
-        const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+      await refreshAfterAction(async () => {
+        const snapshotRead = await readHost(invoke<Json>("host_status"));
         // Ignore a response to an older intent/source; it cannot restore that
         // home over a newer choice or make a stale fork current.
         if (forkContextCurrent(scope, currentHost.current)) applyHost(snapshotRead);
-      } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(previous => `${previous}; original source view refresh unavailable: ${String(error)}`); }
+      }, () => { if (forkContextCurrent(scope, currentHost.current)) setMessage(withRefreshFailure); });
       forkInFlight.current = false;
     }
   };
@@ -2279,7 +2278,7 @@ export function App() {
       setMessage(`${command}: ${JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); }
-    finally { await refresh(); }
+    finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // As runAct, but a host error rejects with the host's message, for a start
   // whose own panel reports the outcome (Continue as).
@@ -2289,7 +2288,7 @@ export function App() {
       setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
-    finally { await refresh(); }
+    finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // A bring-back send the host could not confirm withdraws its pre-fill, so its
   // composer and outcome would disappear. Its original attempt (trial or run,

@@ -150,7 +150,7 @@ pub(crate) fn start_bound_clean_trial(
     start_clean_trial(root, reference, || start(&home), |started, thread| send(&home, started, thread))
 }
 /// Before either reading sentence when a clean trial's start was refused at its configuration reading.
-pub(crate) const TRIAL_NOT_STARTED: &str = "The trial conversation was not started; the pre-filled trial was withdrawn and nothing was recorded. ";
+pub(crate) const TRIAL_NOT_STARTED: &str = "The trial conversation was not started; the pre-filled trial was withdrawn. ";
 pub(crate) fn start_clean_trial(
     root: &Mutex<WorkflowRootSession>,
     reference: &str,
@@ -171,7 +171,7 @@ pub(crate) fn start_clean_trial(
         Err(error) => {
             root.lock().unwrap().withdraw_clean_start(reference);
             // A start refused at its configuration reading is known not sent: that, then the sentence.
-            if crate::hosting::reading_gate::reading_sentence(&error) {
+            if crate::hosting::reading_gate::carries_reading_sentence(&error) {
                 return Err(SendRefusal::not_kept(format!("{TRIAL_NOT_STARTED}{error}")));
             }
             return Err(SendRefusal::not_kept(format!("{error}. The trial conversation was not started (or its start was not acknowledged); the pre-filled trial was withdrawn and nothing was recorded; press Try again")));

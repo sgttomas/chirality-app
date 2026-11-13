@@ -98,7 +98,8 @@ async function mounted(answers, check) {
   const intervals = new Map(), previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById}; let timer = 0;
   globalThis.setInterval = fn => { intervals.set(++timer, fn); return timer; }; globalThis.clearInterval = id => intervals.delete(id);
   document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
-  try { await React.act(() => root.render(React.createElement(App))); await check(c, calls); }
+  const poll = () => React.act(async () => { for (const fn of intervals.values()) await fn(); });
+  try { await React.act(() => root.render(React.createElement(App))); await check(c, calls, {poll, failStatus:() => { failStatus = true; }}); }
   finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
     globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById; }
 }
@@ -172,7 +173,7 @@ test('an endpoint save keeps its write-first outcome when the refresh after it f
       const status = nodes(region(c, save.editor), 'p').find(node => node.getAttribute('role') === 'status').textContent;
       assert.equal(status, message, 'the known write outcome stays');
       assert.ok(calls.filter(command => command === 'host_status').length > 0, 'the refresh was attempted');
-      assert.doesNotMatch(region(c, save.editor).textContent, new RegExp(statusCanary), 'the editor withholds the refresh failure');
+      assert.doesNotMatch(c.textContent, new RegExp(statusCanary), 'the refresh failure is withheld everywhere on the page');
       assert.equal(button(c, save.save), undefined, 'no save retry is offered');
     });
   }
@@ -208,4 +209,25 @@ test('a clean trial start refused at its reading shows the host refusal as given
   }
   // Continue as shows the start's rejection as given: the host returns the bare sentence.
   for (const sentence of sentences) assert.equal(hostMessage(sentence), sentence);
+});
+
+// The status poll that fails shows the fixed refresh line alone and nothing raw; an action that
+// succeeds with a successful refresh shows what it showed before (no refresh line).
+const {REFRESH_FAILED} = loadSrc('statusRefresh');
+test('a failed status poll shows the fixed line alone and withholds the raw diagnostic', async () => {
+  await mounted({}, async (c, calls, ui) => {
+    ui.failStatus(); await ui.poll();
+    const once = c.textContent.split(REFRESH_FAILED).length - 1;
+    assert.ok(once >= 1, 'the fixed line is shown');
+    await ui.poll(); await ui.poll();
+    assert.equal(c.textContent.split(REFRESH_FAILED).length - 1, once, 'added once, however often the poll fails');
+    assert.doesNotMatch(c.textContent, new RegExp(statusCanary));
+  });
+});
+test('an action that succeeds with a successful refresh shows no refresh line', async () => {
+  await mounted({read_configured_providers:listed}, async c => {
+    await press(c, 'Read configured local providers');
+    assert.ok(button(c, 'Edit endpoint fixture.dot'), 'the providers are listed as before');
+    assert.doesNotMatch(c.textContent, new RegExp(REFRESH_FAILED.replace(/[.?]/g, '\\$&')));
+  });
 });

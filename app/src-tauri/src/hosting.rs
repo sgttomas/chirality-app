@@ -491,6 +491,10 @@ struct SourceEvidence {
     write_attempt_in_progress: bool,
     attempt_position: Option<u64>,
     response_position: Option<u64>,
+    /// Settlement's verdict on the reply stored in `response`, taken once on the frame exactly as
+    /// Codex sent it, at its receipt (`response_position`) and before any projection. The native
+    /// diagnostic is not retained; only settlement's verdict. Kept as long as this entry.
+    native_settlement: Option<Result<(), reading_gate::Unsettled>>,
     /// Frozen at the actual frame write; never recomputed from a late reply.
     turn_model_cut: u64,
     turn_model_context: Value,
@@ -2321,7 +2325,7 @@ impl Host {
         // record schema; only completion of the actual write sets sentFrame.
         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
-        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,records_project,private_config});
+        i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,native_settlement:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,records_project,private_config});
         if let Some(mode)=oauth_mode{
             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
             let controller=oauth_control::Controller::begin(&pin);
@@ -2390,11 +2394,11 @@ impl Host {
             drop(serial);result})();
         drop(bytes);
         let mut i=self.inner.0.lock().unwrap();let key=id.to_string();let closed=i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||!matches!(i.state.as_str(),"ready"|"handshaking");
-        let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
+        let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;let native_settlement=e.native_settlement;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
         let reading_error=hold.as_ref().map(|_|write_result.as_ref().err().cloned());
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
-                match Self::completed_client_response(&mut record,response.as_ref(),response_position){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
+                match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
                 if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             }
             Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
@@ -2433,10 +2437,12 @@ impl Host {
         Ok(request)
     }
 
-    fn completed_client_response(record:&mut Value,response:Option<&Value>,position:Option<u64>)->Result<(),String>{
+    /// `verdict` is settlement's verdict taken on the reply as Codex sent it, at receipt (`on_line`),
+    /// never on the stored, possibly projected `response`; the same verdict releases a reading. A
+    /// reply with no verdict is refused as malformed. Each refusal keeps its text.
+    fn completed_client_response(record:&mut Value,response:Option<&Value>,position:Option<u64>,verdict:Option<Result<(),reading_gate::Unsettled>>)->Result<(),String>{
         let Some(frame)=response else{return Ok(());};let position=position.ok_or("Native reply position unavailable; canonical settlement projection unavailable")?;
-        // The same test releases a reading (`reading_gate::settlement`); each refusal keeps its text.
-        match reading_gate::settlement(frame,record.get("requestIdentity")){
+        match verdict.unwrap_or(Err(reading_gate::Unsettled::Envelope)){
             Err(reading_gate::Unsettled::Envelope)=>return Err("Native reply envelope malformed/contradictory; canonical settlement projection unavailable".into()),
             Err(reading_gate::Unsettled::ErrorShape)=>return Err("Actual native error code/message unavailable; no invented canonical error".into()),
             Err(reading_gate::Unsettled::NoResult)=>return Err("Native reply result missing; canonical settlement projection unavailable".into()),
@@ -3011,7 +3017,7 @@ impl Host {
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
-            i.source_requests.insert(id.to_string(),SourceEvidence{private_config:false,records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
+            i.source_requests.insert(id.to_string(),SourceEvidence{private_config:false,records_project:None,request:source.clone(),index,written:false,write_error:None,response:None,reserved_sender:Some(tx),write_attempt_in_progress:false,attempt_position:None,response_position:None,native_settlement:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:client.clone(),source_limit:None,auth_projection:false,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,attachment:Some(AttachmentLink{custody:Arc::clone(&custody),records:list.supply_records(),original:client.clone(),limit:None})});(source,client,identity,i.attachment_pipe_epoch)
         };
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
@@ -4117,7 +4123,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 // Deferred attachment settlement can retain an unknown error
                 // without source_limit; validate its original envelope here.
                 let mut refusal = e.observation_base.clone();
-                Self::completed_client_response(&mut refusal, Some(response), Some(position))
+                Self::completed_client_response(&mut refusal, Some(response), Some(position), e.native_settlement)
                     .map_err(|error| format!("a prior turn error envelope is unavailable ({error}); outcome remains unknown"))?;
                 receipts.push(position); continue;
             }
@@ -4312,6 +4318,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read")||known_private_endpoint_channel&&f.get("result").is_some_and(|r|r.get("filePath").is_some()||r.get("overriddenMetadata").is_some())&&correlated_method.as_deref()!=Some("config/batchWrite"))
         });
         let private_create_diagnostic=known_private_create_channel.then(||parsed.as_ref().and_then(provider_create::diagnostic)).flatten();
+        // Settlement's verdict on a reply exactly as Codex sent it, taken once here at receipt and
+        // before any projection below, so no projection can make an invalid native reply acceptable.
+        // Only the verdict is kept with the reply; the native diagnostic is not retained.
+        // The request's own id comes from its source evidence, or else from its pending client record.
+        let native_settlement=parsed.as_ref().and_then(|f|{
+            let key=f.get("id")?.to_string();
+            let own=i.source_requests.get(&key).filter(|e|e.request.generation==*generation).map(|e|e.request.frame["id"].clone())
+                .or_else(||i.pending.get(&key).and_then(|(idx,_)|i.client_requests.get(*idx)).map(|record|record["requestIdentity"].clone()))?;
+            Some(reading_gate::settlement(f,Some(&own)))
+        });
         let (frame,projected)=if let Some(frame)=private_create_diagnostic {(frame,true)}else{match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
             auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
         },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)}};
@@ -4435,13 +4451,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // A reply settlement accepts, naming this line's generation and the outstanding
             // reading's request, releases the reservation; one naming another generation or request,
             // or one settlement rejects, releases nothing.
-            let own_id=i.source_requests.get(&key).map(|e|e.request.frame["id"].clone());
-            if reading_gate::settlement(&frame, own_id.as_ref()).is_ok() && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
+            if native_settlement.is_some_and(|verdict|verdict.is_ok()) && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
                     let mut record=i.client_requests[idx].clone();
-                    match Self::completed_client_response(&mut record,Some(&frame),Some(pos)){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
+                    match Self::completed_client_response(&mut record,Some(&frame),Some(pos),native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
                 }
                 if !deferred&&i.client_requests[idx]["method"] == "turn/start" {
                     if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
@@ -4467,7 +4482,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 let private_write_reply_pipe = if private_config && correlated_method.as_deref()==Some("config/batchWrite") && i.state=="ready" {
                     self.capture_pipe(&i).ok().map(|bound|(bound.epoch,bound.identity))
                 } else { None };
-                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
+                if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.native_settlement=native_settlement; e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
@@ -5576,8 +5591,14 @@ mod conversation_transport_tests {
             i.reading_slot=Some(reading_gate::ReadingSlot{token:u64::MAX,generation:g(),request_id:Some("\"held\"".into()),request_ref:None,stage:reading_gate::ReadingStage::AwaitingReply});
         }
         let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider,Arc::clone(&host),Err("invented local fork source".into())).unwrap();
+        let project=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("fork-reading-record-").unwrap());std::fs::create_dir_all(&project).unwrap();
+        home.history.lock().unwrap().configure_role_log(&project);
         let error=crate::conversation_roles::fork_conversation(&home,&g(),"started",Duration::from_secs(1)).unwrap_err();
         assert_eq!(error,reading_gate::READING_GATE,"the sentence alone, no role supply observation");
+        // The durable role-supply record: refused before dispatch, not an unknown outcome.
+        let record=home.history.lock().unwrap().read_role_supply("conversation-home",None).to_string();
+        assert!(record.contains("refused-before-send")&&record.contains("not-attempted")&&!record.contains("not-established"),"{record}");
+        let _=std::fs::remove_dir_all(&project);
         assert!(host.client_requests().iter().all(|r|r["method"]!="thread/fork"),"no fork was sent");
     }
     #[test]

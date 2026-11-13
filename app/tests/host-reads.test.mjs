@@ -85,7 +85,7 @@ test('after a command settles, the view is from before it until a read started a
       // A read started after the settle that fails applies nothing; its message is kept beside the mark.
       const failed = statusRead(ui.api); host.of('host_status').at(-1).reject(new Error('invented read failure'));
       await React.act(async () => { await failed.catch(() => undefined); });
-      assert.equal(stale(), true); assert.equal(ui.api.hostReads.failure, 'Error: invented read failure');
+      assert.equal(stale(), true); assert.equal(ui.api.hostReads.failure, "The App could not read Codex's status afterwards, so what is shown may be out of date.", 'the fixed refresh line, never the raw diagnostic');
       // A read started after the settle, applied: the view follows the command, and the failure is behind it.
       const after = statusRead(ui.api); host.of('host_status').at(-1).resolve({view:`${outcome}: read after the command`});
       await React.act(async () => { assert.equal(ui.api.applyHost(await after), true); });
@@ -194,7 +194,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     failStatus = true;
     await press("Show this project's workflows");
     assert.match(guide().textContent, WITHHELD, 'a rejected refresh ends the press; the guide is withheld, which it is only when the panel is not busy');
-    assert.match(guide().textContent, /The last read failed: Error: invented status failure/);
+    assert.match(guide().textContent, /The last read failed: The App could not read Codex's status afterwards, so what is shown may be out of date\./);
     assert.ok(!nodes('button').some(b => b.textContent === 'End this run'));
     failStatus = false;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
@@ -205,7 +205,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     failStatus = true;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.doesNotMatch(guide().textContent, WITHHELD);
-    assert.match(guide().textContent, /The App's last read of its state failed \(Error: invented status failure\)\. What is shown here was read before that\./);
+    assert.match(guide().textContent, /The App's last read of its state failed \(The App could not read Codex's status afterwards, so what is shown may be out of date\.\)\. What is shown here was read before that\./);
     assert.ok(nodes('button').some(b => b.textContent === 'End this run'), 'the steps stay: nothing says they are wrong');
     failStatus = false;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
@@ -219,7 +219,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     // A status read that fails leaves it withheld, with the failure said in the guide.
     hold = null; failStatus = true;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
-    assert.match(guide().textContent, /What this view showed may be from before the App's last operation finished\..*The last read failed: Error: invented status failure/);
+    assert.match(guide().textContent, /What this view showed may be from before the App's last operation finished\..*The last read failed: The App could not read Codex's status afterwards, so what is shown may be out of date\./);
     // The held reply, from a read started after the command, arrives: the guide returns with the state after it.
     failStatus = false;
     await React.act(async () => { release(); await new Promise(resolve => setTimeout(resolve, 0)); });

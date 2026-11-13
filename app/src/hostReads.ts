@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { REFRESH_FAILED } from "./statusRefresh";
 import { invoke as platformInvoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -108,7 +109,8 @@ export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: 
     const index = ++order.current.started;
     try { return { index, snapshot: await reply }; }
     catch (error) {
-      setShown(old => (old.failed && old.failed.index > index ? old : { ...old, failed: { index, message: String(error) } }));
+      // The raw diagnostic is withheld; the guides are offered the fixed refresh line (statusRefresh).
+      setShown(old => (old.failed && old.failed.index > index ? old : { ...old, failed: { index, message: REFRESH_FAILED } }));
       throw error;
     }
   }, []);

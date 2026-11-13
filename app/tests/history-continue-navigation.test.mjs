@@ -241,3 +241,10 @@ test('an admitted Continue shows the Conversation view with its message box focu
   });
  }finally{proto.focus=previousFocus;proto.scrollIntoView=previousScroll;}
 });
+
+// A Continue refused (a reading sentence, or an ordinary refusal) whose view refresh then fails:
+// the refusal stands, then the fixed refresh line once; the raw refresh diagnostic is withheld.
+const {READING_GATE}=loadSrc('readingSentences');const {REFRESH_FAILED}=loadSrc('statusRefresh');
+for(const commandError of [READING_GATE,'original Continue refused before dispatch'])test(`a refused Continue then a failed refresh: its message, then the fixed line: ${commandError.slice(0,40)}`,async()=>{
+ await mounted({admit:false,failObserver:true,commandError},async ui=>{await ui.press('Continue selected conversation');assert.ok(ui.c.textContent.includes(`${commandError} ${REFRESH_FAILED}`),ui.c.textContent.slice(-800));assert.doesNotMatch(ui.c.textContent,/original Continue view unavailable/);ui.recover();});
+});
