@@ -296,15 +296,12 @@ pub(crate) fn quoted_prefix(dir: &Path, relative: &str, bytes: &[u8]) -> Result<
 }
 pub(crate) fn status(root: &Path) -> Value {
     let result = (|| -> Result<Value, String> {
-        let (store, _) = opened()?;
-        let project = match identity::resolve_root(root)? {
-            Some(intent) => intent.project,
-            None => match read_link(root) {
-                Link::Present { project, .. } => project,
-                _ => return Ok(json!({"state":"none","identity":identity::context(root)})),
-            },
+        // This folder's own package state, by the same selection recovery
+        // uses: a project file that names another project does not bring
+        // that project's unfinished import (at its own folder) here.
+        let Some((_, _, dir)) = selected_project(root)? else {
+            return Ok(json!({"state":"none","identity":identity::context(root)}));
         };
-        let dir = project_dir(&store, &project);
         let rows = entries(&dir)?;
         let uncertain_id = UNCERTAIN
             .lock()
@@ -319,8 +316,12 @@ pub(crate) fn status(root: &Path) -> Value {
                     .find(|e| Some(&e.intent.id) == uncertain_id.as_ref())
             });
         if let Some(e) = row {
+            // Finish is offered only where its preparation's own checks of
+            // folder and link can hold now; otherwise the reason is said.
+            let finish = resume_blocked(root, &e.intent);
             return Ok(
-                json!({"state":"incomplete","importId":e.intent.id,"packageIdentity":e.intent.package_identity,"limit":"Ordinary reads and recording are fenced until this same import finishes."}),
+                json!({"state":"incomplete","importId":e.intent.id,"packageIdentity":e.intent.package_identity,"limit":"Ordinary reads and recording are fenced until this same import finishes.",
+                    "canFinish":finish.is_none(),"finishReason":finish}),
             );
         }
         Ok(json!({"state":if rows.is_empty(){"none"}else{"complete"}}))
@@ -421,54 +422,118 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
     if owns(dir) {
         return Ok(());
     }
-    let Some(root) = root_for_dir(dir) else {
-        return Ok(());
-    };
     let store = dir
         .parent()
         .and_then(Path::parent)
         .ok_or("project store absent")?;
+    // While the roots registry's last line is unread, no binding read from
+    // its complete lines is written through (records_store::REGISTRY_TORN).
+    require_roots_whole(store)?;
+    let Some(root) = root_for_dir(dir) else {
+        return Ok(());
+    };
     let here = listed(
         &roots(store)?,
         root.to_str().ok_or("project root is not UTF-8")?,
     );
-    if here.len() != 1
-        || project_dir(store, &here[0]) != dir
-        || !matches!(read_link(&root), Link::Present { .. })
-    {
-        return Err("project root association changed; stale queued write refused".into());
+    const STALE: &str = "project root association changed; stale queued write refused";
+    if here.len() != 1 || project_dir(store, &here[0]) != dir {
+        return Err(format!(
+            "{STALE}: the records store records {} for {}, not this folder's project",
+            if here.is_empty() { "no project".to_owned() } else { here.join(", ") },
+            root.display()
+        ));
     }
-    Ok(())
+    // The link must agree with the store on both identities, as attach
+    // requires. The store's identity is taken as attach takes it: store.json
+    // read as a records store identity and equal to the identity this process
+    // opened for this store. Anything else refuses, as attach refuses.
+    let store_id = {
+        let bytes = retention::read_plain(&store.join("store.json"))
+            .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
+        let v: Value = serde_json::from_slice(&bytes)
+            .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
+        if v["format"] != STORE_FORMAT {
+            return Err(format!("{STALE}: store.json is not a records store identity"));
+        }
+        let id = v["storeId"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| format!("{STALE}: this store's identity names none"))?;
+        // The store attach opens, with the identity it holds for it.
+        let (opened_root, known) = opened().map_err(|e| format!("{STALE}: {e}"))?;
+        if opened_root != store {
+            return Err(format!("{STALE}: the records store at {} is not the one the App has open ({})", store.display(), opened_root.display()));
+        }
+        if known != id {
+            return Err(format!("{STALE}: this store's identity changed since the App opened it ({known}, now {id}); no silent reassociation"));
+        }
+        id
+    };
+    match read_link(&root) {
+        Link::Present { project, store: linked } if project == here[0] && linked == store_id => Ok(()),
+        Link::Present { project, .. } if project != here[0] => Err(format!(
+            "{STALE}: project file {PROJECT_LINK} names project {project}, and the records store records project {} at {}",
+            here[0],
+            root.display()
+        )),
+        Link::Present { store: linked, .. } => Err(format!(
+            "{STALE}: project file {PROJECT_LINK} names another records store ({linked}), not this one ({store_id})"
+        )),
+        Link::Absent => Err(format!("{STALE}: project file {PROJECT_LINK} is missing at {}", root.display())),
+        Link::Unreadable(e) => Err(format!("{STALE}: project file {PROJECT_LINK} is unreadable ({e})")),
+    }
 }
 
 pub(crate) fn require_root(root: &Path) -> Result<(), String> {
     let (store, _) = opened()?;
     identity::require_root(&store, root)
 }
-fn recovery_project(root: &Path) -> Result<(PathBuf, String, PathBuf), String> {
+/// The one selection of identity and store folder for a project folder's
+/// package state, the controls offered for it and their recovery: the
+/// folder's own frozen package intent first, then the single identity the
+/// store records for the folder, and only when it records none (or several)
+/// the identity the folder's link names. `None` when there is none.
+fn selected_project(root: &Path) -> Result<Option<(PathBuf, String, PathBuf)>, String> {
     let (store, _) = opened()?;
     let project = if let Some(intent) = identity::resolve_root(root)? {
         intent.project
     } else {
-        match read_link(root) {
-            Link::Present { project, .. } => project,
-            _ => {
-                let known = listed(
-                    &roots(&store)?,
-                    root.to_str().ok_or("project root is not UTF-8")?,
-                );
-                if known.len() != 1 {
-                    return Err("original project identity is unavailable; select its verified package for native restoration".into());
-                }
-                known[0].clone()
-            }
+        let recorded = listed(
+            &roots(&store)?,
+            root.to_str().ok_or("project root is not UTF-8")?,
+        );
+        match (recorded.as_slice(), read_link(root)) {
+            ([only], _) => only.clone(),
+            (_, Link::Present { project, .. }) => project,
+            _ => return Ok(None),
         }
     };
-    Ok((
-        store.clone(),
-        project.clone(),
-        project_dir(&store, &project),
-    ))
+    let dir = project_dir(&store, &project);
+    Ok(Some((store, project, dir)))
+}
+fn recovery_project(root: &Path) -> Result<(PathBuf, String, PathBuf), String> {
+    selected_project(root)?.ok_or_else(|| "original project identity is unavailable; select its verified package for native restoration".into())
+}
+/// Why finishing `intent` from `root` would be refused now by the checks of
+/// folder and project link its preparation makes (`prepare_resume`,
+/// `validate_target`), or `None` when those hold. Preparation still makes
+/// every check and refuses on any other.
+fn resume_blocked(root: &Path, intent: &Intent) -> Option<String> {
+    if intent.root != root {
+        return Some(format!("This import belongs to the project folder {}; finish it from there.", intent.root.display()));
+    }
+    if physical(root).ok().as_ref() != Some(&intent.physical_root) {
+        return Some("This folder is not the physical folder the import was started in; it cannot be finished here.".into());
+    }
+    let link = match optional(&root.join(PROJECT_LINK)) {
+        Ok(link) => link,
+        Err(e) => return Some(format!("The project file cannot be read ({e}); the import cannot be finished until it can.")),
+    };
+    if link != intent.link_before && !(link.is_none() || link.as_deref() == Some(intent.link_after.as_slice())) {
+        return Some("The project file differs from the one this import recorded. The import can be finished only once the file is exactly as the import left it, or removed; restoring it from the App does not yet write those exact bytes.".into());
+    }
+    None
 }
 
 fn roots_context(

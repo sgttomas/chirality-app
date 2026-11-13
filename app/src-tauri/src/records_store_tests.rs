@@ -178,7 +178,7 @@ fn a_new_project_is_given_an_identity_once_and_the_store_records_its_root() {
 }
 
 #[test]
-fn a_missing_or_changed_project_file_is_a_limit_and_the_store_governs() {
+fn a_missing_changed_or_unreadable_project_file_attaches_nothing_until_the_person_restores_it() {
     let root = folder("link-project-");
     records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("before")).unwrap();
     let governing = attach(&root, false).unwrap().project.unwrap();
@@ -193,20 +193,83 @@ fn a_missing_or_changed_project_file_is_a_limit_and_the_store_governs() {
     let refused = records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("while missing")).unwrap_err();
     assert!(refused.contains("link missing; not attached"), "{refused}");
     assert_eq!(storage::read_all(&root).0.len(), 0, "the store's history is not read for a folder with no link");
+    // Nor are files kept in the project folder read in its place. An old log
+    // still in the folder is not this project's history while the store
+    // holds records for the folder that will not attach: every ordinary
+    // reader and the status say the records are unavailable, and no import
+    // is asked for.
+    let kept = root.join(".chirality/records").join(storage::log_rel(Some("run:kept"), "writer:kept"));
+    // (Written by hand, as an earlier App left it: the App's own writer refuses to write there now.)
+    assert!(records::append(&kept, "evidence_limit", &APP_WRITER, body("refused")).unwrap_err().contains("project records unavailable"));
+    std::fs::create_dir_all(kept.parent().unwrap()).unwrap();
+    let mut line = serde_json::to_vec(&records::envelope("evidence_limit", &APP_WRITER, body("kept in the project folder"), crate::util::opaque_id("rec:app:").unwrap(), 1, Some("run:kept"), Some("2026-10-01T00:00:00.000Z"))).unwrap();
+    line.push(b'\n');
+    std::fs::write(&kept, line).unwrap();
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty() && limits.iter().any(|l| l.contains("project records unavailable") && l.contains("link missing")), "{entries:?} {limits:?}");
+    for unavailable in [storage::sources(&root).map(|_| ()), storage::discover(&root).map(|_| ()), storage::capture_dir(&root).map(|_| ()), storage::registered_legacy_log(&root).map(|_| ())] {
+        assert!(unavailable.unwrap_err().contains("project records unavailable"));
+    }
+    let decisions = crate::decision_view::derive(&root, &[]);
+    assert!(decisions["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains("project records unavailable"))), "{decisions}");
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["reading"], "nothing from the records store (the project is not attached)", "{shown}");
+    assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    // Review round 3, finding 2: nor do the notes say the kept files are
+    // read in place or ask for an import; the refusal is the note.
+    let said = shown["project"]["notes"].as_array().unwrap();
+    assert!(said.iter().all(|n| n.as_str().is_some_and(|n| !n.contains("import needed") && !n.contains("read in place"))), "{shown}");
+    assert!(said.iter().any(|n| n.as_str().is_some_and(|n| n.contains("link missing"))), "{shown}");
+    std::fs::remove_dir_all(root.join(".chirality/records")).unwrap();
     assert!(notes(&root).iter().any(|n| n.contains("link missing")));
     assert_eq!(status(Some(&root))["project"]["attachment"]["recordedHere"], governing.as_str());
+    assert_eq!(missing.fault, Some("link missing"));
+    assert_eq!(missing.resolutions, ["restore-link", "new-identity"]);
     // The one-click restore attaches it again, with its history.
     assert_eq!(restore_link(&root).unwrap()["projectId"], governing.as_str());
     assert_eq!(storage::read_all(&root).0.len(), 1);
     records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("restored")).unwrap();
-    // Changed (an agent edits it): a limit; records never attach elsewhere.
-    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:forged", "records-store:other")).unwrap()).unwrap();
-    let changed = attach(&root, true).unwrap();
-    assert_eq!(changed.project.as_deref(), Some(governing.as_str()));
-    assert!(changed.limits[0].contains("chirality-project:forged") && changed.limits[0].contains("governs"));
+    // Changed (an agent edits it to name another identity): the store does not
+    // choose between the two. Not attached: nothing read, written or minted,
+    // under either identity, and the file is left as it was found.
+    let forged = serde_json::to_vec(&link_value("chirality-project:forged", "records-store:other")).unwrap();
+    std::fs::write(root.join(PROJECT_LINK), &forged).unwrap();
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let log = project_dir(&store, &governing).join(storage::log_rel(None, "writer:link"));
+    let log_before = std::fs::read(&log).unwrap();
+    for mint in [true, false] {
+        let changed = attach(&root, mint).unwrap();
+        assert!(changed.dir.is_none() && changed.project.is_none(), "{changed:?}");
+        assert_eq!(changed.how, "unattached");
+        assert_eq!(changed.recorded.as_deref(), Some(governing.as_str()));
+        assert_eq!(changed.linked.as_deref(), Some("chirality-project:forged"));
+        assert_eq!(changed.fault, Some("link changed"));
+        assert_eq!(changed.resolutions, ["restore-link", "adopt", "new-identity"]);
+        let refusal = changed.refusal.as_deref().unwrap();
+        assert!(refusal.starts_with("link changed; not attached") && refusal.contains("chirality-project:forged") && refusal.contains(governing.as_str()), "{refusal}");
+    }
+    let refused = records::append_project(&root, None, "writer:link", "evidence_limit", &APP_WRITER, body("while changed")).unwrap_err();
+    assert!(refused.contains("link changed; not attached"), "{refused}");
+    assert!(storage::write_capture_dir(&root).unwrap_err().contains("link changed; not attached"));
+    assert_eq!(storage::read_all(&root).0.len(), 0, "the store's history is not read for a folder whose link names another identity");
+    assert_eq!(std::fs::read(root.join(PROJECT_LINK)).unwrap(), forged, "the link is not rewritten until the person acts");
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "nothing registered for the named identity");
+    assert_eq!(std::fs::read(&log).unwrap(), log_before, "nothing written under the recorded identity");
+    assert!(!project_dir(&store, "chirality-project:forged").exists(), "nothing minted for the named identity");
+    let view = status(Some(&root));
+    assert_eq!(view["project"]["attachment"]["fault"], "link changed");
+    assert_eq!(view["project"]["attachment"]["linkedIdentity"], "chirality-project:forged");
+    assert_eq!(view["project"]["attachment"]["resolutions"], json!(["restore-link", "adopt", "new-identity"]));
+    assert_eq!(view["project"]["reading"], "nothing from the records store (the project is not attached)");
+    assert!(notes(&root).iter().any(|n| n.contains("link changed")));
+    // Restoring the link attaches the folder to the recorded identity again.
+    assert_eq!(restore_link(&root).unwrap()["projectId"], governing.as_str());
     let (entries, limits) = storage::read_all(&root);
     assert!(limits.is_empty(), "{limits:?}");
     assert_eq!(entries.len(), 2, "both entries, in the governing project");
+    let restored = attach(&root, false).unwrap();
+    assert!(restored.limits.is_empty() && restored.fault.is_none() && restored.resolutions.is_empty(), "{restored:?}");
     // Unreadable: like missing, not attached.
     std::fs::write(root.join(PROJECT_LINK), b"{").unwrap();
     let unreadable = attach(&root, true).unwrap();
@@ -221,6 +284,638 @@ fn a_missing_or_changed_project_file_is_a_limit_and_the_store_governs() {
 }
 
 #[test]
+fn a_changed_link_naming_a_project_moved_to_this_folder_is_adopted_and_the_earlier_identity_keeps_its_records() {
+    // Project P is recorded at `here`; the person puts project Q's folder
+    // (its link with it) where P stood.
+    let here = folder("changed-here-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&here, false).unwrap().project.unwrap();
+    let elsewhere = folder("changed-elsewhere-");
+    records::append_project(&elsewhere, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let q = attach(&elsewhere, false).unwrap().project.unwrap();
+    std::fs::rename(elsewhere.join(PROJECT_LINK), here.join(PROJECT_LINK)).unwrap();
+    let store = opened().unwrap().0;
+    let p_log = project_dir(&store, &p).join(storage::log_rel(None, "writer:p"));
+    let p_bytes = std::fs::read(&p_log).unwrap();
+    let changed = attach(&here, true).unwrap();
+    assert_eq!((changed.fault, changed.recorded.as_deref(), changed.linked.as_deref()), (Some("link changed"), Some(p.as_str()), Some(q.as_str())));
+    assert_eq!(changed.resolutions, ["restore-link", "adopt", "new-identity"]);
+    assert_eq!(storage::read_all(&here).0.len(), 0);
+    // The person confirms this folder is the project its file names.
+    let adopted = adopt(&here).unwrap();
+    assert_eq!(adopted["projectId"], q.as_str());
+    assert_eq!(adopted["releasedHere"], json!([p]));
+    let now = attach(&here, false).unwrap();
+    assert_eq!(now.project.as_deref(), Some(q.as_str()));
+    assert!(now.refusal.is_none() && now.limits.is_empty() && now.resolutions.is_empty(), "{now:?}");
+    let lines = roots(&store).unwrap();
+    assert_eq!(listed(&lines, here.to_str().unwrap()), vec![q.clone()]);
+    assert_eq!(roots_of(&lines, &q), vec![here.display().to_string()], "Q's earlier folder is released");
+    assert!(roots_of(&lines, &p).is_empty(), "this folder is released from P");
+    let (entries, limits) = storage::read_all(&here);
+    assert!(limits.is_empty(), "{limits:?}");
+    assert_eq!(entries.len(), 1, "Q's history, and none of P's");
+    assert_eq!(entries[0]["body"]["subjectRef"], "Q's entry");
+    assert_eq!(std::fs::read(&p_log).unwrap(), p_bytes, "P's records stay in the store, unchanged");
+    records::append_project(&here, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q after the move")).unwrap();
+    assert_eq!(std::fs::read(&p_log).unwrap(), p_bytes);
+    // A second adoption has nothing to do.
+    assert!(adopt(&here).unwrap_err().contains("already attached to the project its file names"));
+    let _ = (std::fs::remove_dir_all(&here), std::fs::remove_dir_all(&elsewhere));
+}
+
+#[test]
+fn a_changed_link_copied_from_a_project_still_at_its_folder_is_not_adopted_and_a_new_identity_keeps_both_histories() {
+    let here = folder("copied-here-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&here, false).unwrap().project.unwrap();
+    let original = folder("copied-original-");
+    records::append_project(&original, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let q = attach(&original, false).unwrap().project.unwrap();
+    std::fs::copy(original.join(PROJECT_LINK), here.join(PROJECT_LINK)).unwrap();
+    let changed = attach(&here, true).unwrap();
+    assert_eq!(changed.fault, Some("link changed"));
+    assert_eq!(changed.resolutions, ["restore-link", "new-identity"], "Q is still at its own folder: adoption is not offered");
+    assert!(!changed.refusal.as_deref().unwrap().contains("confirms this folder is the project its file names"));
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    assert!(adopt(&here).unwrap_err().contains("another folder holds this project identity"));
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "a refused adoption releases nothing");
+    assert_eq!(attach(&original, false).unwrap().project.as_deref(), Some(q.as_str()), "the original is unaffected");
+    // A new identity: P's and Q's records both stay under their identities.
+    let fresh = new_identity(&here).unwrap()["projectId"].as_str().unwrap().to_owned();
+    assert!(fresh != p && fresh != q);
+    assert_eq!(storage::read_all(&here).0.len(), 0);
+    assert!(project_dir(&store, &p).join(storage::log_rel(None, "writer:p")).is_file());
+    assert_eq!(storage::read_all(&original).0.len(), 1);
+    let _ = (std::fs::remove_dir_all(&here), std::fs::remove_dir_all(&original));
+}
+
+#[test]
+fn a_link_naming_another_store_with_the_recorded_identity_is_a_changed_link_and_attaches_nothing() {
+    let root = folder("store-named-");
+    records::append_project(&root, None, "writer:s", "evidence_limit", &APP_WRITER, body("entry")).unwrap();
+    let id = attach(&root, false).unwrap().project.unwrap();
+    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value(&id, "records-store:another")).unwrap()).unwrap();
+    for mint in [true, false] {
+        let named = attach(&root, mint).unwrap();
+        assert!(named.dir.is_none() && named.project.is_none(), "{named:?}");
+        assert!(named.refusal.as_deref().unwrap().starts_with("link changed; not attached") && named.refusal.as_deref().unwrap().contains("names another records store (records-store:another)"), "{named:?}");
+        assert_eq!((named.fault, named.resolutions.as_slice(), named.recorded.as_deref()), (Some("link names another store"), ["restore-link"].as_slice(), Some(id.as_str())));
+    }
+    assert!(records::append_project(&root, None, "writer:s", "evidence_limit", &APP_WRITER, body("x")).unwrap_err().contains("link changed; not attached"));
+    assert_eq!(storage::read_all(&root).0.len(), 0);
+    restore_link(&root).unwrap();
+    let restored = attach(&root, false).unwrap();
+    assert!(restored.refusal.is_none() && restored.limits.is_empty() && restored.fault.is_none(), "{restored:?}");
+    assert_eq!(storage::read_all(&root).0.len(), 1);
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_link_file_written_with_the_earlier_note_still_reads() {
+    // The note in a link file is for a person reading the file; readers do
+    // not take it. A file an earlier build wrote attaches as before.
+    let root = folder("old-note-");
+    records::append_project(&root, None, "writer:n", "evidence_limit", &APP_WRITER, body("entry")).unwrap();
+    let mut link: Value = serde_json::from_slice(&std::fs::read(root.join(PROJECT_LINK)).unwrap()).unwrap();
+    assert_eq!(link["note"], "A link to this project's records in the Chirality App's records store. The store's own record governs; a changed or missing file attaches nothing until you resolve it in the App.");
+    link["note"] = json!("A link to this project's records in the Chirality App's records store. The store's own record governs; editing this file only produces a limit.");
+    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link).unwrap()).unwrap();
+    let attached = attach(&root, false).unwrap();
+    assert!(attached.dir.is_some() && attached.refusal.is_none() && attached.limits.is_empty(), "{attached:?}");
+    assert_eq!(storage::read_all(&root).0.len(), 1);
+    link.as_object_mut().unwrap().remove("note");
+    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link).unwrap()).unwrap();
+    assert!(attach(&root, false).unwrap().dir.is_some(), "nor is the note required");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+#[test]
+fn a_folder_is_not_given_another_identity_while_its_recorded_project_is_still_in_use() {
+    // P is recorded here and something still holds its activity (a running
+    // Codex, an open run, a record waiting to be written). Q's link arrives.
+    let here = folder("in-use-here-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&here, false).unwrap().project.unwrap();
+    let elsewhere = folder("in-use-elsewhere-");
+    records::append_project(&elsewhere, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let in_use = crate::records_retention::activity(&here).unwrap().expect("P's activity lease");
+    std::fs::rename(elsewhere.join(PROJECT_LINK), here.join(PROJECT_LINK)).unwrap();
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let link_before = std::fs::read(here.join(PROJECT_LINK)).unwrap();
+    for refused in [adopt(&here).unwrap_err(), new_identity(&here).unwrap_err()] {
+        assert!(refused.contains(&format!("project {p}, which the records store recorded at this folder, is still in use")), "{refused}");
+        assert!(refused.contains("Stop Codex and end the run") && refused.contains("restore the project file so it can be written") && refused.ends_with("nothing changed"), "{refused}");
+    }
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "a refused act releases and registers nothing");
+    assert_eq!(std::fs::read(here.join(PROJECT_LINK)).unwrap(), link_before);
+    // Restoring the link is never refused for this: it is what lets P's waiting records be written.
+    restore_link(&here).unwrap();
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's waiting entry")).unwrap();
+    assert_eq!(storage::read_all(&here).0.len(), 2);
+    // Once nothing holds P, the person may give the folder another identity.
+    drop(in_use);
+    std::fs::write(here.join(PROJECT_LINK), &link_before).unwrap();
+    assert!(adopt(&here).is_ok());
+    let _ = (std::fs::remove_dir_all(&here), std::fs::remove_dir_all(&elsewhere));
+}
+
+#[test]
+fn an_adoption_stopped_after_its_release_lines_is_offered_to_the_person_to_complete() {
+    // The state an interrupted adoption leaves: every earlier root of Q
+    // released, this folder not yet registered, its link naming Q.
+    let before = folder("stopped-before-");
+    records::append_project(&before, None, "writer:q", "evidence_limit", &APP_WRITER, body("Q's entry")).unwrap();
+    let q = attach(&before, false).unwrap().project.unwrap();
+    let after = before.with_file_name(format!("{}-moved", before.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&before, &after).unwrap();
+    let store = opened().unwrap().0;
+    append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":q,"root":before.display().to_string(),"at":now_rfc3339(),"how":"released","by":"adopt"})).unwrap();
+    let stopped = attach(&after, false).unwrap();
+    // Review round 2, finding 6: known history with no folder recorded is
+    // "records kept, not attached", never a project with no records: it
+    // refuses (the earlier expectation, no refusal, was that defect).
+    assert!(stopped.dir.is_none(), "{stopped:?}");
+    assert!(stopped.refusal.as_deref().is_some_and(|r| r.starts_with("records kept, not attached")), "{stopped:?}");
+    assert_eq!((stopped.how, stopped.fault, stopped.resolutions.as_slice(), stopped.linked.as_deref()), ("unattached", Some("no folder recorded"), ["adopt"].as_slice(), Some(q.as_str())));
+    let view = status(Some(&after));
+    assert_eq!(view["project"]["attachment"]["resolutions"], json!(["adopt"]));
+    assert_ne!(view["project"]["reading"], "no records yet", "{view}");
+    assert!(view["project"]["reading"].as_str().unwrap().starts_with("records kept in the records store"), "{view}");
+    // No supplier is admitted for it, and the App's opening attach does not
+    // register the folder on its link alone: nothing is written.
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let supplier = crate::records_retention::activity(&after).err().expect("no supplier admitted");
+    assert!(supplier.starts_with("records kept, not attached"), "{supplier}");
+    let opening = attach(&after, true).unwrap();
+    assert!(opening.dir.is_none() && opening.fault == Some("no folder recorded"), "{opening:?}");
+    assert!(records::append_project(&after, None, "writer:q", "evidence_limit", &APP_WRITER, body("not Q's until confirmed")).is_err());
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "nothing registered");
+    assert_eq!(adopt(&after).unwrap()["projectId"], q.as_str());
+    let done = attach(&after, false).unwrap();
+    assert_eq!(done.project.as_deref(), Some(q.as_str()));
+    assert!(done.resolutions.is_empty() && done.fault.is_none());
+    assert_eq!(storage::read_all(&after).0.len(), 1, "Q's history");
+    // A folder with a link to an identity the store does not hold at all is offered nothing of the kind.
+    let unknown = folder("stopped-unknown-");
+    std::fs::create_dir_all(unknown.join(".chirality")).unwrap();
+    std::fs::write(unknown.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:never-held", &opened().unwrap().1)).unwrap()).unwrap();
+    let none = attach(&unknown, false).unwrap();
+    assert!(none.resolutions.is_empty() && none.fault.is_none(), "{none:?}");
+    let _ = (std::fs::remove_dir_all(&after), std::fs::remove_dir_all(&unknown));
+}
+
+/// Review round 2, finding 7, as App Agent 0 decided it: an incomplete last
+/// line of the roots registry is said on every attachment and in status, its
+/// bytes are kept exactly, records are read from what the complete lines
+/// associate, and nothing is written, minted, adopted or restored.
+#[test]
+fn a_torn_roots_registry_reads_from_its_complete_lines_and_writes_nothing() {
+    let _store = OwnStore::new();
+    let known = folder("torn-known-");
+    records::append_project(&known, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&known, false).unwrap().project.unwrap();
+    let store = opened().unwrap().0;
+    let registry = store.join("roots.jsonl");
+    // An incomplete line, as an interrupted append leaves it.
+    let mut torn = std::fs::read(&registry).unwrap();
+    torn.extend_from_slice(br#"{"format":"chirality.records-store.root","formatVersion":"0.1","projectId":"chirality-project:torn-fixture","root":"#);
+    std::fs::write(&registry, &torn).unwrap();
+    // The associated folder reads, with the limit, and is not writable.
+    let a = attach(&known, false).unwrap();
+    assert_eq!(a.project.as_deref(), Some(p.as_str()));
+    assert!(a.view()["registry"].as_str().is_some_and(|r| r.contains("was not read whole")), "{a:?}");
+    assert!(a.resolutions.is_empty());
+    assert_eq!(storage::read_all(&known).0.len(), 1, "P's records are read");
+    let view = status(Some(&known));
+    assert!(view["registry"].as_str().is_some_and(|r| r.contains("was not read whole")), "{view}");
+    assert!(view["project"]["attachment"]["registry"].as_str().is_some(), "{view}");
+    assert!(view["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str().is_some_and(|n| n.contains("was not read whole"))), "{view}");
+    let refused = records::append_project(&known, None, "writer:p", "evidence_limit", &APP_WRITER, body("not while torn")).unwrap_err();
+    assert!(refused.contains("was not read whole"), "{refused}");
+    let supplier = crate::records_retention::activity(&known).err().expect("no supplier admitted");
+    assert!(supplier.contains("was not read whole"), "{supplier}");
+    for act in [restore_link(&known), new_identity(&known), adopt(&known)] {
+        let e = act.unwrap_err();
+        assert!(e.contains("was not read whole"), "{e}");
+    }
+    // A folder its complete lines do not associate: association not known,
+    // nothing minted, linked or registered.
+    let unknown = folder("torn-unknown-");
+    let b = attach(&unknown, true).unwrap();
+    assert_eq!((b.how, b.fault), ("unattached", Some("association not known")), "{b:?}");
+    assert!(b.refusal.as_deref().is_some_and(|r| r.contains("was not read whole")) && b.resolutions.is_empty() && b.dir.is_none());
+    assert!(records::append_project(&unknown, None, "writer:b", "evidence_limit", &APP_WRITER, body("not minted")).is_err());
+    assert!(!unknown.join(PROJECT_LINK).exists(), "no identity minted");
+    assert_eq!(status(Some(&unknown))["project"]["reading"], "nothing from the records store (association not known)");
+    for act in [new_identity(&unknown), adopt(&unknown)] { assert!(act.is_err()); }
+    assert_eq!(storage::read_all(&known).0.len(), 1, "nothing written for P");
+    assert_eq!(std::fs::read(&registry).unwrap(), torn, "the registry's bytes, torn tail included, are kept exactly");
+    let _ = (std::fs::remove_dir_all(&known), std::fs::remove_dir_all(&unknown));
+}
+
+/// Review rounds 3 and 4, as App Agent 0 decided.
+///
+/// The form. Ordinary readers take the place a project's records are read
+/// from one decision (`readable_home`, `ReadHome`), which gives none for a
+/// refused attachment; writers take theirs from `write_dir`; the connector
+/// accounts' place is built from the decision. ONE READER IS THE EXCEPTION:
+/// the fleet reader (`fleet_records.rs`, DEL-06-01) must create nothing, so
+/// it does not take its place from the decision; it keeps association checks
+/// of its own before it builds the protected folder, and its own test holds
+/// what it does with the link removed or changed.
+///
+/// What this test is: a limited check that fails when selected source lines
+/// change. It reads physical lines of the product's Rust files and holds, by
+/// full line content and with multiplicity, (1) the lines that contain one
+/// of nine names of a records location in the project folder; (2) the lines
+/// outside the store module that contain `records_store::` followed by the
+/// name of one of nine functions of the store that return a store path or an
+/// attachment without the decision; (3) the lines outside the store module
+/// that begin with `use` and contain `records_store`; and it fails for
+/// (4) a line outside the store module where one of those nine names is
+/// followed at once by an opening bracket and is not part of a path, a
+/// method call or a definition. "The store module" is `records_store.rs` and
+/// the files named by a line `#[path = "..."]` in it or in them, test files
+/// apart; that list of five files is held here too.
+///
+/// What it is not, and what it is known to miss (review round 5; App Agent 0
+/// decided that the test stays as it is and claims no more than this). It
+/// does not enforce the architecture, and it is not a complete list of who
+/// can obtain a location. It does not see: a `use` item spread over several
+/// lines; a call written with a space before its bracket; a path attribute
+/// written without spaces or with a comment inside it; `include!`; an
+/// out-of-line module declared beside a file that a path attribute brought
+/// in; a re-export inside the store's own files; a new function of the
+/// store that returns a location, a wrapper included; what a macro produces;
+/// a location built with none of the nine names from a path a caller passes
+/// in; an unchanged listed line whose argument now comes from somewhere
+/// else; a comment line; a file that is not Rust; and test files, those
+/// named `tests.rs` or ending `_tests.rs`. Review and the behavioural tests
+/// establish the permitted use. What ends the need for it is making the
+/// store's path functions private, which is the binding pull request's
+/// first item. Reformatting a listed line fails it, by design: the digest is
+/// then updated with its reason unchanged.
+#[test]
+fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_content() {
+    type Held = BTreeMap<String, Vec<(usize, String)>>;
+    fn walk(dir: &std::path::Path, base: &std::path::Path, files: &mut Vec<(String, String)>) {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() {
+                walk(&path, base, files);
+                continue;
+            }
+            let name = path.strip_prefix(base).unwrap().to_string_lossy().into_owned();
+            if name.ends_with(".rs") && !name.ends_with("_tests.rs") && !name.ends_with("/tests.rs") && name != "tests.rs" {
+                files.push((name, std::fs::read_to_string(&path).unwrap()));
+            }
+        }
+    }
+    fn scan(files: &[(String, String)], selected: &dyn Fn(&str) -> bool, leave_out: &[&str]) -> Held {
+        let mut held = Held::new();
+        for (file, text) in files.iter().filter(|(file, _)| !leave_out.contains(&file.as_str())) {
+            let lines: Vec<(usize, String)> = text.lines().enumerate()
+                .filter(|(_, line)| !line.trim_start().starts_with("//") && selected(line))
+                .map(|(i, line)| (i + 1, line.to_owned())).collect();
+            if !lines.is_empty() {
+                held.insert(file.clone(), lines);
+            }
+        }
+        held
+    }
+    fn digest(lines: &[(usize, String)]) -> String {
+        crate::util::sha256_hex(lines.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>().join("\n").as_bytes())[..16].to_owned()
+    }
+    fn differences(what: &str, held: &Held, allowed: &[(&str, &str, &str)]) -> Vec<String> {
+        let mut wrong = Vec::new();
+        for (file, lines) in held {
+            let shown = lines.iter().map(|(number, line)| format!("    {number}: {line}")).collect::<Vec<_>>().join("\n");
+            match allowed.iter().find(|(name, _, _)| name == file) {
+                None => wrong.push(format!("{file} {what} and is not on the list (digest {}):\n{shown}", digest(lines))),
+                Some((_, expected, why)) if *expected != digest(lines) => wrong.push(format!("{file}: its lines that {what} are not the ones listed (digest now {}; the list holds {expected}: {why}):\n{shown}", digest(lines))),
+                Some(_) => {}
+            }
+        }
+        for (file, _, _) in allowed {
+            if !held.contains_key(*file) {
+                wrong.push(format!("{file} is on the list and no longer {what}; take it off"));
+            }
+        }
+        wrong
+    }
+    let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut files = Vec::new();
+    walk(&base, &base, &mut files);
+
+    // "The store module" is these files: `records_store.rs` and every file a
+    // line `#[path = "..."]` in it or in them names, test files apart. Other
+    // ways a file can be brought in are not seen.
+    const STORE_MODULE: [&str; 5] = ["records_package.rs", "records_package_controls.rs", "records_package_identity.rs", "records_package_import.rs", "records_store.rs"];
+    let mut module = std::collections::BTreeSet::from(["records_store.rs".to_owned()]);
+    let mut pending = vec!["records_store.rs".to_owned()];
+    while let Some(file) = pending.pop() {
+        let text = std::fs::read_to_string(base.join(&file)).unwrap();
+        for line in text.lines() {
+            if let Some(path) = line.trim().strip_prefix("#[path = \"").and_then(|rest| rest.strip_suffix("\"]")) {
+                if !path.ends_with("_tests.rs") && module.insert(path.to_owned()) {
+                    pending.push(path.to_owned());
+                }
+            }
+        }
+    }
+    assert_eq!(module.iter().map(String::as_str).collect::<Vec<_>>(), STORE_MODULE, "the files that path attributes name in the store module changed: a file inside it may call the store's path functions freely, so the list is held");
+    assert!(!base.join("records_store").exists(), "a records_store folder would add files to the store module without a path attribute");
+
+    // 1. Who names a records location in the project folder.
+    let names: Vec<String> = ["LEGACY_RECORDS", "LEGACY_LOG", "CAPTURES", "CAPTURE_STORE", "LEGACY_DIRECTORY",
+        ".chirality/records", ".chirality/captures", "records/coordination.rs.jsonl", "\".chirality\""].iter().map(|n| n.to_string()).collect();
+    const NAMED: [(&str, &str, &str); 11] = [
+        ("records_store.rs", "58199fc5ca3c95dc", "the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
+        ("storage.rs", "6ca4d68f984fcdfc", "the three names' definitions, the library's own act log and capture folder, and checks of the shape of a path already in hand"),
+        ("connector_route_store.rs", "9e740a8128ab3c84", "the accounts folder's name and two comparisons of a path recorded in an account; the place itself comes from records_store::route_accounts_place"),
+        ("act_control.rs", "9e08f8f561e55d16", "the A15 capture store's name and the library act log's recorded name: an A15 capture stays with its library"),
+        ("act_control_a15.rs", "da4e32e280c2997c", "the library's own capture store (A15 stays with its library) and that module's tests"),
+        ("file_act_root.rs", "b1d22e53205c6f8d", "a test's assertion that nothing was created"),
+        ("fleet_records.rs", "13517bd392d9bced", "the census of the project's .chirality folder for the fleet view (DEL-06-01): project content, not a records location"),
+        ("native_conversation_links.rs", "3f3917ac2f8c8a96", "the folder of the fleet copy published in the project: not a records location"),
+        ("runtime_session.rs", "fd4d53d25c23d18a", "test fixtures"),
+        ("workflow_library.rs", "56cb3f772daa84bf", "the workflow supply folder"),
+        ("workflow_package_copy.rs", "2914ac79a2f7c182", "the workflow package copy folder"),
+    ];
+    let mut wrong = differences("names a records location in the project folder", &scan(&files, &|line: &str| names.iter().any(|n| line.contains(n.as_str())), &[]), &NAMED);
+
+    // 2. Who, outside the store module, calls a function of the store that
+    // returns a store path or an attachment without the decision.
+    const FUNCTIONS: [&str; 9] = ["known_identity_for_read", "store_root", "configured_project_dir", "project_dir_of", "root_for_dir", "project_dir", "legacy_census", "read_log_path", "attach"];
+    // `name` at `at` in `line` is that whole identifier (not part of a longer one).
+    fn whole(line: &str, at: usize, name: &str) -> bool {
+        !line[at + name.len()..].chars().next().is_some_and(|c| c.is_alphanumeric() || c == '_')
+    }
+    // By its `records_store::` path, called or passed.
+    let qualified = |line: &str| FUNCTIONS.iter().any(|f| {
+        let path = format!("records_store::{f}");
+        line.match_indices(path.as_str()).any(|(at, _)| whole(line, at, &path))
+    });
+    // Called bare: the name, then `(`, not part of a path, a method or a longer name, and not its own definition.
+    let bare = |line: &str| FUNCTIONS.iter().any(|f| {
+        line.match_indices(*f).any(|(at, _)| whole(line, at, f) && line[at + f.len()..].starts_with('(')
+            && !line[..at].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '_' || c == ':' || c == '.')
+            && !line[..at].trim_end().ends_with("fn"))
+    });
+    const CALLERS: [(&str, &str, &str); 14] = [
+        ("fleet_records.rs", "7f59d78278e1388b", "the fleet reader (DEL-06-01), the one reader on this list: it must create nothing, so it does not attach; it compares the opened store's identity, then makes the association checks itself (the registry read strictly; exactly one project for the folder and no other folder for that project; the link present, of its format, naming that project and this store), and takes the store folder only after all of them pass. A missing, changed, duplicated or moved link, records kept with no folder, and a registry not read whole each refuse before the folder is taken"),
+        ("file_act_arrival.rs", "2b3c14e9a624fea5", "the arrival preview pins the store's own root (its identity and an opened handle) beside the records folder its binding gave it; it takes no project's folder from the store's root"),
+        ("file_act_lapse.rs", "bac1affed8c258c9", "the lapse observer pins the identity of the store's root it began with, beside the home it takes from the decision"),
+        ("records_export.rs", "55d23a7524f88b16", "export refuses a destination inside the store's root; the project's folder it exports comes from the decision"),
+        ("records_retention.rs", "61c7d3cfd6140ced", "administration and admission: for a path already in hand, the project store folder it lies in, to take that project's admission (no folder is read through it); and the activity lease and the retention acts take the attachment and themselves refuse a refused one, an identity limit and an unread registry"),
+        ("storage.rs", "48623ca56512f990", "all of a path already in hand: its label for presentation, its sync boundary, its records root, and the project root its store folder was opened from for a writer; none gives a reader a place for a project"),
+        ("file_act_view.rs", "e74763194a74bba7", "the folder a log path already in hand lies in, as the base for reading that log"),
+        ("records.rs", "85c289c7b5d8b971", "the appender takes the writer lock of the store folder a log path already in hand lies in"),
+        ("records_access.rs", "519c5024fe3afbe5", "the records capability's own read log, a writer: its path in the project's store folder, refused with the read when the attachment gives none"),
+        ("role_observations.rs", "c024537e4e6f86bd", "the census of files kept in the project folder, read only to REFUSE role observation history while an import is needed; and a writer taking the project's identity from the attachment (none for a refused one)"),
+        ("role_record_source.rs", "b7a86f4abea1daee", "the role source takes the project's identity from the attachment, to refuse a reference that belongs to another project; no place is taken"),
+        ("workflow_record_store.rs", "b1cc7691732bfd74", "the workflow record store's read admission takes the attachment and returns its refusal for a refused one before anything is read"),
+        ("native_conversation_links.rs", "58c2472c29734ec3", "the native relationship writer captures the attachment it will write under and refuses a refusal"),
+        ("lib.rs", "49b753d2e7327969", "the App at startup gives the opened project its identity (a minting attachment), a writer"),
+    ];
+    let mut callers = scan(&files, &qualified, &STORE_MODULE);
+    // Calls inside test modules of product files: fixtures, held with the rest.
+    for (file, why) in [("act_control_a15.rs", "a test's assertion"), ("runtime_session.rs", "test fixtures")] {
+        if let Some(lines) = callers.remove(file) {
+            let expected = match file { "act_control_a15.rs" => "0e4d960a46572bf6", _ => "678c9810d8ef831b" };
+            if digest(&lines) != expected {
+                wrong.push(format!("{file} ({why}): its calls of the store's path functions changed (digest now {}):\n{}", digest(&lines), lines.iter().map(|(n, l)| format!("    {n}: {l}")).collect::<Vec<_>>().join("\n")));
+            }
+        }
+    }
+    wrong.extend(differences("calls a function of the store that returns a store path or an attachment without the decision", &callers, &CALLERS));
+
+    // 3. The lines outside the store module that begin with `use` and name
+    // the store. A `use` item spread over several lines is not seen.
+    const IMPORTS: [(&str, &str, &str); 6] = [
+        ("fleet_records.rs", "6e895d82e9a7f87f", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+        ("desktop_startup.rs", "0681da416c9617cc", "the module itself, in a test module"),
+        ("lib.rs", "d771fd5d21ed7367", "an alias for the store's package custody submodule (records_package), which has none of the listed functions"),
+        ("records_retention.rs", "3f8a677a36c99b49", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+        ("role_observations.rs", "2283fd61370d8a40", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+        ("storage.rs", "6ba69ddb5abdef78", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+    ];
+    let imports = scan(&files, &|line: &str| { let line = line.trim_start(); (line.starts_with("use ") || line.starts_with("pub use ") || line.starts_with("pub(crate) use ")) && line.contains("records_store") }, &STORE_MODULE);
+    wrong.extend(differences("imports from the records store by a use line", &imports, &IMPORTS));
+    // 4. A listed function's name followed at once by an opening bracket,
+    // outside the store module. A space before the bracket is not seen.
+    for (file, lines) in scan(&files, &bare, &STORE_MODULE) {
+        wrong.push(format!("{file} calls, by a bare name, something named as one of the store's path functions is; if it is that function, this file is not among the listed callers:\n{}", lines.iter().map(|(n, l)| format!("    {n}: {l}")).collect::<Vec<_>>().join("\n")));
+    }
+    assert!(wrong.is_empty(), "a project's records are read where records_store::readable_home says, and written where records_store::write_dir says. A new reader takes its place from the ReadHome that decision returns (it refuses for a refused attachment). Only where a line is none of that (a library's own store, a writer, administration, a test, a shape check) is this list changed, with the reason said:\n{}", wrong.join("\n"));
+    // The decision itself: a refused attachment is an error, with nothing to read in place.
+    let root = folder("decision-refused-");
+    records::append_project(&root, None, "writer:d", "evidence_limit", &APP_WRITER, body("in the store")).unwrap();
+    assert!(readable_home(&root).unwrap().in_store().is_some());
+    std::fs::remove_file(root.join(PROJECT_LINK)).unwrap();
+    let refused = readable_home(&root).unwrap_err();
+    assert!(refused.starts_with("project records unavailable: link missing; not attached") && refused.ends_with("the files kept in the project folder are not read in their place"), "{refused}");
+    assert!(route_accounts_place(&root, false).unwrap_err().contains("link missing; not attached"));
+    // A folder that is simply new reads in place, as before.
+    let fresh = folder("decision-new-");
+    let read = readable_home(&fresh).unwrap();
+    assert!(read.in_store().is_none() && read.records() == fresh.join(".chirality/records") && read.captures() == fresh.join(".chirality/captures"));
+    assert_eq!(read.registered_log(), fresh.join("records/coordination.rs.jsonl"));
+    assert_eq!(read.in_place_parts("workflow"), Some(vec![".chirality", "records", "workflow"]));
+    let _ = (std::fs::remove_dir_all(&root), std::fs::remove_dir_all(&fresh));
+}
+
+/// Pull requests 240 and 246 together, for the merge of the two: a refused
+/// attachment (240) and an import account that cannot be read (246) each
+/// refuse on the merged path, and so do both at once. The attachment's
+/// refusal is said first; nothing either made an error becomes a reading;
+/// and no write, import or export is admitted in any of the three states.
+#[test]
+fn a_refused_attachment_and_an_unknown_import_account_each_refuse_and_so_do_both() {
+    let _own = OwnStore::new();
+    let unknown = |e: &str| e.contains("exists and is empty") && e.contains("whether an import was begun is not known");
+    let refused = |e: &str| e.contains("link missing; not attached");
+    let root = legacy_project();
+    import(&root).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let link = std::fs::read(root.join(PROJECT_LINK)).unwrap();
+    let account = std::fs::read(dir.join("imports.jsonl")).unwrap();
+    let run_log = |root: &Path| crate::records::supply::run_log_for_read(root, "run:legacy");
+    let export_to = |root: &Path| {
+        let destination = folder("both-refusals-export-").join("bag");
+        let result = crate::records_export::export(root, &destination);
+        (result, destination)
+    };
+    let store_before = |dir: &Path| (std::fs::read(dir.join("imports.jsonl")).unwrap(), std::fs::read_dir(dir).unwrap().count());
+    // Neither: read from the store.
+    assert!(readable_home(&root).unwrap().in_store().is_some());
+    assert!(route_accounts_place(&root, false).unwrap().store_dir.is_some());
+    assert!(run_log(&root).is_ok());
+    assert_eq!(status(Some(&root))["project"]["reading"], "records store");
+    assert_eq!(storage::read_all(&root).0.len(), 3);
+
+    // 1. The account unknown, the attachment whole (246's refusal alone).
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    let before = store_before(&dir);
+    for said in [
+        readable_home(&root).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, false).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, true).map(|_| ()).unwrap_err(),
+        run_log(&root).map(|_| ()).unwrap_err(),
+        write_dir(&root).map(|_| ()).unwrap_err(),
+        import(&root).map(|_| ()).unwrap_err(),
+    ] {
+        assert!(unknown(&said), "{said}");
+    }
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["state"], "unavailable", "{shown}");
+    assert!(shown["project"]["reading"].as_str().is_none_or(|r| r != "records store" && r != "no records yet" && !r.contains("in place")), "{shown}");
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty() && limits.iter().any(|l| unknown(l)), "{entries:?} {limits:?}");
+    let (exported, destination) = export_to(&root);
+    assert!(exported.is_err() && !destination.exists(), "{exported:?}");
+    assert!(records::append_project(&root, None, "writer:both", "evidence_limit", &APP_WRITER, body("refused")).is_err());
+    assert_eq!(store_before(&dir), before, "nothing written in the project's store folder");
+
+    // 2. Both: the link removed as well. The attachment's refusal is the one
+    // said, and nothing is read in place of the store's records.
+    std::fs::remove_file(root.join(PROJECT_LINK)).unwrap();
+    for said in [
+        readable_home(&root).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, false).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, true).map(|_| ()).unwrap_err(),
+        run_log(&root).map(|_| ()).unwrap_err(),
+        write_dir(&root).map(|_| ()).unwrap_err(),
+    ] {
+        assert!(refused(&said), "{said}");
+    }
+    assert!(import(&root).is_err());
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["reading"], "nothing from the records store (the project is not attached)", "{shown}");
+    assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty() && limits.iter().any(|l| refused(l)), "{entries:?} {limits:?}");
+    let (exported, destination) = export_to(&root);
+    assert!(exported.is_err() && !destination.exists(), "{exported:?}");
+    assert!(records::append_project(&root, None, "writer:both", "evidence_limit", &APP_WRITER, body("refused")).is_err());
+    assert!(!root.join(PROJECT_LINK).exists(), "no identity minted for it");
+    assert_eq!(store_before(&dir), before, "nothing written in the project's store folder");
+
+    // 3. The attachment refused, the account whole (240's refusal alone).
+    std::fs::write(dir.join("imports.jsonl"), &account).unwrap();
+    for said in [
+        readable_home(&root).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, false).map(|_| ()).unwrap_err(),
+        run_log(&root).map(|_| ()).unwrap_err(),
+        write_dir(&root).map(|_| ()).unwrap_err(),
+    ] {
+        assert!(refused(&said), "{said}");
+    }
+    let (entries, _) = storage::read_all(&root);
+    assert!(entries.is_empty(), "{entries:?}");
+    let (exported, destination) = export_to(&root);
+    assert!(exported.is_err() && !destination.exists(), "{exported:?}");
+
+    // The link put back with the account whole: it reads as at the start.
+    std::fs::write(root.join(PROJECT_LINK), &link).unwrap();
+    assert!(readable_home(&root).unwrap().in_store().is_some());
+    assert_eq!(storage::read_all(&root).0.len(), 3);
+    assert_eq!(status(Some(&root))["project"]["reading"], "records store");
+    let _ = std::fs::remove_dir_all(&root);
+}
+
+/// Review round 3, finding 3: with the registry's last line incomplete and
+/// its complete lines recording the folder for several projects, no identity
+/// act is offered, as none is on any other path while the tail is unread.
+#[test]
+fn several_identities_beside_an_incomplete_registry_tail_offer_no_identity_act() {
+    let _store = OwnStore::new();
+    let here = folder("torn-several-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let store = opened().unwrap().0;
+    let registry = store.join("roots.jsonl");
+    let mut bytes = std::fs::read(&registry).unwrap();
+    let second = json!({"format":"chirality.records-store.root","formatVersion":"0.1","projectId":"chirality-project:second-fixture","root":here.to_str().unwrap(),"at":"2026-11-12T00:00:00Z","how":"attached"});
+    bytes.extend_from_slice(format!("{second}\n").as_bytes());
+    std::fs::write(&registry, &bytes).unwrap();
+    // Whole registry: the fault, with the acts that resolve it offered.
+    let whole = attach(&here, false).unwrap();
+    assert_eq!(whole.fault, Some("several identities"), "{whole:?}");
+    assert!(whole.registry.is_none() && !whole.resolutions.is_empty(), "{whole:?}");
+    // The reviewer's state: the same lines, then an incomplete one.
+    bytes.extend_from_slice(b"{");
+    std::fs::write(&registry, &bytes).unwrap();
+    let torn = attach(&here, false).unwrap();
+    assert_eq!(torn.fault, Some("several identities"), "{torn:?}");
+    assert!(torn.registry.is_some(), "{torn:?}");
+    assert!(torn.resolutions.is_empty(), "no act is offered that the host would refuse: {torn:?}");
+    assert!(status(Some(&here))["project"]["attachment"]["resolutions"].as_array().is_some_and(|r| r.is_empty()));
+    for act in [new_identity(&here), adopt(&here)] { assert!(act.unwrap_err().contains("was not read whole")); }
+    assert_eq!(std::fs::read(&registry).unwrap(), bytes);
+    let _ = std::fs::remove_dir_all(&here);
+}
+
+/// Review round 3, finding 5: something that is not a plain file where the
+/// registry belongs is reported, by status and by an attachment, and is
+/// never waited on.
+#[test]
+fn a_registry_that_is_not_a_plain_file_is_reported_without_waiting() {
+    let own = OwnStore::new();
+    let here = folder("fifo-registry-");
+    records::append_project(&here, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let store = opened().unwrap().0;
+    let registry = store.join("roots.jsonl");
+    std::fs::remove_file(&registry).unwrap();
+    let name = std::ffi::CString::new(registry.as_os_str().as_encoded_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    let (done, wait) = std::sync::mpsc::channel();
+    let (project, configured) = (here.clone(), own.0.clone());
+    std::thread::spawn(move || {
+        // The test's store is chosen per thread.
+        use_store_for_test(Some(Ok(Store { root: configured, placement: Placement::Override, limits: vec![] })));
+        let _ = done.send((status(None), status(Some(&project)), attach(&project, false).map(|_| ())));
+    });
+    let (store_view, project_view, attached) = wait.recv_timeout(std::time::Duration::from_secs(5)).expect("status and attachment return; nothing waits on the registry");
+    assert!(store_view["registry"].as_str().is_some_and(|r| r.contains("records store unreadable: roots.jsonl")), "{store_view}");
+    assert!(project_view["registry"].as_str().is_some_and(|r| r.contains("records store unreadable: roots.jsonl")), "{project_view}");
+    assert!(attached.unwrap_err().contains("records store unreadable"));
+    std::fs::remove_file(&registry).unwrap();
+    let _ = std::fs::remove_dir_all(&here);
+}
+
+/// Review round 2, finding 1, case (b), as containment: with P's activity
+/// held (a supplier or a record waiting to be written), P's moved folder is
+/// not adopted elsewhere, so a write for the old path is refused there and
+/// nothing is minted under another identity.
+#[test]
+fn a_moved_project_is_not_adopted_while_its_activity_is_held() {
+    let before = folder("held-before-");
+    records::append_project(&before, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&before, false).unwrap().project.unwrap();
+    let held = crate::records_retention::activity(&before).unwrap().expect("P's activity lease");
+    let after = before.with_file_name(format!("{}-moved", before.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&before, &after).unwrap();
+    let store = opened().unwrap().0;
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    let refused = adopt(&after).unwrap_err();
+    assert!(refused.contains(&format!("project {p}")) && refused.contains("is still in use") && refused.ends_with("nothing changed"), "{refused}");
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "nothing released or registered");
+    // The old path made again: a write kept for it is refused, nothing minted.
+    std::fs::create_dir_all(&before).unwrap();
+    assert!(records::append_project(&before, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's waiting entry")).is_err());
+    assert!(!before.join(PROJECT_LINK).exists(), "no identity minted at the old path");
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before);
+    drop(held);
+    std::fs::remove_dir_all(&before).unwrap();
+    assert_eq!(adopt(&after).unwrap()["projectId"], p.as_str());
+    assert_eq!(storage::read_all(&after).0.len(), 1, "P's history");
+    let _ = std::fs::remove_dir_all(&after);
+}
+
+#[test]
 fn a_copied_project_is_duplicated_and_attaches_nothing_until_it_gets_its_own_identity() {
     let original = folder("dup-original-");
     records::append_project(&original, None, "writer:dup", "evidence_limit", &APP_WRITER, body("original")).unwrap();
@@ -230,6 +925,7 @@ fn a_copied_project_is_duplicated_and_attaches_nothing_until_it_gets_its_own_ide
     std::fs::copy(original.join(PROJECT_LINK), copy.join(PROJECT_LINK)).unwrap();
     let dup = attach(&copy, true).unwrap();
     assert!(dup.dir.is_none() && dup.refusal.as_deref().unwrap().contains("duplicated project identity"), "{dup:?}");
+    assert_eq!((dup.fault, dup.resolutions.as_slice()), (Some("duplicated"), ["new-identity"].as_slice()));
     let refused = records::append_project(&copy, None, "writer:dup", "evidence_limit", &APP_WRITER, body("copy")).unwrap_err();
     assert!(refused.contains("duplicated"), "{refused}");
     assert_eq!(storage::read_all(&copy).0.len(), 0, "the copy reads none of the original's records");
@@ -253,6 +949,7 @@ fn a_moved_project_is_attached_only_when_the_person_confirms_it() {
     std::fs::rename(&before, &after).unwrap();
     let moved = attach(&after, true).unwrap();
     assert!(moved.dir.is_none() && moved.refusal.as_deref().unwrap().contains("adopt"), "{moved:?}");
+    assert_eq!((moved.fault, moved.resolutions.as_slice()), (Some("moved"), ["adopt", "new-identity"].as_slice()));
     assert!(records::append_project(&after, None, "writer:move", "evidence_limit", &APP_WRITER, body("x")).is_err());
     assert_eq!(adopt(&after).unwrap()["projectId"], id.as_str());
     assert_eq!(storage::read_all(&after).0.len(), 1, "the project's history, in the store");
@@ -268,6 +965,7 @@ fn a_project_kept_in_another_store_and_an_unreadable_link_attach_nothing() {
     std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:elsewhere", "records-store:another")).unwrap()).unwrap();
     let other = attach(&root, true).unwrap();
     assert!(other.refusal.as_deref().unwrap().contains("another records store"), "{other:?}");
+    assert_eq!((other.fault, other.resolutions.as_slice()), (Some("another store"), ["adopt", "new-identity"].as_slice()));
     assert!(storage::project_log(&root, None, "w").is_err());
     assert_eq!(adopt(&root).unwrap()["projectId"], "chirality-project:elsewhere");
     let link: Value = serde_json::from_slice(&std::fs::read(root.join(PROJECT_LINK)).unwrap()).unwrap();

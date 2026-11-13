@@ -27,11 +27,14 @@
 //!
 //! **Project identity.** The App mints an opaque identity once and writes it
 //! in the project at `.chirality/project.json` (a link naming the identity
-//! and this store). The store's own records govern: a missing, changed or
-//! unreadable link with the folder known to the store is a visible limit and
-//! the store's identity is used; a link whose identity the store records at
-//! another folder (moved, or copied) attaches nothing until the person says
-//! which it is (adopt, or a new identity); nothing is minted over a mismatch.
+//! and this store). The store's own records govern, and a folder is attached
+//! only when its link and the store agree on its identity. A link that is
+//! missing or unreadable, that names another identity or another store than
+//! the store records for the folder (changed), or whose identity the store records at another
+//! folder (moved, or copied) attaches nothing until the person resolves it:
+//! restore the link, confirm the folder is the project its link names
+//! (adopt), or give the folder a new identity. Nothing is minted over a
+//! mismatch. `Attachment::resolutions` names the acts that apply.
 //!
 //! **Existing records.** Until the person imports them, the §13.7 records in
 //! the project are read in place and new recording is refused ("import
@@ -603,6 +606,30 @@ fn roots(store: &Path) -> Result<Vec<Value>, String> {
     *cache = Some((path, 0, stamp, lines.clone()));
     Ok(lines)
 }
+/// What every attachment says while the roots registry's last line is unread.
+const REGISTRY_TORN: &str = "the records store's registry of project folders (roots.jsonl) was not read whole: its last line is incomplete and was not read, and its bytes are kept as found. That line may change which folder a project belongs to, so records are only read, from what its complete lines record; nothing is written, minted, adopted or restored for any project until it is resolved";
+/// Whether `<store>/roots.jsonl` ends in an incomplete line, which `roots`
+/// does not read. Read only, and the bytes are never changed here.
+fn roots_torn(store: &Path) -> Result<bool, String> {
+    let path = store.join("roots.jsonl");
+    // Read as every other line file of the store is: a plain, singly linked
+    // file, opened without following a link and without waiting, so that
+    // something else at this path is reported and never waited on.
+    match std::fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(format!("records store unreadable: roots.jsonl: {e}")),
+        Ok(_) => {}
+    }
+    let bytes = crate::records_retention::read_plain(&path).map_err(|e| format!("records store unreadable: roots.jsonl: {e}"))?;
+    Ok(bytes.last().is_some_and(|last| *last != b'\n'))
+}
+/// Refuses an act that would append to the roots registry while its last
+/// line is incomplete: appending would close that line and change what it
+/// reads as. The tail's bytes are kept exactly.
+fn require_roots_whole(store: &Path) -> Result<(), String> {
+    if roots_torn(store)? { return Err(format!("{REGISTRY_TORN}; nothing changed")); }
+    Ok(())
+}
 /// The project identities `root` is a current root of, by the roots record.
 fn listed(lines: &[Value], root: &str) -> Vec<String> {
     let mut current: BTreeMap<String, bool> = BTreeMap::new();
@@ -651,7 +678,7 @@ fn read_link(root: &Path) -> Link {
 }
 fn link_value(project: &str, store: &str) -> Value {
     json!({"format":LINK_FORMAT,"formatVersion":VERSION,"projectId":project,"storeId":store,
-        "note":"A link to this project's records in the Chirality App's records store. The store's own record governs; editing this file only produces a limit."})
+        "note":"A link to this project's records in the Chirality App's records store. The store's own record governs; a changed or missing file attaches nothing until you resolve it in the App."})
 }
 
 /// The project folder in the store for `project`.
@@ -676,12 +703,29 @@ pub struct Attachment {
     /// identity yet).
     pub how: &'static str,
     /// The identity the store recorded at this folder, when the folder is not
-    /// attached to it (its link is missing or unreadable).
+    /// attached to it (its link is missing, unreadable or names another).
     pub recorded: Option<String>,
+    /// What stands between the folder and its records, as one word for the
+    /// view: "link missing", "link unreadable", "link changed", "several
+    /// identities", "moved", "duplicated", "another store", "link names
+    /// another store", or (no identity yet, and one the store holds with no
+    /// folder recorded) "no folder recorded".
+    pub fault: Option<&'static str>,
+    /// The identity the project's link file names, when it is not the one
+    /// attached.
+    pub linked: Option<String>,
+    /// The person's acts that resolve the fault, of "restore-link", "adopt"
+    /// and "new-identity" (`records_store_identity`). Only these are offered.
+    pub resolutions: Vec<&'static str>,
+    /// Set when the store's registry of project folders was not read whole
+    /// (its last line is incomplete): this attachment rests on its complete
+    /// lines only. Shown on every attachment while it stands.
+    pub registry: Option<String>,
 }
 impl Attachment {
     pub fn view(&self) -> Value {
-        json!({"root":self.root.display().to_string(),"projectId":self.project,"how":self.how,"limits":self.limits,"refusal":self.refusal,"recordedHere":self.recorded})
+        json!({"root":self.root.display().to_string(),"projectId":self.project,"how":self.how,"limits":self.limits,"refusal":self.refusal,"recordedHere":self.recorded,
+            "fault":self.fault,"linkedIdentity":self.linked,"resolutions":self.resolutions,"registry":self.registry})
     }
 }
 
@@ -704,7 +748,13 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     let at = canonical.to_str().ok_or("project folder is not Unicode; no project identity")?.to_owned();
     let listed = listed(&lines, &at);
     let link = read_link(&canonical);
-    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None };
+    let torn = roots_torn(&store)?;
+    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None, fault: None, linked: None, resolutions: vec![],
+        registry: torn.then(|| REGISTRY_TORN.to_owned()) };
+    // Other folders the store records for `project` whose own link still names it.
+    let held_elsewhere = |project: &str| -> Vec<String> {
+        roots_of(&lines, project).into_iter().filter(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if p == project)).collect()
+    };
     let attach_to = |out: &mut Attachment, project: &str| {
         let dir = project_dir(&store, project);
         remember(&dir, root);
@@ -714,13 +764,53 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     if listed.len() > 1 {
         out.refusal = Some(format!("the records store records this folder for several projects ({}); nothing attached until the person resolves it", listed.join(", ")));
         out.how = "unattached";
+        out.fault = Some("several identities");
+        if let Link::Present { project, .. } = &link {
+            out.linked = Some(project.clone());
+            if held_elsewhere(project).is_empty() { out.resolutions.push("adopt"); }
+        }
+        out.resolutions.push("new-identity");
+        // No identity act can succeed while the registry's last line is
+        // unread, so none is offered on this path either.
+        if torn { out.resolutions.clear(); }
+        return Ok(out);
+    }
+    // The incomplete last line may be exactly this folder's registration (or
+    // its release): a folder the complete lines do not associate is not
+    // known, and nothing is minted, registered or adopted beside it.
+    if torn && listed.is_empty() {
+        out.refusal = Some(format!("association not known; not attached: {REGISTRY_TORN}, and its complete lines record no project for this folder; nothing is read, written, minted or adopted for it"));
+        out.how = "unattached";
+        out.fault = Some("association not known");
+        if let Link::Present { project, .. } = &link { out.linked = Some(project.clone()); }
         return Ok(out);
     }
     match (&link, listed.first()) {
-        (Link::Present { project, .. }, Some(y)) if project == y => attach_to(&mut out, y),
+        (Link::Present { project, store: linked }, Some(y)) if project == y && *linked == store_id => attach_to(&mut out, y),
+        // The identity agrees and the link names another store: the link is
+        // changed all the same, and a changed link attaches nothing.
+        (Link::Present { project, store: linked }, Some(y)) if project == y => {
+            out.refusal = Some(format!("link changed; not attached: project file {PROJECT_LINK} names another records store ({linked}), and this store recorded project {y} at this folder; nothing is read or written for it until the person restores the link"));
+            out.recorded = Some(y.clone());
+            out.linked = Some(project.clone());
+            out.how = "unattached";
+            out.fault = Some("link names another store");
+            out.resolutions.push("restore-link");
+        }
+        // The link names another identity than the store records here (an
+        // edit, or another project's folder put at this path): the store does
+        // not choose between them. Nothing is attached until the person does.
         (Link::Present { project, .. }, Some(y)) => {
-            out.limits.push(format!("project file {PROJECT_LINK} names {project}, but the records store records this folder as {y}, which governs"));
-            attach_to(&mut out, y);
+            let holding = held_elsewhere(project);
+            out.refusal = Some(format!("link changed; not attached: project file {PROJECT_LINK} names project {project}, and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link, {}gives this folder a new identity",
+                if holding.is_empty() { "confirms this folder is the project its file names or " } else { "" }));
+            out.recorded = Some(y.clone());
+            out.linked = Some(project.clone());
+            out.how = "unattached";
+            out.fault = Some("link changed");
+            out.resolutions.push("restore-link");
+            if holding.is_empty() { out.resolutions.push("adopt"); }
+            out.resolutions.push("new-identity");
         }
         // No usable link: never attached on its path alone (a new folder can
         // stand where a moved project was). The person restores the link or
@@ -729,36 +819,69 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             out.refusal = Some(format!("link missing; not attached: project file {PROJECT_LINK} is missing, and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link or gives this folder a new identity"));
             out.recorded = Some(y.clone());
             out.how = "unattached";
+            out.fault = Some("link missing");
+            out.resolutions.extend(["restore-link", "new-identity"]);
         }
         (Link::Unreadable(e), Some(y)) => {
             out.refusal = Some(format!("link unreadable; not attached: project file {PROJECT_LINK} is unreadable ({e}), and the records store recorded project {y} at this folder; nothing is read or written for it until the person restores the link or gives this folder a new identity"));
             out.recorded = Some(y.clone());
             out.how = "unattached";
+            out.fault = Some("link unreadable");
+            out.resolutions.extend(["restore-link", "new-identity"]);
         }
         (Link::Unreadable(e), None) => {
             out.refusal = Some(format!("project file {PROJECT_LINK} is unreadable ({e}) and the records store does not know this folder; nothing minted or attached"));
             out.how = "unattached";
+            out.fault = Some("link unreadable");
+            out.resolutions.push("new-identity");
         }
         (Link::Present { project, store: linked }, None) => {
             let elsewhere = roots_of(&lines, project);
             if !elsewhere.is_empty() {
                 let holding: Vec<&String> = elsewhere.iter().filter(|r| matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if p == project)).collect();
                 out.how = "unattached";
+                out.linked = Some(project.clone());
                 out.refusal = Some(if holding.is_empty() {
+                    out.fault = Some("moved");
+                    out.resolutions.extend(["adopt", "new-identity"]);
                     format!("this folder's project identity {project} is recorded at {} and not here; nothing attached until the person confirms this folder is that project (adopt) or gives it a new identity", elsewhere.join(", "))
                 } else {
+                    out.fault = Some("duplicated");
+                    out.resolutions.push("new-identity");
                     format!("duplicated project identity: {project} is also the identity of {}; nothing attached until the person gives this folder a new identity", holding.iter().map(|s| s.as_str()).collect::<Vec<_>>().join(", "))
                 });
             } else if *linked != store_id {
                 out.how = "unattached";
+                out.linked = Some(project.clone());
+                out.fault = Some("another store");
+                out.resolutions.extend(["adopt", "new-identity"]);
                 out.refusal = Some(format!("this project's records were kept in another records store ({linked}); nothing attached here until the person adopts this project into this store"));
-            } else if mint {
-                register(&store, project, &at, "registered")?;
-                out.limits.push(format!("the records store held no record of project {project}; registered from its project file"));
-                out.how = "registered";
-                attach_to(&mut out, project);
             } else {
-                out.how = "none";
+                // Known history: the store holds this identity's record, or
+                // has recorded folders for it that are all released (an
+                // adoption stopped after its release lines, or a link copied
+                // from a folder that was later given a new identity). Its
+                // records are kept and are not this folder's until the person
+                // confirms it; never read as a project with no records, and
+                // never registered here on the link alone.
+                let released = lines.iter().any(|l| l["projectId"] == project.as_str());
+                let known = released || project_dir(&store, project).join("project.json").is_file();
+                if mint && !released {
+                    // A link the store does not know yet, or an identity whose
+                    // minting stopped before its first roots line.
+                    register(&store, project, &at, "registered")?;
+                    out.limits.push(format!("the records store held no record of project {project}; registered from its project file"));
+                    out.how = "registered";
+                    attach_to(&mut out, project);
+                } else if known {
+                    out.refusal = Some(format!("records kept, not attached: the records store holds project {project}, which this folder's project file names, and records no folder for it; nothing is read or written for it until the person confirms this folder is that project"));
+                    out.how = "unattached";
+                    out.linked = Some(project.clone());
+                    out.fault = Some("no folder recorded");
+                    out.resolutions.push("adopt");
+                } else {
+                    out.how = "none";
+                }
             }
         }
         (Link::Absent, None) => {
@@ -776,6 +899,9 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
             }
         }
     }
+    // While the registry's last line is unread no identity act can succeed
+    // (`adopt`, `new_identity` and `restore_link` refuse): none is offered.
+    if torn { out.resolutions.clear(); }
     if let Some(dir) = out.dir.as_deref() {
         let retention = crate::records_retention::view(dir);
         match retention["disposition"].as_str() {
@@ -787,8 +913,30 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     Ok(out)
 }
 
+/// For a handle bound earlier to the store folder `bound`: `root` must be
+/// attached now, cleanly, to that same folder. Whatever stands between the
+/// folder and its records refuses with the attachment's own text; a check
+/// that cannot be made refuses. Nothing is minted, written or re-associated.
+pub(crate) fn require_attached(root: &Path, bound: &Path) -> Result<(), String> {
+    let now = attach(root, false)?;
+    if let Some(refusal) = now.refusal {
+        return Err(refusal);
+    }
+    if let Some(fault) = now.fault {
+        return Err(format!("{fault}; not attached: {}", now.limits.join("; ")));
+    }
+    match now.dir {
+        Some(dir) if dir == bound => Ok(()),
+        Some(_) => Err(format!("the project's records association changed: {} is now attached to project {}, not to the records this handle was opened for; nothing read or written", now.root.display(), now.project.unwrap_or_default())),
+        None => Err(format!("the project's records association changed: the records store no longer attaches {} to the records this handle was opened for; nothing read or written", now.root.display())),
+    }
+}
+
 /// The store's identity record for `project` (once) and a roots line.
 fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), String> {
+    // Whatever the caller checked: no line is ever appended after an
+    // incomplete one, which the append would close and change.
+    require_roots_whole(store)?;
     let dir = project_dir(store, project);
     let record = dir.join("project.json");
     if !record.exists() {
@@ -1024,7 +1172,9 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     Err("project records need import before export".into())
 }
 
-/// Where a project's records are read and written now.
+/// Where a project's records are read and written now, whether or not the
+/// attachment is refused. Product code outside this module cannot obtain one:
+/// an ordinary reader takes `readable_home`, the one decision.
 #[derive(Clone, Debug)]
 pub(crate) struct Home {
     pub attachment: Attachment,
@@ -1035,7 +1185,7 @@ pub(crate) struct Home {
 /// The project's home for reading. An unavailable configured store never
 /// falls back to retained originals, even with a missing project link. Explicit
 /// library readers use their library's own log/capture paths independently.
-pub(crate) fn home(root: &Path) -> Result<Home, String> {
+fn unrefusing_home(root: &Path) -> Result<Home, String> {
     match attach(root, false) {
         Ok(attachment) => {
             if attachment.dir.is_none() {
@@ -1054,6 +1204,142 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
     }
 }
 
+/// The unrefusing home, for tests only: they read the attachment and the
+/// store's standing directly. No product code outside this module has it.
+#[cfg(test)]
+pub(crate) fn home(root: &Path) -> Result<Home, String> {
+    unrefusing_home(root)
+}
+
+/// Where an ordinary reader reads a project's records now. Made only by the
+/// one decision (`decide`), so having one means the attachment is not
+/// refused. Its methods are where ordinary readers join the project folder
+/// with a records location; a limited test (`selected_source_lines_about_
+/// where_a_projects_records_are_read_are_held_by_content`) fails when the
+/// source lines that name such a location change.
+#[derive(Clone, Debug)]
+pub(crate) struct ReadHome {
+    pub attachment: Attachment,
+    /// The store holds this project's records: they are read from the store.
+    /// Otherwise the project's §13.7 records (if any) are read in place.
+    pub store_mode: bool,
+    place: ReadPlace,
+}
+#[derive(Clone, Debug)]
+enum ReadPlace {
+    /// The project's folder in the records store.
+    Store(PathBuf),
+    /// The project folder: the store holds nothing of the project's, and
+    /// records an earlier build wrote there (if any) are read in place.
+    InPlace(PathBuf),
+}
+/// The one decision of where a project's records are read from. A refused
+/// attachment (a link missing, changed, moved or duplicated; records kept
+/// and not attached; an association not known) is an error: the files kept
+/// in the project folder are never read in the place of records the store
+/// holds and will not attach. A folder that is simply new and unlinked has
+/// no refusal and reads in place as before.
+fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> {
+    if let Some(refusal) = &attachment.refusal {
+        return Err(format!("project records unavailable: {refusal}; the files kept in the project folder are not read in their place"));
+    }
+    let place = match (store_mode, attachment.dir.clone()) {
+        (true, Some(dir)) => ReadPlace::Store(dir),
+        _ => ReadPlace::InPlace(attachment.root.clone()),
+    };
+    Ok(ReadHome { attachment, store_mode, place })
+}
+/// The project's records home for an ordinary reader: the one decision, after
+/// the unrefusing home's own refusals (an unavailable store, a disposal).
+pub(crate) fn readable_home(root: &Path) -> Result<ReadHome, String> {
+    let home = unrefusing_home(root)?;
+    decide(home.attachment, home.store_mode)
+}
+impl ReadHome {
+    /// The project's store folder, when its records are read from the store.
+    pub(crate) fn in_store(&self) -> Option<&Path> {
+        match &self.place {
+            ReadPlace::Store(dir) => Some(dir),
+            ReadPlace::InPlace(_) => None,
+        }
+    }
+    /// The folder the project's run, act and workflow logs are read under.
+    pub(crate) fn records(&self) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(dir) => dir.clone(),
+            ReadPlace::InPlace(root) => root.join(crate::storage::LEGACY_RECORDS),
+        }
+    }
+    /// The project's capture evidence folder.
+    pub(crate) fn captures(&self) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(dir) => dir.join("captures"),
+            ReadPlace::InPlace(root) => root.join(crate::storage::CAPTURES),
+        }
+    }
+    /// The registered legacy log: its imported copy, or the file in place.
+    pub(crate) fn registered_log(&self) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(dir) => dir.join(REGISTERED_COPY),
+            ReadPlace::InPlace(root) => root.join(crate::storage::LEGACY_LOG),
+        }
+    }
+    /// A log named by its path in the project, where it is read now.
+    pub(crate) fn named(&self, rel: &str) -> PathBuf {
+        match &self.place {
+            ReadPlace::Store(_) if rel == crate::storage::LEGACY_LOG => self.registered_log(),
+            ReadPlace::Store(dir) => dir.join(crate::storage::home_rel(rel)),
+            ReadPlace::InPlace(root) => root.join(rel),
+        }
+    }
+    /// The folder names, below the project folder, of the in-place records
+    /// folder `leaf`, for a reader that opens them one by one from a handle
+    /// it holds on the project folder. `None` when read from the store.
+    pub(crate) fn in_place_parts(&self, leaf: &'static str) -> Option<Vec<&'static str>> {
+        match &self.place {
+            ReadPlace::Store(_) => None,
+            ReadPlace::InPlace(_) => Some(crate::storage::LEGACY_RECORDS.split('/').chain([leaf]).collect()),
+        }
+    }
+    /// What status says is being read. "In place" and "import needed" are
+    /// said only here and in `import_needed_note`, of the in-place variant.
+    fn reading(&self, kept_in_project: bool) -> &'static str {
+        match (&self.place, kept_in_project) {
+            (ReadPlace::Store(_), _) => "records store",
+            (ReadPlace::InPlace(_), true) => "records in place in the project (import needed)",
+            (ReadPlace::InPlace(_), false) => "no records yet",
+        }
+    }
+    fn import_needed(&self, kept_in_project: bool) -> bool {
+        matches!(self.place, ReadPlace::InPlace(_)) && kept_in_project
+    }
+    fn import_needed_note(&self, census: &[LegacyFile]) -> Option<String> {
+        if !self.import_needed(!census.is_empty()) {
+            return None;
+        }
+        Some(format!("import needed: {} record file(s) ({}) are read in place; all new recording for the project is refused until they are imported into the records store", census.len(), describe(census)))
+    }
+    /// The connector route accounts kept in the project folder, read in place
+    /// and written nowhere.
+    fn accounts_in_place(&self, location: &str) -> Result<AccountsPlace, String> {
+        match &self.place {
+            ReadPlace::InPlace(root) => Ok(accounts_in_project(root, location.to_owned())),
+            ReadPlace::Store(_) => Err("the project's records are in the records store; its connector accounts are not read in the project".into()),
+        }
+    }
+}
+/// The in-project connector accounts place. Built only by the one decision
+/// (`ReadHome::accounts_in_place`) and by the one named case in
+/// `route_accounts_place` where no records store is available at all.
+fn accounts_in_project(root: &Path, location: String) -> AccountsPlace {
+    AccountsPlace {
+        anchor: root.to_path_buf(),
+        parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
+        store_dir: None,
+        location,
+    }
+}
+
 /// The project's store folder for a write: attached (minted if new), and with
 /// no §13.7 records waiting for import. Every refusal names its cause.
 pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
@@ -1065,6 +1351,7 @@ pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
 /// Whether the project's store folder may be written now: no import is
 /// incomplete, and no project records wait for one.
 fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
+    require_roots_whole(dir.parent().and_then(Path::parent).ok_or("project store absent")?)?;
     crate::records_retention::check_write(dir)?;
     let current=attach(root,false)?;
     if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err("project root association changed; stale queued writer refused".into());}
@@ -1281,46 +1568,39 @@ pub(crate) struct AccountsPlace {
 /// nothing. Once the store holds the
 /// project's records the accounts are in its store folder; before that,
 /// accounts in the project are read in place (writes refused, "import
-/// needed"); a project with none is placed in the store. A folder the store
-/// cannot attach, or one with no identity yet, is read in place and written
-/// nowhere.
+/// needed"); a project with none is placed in the store. A folder with no
+/// identity yet is read in place and written nowhere. A folder whose
+/// attachment is refused has no accounts place at all: an error.
 pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPlace, String> {
-    // As `home`: with no store, a folder with no link is read in place and
-    // written nowhere; a linked project with the store unavailable is an error.
+    // The one named case outside the decision, unchanged: with no records
+    // store available and no link in the folder, connector accounts are read
+    // in place and nothing is written (ordinary records in that state are
+    // unavailable); a linked project with the store unavailable is an error.
     let store = match if mint { created() } else { opened() } {
         Ok((store, _)) => store,
         Err(e) if !mint && read_link(root) == Link::Absent && root.is_dir() => {
-            return Ok(AccountsPlace {
-                anchor: root.to_path_buf(),
-                parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
-                store_dir: None,
-                location: format!("the project, read in place; nothing written: records store unavailable: {e}"),
-            });
+            return Ok(accounts_in_project(root, format!("the project, read in place; nothing written: records store unavailable: {e}")));
         }
         Err(e) => return Err(e),
     };
     let attachment = attach(root, mint)?;
-    let in_place = || AccountsPlace {
-        anchor: attachment.root.clone(),
-        parts: crate::connector_route_store::LEGACY_DIRECTORY.split('/').map(str::to_owned).collect(),
-        store_dir: None,
-        location: String::new(),
+    // Whether the store holds the project's records can be unknown (an import
+    // account that cannot be read): that is an error here as everywhere the
+    // account is read through the store, never "does not hold".
+    let store_mode = match attachment.dir.as_deref() { Some(dir) => store_holds(dir)?, None => false };
+    // The one decision, entered from the attachment: a refused attachment has
+    // no accounts place, in the store or in the project.
+    let read = decide(attachment, store_mode)?;
+    let in_project = !connector_census(&read.attachment.root)?.is_empty();
+    let Some(dir) = read.attachment.dir.clone() else {
+        return read.accounts_in_place(if in_project {
+            "the project, read in place: import needed before accounts are written in the records store"
+        } else {
+            "the project, read in place: no project identity in the records store yet (a writer opening the accounts mints it)"
+        });
     };
-    let in_project = !connector_census(&attachment.root)?.is_empty();
-    let Some(dir) = attachment.dir.clone() else {
-        let mut place = in_place();
-        place.location = match (&attachment.refusal, in_project) {
-            (Some(refusal), _) => format!("the project, read in place; nothing written: {refusal}"),
-            (None, true) => "the project, read in place: import needed before accounts are written in the records store".into(),
-            (None, false) => "the project, read in place: no project identity in the records store yet (a writer opening the accounts mints it)".into(),
-        };
-        return Ok(place);
-    };
-    let store_mode = store_holds(&dir)?;
-    if !store_mode && in_project {
-        let mut place = in_place();
-        place.location = "the project, read in place: import needed before accounts are written in the records store".into();
-        return Ok(place);
+    if !read.store_mode && in_project {
+        return read.accounts_in_place("the project, read in place: import needed before accounts are written in the records store");
     }
     let key = dir.file_name().ok_or("project store folder has no name")?.to_string_lossy().into_owned();
     let mut parts = vec!["projects".to_owned(), key.clone()];
@@ -1578,30 +1858,67 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    require_roots_whole(&store)?;
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let lines = roots(&store)?;
-    if !listed(&lines, &at).is_empty() {
-        return Err("this folder is already attached; nothing adopted".into());
-    }
     let Link::Present { project, store: linked } = read_link(&canonical) else {
         return Err("the project file names no identity to adopt; nothing adopted".into());
     };
-    let _admission=crate::records_retention::read_path(&project_dir(&store,&project))?;
-    if roots_of(&lines, &project).iter().any(|r| matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
+    let here = listed(&lines, &at);
+    if here.len() == 1 && here[0] == project {
+        return Err("this folder is already attached to the project its file names; nothing adopted".into());
+    }
+    // Containment (a later design replaces it): refused while anything is
+    // admitted to read or write the records of an identity concerned, the
+    // adopted one and each this folder is released from, and while anything
+    // still holds its activity (a running Codex, an open run, a capture or a
+    // record waiting to be written). Held until the association has changed,
+    // so nothing pending is written into another identity or follows a path
+    // into a new one. The adopted identity's own record is only checked when
+    // the store holds it: one adopted from another store has none yet, and
+    // registering it publishes under that admission.
+    let adopted = project_dir(&store, &project);
+    let mut _admissions = Vec::new();
+    if adopted.join("project.json").is_file() {
+        _admissions.push(crate::records_retention::quiet_for_reassociation(&adopted, &project)?);
+    } else {
+        _admissions.push(crate::records_retention::read_path(&adopted)?);
+    }
+    for other in here.iter().filter(|p| **p != project) { _admissions.push(crate::records_retention::quiet_for_reassociation(&project_dir(&store,other), other)?); }
+    let mut _idle = Vec::new();
+    for other in here.iter() { _idle.push(crate::records_retention::idle_for_reassociation(&project_dir(&store,other), other)?); }
+    if !here.contains(&project) && adopted.join("project.json").is_file() {
+        _idle.push(crate::records_retention::idle_for_reassociation(&adopted, &project)?);
+    }
+    if roots_of(&lines, &project).iter().any(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {
         return Err("another folder holds this project identity; give this folder a new identity instead; nothing adopted".into());
     }
     // Every earlier root of this identity is released (append-only lines), so
     // a new folder later made at an old path is not taken for this project.
-    for earlier in roots_of(&lines, &project) {
+    for earlier in roots_of(&lines, &project).into_iter().filter(|r| *r != at) {
         append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":earlier,"at":now_rfc3339(),"how":"released","by":"adopt"}))?;
     }
-    register(&store, &project, &at, "adopted")?;
+    // A link that names another identity than the store recorded here (the
+    // project's folder was put where another project's stood): this folder is
+    // released from that identity, whose records stay in the store under it.
+    let released: Vec<String> = here.iter().filter(|p| **p != project).cloned().collect();
+    for other in &released {
+        append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":other,"root":at,"at":now_rfc3339(),"how":"released","by":"adopt"}))?;
+    }
+    if !here.contains(&project) {
+        register(&store, &project, &at, "adopted")?;
+    }
     if linked != store_id {
 
         crate::storage::replace_json(&canonical.join(PROJECT_LINK), &link_value(&project, &store_id))?;
     }
-    Ok(json!({"state":"adopted","projectId":project,"root":at}))
+    let mut out = json!({"state":"adopted","projectId":project,"root":at});
+    if !released.is_empty() {
+        out["releasedHere"] = json!(released);
+        out["limit"] = json!("records of the identity this folder had stay in the store under that identity and are no longer attached to this folder");
+    }
+    Ok(out)
 }
 
 /// The person gives this folder a new identity (a copy, or another project
@@ -1611,12 +1928,20 @@ pub fn new_identity(root: &Path) -> Result<Value, String> {
     let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    require_roots_whole(&store)?;
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let prior = listed(&roots(&store)?, &at);
+    // Containment, as `adopt`: refused while anything is admitted to read or
+    // write the records of an identity this folder is released from, or still
+    // holds its activity.
     let mut _admissions=Vec::new();
-    for project in &prior {_admissions.push(crate::records_retention::read_path(&project_dir(&store,project))?);}
-    if let Link::Present{project,..}=read_link(&canonical) {_admissions.push(crate::records_retention::read_path(&project_dir(&store,&project))?);}
+    for project in &prior {_admissions.push(crate::records_retention::quiet_for_reassociation(&project_dir(&store,project), project)?);}
+    let mut _idle = Vec::new();
+    for project in &prior { _idle.push(crate::records_retention::idle_for_reassociation(&project_dir(&store,project), project)?); }
+    // The identity the link names, when it is not one already held above
+    // (a second admission on a held one would wait on this act itself).
+    if let Link::Present{project,..}=read_link(&canonical) { if !prior.contains(&project) {_admissions.push(crate::records_retention::read_path(&project_dir(&store,&project))?);} }
     for project in prior {
         append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":at,"at":now_rfc3339(),"how":"released"}))?;
     }
@@ -1633,13 +1958,18 @@ pub fn restore_link(root: &Path) -> Result<Value, String> {
     let (store, store_id) = created()?;
     let canonical = std::fs::canonicalize(root).map_err(|e| e.to_string())?;
     let _lock = store_lock(&store)?;
+    require_roots_whole(&store)?;
     package::require_root(&canonical)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode")?.to_owned();
     let listed = listed(&roots(&store)?, &at);
     let [project] = listed.as_slice() else {
         return Err("the records store records no single identity for this folder; nothing restored".into());
     };
-    let _admission=crate::records_retention::read_path(&project_dir(&store,project))?;
+    // The link is a file in the project folder: restoring it reads no record,
+    // so it is possible whatever the state of the project's records (a
+    // disposal left unfinished can then be finished). The admission only
+    // keeps a disposal from running at the same moment.
+    let _admission=crate::records_retention::link_path(&project_dir(&store,project))?;
     crate::storage::ensure_directory(&canonical.join(".chirality"))?;
     crate::storage::replace_json(&canonical.join(PROJECT_LINK), &link_value(project, &store_id))?;
     Ok(json!({"state":"link restored","projectId":project,"root":at}))
@@ -1649,29 +1979,33 @@ pub fn restore_link(root: &Path) -> Result<Value, String> {
 /// incomplete (the store governs): identity limits, §13.7 records not
 /// imported (not read), and imported originals that differ from their copies.
 pub(crate) fn notes(root: &Path) -> Vec<String> {
-    let home = match home(root) {
+    let home = match unrefusing_home(root) {
         Ok(h) => h,
         Err(e) => return vec![e],
     };
     let mut notes = home.attachment.limits.clone();
+    notes.extend(home.attachment.registry.clone());
     if home.attachment.dir.as_deref().is_some_and(|d|crate::records_retention::terminal(d).unwrap_or(false)){notes.push("Records disposed or disposal incomplete; only surviving administration and export evidence remain. Retained project originals are not read or re-imported.".into());}
-    if let Some(refusal) = &home.attachment.refusal {
-        notes.push(refusal.clone());
-    }
-    let census = match legacy_census(&home.attachment.root) {
+    // The one decision: of a refused attachment nothing is said to be read
+    // in place and no import is asked for; its refusal is the note.
+    let read = match decide(home.attachment.clone(), home.store_mode) {
+        Ok(read) => read,
+        Err(_) => {
+            notes.extend(home.attachment.refusal.clone());
+            return notes;
+        }
+    };
+    let census = match legacy_census(&read.attachment.root) {
         Ok(c) => c,
         Err(e) => {
             notes.push(e);
             return notes;
         }
     };
-    if !home.store_mode {
-        if !census.is_empty() {
-            notes.push(format!("import needed: {} record file(s) ({}) are read in place; all new recording for the project is refused until they are imported into the records store", census.len(), describe(&census)));
-        }
+    let Some(dir) = read.in_store().map(Path::to_path_buf) else {
+        notes.extend(read.import_needed_note(&census));
         return notes;
-    }
-    let dir = home.attachment.dir.clone().unwrap();
+    };
     let covered = match coverage(&dir) {
         Ok(c) => c,
         Err(e) => {
@@ -1726,21 +2060,37 @@ pub fn status(project: Option<&Path>) -> Value {
         (Ok(s), Err(e)) => json!({"state":"unavailable","configured":s.root.display().to_string(),"placement":s.placement.label(),"error":e,"recording":"refused; no fallback"}),
         (Err(e), _) => json!({"state":"unavailable","error":e,"recording":"refused; no fallback"}),
     };
+    // The registry of project folders not read whole is said at the store
+    // level too, whether or not a project is open.
+    if let Ok((root, _)) = opened() {
+        match roots_torn(&root) {
+            Ok(false) => {}
+            Ok(true) => out["registry"] = json!(REGISTRY_TORN),
+            Err(e) => out["registry"] = json!(e),
+        }
+    }
     if let Some(root) = project {
         out["packageImport"] = package::status(root);
         // What the project holds is read whole or reported unavailable: an
         // unreadable census or import record is never "no records yet" and
         // never a count of nothing.
-        out["project"] = match home(root).and_then(|home| {
+        out["project"] = match unrefusing_home(root).and_then(|home| {
             let census = legacy_census(&home.attachment.root)?;
+            // What is read comes from the one decision.
+            let read = decide(home.attachment.clone(), home.store_mode);
             let imports = match home.attachment.dir.as_ref() { Some(d) => imports(d)?.lines, None => 0 };
             let covered = match home.attachment.dir.as_ref() { Some(d) => coverage(d)?, None => HashMap::new() };
             // §13.7 files no import has copied (all of them before the first).
             let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
             Ok(json!({"attachment":home.attachment.view(),
                 "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
-                "reading":if home.store_mode {"records store"} else if !census.is_empty() {"records in place in the project (import needed)"} else {"no records yet"},
-                "importNeeded":!home.store_mode && !census.is_empty(),
+                // A refused attachment is said first: files kept in the
+                // project folder are not read in the place of records the
+                // store holds, and no import is asked for while it stands.
+                "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
+                    else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
+                    else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty())}},
+                "importNeeded":read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
                 "legacyFiles":census.len(),"notImported":to_import,
                 "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)}))
         }) {

@@ -410,6 +410,40 @@ pub(crate) fn read_path(path: &Path) -> Result<Option<storage::Ownership>, Strin
     }
     Ok(Some(guard))
 }
+/// Admission for writing a project's link file only: no record is read, so a
+/// disposal that stands does not refuse it; it only excludes a disposal
+/// running at the same moment.
+pub(crate) fn link_path(path: &Path) -> Result<Option<storage::Ownership>, String> {
+    let Some(dir) = records_store::configured_project_dir(path) else {
+        return Ok(None);
+    };
+    if records_store::package::owns(&dir) { return Ok(None); }
+    Ok(Some(storage::lock_shared(&gate(&dir)?)?))
+}
+/// Held while a folder is released from `project`: refused while anything
+/// still holds that project's activity (a running Codex, an open workflow
+/// run, a capture or a record waiting to be written), in this or another App
+/// process, so that nothing pending is written into another identity.
+pub(crate) fn idle_for_reassociation(dir: &Path, project: &str) -> Result<storage::Ownership, String> {
+    storage::try_lock_exclusive(&control(dir)?.join(".activity.lock"))?.ok_or_else(|| format!("project {project}, which the records store recorded at this folder, is still in use: Codex is running for it, or a workflow run, a captured act or a record of it is still open or waiting to be written, in this or another App window. Stop Codex and end the run; if a record is waiting, restore the project file so it can be written. Then try again; nothing changed"))
+}
+/// Containment, held while an association changes (`adopt`, `new_identity`)
+/// for each identity concerned: refused, never waited for, while any read or
+/// publication is admitted for its records (every writer holds this shared
+/// admission from before its binding check until it has published, the
+/// connector account writer included) in this or another App process. Held,
+/// it keeps new ones out until the association has changed; each then checks
+/// its binding again once admitted (`write_path`). Payload of a disposal that
+/// has started is refused as `read_path` refuses it. A later design that binds
+/// store and project across an operation replaces this.
+pub(crate) fn quiet_for_reassociation(dir: &Path, project: &str) -> Result<Option<storage::Ownership>, String> {
+    if records_store::package::owns(dir) { return Ok(None); }
+    let guard = storage::try_lock_exclusive(&gate(dir)?)?.ok_or_else(|| format!("a record of project {project} is being read or written at this moment, in this or another App window. Wait for it to finish and try again; nothing changed"))?;
+    if state(dir)?.disposition.is_some() {
+        return Err("project records disposed or disposal incomplete; no store payload available".into());
+    }
+    Ok(Some(guard))
+}
 pub(crate) fn check_write(dir: &Path) -> Result<(), String> {
     state(dir)?.writable()
 }
@@ -502,6 +536,15 @@ fn context(
         _ => return Err("retention action is unavailable for the current project state (legal hold blocks disposal)".into()),
     }
     let attachment = records_store::attach(project, false)?;
+    // No close, legal hold or disposal while the registry's last line is
+    // unread: which identity's records this folder is bound to cannot be
+    // established, and each of these writes to an identity's administration.
+    // A hold written to the wrong identity would be a false record of a
+    // person's act. (Decided by App Agent 0; reversed by letting "hold"
+    // through here.)
+    if let Some(registry) = &attachment.registry {
+        return Err(format!("{registry}. While it stands the App disposes of nothing in this project and writes nothing to its records, so what a legal hold would protect is protected from the App's own operations; a hold, a close and a disposal are each refused until the registry is read whole again. This build has no control that clears it, except that finishing an interrupted package import completes the line when those incomplete bytes are exactly the beginning of that import's registry line; nothing changed"));
+    }
     if attachment.refusal.is_some()
         || !attachment.limits.is_empty()
         || attachment.dir.as_deref() != Some(dir)

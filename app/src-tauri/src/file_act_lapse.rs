@@ -206,10 +206,7 @@ struct Owner {
 impl Owner {
     fn open(root: &Path) -> Result<Self, String> {
         let project = ProjectRecords::open(root)?;
-        let home = crate::records_store::home(root)?;
-        if let Some(reason) = home.attachment.refusal {
-            return Err(reason);
-        }
+        let home = crate::records_store::readable_home(root)?;
         if !home.store_mode || !home.attachment.limits.is_empty() {
             return Err("Standalone lapse observations require the current attached store with no identity limits; no import or identity is created".into());
         }
@@ -241,12 +238,11 @@ impl Owner {
             );
         }
         let current = self.project.source_binding()?;
-        let home = crate::records_store::home(root)?;
+        let home = crate::records_store::readable_home(root)?;
         if !self.source.same_source(&current)
             || FileSource::directory_at(&self.store_root)? != self.store_identity
             || !home.store_mode
             || home.attachment.project.as_deref() != Some(&self.project_id)
-            || home.attachment.refusal.is_some()
             || !home.attachment.limits.is_empty()
             || crate::records_retention::read_plain(&root.join(crate::records_store::PROJECT_LINK))?
                 != self.link

@@ -936,6 +936,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `records_continuity.rs`, `records_continuity_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/records_store.rs`, `records_store_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
+| `src/RecordsStorePanel.tsx` | The records store panel: the store's placement, the project's identity with the acts that resolve a link fault, export, package import and recovery, retention, legal hold and disposal |
 | `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload and prior administration snapshot, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
 | `src-tauri/src/records_retention.rs`, `records_retention_tests.rs`, `resources/runtime_core/records-administration.entry.schema.json` | Native close/reopen, legal hold/release and recorded disposal after verified export; surviving administrative evidence, stable write admission and activity leases, truthful partial-failure recovery |
 | `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
@@ -1469,10 +1470,68 @@ project (U-STORE-6, "Split by who writes"): `connectors/route-accounts/`
 (connector route accounts) and `reads/records-reads.jsonl` (the agents'
 records read log). The project is linked to it by
 `.chirality/project.json`, an identity the App mints once; the store's own
-record of the project's roots governs. A changed link is a limit; a missing
-or unreadable one, a duplicate, or a moved project attaches nothing until the
-person restores the link, adopts the project or gives the folder a new
-identity. Records an earlier App wrote at the §13.7 paths
+record of the project's roots governs. A link that is missing or unreadable,
+that names another identity or another store than the store records for the
+folder, that is a duplicate, or that belongs to a moved project attaches
+nothing until the person restores the link, adopts the project or gives the
+folder a new identity; the host status names which of those acts apply, and
+the panel offers those. While an attachment is refused the project's records
+are unavailable: one decision (`readable_home` in `records_store.rs`) says
+where a project's records are read from, in the store or in the project
+folder; it gives no location for a refused attachment, so files kept in the
+project folder are not read in the place of records the store holds, and
+status says nothing is read in place and asks for no import. Ordinary readers
+take the place from that decision and writers from `write_dir`, with one
+exception: the fleet reader (`fleet_records.rs`) must create nothing, so it
+keeps association checks of its own and builds the protected folder only
+after them; with the link removed or changed it reads no protected payload
+and gives the cause. This is held by name and by a limited test, not by
+construction: the test fails when selected source lines change (the lines
+that name a records location in the project folder, and, outside the store
+module, the lines that name one of nine of the store's path-returning
+functions by its `records_store::` path or that begin with `use` and name
+the store). It does not enforce the arrangement and is not a complete list
+of who can obtain a location: among what it does not see are an import
+spread over several lines, a file brought into the store module other than
+by a path attribute in its usual spelling, a re-export or a new function of
+the store, and an unchanged listed line whose argument now comes from
+somewhere else; its comment lists them. Review and the behavioural tests
+establish the permitted use, and making those functions private is later
+work. One case stands
+apart, unchanged: with no records store available at all and no link in the
+folder, connector route accounts are read in place and nothing is written,
+while ordinary records in that state are unavailable. A link naming a project whose records the store keeps
+with no folder recorded for it (an adoption that stopped part way) reads as
+"records kept, not attached", admits no Codex and is not registered on the
+link alone; the person adopts it. Restoring the link reads no record, so it
+stays possible when a disposal stands; finishing a disposal is offered only
+once the folder is attached again, and finishing an interrupted package
+import only where its folder and project file agree with the import's own
+record. As containment, adopting a project or giving a folder a new identity
+is refused while a record of an identity concerned is being read or written
+or while that identity's activity is held (a running Codex, an open run, a
+capture or a record waiting to be written), in this or another App window.
+Present limits: that containment is not a binding of store and project across
+an operation, and a writer that reaches the records by the project's path
+after the act, with nothing holding the project's activity, is not covered; a
+workflow record reader kept from before can be given a replacement folder at
+the same path carrying a copied link; a connector account reader does not hold
+the retention read admission, so payload put back from outside after a
+disposal can be read again; and restoring the link of a folder with an
+interrupted package import writes the App's link bytes, not those the import
+recorded, so that import cannot then be finished from the App. When the last
+line of the store's registry of project folders (`roots.jsonl`) is
+incomplete, every attachment and the status say so and its bytes are kept;
+records are read from what its complete lines record, and nothing is
+written, minted, adopted or restored for any project. The App's only way out
+of that state today is finishing an interrupted package import whose frozen
+registry bytes begin with exactly the bytes found: the import completes a
+tail that is byte for byte a prefix of those frozen bytes. The App cannot
+tell whose interrupted write left such bytes; the result is exactly the line
+the import would have written from a clean file, and another act that left
+them never reported success and its line was never in force. Any other
+incomplete line can only be resolved by hand, outside the App. Records an
+earlier App wrote at the §13.7 paths
 (`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`,
 the registered `records/coordination.rs.jsonl`, and connector route accounts
 in `.chirality/records/connectors/route-accounts/`) are read in place, and
