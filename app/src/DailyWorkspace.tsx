@@ -63,8 +63,14 @@ function revealLink(event: MouseEvent<HTMLElement>): void {
 }
 
 /** A reading of the host snapshot, never a start/admission or model selection. */
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed }: {
+/** Codex states in which no start is under way and Codex is not connected. */
+const NO_START_UNDER_WAY = new Set(["absent", "stopped", "refused", "exited-unexpectedly", "halted-after-repeated-failure"]);
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome }: {
   state?: string; setupRequired?: boolean; savedSetup?: boolean; generationClosed?: boolean;
+  /** The host status's `lastStartRefusal`: why the last start of Codex was refused before it was spawned, and for which home. */
+  startRefusal?: { reason?: string; home?: string } | null;
+  /** The host status's `codexHome`: the home this status is for. */
+  codexHome?: string | null;
 }) {
   const ready = state === "ready" && generationClosed !== true;
   const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
@@ -78,6 +84,9 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
     : "Open Connection & access to inspect the current status and available controls.";
   return <section className="workspace-connection-status" aria-label="Workspace connection status">
     <p role="status" aria-live="polite"><strong>{title}</strong> <span>{guidance}</span></p>
+    {/* Only while no start is under way, and only for the home being shown. */}
+    {!setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome
+      && <p role="alert" aria-label="Why Codex was not started">{startRefusal.reason.startsWith("Codex was not started") ? startRefusal.reason : `Codex was not started: ${startRefusal.reason}`}</p>}
     {!setupRequired && state && <a href={ready ? "#workspace-start" : "#workspace-connection"}>{ready ? "Choose a new conversation" : "Open connection controls"}</a>}
   </section>;
 }

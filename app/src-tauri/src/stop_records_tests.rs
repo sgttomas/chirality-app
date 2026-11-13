@@ -74,6 +74,17 @@ fn closed_generation_refusal_wait_and_late_response_keep_their_own_rows() {
     let unknown = sr.generation_closed().unwrap().unwrap();
     assert_eq!((unknown["state"].as_str(), unknown["response"].as_str(), unknown["turnOutcome"].as_str(), unknown["outcomeLabel"].as_str()),
         (Some("outcome-unknown"), Some("unknown-no-response"), Some("unknown"), Some("interrupted by Stop Codex (final status not observed)")));
+    // What is shown for an outcome-unknown record says what is recorded, and does not say that
+    // Codex's process stopped: the same record is written at a later start for an earlier App
+    // session's request, where no stop of Codex was observed.
+    let session = unknown["appSession"].as_str().unwrap().to_owned();
+    for current in [session.as_str(), "a-later-session"] {
+        let held = [json!({"kind":"session_started","session":session,"at":"t","previousSessionEnd":"none","candidate":"c"}), ledger_entry(&session, &unknown)];
+        let shown = outcomes(&held, &[], current);
+        let reading = shown["records"][0]["reading"].as_str().unwrap();
+        assert_eq!(reading, "No final turn status is recorded for this stop request. That does not establish that Codex's process ended.");
+        assert!(!reading.contains("Codex stopped") && !reading.contains("before Codex"), "{reading}");
+    }
     // SR-05: Codex refused; the turn continues as observed until it ends.
     let mut refused = requested(Cause::PersonInterrupt);
     refused.sent("cr", &json!(2)).unwrap();
@@ -126,12 +137,28 @@ fn read_back_after_relaunch_keeps_labels_and_claims_no_unrecorded_end() {
     settled.turn_completed("interrupted").unwrap();
     let mut open = StopRequest::requested(&g(), "H-key", "thread-2", "turn-2", Cause::PersonInterrupt, &person("")).unwrap();
     open.sent("cr", &json!(2)).unwrap();
+    // The earlier session has its start record in the ledger, as every session that wrote
+    // through the App has: its end is what the later session's start established.
     let ledger = json!([
+        {"kind":"session_started","session":"session-a","at":"t","previousSessionEnd":"none","candidate":"c"},
         ledger_entry("session-a", settled.record()),
         ledger_entry("session-a", open.record()),
         {"kind":"stop_request","session":"session-a","at":"t","record":{"kind":"stop_request"}},
     ]);
+    // Without that start record nothing establishes that the session has ended: the records are
+    // shown as recorded, no label is derived for the open one, it is not called an earlier
+    // session, and the view says so as a limit. A recorded label stays what was recorded.
+    let orphaned: Vec<Value> = ledger.as_array().unwrap().iter().filter(|e| e["kind"] != "session_started").cloned().collect();
+    let orphan = outcomes(&orphaned, &[], "session-b");
+    let rows = orphan["records"].as_array().unwrap();
+    assert_eq!((rows[1]["label"].as_str(), rows[1]["labelDerived"].as_bool(), rows[1]["reading"].as_str()), (None, Some(false), Some(SOURCE_END_NOT_ESTABLISHED)), "{}", rows[1]);
+    assert_eq!((rows[1]["earlierSession"].as_bool(), rows[1]["sourceSessionEnd"].as_str()), (Some(false), Some("not-established")));
+    assert!(!rows[1]["reading"].as_str().unwrap().contains("session ended"), "no ending is asserted");
+    assert_eq!((rows[0]["label"].as_str(), rows[0]["labelDerived"].as_bool(), rows[0]["sourceSessionEnd"].as_str()), (Some("interrupted by Stop Codex"), Some(false), Some("not-established")));
+    assert!(orphan["limits"].as_array().unwrap().iter().any(|l| l == SOURCE_SESSION_UNAVAILABLE), "{orphan}");
     let view = outcomes(ledger.as_array().unwrap(), &[], "session-b");
+    assert!(!view["limits"].as_array().unwrap().iter().any(|l| l == SOURCE_SESSION_UNAVAILABLE));
+    assert_eq!(view["records"][1]["sourceSessionEnd"], "established");
     let rows = view["records"].as_array().unwrap();
     assert_eq!(rows.len(), 2);
     assert_eq!((rows[0]["label"].as_str(), rows[0]["codexReported"].as_str(), rows[0]["earlierSession"].as_bool()), (Some("interrupted by Stop Codex"), Some("interrupted"), Some(true)));
@@ -163,16 +190,19 @@ fn the_ledger_index_reads_appended_entries_once_and_rebuilds_on_a_different_ledg
     request.sent("app:client:1", &json!(1)).unwrap();
     let second = ledger_entry("session-a", request.record());
     let bad = json!({"kind":"stop_request","session":"session-a","at":"t","record":{"kind":"stop_request"}});
+    // The earlier session's start record, as a real ledger has it (without one the view adds its
+    // own limit for a source session whose end is not established).
+    let started = json!({"kind":"session_started","session":"session-a","at":"t","previousSessionEnd":"none","candidate":"c"});
     let mut index = LedgerIndex::default();
-    index.update(json!([first.clone(), bad.clone()]).as_array().unwrap());
-    index.update(json!([first.clone(), bad.clone()]).as_array().unwrap());
+    index.update(json!([started.clone(), first.clone(), bad.clone()]).as_array().unwrap());
+    index.update(json!([started.clone(), first.clone(), bad.clone()]).as_array().unwrap());
     let view = outcomes_indexed(&index, &[], "session-b");
     assert_eq!(view["limits"].as_array().unwrap().len(), 1, "an entry already read is not read again");
     assert!(index.contains(&first) && !index.contains(&second));
-    index.update(json!([first.clone(), bad.clone(), second.clone()]).as_array().unwrap());
+    index.update(json!([started.clone(), first.clone(), bad.clone(), second.clone()]).as_array().unwrap());
     assert!(index.contains(&second));
     assert_eq!(outcomes_indexed(&index, &[], "session-b")["records"][0]["transition"], "SR-02");
-    index.update(json!([second.clone()]).as_array().unwrap());
+    index.update(json!([started.clone(), second.clone()]).as_array().unwrap());
     assert!(!index.contains(&first) && index.contains(&second), "a ledger that does not continue the read prefix is read afresh");
     assert!(outcomes_indexed(&index, &[], "session-b")["limits"].as_array().unwrap().is_empty());
 }

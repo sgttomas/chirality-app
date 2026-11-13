@@ -140,7 +140,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 ## The steps
 
 1. **Launch.** First confirm that a start of the build by the system's launch
-   service would be given none of the App's ten configuration variables (why:
+   service would be given none of the App's eleven configuration variables (why:
    "A view of an application that is not running", below):
 
    ```sh
@@ -149,7 +149,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 
    It asks the login session's launch domain and the bundle's own Info.plist,
    and prints each name with "absent", "present" (empty included) or "could
-   not be established" and why; never a value. It exits 0 only when all ten
+   not be established" and why; never a value. It exits 0 only when all eleven
    are absent. Any other result, "could not be established" included, means
    no walk is made: stop, record what it printed, and the lane tells App
    Agent 0.
@@ -361,14 +361,21 @@ service act outside it on every call (see the hold notice at the top).
   not close it. A walk makes about seventeen calls.
 - **What a stray start can and cannot do in this scenario.**
   - Both of the next two hold only while a start by the launch service
-    is given none of the App's ten configuration variables
+    is given none of the App's eleven configuration variables
     (`CHIRALITY_CODEX_BIN` and the others `session_env.py` names), neither
     from the login session's environment nor from the bundle's own
     Info.plist. Read in the App's source: when any of them is present, empty
     included, the App takes its configuration from the environment and does
     not look for a saved request at all, and with a usable configuration it
     starts Codex (`lib.rs`, `explicit_environment_launch`;
-    `desktop_startup.rs`, `resolve`). On this host all ten were absent on 13
+    `desktop_startup.rs`, `resolve`). The eleventh, `CHIRALITY_APP_DATA`,
+    is read only by a development run (`lib.rs`, `build_input`), where it
+    selects the environment route by itself. `tauri::is_dev()` is
+    `!cfg!(feature = "custom-protocol")` in the pinned Tauri 2.11.1, and
+    `build_candidate.py` builds a candidate with `--features custom-protocol`,
+    so a candidate is not a development run and does not read it (read in
+    the source, not observed); `session_env.py` asks for it regardless.
+    On this host all ten were absent on 13
     November (`session_env.py`, against the candidate built from cfc22efd);
     step 1 asks again before every walk and stops on anything but absent.
   - It opens at first-use setup: no setup has been saved for a build with a
@@ -400,7 +407,7 @@ service act outside it on every call (see the hold notice at the top).
     exists before setup (read). Whether the system's web view or the
     operating system sends anything on its behalf was not examined.
 - **How it is found and ended.** Step 11.
-- **The condition of the exception.** Before every walk, the ten names are
+- **The condition of the exception.** Before every walk, the eleven names are
   absent in the login session and in the bundle's own launch environment
   (step 1, `session_env.py`), or the walk is refused. After every run, by
   whatever path it ended, the lane ends what the started files show,

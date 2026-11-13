@@ -117,15 +117,11 @@ fn hosts_codex_initialize_then_thread_start() {
     let probe = ScratchDirectory::new("cxp");
     let cwd = ScratchDirectory::new("cxw");
     std::fs::write(home.join("config.toml"), PERSON_CONFIG_STAND_IN).unwrap();
-    // The App's process lock file, private and empty, in the scratch home before the start. A
-    // start whose home folder already holds this file takes the lock, and the supplier inherits
-    // it across exec, so this start is the real supplier started under the lock.
+    // The App's process lock file. Nothing puts it in the scratch home beforehand: every start
+    // creates and takes it, and the supplier inherits it across exec, so this start is the real
+    // supplier started under the lock.
     let process_lock = home.join("chirality-codex-process.lock");
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::OpenOptionsExt;
-        std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&process_lock).expect("process lock file made in the scratch home");
-    }
+    assert!(!process_lock.exists(), "the start itself creates the lock file");
 
     let mut cfg = HostConfig::new(bin.into(), home.to_path_buf(), probe.to_path_buf(), cwd.to_path_buf());
     cfg.expected_sha256 = std::env::var("CHIRALITY_CODEX_EXPECTED_SHA256").ok();

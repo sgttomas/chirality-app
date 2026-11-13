@@ -129,6 +129,9 @@ code_paths:
 # hostReads.ts is shared by every part of the App shell. Here: the order of status reads and the
 # mark that withholds the Run and Make guides until a read follows the last command.
 - app/src/hostReads.ts
+# statusRefresh.ts: a status refresh after an action. A failed refresh adds one fixed line after the
+# action's message and never shows its raw diagnostic; used with hostReads.ts across the shell.
+- app/src/statusRefresh.ts
 - app/src/IncludedWorkflows.tsx
 - app/src/WorkflowText.tsx
 - app/src/MakeJourney.tsx

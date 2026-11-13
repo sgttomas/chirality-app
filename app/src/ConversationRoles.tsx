@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
+import { readingRefusal } from "./readingSentences";
+import { REFRESH_FAILED } from "./statusRefresh";
 import { AccessRouteChoice, AvailableModels, useBoundModelChoice, type BoundModelChoice } from "./ModelChoice";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -400,7 +402,7 @@ export function ConnectionAndModel({ homeClass, chooser, entries, disabled }: {
 
 /** A Continue as start press's outcome as its caller reports it. */
 export type ContinueStartOutcome = { ok: true } | { ok: false; message: string };
-type StartAttempt = { state: "idle" } | { state: "starting" } | { state: "unconfirmed"; message: string; held: boolean };
+type StartAttempt = { state: "idle" } | { state: "starting" } | { state: "unconfirmed"; message: string; held: boolean } | { state: "not-sent"; message: string };
 
 /** The handoff message's send state. "sent" only after the send resolved
  * with a result; a refusal or error keeps the draft and allows another try. */
@@ -443,7 +445,7 @@ export function HandoffSendStatus({ outcome }: { outcome: HandoffSendOutcome }) 
     {outcome.state === "not-attempted" && <p role="alert"><small>Not sent: the native owner established that no write attempt occurred. {outcome.reason} The draft is kept; you can send it again.</small></p>}
     {outcome.state === "native-failed" && <p role="alert"><small>The original request received a native error: {text(outcome.nativeResponse?.error?.message ?? outcome.reason)}. The draft is kept; nothing is resent automatically.</small></p>}
     {outcome.state === "unknown" && <p role="alert"><small>Send outcome unknown: {outcome.reason} The draft is kept. Nothing is resent automatically; no second send is offered as proved safe.</small></p>}
-    {outcome.observationFailure && <p role="alert"><small>View refresh unavailable: {outcome.observationFailure}. The original send outcome above is retained.</small></p>}
+    {outcome.observationFailure && <p role="alert"><small>{outcome.observationFailure === REFRESH_FAILED ? REFRESH_FAILED : `View refresh unavailable: ${outcome.observationFailure}.`} The original send outcome above is retained.</small></p>}
   </>;
 }
 
@@ -464,7 +466,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
   const mountedPanel = useRef(true);
   const outcomeNode = useRef<HTMLDivElement>(null);
   useEffect(() => { mountedPanel.current = true; return () => { mountedPanel.current = false; }; }, []);
-  useEffect(() => { if (startOutcome.state === "unconfirmed") outcomeNode.current?.focus?.(); }, [startOutcome.state]);
+  useEffect(() => { if (startOutcome.state === "unconfirmed" || startOutcome.state === "not-sent") outcomeNode.current?.focus?.(); }, [startOutcome.state]);
   const startHeld = startOutcome.state === "starting" || (startOutcome.state === "unconfirmed" && startOutcome.held);
   // Held across renders: a Start control from before an unconfirmed outcome
   // must not start again either. Only the person's explicit acknowledgement lifts it.
@@ -483,11 +485,14 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     setStartOutcome({ state: "starting" });
     void Promise.resolve(pending).then(outcome => outcome, error => ({ ok: false as const, message: String(error) })).then(outcome => {
       startPressed.current = false;
-      if (!outcome?.ok) startBlocked.current = true;
+      // A start refused at its configuration reading is known not sent (the host's message is the
+      // reading's sentence, or what is known then the sentence): shown as it is, with no hold.
+      const notSent = outcome?.ok ? null : readingRefusal(outcome?.message);
+      if (!outcome?.ok && notSent === null) startBlocked.current = true;
       if (!mountedPanel.current) return;
-      // A rejection does not say whether Codex started the conversation: hold
+      // Any other rejection does not say whether Codex started the conversation: hold
       // Start until the person has looked, so a press can't silently make a second.
-      setStartOutcome(outcome?.ok ? { state: "idle" } : { state: "unconfirmed", message: text(outcome?.message), held: true });
+      setStartOutcome(outcome?.ok ? { state: "idle" } : notSent !== null ? { state: "not-sent", message: notSent } : { state: "unconfirmed", message: text(outcome?.message), held: true });
     });
   };
   const [sending, setSending] = useState<HandoffSendOutcome>(() => handoff?.sendOutcome ? handoffOutcome(handoff.sendOutcome) : { state: "unsent" });
@@ -540,6 +545,9 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
       {startRefusal && <p role="alert">{startRefusal}</p>}
       {startOutcome.state === "starting" && <p role="status">Starting the new conversation…</p>}
+      {startOutcome.state === "not-sent" && <div role="alert" aria-label="Start outcome" tabIndex={-1} ref={outcomeNode}>
+        <p>{startOutcome.message}</p><p>Your handoff message is kept.</p>
+      </div>}
       {startOutcome.state === "unconfirmed" && <div role="alert" aria-label="Start outcome" tabIndex={-1} ref={outcomeNode}>
         <p><strong>The new conversation wasn't confirmed as started.</strong> Your handoff message is kept.</p>
         {startOutcome.held ? <>

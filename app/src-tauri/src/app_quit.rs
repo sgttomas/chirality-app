@@ -418,6 +418,11 @@ pub(crate) fn session_end(proceeding: Option<Vec<String>>, records: &[Value]) ->
     }
 }
 
+/// What the person reads when a quit is withheld because a Codex process group the App started
+/// can never be established ended in this App session (its reservation is lost and its group
+/// is not known empty). The temporary case, where settlement was merely unavailable this time,
+/// keeps its own sentence.
+pub(crate) const QUIT_CANNOT_ESTABLISH: &str = "Chirality cannot establish whether a Codex process group it started has ended. Retrying Quit cannot resolve this in the current App session. You can end Chirality using macOS Force Quit, but that does not establish that Codex or its descendants have ended.";
 /// Before deliberate exit: stop each App-owned home's Codex process (Q-6, AS-08;
 /// HOSTING §4.5 closes the generation, so a quit stop request Codex never
 /// reported ended gets SR-08), then write `session_ended` with each quit stop
@@ -448,6 +453,13 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
     }
     if !failures.is_empty() {
         for home in homes { home.host.cancel_quit(); }
+        // A group whose reservation is lost and that is not known empty can never be established
+        // settled in this App session: retrying cannot change it, and the App no longer
+        // supervises that group. Selected by that established state, not by an error's text.
+        // (Reached when a reservation is lost at creation or at any later observation.)
+        if homes.iter().any(|home| home.host.has_unestablishable_process()) {
+            return Err(QUIT_CANNOT_ESTABLISH.into());
+        }
         return Err(format!("The App is still running: owned supplier settlement is unavailable ({}). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.", failures.join("; ")));
     }
     let (how, stops) = session_end(proceeding, &records);
