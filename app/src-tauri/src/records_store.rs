@@ -1277,12 +1277,15 @@ impl ReaderBinding {
                 return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()));
             }
         }
-        match node(&self.root) {
-            Ok(at) if at == self.project => {}
-            Ok(_) => return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display())),
-            Err(e) => return Err(format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display())),
-        }
+        // The project folder examined first, so that what cannot be examined
+        // is not known; compared only after the decision, so that the
+        // decision's own refusal (not attached, disposed) keeps its reason.
+        let project_now = node(&self.root)
+            .map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display()))?;
         let now = decided_place(&self.root, self.decision)?;
+        if project_now != self.project {
+            return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()));
+        }
         match (&self.records, now) {
             (Some(bound), Some(dir)) if dir == bound.path => {}
             (Some(_), _) => return Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into()),
