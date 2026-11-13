@@ -9602,7 +9602,8 @@ for line in sys.stdin:
         let replacement=crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.unwrap();
         std::fs::create_dir_all(&replacement).unwrap();
         std::fs::write(replacement.join("project.json"),serde_json::to_vec(&json!({"format":"chirality.records-store.project","formatVersion":"0.1","projectId":other,"createdAt":crate::util::now_rfc3339(),"how":"minted"})).unwrap()).unwrap();
-        crate::native_conversation_links::context_can_be_captured_for_test(&peer.fixture.root).expect("the replacement identity is complete: its recording context is captured");
+        assert_eq!(crate::native_conversation_links::captured_context_identity_for_test(&peer.fixture.root).as_deref(),Ok(other.as_str()),"the replacement identity is complete: the recording context captured now is the replacement's, and not the original's");
+        assert_ne!(first.project.as_deref(),Some(other.as_str()));
         assert_ne!(replacement,original);
         links.end_delegation_at_exit(&[peer.home.clone()]);links.retry(peer.project());
         assert!(!log(&replacement).contains("observation_ended"),"nothing of that child under the replacement identity");

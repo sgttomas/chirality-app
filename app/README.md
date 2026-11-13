@@ -1404,10 +1404,19 @@ are unavailable: one decision (`readable_home` in `records_store.rs`) says
 where a project's records are read from, in the store or in the project
 folder; it gives no location for a refused attachment, so files kept in the
 project folder are not read in the place of records the store holds, and
-status says nothing is read in place and asks for no import. No other product
-code builds such a location, which a test holds against the source by the
-names of those locations (a location built from a path a caller passes in,
-with none of those names, is outside what that test sees). One case stands
+status says nothing is read in place and asks for no import. Ordinary readers
+take the place from that decision and writers from `write_dir`, with one
+exception: the fleet reader (`fleet_records.rs`) must create nothing, so it
+keeps association checks of its own and builds the protected folder only
+after them; with the link removed or changed it reads no protected payload
+and gives the cause. This is held by name and by a test, not by
+construction: the test detects changes to the source lines that name a
+records location in the project folder, and to the lines outside the store
+module (`records_store.rs` and the files it declares as submodules) that
+call the store's other path-returning functions or import from it. It does
+not enforce the arrangement, and an unchanged listed line can do something
+different if an argument's origin changes elsewhere; review and the
+behavioural tests establish the permitted use. One case stands
 apart, unchanged: with no records store available at all and no link in the
 folder, connector route accounts are read in place and nothing is written,
 while ordinary records in that state are unavailable. A link naming a project whose records the store keeps

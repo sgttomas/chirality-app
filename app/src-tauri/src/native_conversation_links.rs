@@ -142,10 +142,11 @@ impl Physical {
     }
 }
 /// For a test elsewhere to establish that a project's recording context can
-/// be captured as it stands (nothing is bypassed: this is `Scope::capture`).
+/// be captured as it stands, and under which project identity (nothing is
+/// bypassed: this is `Scope::capture`).
 #[cfg(test)]
-pub(crate) fn context_can_be_captured_for_test(root: &Path) -> Result<(), String> {
-    Scope::capture(root).map(|_| ())
+pub(crate) fn captured_context_identity_for_test(root: &Path) -> Result<String, String> {
+    Scope::capture(root).map(|scope| scope.project_id)
 }
 #[derive(Clone)]
 struct Scope {

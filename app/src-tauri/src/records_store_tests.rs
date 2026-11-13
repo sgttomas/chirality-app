@@ -515,72 +515,189 @@ fn a_torn_roots_registry_reads_from_its_complete_lines_and_writes_nothing() {
     let _ = (std::fs::remove_dir_all(&known), std::fs::remove_dir_all(&unknown));
 }
 
-/// Review round 3, findings 1 and 2, repaired by form (App Agent 0): one
-/// decision (`readable_home`, `ReadHome`) says where a project's records are
-/// read, and it is the only product code that joins the project folder with
-/// a records location. This holds the source to that: every product source
-/// file that names such a location is listed here with how many of its lines
-/// do and why they may. A new mention anywhere fails.
+/// Review rounds 3 and 4, as App Agent 0 decided.
 ///
-/// Its limit: a location built with none of these names, from a path a
-/// caller passes in, is not seen here. The unrefusing home being private to
-/// the store module is what the compiler holds on the store's side.
+/// The form. Ordinary readers take the place a project's records are read
+/// from one decision (`readable_home`, `ReadHome`), which gives none for a
+/// refused attachment; writers take theirs from `write_dir`; the connector
+/// accounts' place is built from the decision. ONE READER IS THE EXCEPTION:
+/// the fleet reader (`fleet_records.rs`, DEL-06-01) must create nothing, so
+/// it does not take its place from the decision; it keeps association checks
+/// of its own before it builds the protected folder, and its own test holds
+/// what it does with the link removed or changed.
+///
+/// What this test is: a check that detects changes to selected source
+/// expressions. It holds, by full line content and with multiplicity,
+/// (1) every product source line that names a records location in the
+/// project folder (nine names); (2) every line outside the store module that
+/// calls or names, by its `records_store::` path, a function of the store
+/// that returns a store path or an attachment without the decision; and
+/// (3) every `use` line outside the store module that names `records_store`,
+/// so that an import or an alias of one of those functions cannot arrive
+/// unlisted; and it requires (4) that no such function's name is called bare
+/// outside the store module. "The store module" is `records_store.rs` and
+/// the files it and they declare as submodules by path, test files apart;
+/// that list of files is held here too, so that a file cannot join it
+/// silently.
+///
+/// What it is not. It does not enforce the architecture, and an unchanged
+/// listed line can do something different if an argument's origin changes
+/// elsewhere; review and the behavioural checks establish the permitted use.
+/// It does not see a comment line, a test file (a name ending `_tests.rs`),
+/// a file that is not Rust, or a location built with none of the nine names
+/// from a path a caller passes in. Reformatting a listed line fails it, by
+/// design: the digest is then updated with its reason unchanged.
 #[test]
 fn the_places_that_name_a_records_location_in_the_project_folder_are_a_closed_list() {
-    const NAMES: [&str; 9] = [
-        "LEGACY_RECORDS", "LEGACY_LOG", "CAPTURES", "CAPTURE_STORE", "LEGACY_DIRECTORY",
-        ".chirality/records", ".chirality/captures", "records/coordination.rs.jsonl", "\".chirality\"",
-    ];
-    const ALLOWED: [(&str, usize, &str); 11] = [
-        ("records_store.rs", 14, "the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
-        ("storage.rs", 9, "the three names' definitions, the library's own act log and capture folder, and checks of the shape of a path already in hand"),
-        ("connector_route_store.rs", 3, "the accounts folder's name and two comparisons of a path recorded in an account; the place itself comes from records_store::route_accounts_place"),
-        ("act_control.rs", 2, "the A15 capture store's name and the library act log's recorded name: an A15 capture stays with its library"),
-        ("act_control_a15.rs", 13, "the library's own capture store (A15 stays with its library) and that module's tests"),
-        ("file_act_root.rs", 1, "a test's assertion that nothing was created"),
-        ("fleet_records.rs", 1, "the census of the project's .chirality folder for the fleet view (DEL-06-01): project content, not a records location"),
-        ("native_conversation_links.rs", 1, "the folder of the fleet copy published in the project: not a records location"),
-        ("runtime_session.rs", 2, "test fixtures"),
-        ("workflow_library.rs", 1, "the workflow supply folder"),
-        ("workflow_package_copy.rs", 1, "the workflow package copy folder"),
-    ];
-    fn walk(dir: &std::path::Path, found: &mut BTreeMap<String, Vec<usize>>, base: &std::path::Path) {
+    type Held = BTreeMap<String, Vec<(usize, String)>>;
+    fn walk(dir: &std::path::Path, base: &std::path::Path, files: &mut Vec<(String, String)>) {
         for entry in std::fs::read_dir(dir).unwrap() {
             let path = entry.unwrap().path();
             if path.is_dir() {
-                walk(&path, found, base);
+                walk(&path, base, files);
                 continue;
             }
-            let name = path.file_name().unwrap().to_string_lossy().into_owned();
-            if !name.ends_with(".rs") || name.ends_with("_tests.rs") || name == "tests.rs" {
-                continue;
-            }
-            let text = std::fs::read_to_string(&path).unwrap();
-            let lines: Vec<usize> = text.lines().enumerate()
-                .filter(|(_, line)| !line.trim_start().starts_with("//") && NAMES.iter().any(|n| line.contains(n)))
-                .map(|(i, _)| i + 1).collect();
-            if !lines.is_empty() {
-                found.insert(path.strip_prefix(base).unwrap().to_string_lossy().into_owned(), lines);
+            let name = path.strip_prefix(base).unwrap().to_string_lossy().into_owned();
+            if name.ends_with(".rs") && !name.ends_with("_tests.rs") && !name.ends_with("/tests.rs") && name != "tests.rs" {
+                files.push((name, std::fs::read_to_string(&path).unwrap()));
             }
         }
+    }
+    fn scan(files: &[(String, String)], selected: &dyn Fn(&str) -> bool, leave_out: &[&str]) -> Held {
+        let mut held = Held::new();
+        for (file, text) in files.iter().filter(|(file, _)| !leave_out.contains(&file.as_str())) {
+            let lines: Vec<(usize, String)> = text.lines().enumerate()
+                .filter(|(_, line)| !line.trim_start().starts_with("//") && selected(line))
+                .map(|(i, line)| (i + 1, line.to_owned())).collect();
+            if !lines.is_empty() {
+                held.insert(file.clone(), lines);
+            }
+        }
+        held
+    }
+    fn digest(lines: &[(usize, String)]) -> String {
+        crate::util::sha256_hex(lines.iter().map(|(_, line)| line.as_str()).collect::<Vec<_>>().join("\n").as_bytes())[..16].to_owned()
+    }
+    fn differences(what: &str, held: &Held, allowed: &[(&str, &str, &str)]) -> Vec<String> {
+        let mut wrong = Vec::new();
+        for (file, lines) in held {
+            let shown = lines.iter().map(|(number, line)| format!("    {number}: {line}")).collect::<Vec<_>>().join("\n");
+            match allowed.iter().find(|(name, _, _)| name == file) {
+                None => wrong.push(format!("{file} {what} and is not on the list (digest {}):\n{shown}", digest(lines))),
+                Some((_, expected, why)) if *expected != digest(lines) => wrong.push(format!("{file}: its lines that {what} are not the ones listed (digest now {}; the list holds {expected}: {why}):\n{shown}", digest(lines))),
+                Some(_) => {}
+            }
+        }
+        for (file, _, _) in allowed {
+            if !held.contains_key(*file) {
+                wrong.push(format!("{file} is on the list and no longer {what}; take it off"));
+            }
+        }
+        wrong
     }
     let base = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
-    let mut found = BTreeMap::new();
-    walk(&base, &mut found, &base);
-    let mut wrong = Vec::new();
-    for (file, lines) in &found {
-        match ALLOWED.iter().find(|(name, _, _)| name == file) {
-            None => wrong.push(format!("{file} names a records location in the project folder (lines {lines:?}) and is not on the list")),
-            Some((_, count, why)) if *count != lines.len() => wrong.push(format!("{file} has {} such lines (lines {lines:?}); the list allows {count}: {why}", lines.len())),
-            Some(_) => {}
+    let mut files = Vec::new();
+    walk(&base, &base, &mut files);
+
+    // "The store module" is these files: `records_store.rs` and every file it
+    // or they bring in by path, test files apart.
+    const STORE_MODULE: [&str; 5] = ["records_package.rs", "records_package_controls.rs", "records_package_identity.rs", "records_package_import.rs", "records_store.rs"];
+    let mut module = std::collections::BTreeSet::from(["records_store.rs".to_owned()]);
+    let mut pending = vec!["records_store.rs".to_owned()];
+    while let Some(file) = pending.pop() {
+        let text = std::fs::read_to_string(base.join(&file)).unwrap();
+        for line in text.lines() {
+            if let Some(path) = line.trim().strip_prefix("#[path = \"").and_then(|rest| rest.strip_suffix("\"]")) {
+                if !path.ends_with("_tests.rs") && module.insert(path.to_owned()) {
+                    pending.push(path.to_owned());
+                }
+            }
         }
     }
-    for (file, _, _) in ALLOWED {
-        if !found.contains_key(file) {
-            wrong.push(format!("{file} is on the list and names no such location any more; take it off"));
+    assert_eq!(module.iter().map(String::as_str).collect::<Vec<_>>(), STORE_MODULE, "the files of the store module changed: a file inside it may call the store's path functions freely, so the list is held");
+    assert!(!base.join("records_store").exists(), "a records_store folder would add files to the store module without a path attribute");
+
+    // 1. Who names a records location in the project folder.
+    let names: Vec<String> = ["LEGACY_RECORDS", "LEGACY_LOG", "CAPTURES", "CAPTURE_STORE", "LEGACY_DIRECTORY",
+        ".chirality/records", ".chirality/captures", "records/coordination.rs.jsonl", "\".chirality\""].iter().map(|n| n.to_string()).collect();
+    const NAMED: [(&str, &str, &str); 11] = [
+        ("records_store.rs", "58199fc5ca3c95dc", "the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
+        ("storage.rs", "6ca4d68f984fcdfc", "the three names' definitions, the library's own act log and capture folder, and checks of the shape of a path already in hand"),
+        ("connector_route_store.rs", "9e740a8128ab3c84", "the accounts folder's name and two comparisons of a path recorded in an account; the place itself comes from records_store::route_accounts_place"),
+        ("act_control.rs", "9e08f8f561e55d16", "the A15 capture store's name and the library act log's recorded name: an A15 capture stays with its library"),
+        ("act_control_a15.rs", "da4e32e280c2997c", "the library's own capture store (A15 stays with its library) and that module's tests"),
+        ("file_act_root.rs", "b1d22e53205c6f8d", "a test's assertion that nothing was created"),
+        ("fleet_records.rs", "13517bd392d9bced", "the census of the project's .chirality folder for the fleet view (DEL-06-01): project content, not a records location"),
+        ("native_conversation_links.rs", "3f3917ac2f8c8a96", "the folder of the fleet copy published in the project: not a records location"),
+        ("runtime_session.rs", "fd4d53d25c23d18a", "test fixtures"),
+        ("workflow_library.rs", "56cb3f772daa84bf", "the workflow supply folder"),
+        ("workflow_package_copy.rs", "2914ac79a2f7c182", "the workflow package copy folder"),
+    ];
+    let mut wrong = differences("names a records location in the project folder", &scan(&files, &|line: &str| names.iter().any(|n| line.contains(n.as_str())), &[]), &NAMED);
+
+    // 2. Who, outside the store module, calls a function of the store that
+    // returns a store path or an attachment without the decision.
+    const FUNCTIONS: [&str; 9] = ["known_identity_for_read", "store_root", "configured_project_dir", "project_dir_of", "root_for_dir", "project_dir", "legacy_census", "read_log_path", "attach"];
+    // `name` at `at` in `line` is that whole identifier (not part of a longer one).
+    fn whole(line: &str, at: usize, name: &str) -> bool {
+        !line[at + name.len()..].chars().next().is_some_and(|c| c.is_alphanumeric() || c == '_')
+    }
+    // By its `records_store::` path, called or passed.
+    let qualified = |line: &str| FUNCTIONS.iter().any(|f| {
+        let path = format!("records_store::{f}");
+        line.match_indices(path.as_str()).any(|(at, _)| whole(line, at, &path))
+    });
+    // Called bare: the name, then `(`, not part of a path, a method or a longer name, and not its own definition.
+    let bare = |line: &str| FUNCTIONS.iter().any(|f| {
+        line.match_indices(*f).any(|(at, _)| whole(line, at, f) && line[at + f.len()..].starts_with('(')
+            && !line[..at].chars().next_back().is_some_and(|c| c.is_alphanumeric() || c == '_' || c == ':' || c == '.')
+            && !line[..at].trim_end().ends_with("fn"))
+    });
+    const CALLERS: [(&str, &str, &str); 14] = [
+        ("fleet_records.rs", "7f59d78278e1388b", "the fleet reader (DEL-06-01), the one reader on this list: it must create nothing, so it does not attach; it compares the opened store's identity, then makes the association checks itself (the registry read strictly; exactly one project for the folder and no other folder for that project; the link present, of its format, naming that project and this store), and takes the store folder only after all of them pass. A missing, changed, duplicated or moved link, records kept with no folder, and a registry not read whole each refuse before the folder is taken"),
+        ("file_act_arrival.rs", "2b3c14e9a624fea5", "the arrival preview pins the store's own root (its identity and an opened handle) beside the records folder its binding gave it; it takes no project's folder from the store's root"),
+        ("file_act_lapse.rs", "bac1affed8c258c9", "the lapse observer pins the identity of the store's root it began with, beside the home it takes from the decision"),
+        ("records_export.rs", "55d23a7524f88b16", "export refuses a destination inside the store's root; the project's folder it exports comes from the decision"),
+        ("records_retention.rs", "a5f2ff04909a3c95", "administration and admission: for a path already in hand, the project store folder it lies in, to take that project's admission (no folder is read through it); and the activity lease and the retention acts take the attachment and themselves refuse a refused one, an identity limit and an unread registry"),
+        ("storage.rs", "48623ca56512f990", "all of a path already in hand: its label for presentation, its sync boundary, its records root, and the project root its store folder was opened from for a writer; none gives a reader a place for a project"),
+        ("file_act_view.rs", "e74763194a74bba7", "the folder a log path already in hand lies in, as the base for reading that log"),
+        ("records.rs", "85c289c7b5d8b971", "the appender takes the writer lock of the store folder a log path already in hand lies in"),
+        ("records_access.rs", "519c5024fe3afbe5", "the records capability's own read log, a writer: its path in the project's store folder, refused with the read when the attachment gives none"),
+        ("role_observations.rs", "c024537e4e6f86bd", "the census of files kept in the project folder, read only to REFUSE role observation history while an import is needed; and a writer taking the project's identity from the attachment (none for a refused one)"),
+        ("role_record_source.rs", "b7a86f4abea1daee", "the role source takes the project's identity from the attachment, to refuse a reference that belongs to another project; no place is taken"),
+        ("workflow_record_store.rs", "b1cc7691732bfd74", "the workflow record store's read admission takes the attachment and returns its refusal for a refused one before anything is read"),
+        ("native_conversation_links.rs", "58c2472c29734ec3", "the native relationship writer captures the attachment it will write under and refuses a refusal"),
+        ("lib.rs", "49b753d2e7327969", "the App at startup gives the opened project its identity (a minting attachment), a writer"),
+    ];
+    let mut callers = scan(&files, &qualified, &STORE_MODULE);
+    // Calls inside test modules of product files: fixtures, held with the rest.
+    for (file, why) in [("act_control_a15.rs", "a test's assertion"), ("runtime_session.rs", "test fixtures")] {
+        if let Some(lines) = callers.remove(file) {
+            let expected = match file { "act_control_a15.rs" => "0e4d960a46572bf6", _ => "678c9810d8ef831b" };
+            if digest(&lines) != expected {
+                wrong.push(format!("{file} ({why}): its calls of the store's path functions changed (digest now {}):\n{}", digest(&lines), lines.iter().map(|(n, l)| format!("    {n}: {l}")).collect::<Vec<_>>().join("\n")));
+            }
         }
     }
-    assert!(wrong.is_empty(), "a project's records are read where records_store::readable_home says, and nowhere else. Take the location from the ReadHome it returns (it refuses for a refused attachment). Only where the line is none of the project's record locations (a library's own store, a test, a shape check), change this list and say why:\n{}", wrong.join("\n"));
+    wrong.extend(differences("calls a function of the store that returns a store path or an attachment without the decision", &callers, &CALLERS));
+
+    // 3. Every `use` line outside the store module that names the store: an
+    // import or an alias of one of those functions would not be seen above.
+    const IMPORTS: [(&str, &str, &str); 6] = [
+        ("fleet_records.rs", "6e895d82e9a7f87f", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+        ("desktop_startup.rs", "0681da416c9617cc", "the module itself, in a test module"),
+        ("lib.rs", "d771fd5d21ed7367", "an alias for the store's package custody submodule (records_package), which has none of the listed functions"),
+        ("records_retention.rs", "3f8a677a36c99b49", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+        ("role_observations.rs", "2283fd61370d8a40", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+        ("storage.rs", "6ba69ddb5abdef78", "the module itself, with others; every use of it in this file is by its records_store:: path"),
+    ];
+    let imports = scan(&files, &|line: &str| { let line = line.trim_start(); (line.starts_with("use ") || line.starts_with("pub use ") || line.starts_with("pub(crate) use ")) && line.contains("records_store") }, &STORE_MODULE);
+    wrong.extend(differences("imports from the records store by a use line", &imports, &IMPORTS));
+    // 4. No listed function is called by its bare name outside the store module.
+    for (file, lines) in scan(&files, &bare, &STORE_MODULE) {
+        wrong.push(format!("{file} calls, by a bare name, something named as one of the store's path functions is; if it is that function it reached this file unlisted:\n{}", lines.iter().map(|(n, l)| format!("    {n}: {l}")).collect::<Vec<_>>().join("\n")));
+    }
+    assert!(wrong.is_empty(), "a project's records are read where records_store::readable_home says, and written where records_store::write_dir says. A new reader takes its place from the ReadHome that decision returns (it refuses for a refused attachment). Only where a line is none of that (a library's own store, a writer, administration, a test, a shape check) is this list changed, with the reason said:\n{}", wrong.join("\n"));
     // The decision itself: a refused attachment is an error, with nothing to read in place.
     let root = folder("decision-refused-");
     records::append_project(&root, None, "writer:d", "evidence_limit", &APP_WRITER, body("in the store")).unwrap();
