@@ -106,8 +106,15 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
   ```
 
   It exits 0 when the bundle is the one the record identifies, and the record's
-  `candidate_key` is the key the assignment names. The path the `ls` prints is
-  the bundle; it is needed again below. The lane keeps that bundle unchanged
+  `candidate_key` is the key the assignment names; the check does not print the
+  key, so read it:
+
+  ```sh
+  <python> -c "import json,sys; print(json.load(open(sys.argv[1]))['candidate_key'])" \
+    <candidate folder>/identification/candidate-identification.json
+  ```
+
+  The path the `ls` prints is the bundle; it is needed again below. The lane keeps that bundle unchanged
   from identification through recovery: no rebuild, replacement, renaming or
   added link (see "The condition of the exception").
 - **The homes root.** The launcher makes each launch folder under the lane's
@@ -252,7 +259,10 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     left is found and ended. A launch left without its operator is ended, not
     continued by someone else.
     The operator records whether a process named `SkyComputerUseService` is
-    running at the end, with its start time, and the lane reports that.
+    running at the end, with its start time, and the lane reports that:
+    `pgrep -x SkyComputerUseService` prints its number or nothing, and
+    `ps -o lstart= -p <that number>` its start time. Neither starts or ends
+    it.
 11. **The lane looks for what remains.** The lane's agent, not the operator,
     makes this from its own shell after every run, by whatever path the run
     ended: a normal end, a walk stopped because the watch no longer showed
