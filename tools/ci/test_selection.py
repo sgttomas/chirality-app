@@ -940,6 +940,8 @@ KNOWN_REFERRERS = {
     "app/examination/native_forms/pre_run_form.py": "run only by group_b_native_forms_test",
     "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "read by pre_run_form.py",
     "app/examination/native_forms/sources.terms-v1.json": "read by native_form.py",
+    "app/examination/scripted_driver/proof.py": "reads the first-use scenario for the scripted driver's hosted job",
+    ".github/workflows/app-scripted-driver.yml": "its path trigger names the first-use scenario its driver reads",
     # Readers of in-root paths that stay product inputs.
     "tools/validation/test_library_v3_operational_adoption.py": "names the Library's own docs/ files",
     "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs (product input)",

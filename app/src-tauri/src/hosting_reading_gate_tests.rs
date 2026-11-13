@@ -314,7 +314,8 @@ fn an_error_reply_or_a_withdrawal_frees_the_reservation_and_restores_no_older_pr
 /// Withdrawal and write admission are exclusive, in both orders: a reading whose deadline is found
 /// passed once it has the writer is withdrawn and writes nothing; a reading admitted to its write
 /// before its deadline is written even if the deadline passes during the write, and is never
-/// told it was not sent.
+/// told it was not sent. The second reading's limit is LONG, so the work before its write does not
+/// use it up, and it is held at the write until that deadline has passed.
 #[test]
 fn withdrawal_and_write_admission_exclude_each_other_in_both_orders() {
     let rig = Rig::new();
@@ -322,8 +323,10 @@ fn withdrawal_and_write_admission_exclude_each_other_in_both_orders() {
     assert_eq!(read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), Duration::from_millis(100)).err().unwrap(), READING_WITHDRAWN);
     assert!(rig.stage().is_none() && rig.current().is_none());
     rig.none(Duration::from_millis(100));
-    *rig.host.before_request_write.lock().unwrap() = Some(Box::new(|_| std::thread::sleep(Duration::from_millis(200))));
-    let source = read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), Duration::from_millis(100)).expect("admitted before its deadline: written");
+    let deadline = Instant::now() + LONG;
+    *rig.host.before_request_write.lock().unwrap() = Some(Box::new(move |_| std::thread::sleep((deadline + Duration::from_millis(100)).saturating_duration_since(Instant::now()))));
+    let source = rig.host.request_reading("config/read", json!({"cwd":W,"includeLayers":false}), json!({"kind":"synthetic reader"}), &rig.g, false, deadline).expect("admitted before its deadline: written");
+    assert!(Instant::now() > deadline, "its deadline passed during the write");
     let frame = rig.frame();
     assert_eq!(frame["id"], *source.request_id());
     assert_eq!(rig.stage(), Some((Some(frame["id"].to_string()), ReadingStage::AwaitingReply)), "outstanding, never withdrawn");
@@ -434,16 +437,26 @@ fn a_close_ends_the_reading_and_an_old_generations_late_reply_touches_nothing() 
 /// large frame): the reading stays outstanding, later readings get the gate sentence, and the
 /// blocked one is never told it was not sent; a write error after the attempt leaves the reading
 /// outstanding as well.
+///
+/// The blocked reading's limit is counted from the call, before its large frame is built and the
+/// writer taken, and no write begins once it has passed; it is LONG, so that work does not use it
+/// up, and the test waits it out before asking whether the reading is still outstanding. A return
+/// before the write is observed fails, whatever it says and whenever it is noticed.
 #[test]
 fn a_blocked_or_failed_write_keeps_its_reading_outstanding_and_is_never_called_not_sent() {
     let rig = Rig::new();
     let mut sleeper = Command::new("/bin/sleep").arg("30").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
     *rig.host.stdin.lock().unwrap() = sleeper.stdin.take();
-    let (host, g) = (rig.host.clone(), rig.g.clone());
-    let blocked = std::thread::spawn(move || read(&host, &g, json!({"cwd":"x".repeat(4 * 1024 * 1024),"includeLayers":false}), Duration::from_millis(300)));
-    let deadline = Instant::now() + LONG;
-    while !matches!(rig.stage(), Some((Some(_), ReadingStage::WriteStarted))) { assert!(Instant::now() < deadline); std::thread::sleep(Duration::from_millis(5)); }
-    std::thread::sleep(Duration::from_millis(400));
+    let (host, g, deadline) = (rig.host.clone(), rig.g.clone(), Instant::now() + LONG);
+    let blocked = std::thread::spawn(move || host.request_reading("config/read", json!({"cwd":"x".repeat(4 * 1024 * 1024),"includeLayers":false}), json!({"kind":"synthetic reader"}), &g, false, deadline));
+    while !matches!(rig.stage(), Some((Some(_), ReadingStage::WriteStarted))) {
+        if blocked.is_finished() {
+            panic!("the blocked reading returned before it was observed inside its write (withdrawn, or a stand-in that reads its input?): {:?}", blocked.join().unwrap().map(|_| rig.stage()));
+        }
+        assert!(Instant::now() < deadline + LONG, "the blocked reading neither started its write nor returned");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    std::thread::sleep((deadline + Duration::from_millis(100)).saturating_duration_since(Instant::now()));
     assert!(matches!(rig.stage(), Some((Some(_), ReadingStage::WriteStarted))), "inside the write past its deadline: still outstanding");
     assert!(!blocked.is_finished(), "the caller inside the write cannot be timed out");
     assert_eq!(read(&rig.host, &rig.g, json!({"cwd":W}), Duration::from_millis(150)).err().unwrap(), READING_GATE);
@@ -603,24 +616,28 @@ fn a_reply_invalid_as_codex_sent_it_releases_nothing_though_its_projection_looks
 }
 
 /// The generic synchronous route gives a reading one deadline from the call's start: time spent
-/// waiting for the reservation leaves only the remainder for the reply.
+/// waiting for the reservation leaves only the remainder for the reply. The reading waits HOLD of
+/// its LONG deadline at the reservation; the rest (LONG - HOLD) covers its work before the write,
+/// and the bound, LONG + HOLD / 2, lies midway between the one deadline and a fresh full timeout
+/// granted after the wait (HOLD + LONG).
 #[test]
 fn the_generic_route_waits_for_a_readings_reply_only_for_what_remains_of_its_deadline() {
+    const HOLD: Duration = Duration::from_secs(2);
     let rig = Rig::new();
     read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), LONG).unwrap();
     let held = rig.frame();
     let (host, g) = (rig.host.clone(), rig.g.clone());
     let started = Instant::now();
     let generic = std::thread::spawn(move || {
-        let result = host.request_inner_scoped("config/read", json!({"cwd":W,"includeLayers":false}), json!({"kind":"synthetic generic"}), Duration::from_millis(1000), false, Some(&g));
+        let result = host.request_inner_scoped("config/read", json!({"cwd":W,"includeLayers":false}), json!({"kind":"synthetic generic"}), LONG, false, Some(&g));
         (result, started.elapsed())
     });
-    std::thread::sleep(Duration::from_millis(600));
+    std::thread::sleep(HOLD);
     rig.answer(&held, cfg());
     assert_eq!(rig.frame()["method"], "config/read", "registered once the reservation was free, and left unanswered");
     let (result, elapsed) = generic.join().unwrap();
     assert!(result.is_err(), "no reply within its deadline");
-    assert!(elapsed < Duration::from_millis(1350), "the whole call is bounded by its one deadline: {elapsed:?}");
+    assert!(elapsed < LONG + HOLD / 2, "the whole call is bounded by its one deadline: {elapsed:?}");
 }
 
 fn continue_query(rig: &Rig) -> HistoryQuery {

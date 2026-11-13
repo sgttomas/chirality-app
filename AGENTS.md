@@ -111,7 +111,7 @@ There are two ways in, and neither proves you have found everything:
 
 ```sh
 <query> neighborhood DEL-nn-nn    # its declared inputs, and the deliverables that consume it
-<query> touches HEAD              # deliverables whose locality or code paths match that one commit
+<query> touches HEAD              # deliverables whose locality, code paths or declared checks match that one commit
 <query> touches main...HEAD       # the same for a whole branch
 ```
 
