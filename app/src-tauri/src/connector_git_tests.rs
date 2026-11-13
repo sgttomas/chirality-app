@@ -547,15 +547,35 @@ fn connector_git_supervised_framing_hash_stderr_and_child_reap() {
         ),
     )
     .unwrap();
+    // The deadline is fixed before the child starts, so it must leave the fake time to record
+    // its pid even on a loaded machine: 50 ms did not. One child is started and the process
+    // whose pid it recorded is examined; its descendants are not. A missing or empty pid file
+    // means the child could not be examined, never that nothing survived, and does not show
+    // whether the fake started. It fails the test by name instead of being retried: a retry
+    // would leave the first child unexamined behind a later one that passes.
+    const DEADLINE_MS: u64 = 5000;
     let mut c = Repo::control();
-    c.deadline = std::time::Instant::now() + std::time::Duration::from_millis(50);
+    c.deadline = std::time::Instant::now() + std::time::Duration::from_millis(DEADLINE_MS);
     assert_eq!(
         e.run(&a.objects, &[], &vec![b'x'; 1048576], 20, &c)
             .unwrap_err()
             .kind,
         "deadline"
     );
-    let pid = fs::read_to_string(pidfile).unwrap().parse::<i32>().unwrap();
+    let pid = match fs::read_to_string(&pidfile) {
+        Ok(text) if !text.is_empty() => text
+            .parse::<i32>()
+            .unwrap_or_else(|_| panic!("the fake's pid file holds {text:?}, not a pid")),
+        Ok(_) => panic!(
+            "child not examined: the fake git's pid file is empty after a {DEADLINE_MS} ms \
+             deadline (the file was made and no pid was written to it)"
+        ),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => panic!(
+            "child not examined: no pid file after a {DEADLINE_MS} ms deadline (whether the \
+             fake git started is not known)"
+        ),
+        Err(err) => panic!("cannot read the fake's pid file: {err}"),
+    };
     assert_eq!(unsafe { libc::kill(pid, 0) }, -1);
     assert_eq!(
         std::io::Error::last_os_error().raw_os_error(),
