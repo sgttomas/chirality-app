@@ -165,16 +165,123 @@ fn assessment_preflight(cfg: &HostConfig) -> Result<Option<crate::distribution_p
     Ok(Some(actual))
 }
 
-/// Environment variables never passed to the child (ACCESS CR-7: no credential variable).
-const CREDENTIAL_VARS: &[&str] = &[
-    "OPENAI_API_KEY",
-    "CODEX_API_KEY",
-    "CODEX_ACCESS_TOKEN",
-    "OPENAI_ORG_ID",
-    "OPENAI_PROJECT_ID",
-    "AZURE_OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-];
+/// Why an inherited variable is removed from a supplier process. Every removal
+/// is by name: a name taken from the pinned supplier binary's strings shows that
+/// the name exists, not what the variable does. A class gives the reason for
+/// removing the name and claims nothing about the variable's effect or about
+/// what removing it changes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RemovalClass {
+    /// Provider credential variables by their well-known names (the first seven since ACCESS CR-7).
+    CredentialVariable,
+    /// Credential custody: a credential-bearing name.
+    CredentialBearing,
+    /// Credential custody: a name for sign-in or token refresh.
+    SignInOrTokenRefresh,
+    /// Separation of the App's Codex homes: a name for a state location.
+    HomeSeparation,
+    /// Direct-vendor launcher convention: a wrapper setting (successor plan only).
+    LauncherWrapper,
+}
+impl RemovalClass {
+    pub(crate) fn code(self) -> &'static str {
+        match self {
+            Self::CredentialVariable => "credential-custody/credential-variable",
+            Self::CredentialBearing => "credential-custody/credential-bearing",
+            Self::SignInOrTokenRefresh => "credential-custody/sign-in-or-token-refresh",
+            Self::HomeSeparation => "home-separation",
+            Self::LauncherWrapper => "launcher-wrapper",
+        }
+    }
+    fn reason(self) -> &'static str {
+        match self {
+            Self::CredentialVariable => "Removed by name for credential custody: a provider credential variable, listed by its well-known name. The name is what is known; what any program does with the variable is not claimed.",
+            Self::CredentialBearing => "Removed by name for credential custody: a credential-bearing name. The name is known to exist; what the variable does is not claimed.",
+            Self::SignInOrTokenRefresh => "Removed by name for credential custody: a name for sign-in or token refresh. The name is known to exist; what the variable does is not claimed.",
+            Self::HomeSeparation => "Removed by name for the separation of the App's Codex homes: a name for a state location. The name is known to exist; what the variable does is not claimed.",
+            Self::LauncherWrapper => "Removed by name by the direct-vendor launcher convention: a wrapper setting.",
+        }
+    }
+    /// Names whose values the configuration record treats as secret
+    /// (`secret_redactions`). Home-separation and sign-in names are not secrets.
+    pub(crate) fn secret(self) -> bool {
+        matches!(self, Self::CredentialVariable | Self::CredentialBearing)
+    }
+}
+
+/// Inherited environment variables removed, by name, from every supplier
+/// process the host starts: the label probe and the app-server child, on the
+/// ordinary and the successor path. This is a list of named exceptions: no
+/// other inherited variable is removed on its account. Apart from it, the host
+/// sets CODEX_HOME on every start, and the successor plan sets PATH and removes
+/// its two wrapper settings. CODEX_CA_CERTIFICATE is deliberately not listed,
+/// and CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED is neither set nor
+/// removed (its presence alone is recorded).
+pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
+    use RemovalClass::*;
+    &[
+        ("OPENAI_API_KEY", CredentialVariable),
+        ("CODEX_API_KEY", CredentialVariable),
+        ("CODEX_ACCESS_TOKEN", CredentialVariable),
+        ("OPENAI_ORG_ID", CredentialVariable),
+        ("OPENAI_PROJECT_ID", CredentialVariable),
+        ("AZURE_OPENAI_API_KEY", CredentialVariable),
+        ("ANTHROPIC_API_KEY", CredentialVariable),
+        ("ANTHROPIC_AUTH_TOKEN", CredentialVariable),
+        ("CODEX_AUTH", CredentialBearing),
+        ("CODEX_CONNECTORS_TOKEN", CredentialBearing),
+        ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", CredentialBearing),
+        ("CODEX_GUARDIAN_DECISIONS_API_KEY", CredentialBearing),
+        ("CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN", CredentialBearing),
+        ("CODEX_APP_SERVER_LOGIN_ISSUER", SignInOrTokenRefresh),
+        ("CODEX_APP_SERVER_LOGIN_CLIENT_ID", SignInOrTokenRefresh),
+        ("CODEX_AUTHAPI_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_REFRESH_TOKEN_URL_OVERRIDE", SignInOrTokenRefresh),
+        ("CODEX_REVOKE_TOKEN_URL_OVERRIDE", SignInOrTokenRefresh),
+        ("CODEX_AGENT_IDENTITY_AUTHAPI_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_AGENT_IDENTITY_JWKS_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_APP_SERVER_CHATGPT_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_SQLITE_HOME", HomeSeparation),
+        ("CODEX_ROLLOUT_TRACE_ROOT", HomeSeparation),
+        ("CODEX_PLUGIN_METRICS_OUTPUT", HomeSeparation),
+        ("CODEX_TUI_SESSION_LOG_PATH", HomeSeparation),
+    ]
+};
+/// Inherited by the child, neither set nor removed; only its presence in the
+/// App's environment when the child is started is recorded, never its value.
+pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
+
+pub(crate) fn removed_environment_names() -> impl Iterator<Item = &'static str> {
+    REMOVED_ENVIRONMENT.iter().map(|(name, _)| *name)
+}
+/// The `secret_redactions` names: the credential variables and the credential-bearing names.
+pub(crate) fn secret_environment_names() -> Vec<&'static str> {
+    REMOVED_ENVIRONMENT.iter().filter(|(_, class)| class.secret()).map(|(name, _)| *name).collect()
+}
+/// Applied after every `env` the host sets on a supplier command, so no listed
+/// name can be re-added by the host after its removal.
+pub(crate) fn remove_inherited_environment(cmd: &mut Command) {
+    for name in removed_environment_names() {
+        cmd.env_remove(name);
+    }
+}
+/// The configuration identity's plain name list (`removedEnvironment`, read as
+/// a list of names) and the same names with their classes
+/// (`removedEnvironmentClasses`). `wrapper` is the successor plan's removals.
+fn removed_environment_record(wrapper: &[&'static str]) -> (Vec<&'static str>, Vec<Value>) {
+    let classed: Vec<(&str, RemovalClass)> = REMOVED_ENVIRONMENT.iter().copied()
+        .chain(wrapper.iter().map(|name| (*name, RemovalClass::LauncherWrapper))).collect();
+    let names = classed.iter().map(|(name, _)| *name).collect();
+    let classes = classed.iter()
+        .map(|(name, class)| json!({"name": name, "class": class.code(), "reason": class.reason()})).collect();
+    (names, classes)
+}
+fn presence_only_record(present: bool) -> Value {
+    json!({RECORDED_PRESENCE_ONLY: {
+        "inAppEnvironmentAtStart": if present { "present" } else { "absent" },
+        "handling": "inherited unchanged; neither set nor removed by the App; value not recorded",
+    }})
+}
 
 #[derive(Clone, Debug)]
 pub struct HostConfig {
@@ -1512,10 +1619,10 @@ impl Host {
             Err(reason) => return (json!({"result":"mismatch","element":"canonical .167 distribution preflight","reason":reason}),None,vec![]),
         };
         let mut probe = Command::new(&cfg.codex_bin);
-        for name in CREDENTIAL_VARS { probe.env_remove(name); }
         probe.arg("--version").env("CODEX_HOME", &cfg.probe_home)
             .current_dir(&cfg.probe_home).stdin(Stdio::null())
             .stdout(Stdio::piped()).stderr(Stdio::piped());
+        remove_inherited_environment(&mut probe);
         let label = match self.run_label_probe(attempt, &mut probe, cfg.probe_wait_limit) {
             Ok(label) => label.trim().to_owned(),
             Err(error) => return (json!({"result":"unverifiable","reason":error}), None, vec![]),
@@ -1707,19 +1814,20 @@ impl Host {
         args.push("app-server".into());
         let executable = prepared.as_ref().map(|p| &p.plan.executable).unwrap_or(&cfg.codex_bin);
         let mut cmd = Command::new(executable);
-        if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
         cmd.args(&args)
             .current_dir(&cfg.cwd)
             .env("CODEX_HOME", &cfg.codex_home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped()); // owning spawn applies process_group(0)
-        for v in CREDENTIAL_VARS {
-            cmd.env_remove(v);
-        }
+        // Last, after every `env` set here, so no listed name is set after its removal.
+        if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
+        remove_inherited_environment(&mut cmd);
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
+        // Read at the start of the child, which inherits this variable unchanged.
+        let presence_only = std::env::var_os(RECORDED_PRESENCE_ONLY).is_some();
         let child = match process_group_custody::OwnedProcess::spawn(&mut cmd) {
             Ok(c) => c,
             Err(e) => {
@@ -1777,11 +1885,14 @@ impl Host {
             i.child_pid = Some(pid);
             i.stop_record = None;
             i.server_cwd = Some(cfg.cwd.to_string_lossy().into_owned());
+            let (removed_names, removed_classes) = removed_environment_record(prepared.as_ref().map(|p| &p.plan.removed[..]).unwrap_or(&[]));
             let conf = json!({
                 "launcher": executable.display().to_string(),
                 "arguments": args,
                 "environment": {"CODEX_HOME": "App-owned home (path recorded by the App, not here)"},
-                "removedEnvironment": CREDENTIAL_VARS.iter().copied().chain(prepared.as_ref().into_iter().flat_map(|p|p.plan.removed)).collect::<Vec<_>>(),
+                "removedEnvironment": removed_names,
+                "removedEnvironmentClasses": removed_classes,
+                "inheritedEnvironmentPresence": presence_only_record(presence_only),
                 "sessionFlags": cfg.session_flags,
             });
             i.configuration_identity = Some(conf.clone());
@@ -6232,7 +6343,7 @@ mod conversation_transport_tests {
     fn app_custody_named_cr7_environment_removal_uses_only_explicit_canaries(){
         // No inherited environment/value read: an owned env utility receives
         // only these known synthetic variables, then actual production list.
-        let mut cmd=Command::new("/usr/bin/env");cmd.env_clear();for name in ["OPENAI_API_KEY","CODEX_API_KEY","CODEX_ACCESS_TOKEN"]{cmd.env(name,AUTH_CANARY);}cmd.env("CHIRALITY_SYNTHETIC_VISIBLE","ordinary");for name in CREDENTIAL_VARS{cmd.env_remove(name);}let output=cmd.output().unwrap();assert!(output.status.success());let text=String::from_utf8(output.stdout).unwrap();assert!(!text.contains(AUTH_CANARY));assert!(!text.contains("CODEX_ACCESS_TOKEN="));assert_eq!(text.trim(),"CHIRALITY_SYNTHETIC_VISIBLE=ordinary");assert!(CREDENTIAL_VARS.contains(&"CODEX_ACCESS_TOKEN"));
+        let mut cmd=Command::new("/usr/bin/env");cmd.env_clear();for name in ["OPENAI_API_KEY","CODEX_API_KEY","CODEX_ACCESS_TOKEN"]{cmd.env(name,AUTH_CANARY);}cmd.env("CHIRALITY_SYNTHETIC_VISIBLE","ordinary");remove_inherited_environment(&mut cmd);let output=cmd.output().unwrap();assert!(output.status.success());let text=String::from_utf8(output.stdout).unwrap();assert!(!text.contains(AUTH_CANARY));assert!(!text.contains("CODEX_ACCESS_TOKEN="));assert_eq!(text.trim(),"CHIRALITY_SYNTHETIC_VISIBLE=ordinary");assert!(removed_environment_names().any(|name|name=="CODEX_ACCESS_TOKEN"));
     }
     #[test]
     fn app_custody_one_session_shared_actual_ledger_equal_request_ids_and_recreated_counter(){
@@ -6712,3 +6823,7 @@ mod observer_journal_tests;
 #[cfg(test)]
 #[path = "hosting_0167_tests.rs"]
 mod supplier_0167_tests;
+
+#[cfg(test)]
+#[path = "hosting_child_environment_tests.rs"]
+mod child_environment_tests;
