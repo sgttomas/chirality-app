@@ -77,6 +77,7 @@ mod records_index;
 pub mod record_lines;
 pub mod records_store;
 pub mod records_export;
+pub(crate) mod records_inspect;
 use records_store::custody as records_package;
 pub mod records_retention;
 pub mod recovery;

@@ -2504,3 +2504,47 @@ fn a_record_set_that_cannot_be_walked_whole_never_decides_a_record_is_missing() 
     assert!(!set.1.is_empty(), "never a clean set: {set:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// S1. A store that cannot be examined when a read opens it is reported with
+/// that cause, never as a store not created yet.
+#[test]
+fn a_store_that_cannot_be_examined_is_reported_with_its_cause() {
+    use std::os::unix::fs::PermissionsExt;
+    let parent = folder("store-unexaminable-");
+    let root = parent.join("store");
+    std::fs::create_dir_all(&root).unwrap();
+    // Never opened in this process (the App's start did not reach it), so a
+    // read opens it afresh rather than through the cached opening.
+    use_store_not_started_for_test(Some(Ok(Store { root: root.clone(), placement: Placement::Override, limits: vec![] })));
+    let project = folder("store-unexaminable-project-");
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let opened = opened();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+    use_store_for_test(None);
+    let e = opened.unwrap_err();
+    assert!(e.contains("Permission denied") && !e.contains("does not exist") && !e.contains("not created yet"), "{e}");
+    let _ = (std::fs::remove_dir_all(&parent), std::fs::remove_dir_all(&project));
+}
+
+/// S2. An imported original that cannot be read is described as not known,
+/// never as differing from its imported copy.
+#[test]
+fn an_imported_original_that_cannot_be_read_is_never_said_to_differ() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let root = legacy_project();
+    attach(&root, true).unwrap();
+    import(&root).unwrap();
+    let original = root.join(".chirality/records").join(storage::log_rel(Some("run:legacy"), "writer:legacy"));
+    assert!(notes(&root).iter().all(|n| !n.contains("differs")), "control: nothing differs");
+    std::fs::set_permissions(&original, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let unreadable = std::fs::read(&original).is_err();
+    let shown = notes(&root);
+    std::fs::set_permissions(&original, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert!(unreadable, "a real permission failure");
+    let rel = storage::log_rel(Some("run:legacy"), "writer:legacy");
+    // The positive claim of a difference names the copy's hash at import.
+    assert!(shown.iter().all(|n| !(n.contains(&rel) && n.contains("differs from its imported copy") && n.contains("at import"))), "never said to differ: {shown:?}");
+    assert!(shown.iter().any(|n| n.contains(&rel) && n.contains("not known")), "said to be not known: {shown:?}");
+    let _ = std::fs::remove_dir_all(&root);
+}
