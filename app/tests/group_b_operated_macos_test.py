@@ -42,16 +42,19 @@ class StraySearchOnMacOS(unittest.TestCase):
 
 @unittest.skipUnless(sys.platform == 'darwin', MACOS_ONLY)
 class SessionEnvironmentOnMacOS(unittest.TestCase):
-    def test_the_launch_domain_can_be_read_and_every_name_gets_one_of_the_three_states(self):
+    def test_the_launch_domain_is_read_or_every_name_is_said_to_be_not_established(self):
+        # Never a skip: where this machine has no login session launch domain to read (a hosted runner may not),
+        # the tool must say so for every name and exit 2, which is what is asserted then.
         env = load('session_env')
         done = subprocess.run(['/bin/launchctl', 'print', f'gui/{os.getuid()}'], capture_output=True, text=True)
-        if done.returncode != 0:
-            self.skipTest(f'no login session launch domain here (launchctl exited {done.returncode})')
-        names, reason = env.session_names(done.stdout)
-        self.assertIsNone(reason)
-        result = env.states(names, None, set(), None)
+        names, reason = env.session_names(done.stdout) if done.returncode == 0 else (None, f'launchctl print exited {done.returncode}')
+        result = env.states(names, reason, set(), None)
         self.assertEqual(set(result), set(env.NAMES))
-        self.assertTrue(set(result.values()) <= {'absent', 'present'}, result)
+        if names is None:
+            self.assertTrue(all(v.startswith('could not be established: ') for v in result.values()), result)
+            self.assertEqual(env.status(result), 2)
+        else:
+            self.assertTrue(set(result.values()) <= {'absent', 'present'}, result)
 
 
 if __name__ == '__main__':
