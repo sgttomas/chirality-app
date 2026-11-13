@@ -131,8 +131,9 @@ fn records_store_placement_saved_current_unreadable_override_and_development_vie
     assert_eq!(view["nextStart"], volume.display().to_string());
     assert_eq!(view["pending"], true, "the store in use was fixed at start");
     assert_eq!(current().unwrap().root, data.join("records"));
-    // The next start uses it, and then nothing is pending.
-    use_store_for_test(Some(for_app(None, Ok(&data), false, Some(&project), &[])));
+    // Simulate the next start's selection without creating the invented
+    // volume: this is a placement view, not store-startup examination.
+    use_store_not_started_for_test(Some(for_app(None, Ok(&data), false, Some(&project), &[])));
     assert_eq!(current().unwrap().placement, Placement::PersonChosen);
     assert_eq!(choice_view(Ok(&data), false)["pending"], false);
     // Back to the default: the choice is removed, for the next start.
