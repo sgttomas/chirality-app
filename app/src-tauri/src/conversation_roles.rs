@@ -364,7 +364,7 @@ pub(crate) fn fork_conversation_tracked(home: &crate::runtime_session::HomeSessi
         Err(reason)=>{
             let actual=home.host.snapshot()["generation"].clone();
             let source=if actual==*generation{actual}else{Value::Null};
-            let publication=home.history.lock().unwrap().fork_refused(&supply_ref,&source,source_thread,&reason,reason.starts_with("refused-not-sent:")||crate::hosting::reading_gate::carries_reading_sentence(&reason));
+            let publication=home.history.lock().unwrap().fork_refused(&supply_ref,&source,source_thread,&reason,fork_refused_before_send(&reason));
             return Err(crate::role_supply_refusal(&reason, &publication));
         }
     };
@@ -375,6 +375,11 @@ pub(crate) fn fork_conversation_tracked(home: &crate::runtime_session::HomeSessi
     match history.fork_result(&receipt){Some(result)=>result,None=>Err(match waited{Ok(evidence)=>format!("Fork remains {} (write {}); native receipt retained, no automatic retry",evidence["outcome"],evidence["writeResult"]),Err(error)=>error})}
 }
 
+/// Whether a fork's refusal is known to come before its send: the Host's "refused-not-sent:"
+/// refusals, and a refusal at its configuration reading (exactly a reading sentence).
+pub(crate) fn fork_refused_before_send(reason: &str) -> bool {
+    reason.starts_with("refused-not-sent:") || crate::hosting::reading_gate::carries_reading_sentence(reason)
+}
 /// The `conversation_fork` command body: route to the home that owns the
 /// generation, then fork there.
 pub(crate) fn fork_command(homes: &std::sync::Mutex<crate::runtime_session::HomeRouter>, generation: &Value, source_thread: &str, wait: std::time::Duration) -> Result<Value, String> {

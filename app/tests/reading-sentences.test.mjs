@@ -15,7 +15,7 @@ const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {App, EffectiveAccessSettingsPanel} = loadSrc('App');
 const {AccountStatus} = loadSrc('AccountStatus');
-const {READING_GATE, READING_WITHDRAWN, WRITE_THEN_READING} = loadSrc('readingSentences');
+const {READING_GATE, READING_WITHDRAWN, WRITE_THEN_READING, CHILD_ROLES_IN_PLACE} = loadSrc('readingSentences');
 
 const canary = 'INVENTED_PRIVATE_READING_DIAGNOSTIC_602';
 const statusCanary = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_77';
@@ -36,6 +36,9 @@ test('the web strings equal the Rust constants they stand for', () => {
   assert.equal(READING_GATE, constant('READING_GATE'));
   assert.equal(READING_WITHDRAWN, constant('READING_WITHDRAWN'));
   assert.equal(WRITE_THEN_READING, constant('WRITE_THEN_READING'));
+  const provider = readFileSync(new URL('../src-tauri/src/access_provider.rs', import.meta.url), 'utf8');
+  const prefix = provider.match(/const CHILD_ROLES_IN_PLACE: &str =\s*"((?:[^"\\]|\\.)*)";/);
+  assert.ok(prefix, 'CHILD_ROLES_IN_PLACE'); assert.equal(CHILD_ROLES_IN_PLACE, JSON.parse(`"${prefix[1]}"`));
 });
 
 // Effective access settings: the panel alone, its native read refused.

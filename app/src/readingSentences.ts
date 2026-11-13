@@ -13,6 +13,16 @@ export function readingSentence(error: unknown): string | null {
   const text = typeof error === "string" ? error : error instanceof Error ? error.message : null;
   return text === READING_GATE || text === READING_WITHDRAWN ? text : null;
 }
+/** Before either sentence when a start's child-role reread is refused: what is already known.
+ * Equals CHILD_ROLES_IN_PLACE in src-tauri/src/access_provider.rs (compared by the web test). */
+export const CHILD_ROLES_IN_PLACE = "The configuration was read and child-role files for this role are in place in the App's data. The conversation was not started, because the configuration must be read again first. ";
+/** A start refused at one of its configuration readings, known not sent: either sentence alone, or
+ * CHILD_ROLES_IN_PLACE followed by either sentence. The message as it is; null for anything else. */
+export function readingRefusal(error: unknown): string | null {
+  const text = typeof error === "string" ? error : error instanceof Error ? error.message : null;
+  if (text === null) return null;
+  return readingSentence(text) ?? (text.startsWith(CHILD_ROLES_IN_PLACE) && readingSentence(text.slice(CHILD_ROLES_IN_PLACE.length)) ? text : null);
+}
 /** A save's message when its reading after the write ended with either sentence; null otherwise. */
 export function readingAfterWrite(message: unknown): string | null {
   return typeof message === "string" && message.startsWith(WRITE_THEN_READING) && readingSentence(message.slice(WRITE_THEN_READING.length))

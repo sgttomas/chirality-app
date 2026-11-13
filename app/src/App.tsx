@@ -34,7 +34,7 @@ import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
-import { refreshAfterAction, withRefreshFailure } from "./statusRefresh";
+import { REFRESH_FAILED, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -2265,11 +2265,11 @@ export function App() {
       outcome = { state: "unknown", reason: "The original send observation was unavailable." };
     }
     setMessage(`Continue-as: ${outcome.state}${outcome.reason ? ` (${outcome.reason})` : ""}`);
-    try { await refresh(); }
-    catch (error) {
-      outcome = { ...outcome, observationFailure: String(error) };
-      setMessage(`Continue-as: ${outcome.state}; view refresh failed: ${String(error)}`);
-    }
+    // The send's outcome stands; a failed refresh adds the fixed line once and nothing raw.
+    await refreshAfterAction(refresh, () => {
+      outcome = { ...outcome, observationFailure: REFRESH_FAILED };
+      setMessage(withRefreshFailure);
+    });
     return outcome;
   };
   const runAct: RunAct = async (command, args) => {
@@ -2330,8 +2330,7 @@ export function App() {
     } catch (e) { setMessage(`${command}: ${String(e)}`); if (bringBack && !prefillKept(e)) noteBringBackDoubt({ ...bringBack, message: hostMessage(e), acknowledged: false }); throw e; }
     finally {
       if (flight) endBringBack(flight);
-      try { await refresh(); }
-      catch (error) { setTrialObservation(previous => previous?.relation === relation ? { relation, limit: String(error) } : previous); }
+      await refreshAfterAction(refresh, () => setTrialObservation(previous => previous?.relation === relation ? { relation, limit: REFRESH_FAILED } : previous));
     }
   };
   // The conversation the panel actually shows (current generation only), so no request is hidden.
@@ -2443,7 +2442,7 @@ export function App() {
         {trialObservation?.limit && <p role="status" aria-label="Trial view observation limit">
           Trial view refresh unavailable for {trialObservation.relation.command} (attempt {trialObservation.relation.attempt}; prepared message {JSON.stringify(trialObservation.relation.reference)};
           source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
-          requested target {JSON.stringify(trialObservation.relation.target)}): {trialObservation.limit}. The original command outcome is unchanged.
+          requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
         <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
         <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model, provider, access entry and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>

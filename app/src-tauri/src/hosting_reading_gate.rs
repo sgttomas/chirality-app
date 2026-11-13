@@ -65,10 +65,15 @@ pub(super) fn settlement(frame: &Value, id: Option<&Value>) -> Result<(), Unsett
         _ => Ok(()),
     }
 }
-/// Whether a message ends with either sentence: the sentence alone, or what is already known to
-/// have happened stated first, then the sentence (a start refused at its child-role reread).
+/// The child-role known-phase prefix, defined beside the reread it describes.
+pub(crate) use super::access_provider::CHILD_ROLES_IN_PLACE;
+/// Whether a message is a reading refusal, exactly: either sentence alone, or the child-role
+/// known-phase prefix (`access_provider::CHILD_ROLES_IN_PLACE`) followed by either sentence alone.
+/// Nothing else counts, however it ends: a later message that happens to end in a sentence after
+/// another prefix (the write-then-reading prefix, for one) is not a refusal before send. The fork's
+/// role-supply record, `role_supply_refusal` and the clean trial start all decide on this.
 pub(crate) fn carries_reading_sentence(message: &str) -> bool {
-    message.ends_with(READING_GATE) || message.ends_with(READING_WITHDRAWN)
+    reading_sentence(message) || message.strip_prefix(CHILD_ROLES_IN_PLACE).is_some_and(reading_sentence)
 }
 /// Whether an error is one of the two sentences a sender must pass on as it is.
 pub(crate) fn reading_sentence(error: &str) -> bool {

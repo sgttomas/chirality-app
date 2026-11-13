@@ -3590,6 +3590,23 @@ mod tests {
         assert_eq!(crate::role_supply_refusal("refused-not-sent: invented", &publication), format!("refused-not-sent: invented; role supply observation: {publication}"));
         assert_eq!(crate::role_supply_refusal(&format!("{READING_GATE} "), &publication), format!("{READING_GATE} ; role supply observation: {publication}"), "only the exact sentence");
         assert_eq!(crate::key_entry_refusal("native key entry refused".into()), "native key entry refused");
+        // Exact, not by suffix: a message ending in a sentence after any other prefix is not a
+        // reading refusal. The start keeps its role supply observation; the fork's record does not
+        // say refused before send.
+        use crate::hosting::reading_gate::WRITE_THEN_READING;
+        let later = format!("{WRITE_THEN_READING}{READING_GATE}");
+        assert_eq!(crate::role_supply_refusal(&later, &publication), format!("{later}; role supply observation: {publication}"));
+    }
+    /// The fork's role-supply record calls a refusal "before send" for an exact reading refusal
+    /// (either sentence alone, or the child-role prefix then either sentence), never for a message
+    /// that merely ends in a sentence after another prefix.
+    #[test]
+    fn access_provider_fork_record_counts_only_an_exact_reading_refusal_as_before_send() {
+        use crate::hosting::reading_gate::{CHILD_ROLES_IN_PLACE, READING_GATE, READING_WITHDRAWN, WRITE_THEN_READING};
+        assert!(!crate::conversation_roles::fork_refused_before_send(&format!("{WRITE_THEN_READING}{READING_GATE}")), "a sentence after another prefix is not before send");
+        assert!(crate::conversation_roles::fork_refused_before_send(READING_WITHDRAWN));
+        assert!(crate::conversation_roles::fork_refused_before_send(&format!("{CHILD_ROLES_IN_PLACE}{READING_GATE}")));
+        assert!(crate::conversation_roles::fork_refused_before_send("refused-not-sent: invented"));
     }
     /// The endpoint and Add offer commands pass either reading sentence on as it is and keep their
     /// fixed sentence for anything else.

@@ -10080,6 +10080,11 @@ for line in sys.stdin:
             assert_eq!(err.message,format!("The trial conversation was not started; the pre-filled trial was withdrawn. {sentence}"));
             assert!(!err.prefill_kept&&!pending_refs(&root).contains(&r),"withdrawn as any failed start");
         }
+        // Not by suffix: a start error ending in a sentence after another prefix keeps the general text.
+        let r=prepare();
+        let later=format!("{}{}",crate::hosting::reading_gate::WRITE_THEN_READING,crate::hosting::reading_gate::READING_GATE);
+        let err=trial_flows::start_clean_trial(&root,&r,||Err(later.clone()),|_,_|panic!("nothing is sent")).unwrap_err();
+        assert!(err.message.starts_with(&format!("{later}. The trial conversation was not started (or its start was not acknowledged)")),"{}",err.message);
         // The start named no thread id: withdrawn.
         let r2=prepare();
         let err=trial_flows::start_clean_trial(&root,&r2,||Ok(json!({"startGeneration":peer.generation,"result":{"thread":{}}})),|_,_|panic!("nothing is sent")).unwrap_err();

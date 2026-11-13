@@ -2467,7 +2467,7 @@ fn a_child_role_reread_refused_after_the_files_are_in_place_states_and_records_t
     let published = history.role_refused_continuing("sup:synthetic-child-reread", &peer.g, Some(crate::role_supply::Role::WORKING_ITEMS), Some(false), &error, true, None);
     assert_eq!(published["state"], "written", "{published}");
     let record = history.read_role_supply(peer.g["home"].as_str().unwrap(), None).to_string();
-    assert!(record.contains("refused-before-send") && record.contains("child-role files are in place"), "{record}");
+    assert!(record.contains("refused-before-send") && record.contains("child-role files for this role are in place"), "{record}");
 }
 fn child_parent() -> (
     std::path::PathBuf,

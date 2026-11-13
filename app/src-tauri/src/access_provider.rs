@@ -41,8 +41,9 @@ const PROVIDER_FIELDS: &[&str] = &[
     "project_id", "location", "credential_file", "capabilities",
 ];
 /// Before either reading sentence when a start's child-role reread is refused: what is already
-/// known (PROPOSED wording).
-pub(crate) const CHILD_ROLES_IN_PLACE: &str = "The configuration was read and this role's child-role files are in place in the App's data, but the conversation was not started. ";
+/// known (settled wording). `prepare` publishes only the child roles it could supply, and an
+/// identical file already present is accepted, hence "child-role files for this role are in place".
+pub(crate) const CHILD_ROLES_IN_PLACE: &str = "The configuration was read and child-role files for this role are in place in the App's data. The conversation was not started, because the configuration must be read again first. ";
 const OBSERVATION_LIMIT: &str = "Configured provider observation unavailable; private values and diagnostics withheld. Manual explicit choices remain independent and Start requires a fresh private reading.";
 pub(super) struct PrivateConfigReading {
     pub(super) source: SourceRequest,
