@@ -1196,6 +1196,18 @@ failure/recovery, ordering, namespace and provenance negatives. With no supplier
 binary, set `CHIRALITY_SKIP_CODEX=1` explicitly for Rust checks; the Node hosting
 check then reports its skip. Skipped checks establish no supplier result.
 
+Two library tests keep the same rule (`pinned_codex_observations`): they start
+the pinned supplier through the host in invented folders below the system
+temporary folder, in a fresh home nobody has signed in to, and fail without
+`CHIRALITY_CODEX_BIN` unless the skip is set. One starts it with the development
+model address set (below) and reads the setting back from the supplier's own
+configuration reading; it runs no turn, so it shows that the supplier starts
+with the setting, not where a model request goes. The other shows how far the
+supplier's search for a `.codex/config.toml` above its working folder goes: not
+at all where no folder above holds a `.git` entry, and up to the folder that
+holds one where one does. They run in the hosted product job and nightly, not
+in a pull request's own checks.
+
 The handshake uses its own unique system-temp home, a local provider at
 127.0.0.1 port 9, plugins off and analytics off. It starts no model turn, supplies
 no credential, and checks its sampled process-group sockets. Test-owned scratch
