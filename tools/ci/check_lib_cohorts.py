@@ -7,9 +7,11 @@ ignored tests from the same build (``... -- --list --ignored``),
 ``.github/workflows/app-v4.yml`` and ``tools/ci/lib_cohort_exclusions.txt``.
 
 A pull-request default-feature filter is a ``LIB_COHORTS`` entry of a
-pull-request job, or the one test-name filter of a ``cargo test --lib``
-command without ``--features`` in a pull-request job's step (a command at the
-start of a shell command, after any ``NAME=value`` words). "Selected" means a
+pull-request job that has a step whose run text is exactly ``COHORT_LOOP``
+(compared by equality: no loop is recognised from text), or the one literal
+test-name filter of a ``cargo test --lib`` command without ``--features`` in a
+pull-request job's step (a command at the start of a shell command, after any
+``NAME=value`` words). "Selected" means a
 filter's name matches the test as libtest matches (the path contains the
 filter; equals it under ``--exact``). It is a name match: it does not show
 that the test's body executes.
@@ -40,12 +42,14 @@ repeats; the ignored listing names a test the listing does not; or the
 listing holds no test or the workflow no filter.
 
 It refuses, rather than guesses, what it does not read, naming the job and
-step: more than one test filter, ``--skip``, ``--ignored`` or
-``--include-ignored`` on a library test command; a step-level ``LIB_COHORTS``;
-a step-level ``if`` on a step with a library test command (it does not
-evaluate step conditions); a ``${{ }}`` expression in a filter, examined before
-any substitution; a shell variable in a filter other than the loop variable of
-``for <var> in $LIB_COHORTS``; an anchor, alias or merge key (``<<``) anywhere
+step and giving the line: more than one test filter, ``--skip``, ``--ignored``
+or ``--include-ignored`` on a library test command; a step-level
+``LIB_COHORTS``; a step-level ``if`` on a step that has a library test command
+(it does not evaluate step conditions; a step-level ``if`` elsewhere is not
+refused); a filter containing ``$`` in any run text that is not exactly
+``COHORT_LOOP``; a job with ``LIB_COHORTS`` and no step that is exactly
+``COHORT_LOOP``, and a job with that step and no ``LIB_COHORTS``; a cohort
+containing ``$``; an anchor, alias or merge key (``<<``) anywhere
 in the jobs section; a structural line it does not recognise, which includes a
 value it reads placed on the next line; a flow form (``{...}``, ``[...]``) on
 a key under which it reads something; and, in a value it reads, a form it does
@@ -155,13 +159,13 @@ def _scalar(lines: list[str], index: int, key_indent: int, rest: str) -> tuple[s
             if rest[0] == "'":
                 inner = rest[1:-1]
                 if "'" in inner.replace("''", ""):
-                    raise Unreadable("a quoted scalar followed by other text (such as a comment)")
+                    raise Unreadable("a quoted scalar followed by other text (such as a comment); move the comment onto its own line")
                 return inner.replace("''", "'"), j
             try:
                 return json.loads(rest), j
             except ValueError:
                 raise Unreadable("a double-quoted scalar with escapes it does not read") from None
-        raise Unreadable("a quoted scalar followed by other text (such as a comment)")
+        raise Unreadable("a quoted scalar followed by other text (such as a comment); move the comment onto its own line")
     if rest[:1] in ("[", "{"):
         if ANCHOR_TOKEN.search(rest) or any(ANCHOR_TOKEN.search(line) for line in following):
             raise Anchored("an anchor or alias in a flow collection")
@@ -215,10 +219,12 @@ def read_workflow(text: str) -> dict:
         return step if step is not None else job
 
     def refuse(reason: str) -> None:
+        # Attributed to the job and step the line is in, with its line number.
+        entry = (i + 1, reason)
         if job is not None:
-            owner().setdefault("unreadable", []).append(reason)
+            owner().setdefault("unreadable", []).append(entry)
         else:
-            jobs.setdefault("(jobs)", {"steps": []}).setdefault("unreadable", []).append(reason)
+            jobs.setdefault("(jobs)", {"steps": []}).setdefault("unreadable", []).append(entry)
 
     while i < len(lines):
         line = lines[i]
@@ -231,12 +237,15 @@ def read_workflow(text: str) -> dict:
             break
         while stack and stack[-1][0] >= indent:
             stack.pop()
+        if not stack:
+            # A line at the level of the job ids belongs to no job opened before it.
+            job = step = None
         key_indent = indent
         if stripped == "-" or stripped.startswith("- "):
             path = [label for _, label in stack]
             stack.append((indent, "-"))
             if len(path) == 2 and path[1] == "steps" and job is not None:
-                step = {}
+                step = {"_line": i + 1}
                 job["steps"].append(step)
             stripped = stripped[1:].lstrip()
             key_indent = indent + (len(line.lstrip()) - len(stripped))
@@ -269,12 +278,12 @@ def read_workflow(text: str) -> dict:
             i += 1
             continue
         if depth == 0:
+            job = jobs.setdefault(key, {"steps": [], "_line": i + 1})
+            step = None
             if rest:
                 refuse(f"{key}: a job given as a value ({rest[:40]!r})")
-                _, i = _scalar(lines, i, key_indent, rest) if not rest.startswith(("&", "*")) else (None, i + 1)
+                _, i = _skip(lines, i, key_indent)
                 continue
-            job = jobs.setdefault(key, {"steps": []})
-            step = None
             stack.append((key_indent, key))
             i += 1
             continue
@@ -303,6 +312,7 @@ def read_workflow(text: str) -> dict:
             stack.append((key_indent, key))
             i += 1
             continue
+        value_line = i + 1
         try:
             value, i = _scalar(lines, i, key_indent, rest)
         except Anchored as error:
@@ -320,6 +330,7 @@ def read_workflow(text: str) -> dict:
             continue
         if read:
             target = step if in_step else job
+            target[f"_line_{relative[-1]}"] = value_line
             if relative[0] == "env":
                 target.setdefault("env", {})["LIB_COHORTS"] = value
             else:
@@ -399,70 +410,96 @@ def cargo_lib_filters(run: str) -> list[tuple[str, bool, bool, list[str]]]:
     return found
 
 
-COHORT_LOOP = re.compile(r"\bfor\s+(\w+)\s+in\s+\$(?:LIB_COHORTS\b|\{LIB_COHORTS\})")
+# The one script that runs every cohort of its job's LIB_COHORTS, one filter each: the run text of the
+# two shard steps, after removing the block's common indentation and one trailing newline. A step counts
+# as running the cohorts only if its run text is exactly this; no loop is recognised from text.
+COHORT_LOOP = (
+    "set -f\n"
+    "for cohort in $LIB_COHORTS; do\n"
+    '  cargo test --locked --manifest-path src-tauri/Cargo.toml --lib "$cohort" -- --test-threads=1\n'
+    "done"
+)
+NOT_THE_LOOP = (
+    "a filter containing $: this step's script is not the cohort loop the check knows "
+    "(tools/ci/check_lib_cohorts.py, COHORT_LOOP); either restore that script or change the constant with it "
+    "and say why in the pull request"
+)
 
 
-def _is_cohort_loop(name: str, run: str) -> bool:
-    """Whether name is the variable of a `for <var> in $LIB_COHORTS` loop in the same script."""
-    loop = COHORT_LOOP.search(run)
-    return bool(loop) and name in (f"${loop.group(1)}", f"${{{loop.group(1)}}}")
+def is_the_cohort_loop(run: str) -> bool:
+    """Whether a step's run text is exactly COHORT_LOOP (one trailing newline allowed)."""
+    return (run[:-1] if run.endswith("\n") else run) == COHORT_LOOP
 
 
 def pull_request_filters(workflow: dict, problems: list[str] | None = None) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """Default-feature and feature filters of the pull-request jobs, each with where it is.
 
-    A job with a cargo test --lib line whose if is neither condition is named
-    in problems.
+    Refusals, unrecognised job conditions and cohorts declared but never run
+    (or run but never declared) are added to problems.
     """
     default: dict[str, list[str]] = {}
     featured: dict[str, list[str]] = {}
+
+    def report(where: str, text: str, line: int | None) -> None:
+        if problems is not None:
+            problems.append(f"{where}: the check cannot read {text}" + (f" (line {line})" if line else ""))
+
     for job_id, job in (workflow.get("jobs") or {}).items():
-        if job.get("unreadable") and problems is not None:
-            for refusal in job["unreadable"]:
-                problems.append(f"{job_id}: the check cannot read {refusal}")
+        for line, text in job.get("unreadable") or []:
+            report(job_id, text, line)
         condition = job.get("if")
         pull_request = condition is None or condition == PULL_REQUEST_CONDITION
         recognised = pull_request or condition == FULL_ROUTE_CONDITION
-        cohorts = str((job.get("env") or {}).get("LIB_COHORTS") or "").split()
+        declared = (job.get("env") or {}).get("LIB_COHORTS")
+        cohorts = str(declared or "").split()
+        loops = 0
         for step in job.get("steps") or []:
             run = step.get("run")
             where = f"{job_id} / {step.get('name', '(unnamed step)')}"
+            run_line = step.get("_line_run", step.get("_line"))
+            for line, text in step.get("unreadable") or []:
+                report(where, text, line)
             if not isinstance(run, str):
-                for refusal in step.get("unreadable") or []:
-                    if problems is not None:
-                        problems.append(f"{where}: the check cannot read {refusal}")
                 continue
-            filters = cargo_lib_filters(run)
-            refusals = list(step.get("unreadable") or [])
+            loop = is_the_cohort_loop(run)
+            filters = [] if loop else cargo_lib_filters(run)
             if (step.get("env") or {}).get("LIB_COHORTS") is not None:
-                refusals.append("a step-level LIB_COHORTS (the check reads only the job's)")
-            if filters and "if" in step:
-                refusals.append("a step-level if on a library test command (the check does not evaluate step conditions)")
+                report(where, "a step-level LIB_COHORTS (the check reads only the job's)", step.get("_line_LIB_COHORTS"))
+            if (loop or filters) and "if" in step:
+                report(where, "a step-level if on a step with a library test command "
+                              "(the check does not evaluate step conditions)", step.get("_line_if"))
             for name, _exact, _features, command_refusals in filters:
-                refusals += command_refusals
-                # The raw filter is examined before any substitution.
-                if "${{" in name or any("${{" in value for value in cohorts):
-                    refusals.append("a ${{ }} expression in a filter")
-                elif "$" in name and not _is_cohort_loop(name, run):
-                    refusals.append(f"a shell variable in a filter ({name!r}) other than the loop over $LIB_COHORTS")
-            if refusals and problems is not None:
-                for refusal in dict.fromkeys(refusals):
-                    problems.append(f"{where}: the check cannot read {refusal}")
-            if filters and not recognised:
+                for text in command_refusals:
+                    report(where, text, run_line)
+                if "$" in name:
+                    report(where, NOT_THE_LOOP, run_line)
+            if (loop or filters) and not recognised:
                 if problems is not None:
                     problems.append(
                         f"job {job_id} has a cargo test --lib line and an if the check does not recognise: {condition!r} "
                         f"(pull request: {PULL_REQUEST_CONDITION!r}; full route: {FULL_ROUTE_CONDITION!r})")
                 break
+            if loop:
+                loops += 1
+                for value in cohorts:
+                    if "$" in value:
+                        report(job_id, f"a cohort containing $ ({value!r}) in LIB_COHORTS", job.get("_line_LIB_COHORTS"))
+                    elif pull_request:
+                        default.setdefault(value, []).append(where)
+                continue
             if not pull_request:
                 continue
             for name, exact, features, _refusals in filters:
-                if "${{" in name or "$" in name and not _is_cohort_loop(name, run):
+                if "$" in name:
                     continue
-                names = cohorts if _is_cohort_loop(name, run) else [name]
-                for value in names:
-                    key = f"={value}" if exact else value
-                    (featured if features else default).setdefault(key, []).append(where)
+                key = f"={name}" if exact else name
+                (featured if features else default).setdefault(key, []).append(where)
+        if declared is not None and not loops:
+            report(job_id, "LIB_COHORTS declared but no step whose run text is exactly the cohort loop "
+                           "(tools/ci/check_lib_cohorts.py, COHORT_LOOP), so the cohorts are never run",
+                   job.get("_line_LIB_COHORTS"))
+        if loops and declared is None:
+            report(job_id, "a step running the cohort loop in a job with no LIB_COHORTS", job.get("_line"))
     return default, featured
 
 

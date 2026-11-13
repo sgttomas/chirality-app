@@ -233,8 +233,10 @@ took 0.2 seconds locally on this project's Mac; no hosted figure is recorded.
 
 What it establishes: every test in the supplied default-feature listing is
 either matched by name by a default-feature pull-request filter (a
-`LIB_COHORTS` entry of either shard, or the one filter of a `cargo test --lib`
-command in a pull-request job's step), or ignored, or covered by a line of the
+`LIB_COHORTS` entry of a shard whose cohort step's run text is exactly the
+cohort loop the check holds as `COHORT_LOOP`, compared by equality, or the one
+literal filter of a `cargo test --lib` command in a pull-request job's step),
+or ignored, or covered by a line of the
 exclusion file with its reason. "Selected" is that name match; it does not show
 that the test's body runs. An ignored (`#[ignore]`) test counts as neither
 selected nor left to the full route: the full route runs `cargo test` without
@@ -246,10 +248,14 @@ named parent test starts, running only where that parent runs.
 It fails, naming them, on a test in none of those, an ignored test without such
 a line, a default-feature pull-request filter that selects no test that is not
 ignored, and an exclusion line that covers no test. It refuses, naming the job
-and step, what it does not read: more than one test filter, `--skip` or
-`--ignored` on a library test command, a step-level `LIB_COHORTS` or `if`, a
-`${{ }}` expression or a shell variable other than the `$LIB_COHORTS` loop
-variable in a filter, an anchor, alias or merge key anywhere in the jobs, a
+and step and giving the line, what it does not read: more than one test
+filter, `--skip` or `--ignored` on a library test command; a step-level
+`LIB_COHORTS`; a step-level `if` on a step that has a library test command
+(it does not evaluate step conditions); a filter containing `$` in any run
+text that is not exactly `COHORT_LOOP` (restore the script, or change the
+constant with it and say why in the pull request); `LIB_COHORTS` without that
+step, or that step without `LIB_COHORTS`; an anchor, alias or merge key
+anywhere in the jobs; a
 line it does not recognise (including a value on the next line), flow forms
 where it reads below, and value forms it does not read exactly.
 
