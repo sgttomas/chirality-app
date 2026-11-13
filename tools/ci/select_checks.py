@@ -7,12 +7,15 @@
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
 import json
 import os
 from pathlib import Path
+import posixpath
 import re
 import subprocess
 import sys
+import unicodedata
 
 
 # Exact documentary paths plus the guarded declarative execution tree.
@@ -45,7 +48,7 @@ MACOS_INPUTS_IN_CLASS_ROOTS = (
 # these roots, to the job's definition, or to an unmatched path selects it.
 EXAMINATION_MACOS_ROOTS = ("app/examination/", "app/tests/group_b_")
 EXAMINATION_MACOS_DEFINITION = frozenset({
-    "tools/ci/examination_macos.py", "tools/ci/select_checks.py",
+    "tools/ci/examination_tests.py", "tools/ci/select_checks.py",
     ".github/workflows/governance-harness.yml",
 })
 # These domains contain code, contracts, fixtures or retained source inputs.
@@ -97,14 +100,22 @@ def parse_changes(raw: bytes) -> list[dict[str, str]]:
     return changes
 
 
+def plain(path: str) -> bool:
+    # Only printable ASCII can be narrowed: a checkout may fold other spellings
+    # onto a protected file (case, Unicode normalization and compatibility forms).
+    return all(0x20 <= ord(character) < 0x7f for character in path)
+
+
 def path_rule(path: str) -> str:
-    if path in PROSE_PATHS or path.startswith("execution/"):
-        return "documentary"
-    if path.startswith(GOVERNING_TEXT) and path.endswith(".md"):
-        return "governing-text"
-    if (path.startswith(EXAMINATION_ROOTS) and path.endswith(EXAMINATION_SUFFIXES)
-            and not path.startswith(MACOS_INPUTS_IN_CLASS_ROOTS)):
-        return "examination"
+    if plain(path):
+        if path in PROSE_PATHS or path.startswith("execution/"):
+            return "documentary"
+        if path.startswith(GOVERNING_TEXT) and path.endswith(".md"):
+            return "governing-text"
+        # Protected prefixes compare without regard to case, as macOS checkouts do.
+        if (path.startswith(EXAMINATION_ROOTS) and path.endswith(EXAMINATION_SUFFIXES)
+                and not path.lower().startswith(tuple(item.lower() for item in MACOS_INPUTS_IN_CLASS_ROOTS))):
+            return "examination"
     if path in PRODUCT_FILES:
         return "product-file"
     if path.startswith(PRODUCT_DOMAINS):
@@ -112,10 +123,62 @@ def path_rule(path: str) -> str:
     return "unmatched"
 
 
+def fold(text: str) -> str:
+    """A conservative key for names a checkout may treat as one: Unicode
+    compatibility normalization, case folding, and dropped format characters.
+    It folds at least what a case- and normalization-insensitive macOS volume
+    folds; it does not claim to model any file system exactly."""
+    text = unicodedata.normalize("NFKC", unicodedata.normalize("NFKC", text).casefold())
+    return "".join(character for character in text if unicodedata.category(character) != "Cf")
+
+
+def tree(repo: Path, revision: str = "HEAD") -> list[tuple[str, str, str]]:
+    """Tracked entries (mode, object, path) read from the commit's tree, not a checkout."""
+    entries = []
+    for record in git(repo, "ls-tree", "-r", "-z", "--full-tree", revision).split(b"\0"):
+        if record:
+            header, path = record.split(b"\t", 1)
+            mode, _, oid = header.decode().split(" ")
+            entries.append((mode, oid, os.fsdecode(path)))
+    return entries
+
+
+def collisions(paths: list[str]) -> list[list[str]]:
+    """Distinct tracked paths or directories that fold to the same name."""
+    groups: dict[str, set[str]] = defaultdict(set)
+    for path in paths:
+        parts = path.split("/")
+        for end in range(1, len(parts) + 1):
+            prefix = "/".join(parts[:end])
+            groups[fold(prefix)].add(prefix)
+    return sorted(sorted(group) for group in groups.values() if len(group) > 1)
+
+
+NARROWED_ROOTS = ("execution/", GOVERNING_TEXT, *EXAMINATION_ROOTS)
+
+
+def links_into_narrowed(repo: Path, entries: list[tuple[str, str, str]]) -> list[str]:
+    """Tracked symbolic links whose target lies in a narrowed class: a reader of
+    the link would read a path whose changes skip the product jobs."""
+    found = []
+    for mode, oid, path in entries:
+        if mode != "120000":
+            continue
+        target = os.fsdecode(git(repo, "cat-file", "blob", oid))
+        resolved = fold(posixpath.normpath(posixpath.join(posixpath.dirname(path), target)))
+        if (resolved.startswith(tuple(fold(root) for root in NARROWED_ROOTS))
+                or resolved in {fold(item) for item in PROSE_PATHS}):
+            found.append(path)
+    return sorted(found)
+
+
 def inventory(repo: Path) -> dict:
     paths = [os.fsdecode(path) for path in git(repo, "ls-files", "-z").split(b"\0") if path]
     unmatched = sorted(path for path in paths if path_rule(path) == "unmatched")
-    return {"tracked_paths": len(paths), "unmatched": unmatched}
+    entries = tree(repo)
+    return {"tracked_paths": len(paths), "unmatched": unmatched,
+            "collisions": collisions([path for _, _, path in entries]),
+            "links_into_narrowed": links_into_narrowed(repo, entries)}
 
 
 REPOSITORY_RULES = {
@@ -129,6 +192,8 @@ def classify(change: dict[str, str]) -> dict[str, str]:
     rule = path_rule(change["path"])
     reason = "Unmatched path requires full product verification" if rule == "unmatched" else \
              "Explicit product input requires product verification"
+    if not plain(change["path"]):
+        reason = "Only printable ASCII paths can skip product verification"
     if change["status"] not in {"A", "M"}:
         reason = "Deletion or file-type change requires product verification"
     elif change["new_mode"] != "100644" or change["old_mode"] not in {"000000", "100644"}:
@@ -212,8 +277,13 @@ def main() -> int:
         elif args.command == "inventory":
             result = inventory(args.repo)
             print(json.dumps(result, indent=2, ensure_ascii=True))
-            if result["unmatched"]:
-                raise ValueError("Tracked paths need explicit classification; unmatched paths still select full product verification")
+            problems = [message for key, message in (
+                ("unmatched", "Tracked paths need explicit classification; unmatched paths still select full product verification"),
+                ("collisions", "Tracked paths collide when case and Unicode forms are folded; a checkout may merge them"),
+                ("links_into_narrowed", "Tracked symbolic links point into a narrowed class; their readers would skip product checks"),
+            ) if result[key]]
+            if problems:
+                raise ValueError("; ".join(problems))
         else:
             result = select(args.repo, args.event, args.base, args.head)
             rendered = json.dumps(result, indent=2, ensure_ascii=True) + "\n"
@@ -227,6 +297,7 @@ def main() -> int:
                     stream.write(f"selection_mode={result['mode']}\n")
                     stream.write(f"run_product={str(result['run_product']).lower()}\n")
                     stream.write(f"run_examination_macos={str(result['run_examination_macos']).lower()}\n")
+                    stream.write(f"merge_base={result.get('merge_base', '')}\n")
     except (ValueError, KeyError, TypeError, AttributeError, OSError, subprocess.CalledProcessError) as exc:
         print(f"CI selection/gate failed: {exc}", file=sys.stderr)
         return 2
