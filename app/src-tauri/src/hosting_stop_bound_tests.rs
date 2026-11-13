@@ -1237,3 +1237,25 @@ fn a_key_operation_that_does_not_let_go_after_its_codex_is_stopped_refuses_the_q
     end.send(()).unwrap();
     assert!(!operation.join().unwrap());
 }
+
+/// A session-end write that returns a failure before the bound still gives the
+/// person's quit its notice, with the host's own reason in place of "within 10
+/// seconds", and says only that the record was not confirmed.
+#[test]
+fn a_session_end_failure_before_the_bound_gives_the_persons_quit_the_notice_with_the_hosts_reason() {
+    // No App-owned account home: the recording thread returns the host's own
+    // failure at once, well before the bound.
+    let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::ApiKey, Arc::new(Host::new()), Err("no supplier (fixture)".into())).unwrap());
+    let begin = Instant::now();
+    let observation = crate::app_quit::finish_exit(&[Arc::clone(&home)], Some(Vec::new())).unwrap();
+    assert!(begin.elapsed() < crate::app_quit::RECORDING_WAIT_LIMIT, "a failure returned before the bound is not waited out");
+    assert_eq!(observation["write"], "not-confirmed", "{observation}");
+    let reason = observation["limit"].as_str().unwrap().to_owned();
+    assert_eq!(crate::app_quit::recording_notice(&observation), Some(crate::app_quit::recording_failed_notice(&reason).as_str()));
+    let notice = crate::app_quit::recording_notice(&observation).unwrap();
+    assert!(notice.contains(&format!("was not confirmed ({reason})")) && !notice.contains("within 10 seconds"), "{notice}");
+    assert!(!notice.contains("not recorded") && !notice.contains("not written"), "{notice}");
+    // The system path shows no notice, whatever the write did.
+    let system = crate::app_quit::finish_exit(&[home], None);
+    assert!(system.as_ref().map(|o| o.get("notice").is_none()).unwrap_or(true), "{system:?}");
+}

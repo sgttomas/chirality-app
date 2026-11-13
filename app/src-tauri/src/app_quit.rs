@@ -425,7 +425,7 @@ pub(crate) fn home_name(class: crate::home_resources::HomeClass) -> &'static str
     use crate::home_resources::HomeClass;
     match class {
         HomeClass::Account => "account",
-        HomeClass::ApiKey => "API key",
+        HomeClass::ApiKey => "API-key",
         HomeClass::LocalProvider => "local model",
         HomeClass::Probe => "probe",
     }
@@ -545,6 +545,12 @@ pub(crate) const RECORDING_WAIT_LIMIT: Duration = Duration::from_secs(10);
 /// The notice shown, with OK only, before the person's quit exits when the
 /// session-end record was not confirmed within [`RECORDING_WAIT_LIMIT`].
 pub(crate) const RECORDING_NOT_CONFIRMED: &str = "Chirality is quitting. Codex was stopped for every home and its processes are settled. Recording the end of this session was not confirmed within 10 seconds, so the record may or may not have been written; the next start reads it as it finds it.";
+/// The same notice when the session-end write returned a failure before the
+/// bound: the host's own reason in place of "within 10 seconds". The reason
+/// is what the host returned, not a reading of it.
+pub(crate) fn recording_failed_notice(reason: &str) -> String {
+    format!("Chirality is quitting. Codex was stopped for every home and its processes are settled. Recording the end of this session was not confirmed ({reason}), so the record may or may not have been written; the next start reads it as it finds it.")
+}
 /// The session-end write (taking the App custody first if it is not yet
 /// held) on its own thread, waited for at most `limit`. The observation the
 /// write reports, or `not-confirmed` with the reason it was not observed.
@@ -624,7 +630,9 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
             }
             observation
         }
-        Err(error) => json!({"write":"not-confirmed","limit":error,"standing":"owned processes settled; session-end recording unavailable"}),
+        // A failure the host returned before the bound: the person's quit says so too, with the
+        // host's own reason, and only that the record was not confirmed.
+        Err(error) => json!({"write":"not-confirmed","limit":error,"standing":"owned processes settled; session-end recording unavailable","notice":recording_failed_notice(&error)}),
     })
 }
 /// The notice the person's quit shows before exit, when its session-end

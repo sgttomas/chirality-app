@@ -576,7 +576,7 @@ pub(crate) mod native_statement {
             ),
             "Waiting requests are not answered; they end with the process. Workflow runs stay open: quitting ends no run. After a relaunch the turns read \"interrupted by quit\" and nothing continues until you choose to.".into(),
             "None observed is not none: coverage is not complete.".into(),
-            "This is your operational choice, not a recorded act. The App records the question, your answer and each interrupt in its recovery ledger before sending.".into(),
+            "This is your operational choice, not a recorded act. The App records each interrupt in its recovery ledger before sending it. It also records this question and your answer, in that order, but quitting does not wait for that record.".into(),
             format!("Observed at {}.", text_or(&view["observedAt"], "not reported")),
             format!("{QUIT_APP} proceeds; {KEEP_RUNNING} (the default) and Cancel change nothing."),
         ];
