@@ -82,7 +82,9 @@ All of these hold, every time:
   text below allows it; the first-use setup scenario names none.
 - A walk by this route starts the helper's Codex app-server on `~/.codex` and
   the window service, as the owner has accepted (see "What the route starts"); both are
-  found and ended after every walk (steps 10 and 11). No agent opens or reads
+  found and ended after every walk (steps 10 and 11). At the go, before the
+  first call, neither may already be running; if one is, no walk is made
+  (step 10). No agent opens or reads
   anything under `~/.codex` or `~/.codex-hub`, signs in, copies a sign-in or
   sees a credential's value.
 - The App itself starts no Codex in the first-use setup scenario. Launches
@@ -328,11 +330,18 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       that meets all three is ended. A process that meets the first two and
       not the third is not the walk's: it is recorded, left, and reported to
       App Agent 0 at once.
-    - **The window service** is the process named `SkyComputerUseService`.
-      Whatever its start time, the one running when the walk has ended is
-      ended: a walk uses the service that is running, one already running
-      before the go included, and one operator at a time means no other walk
-      uses it.
+    - **The walk's window service** is a process whose command is exactly
+      `$HOME/.codex/computer-use/Codex Computer Use.app/Contents/MacOS/SkyComputerUseService` (with `$HOME` as the account's home, compared as text),
+      whose parent is launchd (process 1), and whose start, in UTC, is no
+      earlier than App Agent 0's go and no later than the walk's end. Every
+      process meeting all three is ended.
+    - **None may predate the walk.** At the go, before the operator's first
+      call, the lane looks for a window service (by its command, as above)
+      and for any process meeting the app-server's first two tests. If one is
+      running, no walk is made: it is recorded with its number, start time and
+      parent, and it comes to App Agent 0. A process that predates its interval
+      found at the end despite that check is recorded, left and reported; no
+      process that predates the walk is ever signalled.
     - An ended process may stay listed with a state beginning with `Z` until
       its parent collects it; that is ended. The operator signals nothing
       else: not the node runtime, not the provider's Codex, not a process
