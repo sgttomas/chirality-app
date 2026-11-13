@@ -1,0 +1,107 @@
+# Rust library tests that no pull-request cohort filter selects, with the reason.
+# tools/ci/check_lib_cohorts.py reads this file with the library's test list
+# (cargo test --lib -- --list) and .github/workflows/app-v4.yml; see its text
+# and docs/CI_SELECTION.md.
+#
+# One entry per line: a test module path, or one test's full path, then ": "
+# and the reason. A module line covers the tests directly in that module that
+# no pull-request filter selects, not those of its submodules; a line naming
+# one test takes precedence over its module's line.
+#
+# Reasons are of three kinds: the full route only, with the reason where one is
+# recorded; selected on pull requests only by a successor-feature filter, with
+# its step; selected on pull requests only by a web test fixture, with its step.
+# A test left to the full route runs on main nightly and on a product dispatch,
+# not on the pull request that changes it.
+
+access::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+act_control::a15::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+act_control::native_statement::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+act_control::persistence_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+bundle_resources_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+canonical::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+compiled_development_selection::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+connector_git::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+connector_git_guard_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+connector_git_guard_tests::connector_published_recheck_actual_appstate_handler_and_project_guards: selected on pull requests only by the web test app/tests/connector-source-presentation.test.mjs, run in rust-integration / Record schemas and connector presentation (Rust fixtures)
+connector_materialization::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+connector_route_view::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+connector_source::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+connector_standing::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+dev_model_address::tests: selected on pull requests only with --features distribution-successor, by filter dev_model_address in sources-packaging / Development model address is absent from the release configuration (fixture supplier); the full route runs it without the feature
+distribution_preflight::selection::identity_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+distribution_preflight::selection::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+distribution_preflight::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+distribution_semantics::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+distribution_store::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+execution_compatibility::report::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+group_b_fixture_consumer: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+historical_run_learning::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+home_hold::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::additive_guidance_transport_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::child_environment_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::closed_receipt_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::conversation_transport_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::conversation_transport_tests::local_role_metadata_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::conversation_transport_tests::namespace_admission_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::hosting_delegation_reply_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::hosting_identity_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::local_process_lock_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::missing_custody_mapping_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::reading_gate_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::recovery_root_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::request_event_join::aa_cap_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::request_transport_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::successor::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::successor::tests::build_selection: selected on pull requests only with --features distribution-successor, by filter s2_ in sources-packaging / Staged distribution successor; the full route runs it without the feature
+hosting::successor::tests::dev_model_address_successor_start_carries_the_setting_only_when_admitted: selected on pull requests only with --features distribution-successor, by filter dev_model_address in sources-packaging / Development model address is absent from the release configuration (fixture supplier); the full route runs it without the feature
+hosting::successor::tests::installed_s4: selected on pull requests only with --features distribution-successor, by filter hosting::successor::tests::installed_s4 in sources-packaging / Installed integrity and S4 evidence (synthetic source fixtures); the full route runs it without the feature
+hosting::successor::tests::lt23: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::successor::tests::production_cannot_be_overridden_by_development_fields: selected on pull requests only with --features distribution-successor, by filter production_cannot_be_overridden_by_development_fields in sources-packaging / Installed integrity and S4 evidence (synthetic source fixtures); the full route runs it without the feature
+hosting::successor::tests::s4_export: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::successor::tests::stop_admission: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::successor::tests::terminal_export: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+installed_custody::tests: selected on pull requests only with --features distribution-successor, by filter installed_custody::tests in sources-packaging / Installed integrity and S4 evidence (synthetic source fixtures); the full route runs it without the feature
+main_window::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_conversation_links::delegation::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_items::request_overlay_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_items::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_local_provider::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_request_answer::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_requests::contract_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_requests::form_alias_validation_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_requests::legacy_decline_text_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+native_requests::review_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+p3_role_entry_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+pinned_codex_observations: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+publisher_recipe::publisher_selection::tests: selected on pull requests only with --features distribution-successor, by filter publisher_recipe::, publisher_selection::tests in sources-packaging / Publisher build selection (synthetic inputs, default None); the full route runs it without the feature
+publisher_selection::tests: selected on pull requests only with --features distribution-successor, by filter publisher_selection::tests in sources-packaging / Publisher build selection (synthetic inputs, default None); the full route runs it without the feature
+publisher_selection::tests::recipe: selected on pull requests only with --features distribution-successor, by filter publisher_selection::tests in sources-packaging / Publisher build selection (synthetic inputs, default None); the full route runs it without the feature
+records::supply::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+records::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+recovery::connected_transition_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+recovery::framing_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+recovery::generation_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+recovery::reviewed_later_error_adoption_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+recovery::transition_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+run_offers::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::oauth_root_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::oauth_root_tests::dev_model_address_refuses_sign_in_before_anything_is_sent: selected on pull requests only with --features distribution-successor, by filter dev_model_address in sources-packaging / Development model address is absent from the release configuration (fixture supplier); the full route runs it without the feature
+runtime_session::workflow_journey_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::workflow_root_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::workflow_root_tests::real_backend_fixture_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::workflow_root_tests::run_preparation_order_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::workflow_root_tests::start_source_binding_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::workflow_root_tests::text_read_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+schema_validation::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+session_liveness::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+storage::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+util::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_assurance::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_root_context_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_trial_transcript::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_workspace::publication::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_workspace::registration::drafts::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_workspace::registration::drafts::trials::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_workspace::registration::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+workflow_workspace::workflow_receiving_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)

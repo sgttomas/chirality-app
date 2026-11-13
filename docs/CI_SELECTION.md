@@ -182,10 +182,10 @@ focused lib cohort filter sits in exactly one of two shards and still runs as
 its own serial libtest process, because some tests read process-wide state that
 others set. The workflow's `App v4 checks` job
 requires all three to succeed. Selection tests execute that gate, check the
-event conditions and reject a filter listed twice; they do not detect a removed
-filter, so cohort changes need review like any other check change.
-Web test files have their own listing check; see
-[Web test listing](#web-test-listing).
+event conditions and reject a filter listed twice. A removed filter or a new
+test module that no filter selects is caught by the
+[library test listing](#library-test-listing), and web test files by the
+[web test listing](#web-test-listing).
 Manual App workflow dispatch
 retains the broader supplier-dependent route; it is not a release and remains
 subject to the owner's authorization and App hold. No release workflow is present.
@@ -217,6 +217,30 @@ test executes or passes, and does not read `app/package.json`'s test script. It
 does not see a file reached only through a shell variable, a `node --test` line
 that is not at the start of a command, or a web test under a name pattern other
 than `*.test.mjs`, such as `group_b_runner_test.mjs`.
+
+## Library test listing
+
+Every Rust library test is selected on pull requests by a default-feature
+filter (a `LIB_COHORTS` entry of either shard, or a `cargo test --lib` filter
+in a pull-request job's step) or covered by a line of
+`tools/ci/lib_cohort_exclusions.txt`, which says per test module, or per test
+where a module is mixed, why it is left out: the full route only, or selected on
+pull requests only by a successor-feature filter or by a web test fixture, with
+the step named. A module line covers only the tests directly in that module that
+no filter selects, so a new submodule needs its own cohort or line.
+
+`tools/ci/check_lib_cohorts.py` runs in `rust-integration` right after the
+test-target compile, against `cargo test --lib -- --list` of that build (a
+fraction of a second once built). It fails, naming them, on a test in neither,
+a filter that selects no test, an exclusion line that covers none, a line
+naming a selected test, and an empty list or no filter. Its logic is tested
+with invented lists in `repository-checks` (`tools/ci/test_lib_cohorts.py`).
+
+It shows that each library test is selected or deliberately left to the full
+route. It does not show that a selected test passes; it reads only the
+default-feature list; and a test left to the full route runs on main nightly
+and on a product dispatch, not on the pull request that changes it. A new test
+in an excluded module is excluded with it.
 
 ## Rust dependency cache
 

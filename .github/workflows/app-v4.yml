@@ -77,6 +77,12 @@ jobs:
       - name: Compile every Rust test target once
         # Supersedes the separate `cargo check --tests` pass; later runs reuse these artifacts.
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --tests --no-run
+      - name: Every library test is in a pull-request cohort or left to the full route
+        # Lists the lib test target the step above built; standard-library Python only (no YAML library here).
+        # tools/ci/lib_cohort_exclusions.txt says what is left out and why.
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --list > "$RUNNER_TEMP/lib-tests.txt"
+          python ../tools/ci/check_lib_cohorts.py --list "$RUNNER_TEMP/lib-tests.txt"
       - name: Clippy correctness and suspicious lints
         # Gates only these deny-level groups; every other lint stays a warning.
         run: |
@@ -222,6 +228,7 @@ jobs:
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib installed_custody::tests -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib hosting::successor::tests::installed_s4 -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib production_cannot_be_overridden_by_development_fields -- --test-threads=1
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib compiled_successor_does_not_take_the_desktop_development_fallback -- --test-threads=1
       - name: Development model address is absent from the release configuration (fixture supplier)
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib dev_model_address -- --test-threads=1
       - name: Publisher build selection (synthetic inputs, default None)
