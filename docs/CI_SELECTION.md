@@ -20,6 +20,10 @@ merge base and head. It reports the base/head identities and a reason for every
 path in the selection job's output and GitHub step summary. No GitHub files-list
 pagination or extension-wide skip is used.
 
+The `change-selection` job checks out the PR's head and runs that head's own
+`select_checks.py`, not main's. A branch cut before a selector change is
+therefore judged by the old selector until it takes main.
+
 Only additions and modifications of ordinary non-executable files at these
 exact documentary paths, and all paths under the guarded declarative `execution/` tree, select repository checks without product verification:
 
@@ -180,10 +184,34 @@ others set. The workflow's `App v4 checks` job
 requires all three to succeed. Selection tests execute that gate, check the
 event conditions and reject a filter listed twice; they do not detect a removed
 filter, so cohort changes need review like any other check change.
+Web test files have their own listing check; see
+[Web test listing](#web-test-listing).
 Manual App workflow dispatch
 retains the broader supplier-dependent route; it is not a release and remains
 subject to the owner's authorization and App hold. No release workflow is present.
 Manual dispatch of the governance harness also always selects product checks.
+
+## Web test listing
+
+Each web test file, `app/tests/**/*.test.mjs`, is named on a `node --test` line
+of a pull-request job in `app-v4.yml`, or in `tools/ci/web_test_exclusions.txt`
+with the reason no pull-request job can run it and where it does run (the full
+route's `npm test`, or nowhere). `tools/ci/check_web_test_listing.py`, run by
+`repository-checks` through `tools/ci/test_web_test_listing.py`, fails, naming the file,
+when a test file is in neither, when a file on a line or in the list does not
+exist, when a file is in both, and when it finds no test files or no
+pull-request `node --test` line. A pull-request job is one whose `if` is the
+focused-route condition; the full route's lines do not count. A new web test
+file therefore needs a line or an exclusion in the same PR. A file whose test
+starts `cargo test --lib` belongs in a job that has already built the default
+lib test target (`rust-lib-node` after its shard, or `rust-integration` after
+its compile step); one that runs an integration test target belongs in
+`rust-integration`.
+
+The check reads spelling in a workflow file. It does not show that a listed
+test executes or passes, does not read `app/package.json`'s test script, and
+does not see a web test under another name pattern, such as
+`group_b_runner_test.mjs`.
 
 ## Rust dependency cache
 
