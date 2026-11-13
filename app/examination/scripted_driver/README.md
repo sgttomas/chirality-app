@@ -99,8 +99,11 @@ the walk's progress until it is done:
 A pass needs all of these:
 
 - the walk's own verdict is pass;
-- the App had one window throughout;
-- no child process of the App was seen at any half-second sample;
+- the App created exactly one window and one web view from startup, each
+  counted by the App as it was created (not sampled);
+- no other process was seen below the launched one, apart from the one App
+  (latched by its process number) and `caffeinate`, at any half-second
+  sample. One that starts and ends between two samples is not seen;
 - the build ended itself with status 0.
 
 It types nothing, chooses no file, answers nothing, and never clicks a control

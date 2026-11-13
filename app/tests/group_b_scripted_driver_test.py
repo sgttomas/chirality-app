@@ -108,13 +108,14 @@ class TheProofSaysShownOnlyWhenItWas(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def bundle(self, stages=('process started', 'page load started', 'page load finished'), heading='Welcome to Chirality',
-               windows=1, dialogs=0, evaluated=True, tail='exit 0'):
+               windows=1, dialogs=0, evaluated=True, tail='exit 0', ever=1):
         app = self.root / 'Test.app'
         executable = app / 'Contents/MacOS/chirality-app-v4'
         executable.parent.mkdir(parents=True, exist_ok=True)
         line = ''
         if evaluated:
             detail = json.dumps({'attempt': 1, 'windows': windows,
+                                 'created': {'windows_ever_created': ever, 'webviews_ever_created': 1},
                                  'returned': {'heading': heading, 'open_dialogs': dialogs, 'title': 'Chirality'}})
             line = "printf '%s\\n' '" + json.dumps({'marker': 'chirality-scripted-driver-test-build-v1',
                                                    'stage': 'script evaluated', 'at_ms': 2,
@@ -144,6 +145,7 @@ class TheProofSaysShownOnlyWhenItWas(unittest.TestCase):
             'another heading': dict(heading='Something else'),
             'no heading': dict(heading=None),
             'two windows': dict(windows=2),
+            'a second window created at some time': dict(ever=2),
             'an open dialog': dict(dialogs=1),
             'a failing end': dict(tail='exit 5'),
             'no stage at all': dict(stages=(), evaluated=False),
@@ -295,12 +297,13 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
         self.scenario = self.root / 'scenario.json'
         self.scenario.write_text(json.dumps({'scenario': 'invented', 'version': 1, 'steps': [], 'outcomes': {}}))
 
-    def verdict(self, verdict='pass', windows=1, code=0, extra=''):
+    def verdict(self, verdict='pass', windows=1, code=0, extra='', ever=1, hold_awake=False):
         app = self.root / 'Test.app'
         executable = app / 'Contents/MacOS/chirality-app-v4'
         executable.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps({'marker': 'chirality-scripted-driver-test-build-v1', 'stage': 'scenario finished', 'at_ms': 1,
-                           'detail': {'most_windows': windows, 'result': {'verdict': verdict, 'steps': [], 'outcomes': {},
+                           'detail': {'most_windows': windows, 'created': {'windows_ever_created': ever, 'webviews_ever_created': 1},
+                                      'result': {'verdict': verdict, 'steps': [], 'outcomes': {},
                                                                           'stopped': None}}})
         executable.write_text(SCENARIO_STAND_IN.format(line=line, extra=extra, code=code))
         executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
@@ -308,7 +311,7 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
         if out.exists():
             shutil.rmtree(out)
         out.mkdir()
-        code = self.proof.scenario(app, out, 30, self.scenario)
+        code = self.proof.scenario(app, out, 30, self.scenario, hold_awake=hold_awake)
         return code, json.loads((out / 'scenario-report.json').read_text())
 
     def test_a_passing_walk_with_one_window_no_child_and_its_own_end_passes(self):
@@ -322,7 +325,16 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
                                        ('the walk was inconclusive', dict(verdict='inconclusive', code=7), 'inconclusive'),
                                        ('a second window', dict(windows=2, code=6), 'fail'),
                                        ('a failing end', dict(code=6), 'inconclusive'),
-                                       ('a child process of the App', dict(extra='sleep 2'), 'fail')):
+                                       ('a second window created at some time', dict(ever=2, code=6), 'fail'),
+                                       ('a child process of the App', dict(extra='sleep 2'), 'fail'),
+                                       ('a child naming the App executable', dict(extra='sh -c "sleep 2" "$0"'), 'fail')):
             with self.subTest(name):
                 code, report = self.verdict(**change)
                 self.assertEqual((code, report['verdict']), (1, expected))
+
+    @unittest.skipUnless(Path('/usr/bin/caffeinate').is_file(), 'caffeinate is macOS only')
+    def test_under_caffeinate_an_app_it_cannot_identify_is_not_a_pass(self):
+        # The stand-in runs as /bin/sh <path>, so no process's command begins with the executable: the watch cannot
+        # tell the App from another process, and the run cannot pass.
+        code, report = self.verdict(hold_awake=True)
+        self.assertEqual((code, report['verdict'], report['app_identified']), (1, 'inconclusive', False))

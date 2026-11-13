@@ -14,7 +14,7 @@ compile_error!("the scripted driver is a test build only; it is refused with the
 use serde_json::{json, Value};
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::webview::PageLoadEvent;
@@ -55,9 +55,31 @@ pub fn stage(name: &str, detail: Value) {
     }
 }
 
-/// Adds the page-load hook to the App's builder. The App has no other page-load hook.
+/// Every window and web view the App creates from startup, counted as each is created (not sampled), so a second
+/// one that comes and goes is still counted. A pass needs exactly one of each.
+static WINDOWS_CREATED: AtomicUsize = AtomicUsize::new(0);
+static WEBVIEWS_CREATED: AtomicUsize = AtomicUsize::new(0);
+
+fn created() -> Value {
+    json!({ "windows_ever_created": WINDOWS_CREATED.load(Ordering::SeqCst),
+            "webviews_ever_created": WEBVIEWS_CREATED.load(Ordering::SeqCst) })
+}
+
+/// Adds the page-load hook to the App's builder (the App has no other), and a plugin with no commands whose only
+/// work is to count the windows and web views created.
 pub fn install<R: Runtime>(builder: Builder<R>) -> Builder<R> {
     stage("process started", json!({ "pid": std::process::id() }));
+    let counter = tauri::plugin::Builder::<R>::new("scripted-driver-count")
+        .on_window_ready(|window| {
+            let n = WINDOWS_CREATED.fetch_add(1, Ordering::SeqCst) + 1;
+            stage("window created", json!({ "label": window.label(), "windows_ever_created": n }));
+        })
+        .on_webview_ready(|webview| {
+            let n = WEBVIEWS_CREATED.fetch_add(1, Ordering::SeqCst) + 1;
+            stage("web view created", json!({ "label": webview.label(), "webviews_ever_created": n }));
+        })
+        .build();
+    let builder = builder.plugin(counter);
     let started = Arc::new(AtomicBool::new(false));
     let finished = Arc::new(AtomicBool::new(false));
     builder.on_page_load(move |webview, payload| {
@@ -98,7 +120,7 @@ fn evaluate<R: Runtime>(webview: tauri::Webview<R>) {
         let heading = read.get("heading").and_then(Value::as_str).map(str::to_owned);
         if heading.is_some() || attempt == TRIES {
             let windows = webview.app_handle().webview_windows().len();
-            stage("script evaluated", json!({ "attempt": attempt, "returned": read, "windows": windows }));
+            stage("script evaluated", json!({ "attempt": attempt, "returned": read, "windows": windows, "created": created() }));
             if heading.is_none() {
                 std::process::exit(5);
             }
@@ -151,9 +173,11 @@ fn walk<R: Runtime>(webview: &tauri::Webview<R>, input: Value) -> ! {
             continue;
         }
         let verdict = read.get("verdict").and_then(Value::as_str).unwrap_or("").to_owned();
-        stage("scenario finished", json!({ "result": read, "most_windows": most_windows }));
-        std::process::exit(match verdict.as_str() { "pass" if most_windows == 1 => 0, "pass" | "fail" => 6, _ => 7 });
+        let ever = created();
+        let one = ever["windows_ever_created"] == 1 && ever["webviews_ever_created"] == 1 && most_windows == 1;
+        stage("scenario finished", json!({ "result": read, "most_windows": most_windows, "created": ever }));
+        std::process::exit(match verdict.as_str() { "pass" if one => 0, "pass" | "fail" => 6, _ => 7 });
     }
-    stage("scenario did not finish", json!({ "seconds": WALK_LIMIT.as_secs(), "most_windows": most_windows }));
+    stage("scenario did not finish", json!({ "seconds": WALK_LIMIT.as_secs(), "most_windows": most_windows, "created": created() }));
     std::process::exit(8);
 }
