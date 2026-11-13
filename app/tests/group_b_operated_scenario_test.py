@@ -351,6 +351,23 @@ class TheWalkItself(unittest.TestCase):
           return [r.view_error, r.steps.at(-1).error];''')
         self.assertEqual(result['out'][0], {'where': 'S2', 'message': 'plain text', 'causes': []})
         self.assertEqual(result['out'][1], 'plain text')
+        # A cause with no prototype, a cause whose getter throws, and a message that is not text: the walk stops
+        # where it would have, with a result, and nothing of the error is converted to text by its own code.
+        result = harness('''
+          const bare = new Error('top', { cause: Object.create(null) });
+          const trap = new Error('top'); Object.defineProperty(trap, 'cause', { get() { throw new Error('getter'); } });
+          const odd = new Error('top', { cause: { message: { toString() { return 'converted by its own code'; } } } });
+          const out = [];
+          for (const thrown of [bare, trap, odd]) {
+            const failing = { get_app_state: async () => { throw thrown; }, click: async () => {} };
+            const r = await walk.run({ ...base, sky: failing });
+            out.push([r.verdict, r.stopped.startsWith('stopped at the first view before any click: the view failed (top)'), r.view_error.causes]);
+          }
+          return out;''')
+        self.assertEqual(result['out'], [
+            ['inconclusive', True, ['(a thrown object with no message text)']],
+            ['inconclusive', True, ['(a cause that could not be read)']],
+            ['inconclusive', True, ['(a thrown object with no message text)']]])
 
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
         result = harness('''

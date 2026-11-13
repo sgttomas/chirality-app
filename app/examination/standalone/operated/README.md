@@ -556,8 +556,10 @@ tries the service's socket in that folder for a fraction of a second; if
 nothing answers, it asks for the service to be started, then tries the socket
 again for up to five seconds, connecting and asking for a reply. "Sky Computer
 Use native pipe startup failed" is what it reports when those five seconds pass
-without an answer. The sample shows whether the socket appears during a walk,
-and when, against the walk's first call; it cannot show why.
+without an answer. The sample shows whether the socket was present at each
+sampling moment, about a second apart, against the walk's first call. What
+happens between two samples (a socket present for less than a second, for
+instance) is not seen, and it cannot show why anything happened.
 
 **In a window.** Steps 1 to 3 above first: the launcher running, the App's
 process number confirmed, the identifier taken from the identification record.
@@ -639,7 +641,9 @@ nodeRepl.write(walk.summary(report));
   `view_error`: where it failed, the error's own message, and each cause the
   error carries, in order and whole (at most eight); the summary prints the
   causes under the line that says where the walk stopped. Nothing else of the
-  error is kept.
+  error is kept: a message is kept only when it is text, anything else is
+  named for what it is, and a part that cannot be read is said to be so, so
+  reading a failure never changes where the walk stops or its result.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt appearing, or the focus leaving the build) to its own
   record.

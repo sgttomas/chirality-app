@@ -175,15 +175,37 @@ export function checkOne(elements, expectation, values) {
  */
 /**
  * A failed call, as messages only: the error's own message and then each cause it carries, in order, whole. Nothing
- * else of the error object is kept. At most eight causes; a cause seen before ends the chain.
+ * else of the error object is kept, and nothing of it is converted to text by its own code: a message is kept only
+ * when it is a string, a thrown string or other primitive is kept as its text, and anything else is named for what
+ * it is. At most eight causes; a cause seen before ends the chain. Reading the error can never throw from here: a
+ * part that cannot be read is said to be so, and the walk's stop and result are the same as without this.
  */
 export function failure(where, error) {
-  const text = value => String(value?.message ?? value);
+  const text = value => {
+    try {
+      if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return String(value);
+      const message = value.message;
+      return typeof message === 'string' ? message : '(a thrown object with no message text)';
+    } catch {
+      return '(a thrown value that could not be read)';
+    }
+  };
   const causes = [];
   const seen = new Set([error]);
-  for (let cause = error?.cause; cause != null && causes.length < 8 && !seen.has(cause); cause = cause?.cause) {
+  let current = error;
+  while (causes.length < 8) {
+    let cause;
+    try {
+      if (current === null || (typeof current !== 'object' && typeof current !== 'function')) break;
+      cause = current.cause;
+    } catch {
+      causes.push('(a cause that could not be read)');
+      break;
+    }
+    if (cause == null || seen.has(cause)) break;
     seen.add(cause);
     causes.push(text(cause));
+    current = cause;
   }
   return { where, message: text(error), causes };
 }
