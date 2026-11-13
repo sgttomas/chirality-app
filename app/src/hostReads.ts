@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { REFRESH_FAILED } from "./statusRefresh";
+import { REFRESH_FAILED, StatusReadFailed } from "./statusRefresh";
 import { invoke as platformInvoke, type InvokeArgs, type InvokeOptions } from "@tauri-apps/api/core";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -108,10 +108,11 @@ export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: 
     // Numbered before the first await, so in the order the reads were started.
     const index = ++order.current.started;
     try { return { index, snapshot: await reply }; }
-    catch (error) {
-      // The raw diagnostic is withheld; the guides are offered the fixed refresh line (statusRefresh).
+    catch {
+      // The raw diagnostic is dropped here, at the source: the guides are offered the fixed refresh
+      // line, and every caller receives StatusReadFailed (whose text is that line), never the raw error.
       setShown(old => (old.failed && old.failed.index > index ? old : { ...old, failed: { index, message: REFRESH_FAILED } }));
-      throw error;
+      throw new StatusReadFailed();
     }
   }, []);
   const applyHost = useCallback((read: HostRead): boolean => {

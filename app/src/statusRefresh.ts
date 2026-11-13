@@ -10,13 +10,11 @@ export function withRefreshFailure(message: string | null | undefined): string {
   return own.endsWith(REFRESH_FAILED) ? own : `${own} ${REFRESH_FAILED}`;
 }
 
-/** A status read after an action failed: it carries no snapshot and no raw diagnostic. */
+/** A status read failed: it carries no snapshot and no raw diagnostic. `readHost` (hostReads.ts)
+ * throws this, never the raw error, so no caller can render a status read's raw text. Its message
+ * and String() are exactly REFRESH_FAILED: the name is empty, so no class name is put in front. */
 export class StatusReadFailed extends Error {
-  constructor() { super(REFRESH_FAILED); this.name = "StatusReadFailed"; }
-}
-/** Reads the status for an observer: a failure becomes StatusReadFailed, its raw diagnostic dropped. */
-export async function readStatus<T>(read: Promise<T>): Promise<T> {
-  try { return await read; } catch { throw new StatusReadFailed(); }
+  constructor() { super(REFRESH_FAILED); this.name = ""; }
 }
 /** An observer's failure as shown: REFRESH_FAILED for a failed status read; the App's own message
  * (a supersession, for one) exactly as before. */
@@ -26,6 +24,14 @@ export function observationText(error: unknown): string {
 /** An observation limit as rendered: the fixed line alone, or `label` then the App's own message. */
 export function observationLine(limit: string, label: string): string {
   return limit === REFRESH_FAILED ? REFRESH_FAILED : `${label}${limit}.`;
+}
+
+/** Runs `command`, then the status refresh after it. The command's own result or its own error
+ * stands; a refresh that fails calls `refreshFailed` (which adds the fixed line once) and never
+ * changes what the command's caller sees. Nothing is sent again. */
+export async function commandThenRefresh<T>(command: () => Promise<T>, refresh: () => Promise<unknown>, refreshFailed: () => void): Promise<T> {
+  try { return await command(); }
+  finally { await refreshAfterAction(refresh, refreshFailed); }
 }
 
 /** Runs the status refresh after an action. A failure calls `failed` and resolves; nothing raw escapes. */

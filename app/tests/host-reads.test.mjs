@@ -11,6 +11,7 @@ const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {useOrderedHost, shownBeforePress, invoke, SELF_ISSUED_QUIET, POLL_MS} = loadSrc('hostReads');
 const {readFileSync, readdirSync} = await import('node:fs');
+const {REFRESH_FAILED} = loadSrc('statusRefresh');
 
 function controlledHost() {
   const pending = [];
@@ -46,7 +47,8 @@ test('a reply is applied only if its read started after the one whose reply is s
     assert.equal(ui.text(), '{"view":"third"}'); assert.equal(ui.api.hostReads.applied, 3);
     // A read that fails is numbered and applies nothing.
     const failed = ui.api.readHost(window.__TAURI_INTERNALS__.invoke('host_status')); host.pending[3].reject(new Error('invented failure'));
-    await assert.rejects(failed, /invented failure/);
+    // A failed status read is shown only as the fixed line (App Agent 0's decision): readHost rejects with it, never the raw error.
+    await assert.rejects(failed, error => String(error) === REFRESH_FAILED && !String(error).includes('invented failure'));
     assert.equal(ui.api.hostReads.started(), 4); assert.equal(ui.api.hostReads.applied, 3);
   } finally { await ui.close(); host.restore(); }
 });
@@ -236,4 +238,45 @@ test('whether a view is from before the last command is read from the reads\' or
   assert.equal(shownBeforePress(reads(2, 3)), true, 'the read shown started before the command settled');
   assert.equal(shownBeforePress(reads(3, 3)), true, 'the last read started before the settle is still from before it');
   assert.equal(shownBeforePress(reads(4, 3)), false, 'a read started after the settle');
+});
+
+// The construction that keeps a status read's raw diagnostic from every caller: readHost rejects
+// with StatusReadFailed, whose message and String() are the fixed line alone, and which holds none
+// of the raw error in any own property (enumerable or not).
+test('a failed status read rejects with the fixed line alone and carries none of the raw diagnostic', async () => {
+  const secret = 'INVENTED_PRIVATE_STATUS_DIAGNOSTIC_A2';
+  const host = controlledHost(); const ui = await mount();
+  try {
+    const failed = ui.api.readHost(window.__TAURI_INTERNALS__.invoke('host_status')); host.pending[0].reject(new Error(secret));
+    let error; await React.act(async () => { try { await failed; } catch (caught) { error = caught; } });
+    assert.ok(error instanceof Error, 'it rejects');
+    assert.equal(error.message, REFRESH_FAILED); assert.equal(String(error), REFRESH_FAILED, 'no class name in front');
+    const own = [...Object.getOwnPropertyNames(error), ...Object.getOwnPropertySymbols(error)];
+    assert.ok(own.length > 0);
+    for (const key of own) {
+      const value = Object.getOwnPropertyDescriptor(error, key).value;
+      const shown = typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
+      assert.ok(!shown.includes(secret), `own property ${String(key)} carries none of the raw diagnostic`);
+    }
+    assert.equal(Object.hasOwn(error, 'cause'), false);
+  } finally { await ui.close(); host.restore(); }
+});
+// Every invocation of host_status in app/src is the direct argument of readHost, so it gets that
+// construction. Limit: this is a check of spelling. It finds the literal "host_status" command
+// passed to invoke; a status read under a new command name, or through a constant, is not seen.
+test('every invocation of host_status in app/src is the direct argument of readHost', () => {
+  const src = new URL('../src/', import.meta.url);
+  const found = [], outside = [];
+  for (const name of readdirSync(src).filter(name => /\.tsx?$/.test(name))) {
+    const text = readFileSync(new URL(name, src), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, comment => comment.replace(/[^\n]/g, ' ')).replace(/^\s*\/\/.*$/gm, comment => ' '.repeat(comment.length));
+    text.split('\n').forEach((line, index) => {
+      for (const match of line.matchAll(/invoke(?:<[^>]*>)?\(\s*["']host_status["']/g)) {
+        found.push(`${name}:${index + 1}`);
+        if (!/readHost\(\s*$/.test(line.slice(0, match.index))) outside.push(`${name}:${index + 1}`);
+      }
+    });
+  }
+  assert.ok(found.length > 0, 'no invocation of host_status was found: zero is not a pass');
+  assert.deepEqual(outside, [], `not the direct argument of readHost: ${outside.join(', ')}`);
 });

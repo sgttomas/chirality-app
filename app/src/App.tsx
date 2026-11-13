@@ -34,7 +34,7 @@ import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
-import { REFRESH_FAILED, observationLine, observationText, readStatus, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
+import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -962,7 +962,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
     setOutcome({relation,message:"",limits:[]});
     const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
-    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${String(error)}. The original command response is retained as reported.`);}};
+    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${observationLine(observationText(error),"")} The original command response is retained as reported.`);}};
     // Capture this metadata request before awaiting the command or a new view.
     let draftRequest:Record<string,unknown>|undefined,draftRequestError:unknown;
     if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
@@ -1888,7 +1888,7 @@ export function App() {
         } };
       showView("conversation");
       setPreparedReveal(reveal);
-    } catch (error) { refuse(`The original view refresh failed: ${String(error)}. Open again from a current view.`); }
+    } catch (error) { refuse(`The original view refresh failed: ${observationLine(observationText(error), "")} Open again from a current view.`); }
     finally { if (preparedNavigation.current === ticket) preparedNavigation.current = null; }
   };
   const roleInitialized = useRef(false);
@@ -1984,7 +1984,9 @@ export function App() {
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     }
-    await refresh();
+    // The command's own message stands and the act resolves: a failed refresh adds the fixed line
+    // once and never stops what a caller does after it (decide closes its offer).
+    await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
   };
   // A local Start is bound to the current fixed route of this exact ready generation.
   const localStartBound = (submitted: { model: string; modelProvider: string; entryId: string }, source: Json) => {
@@ -2105,7 +2107,7 @@ export function App() {
   const observeOrdinaryView = async (request: OrdinaryTextRequest, isCurrent: () => boolean) => {
     const viewAtRead = currentHost.current;
     if (!isCurrent() || !sameActivityGeneration(viewAtRead?.generation, request.generation)) throw new Error("The original conversation/source was superseded; its view was not applied");
-    const snapshotRead = await readStatus(readHost(invoke<Json>("host_status"))); const snapshot: Json = snapshotRead.snapshot;
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     if (!isCurrent() || currentHost.current !== viewAtRead || !sameActivityGeneration(currentHost.current?.generation, request.generation) || !sameActivityGeneration(snapshot?.generation, request.generation)) {
       throw new Error("A newer conversation/source observation superseded this original refresh; its view was not applied");
     }
@@ -2130,7 +2132,7 @@ export function App() {
     setConversationOutcome(outcome);
     try {
       if (!current() || currentHost.current !== sourceAtDispatch) throw new Error("Original view refresh superseded before reading; no old snapshot was applied");
-      const snapshotRead = await readStatus(readHost(invoke<Json>("host_status"))); const snapshot: Json = snapshotRead.snapshot;
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       if (!current() || currentHost.current !== sourceAtDispatch || !sameActivityGeneration(snapshot?.generation, args.generation)) {
         throw new Error("Original view refresh superseded while reading; no old snapshot was applied");
       }
@@ -2400,7 +2402,7 @@ export function App() {
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
-        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => { const result = await invoke(command, args); await refresh(); return result; }}/>
+        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
@@ -2532,8 +2534,9 @@ export function App() {
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
             <ConversationPanel focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
-          // The check's own failure stands; a failed refresh adds the fixed line once, nothing raw,
-          // and never turns a completed check into an error of its own.
+          // The check's own failure stands, with the fixed line after it when the refresh failed too.
+          // A completed check whose refresh fails rejects with the fixed line alone: its result is
+          // visible only through the refreshed status, and that line says the status was not read.
           let failure: unknown = null, failed = false, refreshFailed = false;
           try { await invoke("collaboration_modes_read", { generation }); }
           catch (error) { failure = error; failed = true; }
@@ -2546,7 +2549,7 @@ export function App() {
           return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
       }} observeAttachmentView={async (request) => {
           const viewAtRead = currentHost.current;
-          const snapshotRead = await readStatus(readHost(invoke<Json>("host_status"))); const snapshot: Json = snapshotRead.snapshot;
+          const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
           // This read belongs to the original attachment request, not a Home or
           // generation selected while its native response/read was pending.
           if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
@@ -2569,12 +2572,7 @@ export function App() {
             </div>}
             <WorkspaceDisclosure id="workspace-attachments" title="Message attachments" description="Select and review files for a message">
               <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
-          try {
-              await invoke(command, args);
-          }
-          finally {
-              applyHost(await readHost(invoke<Json>("host_status")));
-          }
+          await commandThenRefresh(() => invoke(command, args), async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
             </WorkspaceDisclosure>
           </div>
@@ -2619,17 +2617,15 @@ export function App() {
           catch (e) {
               setMessage(String(e));
           }
-          applyHost(await readHost(invoke<Json>("host_status")));
+          // The selection's own message stands; a failed refresh adds the fixed line once.
+          await refreshAfterAction(async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
 
         <TraceReceivingPanel data={host?.traceReceiving} currentContext={{ hostState: host?.state, generation: host?.generation, nativeSupplier: host?.versionIdentity, supplierStanding: host?.supplierStanding, accessSelection: host?.accessSelection, accountObservation: host?.accountObservation, appExecutableIdentity: "not established by this selector" }} select={async (recordKind, evidenceKind) => {
-          try {
+          await commandThenRefresh(async () => {
               const received: Json = await invoke("select_trace_record", { recordKind, evidenceKind });
               setMessage(`Supplied trace selection: ${received.selection?.state ?? "unknown"}`);
-          }
-          finally {
-              applyHost(await readHost(invoke<Json>("host_status")));
-          }
+          }, async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
   <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl}/>
           </WorkspaceDisclosure>

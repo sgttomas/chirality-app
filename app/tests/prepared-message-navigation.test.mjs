@@ -195,7 +195,7 @@ for(const[name,mutate]of Object.entries(changes))test(`Open refuses ${name} afte
 });
 
 test('failed refresh refuses without changing the view or retrying preparation/navigation on a later poll',async()=>{
- await mounted({},async ui=>{ui.fail();await ui.open();assert.equal(ui.selected(),key('A'));assert.match(ui.c.textContent,/refresh failed: Error: controlled original refresh failure/);await ui.poll();assert.equal(ui.selected(),key('A'));ui.assertIndependent();});
+ await mounted({},async ui=>{ui.fail();await ui.open();assert.equal(ui.selected(),key('A'));assert.ok(ui.c.textContent.includes("The original view refresh failed: The App could not read Codex's status afterwards, so what is shown may be out of date. Open again from a current view."),'a failed status read is shown only as the fixed line (App Agent 0)');assert.doesNotMatch(ui.c.textContent,/controlled original refresh failure/);await ui.poll();assert.equal(ui.selected(),key('A'));ui.assertIndependent();});
 });
 
 for(const name of ['selection','selection away and back','chooser edit','home','home away and back','Start refused','newer observation','source changed then restored'])test(`delayed Open cannot win over ${name}`,async()=>{

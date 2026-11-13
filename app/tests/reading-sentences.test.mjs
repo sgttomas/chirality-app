@@ -319,3 +319,68 @@ for (const commandFails of [false, true]) {
     });
   });
 }
+
+// Status reads after a command whose failure used to change what the command's caller sees: the
+// workflow assurance setting, the attachment selection panel, the external observation selection and
+// the trace selection. The command's own outcome stands (a completed command does not reject; its own
+// failure is shown as before), the fixed line is added once to the App line, the raw diagnostic
+// appears nowhere, and the command is sent once.
+const afterCanary = 'INVENTED_PRIVATE_STATUS_READ_DIAGNOSTIC_AFTER';
+async function afterCommand(kind, commandFails, check) {
+  const g = {appSession:'after-session', home:'after-home', spawnCounter:1};
+  const snapshot = {state:'ready', generation:g, homeRouting:{activeModeHomeClass:'account', entries:[{modeHomeClass:'account'}]}, threads:[],
+    roleLimits:{account:{roles:[]}}, roleSet:{available:true, defaultRole:null, roles:[{name:'HELP_HUMAN', meaning:'fixture role'}]},
+    ...(kind === 'assurance' ? {workflowRoot:{assuranceSetting:{level:'robust', policy:'Require verified approval', source:'Stored in this App\'s settings', verification:{state:'available', available:true, detail:'invented'}, robustWithoutVerification:'invented'}}} : {}),
+    ...(kind === 'attachment' ? {attachmentCustody:{state:'opened'}, attachmentSelections:{ownerRef:'owner-after', listRevision:1, selections:[{selection:{selectionRef:'sel-after', displayName:'invented.txt'}}], submissions:[]}} : {}),
+    ...(kind === 'external' ? {externalObservation:{selection:{state:'not-selected'}}} : {}),
+    ...(kind === 'trace' ? {traceReceiving:{selection:{state:'not-selected'}}} : {})};
+  const commands = {assurance:'workflow_assurance_relaxed', attachment:'remove_attachment', external:'select_external_observation', trace:'select_trace_record', decide:'decide'};
+  const offer = {offerId:'offer-after', wording:'Invented decision', actKind:'decide', subject:{ref:'subject-after', contentIdentity:{value:'identity-after'}}, purpose:'invented', scope:'invented', answers:{standing:'invented'}, alternatives:[{id:'alt-a', statement:'invented', consequences:['none']}]};
+  let failStatus = false; const calls = [];
+  const idle = installIdleNativeWaiting(async command => {
+    calls.push(command);
+    if (command === 'host_status') { if (failStatus) throw Error(afterCanary); return structuredClone(snapshot); }
+    if (command === 'decision_view') return kind === 'decide' ? {rows:[{package:'pkg-after', actRequested:'decide', state:'pending', alternatives:[], subject:[], purpose:'invented'}]} : {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    if (command === 'compose_offer') return structuredClone(offer);
+    if (command === commands[kind]) { failStatus = true; if (commandFails) throw `invented ${kind} refusal`; return {selection:{state:'invented-selected', stage:'invented-stage'}}; }
+    throw Error(`unexpected ${command}`);
+  });
+  const previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById};
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
+  const settle = () => React.act(async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); });
+  const tap = async label => { await React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }); await settle(); };
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    if (kind === 'trace') { const selects = nodes(region(c, 'Supplied trace record') ?? c, 'select').filter(node => [...nodes(node, 'option')].some(o => props(o).value === 'exam_result') || [...nodes(node, 'option')].some(o => props(o).value === 'own_code'));
+      await change(selects[0], 'exam_result'); await change(selects[1], 'own_code'); }
+    if (kind === 'decide') { await tap('Open act control (decide)'); const radio = nodes(c, 'input').find(node => props(node).value === 'alt-a'); await React.act(async () => { props(radio).onChange({target:{value:'alt-a'}}); }); }
+    await tap({assurance:'Allow disk records (native confirmation)…', attachment:'Remove', external:'Select observation documents…', trace:'Select supplied record…', decide:'Decide…'}[kind]);
+    assert.doesNotMatch(c.textContent, new RegExp(afterCanary), 'the raw status-read diagnostic appears nowhere');
+    assert.equal(calls.filter(command => command === commands[kind]).length, 1, 'sent once: no automatic retry');
+    assert.ok(c.textContent.includes(REFRESH_FAILED), 'the fixed line is shown');
+    await check(c);
+  } finally {
+    const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
+    Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById;
+  }
+}
+const alerts = c => nodes(c, 'p').filter(node => node.getAttribute('role') === 'alert').map(node => node.textContent);
+for (const kind of ['assurance', 'attachment', 'external', 'trace', 'decide']) for (const commandFails of [false, true]) test(`${kind}: a ${commandFails ? 'refused' : 'completed'} command whose status refresh fails keeps its own outcome; the fixed line once, nothing raw`, async () => {
+  await afterCommand(kind, commandFails, c => {
+    const own = `invented ${kind} refusal`;
+    if (kind === 'decide') {
+      assert.ok(c.textContent.includes(commandFails ? `decide: ${own} ${REFRESH_FAILED}` : `decide: {"selection"`), 'the decision outcome stands');
+      assert.ok(!c.textContent.includes('Act control: Invented decision'), 'decide closes its offer after the command, as before');
+    } else if (kind === 'external') {
+      assert.ok(c.textContent.includes(`${commandFails ? own : 'External selection: invented-selected invented-stage'} ${REFRESH_FAILED}`), 'the selection outcome stands, then the fixed line');
+    } else if (kind === 'trace' && !commandFails) {
+      assert.ok(c.textContent.includes(`Supplied trace selection: invented-selected ${REFRESH_FAILED}`), 'the selection outcome stands, then the fixed line');
+    }
+    // The command's caller: its own panel shows its own failure, and no failure at all when it completed.
+    if (commandFails && !['external', 'decide'].includes(kind)) assert.ok(alerts(c).some(text => text === own), `${kind}: its own failure is shown as before`);
+    if (!commandFails) assert.ok(!alerts(c).some(text => text === REFRESH_FAILED), `${kind}: a completed command is not shown as failed`);
+  });
+});
