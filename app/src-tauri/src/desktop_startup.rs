@@ -5612,6 +5612,91 @@ mod tests {
         assert!(setup.view()["launch"]["reason"].as_str().unwrap().contains("environment App data unavailable"));
     }
 
+    /// The environment route's input contract: a Codex home, the key home or a
+    /// shared path supplied through the environment that is relative, empty or
+    /// has a `.` or `..` component is refused at admission, by name, before the
+    /// probe home is allocated (the probe panics if asked) and before any
+    /// configuration is built. The values are carried as received: a refused
+    /// value never reads as not supplied.
+    #[test]
+    fn environment_paths_that_are_relative_empty_or_dotted_are_refused_at_admission() {
+        let f = Fixture::new();
+        let absolute = f.root.join("environment-home").into_os_string();
+        let must = |name: &str| format!("{name} must be an absolute path without . or .. components");
+        let empty = |name: &str| format!("{name} is empty: it must be an absolute path without . or .. components");
+        let dotted_in = { let mut v = f.root.clone().into_os_string(); v.push("/./environment-home"); v };
+        let dotted_up = { let mut v = f.root.clone().into_os_string(); v.push("/x/../environment-home"); v };
+        let cases: Vec<(Vec<(&str, std::ffi::OsString)>, String)> = vec![
+            (vec![("CHIRALITY_CODEX_HOME", "relative/home".into())], must("CHIRALITY_CODEX_HOME")),
+            (vec![("CHIRALITY_CODEX_HOME", "".into())], empty("CHIRALITY_CODEX_HOME")),
+            (vec![("CHIRALITY_CODEX_HOME", dotted_in)], must("CHIRALITY_CODEX_HOME")),
+            (vec![("CHIRALITY_CODEX_HOME", dotted_up)], must("CHIRALITY_CODEX_HOME")),
+            (vec![("CHIRALITY_CODEX_HOME", absolute.clone()), ("CHIRALITY_KEY_HOME", "key-home".into())], must("CHIRALITY_KEY_HOME")),
+            (vec![("CHIRALITY_CODEX_HOME", absolute.clone()), ("CHIRALITY_SHARED_SKILLS", "".into())], empty("CHIRALITY_SHARED_SKILLS")),
+            (vec![("CHIRALITY_CODEX_HOME", "home".into()), ("CHIRALITY_SHARED_CONFIG", "config.toml".into())], format!("{}; {}", must("CHIRALITY_CODEX_HOME"), must("CHIRALITY_SHARED_CONFIG"))),
+        ];
+        for (given, expected) in cases {
+            let input = |key: &str| -> Option<std::ffi::OsString> {
+                if key == "CHIRALITY_CODEX_BIN" { return Some("/invented/bin/codex".into()); }
+                given.iter().find(|(name, _)| *name == key).map(|(_, value)| value.clone())
+            };
+            let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), true, || panic!("a refused environment allocates no probe home")).unwrap();
+            assert_eq!(env.host_config.as_ref().unwrap_err(), &expected, "{given:?}");
+            assert_eq!(env.key_path, input("CHIRALITY_KEY_HOME").map(PathBuf::from), "the key home is carried as received");
+            assert_eq!(env.shared_paths[2], input("CHIRALITY_SHARED_SKILLS").map(PathBuf::from), "a shared path is carried as received");
+            let mut setup = f.setup();
+            let launch = setup.resolve(Some(env), true, || panic!("no fallback to a saved request"));
+            assert_eq!(launch.host_config.as_ref().unwrap_err(), &expected);
+            assert!(setup.lease.is_none() && setup.requested.is_none(), "nothing admitted from a saved request");
+            assert_eq!(setup.view()["launch"]["state"], "environment");
+            assert_eq!(setup.view()["launch"]["reason"], expected.as_str());
+            // No value is echoed in the reason.
+            assert!(!expected.contains("relative/home") && !expected.contains("environment-home") && !expected.contains("config.toml"));
+        }
+    }
+
+    /// The accepted forms on the development route: an absolute home with no
+    /// `.` or `..` component is admitted as it was, and absent key or shared
+    /// paths stay absent.
+    #[test]
+    fn an_absolute_environment_home_is_admitted_as_before() {
+        let f = Fixture::new();
+        let home = f.root.join("environment-home");
+        let probe = f.root.join("probe-home");
+        let input = |key: &str| -> Option<std::ffi::OsString> {
+            match key {
+                "CHIRALITY_CODEX_BIN" => Some("/invented/bin/codex".into()),
+                "CHIRALITY_CODEX_HOME" => Some(home.clone().into_os_string()),
+                _ => None,
+            }
+        };
+        let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), true, || Ok(probe.clone())).unwrap();
+        let cfg = env.host_config.as_ref().unwrap();
+        assert_eq!((cfg.codex_home.as_path(), cfg.probe_home.as_path(), cfg.cwd.clone()), (home.as_path(), probe.as_path(), std::env::temp_dir()));
+        assert!(env.key_path.is_none() && env.shared_paths.iter().all(Option::is_none));
+    }
+
+    /// The same contract on the production branch of the environment route
+    /// (a build with distribution-successor that is not a development run).
+    #[cfg(feature = "distribution-successor")]
+    #[test]
+    fn the_release_environment_route_refuses_a_relative_or_empty_home_and_admits_an_absolute_one() {
+        let f = Fixture::new();
+        for (value, expected) in [
+            (std::ffi::OsString::from("records"), "CHIRALITY_CODEX_HOME must be an absolute path without . or .. components"),
+            (std::ffi::OsString::from(""), "CHIRALITY_CODEX_HOME is empty: it must be an absolute path without . or .. components"),
+        ] {
+            let input = |key: &str| (key == "CHIRALITY_CODEX_HOME").then(|| value.clone());
+            let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), false, || panic!("a refused environment allocates no probe home")).unwrap();
+            assert_eq!(env.host_config.as_ref().unwrap_err(), expected);
+        }
+        let home = f.root.join("environment-home");
+        let input = |key: &str| (key == "CHIRALITY_CODEX_HOME").then(|| home.clone().into_os_string());
+        let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), false, || Ok(f.root.join("probe-home"))).unwrap();
+        let cfg = env.host_config.as_ref().unwrap();
+        assert_eq!((cfg.codex_home.as_path(), cfg.cwd.as_path()), (home.as_path(), f.data.as_path()));
+    }
+
     #[test]
     fn unavailable_and_broken_resource_metadata_is_visible_without_new_home_start_veto() {
         let f = Fixture::new();
@@ -6299,6 +6384,41 @@ mod tests {
             assert!(desktop.recheck_active().is_err(), "no later start is admitted either");
         }
         assert!(!f.root.join("relative").exists());
+    }
+
+    /// A CHIRALITY_APP_DATA that is set and empty, or that has a `.` or `..`
+    /// component, is refused by name. In particular an empty value no longer
+    /// selects the environment route and then holds the platform App data
+    /// folder: the platform folder is never created or held, no probe home is
+    /// allocated, nothing operational starts. A clean absolute value is held
+    /// as before.
+    #[test]
+    fn an_empty_or_dotted_app_data_is_refused_and_the_platform_folder_is_not_held() {
+        let f = Fixture::new();
+        let platform = f.root.join("platform-app-data-never-held");
+        let dotted_in = { let mut v = f.root.clone().into_os_string(); v.push("/./dotted-app-data"); v };
+        let dotted_up = { let mut v = f.root.clone().into_os_string(); v.push("/x/../dotted-app-data"); v };
+        for (value, expected) in [
+            (std::ffi::OsString::new(), "CHIRALITY_APP_DATA is empty: it must be an absolute path without . or .. components"),
+            (dotted_in, "CHIRALITY_APP_DATA must be an absolute path without . or .. components"),
+            (dotted_up, "CHIRALITY_APP_DATA must be an absolute path without . or .. components"),
+        ] {
+            let input = |key: &str| (key == crate::APP_DATA_ENV).then(|| value.clone());
+            let (desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, || {
+                panic!("no probe home is allocated without held App data")
+            });
+            assert!(!inputs.allow_operational, "{expected}");
+            assert!(inputs.data.as_ref().is_err_and(|e| e.contains(expected)), "{:?}", inputs.data);
+            assert!(desktop.view()["launch"]["reason"].as_str().unwrap().contains(expected), "{}", desktop.view());
+            assert!(!platform.exists(), "the platform App data folder is neither created nor held");
+            assert!(!f.root.join("dotted-app-data").exists() && !f.root.join("x").exists(), "no folder is made for the dotted value");
+        }
+        // A clean absolute value is held, as before.
+        let held = f.root.join("named-app-data");
+        let input = |key: &str| (key == crate::APP_DATA_ENV).then(|| held.clone().into_os_string());
+        let (_desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe home"));
+        assert_eq!(inputs.data.as_ref().ok(), Some(&held));
+        assert!(!platform.exists());
     }
 
     /// Finding 6: the environment route's App data custody is rechecked by
