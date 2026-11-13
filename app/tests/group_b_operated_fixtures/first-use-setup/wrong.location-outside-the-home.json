@@ -1,0 +1,17 @@
+{
+ "what_is_wrong": "The saved choices are shown at a path that is not under the throwaway home.",
+ "replace": [
+  {
+   "view": 4,
+   "from": "text /invented/homes/launch-invented/home/Library/Application Support/dev.chirality.app-v4.candidate.invented/desktop-startup/request.json",
+   "to": "text /invented/account/Library/Application Support/dev.chirality.app-v4.candidate.invented/desktop-startup/request.json"
+  }
+ ],
+ "fails": {
+  "S5": {
+   "location": "Saved choices",
+   "under": "{app_data}"
+  }
+ },
+ "outcome_not_shown": "SETUP CHOICES REVIEWED"
+}

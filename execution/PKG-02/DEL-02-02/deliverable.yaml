@@ -78,7 +78,9 @@ needs:
   when: When the bundled workflows are generated or compared with the release.
 - from: external:person using the App
   condition: A person reviews and registers workflows, sends the messages the App prepares, and
-    starts and ends runs.
+    starts and ends runs. In an agent-operated journey examination as the release target defines
+    it, the examining agent performs these steps on examination material for control-and-record
+    evidence only; the positive case with the person as actor (AC-006) needs the person.
 - from: external:SWBPIPE implementation owner
   condition: A host lists its workflow library to the App and delivers a host workflow's package
     with its origin and revision.
