@@ -680,7 +680,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     setBusy(true); setError(""); setProgress("Selecting the stored conversation for inspection…");
     try { await invoke("history_select", { generation, selectionEpoch: epoch, threadId }); }
     catch (e) { setError(String(e)); }
-    finally { try { await refresh(); } catch (e) { setError(String(e)); } busyRef.current = false; setBusy(false); setProgress(""); }
+    // The selection's own error stands; a failed refresh adds the fixed line once and nothing raw.
+    finally { await refreshAfterAction(refresh, () => setError(withRefreshFailure)); busyRef.current = false; setBusy(false); setProgress(""); }
   };
   const pageButtons = (action: string, page: Json, reference: string | null = null, pageDirection = direction) => <span className="history-pagination">
     {typeof page?.nextCursor === "string" && <button aria-label={`Next ${action === "list" ? "conversations" : action} page`} disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
@@ -2075,7 +2076,13 @@ export function App() {
         reviseChoice(emptyConversationChoice);
       }
     }
-    try { const result: Json = await invoke(command, args); const snapshot = await refresh(); return { result, snapshot }; }
+    try {
+      const result: Json = await invoke(command, args);
+      // The command's outcome stands: a refresh that fails after it does not make the command look
+      // failed. It adds the fixed line once to the App line, nothing raw, and gives no snapshot.
+      const snapshot: Json = await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
+      return { result, snapshot };
+    }
     finally { if (navigating) { homePendingRef.current = false; setHomePending(false); } }
   };
   // Start / Stop / Restart Codex: one at a time; the host asks first for Stop and Restart.
@@ -2194,6 +2201,8 @@ export function App() {
       const opened = await homeAction("open_waiting_requests", { modeHomeClass: group.modeHomeClass, generation: group.generation, threadId: group.threadId });
       if (!opened) return;
       const { result, snapshot } = opened;
+      // No status was read after the command: the fixed line is shown; nothing is navigated.
+      if (snapshot === undefined) return;
       const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
       // React may batch the new snapshot until this callback finishes. Use it
       // when no newer view rendered; otherwise the newer rendered source wins.

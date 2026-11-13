@@ -432,3 +432,27 @@ test('a provider note ending with a reading sentence is shown once, without a do
     assert.ok(!shown.includes(`${READING_GATE}.`), 'no second full stop after the sentence');
   });
 });
+
+// A home command that succeeds and whose status refresh then fails: the command is not shown as
+// failed, the account panel shows no raw refresh text, and the App line adds the fixed line once.
+// The same command with a successful refresh shows what it showed before (no refresh line).
+for (const refreshFails of [true, false]) test(`keyed oMLX: using the local home ${refreshFails ? 'then a failed refresh adds only the fixed line' : 'with a successful refresh shows no refresh line'}`, async () => {
+  const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  try {
+    await mounted(async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+      if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); if (refreshFails) statusFailure = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64'; return {state:'selected'}; }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      await ui.press('Use local oMLX home');
+      assert.equal(ui.issued().filter(call => call.command === 'select_home').length, 1);
+      assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64/, 'no raw refresh text anywhere');
+      const shown = ui.c.textContent.split(REFRESH_FAILED).length - 1;
+      if (refreshFails) assert.ok(shown >= 1, 'the fixed line (App line and guides)'); else assert.equal(shown, 0, 'no refresh line after a successful refresh');
+      assert.doesNotMatch(region(ui.c, 'Account connection')?.textContent ?? '', /did not complete|INVENTED_PRIVATE/, 'the account panel does not show the command as failed');
+      statusFailure = null;
+    });
+  } finally { statusFailure = null; }
+});
