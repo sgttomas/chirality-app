@@ -100,7 +100,7 @@ fn strict_cold_identities(root: &Path) {
         let selected = selected_store(root, kind, &project);
         let store = selected.root.clone();
         configure(Ok(selected));
-        opened().unwrap();
+        created().unwrap();
         let identity = store.join("store.json");
         let original = std::fs::read(&identity).unwrap();
         let retained = store.join("retained-original");
@@ -134,12 +134,15 @@ fn strict_cold_identities(root: &Path) {
             "there is no cooperating publisher for {kind}"
         );
         drop(guard);
+        // Both openings refuse: the reading one and the creating one.
         let started = Instant::now();
-        let error = opened().unwrap_err();
+        let read_error = opened().unwrap_err();
+        let error = created().unwrap_err();
         assert!(
             started.elapsed() < Duration::from_secs(1),
             "refused special members must not block: {kind}"
         );
+        assert!(!read_error.is_empty());
         match kind {
             "hard-link" => {
                 assert_eq!(std::fs::metadata(&identity).unwrap().nlink(), 2);
@@ -177,7 +180,7 @@ fn existing_cold_status(root: &Path) {
         let selected = selected_store(root, &format!("cold-{control}"), &project);
         let store = selected.root.clone();
         configure(Ok(selected.clone()));
-        let (_, original_id) = opened().unwrap();
+        let (_, original_id) = created().unwrap();
         let identity = store.join("store.json");
         let original = std::fs::read(&identity).unwrap();
         let bootstrap = store.join(".store-bootstrap.lock");
@@ -214,11 +217,16 @@ fn cached_identities(root: &Path) {
         let selected = selected_store(root, kind, &project);
         let store = selected.root.clone();
         configure(Ok(selected));
-        let accepted = opened().unwrap();
+        let accepted = created().unwrap();
         assert_eq!(
             opened().unwrap(),
             accepted,
-            "unchanged cached readmission keeps the identity"
+            "unchanged cached readmission keeps the identity (reading)"
+        );
+        assert_eq!(
+            created().unwrap(),
+            accepted,
+            "unchanged cached readmission keeps the identity (creating)"
         );
         let identity = store.join("store.json");
         let original = std::fs::read(&identity).unwrap();
@@ -233,7 +241,9 @@ fn cached_identities(root: &Path) {
             }
             _ => unreachable!(),
         }
-        let error = opened().unwrap_err();
+        let read_error = opened().unwrap_err();
+        let error = created().unwrap_err();
+        assert!(!read_error.is_empty());
         match kind {
             "missing-root" => {
                 assert!(!store.exists());
@@ -263,23 +273,25 @@ fn held_existing_locks(root: &Path) {
     configure(Ok(selected));
     let attached = attach(&project, true).unwrap();
     let dir = attached.dir.unwrap();
-    let original = opened().unwrap();
+    let original = created().unwrap();
     let _store = store_lock(&store).unwrap();
     let _writer = writer_lock(&dir, false).unwrap();
     let other = selected_store(root, "cache-evicting-store", &root.join("other-project"));
     let other = std::thread::spawn(move || {
         use_store_for_test(Some(Ok(other)));
-        let result = opened();
+        let result = created();
         use_store_for_test(None);
         result.unwrap()
     })
     .join()
     .unwrap();
     assert_ne!(other, original);
-    assert_eq!(OPENED.lock().unwrap().as_ref().unwrap().1, other.0);
+    assert_eq!(OPENED.lock().unwrap().as_ref().unwrap().root, other.0);
     // Real import/adopt ordering can already hold store -> writer here. A
     // cold cache must not reacquire either of those non-reentrant OS locks.
     assert_eq!(opened().unwrap(), original);
+    *OPENED.lock().unwrap() = None;
+    assert_eq!(created().unwrap(), original);
     write_permitted(&dir, &project).unwrap();
     let bootstrap = storage::try_lock_exclusive(&store.join(".store-bootstrap.lock")).unwrap();
     assert!(
@@ -295,6 +307,7 @@ fn held_existing_locks(root: &Path) {
     std::fs::hard_link(&identity, &alias).unwrap();
     *OPENED.lock().unwrap() = None;
     assert!(opened().unwrap_err().contains("non-plain member"));
+    assert!(created().unwrap_err().contains("non-plain member"));
     assert_eq!(std::fs::metadata(&identity).unwrap().nlink(), 2);
     assert_eq!(std::fs::read(&identity).unwrap(), bytes);
     std::fs::remove_file(alias).unwrap();

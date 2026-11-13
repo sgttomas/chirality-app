@@ -86,11 +86,103 @@ selection, and any specialised workspace, keep their own.
 **Fallback.** v3.0.1 stays the published fallback until the owner decides that
 v4 has replaced it.
 
-**Testing.** Agents do the development testing. The owner's own use of the
-candidate begins once Agent 0 has recommended that it is ready. The two are
-different things: agents' testing verifies behaviour, and only the owner's own
-use judges whether the product is fit for real work (DEL-09-12). A control
+**Testing.** The owner's words direct it: "I expect you to do thorough user
+testing via computer use and only when that's worked out the bugs and you
+think you're ready for publishing would i then use the app for testing." This
+is direction, not evidence that any criterion is met. Agents do the
+development testing. The journeys and examinations of criteria 1 to 6 and 15
+are carried out by agent-operated journey examination: an agent operates the
+built App's shipped controls through the computer-use ability native to its
+harness, as a user would. Every journey action goes through the shipped
+controls. Preparing invented fixtures, and independent observation (reading
+the supplier's actual events, inspecting records and files on disk, verifying
+an exported package without the App), are done outside the controls, and each
+record names them as such. What is ruled out is help that conceals an unusable
+control, not independent scrutiny: a second examiner or a reviewer may take
+part. Such an examination establishes that the journey can be completed
+through the shipped controls and what the App then shows and records; it is
+not evidence of how a first-time person understands the App. Each step's
+record says who operated it and by what means, and notes where completing the
+step needed knowledge the interface did not give. No criterion reads as met by
+a person when no person did it. Findings are repaired and the affected
+scenarios run again before Agent 0 recommends the candidate; a result from an
+earlier candidate is joined as the exit criteria below state.
+
+Credential acts stay the owner's: sign-in and key entry are performed by the
+owner and never by an agent, and a run that needs a signed-in App or the local
+model server follows the owner's sign-in. The criteria not named above keep
+the actors their own texts state. Criterion 8's witness on the installed,
+signed candidate needs the person's protection act and the person's
+confirmation of a lowered policy (DEL-01-04 AC-009), which the owner performs
+as bounded acts, like sign-in, apart from and before the evaluation of
+criterion 13. The first human evaluation of the product is the owner's own use
+of the candidate, which begins once Agent 0 has recommended that it is ready
+(criterion 13); the owner's bounded acts before it (sign-in, key entry and the
+keychain acts) are not that evaluation. Agents' testing and the owner's own use
+are different things: agents' testing verifies behaviour, and only the owner's
+own use judges whether the product is fit for real work (DEL-09-12). A control
 operated by an agent establishes no act of the owner.
+
+The product's rule is unchanged: the App never performs for a person an act it
+reserves to a person, and only the person's own confirmation captures an act;
+an attempt by an agent tool, an MCP operation or an App rule captures nothing
+(DEL-01-04 AC-008, DEL-04-01). Apart from that rule, and solely for synthetic
+development examination on examination material, the examining agent operates
+every shipped control the named examinations need, including those at which
+the candidate captures an act: registration and re-confirmation, checking,
+approval, reliance and decision confirmations, answers to requests, lifecycle
+confirmations, project-link resolution, records export and import, project
+closure and reopening, legal-hold setting and release, and disposal. These
+operations establish no actual person's decision and no legal or professional
+standing. Sign-in and key entry, and criterion 8's protection act and
+policy-lowering confirmation, are the owner's. The exception reaches
+examination material only; an invented input does not license an effect on the
+owner's real libraries, stores, accounts or files.
+
+What such a control captures is a synthetic capture. The candidate records the
+accounts it runs under: at an act control it builds the actor from the App's
+name setting, the macOS account it runs under and the Codex account when one
+is reported, and marks the identity not verified, as it marks every capture,
+so that mark does not show that a capture is synthetic. In an examination run
+under the owner's account, the account identifiers a synthetic capture records
+remain the owner's although an agent operated the control. Before every
+synthetic capture, and again after every restart of the candidate before
+another capture, the examining agent sets the App's name to an examination
+name and verifies that it is set. The name marks the capture as examination
+material in the candidate's own record. It does not identify who operated the
+control; the step's record, from the operator's observation, says that an
+agent did. Examination material is an identified set: the scratch libraries,
+the scratch records stores, the export packages made from them, the import
+destinations used, and the retained examination evidence. Synthetic captures
+and whatever carries them stay within that set, which is disposed of once the
+examination and review it is needed for are finished. Each of these is a
+finding (DEL-09-02 REQ-009): a synthetic capture, or anything carrying one,
+found outside the identified examination material; a synthetic capture
+presented as an actual person's act; a candidate record that marks the
+identity verified, or that carries an actor value other than what the
+candidate observed by its own rule. A step whose conditions cannot be
+established is blocked.
+
+A synthetic confirmation supplies control-and-record examination evidence only;
+it does not meet a positive case that requires evidence of an act an actual
+person performed, and that case reads as not examined until its stated evidence
+is supplied. Every acceptance criterion whose positive case is an act a person
+performed, recorded or handed over with the person as actor, is examined
+synthetically for its control and its record only; its human-positive case
+reads as not examined until an act an actual person performed is observed on
+the identified candidate. When this was written those were: the positive cases
+of DEL-06-02 AC-004, DEL-04-01 AC-002 and DEL-04-03 AC-003; DEL-09-01's
+faithful recording of an actually performed act (AC-004); DEL-01-02 AC-007 (an
+answer the person actually gave); DEL-02-02 AC-006 (a registration the person
+performed); DEL-02-03 AC-003 (a checkpoint act the person performed); DEL-01-03
+AC-005 (an act record handed in, shown with the person as actor); DEL-04-02
+AC-005 (a recorded act a person performed); and DEL-04-03 AC-010 (a permitted
+disposal recorded as the person's act). A criterion of the same kind not named
+here falls under the rule all the same. Agent 0 may recommend the candidate for
+the owner's evaluation with these human-positive cases explicitly not examined.
+Each passes only when its required act and comparison are observed on the
+identified candidate. A case the owner's chosen use does not exercise remains
+unmet; the owner's verdict supplies no missing evidence.
 
 ## Exit criteria
 
@@ -112,8 +204,9 @@ the owner decide on what was actually observed.
 1. **Use an existing workflow (J1).** Through the App alone, a person sets up
    a project, selects an existing workflow, sees its source and revision,
    supplies its inputs, runs it to completion and finds the results, with real
-   execution doing useful work and without an agent interpreting or operating
-   the App's controls. Before the run the App says which of the workflow's
+   execution doing useful work, every step taken through the App's shipped
+   controls and the words it shows, and no control interpreted or operated by
+   any other means. Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
    needing none. A file the person selects as an input is sent as selected: if
@@ -124,7 +217,8 @@ the owner decide on what was actually observed.
    *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
    the agent received); DEL-01-04 AC-011 (the run text reaches Codex
    unchanged); DEL-02-03 AC-001 (the required-tool check); DEL-01-04 AC-003
-   (a selected file); DEL-09-02 AC-009 (a person observed carrying it out).
+   (a selected file); DEL-09-02 AC-009 (the journey examined on the
+   candidate through the shipped controls).
 2. **Create, save, return and reuse (J2).** Through the App alone and as one
    sequence, a person does useful work, turns it into a workflow draft,
    trials, reviews and registers it, returns to unfinished work after closing
@@ -138,7 +232,8 @@ the owner decide on what was actually observed.
    role: HELP_HUMAN is preselected and can be cleared, HELPS_HUMANS,
    WORKING_ITEMS and no role are offered, TASK is not, and the chosen role's
    guidance is added to the supplier's own instructions without replacing
-   them. In one continuous journey
+   them. Where the harness cannot enforce a role's limits, the App says so
+   and does not imply that they are enforced. In one continuous journey
    from an empty project folder, a person develops and revises a plan with the
    agent, has it carried out with real tools including one delegated sub-task,
    creates a workflow draft, trials and reviews it, registers it, runs it on
@@ -156,7 +251,9 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-001, AC-002 and AC-003; DEL-02-02 AC-004 (the
    identity a selection keeps, on the project, user and bundled origins);
-   DEL-02-04 AC-001 and AC-002 (the roles offered and the guidance supplied);
+   DEL-02-04 AC-001 and AC-002 (the roles offered and the guidance supplied)
+   and AC-003 and AC-004 (a limit the harness does not enforce shown as not
+   enforced);
    DEL-01-04 AC-008 (only the person's confirmation captures).
 4. **Requests, interruption and recovery.** Inside that journey, a turn is
    stopped while a delegated child is active, the window is closed and
@@ -172,13 +269,23 @@ the owner decide on what was actually observed.
    App does not pause or hold the run. Continued work, a tool's success, an
    interruption or a replay of history does not perform it. After quit and reopen it is the same run,
    and a later run inherits no arrival, disposition or act from it. A failure
-   is repaired or brought to the owner for disposition; it is never passed
-   over.
+   is repaired or given its disposition by Agent 0, which the owner sees in
+   the decision packet; it is never passed over.
 
    *Governed by:* DEL-09-02 AC-004 and AC-005; DEL-01-02 AC-001 to AC-006
    (window loss, interrupt, requests, acknowledgment, restart and quit);
    DEL-02-03 AC-002 and AC-003 (checkpoints and the run they belong to), with
    the views of that behaviour owned by DEL-01-03 and DEL-01-04.
+   DEL-02-03 AC-003's positive case with the person as actor is one of the
+   human-positive cases named under Testing. A synthetic confirmation supplies
+   control-and-record examination evidence only; it does not meet a positive
+   case that requires evidence of an act an actual person performed, and that
+   case reads as not examined until its stated evidence is supplied. Agent 0
+   may recommend the candidate for the owner's evaluation with these
+   human-positive cases explicitly not examined. Each passes only when its
+   required act and comparison are observed on the identified candidate. A case
+   the owner's chosen use does not exercise remains unmet; the owner's verdict
+   supplies no missing evidence.
 5. **Coordinating delegated work.** A person delegates two bounded pieces of
    work, each with a complete brief, to agents that actually run. The person
    follows them on the undertaking's work graph, examines what they return
@@ -203,7 +310,8 @@ the owner decide on what was actually observed.
    different compliant local server can be substituted through supported
    settings. The start-up connections of the App's Codex are listed, and those
    an App setting stops are absent. No credential appears in anything the App
-   wrote.
+   wrote. In the examination the owner performs the sign-in and the entry of
+   the local server's key, and agents examine what follows.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
    AC-011.
@@ -273,7 +381,10 @@ the owner decide on what was actually observed.
 13. **The owner's verdict.** After Agent 0 has recommended the candidate
     ready, the owner uses it and answers yes or no before it is published.
     What the owner uses it for, and for how long, is the owner's to choose at
-    the time. Agent 0 gives every observation the owner makes a disposition;
+    the time. With the recommendation, Agent 0 tells the owner which criteria
+    were examined by agents and that no person has yet carried out the
+    journeys or performed the acts the human-positive cases named under
+    Testing need, which read as not examined. Agent 0 gives every observation the owner makes a disposition;
     that is Agent 0's responsibility and not a question returned to the owner.
     The criterion is met on yes. A yes meets this criterion only: any other
     criterion that is unmet stays unmet.
@@ -324,6 +435,16 @@ the owner decide on what was actually observed.
     from the last sentence of AC-009 (a signed checkpoint verifying under the
     App's key) and the signature sentence of AC-011, which wait on the key of
     DEL-04-03 TBD-003.
+    AC-010's permitted disposal recorded as the person's act is one of the
+    human-positive cases named under Testing. A synthetic confirmation supplies
+    control-and-record examination evidence only; it does not meet a positive
+    case that requires evidence of an act an actual person performed, and that
+    case reads as not examined until its stated evidence is supplied. Agent 0
+    may recommend the candidate for the owner's evaluation with these
+    human-positive cases explicitly not examined. Each passes only when its
+    required act and comparison are observed on the identified candidate. A case
+    the owner's chosen use does not exercise remains unmet; the owner's verdict
+    supplies no missing evidence.
 
 ## What stays the owner's
 
