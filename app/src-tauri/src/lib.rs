@@ -6,6 +6,8 @@
 //! webview only reads snapshots and asks the host to act.
 
 pub mod access;
+// A test build only (build.rs sets this cfg and refuses it with the release feature).
+#[cfg(chirality_scripted_driver)] mod scripted_driver;
 pub mod act_control;
 pub mod act_policy;
 pub mod attachments;
@@ -1034,7 +1036,7 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
 ///   for homes the App uses or plans. No child resolves a raw value under
 ///   its own working folder: CHIRALITY_CODEX_HOME is the configured home
 ///   itself; every Codex child is given CODEX_HOME explicitly; a relative
-///   CHIRALITY_KEY_HOME is refused by its home plan before any use. (An
+///   CHIRALITY_KEY_HOME is refused at admission (`environment_path_refusal`). (An
 ///   earlier version said raw values were compared "exactly as before"
 ///   while making them absolute; the second reading showed that wrong.)
 fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
@@ -2926,15 +2928,38 @@ pub fn hold_app_data_for_test(data: &std::path::Path) -> Result<AppDataCustody, 
     setup.hold_environment_data(&data)?;
     Ok(AppDataCustody(setup))
 }
-/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`.
+/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`
+/// components, by the same check as the environment route's other paths
+/// ([`environment_path_problem`]). Set and empty is refused by name, never
+/// read as unset: an empty value selects the environment route, and read as
+/// unset it would hold the platform App data folder unannounced.
 fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Option<Result<PathBuf,String>> {
-    let value = input(APP_DATA_ENV).filter(|v| !v.is_empty())?;
-    let path = PathBuf::from(value);
-    Some(if path.is_absolute() && !path.components().any(|c| matches!(c, std::path::Component::ParentDir | std::path::Component::CurDir)) {
-        Ok(path)
-    } else {
-        Err(format!("{APP_DATA_ENV} must be an absolute path without . or .. components"))
+    let value = input(APP_DATA_ENV)?;
+    Some(match environment_path_problem(APP_DATA_ENV, &value) {
+        Some(problem) => Err(problem),
+        None => Ok(PathBuf::from(value)),
     })
+}
+
+/// The paths the environment route takes from the environment: each one
+/// supplied, empty included, must be an absolute path with no `.` or `..`
+/// component, CHIRALITY_APP_DATA's own rule. An absent name is not supplied,
+/// as before. The inherited CODEX_HOME is not a launch input and is not read.
+const ENVIRONMENT_PATHS: [&str; 5] = ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"];
+/// Why an environment-supplied path is refused, by name; the value is never
+/// echoed. Components are read from the value as given: `Path::components`
+/// drops a `.` inside a path, which would let `/a/./b` through.
+fn environment_path_problem(name: &str, value: &std::ffi::OsStr) -> Option<String> {
+    if value.is_empty() {
+        return Some(format!("{name} is empty: it must be an absolute path without . or .. components"));
+    }
+    let dotted = value.as_encoded_bytes().split(|byte| *byte == b'/').any(|part| part == b"." || part == b"..");
+    (!std::path::Path::new(value).is_absolute() || dotted).then(|| format!("{name} must be an absolute path without . or .. components"))
+}
+/// Every refused environment path, in [`ENVIRONMENT_PATHS`] order, as one reason.
+fn environment_path_refusal(input: &impl Fn(&str)->Option<std::ffi::OsString>) -> Option<String> {
+    let problems: Vec<String> = ENVIRONMENT_PATHS.iter().filter_map(|name| input(name).and_then(|value| environment_path_problem(name, &value))).collect();
+    (!problems.is_empty()).then(|| problems.join("; "))
 }
 
 fn explicit_environment_launch(
@@ -2943,6 +2968,15 @@ fn explicit_environment_launch(
 ) -> Option<desktop_startup::Launch> {
     if !environment_selected(&input) { return None; }
     let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // Refused at admission, on both branches, before any configuration is
+    // built or the probe home allocated. The key and shared values are carried
+    // as received, never read as not supplied; nothing reads them while the
+    // configuration is refused.
+    if let Some(reason) = environment_path_refusal(&input) {
+        let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+        let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
+        return Some(desktop_startup::Launch::environment(workspace, Err(reason), key, shared));
+    }
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
         host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
@@ -3131,8 +3165,14 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// The scripted driver's page-load hook in a test build; in every other build, the builder unchanged.
+#[cfg(chirality_scripted_driver)]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { scripted_driver::install(builder) }
+#[cfg(not(chirality_scripted_driver))]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { builder }
+
 pub fn run() {
-    tauri::Builder::default()
+    with_scripted_driver(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
         .on_menu_event(|app, event| {

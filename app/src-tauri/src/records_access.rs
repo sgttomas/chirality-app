@@ -507,7 +507,7 @@ impl ReadLog {
             let mut last = [0u8];
             file.seek(std::io::SeekFrom::End(-1)).and_then(|_| file.read_exact(&mut last)).map_err(|e| format!("read log unavailable: {e}"))?;
             if last[0] != b'\n' {
-                return Err("read log has an unclosed final line; bytes preserved, nothing appended".into());
+                return Err(torn_read_log(path));
             }
         }
         let mut line = serde_json::to_vec(entry).map_err(|e| e.to_string())?;
@@ -518,6 +518,24 @@ impl ReadLog {
         }
         Ok(())
     }
+}
+
+/// The refusal for a read log whose last line was cut short (an append
+/// interrupted before its newline): the one act that recovers it, with the
+/// file as the App resolved it and the exact new name, first, so that a
+/// person can act on it without knowing the store's layout; then why. The App
+/// never cuts or closes that line. The new name does not end in `.jsonl`, so
+/// that no log inventory (a package import's collision check among them)
+/// takes the torn file for a log; it stays in the records store and travels,
+/// byte for byte, in exports (RELEASE_LIMITATIONS LIM-014).
+fn torn_read_log(path: &Path) -> String {
+    let stamp = now_rfc3339().replace(':', "-");
+    let name = path.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "records-reads.jsonl".into());
+    let renamed = format!("{name}.torn-{stamp}");
+    format!(
+        "This project's records capability cannot answer reads until its read log is set aside: rename {}, in the same folder, to exactly {renamed}. That file ends in a read that was not recorded completely, so this capability cannot record or answer another read; nothing already recorded is lost. The App then starts a new read log at the next read, and keeps the renamed file in the records store without using it to answer records reads",
+        path.display()
+    )
 }
 
 /// The capability the host offers in its current project.

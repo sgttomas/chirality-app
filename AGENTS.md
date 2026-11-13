@@ -352,7 +352,12 @@ The repository checks are the
 commands of the `repository-checks` job in
 `.github/workflows/governance-harness.yml`; run locally the ones a change
 affects, for example `python3 -m pytest -q tools/ci tools/validation`. The
-hosted `harness` result on the exact PR head is the merge check. Broad suites
+hosted `harness` result on the exact PR head is the merge check. GitHub
+reports it against that head, but its repository checks test the event's
+pinned merge commit (that head merged with `main` as GitHub fixed it for the
+event, which a queued run or a rerun keeps), and its product checks the head
+itself; where this text speaks of the checked tree or the tree checks passed
+on, it means both. Broad suites
 run for an identified need or release preparation; the nightly full suite
 covers main.
 
@@ -436,7 +441,10 @@ no memories; durable knowledge lives in Chirality. Scratch holds evidence,
 outputs and logs, never instructions. Once work is integrated or abandoned,
 each contributor deletes its scratch, worktrees, branches and build output
 unless an open review, named consumer or recovery need still uses them, or the
-owner asks to keep them. Before removal, check for wanted uncommitted work;
+owner asks to keep them. The agent that delegated a child or reviewer is
+responsible for removing that agent's worktree and scratch under this rule,
+once it has confirmed they are no longer in use: a returned agent has no one
+else to do it. Before removal, check for wanted uncommitted work;
 remove worktrees with `git worktree remove` so Git's records stay consistent.
 
 ## Local boundaries
@@ -464,7 +472,17 @@ session and the local model server without asking each time. They never sign
 in, never see or handle a credential, and stop and tell Agent 0 if the session
 asks for one. The custom native driver chain is closed: new native control
 tooling needs an approved proposal, and native Computer Use is development
-tooling only. Build offline by default;
+tooling only. The owner approved one such proposal on 13 November 2026, a
+scripted driver compiled only into a test build, in these words: "First a
+hosted run showing a test build can run a trivial script in its window on
+the runner the App already uses. Then the one first-use setup scenario end
+to end. Dropped and reported if the hosted run is not shown within two runs,
+or the scenario does not pass within two built attempts. Nothing in the
+shipped build. Development evidence only: it satisfies nothing in criteria 1
+and 2 and does not replace your own use. No later scenario, chooser, typing
+or confirmation is covered." Nothing beyond those words is approved. The
+approval is in force until its stop point is reached or its two results are
+shown; `app/examination/scripted_driver/README.md` says which. Build offline by default;
 downloads, including binaries and archives, require explicit permission
 identifying the file, source and size. Routine read-only inspection of public
 source code and documentation text is authorized.
