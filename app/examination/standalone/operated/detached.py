@@ -20,8 +20,8 @@ If the started file cannot be written whole after the command has started, it se
 process group, and a kill five seconds later if the command itself has not gone; it says whether the command itself
 is gone, and the exit status is 3. That is all it can say. A process the command started that left its process
 group is not reached, and the App the launcher starts runs in a session of its own; one that outlived the command
-is not seen here either. So after exit 3 the operator runs the stray search (README.md, step 11) at once, with no
-process numbers, and ends by its number whatever it finds.
+is not seen here either. So after exit 3 the operator stops and tells the lane at once, and the lane runs the
+stray search (README.md, step 11).
 """
 import json
 import os
@@ -60,7 +60,7 @@ def main(argv):
         gone = end_command(process)
         print(json.dumps({'error': f'{type(error).__name__}: the started file could not be written whole',
                           'pid': process.pid, 'command_gone': gone,
-                          'next': 'run the stray search (README.md, step 11) now, with no process numbers'}), file=sys.stderr)
+                          'next': 'stop, and tell the lane now: it runs the stray search (README.md, step 11)'}), file=sys.stderr)
         return 3
     print(json.dumps(started))
     return 0

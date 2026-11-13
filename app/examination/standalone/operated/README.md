@@ -100,9 +100,8 @@ All of these hold, every time:
    `launcher.out` or `launcher.err` says so within seconds and no App is
    running: that refusal is the result. Record it and stop. If the starter
    itself exits 3, it could not write its record and has ended the launcher
-   but cannot say that nothing the launcher started is left: run step 11 at
-   once with no process numbers, end by its number whatever it finds, and
-   stop.
+   but cannot say that nothing the launcher started is left: stop, and tell
+   the lane at once; the lane makes step 11.
 2. **Confirm.** The App is the launcher's one child process:
 
    ```sh
@@ -190,30 +189,36 @@ All of these hold, every time:
     its operator is ended, not continued by someone else.
     The operator records whether a process named `SkyComputerUseService` is
     running at the end, with its start time, and the lane reports that.
-11. **Look for a stray start.** After every run, and at once whenever a walk
-    stops because the watch no longer shows the build running:
+11. **The lane looks for a stray start.** The lane's agent, not the operator,
+    makes this from its own shell after every run, as soon as the operator
+    returns and step 10's confirmation from its own shell shows the
+    launcher's App gone; the operator returns at once when a walk stops
+    because the watch no longer shows the build running, or when the starter
+    exits 3:
 
     ```sh
-    python3 -B app/examination/standalone/operated/stray.py "<the bundle>" <bundle identifier> <the App's process number>
+    python3 -B app/examination/standalone/operated/stray.py "<the bundle>" <bundle identifier>
     ```
 
     It ends nothing and opens nothing. It prints every process of this user
-    whose executable is a file of the candidate's bundle, other than the one
-    the launcher started (decided by the file's identity, however its path is
-    spelled), and, by name only, every entry the launcher's own comparison
-    watches for this build in the real Library's places. It exits 0 only when
-    it could look everywhere and found neither, 1 when it found either, and 2
-    when it could not look; 2 is not "found neither", and the run is reported
-    as one whose check could not be completed. If it found a process: end it
-    (`kill <number>`), confirm it is gone, and record its number and start
-    time. The search does not tell under which home or environment that
-    process was started; record that as not known, unless something else
-    shows it. Whatever it found is reported to the lane
-    at once, and by the lane to App Agent 0 within the hour. Nothing under the
-    real Library is removed by any agent. This step is not optional: it and
-    that report are the conditions on which the owner accepted the exposure
-    described in the next section, and a run after which it was not made is
-    reported as a breach.
+    running the bundle's executable (decided by the file's identity, however
+    its path is spelled), and, by name only, every entry the launcher's own
+    comparison watches for this build in the real Library's places. Since the
+    launcher's App is gone by then, a process it finds is one the launcher did
+    not leave. It exits 0 only when it could look everywhere and found
+    neither, 1 when it found either, and 2 when it could not look; 2 is not
+    "found neither", and the run is reported as one whose check could not be
+    completed. If it found a process, the lane ends it (`kill <number>`),
+    confirms it is gone, and records its number and start time. The search
+    does not tell under which home or environment that process was started;
+    that is recorded as not known, unless something else shows it. Entries
+    found stay where they are: nothing under the real Library is removed by
+    any agent, and once reported they are found again by every later search
+    for the same candidate. Whatever it found is reported by the lane to App
+    Agent 0 within the hour. This step is not optional: it and that report
+    are the conditions on which the owner accepted the exposure described in
+    the next section, and a run after which it was not made is reported as a
+    breach.
 
 ## A view of an application that is not running
 

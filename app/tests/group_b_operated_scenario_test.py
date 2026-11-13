@@ -483,14 +483,13 @@ class StrayStart(unittest.TestCase):
         (self.tmp / 'elsewhere').mkdir()
         (self.tmp / 'elsewhere' / 'chirality-app-v4').write_text('invented')
 
-    def test_a_process_whose_executable_is_a_file_of_the_bundle_is_found_however_its_path_is_spelled(self):
+    def test_a_process_running_the_bundles_executable_is_found_however_its_path_is_spelled(self):
         bundle = str(self.bundle)
         (self.tmp / 'alias').symlink_to(self.bundle.parent)
         executable = bundle + '/Contents/MacOS/chirality-app-v4'
         when = 'Thu Nov 12 22:07:34 2026'
         paths = {501: executable,                                                        # started by the system
-                 502: executable,                                                        # the one the launcher started
-                 503: bundle + '/Contents/Resources/codex/bin/codex',                    # another file inside the bundle
+                 503: bundle + '/Contents/Resources/codex/bin/codex',                    # another file of the bundle: not its executable
                  504: str(self.tmp / 'alias' / self.bundle.name / 'Contents/MacOS/chirality-app-v4'),  # through a link
                  505: str(self.tmp / 'elsewhere' / 'chirality-app-v4'),                  # the same name, another file
                  506: None,                                                              # gone since the listing
@@ -499,12 +498,12 @@ class StrayStart(unittest.TestCase):
         if case_ignored:
             paths[508] = executable.upper()                                              # another letter case
         lines = [f'  {pid}     1 {when}' for pid in paths] + ['not a process line']
-        found = self.stray.processes(bundle, {502}, lines, path_of=paths.get)
-        expected = [501, 503, 504] + ([508] if case_ignored else [])
+        found = self.stray.processes(executable, lines, path_of=paths.get)
+        expected = [501, 504] + ([508] if case_ignored else [])
         self.assertEqual([entry['pid'] for entry in found], expected)
         self.assertEqual((found[0]['parent'], found[0]['started'], found[0]['executable']), (1, when, executable))
-        # The bundle named through the link finds the same processes.
-        again = self.stray.processes(str(self.tmp / 'alias' / self.bundle.name), {502}, lines, path_of=paths.get)
+        # The executable named through the link finds the same processes.
+        again = self.stray.processes(paths[504], lines, path_of=paths.get)
         self.assertEqual([entry['pid'] for entry in again], expected)
 
     def test_the_system_is_asked_for_an_executable_by_process_number(self):
@@ -550,7 +549,7 @@ class StrayStart(unittest.TestCase):
         with contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(self.stray.main(['stray.py', str(self.tmp / 'no-such.app'), identifier]), 2)  # no bundle to look for
         tool = [sys.executable, '-B', str(OPERATED / 'stray.py')]
-        for arguments in ([], ['relative.app', 'x'], ['/invented/folder', 'x'], ['/invented/x.app', 'id', 'not-a-number']):
+        for arguments in ([], ['relative.app', 'x'], ['/invented/folder', 'x'], ['/invented/x.app', 'id', '4242']):
             with self.subTest(arguments=arguments):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
 

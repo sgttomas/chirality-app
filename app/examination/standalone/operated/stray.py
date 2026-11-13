@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Look for a start of the candidate that the launcher did not make. It ends nothing and opens nothing.
 
-    python3 -B stray.py <the bundle, the path of the .app folder> <bundle identifier> [<process number the launcher started> ...]
+    python3 -B stray.py <the bundle, the path of the .app folder> <bundle identifier>
 
 A view of an application that is not running starts it through the system's launch service, outside the launcher.
-If the build ends by itself during a walk, the next view can do that. This prints, as JSON:
+If the build ends by itself during a walk, the next view can do that. The lane runs this from its own shell after
+a run, once the launcher's App is confirmed gone (README.md, steps 10 and 11), so any process it finds is one the
+launcher did not leave. It prints, as JSON:
 
-- every process of this user whose executable is a file inside the bundle, other than the numbers given, with its
-  parent and start time. "Inside" is decided by the file, not by how its path is spelled: the system is asked for
-  each process's executable path, and that file's device and inode are compared with those of every file in the
-  bundle, so a link, another letter case or a relative path does not hide it;
+- every process of this user running the bundle's executable (Contents/MacOS/<CFBundleExecutable>, which is what
+  the launch service starts), with its parent and start time. That is decided by the file, not by how its path is
+  spelled: the system is asked for each process's executable path, and that file's device and inode are compared
+  with the bundle executable's, so a link, another letter case or a relative path does not hide it;
 - by name only, every entry the launcher's own comparison would watch for this build (launch.py, WATCHED and
   watched_name) in the real Library's places.
 
@@ -60,25 +62,12 @@ def listing():
     return done.stdout.splitlines()
 
 
-def files_of(bundle):
-    """(device, inode) of every file in the bundle, links not followed. Anything that cannot be examined raises."""
-    def _raise(error):
-        raise error
-    found = set()
-    for current, _, files in os.walk(bundle, onerror=_raise):
-        for name in files:
-            info = os.lstat(os.path.join(current, name))
-            found.add((info.st_dev, info.st_ino))
-    if not found:
-        raise OSError('the bundle holds no file')
-    return found
-
-
-def processes(bundle, known, lines=None, path_of=executable_of):
-    inside, found = files_of(bundle), []
+def processes(executable, lines=None, path_of=executable_of):
+    """Every process of this user whose executable is the same file as the given one."""
+    target, found = os.stat(executable), []
     for line in listing() if lines is None else lines:
         parts = line.split()
-        if len(parts) != 7 or not parts[0].isdigit() or int(parts[0]) in known:
+        if len(parts) != 7 or not parts[0].isdigit():
             continue
         path = path_of(int(parts[0]))
         if path is None:
@@ -87,7 +76,7 @@ def processes(bundle, known, lines=None, path_of=executable_of):
             info = os.stat(path)
         except FileNotFoundError:
             continue  # its executable has been removed; it is not a file of the bundle now
-        if (info.st_dev, info.st_ino) in inside:
+        if (info.st_dev, info.st_ino) == (target.st_dev, target.st_ino):
             found.append({'pid': int(parts[0]), 'parent': int(parts[1]), 'started': ' '.join(parts[2:7]), 'executable': path})
     return found
 
@@ -113,20 +102,22 @@ def real_library():
 
 
 def main(argv):
-    if len(argv) < 3 or not argv[1].startswith('/') or not argv[1].endswith('.app') or not all(a.isdigit() for a in argv[3:]):
-        print('usage: stray.py <bundle .app path> <bundle identifier> [<process number the launcher started> ...]', file=sys.stderr)
+    if len(argv) != 3 or not argv[1].startswith('/') or not argv[1].endswith('.app'):
+        print('usage: stray.py <bundle .app path> <bundle identifier>', file=sys.stderr)
         return 2
-    bundle, identifier, known = argv[1], argv[2], {int(a) for a in argv[3:]}
+    bundle, identifier = argv[1], argv[2]
     library = real_library()
     try:
         with open(os.path.join(bundle, 'Contents', 'Info.plist'), 'rb') as stream:
             executable = plistlib.load(stream)['CFBundleExecutable']
-        running = processes(bundle, known)
+        if not isinstance(executable, str) or not executable or '/' in executable:
+            raise KeyError('CFBundleExecutable is not a plain name')
+        running = processes(os.path.join(bundle, 'Contents', 'MacOS', executable))
         entries, not_listed = library_entries(identifier, executable, library)
     except (OSError, KeyError, plistlib.InvalidFileException) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
-    print(json.dumps({'processes_not_started_by_the_launcher': running, 'entries_named_for_the_build_in_the_real_library': entries,
+    print(json.dumps({'processes_running_the_bundle_executable': running, 'entries_named_for_the_build_in_the_real_library': entries,
                       'places_that_could_not_be_listed': not_listed}, indent=1))
     if running or entries:
         return 1
