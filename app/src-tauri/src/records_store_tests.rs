@@ -633,7 +633,7 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
     let names: Vec<String> = ["LEGACY_RECORDS", "LEGACY_LOG", "CAPTURES", "CAPTURE_STORE", "LEGACY_DIRECTORY",
         ".chirality/records", ".chirality/captures", "records/coordination.rs.jsonl", "\".chirality\""].iter().map(|n| n.to_string()).collect();
     const NAMED: [(&str, &str, &str); 11] = [
-        ("records_store.rs", "58199fc5ca3c95dc", "the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
+        ("records_store.rs", "71a9fb0ca2a91b13","the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
         ("storage.rs", "6ca4d68f984fcdfc", "the three names' definitions, the library's own act log and capture folder, and checks of the shape of a path already in hand"),
         ("connector_route_store.rs", "9e740a8128ab3c84", "the accounts folder's name and two comparisons of a path recorded in an account; the place itself comes from records_store::route_accounts_place"),
         ("act_control.rs", "9e08f8f561e55d16", "the A15 capture store's name and the library act log's recorded name: an A15 capture stays with its library"),
