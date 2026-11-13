@@ -821,6 +821,7 @@ fn records_store_kept_reader_of_workflow_records_refuses_an_imported_copy_after_
     std::fs::create_dir_all(&legacy).unwrap();
     std::fs::write(legacy.join(format!("{}.json", key(&reference).unwrap())), &record.bytes).unwrap();
     assert_eq!(kept.resolve(&reference).unwrap().bytes(), record.bytes);
+    assert!(kept.reader.lock().unwrap().as_ref().is_some_and(|b| b.records_folder().is_none()), "records in place hold records: bound in place");
     let imported = crate::records_store::import(&f.0).unwrap();
     assert_eq!(imported["state"], "imported", "{imported}");
     std::fs::remove_dir_all(&legacy).unwrap();
@@ -906,4 +907,60 @@ fn records_store_kept_reader_of_workflow_records_refuses_when_its_census_cannot_
     assert!(listed.is_err(), "a census that cannot be read is never records nowhere: {listed:?}");
     assert!(p.reader.lock().unwrap().is_none(), "nothing bound on an unread census");
     assert_eq!(p.list_references().unwrap(), Vec::<String>::new(), "reads once the census can be read");
+}
+
+/// The binding rule's three cases, through the reader's own operation.
+/// Proven absence: no store folder for the project and no records in place.
+/// The reader reads nothing and binds nothing.
+#[test]
+fn records_store_kept_reader_of_workflow_records_binds_nothing_where_records_are_proven_absent() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let p = f.store();
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new());
+    assert!(crate::records_store::attach(&f.0, false).unwrap().dir.is_none(), "no store folder for the project");
+    assert!(p.reader.lock().unwrap().is_none(), "proven absence: nothing bound");
+}
+
+/// An existing home that is empty: the project has a store folder holding no
+/// records. The decision reads that as records nowhere (the store's own
+/// `store_holds`), so the reader reads nothing and binds nothing; it binds at
+/// its first read after a record is there, to that folder.
+#[test]
+fn records_store_kept_reader_of_workflow_records_binds_an_empty_home_only_once_it_holds_a_record() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    assert!(home.is_dir(), "the project's store folder exists");
+    let kept = f.store();
+    assert_eq!(kept.list_references().unwrap(), Vec::<String>::new());
+    assert!(kept.reader.lock().unwrap().is_none(), "an empty home holds no records: nothing bound");
+    let writer = f.store();
+    let record = pending(&writer);
+    let reference = record.reference().to_owned();
+    writer.publish(&record).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), record.bytes);
+    let bound = kept.reader.lock().unwrap().as_ref().and_then(|b| b.records_folder().map(|(path, _)| path.to_path_buf()));
+    assert_eq!(bound, Some(home), "bound to the home once it holds a record");
+}
+
+/// A place that cannot be examined: whether the project's store folder holds
+/// records is not known. The reader refuses; it never reads that as absent or
+/// empty, and binds nothing.
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_a_home_it_cannot_examine() {
+    use std::os::unix::fs::PermissionsExt;
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    let p = f.store();
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let listed = p.list_references();
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o755)).unwrap();
+    // The refusal is the decision's own (its disposal check could not read the
+    // retention state), and it carries its cause.
+    let refused = listed.expect_err("never read as absent or empty");
+    assert!(refused.contains("Permission denied"), "{refused}");
+    assert!(p.reader.lock().unwrap().is_none(), "nothing bound on a place not examined");
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new(), "reads once it can be examined");
 }
