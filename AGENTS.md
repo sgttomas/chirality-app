@@ -440,7 +440,10 @@ no memories; durable knowledge lives in Chirality. Scratch holds evidence,
 outputs and logs, never instructions. Once work is integrated or abandoned,
 each contributor deletes its scratch, worktrees, branches and build output
 unless an open review, named consumer or recovery need still uses them, or the
-owner asks to keep them. Before removal, check for wanted uncommitted work;
+owner asks to keep them. The agent that delegated a child or reviewer is
+responsible for removing that agent's worktree and scratch under this rule,
+once it has confirmed they are no longer in use: a returned agent has no one
+else to do it. Before removal, check for wanted uncommitted work;
 remove worktrees with `git worktree remove` so Git's records stay consistent.
 
 ## Local boundaries
