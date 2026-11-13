@@ -226,6 +226,7 @@ jobs:
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib hosting::successor::tests::installed_s4 -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib production_cannot_be_overridden_by_development_fields -- --test-threads=1
           cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib the_release_environment_route_never_takes_the_default_store_for_anything_but_the_childs_home -- --test-threads=1
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib the_release_environment_route_refuses_a_relative_or_empty_home_and_admits_an_absolute_one -- --test-threads=1
       - name: Development model address is absent from the release configuration (fixture supplier)
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml --features distribution-successor --lib dev_model_address -- --test-threads=1
       - name: Publisher build selection (synthetic inputs, default None)

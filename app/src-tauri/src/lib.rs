@@ -1034,7 +1034,7 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
 ///   for homes the App uses or plans. No child resolves a raw value under
 ///   its own working folder: CHIRALITY_CODEX_HOME is the configured home
 ///   itself; every Codex child is given CODEX_HOME explicitly; a relative
-///   CHIRALITY_KEY_HOME is refused by its home plan before any use. (An
+///   CHIRALITY_KEY_HOME is refused at admission (`environment_path_refusal`). (An
 ///   earlier version said raw values were compared "exactly as before"
 ///   while making them absolute; the second reading showed that wrong.)
 fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
@@ -2937,12 +2937,42 @@ fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Opt
     })
 }
 
+/// The paths the environment route takes from the environment: each one
+/// supplied, empty included, must be an absolute path with no `.` or `..`
+/// component, CHIRALITY_APP_DATA's own rule. An absent name is not supplied,
+/// as before. The inherited CODEX_HOME is not a launch input and is not read.
+const ENVIRONMENT_PATHS: [&str; 5] = ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"];
+/// Why an environment-supplied path is refused, by name; the value is never
+/// echoed. Components are read from the value as given: `Path::components`
+/// drops a `.` inside a path, which would let `/a/./b` through.
+fn environment_path_problem(name: &str, value: &std::ffi::OsStr) -> Option<String> {
+    if value.is_empty() {
+        return Some(format!("{name} is empty: it must be an absolute path without . or .. components"));
+    }
+    let dotted = value.as_encoded_bytes().split(|byte| *byte == b'/').any(|part| part == b"." || part == b"..");
+    (!std::path::Path::new(value).is_absolute() || dotted).then(|| format!("{name} must be an absolute path without . or .. components"))
+}
+/// Every refused environment path, in [`ENVIRONMENT_PATHS`] order, as one reason.
+fn environment_path_refusal(input: &impl Fn(&str)->Option<std::ffi::OsString>) -> Option<String> {
+    let problems: Vec<String> = ENVIRONMENT_PATHS.iter().filter_map(|name| input(name).and_then(|value| environment_path_problem(name, &value))).collect();
+    (!problems.is_empty()).then(|| problems.join("; "))
+}
+
 fn explicit_environment_launch(
     input: impl Fn(&str)->Option<std::ffi::OsString>, data: &Result<PathBuf,String>, resources: &Result<PathBuf,String>, is_dev: bool,
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
     if !environment_selected(&input) { return None; }
     let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // Refused at admission, on both branches, before any configuration is
+    // built or the probe home allocated. The key and shared values are carried
+    // as received, never read as not supplied; nothing reads them while the
+    // configuration is refused.
+    if let Some(reason) = environment_path_refusal(&input) {
+        let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+        let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
+        return Some(desktop_startup::Launch::environment(workspace, Err(reason), key, shared));
+    }
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
         host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {

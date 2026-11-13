@@ -1500,7 +1500,14 @@ throwaway homes then do not share web view storage. Without both set (`HOME`
 alone redirects none of it), they share it under `~/Library`.
 
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
-`CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary
+`CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. On this route
+`CHIRALITY_CODEX_HOME`, `CHIRALITY_KEY_HOME` and the three
+`CHIRALITY_SHARED_*` paths, when set, must each be an absolute path without
+`.` or `..` components; one that is relative, empty or dotted is refused by
+name at admission, before anything is started with it, in development and
+release builds alike. An empty value is refused, not read as unset. The
+inherited `CODEX_HOME` is not a launch input: the App gives each Codex child
+its own. A matching binary
 hash is a development assertion. Full qualified distribution identity is absent,
 so the development run requires `CHIRALITY_ALLOW_UNVERIFIED=1` and is labelled
 `unverified-development` (LT-24); mismatches still refuse.
