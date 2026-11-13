@@ -352,7 +352,11 @@ The repository checks are the
 commands of the `repository-checks` job in
 `.github/workflows/governance-harness.yml`; run locally the ones a change
 affects, for example `python3 -m pytest -q tools/ci tools/validation`. The
-hosted `harness` result on the exact PR head is the merge check. Broad suites
+hosted `harness` result on the exact PR head is the merge check. GitHub
+reports it against that head, but its repository checks test the head merged
+with `main` as `main` stood when the run started, and its product checks the
+head itself; where this text speaks of the checked tree or the tree checks
+passed on, it means both. Broad suites
 run for an identified need or release preparation; the nightly full suite
 covers main.
 
