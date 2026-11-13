@@ -1566,14 +1566,17 @@ registration or import) and is backfilled once from each readable account.
 Its first line lists the store folder key of every project present when it
 began, taken from the store's project folders and its registry; if they
 cannot be listed whole the witness does not begin and the act that would
-have begun it is refused. That list, and no time, says whether a project
-predates the witness. A witness line says an import was begun, not that
-anything was copied. Development note: a project that was present when the
-witness began, with no witness line and no import account showing an import,
-reads "origin not established" for good. Nothing in the App reads that
-answer yet (the decision view does not consult it on this build), so exit
-criterion 5 is not served by it until that view does; when it is, criterion
-5 must be observed in a project created after the witness began.
+have begun it is refused. That list records which projects predate the
+witness, and no time is compared. A witness line says an import was begun,
+not that anything was copied. The witness is written by this build and
+read by nothing that decides: its reader answers only that a legacy import
+is established, from a witness line read whole and wholly formed or from
+the project's account, or that it is not; it never concludes "no import",
+since the absence of a line is not evidence that none was begun. Its
+answer establishes the imports it lists, not an exhaustive history and not
+an authenticated origin (the store's files are unsigned). Nothing in the App
+reads it yet (the decision view does not consult it on this build), so exit
+criterion 5 is not served by it until that view does.
 
 The store is created (its folder and `store.json`) when the App starts, and
 otherwise only by the acts that write for the person: attaching a project with

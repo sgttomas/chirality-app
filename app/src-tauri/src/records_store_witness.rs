@@ -173,7 +173,10 @@ pub(crate) fn record(store: &Path, project: &str, import: &str, files: &[Witness
 /// No product code calls this yet. What a caller may conclude: `Imported`,
 /// that an import of this project's was begun (a witness line says begun,
 /// not copied), from a witness line read whole and wholly formed or from the
-/// project's account; `NotEstablished` or an error, nothing at all. Pull
+/// project's account; it establishes the imports it lists, not an
+/// exhaustive history and not an authenticated origin: the store's files
+/// are unsigned, so a well-formed line added from outside the App reads as
+/// the App's own. `NotEstablished` or an error: nothing at all. Pull
 /// request 247 may rely on it only for the positive answer; a caller that
 /// wants "no import" from the witness needs its own design and its own
 /// review.
