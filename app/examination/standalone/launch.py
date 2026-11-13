@@ -88,8 +88,9 @@ What it also does, each with its limit:
   App then makes in its home is the App's.
 - HOME and CFFIXED_USER_HOME in the mapping handed to the start name the home
   allocated for this launch, and nothing else: each is that home's path as
-  text (check_environment), and that path, not followed if it is a link, is
-  the directory the launcher holds, by device and inode (check_home). Unset,
+  text (check_environment), the path is absolute, and, not followed if it is
+  a link, it is the directory the launcher holds, by device and inode
+  (check_home). Unset,
   empty or any other folder refuses. This is stated as a guard of its own
   because the supplier resolves its home-relative places from HOME and falls
   back to the account's real home when HOME is unset or empty. The mapping
@@ -127,6 +128,24 @@ What it also does, each with its limit:
   lane's change, not yet on main; of a candidate built before it, nothing is
   said). Neither override establishes where a launch's requests went. The
   launcher reads no system managed configuration.
+
+- The watched places of the real Library are its own first level and nine
+  folders in it (WATCHED). Two more that were watched are not: Cookies and
+  Autosave Information. On a Mac with the system's privacy protection in force
+  a listing of either is refused, the launcher does not launch when a watched
+  place cannot be listed, and so on such a host it could not launch at all
+  (found at its first real run). What it no longer observes: an entry named
+  for the build appearing in either folder. A before-listing that cannot be
+  made still refuses the launch, and the record names the place.
+- A launch ended from outside is recorded in the launcher's own words: when the
+  launcher received a signal and passed a termination to the App, `ended` says
+  so, beside how the App's process ended and whether its process group was gone
+  after the settle time. Such a run is not clean, and the record does not say
+  it was; it says why.
+- The folder Codex works in, when the App starts one, is the App's choice: the
+  project chosen in the App, the App's data folder under the home, or the
+  temporary folder in the home. Each is the project folder, or lies under the
+  home; the folders above both are what git_marker_above asks.
 
 Limits: the comparison sees names, kinds, sizes and modification times, not
 content; the App's working directory is given by pathname; the launcher sends
@@ -205,8 +224,10 @@ ALLOWED = {
 
 # STATEMENT 3: the Library folders searched, beside the Library's own first level. Protected folders (Containers,
 # Group Containers, Mail, Safari and the like) are not listed: reading them can be refused or raise a privacy prompt.
+# Cookies and Autosave Information were listed and are protected in the same way: with them the launcher could not
+# launch on a host that refuses their listing.
 WATCHED = ('Application Support', 'Caches', 'WebKit', 'HTTPStorages', 'Preferences', 'Saved Application State',
-           'Logs', 'Cookies', 'Application Scripts', 'Autosave Information', 'LaunchAgents')
+           'Logs', 'Application Scripts', 'LaunchAgents')
 EXECUTABLE_RULE = re.compile(r'chirality-[a-z0-9][a-z0-9_-]{2,}')  # e.g. chirality-app-v4
 
 _forwarding = threading.Event()  # set while the launcher latches signals (tests wait on it before signalling)
@@ -695,6 +716,8 @@ def check_home(env, home_fd):
         named = os.stat(env['HOME'], follow_symlinks=False)
     except (OSError, KeyError, TypeError) as error:
         raise Refusal(f'the folder HOME names could not be checked ({type(error).__name__}); refusing to launch') from None
+    if not os.path.isabs(env['HOME']):
+        raise Refusal('HOME is not an absolute path; refusing to launch')
     if not stat.S_ISDIR(named.st_mode) or (named.st_dev, named.st_ino) != _ident(home_fd):
         raise Refusal('the folder HOME names is not the directory allocated for this launch; refusing to launch')
 
@@ -760,6 +783,7 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
             return
         facts['signals'].append({'signal': signal.Signals(signum).name, 'at': now()})
         if proc is not None and proc.poll() is None:
+            facts['passed_on'] = True  # an attempt to pass a termination, whether or not it arrived
             try:
                 proc.send_signal(signal.SIGTERM)
             except ProcessLookupError:
@@ -774,7 +798,8 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         try:
             before = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)
         except OSError as error:
-            facts['ended'] = f'not launched: the before-listing could not be made ({type(error).__name__})'
+            place = Path(error.filename).name if isinstance(error.filename, (str, os.PathLike)) else 'a watched place'
+            facts['ended'] = f'not launched: the before-listing could not be made ({type(error).__name__} at {place})'
             return _finish(record_fd, record, facts, code=2, label='not launched')
         prefs_before = preferences_observation()
         cache_before = observe(cache, ('',), identifier, executable, 'per-user cache folder')
@@ -802,12 +827,17 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         facts['started'] = True
         record['pid'] = proc.pid
         if facts['signals']:
+            facts['passed_on'] = True
             proc.send_signal(signal.SIGTERM)
         facts['returncode'] = proc.wait()
         facts['ended'] = how_it_ended(facts['returncode'])
         record['ended_at'] = now()
         time.sleep(SETTLE_SECONDS)
         facts['process_group'] = record['process_group_after_settle'] = group_state(proc.pid)
+        if facts.get('passed_on'):  # ended from outside, in the launcher's own words
+            received = ', '.join(entry['signal'] for entry in facts['signals'])
+            facts['ended'] += (f'; the launcher received {received} while the App ran and passed a termination to it; '
+                               f"its process group was {facts['process_group']} after the settle time")
         after = again = None
         try:
             after = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)

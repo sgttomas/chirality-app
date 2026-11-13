@@ -298,6 +298,23 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                     undo()
                 self.assertEqual((code, record['real_library']['result']), (1, 'not made'), out)
 
+    def test_a_before_listing_that_cannot_be_made_refuses_and_names_the_place(self):
+        (self.real / 'Library/Logs').mkdir()
+        (self.real / 'Library/Logs').chmod(0o000)
+        self.addCleanup((self.real / 'Library/Logs').chmod, 0o700)
+        code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+        self.assertEqual(record['ended'], 'not launched: the before-listing could not be made (PermissionError at Logs)')
+
+    def test_the_two_protected_folders_are_not_watched_so_a_refused_listing_of_them_does_not_stop_a_launch(self):
+        for name in ('Cookies', 'Autosave Information'):
+            self.assertNotIn(name, launch.WATCHED)
+            (self.real / 'Library' / name).mkdir()
+            (self.real / 'Library' / name).chmod(0o000)
+            self.addCleanup((self.real / 'Library' / name).chmod, 0o700)
+        code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome'], record['real_library']['result']), (0, 'clean', 'unchanged'), out)
+
     def test_an_interrupted_record_write_leaves_no_record_and_an_empty_record_folder(self):
         with mock.patch.object(launch.os, 'link', side_effect=OSError(28, 'No space left on device')):
             code, record, out, folder = self.run_helper(self.candidate())
@@ -347,6 +364,12 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                     thread.join()
                 self.assertEqual(sent, [1])
                 self.assertEqual((code, record['outcome'], len(record['signals_received'])), (1, 'failed', 1), out)
+                said = ('the launcher received SIGTERM while the App ran and passed a termination to it; '
+                        'its process group was gone after the settle time')
+                if step == 'while the App runs':  # ended from outside: the record says so in the launcher's words
+                    self.assertTrue(record['ended'].endswith('; ' + said), record['ended'])
+                else:  # the App had already ended by itself: nothing was passed to it
+                    self.assertEqual(record['ended'], 'exited with status 0')
 
 
 KILLED_RUNNER = '''
@@ -661,10 +684,17 @@ class NothingAbove(Fixture):  # the project folder, no .git entry above, and wha
                 self.assertFalse(any(folder.rglob('received-env.txt')))
                 shutil.rmtree(folder)
 
+    def test_home_is_an_absolute_path(self):
+        with self.assertRaisesRegex(launch.Refusal, 'not an absolute path'), mock.patch.object(
+                launch.os, 'stat', lambda *a, **k: os.fstat(os.open(self.tmp, os.O_RDONLY))), \
+                mock.patch.object(launch, '_ident', lambda fd: (os.stat(self.tmp).st_dev, os.stat(self.tmp).st_ino)):
+            launch.check_home({'HOME': 'relative/home'}, None)
+        self.assertTrue(os.path.isabs(str(REAL_HOMES_ROOT())))
+
     def test_the_mapping_carries_no_codex_home_variable(self):
         home = self.tmp / 'invented-home'
         good = launch.child_environment(home, 'tmp', launch.DEFAULT_MODEL_ADDRESS)
-        for name in ('CODEX_HOME', 'CHIRALITY_CODEX_HOME'):
+        for name in ('CODEX_HOME', 'CHIRALITY_CODEX_HOME', 'CODEX_SQLITE_HOME', 'CHIRALITY_WORKSPACE'):
             with self.subTest(name):
                 self.assertNotIn(name, launch.ALLOWED)
                 self.assertNotIn(name, good)
