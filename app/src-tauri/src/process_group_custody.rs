@@ -15,6 +15,16 @@ pub(crate) fn model_next_mint_error(errno: i32) {
 const MEMBER_BYTES: usize = 64 * 1024;
 const MEMBER_BUDGET: usize = MEMBER_BYTES / std::mem::size_of::<libc::pid_t>();
 
+/// What creating a process gave: one this App holds, or one that was created
+/// and whose reservation was already lost (another reaper had taken the
+/// leader), with the observation's error. The second is never a started
+/// process: nothing may be written to it, read from it or signalled, and it is
+/// kept only so that its home is not treated as free of it.
+pub(crate) enum Spawned {
+    Started(Arc<OwnedProcess>),
+    CreatedLost(Arc<OwnedProcess>, String),
+}
+
 #[derive(Clone, Debug)]
 pub(crate) enum Census {
     Complete(usize),
@@ -60,14 +70,34 @@ pub(crate) struct OwnedProcess {
 }
 impl OwnedProcess {
     /// The creation fact is supplied here, not inferred from Child.id after exit.
+    /// A process whose reservation is found lost at creation is not returned: the
+    /// caller gets the error. Callers that must account for every process they
+    /// create on a home use [`Self::spawn_accounted`].
     pub(crate) fn spawn(command: &mut Command) -> Result<Arc<Self>, String> {
+        match Self::spawn_accounted(command)? {
+            Spawned::Started(process) => Ok(process),
+            Spawned::CreatedLost(_, error) => Err(error),
+        }
+    }
+    /// As [`Self::spawn`], but a process that was created and whose reservation
+    /// was lost at once is handed back too, as what it is: created, never
+    /// started for use, its exit unobservable and its group never known empty,
+    /// so that it can never be established settled. `Err` means no process was
+    /// created.
+    pub(crate) fn spawn_accounted(command: &mut Command) -> Result<Spawned, String> {
         let child = command
             .process_group(0)
             .spawn()
             .map_err(|e| format!("spawn failed: {e}"))?;
-        Self::mint(child)
+        Ok(Self::mint_accounted(child))
     }
     fn mint(child: Child) -> Result<Arc<Self>, String> {
+        match Self::mint_accounted(child) {
+            Spawned::Started(process) => Ok(process),
+            Spawned::CreatedLost(_, error) => Err(error),
+        }
+    }
+    fn mint_accounted(child: Child) -> Spawned {
         let pid = child.id() as i32;
         let process = Arc::new(Self {
             pid,
@@ -93,12 +123,12 @@ impl OwnedProcess {
         // still require a successful original-child observation.
         if let Err(error) = process.observe_exit() {
             if process.released() {
-                return Err(error);
+                return Spawned::CreatedLost(process, error);
             }
             // Creation/group fact is actual. A failed observation is not a
             // reap and cannot discard this still-owned spawned Child.
         }
-        Ok(process)
+        Spawned::Started(process)
     }
     /// Records the home this process was started on; the first record stands.
     pub(crate) fn bind_home(&self, identity: (u64, u64)) {

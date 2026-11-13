@@ -1382,7 +1382,12 @@ on a home while a process group it started there is not established settled
 and none while the lock is held, whatever the Host believes. "There" is the
 directory, by device and inode, recorded for each process when it is started:
 the same home named through another spelling or a link is the same home, and a
-process with no recorded home counts for every home. A start refused on
+process with no recorded home counts for every home. A process that was
+created but whose exit reservation was already lost (another reaper had taken
+its leader) is kept too, as one that can never be established settled: the
+start fails as a failed spawn, and for the life of that App process nothing
+further is started on that home and the menu quit is withheld, as for a
+reservation lost later; ending the App from the system ends it. A start refused on
 the first ground alone, the lock being free, is told that this App is still
 holding the home for a Codex process not confirmed ended. A build
 before this lock takes none and is not excluded by it. The lock is the file:

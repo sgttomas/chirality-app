@@ -835,6 +835,9 @@ pub struct Host {
 pub(crate) fn home_identity(home: &std::path::Path) -> String {
     format!("app-home:{}", sha256_hex(home.as_os_str().as_encoded_bytes()))
 }
+/// The failure a start records when the supplier process was created and its reservation was
+/// found lost at once. It does not say no process was created: one was.
+pub(crate) const CREATED_AND_LOST: &str = "the supplier process was created, but its exit reservation was lost at creation; it is kept as not established ended and nothing was started on it";
 /// DEL-01-01/05: the home one start call holds, and the identity (device,
 /// inode) of the held directory. Owned by that call alone and never changed:
 /// each process the attempt is handed to is admitted only while the path
@@ -2036,18 +2039,35 @@ impl Host {
                 });
             }
         }
-        let spawned = process_group_custody::OwnedProcess::spawn(&mut cmd);
+        let spawned = process_group_custody::OwnedProcess::spawn_accounted(&mut cmd);
         // The App's copy is closed at once, spawned or not: the child's copy is what holds the
         // lock, for as long as that Codex or anything it passed the descriptor to keeps it open.
         drop(process_lock);
+        let spawned = match spawned {
+            // Created, and its reservation already lost: not a started process. It is tied to
+            // this home and kept among the retired groups as one that can never be established
+            // settled, so that this home is not started on again by this App process (the
+            // Host's own check, and the home hold when this Host goes). Nothing is written to
+            // it, read from it or signalled. The start fails as a failed spawn.
+            Ok(process_group_custody::Spawned::CreatedLost(lost, observation)) => {
+                lost.bind_home(home.identity);
+                self.retired_processes.lock().unwrap().push(lost);
+                let mut i = self.inner.0.lock().unwrap();
+                let failure = CREATED_AND_LOST;
+                self.lt(&mut i, "LT-08", "spawn-failed", "halted-after-repeated-failure",
+                        json!({"failure": failure, "observation": observation, "failureCount": 1}));
+                return Err(failure.into());
+            }
+            Ok(process_group_custody::Spawned::Started(process)) => Ok(process),
+            Err(error) => Err(error),
+        };
         let child = match spawned {
             // The one place an app-server process is created. It is tied here, immediately on a
             // successful spawn, to the identity of the directory this start holds (from the handle
             // the home hold opened at admission, never from the path again), so that every way
-            // it can then be left behind carries it. (A spawn that reports an error after the
-            // operating system created the process, which it does when the child's reservation
-            // was already lost to another reaper, returns no process to bind or to keep.)
-            // The ways: a failed allocation that retires it at once, a
+            // it can then be left behind carries it. (A process created with its reservation
+            // already lost to another reaper is tied to the home and kept above, as one that can
+            // never be established settled.) The ways: a failed allocation that retires it at once, a
             // handshake that fails, a Stop during the start, and its later move to the retired
             // list when another child takes the slot. Label probes are not given a home: an
             // unsettled probe refuses every start, on any home.
@@ -7419,6 +7439,68 @@ mod local_process_lock_tests {
         assert!(host.own_unsettled_census((meta.dev(), meta.ino())).is_some());
         let other = std::fs::metadata(f.root.join("probe")).unwrap();
         assert!(host.own_unsettled_census((other.dev(), other.ino())).is_none());
+    }
+
+    /// A process created with its reservation already lost is not thrown away. The start fails
+    /// as a failed spawn, in words that do not say no process was created; no caller takes the
+    /// kept process for a started one; it is tied to its home and can never be established
+    /// settled, so this App process starts nothing further on that home under any spelling,
+    /// while a second home is admitted; the menu quit's settlement is withheld; and the home
+    /// stays held when the Host goes. Nothing is signalled or waited on for it.
+    #[test]
+    fn a_process_whose_reservation_is_lost_at_creation_is_kept_and_holds_its_home() {
+        use crate::home_hold::KEPT;
+        use std::os::unix::fs::MetadataExt;
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        // The loss is modelled at the app-server's creation, after the label probe's own.
+        *host.after_successor_check.lock().unwrap() = Some(Box::new(|| process_group_custody::model_next_mint_error(libc::ECHILD)));
+        let failed = host.start(&f.cfg, "fixture").unwrap_err();
+        assert_eq!(failed, CREATED_AND_LOST);
+        assert!(failed.contains("was created") && !failed.contains("spawn failed"), "the record does not say no process was created");
+        let event = host.lifecycle_events().last().unwrap().clone();
+        assert_eq!(event["transitionId"], "LT-08", "{event}");
+        assert!(serde_json::to_string(&event).unwrap().contains(CREATED_AND_LOST), "{event}");
+        // Not a started process for any caller: no child, no input pipe, no generation.
+        let status = host.snapshot();
+        assert!(host.child.lock().unwrap().is_none() && host.stdin.lock().unwrap().is_none() && status["generation"].is_null(), "{status}");
+        assert_eq!(status["state"], "halted-after-repeated-failure");
+        let kept = host.retired_processes.lock().unwrap().first().cloned().expect("kept among the retired groups");
+        let _guard = LeftBehind(kept.id() as i32);
+        let meta = std::fs::metadata(f.root.join("home")).unwrap();
+        assert_eq!(kept.home(), Some((meta.dev(), meta.ino())));
+        assert!(kept.released() && !kept.settled(), "its reservation is lost and its end is not established");
+        assert_eq!(kept.force_if_needed(), (false, Some("group authority unavailable; no signal".into())), "nothing is signalled");
+        // The created stand-in ends when its input closes; the lock it was given is then free,
+        // so what refuses below is the Host's own check.
+        until("the lock is free", || take_process_lock(&f.lock_path()).is_ok());
+        host.inner.0.lock().unwrap().state = "stopped".into();
+        let mut respelled = f.cfg.clone();
+        respelled.codex_home = f.root.join("home").join("..").join("home");
+        for cfg in [&f.cfg, &respelled] {
+            assert_eq!(host.start(cfg, "fixture").unwrap_err(), KEPT, "{}", cfg.codex_home.display());
+        }
+        assert_eq!(std::fs::read_to_string(f.root.join("home/started")).map(|text| text.len()).unwrap_or(0) <= 1, true, "no further process on that home");
+        // The menu quit's settlement is withheld, in the existing words, and is cancelled.
+        host.begin_quit();
+        let quit = host.settle_for_quit("fixture", "quit").unwrap_err();
+        assert!(quit.starts_with("Quit withheld; owned process settlement is unavailable"), "{quit}");
+        host.cancel_quit();
+        assert!(!kept.settled() && host.retired_processes.lock().unwrap().iter().any(|p| p.id() == kept.id()), "still kept after the quit attempt");
+        // A second home is another home.
+        let mut other = f.cfg.clone();
+        other.codex_home = f.root.join("second-home");
+        std::fs::create_dir(&other.codex_home).unwrap();
+        assert_eq!(host.start(&other, "fixture").unwrap()["state"], "ready");
+        stop_and_wait(&host);
+        // When the Host goes, the home stays held for the kept process: another Host of this
+        // process is refused it.
+        let gone = Arc::downgrade(&host);
+        drop(host);
+        until("the Host is gone", || gone.upgrade().is_none());
+        let next = Arc::new(Host::new());
+        assert_eq!(next.start(&f.cfg, "fixture").unwrap_err(), KEPT);
+        assert_eq!(next.snapshot()["state"], "absent");
     }
 
     /// The process that served as Codex is itself alive after Stop: a stand-in whose serving
