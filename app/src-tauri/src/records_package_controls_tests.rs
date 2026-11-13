@@ -221,18 +221,21 @@ fn a_controls_only_repair_says_the_packages_log_integrity_is_not_stated() {
 
 #[test]
 fn a_folder_whose_link_names_a_project_with_an_unfinished_import_elsewhere_keeps_its_own_package_state_and_its_way_back() {
-    // Q's import is interrupted at its own folder.
+    // Another folder, recorded for its own project P. It is registered
+    // first: while Q's package import below has its registry write pending,
+    // no other registry write is made (pull request 261).
     let f = Fixture::new(false);
-    let plan = f.original_plan();
-    STOP.with(|flag| *flag.borrow_mut() = Some("payload"));
-    assert!(super::super::apply(plan, &actor(), &observed()).is_err());
-    assert_eq!(super::super::status(&f.root)["state"], "incomplete");
-    // Another folder, recorded for its own project P, gets a link naming Q.
     let other = f.base.join("other-project");
     std::fs::create_dir_all(&other).unwrap();
     crate::records::append_project(&other,None,"app-writer:local","evidence_limit",&crate::records::APP_WRITER,
         json!({"label":"unresolvable reference","subjectRef":"invented P entry"})).unwrap();
     let p = attach(&other, false).unwrap().project.unwrap();
+    // Q's import is interrupted at its own folder.
+    let plan = f.original_plan();
+    STOP.with(|flag| *flag.borrow_mut() = Some("payload"));
+    assert!(super::super::apply(plan, &actor(), &observed()).is_err());
+    assert_eq!(super::super::status(&f.root)["state"], "incomplete");
+    // P's folder gets a link naming Q.
     let store_id = opened().unwrap().1;
     std::fs::write(other.join(PROJECT_LINK), serde_json::to_vec(&link_value(&f.project, &store_id)).unwrap()).unwrap();
     let view = crate::records_store::status(Some(&other));
