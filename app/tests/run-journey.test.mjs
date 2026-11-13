@@ -9,7 +9,7 @@ import {loadSrc} from './support/load-src.mjs';
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {RunWorkflowGuide, runReading, guideResultWords} = loadSrc('RunJourney');
+const {RunWorkflowGuide, runReading, runTurnNotices, turnStatusWords, guideResultWords} = loadSrc('RunJourney');
 const UNKNOWN = {state:'native workflow-text send outcome unknown; original source retained', limit:'reply lost'};
 const REFUSED = {state:'native workflow-text turn/start refused by Codex; original source retained', limit:'invented refusal'};
 const NOT_CONFIRMED = 'start not confirmed (turn refused or outcome unknown); not opened, not live';
@@ -382,8 +382,8 @@ for (const [replacement, currentGeneration] of [
   const projection = (generation, runs) => data({context:{sourceRef:'src', generation}, selections:selected(), runs});
   const ui = await mount({thread:'T1', navigate:true, host:snapshot(g, 'active'), data:projection(g, [original])});
   try {
-    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
-    assert.match(region(ui.c, 'Run open-original').textContent, /Working/);
+    assert.match(region(ui.c, 'Run progress').textContent, /Codex reports this conversation active/);
+    assert.match(region(ui.c, 'Run open-original').textContent, /Codex reports this conversation active/);
     const replacementQuestion = {generation:currentGeneration, state:'outstanding', nativeParameters:{threadId:'T1'}};
     // The open row is unchanged while both the current source and its same-ID
     // activity are replaced. No ended result or new-run order is fabricated.
@@ -409,7 +409,7 @@ for (const [replacement, currentGeneration] of [
     await ui.press('Answer in the conversation');
     assert.deepEqual(ui.shown, [['T1', 'conversation-requests']]);
     await ui.rerender({host:snapshot(currentGeneration, 'active')});
-    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
+    assert.match(region(ui.c, 'Run progress').textContent, /Codex reports this conversation active/);
     assert.equal(JSON.stringify(original), originalBytes, 'the retained open run was never ended or rewritten');
     assert.deepEqual(ui.calls, [], 'all these readings and navigation issue no host command');
   } finally { await ui.close(); }
@@ -649,4 +649,140 @@ test('an open run is read from what Codex reported for its conversation and no m
 test('a run recorded open in an earlier Codex session carries the uncertain tone its words describe', () => {
   const reading = runReading({reference:'run-old', conversation:'same-id', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({generation:{...g, spawnCounter:2}, threads:[{threadId:'same-id', generation:{...g, spawnCounter:2}, status:{type:'idle'}}]}));
   assert.equal(reading.title, 'Open in an earlier Codex session'); assert.equal(reading.tone, 'uncertain');
+});
+
+// Each reading says what Codex reported for the conversation and nothing that would follow from it.
+test('the waiting, active and starting readings claim no more than was reported', () => {
+  const open = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const waiting = runReading(open, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]}));
+  assert.equal(waiting.detail, 'Codex is asking a question or approval in the conversation. Answer it there.');
+  assert.doesNotMatch(waiting.detail, /Nothing continues/, 'one outstanding request says nothing of other work in progress');
+  const active = runReading(open, host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}]}));
+  assert.deepEqual([active.tone, active.title, active.detail], ['working', 'Open — Codex reports this conversation active', 'Codex last reported this conversation as active. Follow its progress in the conversation.']);
+  assert.doesNotMatch(`${active.title} ${active.detail}`, /is working on this run|^Working/, 'a last report of active is not a claim that work is being done on the run');
+  const starting = runReading({conversation:'T1', source:'sent', lifecycle:{state:PREPARED}}, host());
+  assert.equal(starting.detail, "The App has issued the starting message and is waiting for Codex's reply. The run opens when Codex confirms the starting turn.");
+  assert.doesNotMatch(starting.detail, /when that reply is observed/, 'a refusal is also a reply, and it does not open the run');
+  assert.doesNotMatch(starting.detail, /was sent/, 'a source is the App issuing the message; Codex receiving it is not established until its reply');
+});
+
+test('an open run says each error notice the App holds with its turn and that turn\'s status, and compares no turns', async () => {
+  const run = {reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}, workflow:{name:'resolve-spacing', origin:'project', revision:'r'}, status:{}};
+  // The case observed against an unreachable model: a conversation Codex reports active whose only news is its retry notice.
+  // Every notice has its own words, by its order of receipt, so that saying the wrong notice of a turn fails.
+  const words = order => `Reconnecting... ${order} — Connection failed: error sending request`;
+  const notice = (turnId, observedOrder, extra = {}) => ({threadId:'T1', turnId, generation:g, error:{message:`Reconnecting... ${observedOrder}`, additionalDetails:'Connection failed: error sending request'},
+    willRetry:true, receiptPosition:observedOrder, ordinalInTurn:1, observedOrder, turnFirstObservedOrder:observedOrder, laterFrameForTurn:false, standing:'live-observed', ...extra});
+  // The host's view: the notices, the turns it holds (a row with the turn's id, and separately which conversation holds a turn of that id), and its item rows.
+  const held = (id, status, startedAt, threadId = 'T1') => ({record:{threadId, turnId:id}, turn:{id, status, startedAt}});
+  const item = (turnId, observedOrder, extra = {}) => ({threadId:'T1', turnId, native:{id:`m-${observedOrder}`, type:'agentMessage'}, standing:'live-observed', observedOrder, ...extra});
+  const view = (turnErrors, turns = [], items = []) => ({turnErrors, turnRecords:turns.map(t => t.record), turns:turns.map(t => t.turn), items});
+  const activeHost = (nativeView, over = {}) => host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}], nativeView, ...over});
+  const said = (nativeView, over) => runTurnNotices(run, activeHost(nativeView, over));
+  const RETRY = 'Codex said it will retry.';
+  const one = (turnId, turnStatus, order, over = {}) => ({turnId, words:words(order), retry:RETRY, count:1, turnStatus, ...over});
+  assert.deepEqual(said(view([])), []); assert.deepEqual(runTurnNotices(run, host()), [], 'no native view, no notice');
+
+  // One form: the turn's latest notice, with the status the App holds for that same turn, whatever it is.
+  assert.deepEqual(said(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2})], [held('B', 'inProgress', 200)])), [one('B', 'inProgress', 41, {count:2})]);
+  assert.deepEqual(said(view([notice('B', 41, {ordinalInTurn:2}), notice('B', 40)], [held('B', 'inProgress', 200)])), [one('B', 'inProgress', 41, {count:2})], 'the last received, wherever it stands in the host\'s list');
+  for (const status of ['completed', 'failed', 'interrupted'])
+    assert.deepEqual(said(view([notice('B', 40)], [held('B', status, 200)])), [one('B', status, 40)], `a turn the App holds as ${status} with no later frame naming it: said with that status, not hidden and not inferred to be over`);
+  assert.deepEqual(said(view([notice('A', 40)])), [one('A', null, 40)], 'the App holds no status for the turn, and says none');
+  assert.equal(said(view([notice('B', 40, {willRetry:false})]))[0].retry, 'Codex said it will not retry.');
+  assert.equal(said(view([notice('B', 40, {willRetry:undefined})]))[0].retry, 'Codex did not say whether it will retry.');
+  assert.equal(said(view([notice('B', 90, {ordinalInTurn:33})]))[0].count, 33, 'what the host accepted for that turn, which can exceed the 32 it keeps');
+  // The status is what the App holds from Codex's reports, not "the last reported": the host keeps a reported end over a later stale report of progress.
+  assert.equal(turnStatusWords(null), ''); assert.equal(turnStatusWords('inProgress'), 'The App holds Codex\'s report of that turn as in progress.');
+  assert.equal(turnStatusWords('paused'), 'The App holds Codex\'s report of that turn as “paused”.', 'a status the App does not know is quoted, not interpreted');
+  for (const status of ['inProgress', 'completed', 'failed', 'interrupted', 'paused']) assert.doesNotMatch(turnStatusWords(status), /last|latest|now|still/);
+
+  // A status is this conversation's turn's only where the host's report ties it: one record of that id, this conversation's, and one row of that id.
+  assert.deepEqual(said(view([notice('A', 40)], [held('A', 'completed', 100, 'T2')])), [one('A', null, 40)], 'another conversation\'s turn of that id is not this turn');
+  const shared = {turnErrors:[notice('U', 40)], turnRecords:[{threadId:'T2', turnId:'U'}, {threadId:'T1', turnId:'U'}], turns:[{id:'U', status:'completed', startedAt:100}, {id:'U', status:'inProgress', startedAt:100}], items:[]};
+  assert.deepEqual(said(shared), [one('U', null, 40)], 'two conversations hold a turn of that id: the rows cannot be told apart, so no status is said');
+  assert.deepEqual(said({...shared, turnRecords:[...shared.turnRecords].reverse()}), [one('U', null, 40)], 'in either order: the lists are not paired by position');
+  assert.deepEqual(said({...shared, turns:[shared.turns[0]]}), [one('U', null, 40)], 'two records and one row');
+  assert.deepEqual(said({...shared, turnRecords:[shared.turnRecords[1]]}), [one('U', null, 40)], 'one record and two rows');
+  assert.deepEqual(said({...shared, turnRecords:[shared.turnRecords[1]], turns:[shared.turns[1]]}), [one('U', 'inProgress', 40)], 'one record, this conversation\'s, and one row');
+
+  // Left out only on evidence about that same turn.
+  assert.deepEqual(said(view([notice('B', 40, {laterFrameForTurn:true})], [held('B', 'inProgress', 200)])), []);
+  assert.deepEqual(said(view([notice('B', 40, {observationEnded:true})], [held('B', 'inProgress', 200)])), []);
+  assert.deepEqual(said(view([notice('B', 40)], [held('B', 'inProgress', 200)]), {generationClosed:true}), []);
+  assert.deepEqual(said(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2, laterFrameForTurn:true})])), [], 'the turn\'s latest notice decides, by order of receipt within that one turn');
+
+  // No comparison between turns. Each of the cases the earlier reviews reproduced gives the attributed notice, and nothing about another turn changes it.
+  const compared = [
+    [view([notice('A', 40)], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)]), [one('A', 'inProgress', 40)], 'another held turn with a later start time'],
+    [view([notice('A', 30), notice('A', 41, {ordinalInTurn:2})], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)], [item('B', 35)]), [one('A', 'inProgress', 41, {count:2})], 'a retry received after another turn\'s frame'],
+    [view([notice('A', 30), notice('A', 41, {ordinalInTurn:2})], [held('A', 'inProgress', 100)], [item('B', 35)]), [one('A', 'inProgress', 41, {count:2})], 'another turn known only by a live item'],
+    [view([notice('B', 40)], [held('A', 'completed', 100), held('B', 'inProgress', 200)], [item('A', 45)]), [one('B', 'inProgress', 40)], 'a late frame for another turn'],
+    [view([notice('A', 35)], [], [item('A', 30)]), [one('A', null, 35)], 'a turn known only by its items and its notice'],
+    [view([notice('A', 40)], [held('A', 'inProgress', 100)], [item('B', 45, {standing:'recovered-from-supplier'})]), [one('A', 'inProgress', 40)], 'another turn known only from a history read\'s row'],
+    [view([notice('A', 40)], [held('A', 'inProgress', null), held('B', 'inProgress', 100)]), [one('A', 'inProgress', 40)], 'start times, present or missing, are not read'],
+  ];
+  for (const [nativeView, expected, why] of compared) assert.deepEqual(said(nativeView), expected, why);
+  // Two turns with a notice each: both are said, each with its own turn, in the order the host lists them. Neither is called the latest.
+  assert.deepEqual(said(view([notice('B', 40), notice('A', 50)], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)])), [one('B', 'inProgress', 40), one('A', 'inProgress', 50)]);
+  assert.deepEqual(said(view([notice('A', 50), notice('B', 40)], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)])), [one('A', 'inProgress', 50), one('B', 'inProgress', 40)]);
+
+  // Never another conversation's notice, another Codex session's, one naming no session or no turn, or for a run not open in the current source.
+  const g2 = {...g, spawnCounter:2};
+  assert.deepEqual(said(view([{...notice('A', 40), threadId:'T2'}])), []);
+  assert.deepEqual(said(view([{...notice('A', 40), generation:g2}])), []);
+  assert.deepEqual(said(view([{...notice('A', 40), generation:undefined}])), []);
+  assert.deepEqual(said(view([{...notice('A', 40), turnId:''}])), []);
+  assert.deepEqual(runTurnNotices({...run, generation:g2}, activeHost(view([notice('A', 40)]))), [], 'a run of an earlier Codex session');
+  assert.deepEqual(runTurnNotices({...run, lifecycle:{state:PREPARED}}, activeHost(view([notice('A', 40)]))), []);
+
+  // In the guide, each case asserts what is shown.
+  const LABEL = 'Error notices the App holds for this conversation', LAST = 'The conversation\'s activity shows each notice the App has kept, with its turn.';
+  const STATUS = {inProgress:'in progress', completed:'completed', failed:'failed', interrupted:'interrupted'};
+  const ui = await mount({host:activeHost(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2})], [held('A', 'completed', 100), held('B', 'inProgress', 200)])), data:data({selections:selected(), runs:[run]}), thread:'T1'});
+  const notices = () => region(ui.c, LABEL), lines = () => all(notices(), 'p').map(p => p.textContent);
+  const line = n => `The App holds an error notice from Codex for turn ${n.turnId} of this conversation${n.count > 1 ? `; it is the latest of ${n.count} for that turn` : ''}: ${n.words} ${n.retry}${n.turnStatus ? ` The App holds Codex's report of that turn as ${STATUS[n.turnStatus]}.` : ''}`;
+  assert.deepEqual(lines(), ['The App holds an error notice from Codex for turn B of this conversation; it is the latest of 2 for that turn: Reconnecting... 41 — Connection failed: error sending request Codex said it will retry. The App holds Codex\'s report of that turn as in progress.', LAST]);
+  // A held notice with its turn, not an alert on the run: a note, no alert and no live region on it, in it or around it up to the guide, and outside the state box and its marking.
+  const noteLike = () => {
+    assert.equal(props(notices()).role, 'note'); assert.equal(props(notices()).className, undefined);
+    const live = node => { const p = props(node) ?? {}; return p.role === 'alert' || p.role === 'status' || p['aria-live'] !== undefined; };
+    assert.equal(live(notices()), false); assert.equal(notices().querySelectorAll(live).length, 0, 'nothing inside the note is announced as it changes');
+    for (let node = notices().parentNode; node && node !== ui.c; node = node.parentNode) assert.equal(live(node), false, 'no live region around the note');
+    assert.equal(ui.c.querySelectorAll(node => props(node)?.role === 'alert').length, 0);
+    assert.equal(region(ui.c, 'Run progress').querySelectorAll(node => node === notices()).length, 0, 'not inside the state box');
+    assert.doesNotMatch(region(ui.c, 'Run progress').textContent, /error notice|Reconnecting/, 'the notice is no part of the run\'s state');
+  };
+  noteLike();
+  assert.match(region(ui.c, 'Run progress').textContent, /^Open — Codex reports this conversation active\./, 'the state Codex reported stays as reported');
+  // The App's own words conclude nothing about the run, claim no absence and name no turn as current or latest.
+  const CLAIMS = /latest turn|current|most recent|last reported|still|now\b|can't reach|stopped|recovered|No later|no other record|does not hold|cannot establish|earlier turn|later turn/i;
+  const ownWords = () => lines().join(' ').replace(/Reconnecting\.\.\. \d+ — Connection failed: error sending request/g, '');
+  assert.doesNotMatch(ownWords(), CLAIMS);
+  // Each reproduced case shows the attributed line, and none claims currency.
+  for (const [nativeView, expected, why] of compared) {
+    await ui.rerender({host:activeHost(nativeView)});
+    assert.deepEqual(lines(), [...expected.map(line), LAST], why);
+    assert.doesNotMatch(ownWords(), CLAIMS, why); noteLike();
+  }
+  // Every status the App can hold for the turn, as shown; an end is said as held, with no alert even where Codex said it will not retry.
+  for (const status of ['completed', 'interrupted', 'failed']) {
+    await ui.rerender({host:activeHost(view([notice('B', 40, {willRetry:false})], [held('B', status, 200)]))});
+    assert.deepEqual(lines(), [`The App holds an error notice from Codex for turn B of this conversation: ${words(40)} Codex said it will not retry. The App holds Codex's report of that turn as ${status}.`, LAST]);
+    noteLike();
+  }
+  // Two conversations hold a turn of that id: no status sentence, and the rest of the line unchanged.
+  await ui.rerender({host:activeHost(shared)});
+  assert.deepEqual(lines(), [`The App holds an error notice from Codex for turn U of this conversation: ${words(40)} ${RETRY}`, LAST]);
+  assert.doesNotMatch(lines().join(' '), /report of that turn|completed|in progress/);
+  // Two turns: two lines, each with its turn.
+  await ui.rerender({host:activeHost(view([notice('B', 40), notice('A', 50)], [held('B', 'inProgress', 200)]))});
+  assert.deepEqual(lines(), [line(one('B', 'inProgress', 40)), line(one('A', null, 50)), LAST]);
+  noteLike();
+  // Evidence about the turn itself: nothing is shown.
+  for (const nativeView of [view([notice('B', 41, {laterFrameForTurn:true})], [held('B', 'inProgress', 200)]), view([notice('B', 41, {observationEnded:true})]), view([])]) {
+    await ui.rerender({host:activeHost(nativeView)});
+    assert.equal(notices(), undefined);
+  }
+  await ui.close?.();
 });
