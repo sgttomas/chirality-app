@@ -67,3 +67,138 @@ fn records_store_sync_legacy_retry_reestablishes_durability_with_the_same_import
     assert!(repeated.is_err(), "{repeated:?}");
     assert_eq!(import(&project.0).unwrap()["state"], "imported");
 }
+
+
+fn completion_sync_retry(stage: storage::PublicationSyncStage) {
+    let own = OwnStore::new();
+    let project = Project::new();
+    project.in_place();
+    let dir = attach(&project.0, true).unwrap().dir.unwrap();
+    interrupt_import_for_test(Some(0), false);
+    let seeded = import(&project.0);
+    interrupt_import_for_test(None, false);
+    assert!(seeded.as_ref().is_err_and(|e| e.contains("interrupted")), "{seeded:?}");
+    let account = dir.join("imports.jsonl");
+    let prefix = std::fs::metadata(&account).unwrap().len();
+    let witness_path = own.0.join(witness::WITNESS_FILE);
+    let witness_bytes = std::fs::read(&witness_path).unwrap();
+    let before = read_lines(&account).unwrap();
+    let retained_id = before[0]["importId"].clone();
+    storage::fail_publication_sync_after_for_test(Some((account.clone(), prefix, stage)));
+    let first = import(&project.0);
+    let retained_bytes = std::fs::read(&account).unwrap();
+    let lines = read_lines(&account).unwrap();
+    let retry = import(&project.0);
+    // The same fault remains installed through the unchanged retry.
+    storage::fail_publication_sync_after_for_test(None);
+    assert!(first.as_ref().is_err_and(|e| e.contains("publication sync: injected failure")), "completion must reach its {stage:?} fault: {first:?}");
+    assert_eq!(lines.len(), 2);
+    assert_eq!(lines[1]["event"], "completed");
+    assert_eq!(lines[1]["importId"], retained_id);
+    assert!(retry.is_err(), "readable completion bypassed its continuing {stage:?} sync fault: first={first:?}; retry={retry:?}");
+    assert_eq!(std::fs::read(&account).unwrap(), retained_bytes);
+    assert_eq!(std::fs::read(&witness_path).unwrap(), witness_bytes);
+    let settled = import(&project.0).unwrap();
+    assert_eq!(settled["state"], "imported");
+    assert_eq!(std::fs::read(account).unwrap(), retained_bytes, "no replacement completion");
+    assert_eq!(std::fs::read(witness_path).unwrap(), witness_bytes, "no replacement witness");
+}
+
+#[test]
+fn records_store_sync_completion_retry_does_not_bypass_continuing_account_file_sync_failure() {
+    completion_sync_retry(storage::PublicationSyncStage::File);
+}
+
+#[test]
+fn records_store_sync_completion_retry_does_not_bypass_continuing_late_account_directory_sync_failure() {
+    completion_sync_retry(storage::PublicationSyncStage::Directory);
+}
+
+fn uncertain_witness(project: &Project, own: &OwnStore) -> (PathBuf, Vec<u8>, Value) {
+    let dir = attach(&project.0, true).unwrap().dir.unwrap();
+    interrupt_append_after_for_test(0, Some(AppendStop::BeforeSync));
+    let first = import(&project.0);
+    interrupt_append_for_test(None);
+    assert!(first.as_ref().is_err_and(|e| e.contains("before the sync")), "{first:?}");
+    assert!(std::fs::symlink_metadata(dir.join("imports.jsonl")).is_err(), "no started line exists yet");
+    let path = own.0.join(witness::WITNESS_FILE);
+    let bytes = std::fs::read(&path).unwrap();
+    let project_id = attach(&project.0, false).unwrap().project.unwrap();
+    let line = read_lines(&path).unwrap().into_iter().find(|v| v["projectId"] == project_id && v["importId"].is_string()).unwrap();
+    (path, bytes, line)
+}
+
+#[test]
+fn records_store_sync_uncertain_witness_retry_keeps_one_import_identity() {
+    let own = OwnStore::new();
+    let project = Project::new();
+    project.in_place();
+    let (path, bytes, retained) = uncertain_witness(&project, &own);
+    let resumed = import(&project.0).unwrap();
+    assert_eq!(resumed["importId"], retained["importId"], "uncertain witness is the same import");
+    assert_eq!(std::fs::read(path).unwrap(), bytes, "no second witness append for a retry");
+}
+
+#[test]
+fn records_store_sync_uncertain_witness_continuing_failure_names_the_same_attempt() {
+    let own = OwnStore::new();
+    let project = Project::new();
+    project.in_place();
+    let (path, bytes, retained) = uncertain_witness(&project, &own);
+    storage::fail_publication_sync_after_for_test(Some((path.clone(), 0, storage::PublicationSyncStage::File)));
+    let retry = import(&project.0);
+    storage::fail_publication_sync_after_for_test(None);
+    let error = retry.unwrap_err();
+    assert!(error.contains(retained["importId"].as_str().unwrap()), "continuing witness uncertainty lost the same attempt: {error}");
+    assert_eq!(std::fs::read(&path).unwrap(), bytes, "continuing uncertainty appends no second witness");
+    assert_eq!(import(&project.0).unwrap()["importId"], retained["importId"]);
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+}
+
+#[test]
+fn records_store_sync_two_orphan_witness_attempts_are_not_silently_chosen() {
+    let own = OwnStore::new();
+    let project = Project::new();
+    project.in_place();
+    let (path, _, retained) = uncertain_witness(&project, &own);
+    let files = retained["files"].as_array().unwrap().iter().map(|f| witness::WitnessedFile {
+        copy: f["copy"].as_str().unwrap().into(), length: f["length"].as_u64().unwrap(), sha256: f["sha256"].as_str().unwrap().into(),
+    }).collect::<Vec<_>>();
+    let second_id = "import:invented-earlier-uncertain-attempt";
+    witness::record(&own.0, retained["projectId"].as_str().unwrap(), second_id, &files).unwrap();
+    let bytes = std::fs::read(&path).unwrap();
+    let result = import(&project.0);
+    assert!(result.as_ref().is_err_and(|e| e.contains("not known") && e.contains(retained["importId"].as_str().unwrap()) && e.contains(second_id)),
+        "two orphan attempts must be named without choosing or minting a third: {result:?}");
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+    let dir = attach(&project.0, false).unwrap().dir.unwrap();
+    assert!(std::fs::symlink_metadata(dir.join("imports.jsonl")).is_err());
+}
+
+#[test]
+fn records_store_sync_orphan_recovery_uses_only_this_projects_witness() {
+    let own = OwnStore::new();
+    let project = Project::new();
+    project.in_place();
+    let (_, _, retained) = uncertain_witness(&project, &own);
+    let other = Project::new();
+    other.in_place();
+    uncertain_witness(&other, &own);
+    let before = std::fs::read(own.0.join(witness::WITNESS_FILE)).unwrap();
+    let result = import(&project.0).unwrap();
+    assert_eq!(result["importId"], retained["importId"], "another project's orphan is not a candidate");
+    assert_eq!(std::fs::read(own.0.join(witness::WITNESS_FILE)).unwrap(), before);
+}
+
+#[test]
+fn records_store_sync_orphan_recovery_refuses_changed_pending_files_without_a_new_identity() {
+    let own = OwnStore::new();
+    let project = Project::new();
+    project.in_place();
+    let (path, bytes, retained) = uncertain_witness(&project, &own);
+    project.in_place();
+    let result = import(&project.0);
+    assert!(result.as_ref().is_err_and(|e| e.contains("not known") && e.contains(retained["importId"].as_str().unwrap())),
+        "a changed pending copy is outside the retained witness, not a fresh identity: {result:?}");
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+}
