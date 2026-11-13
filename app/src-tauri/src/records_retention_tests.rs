@@ -1308,3 +1308,123 @@ fn a_queued_write_is_refused_when_the_store_identity_attach_would_refuse() {
     storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap();
     assert!(pending.is_file());
 }
+
+/// Every file beneath `root`, by its relative path, with its bytes.
+fn files_with_bytes(root: &Path) -> std::collections::BTreeMap<String, Vec<u8>> {
+    fn walk(root: &Path, at: &Path, out: &mut std::collections::BTreeMap<String, Vec<u8>>) {
+        let Ok(rd) = std::fs::read_dir(at) else { return };
+        for entry in rd {
+            let path = entry.unwrap().path();
+            if std::fs::symlink_metadata(&path).unwrap().is_dir() { walk(root, &path, out); }
+            else { out.insert(path.strip_prefix(root).unwrap().to_string_lossy().into_owned(), std::fs::read(&path).unwrap()); }
+        }
+    }
+    let mut out = std::collections::BTreeMap::new();
+    walk(root, root, &mut out);
+    out
+}
+
+/// Removal not established: a disposal that cannot examine what remains of
+/// the payload (the projects folder made unsearchable after its first member
+/// is staged) records no completion. The original act survives, every
+/// remaining byte is kept (in the payload or the private removal stage),
+/// and a reopened store still reports the disposal as incomplete, to be
+/// finished once the payload can be examined. The other side, removal
+/// established but completion's publication uncertain, is
+/// records_retention_visible_but_uncertain_completion_has_a_resync_path_without_a_new_act.
+#[test]
+fn a_disposal_that_cannot_examine_what_remains_records_no_completion() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    let stage = control(&dir).unwrap().join("removal");
+    let before = files_with_bytes(&dir);
+    assert!(!before.is_empty());
+    let projects = dir.parent().unwrap().to_path_buf();
+    let (blocked, seen) = (projects.clone(), std::rc::Rc::new(std::cell::Cell::new(None)));
+    let observed = seen.clone();
+    let probe = dir.clone();
+    crate::records_export::AFTER_MEMBER_STAGE.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+        std::fs::set_permissions(&blocked, std::fs::Permissions::from_mode(0o400)).unwrap();
+        observed.set(Some(std::fs::symlink_metadata(&probe).map(|_| ()).map_err(|e| e.kind())));
+    })));
+    let disposed = f.act("dispose", Some(&bag));
+    std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(seen.get(), Some(Err(std::io::ErrorKind::PermissionDenied)), "a real permission failure, after the first member was staged");
+    // The durable record, read again from disk.
+    let s = state(&dir).unwrap();
+    assert!(!s.completed, "no completion is recorded: {disposed:?}");
+    assert!(s.disposition.is_some(), "the original disposal act survives");
+    assert!(disposed.as_ref().is_err_and(|e| e.contains("disposal incomplete")), "{disposed:?}");
+    // Every byte is kept, in the payload or the private removal stage, unless
+    // the member was removed after its exact bytes were verified in the
+    // export (an empty owning control lock apart): removal stopped, and what
+    // it had not yet verified and removed is all still there.
+    let mut kept = files_with_bytes(&dir);
+    kept.extend(files_with_bytes(&stage));
+    let exported = files_with_bytes(&bag.join("data"));
+    let mut removed = 0;
+    for (rel, bytes) in &before {
+        if kept.get(rel) == Some(bytes) { continue; }
+        assert!(!kept.contains_key(rel), "kept bytes are unchanged: {rel}");
+        let control = rel == ".writer.lock" || rel == "captures/.capture.lock";
+        assert!(exported.get(rel) == Some(bytes) || (control && bytes.is_empty()), "removed only after its bytes were verified in the export: {rel}");
+        removed += 1;
+    }
+    assert!(removed < before.len() && !files_with_bytes(&dir).is_empty(), "the remaining payload is still there: {removed} of {} removed", before.len());
+    // Reopened: the store configured afresh, as at the App's next start.
+    records_store::use_store_for_test(Some(Ok(Store { root: f.store.clone(), placement: Placement::Test, limits: vec![] })));
+    assert_eq!(view(&dir)["disposition"], "disposal incomplete");
+    // Once the payload can be examined, the original act is finished.
+    assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
+    assert!(!dir.exists());
+}
+
+/// A project link that cannot be examined is not an unlinked project. With
+/// the records store unavailable, the start of a supplier for that project
+/// (an invented peer here, never the supplier's Codex) is refused, never
+/// admitted without the activity lease that keeps an open project from
+/// disposal.
+#[test]
+fn a_start_for_a_project_whose_link_cannot_be_examined_is_refused() {
+    use std::os::unix::fs::PermissionsExt;
+    struct Restore;
+    impl Drop for Restore { fn drop(&mut self) { records_store::use_store_for_test(None); } }
+    let _restore = Restore;
+    records_store::use_store_not_started_for_test(Some(Err("invented unavailable store".into())));
+    let output = std::env::temp_dir().join(util::opaque_id("activity-output-").unwrap());
+    let project = std::env::temp_dir().join(util::opaque_id("activity-project-").unwrap());
+    let folder = project.join(".chirality");
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(folder.join(records_store::PROJECT_LINK.rsplit('/').next().unwrap()),
+        br#"{"format":"chirality.project-link","projectId":"invented project","storeId":"invented store"}"#).unwrap();
+    for home in ["home", "probe"] { std::fs::create_dir_all(output.join(home)).unwrap(); }
+    let peer = output.join("peer.py");
+    std::fs::write(&peer, r#"#!/usr/bin/python3
+import json,sys
+if '--version' in sys.argv:
+ print('codex-cli 0.167.0');sys.exit(0)
+for line in sys.stdin:
+ frame=json.loads(line)
+ if frame.get('method')=='initialize':
+  print(json.dumps({'id':frame['id'],'result':{'userAgent':'invented activity fixture'}}),flush=True)
+"#).unwrap();
+    std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut cfg = crate::hosting::HostConfig::new(peer, output.join("home"), output.join("probe"), project.clone());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = std::time::Duration::from_secs(2);
+    assert!(cfg.records_project);
+    let host = std::sync::Arc::new(crate::hosting::Host::new());
+    // Control: a readable link refuses the start while the store is unavailable.
+    assert!(host.start(&cfg, "invented fixture person").is_err_and(|e| e.contains("no Codex start")));
+    std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(folder.join("project.json")).map(|_| ()).map_err(|e| e.kind());
+    let started = host.start(&cfg, "invented fixture person");
+    std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o700)).unwrap();
+    if started.is_ok() { let _ = host.stop("invented fixture person", "fixture end"); }
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(started.as_ref().is_err_and(|e| e.contains("no Codex start")), "{started:?}");
+    let _ = (std::fs::remove_dir_all(&project), std::fs::remove_dir_all(&output));
+}

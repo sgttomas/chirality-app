@@ -462,12 +462,20 @@ pub(crate) fn view(dir: &Path) -> Value {
 pub(crate) fn activity(project: &Path) -> Result<Option<storage::Ownership>, String> {
     // An absent cwd cannot host a supplier; preserve the host's own spawn
     // failure (and generation/counter evidence), without minting an identity.
-    if !project.exists() {
-        return Ok(None);
+    // Only a cwd that is not there, or a link that is not there, is absent:
+    // one that cannot be examined is not known to be unlinked, so it refuses.
+    match std::fs::symlink_metadata(project) {
+        Ok(_) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("project retention unavailable; no Codex start: {} could not be examined: {e}", project.display())),
     }
     if let Err(error) = records_store::current() {
-        if std::fs::symlink_metadata(project.join(records_store::PROJECT_LINK)).is_ok()
-            || records_store::known_project_root(project)
+        let linked = match std::fs::symlink_metadata(project.join(records_store::PROJECT_LINK)) {
+            Ok(_) => true,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+            Err(e) => return Err(format!("project retention unavailable; no Codex start: the project link could not be examined ({e}), so whether this is a records project is not known: {error}")),
+        };
+        if linked || records_store::known_project_root(project)
         {
             return Err(format!(
                 "project retention unavailable; no Codex start: {error}"
@@ -568,7 +576,7 @@ fn context(
     if action == "dispose" {
         let folder =
             bag.ok_or("choose a verified export of the current complete project payload first")?;
-        if control(dir)?.join("removal").exists() {
+        if crate::records_export::present(&control(dir)?.join("removal"))? {
             return Err("unexplained disposal staging is present; no new disposal act".into());
         }
         out["payloadFolder"] = physical(dir)?;
@@ -581,7 +589,7 @@ fn context(
                 .as_str()
                 .ok_or("original export path absent")?,
         );
-        if dir.exists() && physical(dir)? != original["context"]["payloadFolder"] {
+        if crate::records_export::present(dir)? && physical(dir)? != original["context"]["payloadFolder"] {
             return Err(
                 "original project payload folder was replaced; nothing more disposed".into(),
             );
@@ -814,7 +822,7 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     durable_history(&plan.dir)?;
     let mut s = state(&plan.dir)?;
     if plan.action == "resume-disposal" && s.completed {
-        if plan.dir.exists() {
+        if crate::records_export::present(&plan.dir)? {
             return Err(
                 "completed disposal's subtree reappeared; no second removal performed".into(),
             );
@@ -864,7 +872,7 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
                 .as_str()
                 .ok_or("original export missing")?,
         );
-        if plan.dir.exists() && physical(&plan.dir)? != original["context"]["payloadFolder"] {
+        if crate::records_export::present(&plan.dir)? && physical(&plan.dir)? != original["context"]["payloadFolder"] {
             return Err("original payload folder changed after act publication; no removal".into());
         }
         let verified = crate::records_export::matches_current(&plan.dir, bag, true)?;

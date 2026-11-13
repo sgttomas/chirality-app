@@ -406,12 +406,22 @@ pub(crate) fn legacy_for_test(dir:&Path){std::fs::remove_file(dir.join(ADMIN)).u
 #[path = "records_export_tests.rs"]
 mod tests;
 
+/// Whether `path` is there, for disposal and its staging: only NotFound is
+/// absence. A path that cannot be examined is an error, never absent, so
+/// nothing that could not be seen is passed over as gone.
+pub(crate) fn present(path: &Path) -> Result<bool, String> {
+    match std::fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(format!("{} could not be examined: {e}; whether it is there is not known", path.display())),
+    }
+}
 /// Recovery's private staging folder contains exact original member names.
 /// A raced pathname is first moved exclusively, then checked in its private
 /// location. Unverified bytes survive there rather than being unlinked.
 pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String> {
     let exported = files(&bag.join("data"), false)?;
-    let inventory = if folder.exists() {
+    let inventory = if present(folder)? {
         files(folder, false)?
     } else {
         BTreeMap::new()
@@ -437,7 +447,7 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
         }
         payload.insert(rel,json!({"bytes":std::fs::metadata(&member).map_err(io)?.len(),"sha256":digest(&member)?}));
     }
-    if folder.exists() && files(folder, false)? != inventory {
+    if present(folder)? && files(folder, false)? != inventory {
         return Err("staged payload changed during verification".into());
     }
     Ok(
@@ -445,7 +455,7 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
     )
 }
 fn remove_empty_tree(folder: &Path) -> Result<(), String> {
-    if !folder.exists() {
+    if !present(folder)? {
         return Ok(());
     }
     crate::storage::check_path(folder)?;
@@ -524,7 +534,7 @@ pub(crate) fn dispose_members(
     for rel in expected {
         let input = source.join(&rel);
         let staged = stage.join(&rel);
-        if !staged.exists() && input.exists() {
+        if !present(&staged)? && present(&input)? {
             crate::storage::check_path(&input)?;
             let meta = std::fs::symlink_metadata(&input).map_err(io)?;
             if !meta.is_file() {
@@ -541,7 +551,7 @@ pub(crate) fn dispose_members(
                 hook();
             }
         }
-        if staged.exists() {
+        if present(&staged)? {
             crate::storage::check_path(&staged)?;
             let before = std::fs::symlink_metadata(&staged).map_err(io)?;
             if !before.is_file() {
@@ -583,7 +593,7 @@ pub(crate) fn dispose_members(
             std::fs::remove_file(&staged).map_err(io)?;
             crate::storage::sync_dir(staged.parent().unwrap())?;
         }
-        if input.exists() {
+        if present(&input)? {
             return Err(format!(
                 "member reappeared after staging; bytes retained: {}",
                 input.display()

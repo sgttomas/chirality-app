@@ -2413,3 +2413,94 @@ fn startup_recovery_never_passes_over_what_it_could_not_examine() {
     assert!(recovered.as_ref().is_err_and(|e| e.contains("store.json")), "a store whose record cannot be examined is not a store not yet created: {recovered:?}");
 }
 
+
+/// A registered legacy log that cannot be examined is not absent from the
+/// project's record set, in either read home: discovery shows a limit. And a
+/// late import, which copies a log only when the store's set does not
+/// already hold its record identities, is refused when that set could not
+/// be read whole: it never copies a duplicate of a record it could not see.
+#[test]
+fn a_registered_log_that_cannot_be_examined_is_never_left_out_of_the_set_or_copied_again() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    // The late import.
+    let root = folder("registered-late-import-");
+    let original = root.join(storage::LEGACY_LOG);
+    records::append(&original, "evidence_limit", &APP_WRITER, body("registered history")).unwrap();
+    attach(&root, true).unwrap();
+    import(&root).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let copy = dir.join(REGISTERED_COPY);
+    // A late log in the project folder holding the same record identity.
+    let late = root.join(".chirality/records/runs/late-run/late.jsonl");
+    std::fs::create_dir_all(late.parent().unwrap()).unwrap();
+    std::fs::copy(&original, &late).unwrap();
+    let parent = copy.parent().unwrap().to_path_buf();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(&copy).map(|_| ()).map_err(|e| e.kind());
+    let imported = import(&root);
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    let after = storage::read_all_parts(&root);
+    assert!(after.0.len() == 1 && after.1.is_empty(), "no duplicate record identity was copied: {imported:?}; the set reads {after:?}");
+    assert!(imported.is_err(), "refused, never reported copied: {imported:?}");
+    let _ = std::fs::remove_dir_all(&root);
+
+    for stored in [false, true] {
+        let root = folder("registered-unexaminable-");
+        records::append(&root.join(storage::LEGACY_LOG), "evidence_limit", &APP_WRITER, body("registered history")).unwrap();
+        attach(&root, true).unwrap();
+        if stored { import(&root).unwrap(); }
+        let log = readable_home(&root).unwrap().registered_log();
+        let readable = storage::read_all_parts(&root);
+        assert!(readable.0.len() == 1 && readable.1.is_empty(), "control (stored {stored}): {readable:?}");
+        let parent = log.parent().unwrap().to_path_buf();
+        std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let denied = std::fs::symlink_metadata(&log).map(|_| ()).map_err(|e| e.kind());
+        let set = storage::read_all_parts(&root);
+        let index = crate::records_index::with_index(&root, |ix| ix.limits());
+        std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+        assert!(set.0.is_empty() && set.1.iter().any(|l| l.contains("could not be examined")), "stored {stored}: never a clean empty set: {set:?}");
+        assert!(index.iter().any(|l| l.contains("could not be examined")), "stored {stored}: the index shows it too: {index:?}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}
+
+/// A run folder whose entries can be listed but not examined is not an empty
+/// record set. Through a caller that decides from the set: composing an A16
+/// offer finds its act request in the set, and a set it could not walk whole
+/// is refused as incomplete, never reported as one without the request.
+/// (Writes are kept from this premise already: an append checks the set
+/// through the index, whose own walk examines every entry; finishing a
+/// delayed capture over such a set was refused before this repair.)
+#[test]
+fn a_record_set_that_cannot_be_walked_whole_never_decides_a_record_is_missing() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let root = folder("set-unwalkable-");
+    let rel = format!("{}/PKG-1.json", crate::recorder::DECISIONS_DIR);
+    std::fs::create_dir_all(root.join(crate::recorder::DECISIONS_DIR)).unwrap();
+    let bytes = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/FX-DP1/project/decisions/PKG-1.json")).unwrap();
+    std::fs::write(root.join(&rel), &bytes).unwrap();
+    let (pkg, identity) = crate::util::package_snapshot(&bytes).unwrap();
+    let body = crate::recorder::request_from_file(&pkg, &rel, &identity, json!({"kind":"agent"}), &crate::util::now_rfc3339());
+    // The act request, recorded in a run's log.
+    let request = records::append_project(&root, Some("run:invented-a16"), "writer:a16", "act_request", &APP_WRITER, body).unwrap();
+    let rid = request["recordId"].as_str().unwrap().to_owned();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let readable = crate::act_control::ActControl::new(&root).compose_a16(&rid);
+    assert!(readable.is_ok(), "control: the request is found and offered: {readable:?}");
+    let runs = dir.join("runs");
+    let child = std::fs::read_dir(&runs).unwrap().next().unwrap().unwrap().path();
+    std::fs::set_permissions(&runs, std::fs::Permissions::from_mode(0o400)).unwrap();
+    let denied = std::fs::symlink_metadata(&child).map(|_| ()).map_err(|e| e.kind());
+    let set = storage::read_all_parts(&root);
+    let offered = crate::act_control::ActControl::new(&root).compose_a16(&rid);
+    std::fs::set_permissions(&runs, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(offered.as_ref().is_err_and(|e| !e.contains("no act_request")), "never reported as a record without the request: {offered:?}; the set read {set:?}");
+    assert!(offered.as_ref().is_err_and(|e| e.contains("incomplete")), "{offered:?}");
+    assert!(!set.1.is_empty(), "never a clean set: {set:?}");
+    let _ = std::fs::remove_dir_all(&root);
+}

@@ -414,7 +414,10 @@ pub fn discover(root: &Path) -> Result<Vec<PathBuf>, String> {
             let entry = entry.map_err(|e| e.to_string())?;
             let path = entry.path();
             check_path(&path)?;
-            if path.is_dir() {
+            // An entry that cannot be examined is not left out: the set is
+            // incomplete, never shown whole without it.
+            let meta = std::fs::symlink_metadata(&path).map_err(|e| format!("incomplete record discovery: {} could not be examined: {e}", path.display()))?;
+            if meta.is_dir() {
                 walk(&path, out)?;
             } else if path.extension().is_some_and(|e| e == "jsonl") {
                 out.push(path);
@@ -458,14 +461,29 @@ pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
     let registered = home.registered_log();
     match home.in_store() {
         Some(dir) => {
-            let files = if registered.exists() { vec![registered] } else { vec![] };
+            let files = if registered_present(&registered, false)? { vec![registered] } else { vec![] };
             Ok(Sources { walk: vec![dir.join("runs"), dir.join("acts")], files, exclude: vec![] })
         }
         None => {
             check_path(&registered)?;
-            let files = if registered.exists() { vec![registered] } else { vec![] };
+            let files = if registered_present(&registered, true)? { vec![registered] } else { vec![] };
             Ok(Sources { walk: vec![home.records()], files, exclude: vec![library] })
         }
+    }
+}
+/// Whether the registered legacy log is there: only what is not there is
+/// absent, and a log that cannot be examined leaves the set incomplete. In
+/// place, the log's folder is `records` at the project's root, the
+/// project's own space: an ordinary file of that name means the log cannot
+/// exist beneath it (NotADirectory), so it is observed absent there, as the
+/// import's census holds (`records_store::legacy_census`). In the store,
+/// where only the App writes, that is an error like any other.
+fn registered_present(path: &Path, in_place: bool) -> Result<bool, String> {
+    match std::fs::symlink_metadata(path) {
+        Ok(_) => Ok(true),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) if in_place && e.kind() == std::io::ErrorKind::NotADirectory => Ok(false),
+        Err(e) => Err(format!("incomplete record discovery: the registered legacy log {} could not be examined: {e}", path.display())),
     }
 }
 /// The registered legacy log as it is read now: the imported copy in the

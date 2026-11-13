@@ -2060,16 +2060,19 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":format!("the store already holds a different file there (sha256 {}); not overwritten", sha256_hex(&existing))}));
                 continue;
             }
-            // A late log that would bring a record identity the store's set
-            // already holds is not copied: R-1 counts each identity once.
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound && store_held && file.copy.ends_with(".jsonl")
-                && !held_identities(&attachment.root, bytes).is_empty() => {
-                let held = held_identities(&attachment.root, bytes);
-                conflicts.push(json!({"original":file.rel,"copy":file.copy,"heldIdentities":held.iter().take(HELD_SHOWN).collect::<Vec<_>>(),"heldCount":held.len(),
-                    "reason":format!("it holds record identities the records store already holds ({}); not copied, so each identity is counted once (R-1)", name_bounded(&held))}));
-                continue;
-            }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                // A late log that would bring a record identity the store's
+                // set already holds is not copied: R-1 counts each identity
+                // once. Whether the set holds one is known only from a set
+                // read whole (`held_identities`).
+                if store_held && file.copy.ends_with(".jsonl") {
+                    let held = held_identities(&attachment.root, bytes)?;
+                    if !held.is_empty() {
+                        conflicts.push(json!({"original":file.rel,"copy":file.copy,"heldIdentities":held.iter().take(HELD_SHOWN).collect::<Vec<_>>(),"heldCount":held.len(),
+                            "reason":format!("it holds record identities the records store already holds ({}); not copied, so each identity is counted once (R-1)", name_bounded(&held))}));
+                        continue;
+                    }
+                }
                 #[cfg(test)]
                 if IMPORT_STOP_AFTER.with(|c| c.get()) == Some(copied) {
                     return Err("import interrupted (injected); it did not complete".into());
@@ -2096,14 +2099,22 @@ pub fn import(root: &Path) -> Result<Value, String> {
     Ok(outcome(&attachment, Some(id), census.len(), copied, present, conflicts, census_changed))
 }
 /// Every record identity in a log's `bytes` that the project's record set
-/// (the store, read through the index) already holds, in log order.
-fn held_identities(root: &Path, bytes: &[u8]) -> Vec<String> {
+/// (the store, read through the index) already holds, in log order. A set
+/// not read whole cannot say that it holds none of them, so the import is
+/// refused rather than copying what may be a duplicate.
+fn held_identities(root: &Path, bytes: &[u8]) -> Result<Vec<String>, String> {
     let ids: Vec<String> = bytes.split(|b| *b == b'\n').filter_map(|l| serde_json::from_slice::<Value>(l).ok())
         .filter_map(|v| v["recordId"].as_str().map(str::to_owned)).collect();
-    let mut held = crate::records_index::with_index(root, |ix| ids.into_iter().filter(|id| ix.holds(id)).collect::<Vec<_>>());
+    let mut held = crate::records_index::with_index(root, |ix| {
+        let limits = ix.limits();
+        if !limits.is_empty() {
+            return Err(format!("the project's record set is not read whole ({limits:?}), so whether it already holds this log's record identities is not known; the import did not complete"));
+        }
+        Ok(ids.into_iter().filter(|id| ix.holds(id)).collect::<Vec<_>>())
+    })?;
     let mut seen = std::collections::HashSet::new();
     held.retain(|id| seen.insert(id.clone()));
-    held
+    Ok(held)
 }
 /// How many held identities a conflict names before "and N more".
 const HELD_SHOWN: usize = 20;
