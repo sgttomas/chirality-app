@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
-const {RecordsStorePanel}=loadSrc('RecordsStorePanel');
+const recordsPanel=loadSrc('RecordsStorePanel');
+const RecordsStorePanel=recordsPanel.RecordsStoreView ?? recordsPanel.RecordsStorePanel;
 const store=retention=>({state:'available',root:'/invented/store',placement:'test',project:{attachment:{projectId:'invented-project',limits:[]},reading:'records store',retention,notes:[]}});
 const render=retention=>renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:store(retention),act:async()=>{}}));
 test('closed held project keeps export and native hold release but offers no disposal',()=>{
@@ -298,4 +299,209 @@ test('an interrupted adoption and an unknown association say so and offer only w
  const two=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:unknown,act:async()=>{}}));
  assert.match(two,/was not read whole/);
  assert.doesNotMatch(two,RESTORE);assert.doesNotMatch(two,ADOPT);assert.doesNotMatch(two,FRESH);
+});
+
+
+// The six parked-panel regressions. Inputs are invented host replies; no native act is performed.
+const view=(value,extra={})=>renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{},...extra}));
+const read=extra=>({state:'as the records index last read it',logs:3,chained:3,legacy:0,broken:0,brokenLogs:[],...extra});
+test('regression 1: a link naming another store stays unattached',()=>{
+ const value=store(undefined);
+ value.project.attachment={projectId:null,fault:'link names another store',refusal:'link names another store; not attached',resolutions:['restore-link'],recordedHere:'invented-P'};
+ const html=view(value);
+ assert.match(html,/names another records store than this one, so its records are not attached/);
+ assert.doesNotMatch(html,/stay attached|Export project records|Check the logs now/);
+});
+test('regression 2: after disposal only link restoration remains, and finishing waits for attachment',async()=>{
+ for(const disposition of ['disposed','disposal incomplete','completion durability uncertain']){
+  const value=store({closed:true,legalHold:false,disposition});
+  value.project.attachment={projectId:null,fault:'link changed',refusal:'not attached',resolutions:['restore-link','adopt','new-identity'],recordedHere:'invented-P'};
+  const calls=[];
+  const panel=RecordsStorePanel({store:value,act:async(...args)=>calls.push(args)});
+  const html=renderToStaticMarkup(panel);
+  assert.match(html,RESTORE,disposition);assert.doesNotMatch(html,ADOPT);assert.doesNotMatch(html,FRESH);
+  assert.doesNotMatch(html,/>Finish disposal</);
+  if(disposition!=='disposed')assert.match(html,/restore the project file first/);
+ }
+});
+test('regression 3: Finish obeys strict canFinish and retains finishReason',()=>{
+ for(const canFinish of [false,undefined,'true',true]){
+  const value=store({closed:false,legalHold:false,disposition:'kept'});
+  value.packageImport={state:'incomplete',canFinish,finishReason:'Invented original project file differs; finish is held.'};
+  const html=view(value);
+  if(canFinish===true)assert.match(html,/>Finish package import</);
+  else{assert.doesNotMatch(html,/>Finish package import</);assert.match(html,/Invented original project file differs; finish is held/);}
+ }
+});
+test('regression 4: store registry alert and main identity fault wording survive',()=>{
+ const registry='Invented store registry was not read whole.';
+ assert.match(view({state:'available',root:'/invented/store',placement:'test',registry}),/<p role="alert">Invented store registry was not read whole\.<\/p>/);
+ for(const [fault,words]of[
+  ['no folder recorded',/holds the project this folder’s file names and has no folder recorded for it/],
+  ['association not known',/list of project folders was not read whole, and what it could read records no project for this folder/],
+ ]){
+  // Isolate the fault vocabulary from the host's independently tested choice of resolutions.
+  const html=renderToStaticMarkup(React.createElement(recordsPanel.IdentityResolution,{attachment:{fault,resolutions:['restore-link'],refusal:'not attached'},act:async()=>{}}));
+  assert.match(html,words);
+ }
+});
+test('regression 5: discovery or unavailable logs are limits, never an empty clean report',()=>{
+ const value=store({closed:false,legalHold:false,disposition:'kept'});
+ for(const logs of [0,3]){
+  const cached=view(value,{chain:read({logs,discoveryLimit:'Invented store unavailable'})});
+  assert.match(cached,/Invented store unavailable/);assert.doesNotMatch(cached,/no chain is broken|no chain.*broken|0 logs.*no chain/i);
+  const checked=view(value,{chain:read(),heads:{logs:Array(logs).fill({}),broken:[],notes:[],discoveryLimit:'Invented logs could not be listed'}});
+  const now=checked.slice(checked.indexOf('aria-label="Logs as checked now"'));
+  assert.match(now,/Invented logs could not be listed/);assert.doesNotMatch(now,/no chain.*broken/i);
+ }
+ for(const heads of [
+  {logs:[],broken:[],notes:['role supply chain not established: invented read failure']},
+  {logs:[{log:'invented.jsonl',chain:{state:'unavailable',error:'invented read failure'}}],broken:[],notes:[]},
+ ]){
+  const checked=view(value,{heads});
+  assert.match(checked,/invented read failure/);assert.doesNotMatch(checked,/no chain.*broken|notes? that limit no chain/i);
+ }
+});
+
+test('regression 6a: errors never promise no writes after a possible publication',()=>{
+ for(const command of ['records_store_export','records_store_import_package','records_store_retention','records_store_identity','records_store_import','records_store_choose']){
+  const words=recordsPanel.outcomeWords({command,error:'Invented failure after publication; read actual state again.'});
+  assert.equal(words.tone,'refused');
+  assert.match(words.lines.join('\n'),/Invented failure after publication/);
+  assert.doesNotMatch(words.lines.join('\n'),/nothing changed|nothing was imported|nothing was.*changed|not changed|no export was made|identity was not changed|nothing was imported or changed/i);
+ }
+});
+test('regression 6b: a failed refresh visibly marks stale state after the action error',async()=>{
+ const {installMiniDom}=await import('./support/mini-dom.mjs');
+ const document=installMiniDom();
+ const {createRoot}=await import('react-dom/client');
+ const container=document.createElement('div');document.body.appendChild(container);
+ const root=createRoot(container);
+ const calls=[];let refreshes=0;
+ try{
+  await React.act(async()=>root.render(React.createElement(recordsPanel.RecordsStorePanel,{store:store({closed:false,legalHold:false,disposition:'kept'}),invoke:async(command)=>{calls.push(command);throw Error('Invented failure after publication');},refresh:async()=>{refreshes++;throw Error('private refresh diagnostic must not be shown');}})));
+  const button=container.querySelectorAll(n=>n.localName==='button').find(n=>n.textContent==='Export project records');
+  const props=button[Object.keys(button).find(k=>k.startsWith('__reactProps$'))];
+  await React.act(async()=>props.onClick());
+  assert.match(container.textContent,/Invented failure after publication/);
+  assert.match(container.textContent,/could not.*status afterwards.*out of date/i);
+  assert.doesNotMatch(container.textContent,/private refresh diagnostic/);
+  assert.deepEqual(calls,['records_store_export']);assert.equal(refreshes,1);
+ }finally{await React.act(async()=>root.unmount());document.body.removeChild(container);}
+});
+
+
+test('placement controls send choose/default only and explain saved, unreadable and development state',async()=>{
+ const base=store({closed:false,legalHold:false,disposition:'kept'});
+ base.placementChoice={offered:true,chosen:'/Volumes/Invented/records',current:'/invented/store',default:'/invented/data/records',nextStart:'/Volumes/Invented/records',pending:true};
+ const calls=[];
+ const panel=RecordsStorePanel({store:base,act:async(...args)=>calls.push(args)});
+ const html=renderToStaticMarkup(panel);
+ assert.match(html,/Saved location: \/Volumes\/Invented\/records/);
+ assert.match(html,/From the next time the App starts/);assert.match(html,/Records already kept are not moved/);
+ const walk=node=>!node||typeof node!=='object'?[]:typeof node.type==='function'?walk(node.type(node.props)):[...(node.type==='button'?[node]:[]),...[node.props?.children].flat(Infinity).flatMap(walk)];
+ for(const [label,action]of[['Choose where records are kept…','choose'],['Keep records in the App’s data folder','default']]){
+  await walk(panel).find(node=>node.props.children===label).props.onClick();
+  assert.deepEqual(calls.at(-1),['records_store_choose',{action}]);
+ }
+ base.state='unavailable';base.error='invented store cannot be written';
+ assert.match(view(base),/No records store: invented store cannot be written/);assert.match(view(base),/Choose where records are kept/);
+ base.placementChoice={offered:true,chosen:null,nextStart:null,choiceUnreadable:'invented malformed preference'};
+ const unknown=view(base);assert.match(unknown,/next-start location is not known/);assert.match(unknown,/Keep records in the App’s data folder/);
+ base.placementChoice={offered:false,reason:'This run was started for development; choice is refused.'};
+ assert.match(view(base),/started for development/);assert.doesNotMatch(view(base),/Choose where records are kept/);
+});
+
+test('integrity shows the cached age, broken log and line, reader notes and unsigned limits',async()=>{
+ const value=store({closed:false,legalHold:false,disposition:'kept'});
+ const html=view(value,{chain:read({readAt:'invented-last-read',broken:1,brokenLogs:['invented.jsonl']}),heads:{logs:[{}],broken:['invented.jsonl: chain broken at line 2; never repaired'],notes:['legacy: unchained before chaining began']}});
+ assert.match(html,/As last read \(invented-last-read\)/);
+ assert.match(html,/1 log has a broken chain.*invented.jsonl/);
+ assert.match(html,/chain broken at line 2/);assert.match(html,/reader note or limit/);
+ assert.match(html,/does not show a change to the last line/);assert.match(html,/checkpoints are unsigned/);
+ assert.doesNotMatch(html,/Repair the chain|Fix the chain|notes? that limit no chain/);
+ for(const [retention,attachment,reading]of[
+  [undefined,{projectId:null,refusal:'unattached'},'records store'],
+  [{disposition:'kept'},{projectId:'invented-P'},'records in place in the project (import needed)'],
+ ]){
+  const other=store(retention);other.project.attachment=attachment;other.project.reading=reading;
+  assert.doesNotMatch(view(other,{chain:read()}),/Check the logs now/);
+ }
+});
+
+test('main result preservation: control repair keeps integrity for each import',()=>{
+ const result={state:'package controls partly recovered; log integrity limited, and not stated for a controls-only repair',limit:'Another original import remains fenced.',standing:'Quoted evidence, never a human act.',logIntegrity:[
+  {importId:'invented-limited',logIntegrity:{state:'limited',limits:['invented.jsonl: chain broken at line 2']}},
+  {importId:'invented-unread',logIntegrity:{state:'not stated'}},
+ ]};
+ const lines=recordsPanel.outcomeWords({command:'records_store_import_package',args:{action:'repair'},result}).lines.join('\n');
+ assert.match(lines,/Import invented-limited: Log integrity: limited/);assert.match(lines,/Import invented-limited: Integrity limit: invented.jsonl: chain broken at line 2/);
+ assert.match(lines,/Import invented-unread: Log integrity: not stated/);assert.match(lines,/Another original import remains fenced/);assert.match(lines,/Quoted evidence, never a human act/);
+ assert.doesNotMatch(lines,/no chain.*broken/);
+});
+
+test('main result preservation: verification keeps exportedLogs and chainHeadProfile separate from byte consistency',()=>{
+ for(const [profile,exportedLogs]of[
+  ['0.1: legacy chain heads','not pinned: this package’s chain-head profile does not record each log’s bytes in its tag'],
+  ['0.3: byte-pinned log heads','each chained log is byte for byte the log the chain-head tag records; this does not establish intact records'],
+ ]){
+  const result={state:'package bytes consistent; log integrity limited',files:4,chainHeadProfile:profile,exportedLogs,logIntegrity:{state:'limited',limits:['Invented reader limit']}};
+  const lines=recordsPanel.outcomeWords({command:'records_store_verify_export',result}).lines.join('\n');
+  assert.match(lines,/Package bytes: consistent/);assert.ok(lines.includes(profile));assert.ok(lines.includes(exportedLogs));
+  assert.match(lines,/Log integrity: limited/);assert.match(lines,/unsigned/);assert.doesNotMatch(lines,/no chain.*broken/);
+ }
+ const absent=recordsPanel.outcomeWords({command:'records_store_verify_export',result:{state:'package bytes consistent',files:1}}).lines.join('\n');
+ assert.match(absent,/Exported log bytes: not stated/);assert.doesNotMatch(absent,/byte for byte|Log integrity: no chain/);
+});
+
+test('plain outcomes preserve host conflicts and limits without promoting a new identity or reopening',()=>{
+ const said=(command,result)=>recordsPanel.outcomeWords({command,result}).lines.join('\n');
+ const identity=said('records_store_identity',{state:'new identity',projectId:'invented-N'});
+ assert.match(identity,/invented-N/);assert.doesNotMatch(identity,/starts with no records/);
+ assert.doesNotMatch(said('records_store_retention',{state:'recorded',action:'reopen'}),/Recording can continue/);
+ assert.match(said('records_store_import',{state:'imported with conflicts',copied:1,alreadyPresent:2,conflicts:[{original:'invented/file',reason:'invented different bytes'}],standing:'Originals remain; trust is not established.'}),/Not copied: invented\/file. invented different bytes/);
+ assert.match(said('future_records_command',{state:'unknown result',limit:'Invented native limit'}),/Unknown result.*\nInvented native limit/);
+ assert.match(said('future_records_command',{}),/what happened is not known/);
+});
+
+test('every offered control is disabled while the panel is busy',()=>{
+ for(const extra of [
+  {},
+  {packageImport:{state:'incomplete',canFinish:true,canRepair:true}},
+  {project:{attachment:{projectId:null,resolutions:['restore-link','adopt','new-identity']}}},
+ ]){
+  const value={...store({closed:true,legalHold:false,disposition:'kept'}),...extra,placementChoice:{offered:true,chosen:'/invented/saved'}};
+  const tags=view(value,{busy:true}).match(/<button\b[^>]*>/g);
+  assert.ok(tags.length>0);
+  for(const tag of tags)assert.match(tag,/disabled/);
+ }
+});
+
+test('the mounted panel stays busy through refresh, ignores a second press, and scopes results to their project',async()=>{
+ const {installMiniDom}=await import('./support/mini-dom.mjs');const document=installMiniDom();
+ const {createRoot}=await import('react-dom/client');
+ const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
+ const calls=[];let resolveAction,resolveRefresh;
+ const action=new Promise(resolve=>{resolveAction=resolve;});const refreshed=new Promise(resolve=>{resolveRefresh=resolve;});
+ const value=store({closed:false,legalHold:false,disposition:'kept'});value.project.attachment.root='/invented/project-A';
+ const invoke=async command=>{calls.push(command);return action;};const refresh=()=>refreshed;
+ const mounted=store=>React.createElement(recordsPanel.RecordsStorePanel,{store,invoke,refresh});
+ try{
+  await React.act(async()=>root.render(mounted(value)));
+  const nodes=()=>container.querySelectorAll(n=>n.localName==='button');
+  const button=nodes().find(n=>n.textContent==='Export project records');
+  const click=button[Object.keys(button).find(k=>k.startsWith('__reactProps$'))].onClick;
+  let pending;
+  await React.act(async()=>{pending=click();await Promise.resolve();});
+  assert.ok(nodes().every(n=>n.hasAttribute('disabled')));
+  await React.act(async()=>{void click();await Promise.resolve();});assert.deepEqual(calls,['records_store_export']);
+  await React.act(async()=>{resolveAction({state:'verified export created',folder:'/invented/export',files:2});await Promise.resolve();});
+  assert.ok(nodes().every(n=>n.hasAttribute('disabled')),'refresh is still in flight');
+  await React.act(async()=>{resolveRefresh();await pending;});
+  assert.match(container.textContent,/Export created in \/invented\/export/);
+  assert.ok(nodes().every(n=>!n.hasAttribute('disabled')));
+  const other=store({closed:false,legalHold:false,disposition:'kept'});other.project.attachment.root='/invented/project-B';
+  await React.act(async()=>root.render(mounted(other)));
+  assert.doesNotMatch(container.textContent,/invented\/export/);
+ }finally{resolveAction({});resolveRefresh();await React.act(async()=>root.unmount());document.body.removeChild(container);}
 });

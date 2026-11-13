@@ -173,6 +173,10 @@
   reason: symlink_metadata, its error returned or refused where it is made.
 - file: records_store.rs
   kind: metadata
+  line: if !meta.is_dir() {
+  reason: location_for_choice reads symlink_metadata and returns its examination error before testing metadata; a non-directory, including a symlink, is refused.
+- file: records_store.rs
+  kind: metadata
   line: Ok(Some(meta)) if meta.is_dir() => {}
   reason: records_inspect::presence of the canonical store root (pull request 279), its error refused.
 - file: records_store.rs

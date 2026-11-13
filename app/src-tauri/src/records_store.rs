@@ -339,6 +339,130 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
         "limit":"records already in the current store are not moved or copied; to keep one history, move the store folder to the new location before the App next starts"}))
 }
 
+/// The folder made inside a chosen folder that already holds other things.
+pub const CHOSEN_FOLDER: &str = "Chirality App records";
+
+/// Where the store is kept for a folder the person picked: the folder itself
+/// when it is empty or already a records store; otherwise a folder named
+/// [`CHOSEN_FOLDER`] inside it, so the store's files are never mixed into a
+/// folder that holds other things. A file where that folder would be, or a
+/// folder there that holds something other than a records store, is refused.
+pub fn location_for_choice(picked: &Path) -> Result<PathBuf, String> {
+    // What a folder holds for this purpose: nothing, a records store, or other things.
+    fn holds(folder: &Path) -> Result<&'static str, String> {
+        let meta = std::fs::symlink_metadata(folder).map_err(|e| format!("{} is unavailable: {e}", folder.display()))?;
+        if !meta.is_dir() {
+            return Err(format!("{} is not a folder", folder.display()));
+        }
+        let identity = folder.join("store.json");
+        match crate::records_inspect::presence(&identity) {
+            Ok(Some(_)) => {
+                // The same plain-file reader as the live store: a link or
+                // non-file is refused, never followed or blocked on here.
+                let bytes = crate::records_retention::read_plain(&identity)?;
+                return match serde_json::from_slice::<Value>(&bytes) {
+                    Ok(v) if v["format"] == STORE_FORMAT && v["storeId"].as_str().is_some_and(|id| !id.is_empty()) => Ok("store"),
+                    _ => Ok("other"),
+                };
+            }
+            Ok(None) => {}
+            Err(e) => return Err(format!("{} could not be examined: {e}", identity.display())),
+        }
+        let entries = std::fs::read_dir(folder).map_err(|e| format!("{} could not be listed: {e}", folder.display()))?;
+        // The Finder's own file does not make a folder hold something. A
+        // failed entry read is unknown, never a guess that it is empty.
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("{} could not be listed whole: {e}", folder.display()))?;
+            if entry.file_name() != ".DS_Store" { return Ok("other"); }
+        }
+        Ok("empty")
+    }
+    if !picked.is_absolute() {
+        return Err("choose an absolute folder for the records store".into());
+    }
+    if holds(picked)? != "other" {
+        return Ok(picked.to_path_buf());
+    }
+    let inside = picked.join(CHOSEN_FOLDER);
+    match std::fs::symlink_metadata(&inside) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(inside),
+        Err(e) => Err(format!("{} is unavailable: {e}; no location chosen", inside.display())),
+        Ok(_) if holds(&inside)? != "other" => Ok(inside),
+        Ok(_) => Err(format!("{} already holds files that are not a records store; choose another folder (nothing chosen)", inside.display())),
+    }
+}
+
+/// The person returns the store to its default place, `<App data>/records/`,
+/// from the next start. Records in the chosen location are not moved.
+pub fn clear_choice(app_data: &Path) -> Result<Value, String> {
+    let path = app_data.join(CHOICE_FILE);
+    let had = match std::fs::remove_file(&path) {
+        Ok(()) => { crate::storage::sync_dir(app_data)?; true }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(format!("the chosen location could not be cleared: {e}")),
+    };
+    Ok(json!({"state":if had {"default placement chosen"} else {"default placement already in use"},"location":app_data.join("records").display().to_string(),
+        "takesEffect":"when the App next starts",
+        "limit":"records in the location chosen before are not moved or copied; to keep one history, move that store folder to the default location before the App next starts"}))
+}
+
+/// What the person can do about where the store is kept, for the host status:
+/// the location chosen (if any), the default, where the next start will keep
+/// the store, and whether that differs from the store in use now. A run
+/// started for development never reads a choice, and says so.
+pub fn choice_view(app_data: Result<&Path, String>, development: bool) -> Value {
+    if development {
+        return json!({"offered":false,"reason":format!("This run was started for development: it keeps its records only in the folder {OVERRIDE_ENV} names, and never reads a chosen location or the App data folder. A built App reads both.")});
+    }
+    let data = match app_data {
+        Ok(data) => data,
+        Err(e) => return json!({"offered":false,"reason":format!("The App data folder is unavailable ({e}), so a location cannot be chosen or read.")}),
+    };
+    let default = data.join("records");
+    let (chosen, unreadable) = match chosen_location(data) {
+        Ok(chosen) => (chosen, None),
+        Err(e) => (None, Some(e)),
+    };
+    let next = unreadable.is_none().then(|| chosen.clone().unwrap_or_else(|| default.clone()));
+    let current = current().ok();
+    let overridden = current.as_ref().is_some_and(|s| s.placement == Placement::Override);
+    let in_use = current.as_ref().map(|s| s.root.clone());
+    json!({"offered":true,"chosen":chosen.as_ref().map(|p| p.display().to_string()),"default":default.display().to_string(),
+        "nextStart":next.as_ref().map(|p| p.display().to_string()),"choiceUnreadable":unreadable,
+        // The store in use was fixed when the App started.
+        "current":in_use.as_ref().map(|p| p.display().to_string()),
+        "pending":!overridden && next.as_ref().is_some_and(|next| in_use.as_ref().is_some_and(|root| root != next)),
+        "overridden":overridden.then(|| format!("{OVERRIDE_ENV} is set for this run and is used instead; the chosen location is used by a start without it"))})
+}
+
+/// The native host supplies the picked destination (or the default action)
+/// and owns the confirmation. No web command accepts a destination path.
+/// Tests use only the existing native dialog's synthetic result model here.
+pub(crate) fn confirm_placement(
+    app_data: &Path,
+    location: Option<&Path>,
+    project: Option<&Path>,
+    codex_homes: &[PathBuf],
+    confirm: impl FnOnce(String, &str, &str) -> Result<bool, String>,
+) -> Result<Value, String> {
+    let default = app_data.join("records");
+    let destination = location.unwrap_or(&default);
+    let problems = placement_problems_in(destination, project, codex_homes, false, Some(app_data));
+    if location.is_some() && !problems.is_empty() {
+        return Err(format!("records store location refused: {}", problems.join("; ")));
+    }
+    let in_use = current().map(|s| s.root.display().to_string()).unwrap_or_else(|_| "no records store in use".into());
+    let perform = if location.is_some() { "Use this folder" } else { "Use the App's data folder" };
+    let text = format!("Keep the App's records here from the next time the App starts?\n\n{}\n\nRecords kept now: {in_use}\n\nRecords already kept are not moved or copied. To keep one history, quit the App and move the present records folder to the location above before starting it again. Until the App starts again it uses its current placement.", destination.display());
+    if !confirm(text, "Keep the present location", perform)? {
+        return Ok(json!({"state":"choice cancelled"}));
+    }
+    match location {
+        Some(location) => choose_location(app_data, location, project, codex_homes),
+        None => clear_choice(app_data),
+    }
+}
+
 /// Why `root` is not a fit place for the store: inside the project, a Codex
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
