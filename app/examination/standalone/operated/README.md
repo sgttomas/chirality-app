@@ -1,0 +1,126 @@
+# Operating a development build's window
+
+This is how an agent reads and clicks the window of an identified development
+build of the App during an examination. It uses the supplier's own computer-use
+service, reached from inside a Codex session.
+
+It is development tooling. What it yields is what an agent saw and did in a
+development build. It is never evidence that the product does something for a
+person, and it is never the person-operated observation a release criterion
+asks for.
+
+## When it may be used
+
+All of these hold, every time:
+
+- The owner has given a window of time for it, and the acts used are the ones
+  the owner's word for that window names (a view; a click; anything further,
+  such as typing, a native file dialog or the App's own quit, only if named).
+- One operator at a time: a Codex delegate whose assignment carries these
+  terms. No other agent imports the service or calls any of its methods.
+- Only the App's development build, addressed by its own bundle identifier.
+  Never the installed application, never another application.
+- No agent answers a macOS prompt or an App confirmation dialog, types a
+  password or dismisses the lock screen. If one appears, the operator stops and
+  reports its application name and the permission it asks for; the owner
+  answers it.
+- No Codex is started unless launches that start a real Codex are open for the
+  lane.
+
+## Two cautions
+
+1. **Launch through the launcher, and confirm the process is running, before
+   any state call.** A state call for an application that is not running
+   starts it through the system's launch service: outside the launcher, with
+   the account's real home.
+2. **Address the build by its bundle identifier in every call, and never call
+   `list_apps`.** An application name can match another application.
+
+## The steps
+
+1. **Launch.** From a clean checkout of main, run the launcher on the
+   identified candidate and leave it running:
+
+   ```sh
+   python3 -B app/examination/standalone/launch.py launch --candidate <candidate folder>
+   ```
+
+   Its first line on standard error names the launch folder; the home is
+   `home/` in it and the project folder is `project/`. The launcher stays until
+   the App ends, then publishes the launch record in `record/`. If it refuses,
+   that refusal is the result: record it and stop.
+2. **Confirm.** From the shell, find the process whose executable is inside the
+   candidate's bundle and whose parent is the launcher. Note its number. If the
+   run must start no Codex, confirm it has no child process, and check again
+   after each click.
+3. **The identifier.** Take it from the candidate's identification record
+   (`bundle.identifier`), not from a name on screen.
+4. **The service.** In the operator's Codex session, in the node runtime's
+   `js` tool:
+
+   ```js
+   var sky = (await import('@oai/sky')).sky;
+   ```
+
+   It must be this dynamic import inside that tool. This step touches nothing
+   on the desktop.
+5. **A view.**
+
+   ```js
+   var state = await sky.get_app_state({app: '<bundle identifier>', disableDiff: true});
+   ```
+
+   The result gives the application's path, a reference to a screenshot, and
+   the window as text: one line for each element, with its index, its kind
+   (button, text, radio button, heading and so on) and its words or value;
+   indentation shows what contains what. A disabled control says so. Without
+   `disableDiff`, a later view returns only what changed since the one before.
+6. **A click.**
+
+   ```js
+   await sky.click({app: '<bundle identifier>', element_index: N});
+   ```
+
+   `N` is the element's index in the most recent view. Take a view after every
+   click: indices change. Click only a control whose effect is known from its
+   words and is among the acts the window allows; if it is not, take a view and
+   stop there.
+7. **Record.** Keep every call as it was sent and every returned text whole,
+   with the time of each. What a step shows is the text a view returned, in the
+   page's own words; nothing is claimed beyond it. Words on the page about a
+   dialog are page text, not a dialog.
+8. **End.** When the App's own quit is not among the allowed acts, send a
+   termination to the launcher; it passes it to the App. Confirm that neither
+   process remains. The launch record then says the launch was ended from
+   outside, and is not a clean run.
+9. **What stays.** The launch folder with its record. Nobody opens the home.
+
+## What the calls take
+
+Read in the supplier's own documentation of its window service, and given here
+only as far as the steps need it:
+
+- A view takes the application and, optionally, the request for the whole
+  window as text on every call.
+- A click takes the application and the index of an element from the latest
+  view.
+- The service also has methods that type, set a field's value, press keys,
+  scroll, drag, paste and list applications. None is used unless the owner's
+  word for the window names the act, and `list_apps` is never used.
+
+## What was observed on 13 November 2026
+
+On a development candidate built from main, in two windows the owner gave:
+
+- The import in step 4 returned the service with its methods.
+- No computer-use service was running beforehand. The first view started one,
+  through the system's launch service; the supplier's desktop application was
+  not running.
+- No call reported a macOS prompt.
+- A view returned within seconds, with the first-use setup page as about fifty
+  elements. Later views, made without `disableDiff`, returned differences.
+- Clicks by index worked on a disclosure, a button and a radio button.
+- Not yet observed: `disableDiff`; any method other than a view and a click.
+- The launcher on main at that time could not launch on that host, because
+  macOS refused a listing of two Library folders it watched. The launches were
+  made with those two names removed; the launcher's own change followed.
