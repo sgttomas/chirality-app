@@ -13,11 +13,19 @@ asks for.
 
 All of these hold, every time:
 
-- The owner has given a window of time for it, and the acts used are the ones
-  the owner's word for that window names (a view; a click; anything further,
-  such as typing, a native file dialog or the App's own quit, only if named).
-- One operator at a time: a Codex delegate whose assignment carries these
-  terms. No other agent imports the service or calls any of its methods.
+- App Agent 0 has said go for this walk, and the acts used are the ones the
+  scenario names and that go allows (a view; a click; anything further, such
+  as typing, a native file dialog or the App's own quit, only if both name
+  it). Leave for the screen is not asked: the owner, 13 November 2026, "I'm
+  AFK, no need to ask for leave. Also that MacBook Pro machine is dedicated
+  to this agentic dev session. I do my personal work on other machines. So
+  no need to ask permission to use the computer or screen."
+- One operator at a time, across this project and the others on this
+  machine: a Codex delegate whose assignment carries these terms. App Agent 0
+  tells the other projects before a walk starts, and no walk runs during an
+  announced exclusive measuring run; so a walk is asked of App Agent 0, never
+  started on the lane's own word. No other agent imports the service or
+  calls any of its methods.
 - Only the App's development build, addressed by its own bundle identifier.
   Never the installed application, never another application.
 - No agent answers a macOS prompt or an App confirmation dialog, types a
@@ -58,7 +66,7 @@ All of these hold, every time:
 - **The homes root.** The launcher makes each launch folder under the lane's
   homes root, which must already exist; it never creates it. If it does not
   exist the launcher refuses and says so. The lane makes it, once.
-- **The window of time**, and the acts it allows.
+- **App Agent 0's go for the walk**, and the acts it allows.
 
 ## The steps
 
@@ -147,7 +155,7 @@ All of these hold, every time:
 
    `N` is the element's index in the most recent view. Take a view after every
    click: indices change. Click only a control whose effect is known from its
-   words and is among the acts the window allows; if it is not, take a view and
+   words and is among the acts the scenario names and the go allows; if it is not, take a view and
    stop there.
 7. **Record.** Keep every call as it was sent and every returned text whole,
    with the time of each. What a step shows is the text a view returned, in the
@@ -312,7 +320,9 @@ not closed.
   scenario may go ahead on this Mac once the tool is reviewed and I have your
   leave for the screen. The exception covers this one scenario only; I ask
   again before any scenario that confirms setup or starts Codex."
-  - It is not leave for the screen, which is asked each time.
+  - Leave for the screen, which it names, is no longer asked: see the owner's
+    words of the same day under "When it may be used". A walk runs on App
+    Agent 0's go.
   - It rests on the facts in this section as they are stated. If one of them
     is found to be wrong, no walk is made until the owner has been asked
     again.
@@ -455,7 +465,8 @@ nodeRepl.write(walk.summary(report));
   write the summary once.
 - The result file holds every call made and every view's returned text whole.
   The operator adds the times of its own calls and what it saw outside the
-  script (a prompt, the pointer or the focus moving) to its own record.
+  script (a prompt appearing, or the focus leaving the build) to its own
+  record.
 - Then step 8: end the launch, confirm that neither process remains, and keep
   the launch record with the result.
 
