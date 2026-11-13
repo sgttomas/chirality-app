@@ -206,6 +206,14 @@
   reason: symlink_metadata, its error returned or refused where it is made.
 - file: records_store.rs
   kind: metadata
+  line: Ok(Some(meta)) if meta.is_dir() => {
+  reason: records_inspect::presence returned this entry's metadata; an examination error refuses routing before this branch.
+- file: records_store.rs
+  kind: metadata
+  line: 'if !meta.is_file() { return Err(format!("{}: not a plain record or preparation file", entry.path.display())); }'
+  reason: records_inspect::listing retained the entry's metadata result; every examination error is handled before this type check and never grants write authority.
+- file: records_store.rs
+  kind: metadata
   line: if entry.file_name() != ".capture.lock" || !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1)
     {
   reason: 'symlink_metadata folded by is_ok_and: an error reads as not the control file, so the captures folder is taken to
@@ -268,6 +276,11 @@
   kind: test
   line: let tags:Vec<String>=TAGS.iter().filter(|p|folder.join(p).exists()).map(|p|p.to_string()).collect();
   reason: In `reprofile_as_for_test`, a function under `#[cfg(test)]` (line 632) that rewrites a test package's tags.
+- file: records_store.rs
+  kind: metadata
+  line: if !meta.file_type().is_dir() || (meta.dev(), meta.ino()) != at {
+  reason: 'hold_folder: the metadata of the folder handle just opened (its error refused as not known), compared with the
+    folder examined without following a link; anything but that one folder is refused.'
 - file: app/src-tauri/src/storage.rs
   kind: outside
   line: if let Ok(meta) = std::fs::symlink_metadata(ancestor) {

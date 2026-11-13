@@ -415,6 +415,35 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert gate["steps"][-1]["run"] == "python3 tools/ci/select_checks.py gate"
 
 
+def test_repository_checks_test_the_merge_and_selection_stays_on_the_head():
+    # A command main adds names a file a branch cut before it lacks: repository
+    # checks therefore run on the event's merge commit, never on the head.
+    root = Path(subject.__file__).resolve().parents[2]
+    jobs = yaml.safe_load((root / ".github/workflows/governance-harness.yml").read_text())["jobs"]
+    head = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+    def checkout(job):
+        steps = jobs[job]["steps"]
+        assert steps[0]["uses"] == "actions/checkout@v4", job
+        assert [step for step in steps if "actions/checkout" in step.get("uses", "")] == steps[:1], job
+        return steps[0]["with"]
+
+    assert checkout("repository-checks") == {"ref": "${{ github.sha }}", "fetch-depth": 0}
+    assert checkout("change-selection") == {"ref": head, "fetch-depth": 0}
+    assert checkout("harness") == {"ref": head}
+    steps = jobs["repository-checks"]["steps"]
+    named = steps[1]
+    assert named["name"] == "Name the commits under test"
+    assert "git rev-parse HEAD^2" in named["run"] and "git rev-parse HEAD^1" in named["run"]
+    assert named["env"]["PR_HEAD"] == "${{ github.event.pull_request.head.sha }}"
+    # The conflict and credential checks examine the pull request's own change.
+    conflict = next(step for step in steps if step.get("name") == "Conflict and credential checks")
+    assert conflict["env"]["HEAD_SHA"] == head
+    for script in ("validate_conflict_markers.py", "validate_run_record_leaks.py"):
+        assert f'python tools/validation/{script} --base "$BASE" --head "$HEAD_SHA"' in conflict["run"]
+    assert "--head HEAD" not in conflict["run"]
+
+
 def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
     root = Path(subject.__file__).resolve().parents[2]
     jobs = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())["jobs"]
@@ -911,6 +940,8 @@ KNOWN_REFERRERS = {
     "app/examination/native_forms/pre_run_form.py": "run only by group_b_native_forms_test",
     "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "read by pre_run_form.py",
     "app/examination/native_forms/sources.terms-v1.json": "read by native_form.py",
+    "app/examination/scripted_driver/proof.py": "reads the first-use scenario for the scripted driver's hosted job",
+    ".github/workflows/app-scripted-driver.yml": "its path trigger names the first-use scenario its driver reads",
     # Readers of in-root paths that stay product inputs.
     "tools/validation/test_library_v3_operational_adoption.py": "names the Library's own docs/ files",
     "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs (product input)",

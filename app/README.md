@@ -1360,8 +1360,9 @@ Chirality releases it. If App data cannot be resolved or held (an invalid
 and the reason is shown. Every committed configuration uses the identifier
 `dev.chirality.app-v4.skeleton`, so development runs that do not name their
 App data share one directory and only the first of them starts. To run in
-parallel, give each run its own `CHIRALITY_APP_DATA` (an absolute path; it is
-created if missing, and setting it alone selects this route) and its own
+parallel, give each run its own `CHIRALITY_APP_DATA` (an absolute path
+without `.` or `..` components; it is created if missing, and setting it alone
+selects this route; an empty value is refused, not read as unset) and its own
 existing `CHIRALITY_CODEX_HOME`.
 
 When the App data hold is taken. On the environment route, at launch, after
@@ -1500,7 +1501,14 @@ throwaway homes then do not share web view storage. Without both set (`HOME`
 alone redirects none of it), they share it under `~/Library`.
 
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
-`CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary
+`CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. On this route
+`CHIRALITY_CODEX_HOME`, `CHIRALITY_KEY_HOME` and the three
+`CHIRALITY_SHARED_*` paths, when set, must each be an absolute path without
+`.` or `..` components; one that is relative, empty or dotted is refused by
+name at admission, before anything is started with it, in development and
+release builds alike. An empty value is refused, not read as unset. The
+inherited `CODEX_HOME` is not a launch input: the App gives each Codex child
+its own. A matching binary
 hash is a development assertion. Full qualified distribution identity is absent,
 so the development run requires `CHIRALITY_ALLOW_UNVERIFIED=1` and is labelled
 `unverified-development` (LT-24); mismatches still refuse.

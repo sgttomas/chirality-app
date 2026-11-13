@@ -70,9 +70,14 @@ fn the_development_route_never_places_the_store_inside_the_childs_home() {
         "CHIRALITY_CODEX_HOME" => Some(RELATIVE.into()),
         _ => None,
     };
-    let launch = explicit_environment_launch(input, &Ok(data.clone()), &Err("no resources".into()), true, || Ok(folder("placement-dev-probe-"))).unwrap();
-    let cfg = launch.host_config.unwrap();
-    assert_eq!(cfg.cwd, std::env::temp_dir(), "no workspace: the temporary folder");
+    // The route refuses a relative home at admission, before the probe home
+    // is allocated.
+    let launch = explicit_environment_launch(input, &Ok(data.clone()), &Err("no resources".into()), true, || panic!("a refused environment allocates no probe home")).unwrap();
+    assert_eq!(launch.host_config.unwrap_err(), "CHIRALITY_CODEX_HOME must be an absolute path without . or .. components");
+    // Placement's own defence, for a configuration built directly as the
+    // route built it before admission refused it: no workspace, the
+    // temporary folder as the supplier's working folder.
+    let cfg = hosting::HostConfig::new(PathBuf::from("/invented/bin/codex"), PathBuf::from(RELATIVE), folder("placement-dev-probe-"), std::env::temp_dir());
     let used = cfg.cwd.join(RELATIVE);
     let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
     let placed = records_store::for_app(Some(used.join("records")), Ok(&data), true, None, &homes);
@@ -110,9 +115,14 @@ fn the_release_environment_route_never_takes_the_default_store_for_anything_but_
     let data = folder("placement-release-route-data-");
     let resources = folder("placement-release-route-resources-");
     let input = |key: &str| (key == "CHIRALITY_CODEX_HOME").then(|| "records".into());
-    let launch = explicit_environment_launch(input, &Ok(data.clone()), &Ok(resources), false, || Ok(folder("placement-release-route-probe-"))).unwrap();
-    let cfg = launch.host_config.unwrap();
-    assert_eq!(cfg.cwd, data, "no workspace: the App data folder");
+    // The production branch refuses a relative home at admission, before the
+    // probe home is allocated.
+    let launch = explicit_environment_launch(input, &Ok(data.clone()), &Ok(resources.clone()), false, || panic!("a refused environment allocates no probe home")).unwrap();
+    assert_eq!(launch.host_config.unwrap_err(), "CHIRALITY_CODEX_HOME must be an absolute path without . or .. components");
+    // Placement's own defence, for the configuration that branch built before
+    // admission refused it: no workspace, the App data folder as the working
+    // folder.
+    let cfg = hosting::successor::production_config(resources, PathBuf::from("records"), folder("placement-release-route-probe-"), data.clone());
     let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
     let placed = records_store::for_app(None, Ok(&data), false, None, &homes);
     assert!(placed.as_ref().is_err_and(|e| e.contains("Codex home")), "{placed:?}");
@@ -148,9 +158,14 @@ fn an_empty_configured_home_is_refused_as_an_invalid_input() {
         "CHIRALITY_WORKSPACE" => Some(workspace.clone().into()),
         _ => None,
     };
-    let launch = explicit_environment_launch(input, &Ok(data.clone()), &Err("no resources".into()), true, || Ok(folder("placement-empty-probe-"))).unwrap();
-    let cfg = launch.host_config.unwrap();
-    assert!(cfg.codex_home.as_os_str().is_empty(), "the route accepts the empty home");
+    // The route refuses the empty home at admission, by name, before the
+    // probe home is allocated.
+    let launch = explicit_environment_launch(input, &Ok(data.clone()), &Err("no resources".into()), true, || panic!("a refused environment allocates no probe home")).unwrap();
+    assert_eq!(launch.host_config.unwrap_err(), "CHIRALITY_CODEX_HOME is empty: it must be an absolute path without . or .. components");
+    // Placement's own defence, for an empty home in a configuration built
+    // directly: it is never compared.
+    let cfg = hosting::HostConfig::new(PathBuf::from("/invented/bin/codex"), PathBuf::new(), folder("placement-empty-probe-"), workspace.clone());
+    assert!(cfg.codex_home.as_os_str().is_empty());
     let homes = codex_homes_from([&cfg].into_iter(), Some(&data), input);
     let placed = records_store::for_app(Some(folder("placement-empty-elsewhere-").join("records")), Ok(&data), true, None, &homes);
     assert!(placed.as_ref().is_err_and(|e| e.contains("empty path, an invalid input")), "{placed:?}");
