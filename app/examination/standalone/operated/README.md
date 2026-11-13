@@ -184,7 +184,10 @@ All of these hold, every time:
     confirm it is gone, and record its number, its start time and that it ran
     under the account's real home. Whatever it found is reported to the lane
     at once, and by the lane to App Agent 0 within the hour. Nothing under the
-    real Library is removed by any agent.
+    real Library is removed by any agent. This step is not optional: it and
+    that report are the conditions on which the owner accepted the exposure
+    described in the next section, and a run after which it was not made is
+    reported as a breach.
 
 ## A view of an application that is not running
 
@@ -233,6 +236,31 @@ not closed.
     would. It sends nothing: no sign-in, no model request and no conversation
     exist before setup.
 - **How it is found and ended.** Step 11.
+- **The owner's decision, 13 November 2026, relayed by App Agent 0.** This
+  exposure is accepted for the scenario "first-use setup without a project,
+  new settings" and for no other. The question as it was put to the owner:
+  when an agent test-drives the App through computer use there is a roughly
+  one-second gap per step in which, if the App crashed, the computer-use
+  service would relaunch the development build under the owner's real home;
+  such a stray start opens at first-use setup, starts no Codex, sends
+  nothing, and the App's own code writes nothing under the real Library
+  before setup is confirmed (the system's web view makes its own cache
+  folders); it is checked for after every run, ended and reported within the
+  hour; there is no way to prevent it on the Mac; "Do you accept this risk
+  for the first-use setup scenario (17 steps per walk)?" The owner selected
+  "Accept it (Recommended)", described as: "Live walks of the first-use setup
+  scenario may go ahead on this Mac once the tool is reviewed and I have your
+  leave for the screen. The exception covers this one scenario only; I ask
+  again before any scenario that confirms setup or starts Codex."
+  - It is not leave for the screen, which is asked each time.
+  - It rests on the facts in this section as they are stated. If one of them
+    is found to be wrong, no walk is made until the owner has been asked
+    again.
+  - Step 11's check and the report within the hour are its conditions. A walk
+    whose check after the run was not made is a breach, reported to App
+    Agent 0 as one; it is not an inconclusive run.
+  - A scenario that confirms setup, starts a Codex or types anything is not
+    covered: the question is put again with that scenario's own extent.
 
 ## Running a scenario
 
