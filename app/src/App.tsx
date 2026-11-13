@@ -1,5 +1,5 @@
 import { ActionFeedback } from "./ActionFeedback";
-import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
+import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
@@ -2067,6 +2067,8 @@ export function App() {
       // A refusal (including an administrator configuration Codex reads above
       // the App's settings) supplies no key state; an earlier view is withdrawn.
       setLocalView(null); setLocalMessage({ kind: "alert", text: `${what} did not complete: ${String(error)}` });
+      // Refused at a reading, before native began the entry: it can be offered again.
+      if (generation && readingSentence(error)) { const key = generationKey(generation); forgetAttemptedLocalEntry(key); setLocalAttempted(previous => previous.filter(item => item !== key)); }
     }
     finally {
       // The latch is held through this refresh, which cannot replace a newer

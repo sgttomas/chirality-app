@@ -170,8 +170,19 @@ test('the oMLX connection: a preparation or key entry refused at its reading sho
       await press(c, 'Prepare the oMLX connection'); await press(c, 'Enter oMLX key in a secure field…');
       assert.deepEqual(localAlerts(c), [`oMLX key entry did not complete: ${sentence}`]);
       assert.equal(calls.filter(command => command === 'submit_local_provider_key').length, 1, 'sent once');
+      // Refused before native began the entry: preparing again offers the entry again.
+      await press(c, 'Prepare the oMLX connection');
+      assert.ok(button(c, 'Enter oMLX key in a secure field…'), 'the entry is offered again');
+      assert.doesNotMatch(c.textContent, /Key entry for this Codex session has been used/);
     });
   }
+  // Control: any other refusal may have come after native began the entry, so the entry stays used.
+  await mounted({prepare_local_provider:() => ({value:localView('entry-required'), host:withLocal}), submit_local_provider_key:() => ({error:canary})}, async c => {
+    await press(c, 'Prepare the oMLX connection'); await press(c, 'Enter oMLX key in a secure field…');
+    await press(c, 'Prepare the oMLX connection');
+    assert.equal(button(c, 'Enter oMLX key in a secure field…'), undefined, 'not offered again');
+    assert.match(c.textContent, /Key entry for this Codex session has been used/);
+  });
 });
 
 // Option A's model step: the model list's provider note ending with either sentence

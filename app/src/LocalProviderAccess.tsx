@@ -37,6 +37,15 @@ export function recordAttemptedLocalEntry(key: string): string[] {
   try { globalThis.sessionStorage?.setItem(ATTEMPTS, JSON.stringify(next)); } catch { /* in-memory only */ }
   return next;
 }
+// An entry refused at one of its configuration readings (exactly one of the two reading
+// sentences) was refused before native began the entry: the host makes both readings before it
+// marks the entry begun, so no field was opened and the entry is offered again. Native still
+// refuses a repeat of an entry it began.
+export function forgetAttemptedLocalEntry(key: string): string[] {
+  const next = readAttemptedLocalEntries().filter(item => item !== key);
+  try { globalThis.sessionStorage?.setItem(ATTEMPTS, JSON.stringify(next)); } catch { /* in-memory only */ }
+  return next;
+}
 
 /** Only a complete local view is admitted; any other reply is not a local status. */
 export function localViewFrom(value: Json): LocalView | null {
