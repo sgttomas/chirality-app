@@ -17,9 +17,15 @@ The owner approved one bounded step on 13 November 2026, in these words
 > nothing in criteria 1 and 2 and does not replace your own use. No later
 > scenario, chooser, typing or confirmation is covered.
 
-**State:** step one (the hosted proof) is in progress. Hosted runs made: 0 of
-2. The scenario has not been started. This section is updated with each
-hosted run, and says when the stop point is reached or both results are shown.
+**State:**
+
+- Step one, the hosted proof: **shown on hosted run 1 of 2**, 13 November
+  2026, run 43490769105.
+- Step two, the scenario end to end: in progress. Built attempts made: 0 of
+  2, and a repair to the driver or its runner counts as one.
+
+This section is updated with each built attempt, and says when the stop point
+is reached or both results are shown.
 
 ## How it is kept out of the shipped App
 
@@ -67,8 +73,48 @@ ends its own process. **Shown** means all of these:
 - the build ended itself with status 0.
 
 The job is `.github/workflows/app-scripted-driver.yml`. It runs on the macOS
-runner the App's workflow already uses, reads the repository only, and
-uploads the report and nothing else.
+runner the App's workflow already uses and reads the repository only. It
+uploads its two reports (`report.json`, `scenario-report.json`) and nothing
+else, and saves no cache.
+
+## The scenario (step two)
+
+`proof.py scenario` launches the same test build once more. It puts the
+maintained scenario file
+(`app/examination/standalone/operated/first-use-setup.scenario.json`,
+unchanged) and its values (the identifier, the home and the App data folder
+under it) beside the stages, as `scenario.json`. Once the first heading is
+present, the build evaluates `judge.js` and `page.js` in the page, and reads
+the walk's progress until it is done:
+
+- **`page.js`** walks the steps. For each click it finds the step's one
+  control and clicks it with `element.click()`. That is a click by the page's
+  own element, not input from the system. It then waits the step's time
+  (600 ms when the step names none), and builds the page's model again.
+- **`judge.js`** decides each expectation against that model. It is a pure
+  function, tested with each of the eight expectation kinds the scenario uses
+  shown failing on a wrong state. Its rules are stated at its top: what is
+  visible, an element's name, its words, and what one text is.
+
+A pass needs all of these:
+
+- the walk's own verdict is pass;
+- the App had one window throughout;
+- no child process of the App was seen at any half-second sample;
+- the build ended itself with status 0.
+
+It types nothing, chooses no file, answers nothing, and never clicks a control
+the scenario says is never clicked, or one whose words end with an ellipsis.
+
+**Why "visible only".** During first use the App keeps its whole workspace
+mounted and hidden: `App.tsx` renders the first-use page and, beside it, the
+workspace inside `<div hidden={setupRequired}>`. That is why step one's
+script counted 202 buttons locally and 347 on the runner, against the
+handful the first-use page shows. The judge's model holds only rendered
+elements. Each scenario report also counts the page's buttons three ways (in
+the document, under a hidden element, visible), at the start and at the end.
+Why the two totals differ between this Mac and the runner is not
+established.
 
 ## What it does not establish
 
@@ -80,3 +126,8 @@ Every report states these limits:
 - A script inside the page sees the page only. Native sheets, alerts, the
   window's own buttons and the menu bar are unseen, and there is no second
   reading through the accessibility tree.
+- The scenario is judged against a model of the page built by stated rules,
+  not against the supplier's accessibility text. Whether the two readings
+  agree is not established.
+- Every click is `element.click()` on the page's own element, not input from
+  the system.

@@ -99,8 +99,61 @@ fn evaluate<R: Runtime>(webview: tauri::Webview<R>) {
         if heading.is_some() || attempt == TRIES {
             let windows = webview.app_handle().webview_windows().len();
             stage("script evaluated", json!({ "attempt": attempt, "returned": read, "windows": windows }));
-            std::process::exit(if heading.is_some() { 0 } else { 5 });
+            if heading.is_none() {
+                std::process::exit(5);
+            }
+            match scenario_input() {
+                None => std::process::exit(0),
+                Some(Ok(input)) => walk(&webview, input),
+                Some(Err(reason)) => {
+                    stage("scenario not started", json!({ "reason": reason }));
+                    std::process::exit(9);
+                }
+            }
         }
         std::thread::sleep(WAIT);
     }
+}
+
+/// The scenario walk (app/examination/scripted_driver/page.js, judged by judge.js), when the runner has put
+/// `scenario.json` ({scenario, values}) beside the stages. Absent, the run is the proof alone.
+const JUDGE: &str = include_str!("../../examination/scripted_driver/judge.js");
+const PAGE: &str = include_str!("../../examination/scripted_driver/page.js");
+const WALK_LIMIT: Duration = Duration::from_secs(120);
+
+fn scenario_input() -> Option<Result<Value, String>> {
+    let path = folder()?.join("scenario.json");
+    if !path.exists() {
+        return None;
+    }
+    Some(std::fs::read_to_string(&path).map_err(|_| "scenario.json could not be read".to_owned())
+        .and_then(|text| serde_json::from_str::<Value>(&text).map_err(|_| "scenario.json is not JSON".to_owned())))
+}
+
+fn walk<R: Runtime>(webview: &tauri::Webview<R>, input: Value) -> ! {
+    let start = format!("{JUDGE}\n{PAGE}\nwindow.__chiralityDriverRun({input}); 'started'");
+    if let Err(error) = webview.eval(start) {
+        stage("scenario not started", json!({ "error": error.to_string() }));
+        std::process::exit(9);
+    }
+    stage("scenario started", json!({}));
+    let began = std::time::Instant::now();
+    let mut most_windows = 0;
+    while began.elapsed() < WALK_LIMIT {
+        std::thread::sleep(WAIT);
+        most_windows = most_windows.max(webview.app_handle().webview_windows().len());
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let asked = webview.eval_with_callback("window.__chiralityDriver && window.__chiralityDriver.done ? window.__chiralityDriver : null",
+            move |result| { let _ = sender.send(result); });
+        let Ok(text) = (if asked.is_ok() { receiver.recv_timeout(Duration::from_secs(10)).map_err(|_| ()) } else { Err(()) }) else { continue };
+        let read: Value = serde_json::from_str(&text).unwrap_or(Value::Null);
+        if read.is_null() {
+            continue;
+        }
+        let verdict = read.get("verdict").and_then(Value::as_str).unwrap_or("").to_owned();
+        stage("scenario finished", json!({ "result": read, "most_windows": most_windows }));
+        std::process::exit(match verdict.as_str() { "pass" if most_windows == 1 => 0, "pass" | "fail" => 6, _ => 7 });
+    }
+    stage("scenario did not finish", json!({ "seconds": WALK_LIMIT.as_secs(), "most_windows": most_windows }));
+    std::process::exit(8);
 }

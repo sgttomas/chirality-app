@@ -76,7 +76,8 @@ class KeptOutOfTheShippedApp(unittest.TestCase):
         self.assertNotIn('write', re.sub(r'#.*', '', workflow).lower().replace('writes nothing back', ''))
         self.assertIn('persist-credentials: false', workflow)
         self.assertEqual(workflow.count('upload-artifact'), 1)
-        self.assertIn('path: ${{ runner.temp }}/driver/report.json\n', workflow)
+        self.assertIn('path: |\n            ${{ runner.temp }}/driver/report.json\n            ${{ runner.temp }}/driver/scenario-report.json\n          if-no-files-found', workflow)
+        self.assertIn('proof.py scenario', workflow)
         self.assertIn('runs-on: macos-26', workflow)
         # Nothing else leaves the runner: the npm download cache is off, and no cache is saved.
         self.assertIn("npm-cache: 'false'", workflow)
@@ -170,3 +171,158 @@ class TheProofSaysShownOnlyWhenItWas(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+NODE = shutil.which('node')
+JUDGE = APP / 'examination/scripted_driver/judge.js'
+
+
+def judge(call, model, *args):
+    """Run one judge.js function under node on a model; return its JSON result."""
+    # judge.js is a plain script (the page evaluates it as it is); app/ is an ES-module package, so load its source.
+    script = ("const source = require('node:fs').readFileSync(process.argv[1], 'utf8');"
+              "const J = new Function('module', source + '\\nreturn ChiralityJudge;')(undefined);"
+              "const [call, model, ...args] = JSON.parse(process.argv[2]);"
+              "process.stdout.write(JSON.stringify(J[call](model, ...args)));")
+    import subprocess
+    done = subprocess.run([NODE, '-e', script, str(JUDGE), json.dumps([call, model, *args])], capture_output=True, text=True)
+    if done.returncode != 0:
+        raise AssertionError(done.stderr)
+    return json.loads(done.stdout)
+
+
+def element(kind, name, state=None):
+    return {'kind': kind, 'name': name, **({'state': state} if state else {})}
+
+
+HOME_VALUES = {'identifier': 'dev.invented', 'home': '/h', 'app_data': '/h/Library/Application Support/dev.invented'}
+PAGE = [
+    element('heading', 'Welcome'), element('text', 'Welcome'),
+    element('text', 'Choose the folder.'),
+    element('button', 'Review setup', 'unavailable'), element('button', 'Continue', 'available'),
+    element('summary', 'Technical details', 'on'), element('text', 'Technical details'),
+    element('text', 'Launch: setup-required. Reason'),
+    element('radio', 'New settings Detail', 'chosen'), element('radio', 'Existing settings Detail', 'not chosen'),
+    element('heading', 'What setup will do'), element('text', 'What setup will do'),
+    element('text', 'First effect'), element('text', 'Second effect'),
+    element('summary', 'Exact locations', 'on'), element('text', 'Exact locations'),
+    element('text', 'Settings folder'), element('text', '/h/Library/Application Support/dev.invented/settings'),
+    element('text', 'Outside folder'), element('text', '/elsewhere/settings'),
+]
+
+
+@unittest.skipIf(NODE is None and not os.environ.get('CI'), 'node is not installed')
+class TheJudgeDecidesEachKindBothWays(unittest.TestCase):
+    """Each of the eight expectation kinds the scenario uses, shown passing on the right state and failing on a wrong one."""
+
+    def check(self, expectation, model=PAGE):
+        return judge('judgeOne', model, expectation, HOME_VALUES)
+
+    def both(self, right, wrong, model=PAGE):
+        self.assertTrue(self.check(right, model)['pass'], right)
+        self.assertFalse(self.check(wrong, model)['pass'], wrong)
+
+    def test_text_exactly_once(self):
+        self.both({'text': 'Choose the folder.'}, {'text': 'Choose the folder'})  # words whole, not a prefix
+        twice = PAGE + [element('text', 'Choose the folder.')]
+        self.assertEqual(self.check({'text': 'Choose the folder.'}, twice), {'expectation': {'text': 'Choose the folder.'}, 'pass': False, 'found': 'present 2 times'})
+
+    def test_text_starts(self):
+        self.both({'text_starts': 'Launch: setup-required.'}, {'text_starts': 'Launch: ready.'})
+
+    def test_heading(self):
+        self.both({'heading': 'What setup will do'}, {'heading': 'What setup will happen'})
+
+    def test_button(self):
+        self.both({'button': 'Review setup', 'is': 'unavailable'}, {'button': 'Review setup', 'is': 'available'})
+        self.assertEqual(self.check({'button': 'Missing', 'is': 'available'})['found'], 'absent')
+
+    def test_summary(self):
+        self.both({'summary': 'Technical details', 'is': 'on'}, {'summary': 'Technical details', 'is': 'off'})
+
+    def test_radio(self):
+        self.both({'radio': 'New settings Detail', 'is': 'chosen'}, {'radio': 'Existing settings Detail', 'is': 'chosen'})
+
+    def test_texts_from_up_to(self):
+        bounds = {'texts_from': {'kind': 'heading', 'label': 'What setup will do'}, 'up_to': {'kind': 'summary', 'label': 'Exact locations'}}
+        self.both({**bounds, 'are': ['What setup will do', 'First effect', 'Second effect']},
+                  {**bounds, 'are': ['What setup will do', 'First effect']})  # a text more than expected fails
+        self.assertFalse(self.check({**bounds, 'are': ['What setup will do', 'Second effect', 'First effect']})['pass'])  # order
+
+    def test_location(self):
+        self.both({'location': 'Settings folder', 'under': '{app_data}'}, {'location': 'Outside folder', 'under': '{app_data}'})
+        dotted = [element('text', 'Settings folder'), element('text', '/h/Library/Application Support/dev.invented/../x')]
+        self.assertFalse(self.check({'location': 'Settings folder', 'under': '{app_data}'}, dotted)['pass'])
+
+    def test_an_unknown_kind_never_passes(self):
+        self.assertFalse(self.check({'something': 'else'})['pass'])
+
+    def test_the_click_target_is_exactly_one_available_control_never_an_ellipsis_or_a_never_clicked_one(self):
+        scenario = {'never_clicked': ['Browse for project folder']}
+        def step(kind, label): return {'control': {'kind': kind, 'label': label}}
+        self.assertEqual(judge('target', PAGE, step('button', 'Continue'), scenario), {'index': 4})
+        self.assertEqual(judge('target', PAGE, step('button', 'Review setup'), scenario)['verdict'], 'fail')
+        self.assertEqual(judge('target', PAGE, step('button', 'Cont'), scenario)['verdict'], 'inconclusive')
+        self.assertIn('never clicked', judge('target', PAGE, step('button', 'Create settings…'), scenario)['why'])
+        self.assertIn('never clicked', judge('target', PAGE + [element('button', 'Browse for project folder', 'available')],
+                                             step('button', 'Browse for project folder'), scenario)['why'])
+        doubled = PAGE + [element('button', 'Continue', 'available')]
+        self.assertIn('found 2 times', judge('target', doubled, step('button', 'Continue'), scenario)['why'])
+
+    def test_the_scenario_files_kinds_are_all_known_to_the_judge(self):
+        scenario = json.loads((APP / 'examination/standalone/operated/first-use-setup.scenario.json').read_text())
+        known = {'text', 'no_text', 'text_starts', 'heading', 'button', 'summary', 'radio', 'texts_from', 'location'}
+        used = {next(k for k in expectation if k in known) for step in scenario['steps'] for expectation in step['expect']}
+        self.assertLessEqual(used, known)
+        self.assertEqual(len(used), 8)
+
+
+SCENARIO_STAND_IN = '''#!/bin/sh
+S="$HOME/scripted-driver/stages.jsonl"
+M=chirality-scripted-driver-test-build-v1
+test -f "$HOME/scripted-driver/scenario.json" || exit 9
+printf '%s\\n' '{line}' >> "$S"
+{extra}
+exit {code}
+'''
+
+
+class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
+    def setUp(self):
+        self.proof = load_proof()
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, True)
+        self.scenario = self.root / 'scenario.json'
+        self.scenario.write_text(json.dumps({'scenario': 'invented', 'version': 1, 'steps': [], 'outcomes': {}}))
+
+    def verdict(self, verdict='pass', windows=1, code=0, extra=''):
+        app = self.root / 'Test.app'
+        executable = app / 'Contents/MacOS/chirality-app-v4'
+        executable.parent.mkdir(parents=True, exist_ok=True)
+        line = json.dumps({'marker': 'chirality-scripted-driver-test-build-v1', 'stage': 'scenario finished', 'at_ms': 1,
+                           'detail': {'most_windows': windows, 'result': {'verdict': verdict, 'steps': [], 'outcomes': {},
+                                                                          'stopped': None}}})
+        executable.write_text(SCENARIO_STAND_IN.format(line=line, extra=extra, code=code))
+        executable.chmod(executable.stat().st_mode | stat.S_IXUSR)
+        out = self.root / 'out'
+        if out.exists():
+            shutil.rmtree(out)
+        out.mkdir()
+        code = self.proof.scenario(app, out, 30, self.scenario)
+        return code, json.loads((out / 'scenario-report.json').read_text())
+
+    def test_a_passing_walk_with_one_window_no_child_and_its_own_end_passes(self):
+        code, report = self.verdict()
+        self.assertEqual((code, report['verdict']), (0, 'pass'))
+        self.assertTrue(any('accessibility' in limit for limit in report['limits']))
+        self.assertEqual(report['values']['app_data'], f"{report['values']['home']}/Library/Application Support/dev.chirality.app-v4.scripted-driver")
+
+    def test_anything_less_does_not_pass(self):
+        for name, change, expected in (('the walk failed', dict(verdict='fail', code=6), 'fail'),
+                                       ('the walk was inconclusive', dict(verdict='inconclusive', code=7), 'inconclusive'),
+                                       ('a second window', dict(windows=2, code=6), 'fail'),
+                                       ('a failing end', dict(code=6), 'inconclusive'),
+                                       ('a child process of the App', dict(extra='sleep 2'), 'fail')):
+            with self.subTest(name):
+                code, report = self.verdict(**change)
+                self.assertEqual((code, report['verdict']), (1, expected))

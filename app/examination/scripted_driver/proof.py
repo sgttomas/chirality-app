@@ -6,6 +6,9 @@ page and ran a script. See README.md beside this file.
   proof.py run --bundle <.app> --out <folder> [--timeout seconds]
                                            launch it once with HOME a new folder inside <folder>, read its stages,
                                            write <folder>/report.json; exit 0 only when the script ran and read the page
+  proof.py scenario --bundle <.app> --out <folder> [--timeout seconds]
+                                           launch it once more, have it walk the first-use setup scenario in its page,
+                                           write <folder>/scenario-report.json; exit 0 only on a pass
   proof.py release-free --out <folder>     build with the release features and no driver, and require the marker absent
                                            from that binary and present in the test binary; and require the driver
                                            refused with the release feature
@@ -28,6 +31,8 @@ DEV_OVERLAY = APP / 'packaging/unsigned/tauri.development.conf.json'
 MARKER = b'chirality-scripted-driver-test-build-v1'
 EXPECTED_HEADING = 'Welcome to Chirality'
 EXECUTABLE = 'chirality-app-v4'
+IDENTIFIER = 'dev.chirality.app-v4.scripted-driver'  # the overlay's identifier
+SCENARIO = APP / 'examination/standalone/operated/first-use-setup.scenario.json'
 STAGES = ('process started', 'page load started', 'page load finished', 'script evaluated')
 LIMITS = [
     'Development evidence about a test build. It satisfies nothing in release criteria 1 and 2, is not an operator\'s or '
@@ -66,37 +71,69 @@ def read_stages(path):
     return stages
 
 
-def run(bundle, out, timeout):
-    bundle = bundle.resolve()
+def launch(bundle, run_dir, timeout, scenario_input=None):
+    """Launch the bundle once in a new home; return what happened. With scenario_input ({scenario, values}), the
+    build walks the scenario, and the App's own child processes are watched throughout (the scenario starts none)."""
     executable = bundle / 'Contents/MacOS' / EXECUTABLE
-    if not executable.is_file():
-        print(f'refused: no {EXECUTABLE} in {bundle}', file=sys.stderr)
-        return 2
-    run_dir = out / 'run'
     run_dir.mkdir(parents=True)  # new: an existing run folder is refused
     home, tmp = run_dir / 'home', run_dir / 'tmp'
-    home.mkdir()
+    (home / 'scripted-driver').mkdir(parents=True)
     tmp.mkdir()
+    if scenario_input is not None:
+        (home / 'scripted-driver/scenario.json').write_text(json.dumps(scenario_input))
     # An environment built from nothing: no CHIRALITY_ configuration variable, no inherited home.
     env = {'HOME': str(home), 'TMPDIR': str(tmp), 'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'LANG': 'en_US.UTF-8'}
     # On macOS the run is held awake (caffeinate exists there); elsewhere, as in this file's tests, it runs bare.
     caffeinate = Path('/usr/bin/caffeinate').is_file()
     command = (['/usr/bin/caffeinate', '-di'] if caffeinate else []) + [str(executable)]
-    started = time.time()
+    started, children = time.time(), set()
+
+    def children_of(pid):
+        found = subprocess.run(['pgrep', '-P', str(pid)], capture_output=True, text=True).stdout.split()
+        return [int(p) for p in found]
+
+    def others_below(pid):
+        """Every process below the launched one that is neither caffeinate nor the App's own executable: a child the
+        scenario does not allow, however caffeinate arranges its own parentage."""
+        found, queue = {}, children_of(pid)
+        while queue:
+            child = queue.pop()
+            queue += children_of(child)
+            command = subprocess.run(['ps', '-o', 'command=', '-p', str(child)], capture_output=True, text=True).stdout.strip()
+            if command and str(executable) not in command and not command.startswith('/usr/bin/caffeinate'):
+                found[child] = command
+        return found
+
     with open(run_dir / 'app.out', 'wb') as stdout, open(run_dir / 'app.err', 'wb') as stderr:
         process = subprocess.Popen(command, env=env, stdout=stdout, stderr=stderr, start_new_session=True)
-        try:
-            code, timed_out = process.wait(timeout=timeout), False
-        except subprocess.TimeoutExpired:
-            timed_out = True
-            os.killpg(process.pid, signal.SIGTERM)
-            try:
-                process.wait(timeout=10)
-            except subprocess.TimeoutExpired:
-                os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
-            code = process.returncode
+        deadline, timed_out = started + timeout, False
+        while process.poll() is None:
+            if time.time() > deadline:
+                timed_out = True
+                os.killpg(process.pid, signal.SIGTERM)
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(process.pid, signal.SIGKILL)
+                    process.wait()
+                break
+            if scenario_input is not None:
+                children.update(f'{pid} {command}' for pid, command in others_below(process.pid).items())
+            time.sleep(0.5)
+        code = process.returncode
     stages = read_stages(home / 'scripted-driver/stages.jsonl')
+    return {'command': command, 'environment': env, 'seconds': round(time.time() - started, 1), 'exit_code': code,
+            'timed_out': timed_out, 'stages': stages, 'app_children_seen': sorted(children),
+            'app_stderr_tail': (run_dir / 'app.err').read_bytes()[-4000:].decode('utf-8', 'replace')}
+
+
+def run(bundle, out, timeout):
+    bundle = bundle.resolve()
+    if not (bundle / 'Contents/MacOS' / EXECUTABLE).is_file():
+        print(f'refused: no {EXECUTABLE} in {bundle}', file=sys.stderr)
+        return 2
+    ran = launch(bundle, out / 'run', timeout)
+    stages, code, timed_out = ran['stages'], ran['exit_code'], ran['timed_out']
     names = [s.get('stage') for s in stages]
     evaluated = next((s for s in stages if s.get('stage') == 'script evaluated'), None)
     returned = (evaluated or {}).get('detail', {}).get('returned') or {}
@@ -106,13 +143,13 @@ def run(bundle, out, timeout):
              and all(s.get('marker') == MARKER.decode() for s in stages))
     reached = [name for name in STAGES if name in names]
     report = {
-        'marker': MARKER.decode(), 'bundle': str(bundle), 'command': command, 'environment': env,
-        'seconds': round(time.time() - started, 1), 'exit_code': code, 'timed_out': timed_out,
+        'marker': MARKER.decode(), 'bundle': str(bundle), 'command': ran['command'], 'environment': ran['environment'],
+        'seconds': ran['seconds'], 'exit_code': code, 'timed_out': timed_out,
         'stages': stages, 'reached': reached,
         'stopped_after': reached[-1] if reached else 'nothing: no stage was written',
         'result': 'shown' if shown else 'not shown',
         'expected': {'heading': EXPECTED_HEADING, 'windows': 1, 'open_dialogs': 0, 'exit_code': 0},
-        'app_stderr_tail': (run_dir / 'app.err').read_bytes()[-4000:].decode('utf-8', 'replace'),
+        'app_stderr_tail': ran['app_stderr_tail'],
         'limits': LIMITS,
     }
     (out / 'report.json').write_text(json.dumps(report, indent=1) + '\n')
@@ -120,6 +157,61 @@ def run(bundle, out, timeout):
     if evaluated:
         print(json.dumps(returned, indent=1))
     return 0 if shown else 1
+
+
+def scenario(bundle, out, timeout, scenario_path):
+    """Walk the scenario in the test build and report its verdict. A pass needs: the walk's own verdict pass; one
+    window throughout; the App with no child process at any sample; the build ending itself with status 0."""
+    bundle = bundle.resolve()
+    if not (bundle / 'Contents/MacOS' / EXECUTABLE).is_file():
+        print(f'refused: no {EXECUTABLE} in {bundle}', file=sys.stderr)
+        return 2
+    walked = json.loads(Path(scenario_path).read_text())
+    run_dir = out / 'scenario-run'
+    home = run_dir / 'home'
+    values = {'identifier': IDENTIFIER, 'home': str(home),
+              'app_data': f'{home}/Library/Application Support/{IDENTIFIER}'}
+    ran = launch(bundle, run_dir, timeout, {'scenario': walked, 'values': values})
+    stages = ran['stages']
+    finished = next((s for s in stages if s.get('stage') == 'scenario finished'), None)
+    result = (finished or {}).get('detail', {}).get('result') or {}
+    most_windows = (finished or {}).get('detail', {}).get('most_windows')
+    verdict = result.get('verdict') if finished else None
+    passed = (verdict == 'pass' and most_windows == 1 and not ran['app_children_seen'] and ran['exit_code'] == 0
+              and not ran['timed_out'] and all(s.get('marker') == MARKER.decode() for s in stages))
+    if passed:
+        overall = 'pass'
+    elif verdict == 'fail' or ran['app_children_seen'] or (most_windows is not None and most_windows != 1):
+        overall = 'fail'
+    else:
+        overall = 'inconclusive'
+    report = {
+        'marker': MARKER.decode(), 'scenario': walked.get('scenario'), 'version': walked.get('version'),
+        'bundle': str(bundle), 'values': values, 'command': ran['command'], 'environment': ran['environment'],
+        'seconds': ran['seconds'], 'exit_code': ran['exit_code'], 'timed_out': ran['timed_out'],
+        'verdict': overall, 'walk_verdict': verdict, 'stopped': result.get('stopped'),
+        'outcomes': result.get('outcomes'), 'steps': result.get('steps'),
+        'census_at_start': result.get('census_at_start'), 'census_at_end': result.get('census_at_end'),
+        'most_windows': most_windows, 'app_children_seen': ran['app_children_seen'],
+        'stages': [{k: v for k, v in s.items() if k != 'detail' or s.get('stage') != 'scenario finished'} for s in stages],
+        'app_stderr_tail': ran['app_stderr_tail'],
+        'limits': LIMITS + [
+            'The scenario is judged from its own file against a model of the page built by stated rules (judge.js), '
+            'not against the supplier\'s accessibility text; whether the two readings agree is not established.',
+            'Every click is element.click() on the page\'s own element, not input from the system.'],
+    }
+    (out / 'scenario-report.json').write_text(json.dumps(report, indent=1) + '\n')
+    lines = [f"{report['scenario']} (version {report['version']}): {overall.upper()}"]
+    lines += [f'  {name}: {state}' for name, state in (report['outcomes'] or {}).items()]
+    if report['stopped']:
+        lines.append(f"  {report['stopped']}")
+    for step in report['steps'] or []:
+        for check in step.get('checks', []):
+            if not check['pass']:
+                lines.append(f"  {step['id']} expected {json.dumps(check['expectation'])}, found: {json.dumps(check['found'])}")
+    lines.append(f"  windows at most {most_windows}; App child processes seen {len(ran['app_children_seen'])}; exit {ran['exit_code']}")
+    print('\n'.join(lines))
+    return 0 if overall == 'pass' else 1
 
 
 def release_free(out):
@@ -162,6 +254,11 @@ def main(argv=None):
     r.add_argument('--bundle', type=Path, required=True)
     r.add_argument('--out', type=Path, required=True)
     r.add_argument('--timeout', type=int, default=180)
+    sc = sub.add_parser('scenario')
+    sc.add_argument('--bundle', type=Path, required=True)
+    sc.add_argument('--out', type=Path, required=True)
+    sc.add_argument('--timeout', type=int, default=300)
+    sc.add_argument('--scenario', type=Path, default=SCENARIO)
     sub.add_parser('release-free').add_argument('--out', type=Path, required=True)
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
@@ -169,6 +266,8 @@ def main(argv=None):
         return build(args.out.resolve())
     if args.command == 'run':
         return run(args.bundle, args.out.resolve(), args.timeout)
+    if args.command == 'scenario':
+        return scenario(args.bundle, args.out.resolve(), args.timeout, args.scenario)
     return release_free(args.out.resolve())
 
 
