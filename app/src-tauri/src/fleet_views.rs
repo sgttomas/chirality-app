@@ -321,7 +321,16 @@ impl<'a> Delegation<'a> {
             let record = &row["record"];
             let generation = json!([child_key(record), record["body"]["child"]["generation"]]).to_string();
             if record["kind"] == "observation_ended" {
-                ended_generations.insert(generation);
+                ended_generations.insert(generation.clone());
+                // An end of one generation's observation never replaces what a
+                // different generation, not ended, recorded of the child: a late
+                // end of an earlier generation (an App relaunch end written after
+                // a fresh observation) leaves the fresh one.
+                let fresher = last.get(&child_key(record)).map(|seen: &&Value| json!([child_key(&seen["record"]), seen["record"]["body"]["child"]["generation"]]).to_string())
+                    .is_some_and(|seen| seen != generation && !ended_generations.contains(&seen));
+                if fresher {
+                    continue;
+                }
             } else if ended_generations.contains(&generation) {
                 continue;
             }
@@ -371,7 +380,7 @@ pub(super) fn derive(
         let association = &record["body"]["association"];
         Some((association["undertaking"].as_str()?, association["workItem"].as_str()?))
     }
-    // Children still observed that the record ties to no work item.
+    // Children with no ending of their observation recorded that the record ties to no work item.
     let untied = delegation.dispatches.iter().filter(|d| tie(&d["record"]).is_none() && !delegation.ended(&d["record"])).count()
         + delegation.last.iter().filter(|(key, o)| o["record"]["kind"] != "observation_ended"
             && !delegation.dispatches.iter().any(|d| &child_key(&d["record"]) == *key)).count();
@@ -422,7 +431,7 @@ pub(super) fn derive(
         let items = array(&graph.record["body"]["items"]);
         let ids: BTreeSet<_> = items.iter().map(|i| text(&i["itemId"])).collect();
         if ids.len() != items.len() { result["notes"] = json!(["selected graph repeats item identities; no item chosen"]); return result; }
-        // Workers still observed whose recorded item is not a selected item of this graph (removed or unselected).
+        // Workers with no ending of their observation recorded whose recorded item is not a selected item of this graph (removed or unselected).
         let selected: BTreeSet<_> = items.iter().filter(|i| i["selected"] == true).map(|i| text(&i["itemId"])).collect();
         let outside_selection: Vec<String> = delegation.dispatches.iter().filter(|d| !delegation.ended(&d["record"]))
             .filter_map(|d| tie(&d["record"]).filter(|(u, item)| *u == undertaking && !selected.contains(item)).map(|(_, item)| item.to_owned())).collect();
@@ -437,7 +446,7 @@ pub(super) fn derive(
         if incomplete { notes.push("coordination log incomplete or conflicting; non-done states are unknown and the queue is not complete".into()); }
         if untrusted { notes.push("App-named project observations lack a healthy protected counterpart; native execution is not established".into()); }
         if !orphaned.is_empty() { notes.push(format!("orphaned child observations: {}",orphaned.iter().copied().collect::<Vec<_>>().join(", "))); }
-        if !outside_selection.is_empty() { notes.push(format!("a worker is still observed for work that is not selected in the current graph: {}", outside_selection.join(", "))); }
+        if !outside_selection.is_empty() { notes.push(format!("a worker was last observed, with no ending of that observation recorded, for work that is not selected in the current graph: {}", outside_selection.join(", "))); }
         if !delegation.orphaned.is_empty() { notes.push(format!("child observations with no recorded dispatch: {}",delegation.orphaned.join(", "))); }
         let item_return = |id:&str| event(&active,"return_recorded",id);
         let integrated = |id:&str| item_return(id).and_then(|r|return_events(&active,"integration_recorded",id,r.id()));

@@ -899,13 +899,24 @@ implemented behavior and qualification limits.
     written when the status Codex reports for a child changes, and
     `observation_ended` when the generation it was observed in closes
     (Codex stopped or exited) or when the App itself exits (cause "App
-    quit"). A session records the end only of its own observation, and every
-    later fact of a child, in whatever generation of Codex reports it, goes
-    through the recording context frozen when that child was first
-    recorded, with the writer's physical check:
-    nothing is ever written about a child another session recorded, or
-    under another identity or folder, and after a crash or a kill no end is
-    recorded at all. Each child's facts reach
+    quit"). Every later fact of a child, in whatever generation of Codex
+    reports it, goes through the recording context frozen when that child
+    was first recorded, with the writer's physical check: nothing is written
+    under another identity or folder. A session records the end of its own
+    observations, and one other end: at its start, from the record tick until
+    it has run, for each child an earlier session of this App recorded and
+    left without an end, where the App ledger established that session ended
+    at this session's start (the rule by which the ledger reads it as ended),
+    it records the end with the cause "App relaunch" and the status last
+    recorded. A session the ledger did not establish as ended (still running,
+    another App's, or of liveness not established) gets no end from this
+    session, is not looked at again in it, and is stated as a limit. After a
+    crash or a kill no end is recorded until the next start does so. Neither
+    that end nor any limit says the child itself ended: it says only that an
+    observation of it is over, or could not be reconciled. The App's own view
+    also states, as a limit, when this session's reconciliation is pending or
+    could not be written; another reader of the same files sees only the
+    records. A read reports it and triggers nothing. Each child's facts reach
     the store in the order observed; a later one waits while an earlier one
     of that child is unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
     conversation whose folder is not the selected project, is not recorded.

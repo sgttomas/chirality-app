@@ -465,3 +465,122 @@ fn a_child_keeps_its_first_context_across_a_restart_of_codex() {
     assert_eq!(captures.get(), 1, "across a generation change, a later status and the exit, the context is never captured again");
     assert!(session.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
 }
+
+// ---- At the next start: the end, cause "App relaunch", of an observation an
+// earlier session of this App left open.
+
+/// Session "first" records a dispatch and a status, and ends without recording
+/// the end of its observation (a crash, or an exit whose end was not written).
+fn left_open(f: &Fixture) -> (Spawn, Value) {
+    let first = generation("first");
+    let s = spawn(&first, None);
+    f.observe(&mut Session::default(), &[handed(&s, &first, &f.project)], None);
+    assert_eq!(f.rows().len(), 2);
+    (s, first)
+}
+fn established(current: &str, ended: &[&str]) -> impl Fn() -> Result<(String, BTreeSet<String>), String> {
+    let (current, ended): (String, BTreeSet<String>) = (current.into(), ended.iter().map(|s| s.to_string()).collect());
+    move || Ok((current.clone(), ended.clone()))
+}
+
+#[test]
+fn an_observation_an_earlier_session_left_open_is_ended_at_the_next_start_as_app_relaunch() {
+    let f = Fixture::new();
+    let (s, first) = left_open(&f);
+    let mut second = Session::default();
+    assert_eq!(second.reconciliation_status()["state"], "pending", "before it has run, a read is told it is pending");
+    for _ in 0..3 {
+        second.end_earlier_observations(Some(&f.project), &established("second", &["first"]));
+    }
+    let ended = f.of("observation_ended");
+    assert_eq!(ended.len(), 1, "one end, however many record ticks");
+    assert_eq!(ended[0]["body"], json!({"child":{"threadId":s.child,"generation":first},"cause":"App relaunch","lastObserved":"pendingInit",
+        "nativeHome":f.of("dispatch_observed")[0]["body"]["nativeHome"]}));
+    let status = second.reconciliation_status();
+    assert_eq!((status["state"].as_str(), status["endsRecorded"].as_u64()), (Some("recorded"), Some(1)), "{status}");
+    assert!(status.get("limit").is_none(), "{status}");
+    // A later session finds that end in the store and records no second one.
+    let mut third = Session::default();
+    third.end_earlier_observations(Some(&f.project), &established("third", &["first", "second"]));
+    assert_eq!(f.of("observation_ended").len(), 1);
+}
+
+#[test]
+fn a_session_the_ledger_did_not_establish_as_ended_is_never_ended_and_not_looked_at_again() {
+    let f = Fixture::new();
+    left_open(&f);
+    let mut second = Session::default();
+    second.end_earlier_observations(Some(&f.project), &established("second", &[]));
+    assert!(f.of("observation_ended").is_empty());
+    let status = second.reconciliation_status();
+    assert_eq!(status["sessionsNotEstablished"], json!(["first"]), "{status}");
+    assert!(status["limit"].as_str().unwrap().contains("could not be established"), "{status}");
+    // Not looked at again in this session.
+    second.end_earlier_observations(Some(&f.project), &established("second", &["first"]));
+    assert!(f.of("observation_ended").is_empty());
+    // The App ledger itself unavailable: nothing is ended, and that is stated.
+    let mut third = Session::default();
+    third.end_earlier_observations(Some(&f.project), &|| Err("App ledger unavailable".into()));
+    assert!(f.of("observation_ended").is_empty());
+    assert!(third.reconciliation_status()["limit"].as_str().unwrap().contains("App ledger unavailable"));
+}
+
+/// Two Apps, each with its own App data, on one project and store: the second
+/// App's ledger establishes only its own sessions, so the first App's open
+/// observation is never ended by the second, whatever home or project they share.
+#[test]
+fn another_apps_session_is_never_ended_by_this_one() {
+    let f = Fixture::new();
+    left_open(&f);
+    let app_two = f.root.join("app-two");
+    std::fs::create_dir_all(&app_two).unwrap();
+    let _custody = crate::hold_app_data_for_test(&app_two).unwrap();
+    let mut ledger = crate::recovery::RecoveryLedger::open(app_two.join("recovery.ledger.jsonl")).unwrap();
+    ledger.start_session("app-two", "candidate").unwrap();
+    let rows = ledger.recorded_entries().as_array().unwrap().clone();
+    let set = crate::recovery::established_ended_sessions(&rows, "app-two").unwrap();
+    assert!(!set.contains("first"), "{set:?}");
+    assert!(crate::recovery::established_ended_sessions(&rows, "never-started").is_err(), "a session whose start is not in the ledger establishes nothing");
+    let mut two = Session::default();
+    let sessions = move || Ok(("app-two".to_owned(), set.clone()));
+    two.end_earlier_observations(Some(&f.project), &sessions);
+    assert!(f.of("observation_ended").is_empty());
+    assert_eq!(two.reconciliation_status()["sessionsNotEstablished"], json!(["first"]));
+}
+
+#[test]
+fn an_end_whose_write_failed_is_retried_at_the_record_tick_and_written_once() {
+    let f = Fixture::new();
+    left_open(&f);
+    let mut second = Session::default();
+    super::super::FAIL_AFTER_WRITE.with(|flag| flag.set(Some(0)));
+    second.end_earlier_observations(Some(&f.project), &established("second", &["first"]));
+    super::super::FAIL_AFTER_WRITE.with(|flag| flag.set(None));
+    let status = second.reconciliation_status();
+    assert_eq!(status["state"], "unavailable", "{status}");
+    assert!(status["limit"].as_str().unwrap().contains("retried at the next record tick"), "{status}");
+    second.retry(Some(&f.project));
+    assert_eq!(f.of("observation_ended").len(), 1, "the retry writes that one end, once");
+    assert_eq!(second.reconciliation_status()["state"], "recorded");
+}
+
+/// A write the earlier App left part way (its last line unclosed, as a crash
+/// mid-append leaves it): no end is recorded over it, and that is stated as
+/// unavailable with the reason, tried again at each record tick; nothing reads
+/// as reconciled.
+#[test]
+fn a_log_left_with_an_unclosed_line_is_reported_unavailable_and_nothing_is_ended() {
+    use std::io::Write;
+    let f = Fixture::new();
+    left_open(&f);
+    let store = published_at(&f.scope, 0);
+    std::fs::OpenOptions::new().append(true).open(&store).unwrap().write_all(b"{\"format\":\"chirality.fleet.rec").unwrap();
+    let mut second = Session::default();
+    for _ in 0..2 {
+        second.end_earlier_observations(Some(&f.project), &established("second", &["first"]));
+    }
+    assert!(!std::fs::read_to_string(&store).unwrap().contains("App relaunch"), "nothing is written over the unclosed line");
+    let status = second.reconciliation_status();
+    assert_eq!(status["state"], "unavailable", "{status}");
+    assert!(status["limit"].as_str().unwrap().contains("unclosed final line"), "{status}");
+}

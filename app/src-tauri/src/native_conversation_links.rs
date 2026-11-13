@@ -393,6 +393,17 @@ impl Session {
             Some(generation_end(home, generation).unwrap_or("App quit"))
         });
     }
+    /// The session's start for the selected project, from the record tick until
+    /// it has run: the end of each observation an earlier session of this App
+    /// left open, where the App ledger established that session ended.
+    /// `host` is any App-owned home's Host: they share the one App ledger.
+    pub(crate) fn reconcile_earlier_delegation(&mut self, project: Option<&Path>, host: &crate::hosting::Host) {
+        self.end_earlier_observations(project, &|| host.established_ended_sessions());
+    }
+    /// What that reconciliation has done in this session. Memory only.
+    pub(crate) fn delegation_reconciliation(&self) -> Value {
+        self.reconciliation_status()
+    }
     /// The record tick hands over each home's native views as received. What
     /// they show of native delegation is recorded once; nothing is sent.
     pub(crate) fn observe_delegation(&mut self, project: Option<&Path>, home: &HomeSession, views: &[Value]) {

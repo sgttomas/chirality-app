@@ -5,10 +5,13 @@
 //! observation. They are published through the same store-first, identical-line
 //! writer as related conversations, in the order they were observed. A
 //! dispatch establishes the child and its parent only; no work done, return,
-//! review or integration follows from it. A session records the end only of
-//! its own observation, on evidence it holds itself: nothing is ever recorded
-//! about a child another session observed.
-use super::{line, read_log, settle, validate_record, Pending, Session, SourceContext};
+//! review or integration follows from it. A session records the end of its
+//! own observation, on evidence it holds itself, and one other end: at its
+//! start it records the end, cause "App relaunch", of each observation an
+//! earlier session of this App left without one, once the App ledger has
+//! established that session ended ([`Session::end_earlier_observations`]).
+//! Neither end says anything of the child's outcome.
+use super::{line, published_at, read_log, rows, settle, validate_record, Pending, Scope, Session, SourceContext};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
@@ -45,6 +48,11 @@ pub(super) struct State {
     /// For each view, what it held when it was last read with nothing left
     /// waiting; an unchanged view is not read again.
     seen: BTreeMap<String, String>,
+    /// The reconciliation of earlier sessions' observations, once it has run
+    /// to its end in this session: what it did, and the ends it took.
+    reconciled: Option<(Value, Vec<String>)>,
+    /// Why it has not yet run to its end; it is tried again at the next record tick.
+    unreconciled: Option<String>,
 }
 enum Taken {
     Recorded,
@@ -427,6 +435,135 @@ impl Session {
         let last = self.delegation.statuses.get(&key(json!([home, child["generation"], thread]))).cloned();
         let body = json!({"child":child,"cause":cause,"lastObserved":last,"nativeHome":context.native_home.as_ref().ok()});
         self.delegation_fact(end.to_owned(), child_slot(&home, &thread), context, "observation_ended", body)
+    }
+    /// The session's start, for the selected project, run at each record tick
+    /// until it has run to its end: for each child an earlier App session of
+    /// this App recorded and left without an end of its observation, this
+    /// session records that end, with the cause "App relaunch" and the status
+    /// last recorded. It is this session's observation that the earlier one is
+    /// over, and says nothing of the child's outcome.
+    ///
+    /// `sessions` is this session and the sessions the App ledger established
+    /// as ended at this session's start ([`crate::recovery::established_ended_sessions`]).
+    /// Only a child of one of those is ended. A session not among them (still
+    /// running, another App's, or of liveness not established) is not ended by
+    /// this session, is not looked at again in it, and is stated as a limit.
+    /// Only this installation's stored lines are read: the store's copy governs,
+    /// and a line that entered by import is quoted evidence, given no end. No
+    /// native source is consulted.
+    pub(super) fn end_earlier_observations(&mut self, project: Option<&Path>, sessions: &dyn Fn() -> Result<(String, BTreeSet<String>), String>) {
+        if self.delegation.reconciled.is_some() {
+            return;
+        }
+        let sessions = sessions();
+        let Some(project) = project.and_then(|p| p.canonicalize().ok()) else {
+            self.delegation.reconciled = Some((json!({"state":"not needed","reason":"no selected App project"}), vec![]));
+            return;
+        };
+        let (current, ended) = match sessions {
+            Ok(sessions) => sessions,
+            Err(reason) => {
+                self.delegation.reconciled = Some((json!({"state":"unavailable",
+                    "limit":format!("An earlier App session's end could not be established ({reason}); this session records no end of an earlier session's observations, and they are left as last recorded")}), vec![]));
+                return;
+            }
+        };
+        match self.reconcile(&project, &current, &ended) {
+            Ok(done) => {
+                self.delegation.reconciled = Some(done);
+                self.delegation.unreconciled = None;
+            }
+            Err(reason) => self.delegation.unreconciled = Some(reason),
+        }
+    }
+    fn reconcile(&mut self, project: &Path, current: &str, established: &BTreeSet<String>) -> Result<(Value, Vec<String>), String> {
+        let scope = Scope::capture(project)?;
+        crate::records_retention::check_write(&scope.dir.path)?;
+        if crate::records_retention::terminal(&scope.dir.path)? {
+            return Ok((json!({"state":"not needed","reason":"the project's records are closed"}), vec![]));
+        }
+        let bytes = read_log(&published_at(&scope, 0))?;
+        let imported = crate::records_store::package::quoted_prefix(&scope.dir.path, &format!("fleet/{}", super::LOG), &bytes)?;
+        let stored = rows(&bytes, true)?;
+        scope.check()?;
+        let mut children: BTreeMap<String, (Value, Value)> = BTreeMap::new();
+        let mut statuses: BTreeMap<String, String> = BTreeMap::new();
+        let mut ended = BTreeSet::new();
+        let mut start = 0u64;
+        for (row, line) in &stored {
+            let local = start >= imported;
+            start += line.len() as u64;
+            if !local || row["formatVersion"] != "0.2" || !KINDS.contains(&row["kind"].as_str().unwrap_or("")) {
+                continue;
+            }
+            let child = &row["body"]["child"];
+            let (Some(home), Some(thread)) = (child["generation"]["home"].as_str(), child["threadId"].as_str()) else { continue };
+            let end = key(json!(["ended", home, child["generation"], thread]));
+            match row["kind"].as_str() {
+                Some("observation_ended") => {
+                    ended.insert(end);
+                }
+                Some(kind) => {
+                    if kind == "child_observed" {
+                        statuses.insert(end.clone(), row["body"]["status"].as_str().unwrap_or_default().to_owned());
+                    }
+                    children.entry(end).or_insert_with(|| (child.clone(), row["body"]["nativeHome"].clone()));
+                }
+                None => {}
+            }
+        }
+        let mut taken = Vec::new();
+        let mut not_established = BTreeSet::new();
+        for (end, (child, native_home)) in children {
+            let session = child["generation"]["appSession"].as_str().unwrap_or_default().to_owned();
+            if ended.contains(&end) || self.facts.contains_key(&end) || session == current {
+                continue;
+            }
+            if !established.contains(&session) {
+                not_established.insert(session);
+                continue;
+            }
+            let (home, thread) = (child["generation"]["home"].as_str().unwrap_or_default().to_owned(), child["threadId"].as_str().unwrap_or_default().to_owned());
+            let activity = crate::records_retention::activity(&scope.project.path)?.ok_or("recording custody unavailable")?;
+            let context = SourceContext { scope: Ok(scope.clone()), native_home: Ok(native_home.clone()), generation: child["generation"].clone(),
+                activity: Some(Arc::new(activity)), custody_limit: None };
+            let body = json!({"child":child,"cause":"App relaunch","lastObserved":statuses.get(&end),"nativeHome":native_home});
+            match self.delegation_fact(end.clone(), child_slot(&home, &thread), context, "observation_ended", body) {
+                Taken::Recorded => taken.push(end),
+                Taken::Waits | Taken::Refused => {
+                    return Err(self.limits.last().cloned().unwrap_or_else(|| "an earlier observation's end could not be taken for recording".into()));
+                }
+            }
+        }
+        let mut done = json!({"state":"ran"});
+        if !not_established.is_empty() {
+            done["limit"] = json!("An earlier App session's end could not be established, so this session records no end of that session's observations of delegated children; they are left as last recorded");
+            done["sessionsNotEstablished"] = json!(not_established);
+        }
+        Ok((done, taken))
+    }
+    /// What the reconciliation has done in this session, in words a reader of
+    /// the App's view is shown beside the records. Memory only.
+    pub(super) fn reconciliation_status(&self) -> Value {
+        match (&self.delegation.reconciled, &self.delegation.unreconciled) {
+            (Some((done, taken)), _) => {
+                let mut status = done.clone();
+                let unwritten = taken.iter().filter_map(|end| self.facts.get(end)).find(|p| !(p.store_done && p.project_done));
+                match unwritten {
+                    Some(pending) if done["state"] == "ran" => {
+                        status["state"] = json!("unavailable");
+                        status["limit"] = json!(format!("The end of an earlier App session's observation of a delegated child is not yet written ({}); retried at the next record tick",
+                            pending.first_failure.iter().flatten().next().cloned().unwrap_or_else(|| "write not yet attempted".into())));
+                    }
+                    _ if done["state"] == "ran" => status["state"] = json!("recorded"),
+                    _ => {}
+                }
+                status["endsRecorded"] = json!(taken.len());
+                status
+            }
+            (None, Some(reason)) => json!({"state":"unavailable","limit":format!("The end of an earlier App session's observations of delegated children could not be recorded ({reason}); retried at the next record tick")}),
+            (None, None) => json!({"state":"pending","limit":"Earlier App sessions' observations of delegated children have not yet been reconciled in this session"}),
+        }
     }
     /// At the App's own exit, this session's observation of every child it
     /// recorded ends. `cause` says how a generation's observation ended, or

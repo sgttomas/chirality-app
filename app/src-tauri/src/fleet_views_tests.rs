@@ -879,9 +879,9 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     let w = f.read();
     let v = view(&w);
     assert!(v["waiting"].as_array().unwrap().iter().all(|row| row["item"] != "W1"), "an unselected item has no row");
-    assert_eq!(work(v, "W3")["category"], "ready (qualified)", "a worker is still observed for work outside the selection");
+    assert_eq!(work(v, "W3")["category"], "ready (qualified)", "a worker last observed, with no ending of that observation recorded, for work outside the selection");
     assert_eq!(v["queueComplete"], false);
-    assert!(v["notes"].to_string().contains("a worker is still observed for work that is not selected in the current graph: W1"));
+    assert!(v["notes"].to_string().contains("a worker was last observed, with no ending of that observation recorded, for work that is not selected in the current graph: W1"));
     // Removed from the graph altogether: the same.
     f.graph["body"]["items"].as_array_mut().unwrap().remove(0);
     f.graph["body"]["items"][0]["needs"] = json!([]);
@@ -891,7 +891,7 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     f.observed(&[dispatch.clone(), f.ended("held-child", "running")]);
     assert_eq!(work(view(&f.read()), "W3")["category"], "ready");
     drop(f);
-    // Two workers for one item: the earlier still observed, the later ended. Both are shown; the item is held.
+    // Two workers for one item: the earlier with no ending of its observation recorded, the later ended. Both are shown; the item is held.
     let mut f = Fixture::new();
     let association = f.briefed();
     let rows = [f.dispatch("worker-a", association.clone()), f.status("worker-a", "running"),
@@ -899,7 +899,7 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     f.observed(&rows);
     let w = f.read();
     let item = work(view(&w), "W1");
-    assert_eq!(item["category"], "dispatched", "a worker is still observed");
+    assert_eq!(item["category"], "dispatched", "a worker's observation has no ending recorded");
     let workers = item["dispatches"].as_array().unwrap();
     assert_eq!(workers.iter().map(|w| (w["child"].clone(), w["observationEnded"].clone())).collect::<Vec<_>>(),
         vec![(json!("worker-a"), json!(false)), (json!("worker-b"), json!(true))]);
@@ -910,4 +910,38 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     all.push(f.ended("worker-a", "running"));
     f.observed(&all);
     assert_eq!(work(view(&f.read()), "W1")["category"], "unknown");
+}
+
+/// A late end of an earlier generation's observation (the App relaunch end,
+/// written after the new session observed the child again) never hides the
+/// fresh observation: the child reads as last observed in the new generation,
+/// and the item stays dispatched. Without the fresh observation the same end
+/// reads as the end, and the item is unknown.
+#[test]
+fn a_late_end_of_an_earlier_generation_never_hides_a_fresh_observation_of_the_child() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut relaunch = f.ended("worker", "running");
+    relaunch["body"]["cause"] = json!("App relaunch");
+    let mut fresh = f.status("worker", "pendingInit");
+    fresh["observationId"] = json!("fl:app:status-worker-later");
+    fresh["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let earlier = [f.dispatch("worker", association), f.status("worker", "running")];
+    f.observed(&[earlier[0].clone(), earlier[1].clone(), fresh, relaunch]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "dispatched", "{item}");
+    let worker = &item["dispatches"][0];
+    assert_eq!(worker["observationEnded"], false, "{worker}");
+    assert!(worker["lastObserved"].as_str().unwrap().contains("child last observed pendingInit"), "{worker}");
+    drop(f);
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut relaunch = f.ended("worker", "running");
+    relaunch["body"]["cause"] = json!("App relaunch");
+    f.observed(&[f.dispatch("worker", association), f.status("worker", "running"), relaunch]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "unknown", "{item}");
+    assert!(item.to_string().contains("observation ended (App relaunch)"), "{item}");
 }
