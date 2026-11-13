@@ -34,6 +34,7 @@ fn old_parse_reader(
             notes: vec![],
             expected_before: expected,
             chain_before: chain.clone(),
+            broken: None,
         };
         // Only a complete following line can name a recovered partial. A
         // still-torn W-0 observation is not evidence that recovery happened.
