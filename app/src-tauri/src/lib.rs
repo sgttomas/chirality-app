@@ -89,6 +89,7 @@ pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
+#[cfg(test)] mod pinned_codex_observations;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_assurance;
 pub(crate) mod workflow_workspace;
