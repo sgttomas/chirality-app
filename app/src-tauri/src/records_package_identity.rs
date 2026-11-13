@@ -46,12 +46,19 @@ fn active_original(store: &Path) -> Result<Option<(Intent, Vec<u8>)>, String> {
     let folder = active(store);
     let bytes = match optional(&folder.join("intent.json"))? {
         Some(bytes) => bytes,
-        None if !folder.exists() => return Ok(None),
-        None => {
-            return Err(
-                "active association lost its original native intent; no identity inferred".into(),
-            )
-        }
+        // Only an active location that is not there is no active
+        // association. One that is there (a dangling link included: links
+        // are not followed) without its intent has lost it; one that cannot
+        // be examined is not known.
+        None => match crate::records_inspect::presence(&folder) {
+            Ok(None) => return Ok(None),
+            Ok(Some(_)) => {
+                return Err(
+                    "active association lost its original native intent; no identity inferred".into(),
+                )
+            }
+            Err(e) => return Err(format!("active association could not be examined ({e}); no identity inferred")),
+        },
     };
     let mut intent = decoded(&bytes)?;
     intent.bind_store(store)?;
@@ -439,6 +446,12 @@ pub(super) fn prior(root: &Path, project: &str, store: &Path) -> Result<Associat
     };
     Ok(Association { prior })
 }
+// Test-only seam: called with true just before the unused identity's
+// administration folder is examined and with false just after, at every
+// inventory (the plan's and each later validation's); it reaches the
+// interval after the retention view and before the inventory.
+#[cfg(test)]
+thread_local! { pub(super) static AROUND_UNUSED_INVENTORY: std::cell::RefCell<Option<Box<dyn FnMut(bool)>>> = const { std::cell::RefCell::new(None) }; }
 fn unused(root: &Path, store: &Path, project: &str, initial: bool) -> Result<Unused, String> {
     let dir = project_dir(store, project);
     let payload = bag::payload_inventory(&dir)?;
@@ -499,7 +512,15 @@ fn unused(root: &Path, store: &Path, project: &str, initial: bool) -> Result<Unu
         );
     }
     let control = controls(&dir)?;
-    if control.exists() {
+    #[cfg(test)]
+    AROUND_UNUSED_INVENTORY.with(|h| if let Some(hook) = h.borrow_mut().as_mut() { hook(true) });
+    // An administration folder that cannot be examined is never taken for
+    // none: the inventory below is what refuses any history beyond the locks.
+    let there = crate::records_inspect::presence(&control);
+    #[cfg(test)]
+    AROUND_UNUSED_INVENTORY.with(|h| if let Some(hook) = h.borrow_mut().as_mut() { hook(false) });
+    let there = there.map_err(|e| format!("prior identity's administration could not be examined ({e}); nothing reassociated"))?.is_some();
+    if there {
         for entry in std::fs::read_dir(&control).map_err(|e| e.to_string())? {
             let path = entry.map_err(|e| e.to_string())?.path();
             if !matches!(

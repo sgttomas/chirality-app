@@ -90,6 +90,10 @@ jobs:
               --test policy_standing --test decision_standing --test record_semantics --test record_relations \
               --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation --test menu_capability \
               --test hosting_contract --test runtime_integration -- --test-threads=1
+      - name: Record schemas and connector presentation (Rust fixtures)
+        # Web tests that run Rust tests built by the compile step above, offline and without the supplier;
+        # validate-records skips its Codex handshake case here, which the full route runs.
+        run: node --test tests/validate-records.test.mjs tests/connector-route-presentation.test.mjs tests/connector-source-presentation.test.mjs
       - name: Focused lib cohorts (shard A)
         # One process per cohort, as before: some tests read process-wide state set by others.
         run: |
@@ -118,7 +122,7 @@ jobs:
           native_projection_delivery observer_rebuild
           native_history_error_content_is_not_durable workflow_reselection
           trial_authoring_source_tests records_access record_lines records_store
-          records_export records_retention installation::tests connector_route_store
+          records_export records_retention records_inspect installation::tests connector_route_store
           recovery::tests records_continuity fleet_ reply_close native_requests::tests
           call_custody after_run_end chat_workflow native_links startup_refusal
           recovery_root_cold_ waiting_requests_tests::
@@ -159,15 +163,15 @@ jobs:
       - name: Desktop setup presentation
         run: node --test tests/desktop-setup.test.mjs
       - name: Role history and portable export verification
-        run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs
+        run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs tests/records-retention.test.mjs
       - name: Workflow and fleet presentation
-        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
+        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs tests/workflow-text.test.mjs tests/run-offers.test.mjs tests/trials.test.mjs tests/clean-trial-restart.test.mjs tests/workflow-drafts.test.mjs tests/workflow-supply-dispatch.test.mjs
       - name: Native history and conversation presentation
-        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs tests/reading-sentences.test.mjs tests/host-reads.test.mjs tests/request-cards.test.mjs tests/prepared-message-navigation.test.mjs tests/stop-not-sent.test.mjs
+        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs tests/reading-sentences.test.mjs tests/host-reads.test.mjs tests/request-cards.test.mjs tests/prepared-message-navigation.test.mjs tests/codex-controls.test.mjs tests/plan-mode.test.mjs tests/presentation.test.mjs tests/recorded-replay.test.mjs tests/stop-not-sent.test.mjs
       - name: File-act arrival presentation
-        # The one focused web test that starts cargo: it runs a single Rust test of the library target the
-        # cohorts above built, offline (the full route runs this file through npm test).
-        run: node --test tests/file-act-arrival.test.mjs
+        # Each file runs Rust tests of the library target the cohorts above built, offline (the full route
+        # runs both files through npm test).
+        run: node --test tests/file-act-arrival.test.mjs tests/file-act-panel.test.mjs
       - name: Save compiled third-party Rust dependencies
         if: ${{ !cancelled() }}
         uses: ./.github/actions/app-v4-rust-cache-save
@@ -331,11 +335,11 @@ jobs:
           cargo build --locked --manifest-path src-tauri/Cargo.toml --example distribution-static
           DISTRIBUTION_STATIC_BIN="$PWD/src-tauri/target/debug/examples/distribution-static" python -m pytest -q packaging/static_distribution/test_connected.py packaging/static_distribution/test_inventory.py packaging/static_distribution/test_s1_value_model.py
       - name: Role history and portable export verification
-        run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs
+        run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs tests/records-retention.test.mjs
       - name: Workflow and fleet presentation
-        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs
+        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs tests/workflow-text.test.mjs tests/run-offers.test.mjs tests/trials.test.mjs tests/clean-trial-restart.test.mjs tests/workflow-drafts.test.mjs tests/workflow-supply-dispatch.test.mjs
       - name: Native history and conversation presentation
-        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs tests/reading-sentences.test.mjs tests/host-reads.test.mjs tests/request-cards.test.mjs tests/prepared-message-navigation.test.mjs tests/stop-not-sent.test.mjs
+        run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs tests/reading-sentences.test.mjs tests/host-reads.test.mjs tests/request-cards.test.mjs tests/prepared-message-navigation.test.mjs tests/codex-controls.test.mjs tests/plan-mode.test.mjs tests/presentation.test.mjs tests/recorded-replay.test.mjs tests/stop-not-sent.test.mjs
       - name: Node schemas and presentation with mandatory supplier
         run: |
           test -x "$CHIRALITY_CODEX_BIN"
