@@ -93,6 +93,12 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
   the bundle; it is needed again below. The lane keeps that bundle unchanged
   from identification through recovery: no rebuild, replacement, renaming or
   added link (see "The condition of the exception").
+- **The Python.** A Python 3 that has the repository's checking dependencies
+  (jsonschema and PyYAML, as the repository checks install them), named by the
+  assignment by its full path. Every `python3` in this method means that
+  interpreter: identification's check and the launcher need jsonschema, and a
+  Python found on the operator's own path may not have it. If the assignment
+  names none, or the named one lacks either, stop before the first step.
 - **The homes root.** The launcher makes each launch folder under the lane's
   homes root, which must already exist; it never creates it. If it does not
   exist the launcher refuses and says so. The lane makes it, once.
