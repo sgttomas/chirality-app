@@ -204,7 +204,7 @@ test('an Add save refused at its reading before the write shows that sentence al
 const {pressSend, hostMessage} = loadSrc('TrialComposer');
 test('a clean trial start refused at its reading shows the host refusal as given', async () => {
   for (const sentence of sentences) {
-    const message = `The trial conversation was not started; the pre-filled trial was withdrawn and nothing was recorded. ${sentence}`;
+    const message = `The trial conversation was not started; the pre-filled trial was withdrawn. ${sentence}`;
     const outcomes = [];
     pressSend(async () => { throw {message, prefillKept:false}; }, 'workflow_trial_start_clean', {}, outcome => outcomes.push(outcome), () => 'sent');
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -234,3 +234,88 @@ test('an action that succeeds with a successful refresh shows no refresh line', 
     assert.doesNotMatch(c.textContent, new RegExp(REFRESH_FAILED.replace(/[.?]/g, '\\$&')));
   });
 });
+
+// Round 4: the four Conversation-view refresh writers. A Start refused at its reading puts the
+// sentence on this view; then each operation runs and its status read fails with a private canary.
+// The sentence stays; the operation's own outcome (acknowledged, or its own failure) stays with its
+// attribution; the fixed line appears once; the canary appears nowhere; the command is sent once
+// (a failed read supplies no snapshot and triggers no retry).
+const conversationCanary = 'INVENTED_PRIVATE_STATUS_READ_DIAGNOSTIC_R4';
+async function conversationWriter(operation, commandFails, check) {
+  const g = {appSession:'r4-session', home:'r4-home', spawnCounter:1};
+  const live = {generation:g, threadId:'thread-a', turnId:'live-a'};
+  const snapshot = {state:'ready', generation:g, homeRouting:{activeModeHomeClass:'account', entries:[{modeHomeClass:'account'}]},
+    roleLimits:{account:{roles:[]}}, roleSet:{available:true, defaultRole:null, roles:[{name:'HELP_HUMAN', meaning:'fixture role'}]},
+    threads:[{generation:g, threadId:'thread-a', model:'reported-original', modelProvider:'openai', appRole:{standing:'app-observed', role:null, supply_ref:'sup:r4'}}],
+    ...(['steer', 'interrupt'].includes(operation) ? {conversationTurns:[{...live, nativeTurn:{id:'live-a', status:'inProgress', items:[]}}], steeringTargets:[{generation:g, threadId:'thread-a', target:live}]} : {}),
+    attachmentCustody:{state:'opened'}, ...(operation === 'attach' ? {attachmentSelections:{ownerRef:'owner-r4', listRevision:1, selections:[{selection:{selectionRef:'sel-r4', displayName:'invented.txt'}}], submissions:[]}} : {})};
+  const commands = {send:'conversation_send_text', plan:'collaboration_modes_read', attach:'submit_attachments', steer:'conversation_steer_text', interrupt:'conversation_interrupt'};
+  let failStatus = false; const calls = [];
+  const idle = installIdleNativeWaiting(async command => {
+    calls.push(command);
+    if (command === 'host_status') { if (failStatus) throw Error(conversationCanary); return structuredClone(snapshot); }
+    if (command === 'decision_view') return {rows:[]};
+    if (command === 'native_confirmation_content') return [];
+    if (command === 'thread_start') throw READING_GATE;
+    if (command === commands[operation]) { failStatus = true; if (commandFails) throw `invented ${operation} refusal`; return operation === 'send' ? {result:{turn:{id:'r4-turn'}}} : {}; }
+    throw Error(`unexpected ${command}`);
+  });
+  const previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById};
+  globalThis.setInterval = () => 0; globalThis.clearInterval = () => {};
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
+  const settle = () => React.act(async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); });
+  const tap = async label => { await React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }); await settle(); };
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const panel = () => c.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
+    await change(nodes(panel(), 'select')[0], JSON.stringify([g, 'thread-a']));
+    await change(labelled(c, 'input', 'Model '), 'r4-model'); await change(labelled(c, 'input', 'Configured Codex provider '), 'openai'); await change(labelled(c, 'select', 'Access entry '), 'chatgpt-account');
+    await tap('Start thread');
+    assert.ok(c.textContent.includes(`thread_start: ${READING_GATE}`), 'the reading sentence is on this view');
+    if (operation !== 'plan' && operation !== 'interrupt') await change(nodes(panel(), 'textarea')[0], 'invented r4 text');
+    if (operation === 'interrupt') await change(labelled(panel(), 'select', 'Observed live turn '), 'live-a');
+    await tap({send:'Send text', plan:'Check plan mode availability', attach:'Send text and ordered attachments', steer:'Steer current live turn', interrupt:'Interrupt selected live turn'}[operation]);
+    assert.ok(c.textContent.includes(READING_GATE), 'the reading sentence stays');
+    assert.doesNotMatch(c.textContent, new RegExp(conversationCanary), 'the raw status-read diagnostic appears nowhere');
+    assert.equal(calls.filter(command => command === commands[operation]).length, 1, 'sent once: no automatic retry');
+    await check(c);
+  } finally {
+    const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
+    Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById;
+  }
+}
+const once = (text, part) => text.split(part).length - 1;
+for (const commandFails of [false, true]) {
+  test(`ordinary send ${commandFails ? 'refused' : 'acknowledged'}, then a failed status read: its outcome stays, the fixed line once, nothing raw`, async () => {
+    await conversationWriter('send', commandFails, c => {
+      const shown = region(c, 'Ordinary text submission outcome').textContent;
+      assert.match(shown, /Original ordinary text turn · conversation thread-a · Home r4-home/, 'attributed to its own request');
+      if (commandFails) assert.ok(shown.includes('invented send refusal'), 'its own failure stays'); else assert.match(shown, /Native turn\/start response received/);
+      assert.equal(once(shown, REFRESH_FAILED), 1);
+    });
+  });
+  test(`plan-mode check ${commandFails ? 'refused' : 'completed'}, then a failed status read: ${commandFails ? 'its failure, then' : 'only'} the fixed line`, async () => {
+    await conversationWriter('plan', commandFails, c => {
+      assert.ok(c.textContent.includes(commandFails ? `invented plan refusal ${REFRESH_FAILED}` : REFRESH_FAILED), c.textContent.slice(-400));
+      if (!commandFails) assert.doesNotMatch(c.textContent, /invented plan refusal/);
+    });
+  });
+  test(`attachment send ${commandFails ? 'refused' : 'acknowledged'}, then a failed status read: its outcome stays, the fixed line once, nothing raw`, async () => {
+    await conversationWriter('attach', commandFails, c => {
+      const shown = region(c, 'Attachment submission outcome').textContent;
+      assert.match(shown, /Original Send with ordered attachments · conversation thread-a · Home r4-home/, 'attributed to its own request');
+      if (commandFails) assert.ok(shown.includes('invented attach refusal'), 'its own failure stays'); else assert.match(shown, /Matching attachment native acknowledgment observed/);
+      assert.equal(once(shown, REFRESH_FAILED), 1);
+    });
+  });
+  for (const operation of ['steer', 'interrupt']) test(`${operation} ${commandFails ? 'refused' : 'acknowledged'}, then a failed status read: its outcome stays, the fixed line once, nothing raw`, async () => {
+    await conversationWriter(operation, commandFails, c => {
+      const shown = region(c, 'Original conversation action outcome').textContent;
+      assert.match(shown, new RegExp(`Original ${operation === 'steer' ? 'steering' : 'interrupt'} request · conversation thread-a · Home r4-home`), 'attributed to its own request');
+      if (commandFails) assert.ok(shown.includes(`Original native request failed: invented ${operation} refusal`), 'its own failure stays');
+      else assert.match(shown, operation === 'steer' ? /Native steering acknowledgment received/ : /Native interrupt acknowledgment received/);
+      assert.equal(once(shown, REFRESH_FAILED), 1);
+    });
+  });
+}

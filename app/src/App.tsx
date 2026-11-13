@@ -34,7 +34,7 @@ import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
-import { REFRESH_FAILED, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
+import { REFRESH_FAILED, observationLine, observationText, readStatus, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -193,7 +193,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     }
     setOrdinaryOutcome(outcome);
     try { await observeOrdinaryView?.(request, isCurrent); }
-    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: String(error) }); }
+    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: observationText(error) }); }
     finally { turnActionPending.current = false; setBusy(""); }
   };
   const steerText = async () => {
@@ -230,7 +230,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     } catch (nativeError) { outcome = { request, result: { acknowledged: false, nativeError } }; }
     setAttachmentOutcome(outcome);
     try { await observeAttachmentView?.(request); }
-    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: String(e) }); }
+    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: observationText(e) }); }
     finally { turnActionPending.current = false; setBusy(""); }
     return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
@@ -458,7 +458,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       {ordinaryOutcome.result.acknowledged
         ? <p role="status">Native turn/start response received. Model adoption, execution and completion remain unestablished; reported model facts are separate.</p>
         : <p role="alert">{String(ordinaryOutcome.result.nativeError)} Text and model choice retained unless superseded by a newer edit or conversation. No automatic retry or substitution.</p>}
-      {ordinaryOutcome.observationLimit && <p role="alert">Ordinary text view refresh unavailable for this original request: {ordinaryOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      {ordinaryOutcome.observationLimit && <p role="alert">{observationLine(ordinaryOutcome.observationLimit, "Ordinary text view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
     </div>}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <div>
       <button disabled={!sourceReady || !selected || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(null)}>Send text and ordered attachments</button>{" "}
@@ -471,7 +471,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       {attachmentOutcome.result.acknowledged
         ? <p role="status">Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.</p>
         : <p role="alert">{String(attachmentOutcome.result.nativeError)} No automatic retry.</p>}
-      {attachmentOutcome.observationLimit && <p role="alert">Attachment view refresh unavailable for this original request: {attachmentOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      {attachmentOutcome.observationLimit && <p role="alert">{observationLine(attachmentOutcome.observationLimit, "Attachment view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
       <details><summary>Original attachment request identity</summary>
         <p>App session: {attachmentOutcome.request.generation?.appSession} · spawn: {attachmentOutcome.request.generation?.spawnCounter} · selection owner: {attachmentOutcome.request.ownerRef} · list revision: {attachmentOutcome.request.listRevision}.</p>
         <ol>{attachmentOutcome.request.selectionRefs.map((ref, index) => <li key={`${index}:${ref}`}>{ref}</li>)}</ol>
@@ -2105,7 +2105,7 @@ export function App() {
   const observeOrdinaryView = async (request: OrdinaryTextRequest, isCurrent: () => boolean) => {
     const viewAtRead = currentHost.current;
     if (!isCurrent() || !sameActivityGeneration(viewAtRead?.generation, request.generation)) throw new Error("The original conversation/source was superseded; its view was not applied");
-    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+    const snapshotRead = await readStatus(readHost(invoke<Json>("host_status"))); const snapshot: Json = snapshotRead.snapshot;
     if (!isCurrent() || currentHost.current !== viewAtRead || !sameActivityGeneration(currentHost.current?.generation, request.generation) || !sameActivityGeneration(snapshot?.generation, request.generation)) {
       throw new Error("A newer conversation/source observation superseded this original refresh; its view was not applied");
     }
@@ -2130,12 +2130,12 @@ export function App() {
     setConversationOutcome(outcome);
     try {
       if (!current() || currentHost.current !== sourceAtDispatch) throw new Error("Original view refresh superseded before reading; no old snapshot was applied");
-      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+      const snapshotRead = await readStatus(readHost(invoke<Json>("host_status"))); const snapshot: Json = snapshotRead.snapshot;
       if (!current() || currentHost.current !== sourceAtDispatch || !sameActivityGeneration(snapshot?.generation, args.generation)) {
         throw new Error("Original view refresh superseded while reading; no old snapshot was applied");
       }
       applyHost(snapshotRead);
-    } catch (e) { setConversationOutcome({ ...outcome, observationLimit: String(e) }); }
+    } catch (e) { setConversationOutcome({ ...outcome, observationLimit: observationText(e) }); }
     // A refusal never clears text. A skipped/failed read never rewrites the
     // native result, and a superseded acknowledgment never clears a new owner.
     return acknowledged && current();
@@ -2532,19 +2532,21 @@ export function App() {
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
             <ConversationPanel focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
-          try {
-              await invoke("collaboration_modes_read", { generation });
-          }
-          finally {
-              applyHost(await readHost(invoke<Json>("host_status")));
-          }
+          // The check's own failure stands; a failed refresh adds the fixed line once, nothing raw,
+          // and never turns a completed check into an error of its own.
+          let failure: unknown = null, failed = false, refreshFailed = false;
+          try { await invoke("collaboration_modes_read", { generation }); }
+          catch (error) { failure = error; failed = true; }
+          await refreshAfterAction(async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => { refreshFailed = true; });
+          if (failed) throw refreshFailed ? withRefreshFailure(String(failure)) : failure;
+          if (refreshFailed) throw REFRESH_FAILED;
       }} steer={async (generation, threadId, expectedTurnId, text) => {
           return await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
           return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
       }} observeAttachmentView={async (request) => {
           const viewAtRead = currentHost.current;
-          const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+          const snapshotRead = await readStatus(readHost(invoke<Json>("host_status"))); const snapshot: Json = snapshotRead.snapshot;
           // This read belongs to the original attachment request, not a Home or
           // generation selected while its native response/read was pending.
           if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
@@ -2563,7 +2565,7 @@ export function App() {
                 : conversationOutcome.native === "failed" ? `Original native request failed: ${conversationOutcome.error}`
                 : conversationOutcome.command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events."
                 : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment."} No automatic retry.</p>
-              {conversationOutcome.observationLimit && <p role="status">{conversationOutcome.observationLimit}. The original command outcome is unchanged.</p>}
+              {conversationOutcome.observationLimit && <p role="status">{observationLine(conversationOutcome.observationLimit, "")} The original command outcome is unchanged.</p>}
             </div>}
             <WorkspaceDisclosure id="workspace-attachments" title="Message attachments" description="Select and review files for a message">
               <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
