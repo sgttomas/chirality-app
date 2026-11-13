@@ -507,7 +507,7 @@ impl ReadLog {
             let mut last = [0u8];
             file.seek(std::io::SeekFrom::End(-1)).and_then(|_| file.read_exact(&mut last)).map_err(|e| format!("read log unavailable: {e}"))?;
             if last[0] != b'\n' {
-                return Err("read log has an unclosed final line; bytes preserved, nothing appended".into());
+                return Err(torn_read_log(path));
             }
         }
         let mut line = serde_json::to_vec(entry).map_err(|e| e.to_string())?;
@@ -518,6 +518,22 @@ impl ReadLog {
         }
         Ok(())
     }
+}
+
+/// The refusal for a read log whose last line was cut short (an append
+/// interrupted before its newline): the file, where it is, and the one act
+/// that recovers it, said so that a person can act on it without knowing the
+/// store's layout. The App never reads, cuts or closes that line; the renamed
+/// file stays in the records store, unread, and travels in any export
+/// (RELEASE_LIMITATIONS LIM-014).
+fn torn_read_log(path: &Path) -> String {
+    let stamp = now_rfc3339().replace(':', "-");
+    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "records-reads".into());
+    let renamed = format!("{stem}.torn-{stamp}.jsonl");
+    format!(
+        "agents cannot read this project's records: the read log {} ends in a read that was not recorded completely, so no further read can be recorded or answered. Nothing already recorded is lost. To let agents read again, rename that file, in the same folder, to {renamed}. The App then starts a new read log at the next read, and keeps the renamed file in the records store without reading it",
+        path.display()
+    )
 }
 
 /// The capability the host offers in its current project.

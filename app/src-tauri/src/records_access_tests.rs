@@ -226,7 +226,50 @@ fn each_call_is_recorded_once_schema_valid_and_before_it_is_answered() {
     std::fs::write(f.read_log(), b"{\"torn\":").unwrap();
     assert_eq!(cap.answer(&call(4, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()))["success"], false);
     assert_eq!(std::fs::read(f.read_log()).unwrap(), b"{\"torn\":");
-    assert!(cap.snapshot()["readLogLimit"].as_str().unwrap().contains("unclosed final line"), "the cause is shown with the capability");
+    assert!(cap.snapshot()["readLogLimit"].as_str().unwrap().contains("was not recorded completely"), "the cause is shown with the capability");
+}
+
+/// LIM-014: a read log whose last line was cut short. The refusal names the
+/// file as the App resolved it, says that nothing recorded is lost, and gives
+/// the one act that recovers it: a rename, in the same folder, to the name it
+/// gives. After the rename a read is recorded in a new read log, and the
+/// renamed file's bytes are unchanged.
+#[test]
+fn records_access_a_torn_read_log_names_its_file_and_recovery_and_reads_again_after_the_rename() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    write_run(&a, "run:1", 2, "T", false);
+    let cap = capability(&f, &a);
+    let first = cap.answer(&call(1, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()));
+    assert_eq!(first["success"], true, "{first}");
+    let mut torn = std::fs::read(f.read_log()).unwrap();
+    torn.extend_from_slice(b"{\"format\":\"chirality.records-read-log\",\"readId\":\"rread:cut");
+    std::fs::write(f.read_log(), &torn).unwrap();
+    let refused = cap.answer(&call(2, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()));
+    assert_eq!(refused["success"], false);
+    // What the person is shown with the records capability: the whole sentence.
+    let said = cap.snapshot()["readLogLimit"].as_str().unwrap().to_owned();
+    let path = f.read_log().display().to_string();
+    assert!(said.contains(&format!("the read log {path} ends in a read that was not recorded completely")), "the file, where it is: {said}");
+    assert!(said.contains("Nothing already recorded is lost"), "{said}");
+    let start = said.find("in the same folder, to ").expect("the act and the new name") + "in the same folder, to ".len();
+    let name = said[start..].split(". ").next().unwrap().to_owned();
+    assert!(name.starts_with("records-reads.torn-") && name.ends_with(".jsonl") && !name.contains('/'), "a name in the same folder: {name}");
+    // What the agent is told: the same sentence, within the refusal's bound,
+    // with the file and the new name before any cut.
+    let agent = returned(&refused)["refused"].as_str().unwrap().to_owned();
+    let told = agent.trim_start_matches("the read could not be recorded (");
+    let kept = told.split(" … (cut").next().unwrap().trim_end_matches("); nothing returned");
+    assert!(said.starts_with(kept) && kept.contains(&path) && kept.contains(&name), "the agent is told the same sentence: {agent}");
+    assert_eq!(std::fs::read(f.read_log()).unwrap(), torn, "nothing appended, nothing cut");
+    // The person's act, as the sentence says it.
+    let renamed = f.read_log().with_file_name(&name);
+    std::fs::rename(f.read_log(), &renamed).unwrap();
+    let again = cap.answer(&call(3, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()));
+    assert_eq!(again["success"], true, "{again}");
+    assert_eq!(f.logged().len(), 1, "the read is recorded in a new read log");
+    assert_eq!(f.logged()[0]["callId"], "call-3");
+    assert_eq!(std::fs::read(&renamed).unwrap(), torn, "the renamed file's bytes are unchanged");
 }
 
 fn text_of(answer: &Value) -> &str {
