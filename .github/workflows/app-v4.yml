@@ -123,6 +123,8 @@ jobs:
           call_custody after_run_end chat_workflow native_links startup_refusal
           recovery_root_cold_ waiting_requests_tests::
           runtime_session::workflow_root_tests::library_entries_tests
+          stop_bound_tests home_hold::tests session_liveness::tests local_process_lock_tests
+          prepared_turn_refusal_is_typed_only_for_a_correlated_native_error
           act_control::a15::tests::listed_a15_
           runtime_session::workflow_root_tests::proposal_disclosure_tests
           model_catalog
