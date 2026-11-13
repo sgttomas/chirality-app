@@ -144,6 +144,16 @@ test('records capability binding reports cold unknown and publication limits for
   const text=h(RecordsCapabilityBindings,{host});assert.match(text,/unknown\/unsupported/);assert.match(text,/original receipt absent/);assert.match(text,/memory-only/);assert.match(text,/folder flush unconfirmed/);assert.doesNotMatch(text,/stale/);
 });
 
+test('the read log limit is shown whole with the records capability, with or without bound conversations (LIM-014)',()=>{
+  const {RecordsCapabilityBindings}=loadSrc('App');const generation={appSession:'current',home:'home',spawnCounter:1};
+  const sentence="This project's records capability cannot answer reads until its read log is set aside: rename /a/very/long/store/path/projects/key/reads/records-reads.jsonl, in the same folder, to exactly records-reads.jsonl.torn-2026-11-13T19-17-38.143Z. That file ends in a read that was not recorded completely, so this capability cannot record or answer another read; nothing already recorded is lost.";
+  const alone=h(RecordsCapabilityBindings,{host:{generation,threads:[],recordsCapability:{readLogLimit:sentence}}});
+  assert.ok(alone.includes(sentence.replace(/'/g,'&#x27;')),alone);
+  assert.match(alone,/role="alert"/);
+  assert.deepEqual(buttons(RecordsCapabilityBindings({host:{generation,threads:[],recordsCapability:{readLogLimit:sentence}}})),[]);
+  assert.equal(h(RecordsCapabilityBindings,{host:{generation,threads:[],recordsCapability:{readLogLimit:null}}}),'');
+});
+
 test('one existing library entry goes from in-place review to an explicit native registration press',async()=>{
   const calls=[];const act=async(c,a)=>{calls.push([c,a]);return {ok:true};};
   let data={selection:null,activeLibrary:'lib-one',libraries:[{reference:'lib-one',registered:[]}],reviews:[]};

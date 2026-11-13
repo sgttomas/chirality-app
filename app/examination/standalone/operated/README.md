@@ -27,26 +27,51 @@ times, on 13 November 2026), observed by App Agent 0, or not examined:
   tool; they did not look at which process holds the tool's own files, or
   whether `node_repl` has children of its own. A later observation did (step
   10, "The operator's node runtime and its host"): the tool runs in a node
-  kernel whose parent is `node_repl`. Which of the two starts the app-server
-  has not been observed. It starts within the same second as the walk's
-  first call; whether the import in step 4 or the first call starts it was not
-  known, since both were made in one block (observed; the cause not
-  established). It outlives the walk and its operator (observed, twice). It runs
+  kernel whose parent is `node_repl`. Its parent has been the host (observed
+  in A2's fifth to eighth attempts). When the import and the first view were
+  made in one block (A2's second, third and fifth attempts), it started
+  within the same second as that block (observed, three times). When the
+  import was a call of its own (the sixth, seventh and eighth), it started
+  within the same second as the import returned, before any view (observed,
+  three times). Inter-Project reported the same of its own delegates'
+  imports on 13 November, with or without a view after them (observed by
+  Inter-Project; the lane saw two such helpers, started at 20:43 and 20:44
+  UTC). Left alone, it outlives the walk and the delegate that imported the
+  service (observed in the second and third attempts, and by Inter-Project). It runs
   with CODEX_HOME set to the owner's own Codex home, `~/.codex`, and HOME the
   account's real home (observed by App Agent 0).
 - **The window service.** `SkyComputerUseService`, from
   `~/.codex/computer-use/Codex Computer Use.app`, started by launchd within the
-  same second as the first call when it is not already running (observed,
-  twice). Each of the two so started was later found no longer running,
-  without the lane or App Agent 0 having signalled it (observed: absent at a
+  same second as the first view when it is not already running (observed in
+  A2's second, third and fifth to eighth attempts; in the sixth to eighth,
+  where the import was a call of its own, at the first view and not at the
+  import). Each of the two started in the second and third attempts was
+  later found no longer running, without the lane or App Agent 0 having
+  signalled it (observed: absent at a
   later check; when it ended, and why, not known).
 - **Not examined:** which files the app-server reads, whether it uses a
   credential (such as a sign-in held under `~/.codex`), and what it or the
   service sends. The supplier's documentation for the service says nothing
   about a Codex app-server, a Codex home or a native pipe (read).
-- **The start-up failure.** Twice a walk's first call failed with "Sky Computer
-  Use native pipe startup failed" within about five seconds, each time with a
-  freshly started service and app-server (observed). Why is not established.
+- **The start-up failure, and its cause.** A walk's first view failed with
+  "Sky Computer Use native pipe startup failed" within about five seconds in
+  A2's second, third, fifth, sixth and seventh attempts, each time with a
+  freshly started service and app-server (observed). The cause, established
+  by App Agent 0 with Inter-Project on 13 November and confirmed by its
+  remedy: the provider's Codex then running (started 12 November) ran an
+  executable that had been replaced on disk, and the window service refused
+  it as unauthenticated. The replacement predates all five: before the third
+  attempt, at 07:55:55 UTC, `stray.py` already listed that process as one
+  whose executable had been removed (the lane's record before that attempt,
+  `a2-third-preconditions.txt` in its evidence folder), and the file was
+  replaced again at about 15:52 UTC. The owner's restart of T3 Code at about 20:42 UTC
+  started the provider again from the executable on disk; a delegate's view
+  worked at 20:45 UTC, and A2's eighth attempt passed. This explains the
+  native-pipe failures only. A2's first attempt stopped at identification's
+  check (the operator's Python had no jsonschema), and its fourth was refused
+  at the runtime check before any call; neither reached a view. The lane's
+  provider check at the go tests for that one condition before every walk
+  ("At the go").
 
 The owner's answer, 13 November 2026, to a question App Agent 0 put in a
 dialog. The question: "Agent-operated walks of the App are held because the
@@ -99,8 +124,11 @@ All of these hold, every time:
   After every walk, attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered (steps 10 and 11). Neither may already be
   running when the operator looks, before the walk's import and first call;
   if one is, no walk is made (step 10). No agent opens or reads
-  anything under `~/.codex` or `~/.codex-hub`, signs in, copies a sign-in or
-  sees a credential's value.
+  anything under `~/.codex` or `~/.codex-hub` (process listings name paths
+  there, and that is all), signs in, copies a sign-in or sees a credential's
+  value. The operator runs no Codex binary of any kind itself and no binary
+  inside `/Applications/ChatGPT.app`; its `js` tool runs there, which is the
+  route. Nothing is downloaded.
 - The App itself starts no Codex in the first-use setup scenario. Launches
   that start the App's real Codex through the launcher remain closed.
 
@@ -199,7 +227,143 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
   beginning `lane-`, and `socket-folder-sample.txt`, which grows while the
   walk runs) and leaves them alone; anything else in it means no walk.
   Everything else the method writes there is the operator's.
-- **App Agent 0's go for the walk**, and the acts it allows.
+- **The checkout**, a clean checkout of main at a revision the assignment
+  names, from whose root every command here is run and which `<repository>`
+  means below. With the interpreter, before it begins, the operator confirms
+  `git rev-parse HEAD` prints that revision and `git status --short` prints nothing; if not,
+  it stops. It uses no other checkout, its own included.
+- **App Agent 0's go for the walk**, its time, and the acts it allows.
+
+An assignment gives these, the role to load, the bounds in words and how to
+return; this method gives everything else.
+
+## At the go (the lane)
+
+At App Agent 0's go, before the operator is delegated, the lane's agent makes
+these from its own shell, in this order, and keeps each output in the new
+evidence folder under a name beginning `lane-`. Each opens nothing under
+`~/.codex` and signals nothing.
+
+1. **The provider check, first.** The provider is the Codex the operators'
+   sessions run under: the process whose command is a `codex` executable
+   with the one argument `app-server`, and whose parent is the process of the
+   application that runs the delegates (on this host,
+   `/Applications/T3 Code (Beta).app/Contents/MacOS/T3 Code (Beta)`). It is
+   found in the process table at the go, never by a number remembered from
+   before. Exactly one such process must exist, and its start must be later
+   than the modification time of its executable on disk. If none is found
+   (on another host, or after an update that moves or renames the
+   delegates' application or the provider), or more than one, that is not
+   exactly one: no walk, and it comes to App Agent 0, who corrects this
+   description; it is never worked around by picking a process:
+
+   ```sh
+   ps -axo pid=,ppid=,command=                 # find it: parent the delegates' application, command `<path>/codex app-server`
+   ps -o lstart= -p <its number>               # its start (local time)
+   stat -L -f %m <its executable>              # the executable's modification time (seconds)
+   ```
+
+   with the start converted to seconds as step 10 shows. The number,
+   parent, start and modification time (both also in UTC), the executable and
+   the verdict go into `lane-provider-check.txt`, and the number into
+   `lane-provider.pid`. If there is not exactly one, or its start is not
+   later, no walk is made and nothing else is done: the lane tells App
+   Agent 0, and restarting the provider is the owner's act. This tests for
+   the one condition found to have made the first views fail (a provider
+   running an executable replaced on disk; see "What the route starts").
+   When it passes, that condition is absent, and nothing more: it does not
+   show that the service will accept the call.
+2. **`stray.py`** on the candidate's bundle (step 11 shows the command): it
+   exits 0 with no remaining candidate process, or no walk is made.
+3. **The lane's look**: the first `ps` command of step 10, kept whole in
+   `lane-look.txt`. A running window service, or a running process whose
+   command contains `app-server --listen`, whatever its parent, means no
+   walk, and the lane tells App Agent 0. An exited entry (state `Z`,
+   `<defunct>`) is recorded with its number, parent and state and is not a
+   bar: it has exited and can do nothing.
+4. **The sample of the service's socket folder** ("Running a scenario"),
+   started so that it outlives the shell call that starts it: through
+   `detached.py` with the name `lane-socket`, running the loop with
+   `/bin/sh -c '<the loop>'`. It ends by itself at its stated stop; step 11
+   leaves it alone.
+
+Then the lane delegates the operator.
+
+## A walk, in order (the operator)
+
+The operator does these and nothing else, in this order. Each names where
+this method says how.
+
+1. Confirm the interpreter, the checkout, the candidate and its key, and that
+   the evidence folder holds only the lane's files ("What the operator is
+   given").
+2. Identify its node runtime and its host with the marker, and record them in
+   `runtime.txt` in the evidence folder (step 10, "The operator's node
+   runtime and its host").
+3. The environment check, then the launcher (step 1).
+4. Confirm the App's process (step 2) and take the identifier (step 3).
+5. Start the watch ("Running a scenario", "In a window").
+6. Recheck its two identities and make its look, the last things before the
+   import, both kept whole in `look.txt` (step 10, "The look").
+7. The import, a `js` call of its own; then wait at least ten seconds; then
+   the record after the import, `after-import.txt` ("In a window").
+8. The walk's call, once ("In a window"). Steps 5 and 6 below say what its
+   views and clicks are; the operator makes no view or click of its own
+   outside it.
+9. Record (step 7); end the launch (step 8); then steps 9 and 10, judging
+   each of the route's processes by the rule for its kind.
+10. Close the marker, and return ("The operator's return").
+
+Wherever this method says no walk is made, or the walk stops, the operator
+keeps what it has, ends what it started (steps 8 and 10), closes the marker
+if it was opened, and returns. Step 11 and the sample of the socket folder
+are the lane's; the operator neither makes nor waits for them.
+
+**Recovery.** The lane is the recovery owner. If the operator stops, fails,
+is cut off or writes no result, the lane acts from the evidence folder's
+`*.started.json` files, `runtime.txt`, `look.txt`, `after-import.txt` and its
+own step 11, without waiting. So the operator writes every started file
+where this method says, keeps `runtime.txt` and `look.txt` in the evidence
+folder as it makes them, and moves or removes nothing there.
+
+**When this method does not say.** If it is not enough to go on, or the
+service returns something it does not describe, or the walk stops: keep that
+result as it is and stop. No extra or exploratory view or import, no test
+of which process starts what, no changed expectation, no edited scenario or
+script, no retry, no workaround. A
+service call that throws has not been shown to have had no effect: record it
+as an exception, keep the error whole, and stop. Guidance the operator
+needed and this method did not give is a finding about the method; it goes in
+the return.
+
+## The operator's return
+
+It leads with the walk's summary as printed (the verdict, the four outcomes
+and any "caused by:" lines), or with "no walk" and why. Then:
+
+- its two recorded identities (the runtime and the host: number, start in
+  UTC, executable), their relationship, and the host's parent; its Codex
+  version as "not known", with the host's parent's executable and that
+  file's modification time beside it;
+- the recheck and the look, whole; the import's time; `after-import.txt`,
+  whole; the walk call's time;
+- the evidence folder's path, the launch folder's path (or that none was
+  made), and the launch record's outcome line;
+- the raw result or error, whole, for any step that did not pass;
+- every deviation from this method, however small, and every place it did
+  not say what to do;
+- what it started (from the started files), what it ended, and how it
+  confirmed each gone (`ps -p`, `pgrep -g`);
+- each of the route's processes: number, start in UTC, command and actual
+  parent; the rule it was judged by and which test of it, if any, it failed
+  (for the helper, which recorded identity its parent is); and whether it was
+  ended (with the recheck before the signal and `ps -o stat=` after) or left
+  as unresolved;
+- the marker: not opened; closed (and kept); or closure unconfirmed, and why;
+- its model and reasoning effort, and that this method and its assignment
+  were its only instructions.
+
+Its last line is the verdict, or "no walk", and the evidence folder.
 
 ## The steps
 
@@ -320,11 +484,18 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    ```
 
    Wait until `<evidence folder>/launcher.out` holds the outcome (about fifteen
-   seconds), then confirm that neither process remains (`ps -p` on each
-   number prints no process). The launch record then says the launcher
+   seconds; wait at most sixty, since the launcher lists the real Library
+   about five and again about ten seconds after the App exits, before it
+   writes the outcome, so fifteen is the normal case), then confirm that neither process remains
+   (`ps -p` on each number prints no process). If no outcome comes within
+   sixty seconds, or a process remains, the recovery is incomplete: the
+   operator records it, tells the lane in its return, and goes on with the
+   other checks of step 10. This method authorises no stronger signal. The launch record then says the launcher
    received the signal and attempted to pass a termination to the App, and
    the outcome is "failed": that is the truthful record of a launch ended
-   from outside, not a defect.
+   from outside, not a defect. The launch record's outcome describes how the
+   launch ended; it is not the walk's verdict, which is the walk's result
+   file's.
 9. **What stays.** The launch folder with its record, and the evidence
    folder. Nobody opens the home.
 10. **What is ended.** The launcher, the App and the watch are ended. Of the
@@ -360,19 +531,30 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       `globalThis.runtimeMarker = await (await import('node:fs')).promises.open('<evidence folder>/runtime.marker', 'w');`,
       and then asks which process holds it (`lsof -t`, above). That one
       process is its runtime, and the runtime's parent is its host. Each is
-      recorded as an identity, by its process number, start time and
-      executable (`ps -o lstart=,ppid=,command=` on each), and so is the
-      relationship between them: the runtime's parent is the host. Wherever
+      recorded as an identity, by its process number, start time (and that
+      start in UTC, by the `date` line above) and executable (`ps -o
+      lstart=,ppid=,command=` on each), and so is the relationship between
+      them: the runtime's parent is the host. The host's parent is recorded
+      the same way, with its executable's modification time in UTC (`TZ=UTC
+      stat -f '%Sm' -t '%FT%TZ' <that executable>`) beside its start, and the
+      operator's Codex version is recorded as "not known": it runs no Codex
+      binary to find out, and neither the path nor the time establishes
+      which version a running process is. All of this goes into `runtime.txt`
+      in the evidence folder, the first thing the operator records about
+      itself. Wherever
       this method speaks of the runtime or the host, it means these two
       recorded identities, never any process that merely has the same name.
       What is expected is what was observed on 13 November 2026 at 16:48 UTC,
-      under the provider's Codex process then running: the runtime was
+      and again in every attempt since: the runtime was
       ChatGPT.app's node
       (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node`)
       running a `kernel.js` with a session identifier, and its host was
       ChatGPT.app's `node_repl`
       (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl`),
-      a child of the provider's Codex. If `lsof` names none or more than one,
+      a child of the provider's Codex: the host's parent is the process the
+      lane's provider check named at the go (its number is in
+      `lane-provider.pid`; "At the go"); if that file is missing, or names
+      another process, it is not. If `lsof` names none or more than one,
       or the runtime or its host is anything other than that, the runtime is
       not identified and no walk is made: nothing has been launched, and the
       operator closes the marker and returns. That call imports only the
@@ -407,6 +589,10 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       otherwise leave the identification stale. The look: the first `ps`
       command above, for a window service (by its command, below) and for
       any process whose command is the app-server's, whatever its parent.
+      Both are kept whole in `look.txt` in the evidence folder, whose first
+      line is the time of the look in UTC (`date -u +%FT%TZ`). An exited
+      entry (state `Z`, `<defunct>`) is not a running process and is not a
+      bar; it is recorded as it is found.
       Any difference in the check, or any such process running, means no walk
       is made: what was found is recorded (a process with its number, start
       time and parent), the operator ends what it started (steps 8 and 10),
@@ -423,7 +609,11 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       is one of the two recorded identities, the operator's runtime or its
       host (the parent's number and start time those recorded); and whose
       start, in UTC, is no earlier than the look and no later than the walk's
-      end. A process meeting all three is ended. In A2's fifth attempt the
+      end. A process meeting all three is ended. The look's time is the first
+      line of `look.txt`; the walk's end is the result file's `finished`, or,
+      where there is no result file, the time the operator records when the
+      walk stopped, on every path that stops it. Where either is missing, no
+      endpoint is inferred: the route's processes are unresolved. In A2's fifth attempt the
       helper's parent was the host (observed, once); the earlier record saw
       `node_repl` as its parent too, before anyone looked for the kernel below
       it. The rule accepts either, since once is not always. Whether the
@@ -456,7 +646,10 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     - An ended process may stay listed with a state beginning with `Z` until
       its parent collects it; that is ended. No process that predates the
       walk is ever signalled. The operator signals nothing else: not the node
-      runtime or its host, not the provider's Codex, not a process group. None of these
+      runtime or its host; not the provider's Codex or any of its other
+      children (its `codex-code-mode-host`, and other sessions' `node_repl`
+      and kernel processes, whatever their names); nothing the lane's look or
+      the operator's look found; not a process group. None of these
       commands opens anything under `~/.codex`.
     The lane's agent, not the operator, then confirms the same from its own
     shell after every run: the launcher's and the watch's process numbers are
@@ -473,7 +666,8 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     was lost before it returned. It does not wait for step 10's observations,
     which on some of those paths were never made. In order:
 
-    1. For each `*.started.json` in the evidence folder: if `ps -o command= -p
+    1. For each `*.started.json` in the evidence folder other than the lane's
+       own (`lane-*.started.json`, which end by themselves): if `ps -o command= -p
        <its pid>` still shows the recorded command, end it as step 10 does
        (the launcher by a termination, the watch by its number) and confirm
        it is gone.
@@ -791,16 +985,14 @@ route processes (step 10, "The look"), as the last things before the import;
 if either fails, no walk. (Its runtime and host were identified before step
 1: step 10, "The operator's node runtime and its host".)
 
-**Two calls, as the calls that worked were made.** The views that worked on
-13 November imported the service in one `js` call and made the first view
-in a later call, about ten seconds after, asking with the application alone.
-Every first view that failed since was made in the same block as the import,
-asking for the whole window (`disableDiff`). Both differences are observed;
-neither is shown to be the cause of the failures, and if a walk made this way
-succeeds, which of the two mattered is not known. So the import is a call of
-its own, and the walk's first view asks with the application alone (`walk.mjs`
-asks every later view for the whole window, and still requires each view
-before any click to come back whole).
+**Two calls.** The import is a call of its own, and the walk's first view
+asks with the application alone (`walk.mjs` asks every later view for the
+whole window, and still requires each view before any click to come back
+whole). This is the form of the views that worked on 13 November, and the
+form in which A2's eighth attempt passed. It was adopted while the failures
+were unexplained; their cause turned out to be another (see "What the route
+starts"), and whether the import and the first view in one block would also
+work has not been tried since.
 
 First, in the operator's `js` tool, the import alone, printing the time it
 returned:
@@ -909,8 +1101,14 @@ failure, the same scenario and acts.
   processes as not known.
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
-- The result file holds every call made and every view's returned text whole.
-  When a view fails, it also holds the failure as messages only, in
+- The result file holds every call made and every view's returned text whole,
+  with two exceptions. A view whose reply names another bundle is kept only as
+  an error naming that bundle; its returned text is not kept. And a click that
+  throws is not caught: `walk.run` rejects, the block above writes no result
+  file and prints no summary, and the calls and views made before it are not
+  saved. The operator then keeps the tool's error whole, records that nothing
+  was saved and the time the walk stopped, makes no other call, and goes to
+  steps 8 and 10. When a view fails, it also holds the failure as messages only, in
   `view_error`: where it failed, the error's own message, and each cause the
   error carries, in order and whole (at most eight); the summary prints the
   causes under the line that says where the walk stopped. The causes are
@@ -1013,5 +1211,48 @@ On a development candidate built from main, in two windows the owner gave:
   two. Set beside the two calls that worked, from the records only, the
   failing first views differ in two things the operator's `js` tool does:
   the import and the first view in one block, and the first view asking for
-  the whole window ("Two calls, as the calls that worked were made", under
+  the whole window ("Two calls", under
   "In a window").
+- Walk A2's sixth attempt, at 18:13 UTC, was made in that form: the import
+  as a call of its own, the first view about fifty seconds later asking with
+  the application alone. The import started the helper within the same
+  second it returned; the first view started the window service and failed
+  within about five seconds with "Sky Computer Use native pipe startup
+  failed", with no cause attached; nothing was clicked (observed). The
+  operator ended both route processes by their rules.
+- Walk A2's seventh attempt, at 18:56 UTC, was made the same way, while the
+  owner was asked to watch the screen for a macOS prompt during its call. It
+  failed the same way, at the first view (observed). The owner's answer was
+  "I wasn't watching then": the observation the call was made for was not
+  made, and whether a prompt appears is not known. App Agent 0 then closed
+  the route for A2.
+- The cause of the native-pipe failures, and the remedy, are under "The
+  start-up failure, and its cause" ("What the route starts"). The provider
+  check at the go ("At the go") was added after it.
+- After the owner's restart of T3 Code, at 20:57 UTC, two helper
+  app-servers that Inter-Project's delegates had imported and that
+  Inter-Project had ended were still listed, each as an exited entry (state
+  `Z`, `<defunct>`) under its delegate's `node_repl`, not yet collected
+  (observed). The look matches commands and does not count such an entry,
+  and it is not a bar ("At the go"; step 10, "The look"). The eighth
+  attempt's own helper was left the same way after the operator ended it
+  (observed).
+- Walk A2's eighth attempt, at 21:01 UTC, on a candidate built from main
+  5fbebec6 and by a fresh operator, passed: every outcome shown, in ten views
+  and seven clicks (observed). No prompt was reported to the operator by the
+  walk or its tools; nobody watched the screen. The
+  provider check found the provider started after its executable's
+  modification. The import returned at 21:06:05.959 UTC and the helper
+  started within that second, with the host as its parent; the walk's call
+  ran from 21:06:45.089 to 21:06:52.773 UTC, and the window service started
+  at 21:06:45. The operator ended both by their rules, and the lane's step
+  11 found nothing remaining and the Library comparison unchanged. The
+  launch record's outcome was "failed", from the termination the method
+  sends (step 8). The assignment for that walk carried procedure and
+  diagnosis that this method did not then carry; the steps in "A walk, in
+  order", the provider check and the operator's return were moved into this
+  method after it.
+- The lane's sample of the socket folder listed a `computeruse.sock` name at
+  every sample of the eighth attempt, from 21:01:34 UTC, before the import
+  (observed). A name in that folder does not show that a service is running;
+  the process table showed none until the walk's first view.

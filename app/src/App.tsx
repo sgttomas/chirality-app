@@ -867,8 +867,12 @@ export function RegisteredRevisions({ library, rows, busy, act, chatAvailable = 
 
 export function RecordsCapabilityBindings({ host }:{ host: Json }) {
   const rows=(host?.threads??[]).filter((row:Json)=>JSON.stringify(row.generation)===JSON.stringify(host?.generation)&&row.recordsCapabilityBinding);
-  if (!rows.length) return null;
+  // Why the last read could not be recorded (LIM-014 among them): shown whole,
+  // since agents read nothing until it is resolved.
+  const readLogLimit=host?.recordsCapability?.readLogLimit;
+  if (!rows.length && !readLogLimit) return null;
   return <section aria-label="Conversation records capability"><h3>Conversation records capability</h3>
+    {readLogLimit&&<p role="alert">Records capability: {readLogLimit}</p>}
     {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
   </section>;
 }
