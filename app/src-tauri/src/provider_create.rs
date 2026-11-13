@@ -90,6 +90,8 @@ impl Offer {
     }
     fn reread_unchanged(&mut self, state: &AppState) -> Result<(), String> {
         self.current(state)?;
+        #[cfg(test)]
+        if let Some(hook) = BEFORE_REREAD.lock().unwrap().take() { hook(); }
         let read = read(&self.pending)?;
         // A fresh receipt can replace the private read only at EXACT reviewed
         // version/configuration equality. It never rebases the Add intention.
@@ -101,6 +103,9 @@ impl Offer {
         self.current(state)
     }
 }
+/// Runs once between the save's currency check and its reading before the write.
+#[cfg(test)]
+pub(crate) static BEFORE_REREAD: std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>> = std::sync::Mutex::new(None);
 fn read(pending: &PendingConfigResource) -> Result<PrivateConfigReading, String> {
     let reading = pending
         .home

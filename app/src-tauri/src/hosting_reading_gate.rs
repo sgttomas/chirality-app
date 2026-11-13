@@ -39,12 +39,31 @@ const READING_POLL: Duration = Duration::from_millis(50);
 pub(super) fn is_reading(method: &str) -> bool {
     matches!(method, "config/read" | "configRequirements/read")
 }
-/// A terminal reply envelope as settlement accepts one (`completed_client_response`): an object
-/// with no method and exactly one of a result and an error. Only such a reply releases a reading's
-/// reservation; a contradictory or incomplete envelope leaves the reading outstanding until a
-/// genuine reply or the generation's close.
-pub(super) fn terminal_reply(frame: &Value) -> bool {
-    frame.is_object() && frame.get("method").is_none() && (frame.get("result").is_some() != frame.get("error").is_some())
+/// Why settlement does not take a reply as the terminal reply to its request.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum Unsettled {
+    /// Not an object, another request's id, a method, or both a result and an error.
+    Envelope,
+    /// An error without an integer code and a string message.
+    ErrorShape,
+    /// Neither a result nor an error.
+    NoResult,
+}
+/// The one test of a terminal reply that settlement accepts: an object naming the request's own
+/// id, with no method, exactly one of a result and an error, and an error carrying an integer code
+/// and a string message. `completed_client_response` and a reading's release both use it, so a
+/// reply settlement rejects never releases a reading; it stays outstanding until a reply settlement
+/// accepts or the generation's close. A well-formed result whose content supplies no usable
+/// configuration still settles, and releases.
+pub(super) fn settlement(frame: &Value, id: Option<&Value>) -> Result<(), Unsettled> {
+    if !frame.is_object() || frame.get("id") != id || frame.get("method").is_some() || frame.get("error").is_some() && frame.get("result").is_some() {
+        return Err(Unsettled::Envelope);
+    }
+    match (frame.get("error"), frame.get("result")) {
+        (Some(error), _) if error["code"].as_i64().is_none() || !error["message"].is_string() => Err(Unsettled::ErrorShape),
+        (None, None) => Err(Unsettled::NoResult),
+        _ => Ok(()),
+    }
 }
 /// Whether an error is one of the two sentences a sender must pass on as it is.
 pub(crate) fn reading_sentence(error: &str) -> bool {
@@ -253,6 +272,13 @@ impl Host {
         self.request_reading("configRequirements/read", json!({}), json!({"kind":"person-directed"}), generation, false, deadline)
     }
     #[cfg(test)]
+    /// Holds the frame writer from another thread for `hold`; returns once it is held.
+    pub(crate) fn hold_frame_writer_for_test(self: &Arc<Self>, hold: std::time::Duration) {
+        let (held_tx, held) = std::sync::mpsc::channel();
+        let host = Arc::clone(self);
+        std::thread::spawn(move || { let _writer = host.frame_write.lock().unwrap(); let _ = held_tx.send(()); std::thread::sleep(hold); });
+        held.recv().unwrap();
+    }
     pub(crate) fn reading_stage_for_test(&self) -> Option<(Option<String>, ReadingStage)> {
         self.inner.0.lock().unwrap().reading_slot.as_ref().map(|s| (s.request_id.clone(), s.stage))
     }

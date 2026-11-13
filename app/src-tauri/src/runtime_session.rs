@@ -10073,6 +10073,13 @@ for line in sys.stdin:
         assert!(!err.prefill_kept&&err.contains("withdrawn"),"{err}");
         assert!(!pending_refs(&root).contains(&r1),"a failed start withdraws the pre-fill");
         assert!(root.lock().unwrap().cancel_trial(&r1).is_err());
+        // The start was refused at its configuration reading: known not started, then the sentence.
+        for sentence in [crate::hosting::reading_gate::READING_GATE, crate::hosting::reading_gate::READING_WITHDRAWN] {
+            let r=prepare();
+            let err=trial_flows::start_clean_trial(&root,&r,||Err(sentence.to_owned()),|_,_|panic!("nothing is sent")).unwrap_err();
+            assert_eq!(err.message,format!("The trial conversation was not started; the pre-filled trial was withdrawn and nothing was recorded. {sentence}"));
+            assert!(!err.prefill_kept&&!pending_refs(&root).contains(&r),"withdrawn as any failed start");
+        }
         // The start named no thread id: withdrawn.
         let r2=prepare();
         let err=trial_flows::start_clean_trial(&root,&r2,||Ok(json!({"startGeneration":peer.generation,"result":{"thread":{}}})),|_,_|panic!("nothing is sent")).unwrap_err();

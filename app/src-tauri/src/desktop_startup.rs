@@ -3537,6 +3537,60 @@ mod tests {
             registered.recv_timeout(std::time::Duration::from_secs(5)).expect("the reading registers while the write holds the writer");
         }));
     }
+    /// A configuration reading registers now and stays unanswered (the stand-in answers only the
+    /// fixture's own private reads), so the next reading of this home waits at the gate.
+    fn reading_outstanding_now(host: &Arc<crate::hosting::Host>) {
+        let (registered_tx, registered) = std::sync::mpsc::channel();
+        *host.reading_after_register.lock().unwrap() = Some(Box::new(move |_| { let _ = registered_tx.send(()); }));
+        let (reader, generation) = (Arc::clone(host), host.snapshot()["generation"].clone());
+        std::thread::spawn(move || reader.request_reading("config/read", json!({"cwd":"/invented/elsewhere","includeLayers":false}), json!({"kind":"synthetic reader"}), &generation, false, std::time::Instant::now() + std::time::Duration::from_secs(5)));
+        registered.recv_timeout(std::time::Duration::from_secs(5)).expect("the reading registers");
+    }
+    /// Add's save reads the configuration again before its write. Refused there (the writer busy
+    /// past its deadline, or an earlier reading registered after the save's currency check and
+    /// still unanswered), the save writes nothing and the command returns that sentence alone.
+    #[test]
+    fn access_provider_add_save_refused_at_its_reading_before_the_write_returns_the_sentence_and_writes_nothing() {
+        use crate::hosting::reading_gate::{READING_GATE, READING_WITHDRAWN};
+        for expected in [READING_WITHDRAWN, READING_GATE] {
+            let f = Fixture::new();
+            let (_desktop, state, _home, peer) = f.continuation();
+            peer.create_replies(f.shared[0].clone(), f.shared[0].clone(), "fixture.new", "ok");
+            let view = crate::create_offer_result(&state, &peer.g, "fixture.new", "Invented name", "https://example.invalid/new", &crate::endpoint_checkpoint(&state).unwrap()).unwrap();
+            let held = Arc::clone(&peer.host);
+            if expected == READING_GATE {
+                *crate::hosting::provider_create::BEFORE_REREAD.lock().unwrap() = Some(Box::new(move || reading_outstanding_now(&held)));
+            } else {
+                *crate::hosting::provider_create::BEFORE_REREAD.lock().unwrap() = Some(Box::new(move || held.hold_frame_writer_for_test(std::time::Duration::from_millis(400))));
+            }
+            let error = crate::create_save_result(
+                &state,
+                view["token"].as_str().unwrap(),
+                || Ok(()),
+                |_| Ok(tauri_plugin_dialog::MessageDialogResult::Custom(crate::hosting::provider_create::WRITE_ACTION.into())),
+                |candidate, _| Ok(Some(candidate.accept_checked_current_object())),
+            ).unwrap_err();
+            assert_eq!(error, expected, "the reading before the write was not sent");
+            assert_eq!(crate::create_save_refusal(error), expected, "the command passes it on as it is");
+            assert!(peer.host.client_requests().iter().all(|r| r["method"] != "config/batchWrite"), "nothing was written");
+        }
+        assert_eq!(crate::create_save_refusal("INVENTED_PRIVATE_SAVE_DIAGNOSTIC".into()), "Provider Add unavailable; no automatic retry; private diagnostics withheld");
+    }
+    /// A start or fork refused at its configuration reading returns that sentence alone; any other
+    /// refusal keeps its role supply observation. Key entry refused at its reading states the key
+    /// home's known setup first, then the sentence; anything else is unchanged.
+    #[test]
+    fn access_provider_start_fork_and_key_entry_refusals_carry_the_reading_sentences() {
+        use crate::hosting::reading_gate::{READING_GATE, READING_WITHDRAWN};
+        let publication = json!({"state":"refused"});
+        for sentence in [READING_GATE, READING_WITHDRAWN] {
+            assert_eq!(crate::role_supply_refusal(sentence, &publication), sentence);
+            assert_eq!(crate::key_entry_refusal(sentence.into()), format!("The separate key home is set up and its Codex is running; no key was entered. {sentence}"));
+        }
+        assert_eq!(crate::role_supply_refusal("refused-not-sent: invented", &publication), format!("refused-not-sent: invented; role supply observation: {publication}"));
+        assert_eq!(crate::role_supply_refusal(&format!("{READING_GATE} "), &publication), format!("{READING_GATE} ; role supply observation: {publication}"), "only the exact sentence");
+        assert_eq!(crate::key_entry_refusal("native key entry refused".into()), "native key entry refused");
+    }
     /// The endpoint and Add offer commands pass either reading sentence on as it is and keep their
     /// fixed sentence for anything else.
     #[test]

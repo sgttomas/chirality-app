@@ -2435,10 +2435,15 @@ impl Host {
 
     fn completed_client_response(record:&mut Value,response:Option<&Value>,position:Option<u64>)->Result<(),String>{
         let Some(frame)=response else{return Ok(());};let position=position.ok_or("Native reply position unavailable; canonical settlement projection unavailable")?;
-        if frame.get("id")!=record.get("requestIdentity")||frame.get("method").is_some()||!frame.is_object()||frame.get("error").is_some()&&frame.get("result").is_some(){return Err("Native reply envelope malformed/contradictory; canonical settlement projection unavailable".into());}
-        if let Some(error)=frame.get("error"){if error["code"].as_i64().is_none()||!error["message"].is_string(){return Err("Actual native error code/message unavailable; no invented canonical error".into());}record["outcome"]=json!("response-observed-error");record["error"]=json!({"code":error["code"],"message":error["message"]});}
-        else if frame.get("result").is_some(){record["outcome"]=json!("response-observed-result");}
-        else{return Err("Native reply result missing; canonical settlement projection unavailable".into());}
+        // The same test releases a reading (`reading_gate::settlement`); each refusal keeps its text.
+        match reading_gate::settlement(frame,record.get("requestIdentity")){
+            Err(reading_gate::Unsettled::Envelope)=>return Err("Native reply envelope malformed/contradictory; canonical settlement projection unavailable".into()),
+            Err(reading_gate::Unsettled::ErrorShape)=>return Err("Actual native error code/message unavailable; no invented canonical error".into()),
+            Err(reading_gate::Unsettled::NoResult)=>return Err("Native reply result missing; canonical settlement projection unavailable".into()),
+            Ok(())=>{}
+        }
+        if let Some(error)=frame.get("error"){record["outcome"]=json!("response-observed-error");record["error"]=json!({"code":error["code"],"message":error["message"]});}
+        else{record["outcome"]=json!("response-observed-result");}
         record["responseReceiptPosition"]=json!(position);Ok(())
     }
     /// Internal one-attempt transport consumed by the trusted native callback
@@ -4427,10 +4432,11 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         if class == "response" {
             let key = frame["id"].to_string();
-            // A well-formed terminal reply naming this line's generation and the outstanding
-            // reading's request releases the reservation; one naming another generation or request,
-            // or a contradictory or incomplete envelope, releases nothing.
-            if reading_gate::terminal_reply(&frame) && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
+            // A reply settlement accepts, naming this line's generation and the outstanding
+            // reading's request, releases the reservation; one naming another generation or request,
+            // or one settlement rejects, releases nothing.
+            let own_id=i.source_requests.get(&key).map(|e|e.request.frame["id"].clone());
+            if reading_gate::settlement(&frame, own_id.as_ref()).is_ok() && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
@@ -5557,6 +5563,22 @@ mod conversation_transport_tests {
         i.local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented"));
         i.version_identity=Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
         i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
+    }
+    /// A local fork whose configuration reading waits at the gate behind an earlier reading that is
+    /// never answered: the fork command returns that sentence alone, nothing else with it.
+    #[test]
+    fn a_local_fork_refused_at_its_reading_returns_that_sentence_alone() {
+        use crate::native_local_provider::{MODEL, PROVIDER};
+        let host=Arc::new(host());bind_local_history(&host);
+        {
+            let mut i=host.inner.0.lock().unwrap();
+            i.threads.push(json!({"generation":g(),"threadId":"started","model":MODEL,"modelProvider":PROVIDER,"cwd":"/invented"}));
+            i.reading_slot=Some(reading_gate::ReadingSlot{token:u64::MAX,generation:g(),request_id:Some("\"held\"".into()),request_ref:None,stage:reading_gate::ReadingStage::AwaitingReply});
+        }
+        let home=crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::LocalProvider,Arc::clone(&host),Err("invented local fork source".into())).unwrap();
+        let error=crate::conversation_roles::fork_conversation(&home,&g(),"started",Duration::from_secs(1)).unwrap_err();
+        assert_eq!(error,reading_gate::READING_GATE,"the sentence alone, no role supply observation");
+        assert!(host.client_requests().iter().all(|r|r["method"]!="thread/fork"),"no fork was sent");
     }
     #[test]
     fn local_provider_same_role_fork_dispatches_and_admits_local_result() {

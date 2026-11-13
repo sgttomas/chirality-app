@@ -18,6 +18,7 @@ const {AccountStatus} = loadSrc('AccountStatus');
 const {READING_GATE, READING_WITHDRAWN, WRITE_THEN_READING} = loadSrc('readingSentences');
 
 const canary = 'INVENTED_PRIVATE_READING_DIAGNOSTIC_602';
+const statusCanary = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_77';
 const sentences = [READING_GATE, READING_WITHDRAWN];
 const g = {home:'account', appSession:'s1', spawnCounter:1};
 const project = {reference:'/invented/work'};
@@ -80,16 +81,17 @@ const addOffer = {kind:'add-provider', token:'add-token', providerId:'fixture.ne
 
 async function mounted(answers, check) {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
-  let snapshot = snapshotFor();
+  let snapshot = snapshotFor(), failStatus = false;
   const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push(command);
-    if (command === 'host_status') return structuredClone(snapshot);
+    if (command === 'host_status') { if (failStatus) throw statusCanary; return structuredClone(snapshot); }
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     if (command === 'provider_endpoint_discard' || command === 'provider_create_discard') return 'invented-epoch';
     const answer = answers[command]; assert.ok(answer, command);
-    const {error, value, host} = answer();
+    const {error, value, host, refreshFails} = answer();
     if (host) snapshot = {...snapshot, ...host};
+    if (refreshFails) failStatus = true;
     if (error !== undefined) throw error;
     return structuredClone(value);
   });
@@ -158,4 +160,52 @@ for (const save of saveCases) test(`an ${save.kind} save whose reading afterward
       assert.equal(!!props(button(c, 'Read configured local providers')).disabled, false, 'reading again is offered');
     });
   }
+});
+
+// R2-2: the endpoint save's outcome is known before its refresh; a refresh that fails cannot replace it.
+test('an endpoint save keeps its write-first outcome when the refresh after it fails', async () => {
+  for (const after of sentences) {
+    const message = `${WRITE_THEN_READING}${after}`;
+    const save = saveCases[0];
+    await mounted({...save.answers, provider_endpoint_save:() => ({value:{state:'write-observed-source-unconfirmed', message}, refreshFails:true})}, async (c, calls) => {
+      await save.open(c); await press(c, save.save);
+      const status = nodes(region(c, save.editor), 'p').find(node => node.getAttribute('role') === 'status').textContent;
+      assert.equal(status, message, 'the known write outcome stays');
+      assert.ok(calls.filter(command => command === 'host_status').length > 0, 'the refresh was attempted');
+      assert.doesNotMatch(region(c, save.editor).textContent, new RegExp(statusCanary), 'the editor withholds the refresh failure');
+      assert.equal(button(c, save.save), undefined, 'no save retry is offered');
+    });
+  }
+});
+
+// R2-3: Add's reading before its write refused: the host returns that sentence alone
+// (desktop_startup::access_provider_add_save_refused_at_its_reading_before_the_write_…); nothing was written.
+test('an Add save refused at its reading before the write shows that sentence alone and withholds anything else', async () => {
+  const save = saveCases[1];
+  for (const error of [...sentences, canary]) {
+    await mounted({...save.answers, provider_create_save:() => ({error})}, async (c, calls) => {
+      await save.open(c); await press(c, save.save);
+      const status = nodes(region(c, save.editor), 'p').find(node => node.getAttribute('role') === 'status').textContent;
+      if (error === canary) { assert.equal(status, 'Provider Add unavailable; no automatic retry. Private diagnostics withheld.'); assert.doesNotMatch(c.textContent, new RegExp(canary)); }
+      else assert.equal(status, error, 'the bare sentence: nothing was written, so no write is stated');
+      assert.doesNotMatch(status, /Write observed/);
+      assert.equal(button(c, save.save), undefined, 'no save retry is offered');
+      assert.equal(calls.filter(command => command === save.command).length, 1);
+    });
+  }
+});
+
+// The clean trial's start refused at its reading: the host's refusal
+// (runtime_session::…a_clean_start_that_fails…) is shown as the composer's failure, as given.
+const {pressSend, hostMessage} = loadSrc('TrialComposer');
+test('a clean trial start refused at its reading shows the host refusal as given', async () => {
+  for (const sentence of sentences) {
+    const message = `The trial conversation was not started; the pre-filled trial was withdrawn and nothing was recorded. ${sentence}`;
+    const outcomes = [];
+    pressSend(async () => { throw {message, prefillKept:false}; }, 'workflow_trial_start_clean', {}, outcome => outcomes.push(outcome), () => 'sent');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.deepEqual(outcomes.at(-1), {state:'failed', failure:message, prefillKept:false});
+  }
+  // Continue as shows the start's rejection as given: the host returns the bare sentence.
+  for (const sentence of sentences) assert.equal(hostMessage(sentence), sentence);
 });

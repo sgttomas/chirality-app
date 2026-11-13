@@ -489,6 +489,65 @@ fn a_contradictory_envelope_releases_nothing_and_only_the_genuine_reply_does() {
     next.join().unwrap().unwrap();
 }
 
+/// A reply settlement rejects releases nothing, whatever its shape: an error with no integer code and
+/// string message (an empty error object, a code that is not an integer) leaves the reading
+/// outstanding; the later reply settlement accepts releases it, and a reading queued meanwhile
+/// registers only then.
+#[test]
+fn an_error_settlement_rejects_releases_nothing_and_only_the_later_valid_reply_does() {
+    for (label, error, valid_error) in [
+        ("an empty error object", json!({}), false),
+        ("a code that is not an integer", json!({"code":"-32603","message":"invented"}), true),
+        ("a fractional code", json!({"code":-32603.5,"message":"invented"}), false),
+    ] {
+        let rig = Rig::new();
+        read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), LONG).unwrap();
+        let held = rig.frame();
+        let held_ref = request_ref(&held["id"], &rig.host);
+        rig.host.on_line(&serde_json::to_vec(&json!({"id":held["id"],"error":error})).unwrap(), &rig.g);
+        assert!(matches!(rig.stage(), Some((Some(id), _)) if id == held["id"].to_string()), "{label}: releases nothing: {:?}", rig.stage());
+        let waiting = rig.on_waiting();
+        let (host, g) = (rig.host.clone(), rig.g.clone());
+        let next = std::thread::spawn(move || read(&host, &g, json!({"cwd":W,"includeLayers":false}), LONG));
+        waiting.recv_timeout(LONG).expect("the next reading finds the reservation held");
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(rig.current(), Some(held_ref), "{label}: the next reading has not registered");
+        rig.none(Duration::from_millis(150));
+        if valid_error { rig.error(&held); } else { rig.answer(&held, cfg()); }
+        let frame = rig.frame();
+        assert_ne!(frame["id"], held["id"], "{label}: the valid reply released it and the next reading registered");
+        rig.answer(&frame, cfg());
+        next.join().unwrap().unwrap();
+    }
+}
+
+/// Settlement keeps its own refusal for each way it rejects a reply, and accepts a valid error and a
+/// valid result; the release uses this same test (`reading_gate::settlement`).
+#[test]
+fn settlement_keeps_its_refusal_for_each_way_a_reply_is_rejected() {
+    const ENVELOPE: &str = "Native reply envelope malformed/contradictory; canonical settlement projection unavailable";
+    const ERROR: &str = "Actual native error code/message unavailable; no invented canonical error";
+    const RESULT: &str = "Native reply result missing; canonical settlement projection unavailable";
+    for (frame, expected) in [
+        (json!({"id":7,"result":{},"error":{"code":1,"message":"m"}}), ENVELOPE),
+        (json!({"id":8,"result":{}}), ENVELOPE),
+        (json!({"id":7,"method":"invented","result":{}}), ENVELOPE),
+        (json!([7]), ENVELOPE),
+        (json!({"id":7,"error":{}}), ERROR),
+        (json!({"id":7,"error":{"code":"1","message":"m"}}), ERROR),
+        (json!({"id":7,"error":{"code":1}}), ERROR),
+        (json!({"id":7}), RESULT),
+    ] {
+        let mut record = json!({"requestIdentity":7});
+        assert_eq!(Host::completed_client_response(&mut record, Some(&frame), Some(1)).unwrap_err(), expected, "{frame}");
+    }
+    for (frame, outcome) in [(json!({"id":7,"error":{"code":-32603,"message":"m"}}), "response-observed-error"), (json!({"id":7,"result":{}}), "response-observed-result")] {
+        let mut record = json!({"requestIdentity":7});
+        Host::completed_client_response(&mut record, Some(&frame), Some(2)).unwrap();
+        assert_eq!(record["outcome"], outcome);
+    }
+}
+
 /// The generic synchronous route gives a reading one deadline from the call's start: time spent
 /// waiting for the reservation leaves only the remainder for the reply.
 #[test]

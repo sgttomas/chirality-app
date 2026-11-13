@@ -365,7 +365,7 @@ pub(crate) fn fork_conversation_tracked(home: &crate::runtime_session::HomeSessi
             let actual=home.host.snapshot()["generation"].clone();
             let source=if actual==*generation{actual}else{Value::Null};
             let publication=home.history.lock().unwrap().fork_refused(&supply_ref,&source,source_thread,&reason,reason.starts_with("refused-not-sent:"));
-            return Err(format!("{reason}; role supply observation: {publication}"));
+            return Err(crate::role_supply_refusal(&reason, &publication));
         }
     };
     on_dispatch(&receipt);

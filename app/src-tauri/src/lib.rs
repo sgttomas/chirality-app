@@ -522,6 +522,11 @@ fn provider_create_offer(
 ) -> Result<Value, String> {
     create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch).map_err(create_offer_refusal)
 }
+/// What the Add save command returns for a failure: either reading sentence as it is (the reading
+/// before the write was not sent and nothing was written), else its fixed sentence.
+pub(crate) fn create_save_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Provider Add unavailable; no automatic retry; private diagnostics withheld".into())
+}
 /// What the Add offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
 pub(crate) fn create_offer_refusal(error: String) -> String {
     hosting::reading_gate::reading_or(error, || "Provider Add unavailable; private values and diagnostics withheld".into())
@@ -570,9 +575,7 @@ fn provider_create_save(
             .then(|| candidate.accept_checked_current_object()))
         },
     )
-    .map_err(|_| {
-        "Provider Add unavailable; no automatic retry; private diagnostics withheld".into()
-    })
+    .map_err(create_save_refusal)
 }
 fn endpoint_question_current(state: &AppState, epoch: &str, scope: &Value) -> Result<(), String> {
     if state
@@ -1257,7 +1260,15 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
     bootstrap.validate_binding(home.class(),&config)?;Ok(config)})?;
     let _=config;
     let generation=home.host.snapshot()["generation"].clone();
-    runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app))
+    runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app)).map_err(key_entry_refusal)
+}
+/// Known when the key entry's configuration reading is refused: the separate key home is set up and
+/// its Codex is running (the reading is sent only to that ready Codex), and no key was entered.
+pub(crate) const KEY_HOME_READY: &str = "The separate key home is set up and its Codex is running; no key was entered. ";
+/// What `add_api_key` returns for a failure: either reading sentence after what is already known,
+/// otherwise the failure as before.
+pub(crate) fn key_entry_refusal(error: String) -> String {
+    if hosting::reading_gate::reading_sentence(&error) { format!("{KEY_HOME_READY}{error}") } else { error }
 }
 
 /// Explicit local-provider setup; no endpoint/model/key argument and no account resource links.
@@ -1627,10 +1638,16 @@ fn start_conversation(
             let mut history=runtime_session::HistorySession::default();history.configure_role_log_source(state.role_log.clone());
             let publication=history.role_refused_continuing(&supply_ref,&generation,role,preselected,reason,true,resolved_continued_from);
             if let Ok(home)=home{home.role_supply_status.lock().unwrap()["roleSupplyRecord"]=publication.clone();}
-            return Err(format!("{reason}; role supply observation: {publication}"));
+            return Err(role_supply_refusal(reason, &publication));
         }
     }
     result
+}
+/// What a start or fork refused before dispatch returns. Either reading sentence is returned alone:
+/// the refusal is still recorded in role supply, and nothing else is shown with the sentence.
+/// Any other reason keeps its role supply observation.
+pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Display) -> String {
+    if hosting::reading_gate::reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
 }
 #[allow(clippy::too_many_arguments)]
 fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
