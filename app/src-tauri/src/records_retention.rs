@@ -107,7 +107,13 @@ struct State {
 }
 impl State {
     fn view(&self) -> Value {
-        json!({"closed":self.closed,"legalHold":self.hold,"disposition":if self.completed && self.completion_uncertain {"completion durability uncertain"} else if self.completed {"disposed"} else if self.disposition.is_some() {"disposal incomplete"} else {"kept"},"sequence":self.sequence,"head":self.head,"disposal":self.disposition})
+        let mut view = json!({"closed":self.closed,"legalHold":self.hold,"disposition":if self.completed && self.completion_uncertain {"completion durability uncertain"} else if self.completed {"disposed"} else if self.disposition.is_some() {"disposal incomplete"} else {"kept"},"sequence":self.sequence,"head":self.head,"disposal":self.disposition});
+        // What the export a disposal relied on stated about its logs'
+        // integrity: "not stated" for an act recorded before that was written.
+        if let Some(act) = &self.disposition {
+            view["disposalExportLogIntegrity"] = crate::records_export::stored_log_integrity(&act["export"]);
+        }
+        view
     }
     fn writable(&self) -> Result<(), String> {
         if self.disposition.is_some() {
@@ -593,6 +599,19 @@ pub(crate) fn statement(
         "resume-disposal"=>"Finish the previously confirmed disposal? Only unchanged remaining members of the original verified export may be removed.",
         _=>return Err("unknown administrative act".into()),
     };
+    // The export relied on for a disposal may carry a log whose integrity is
+    // limited (its chain was already broken in the store). Disposal is not
+    // refused for that; the person is told here, as its own statement.
+    let relied = crate::records_export::stored_log_integrity(&plan.context["export"]);
+    let disposing = matches!(plan.action.as_str(), "dispose" | "resume-disposal");
+    let said = |limit: Option<String>| match limit {
+        Some(limit) if disposing => format!("{purpose}\n\n{limit} This is the export you are relying on, and this is recorded with the disposal."),
+        _ => purpose.to_owned(),
+    };
+    // The native summary stays bounded however many logs are named; the whole
+    // statement and the frozen context name every one.
+    let summary = said(crate::records_export::integrity_summary(&relied));
+    let purpose = said(crate::records_export::integrity_statement(&relied));
     let full=format!("{purpose}\n\nProject: {}\nRoot: {}\nClosed: {}\nLegal hold: {}\nActor (identity not verified): {}\n\nFrozen context:\n{}",plan.context["projectId"],plan.project.display(),plan.context["state"]["closed"],plan.context["state"]["legalHold"],crate::act_control::native_statement::actor_line(&plan.context["actor"]),serde_json::to_string_pretty(&plan.context).map_err(|e|e.to_string())?);
     crate::act_control::native_statement::whole_or_in_app(
         "records retention",
@@ -600,7 +619,7 @@ pub(crate) fn statement(
         full,
         &plan.context,
         |digest| {
-            format!("{purpose}\n\nThe complete project, actor, closure, hold and verified byte identity context is shown in the App under this confirmation. sha-256: {digest}\nNothing changes if it changed while this question was open.")
+            format!("{summary}\n\nThe complete project, actor, closure, hold and verified byte identity context is shown in the App under this confirmation. sha-256: {digest}\nNothing changes if it changed while this question was open.")
         },
     )
 }
@@ -735,9 +754,15 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
             .lock()
             .unwrap_or_else(|p| p.into_inner())
             .remove(&plan.dir);
-        return Ok(
-            json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view()}),
-        );
+        // The resumed check's own finding about the export is returned here
+        // too; the original act is not rewritten.
+        let relied = crate::records_export::stored_log_integrity(&current["export"]);
+        let mut out = json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view(),
+            "export":current["export"],"exportLogIntegrity":relied});
+        if let Some(limit) = crate::records_export::integrity_statement(&relied) {
+            out["standing"] = json!(format!("The export's bytes were verified against what remained of the store. {limit}"));
+        }
+        return Ok(out);
     }
     if plan.action != "resume-disposal" {
         event(&plan.dir, &s, &plan.action, Some(actor), &current)?;
@@ -790,7 +815,10 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     })();
     match result {
         Ok(()) => Ok(
-            json!({"state":"disposed","projectId":current["projectId"],"administration":state(&plan.dir)?.view(),"export":current["export"],"standing":"Only this project's App store payload was removed. Administrative evidence and the verified export survive."}),
+            json!({"state":"disposed","projectId":current["projectId"],"administration":state(&plan.dir)?.view(),"export":current["export"],"exportLogIntegrity":crate::records_export::stored_log_integrity(&current["export"]),"standing":match crate::records_export::integrity_statement(&crate::records_export::stored_log_integrity(&current["export"])) {
+                Some(limit) => format!("Only this project's App store payload was removed. Administrative evidence and the export survive. The export's bytes were verified against the store. {limit}"),
+                None => "Only this project's App store payload was removed. Administrative evidence and the verified export survive.".to_owned(),
+            }}),
         ),
         Err(e) => {
             if state(&plan.dir).is_ok_and(|s| s.completed) {
