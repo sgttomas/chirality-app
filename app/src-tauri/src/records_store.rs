@@ -234,6 +234,16 @@ fn from_environment() -> Result<Store, String> {
 /// `<App data>/records/`. A development build uses only the override, never
 /// the real App data folder. `project` and `codex_homes` are the folders the
 /// store must stay out of.
+///
+/// Precondition: its production caller (`initialize_startup_consumers`)
+/// calls it only after admission has admitted operational inputs, which a
+/// start whose App data cannot be resolved and held never has
+/// (`admitted_startup`). It answers truly only with complete protected-home
+/// inputs: every Codex home in `codex_homes`, and the App data folder this
+/// start uses, from which the folder reserved for the App's account homes is
+/// computed. Given no App data, it cannot compute that reservation and, as a
+/// function, still admits an explicit override; the App's start never gives
+/// it that input.
 pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Store, String> {
     // The App data folder as placement needs it (its reserved folders),
     // taken before the branches below consume it.

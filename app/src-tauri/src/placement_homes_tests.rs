@@ -256,3 +256,53 @@ fn raw_values_are_compared_as_main_compared_them() {
     assert!(refused.as_ref().is_err_and(|e| e.contains("Codex home")), "compared as main compared it: {refused:?}");
     let _ = std::fs::remove_dir_all(&data);
 }
+
+/// The reservation is computed from the App data folder the start uses, and
+/// `for_app` needs complete protected-home inputs to answer truly: given no
+/// App data it cannot compute the reservation, and as a function it still
+/// admits an explicit override. The App's start never gives it that input.
+/// When App data cannot be resolved and held, admission refuses the start
+/// (`admitted_startup`). Start-up's consumers then, as this test observes
+/// through the real chain:
+/// 1. configure the records store with the admission's refusal, not with
+///    `for_app`'s answer (which would be the override store, admitted);
+/// 2. open and create nothing at the override, though start-up's store
+///    creation, project attachment and line-file recovery all run;
+/// 3. leave nothing later in the process to fall back to it: the configured
+///    refusal is what every later reader is given (`current()` consults the
+///    override variable only when nothing is configured).
+#[test]
+fn a_start_without_app_data_places_no_records_store() {
+    let root = folder("placement-no-data-");
+    // What App data would have been, and an override in its reserved folder.
+    let would_be = root.join("app-data");
+    let store = desktop_startup::desktop_account_homes(&would_be).join("not-planned").join("records");
+    let home = root.join("environment-home").into_os_string();
+    let environment = |key: &str| -> Option<std::ffi::OsString> {
+        match key {
+            "CHIRALITY_CODEX_BIN" => Some("/invented/bin/codex".into()),
+            "CHIRALITY_CODEX_HOME" => Some(home.clone()),
+            "CHIRALITY_ALLOW_UNVERIFIED" => Some("1".into()),
+            _ => None,
+        }
+    };
+    let saved = records_store::configured_for_test();
+    let (desktop, inputs) = crate::admitted_startup(environment, Err("platform App data unavailable (invented)".into()), Err("invented resources".into()), true, || Err("no probe home without held App data".into()));
+    let desktop_startup::RootInputs { launch, data, allow_operational } = inputs;
+    assert!(!allow_operational, "nothing operational is admitted without App data");
+    let (state, home) = crate::freeze_startup_state(launch, std::sync::Arc::new(std::sync::Mutex::new(desktop)), serde_json::Value::Null);
+    // As `run` gives it: the override as the environment names it.
+    crate::initialize_startup_consumers(&state, &home, data, allow_operational, true, Some(store.clone()), None, [None, None, None]);
+    let configured = records_store::configured_for_test();
+    let later = records_store::current();
+    let after_read = (store.exists(), would_be.exists());
+    records_store::restore_configured_for_test(saved);
+    // 1. The store start-up configured is the admission's refusal.
+    let refusal = match &configured { Some(Err(e)) => e.clone(), other => panic!("for_app's answer, not the admission's refusal, was configured: {other:?}") };
+    assert!(refusal.contains("not admitted") && refusal.contains("platform App data unavailable (invented)"), "{refusal}");
+    // 3. Every later reader is given that refusal; nothing falls back.
+    assert_eq!(later.as_ref().err(), Some(&refusal), "no later fallback to the override: {later:?}");
+    // 2. Nothing opened or created the override, or the App data it would be in.
+    assert_eq!(after_read, (false, false), "no store placed, opened or created");
+    let _ = std::fs::remove_dir_all(&root);
+}
