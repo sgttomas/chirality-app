@@ -170,9 +170,24 @@ export function checkOne(elements, expectation, values) {
  *   readWatch optional: () => the parsed watch file, or null (default: reads `watch`)
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
  *   now       optional: () => the time as text (default: the UTC time)
- * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped}. verdict is 'pass', 'fail' or
+ * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped, view_error when a view failed}. verdict is 'pass', 'fail' or
  * 'inconclusive'; a refusal before any call is 'inconclusive' with nothing called.
  */
+/**
+ * A failed call, as messages only: the error's own message and then each cause it carries, in order, whole. Nothing
+ * else of the error object is kept. At most eight causes; a cause seen before ends the chain.
+ */
+export function failure(where, error) {
+  const text = value => String(value?.message ?? value);
+  const causes = [];
+  const seen = new Set([error]);
+  for (let cause = error?.cause; cause != null && causes.length < 8 && !seen.has(cause); cause = cause?.cause) {
+    seen.add(cause);
+    causes.push(text(cause));
+  }
+  return { where, message: text(error), causes };
+}
+
 export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, sleep, now }) {
   if (!readWatch && typeof watch === 'string') {
     const fs = await import('node:fs');
@@ -268,7 +283,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     try {
       seen = await view();
     } catch (error) {
-      return finish('inconclusive', `stopped at the ${ordinal} view before any click: the view failed (${String(error?.message ?? error)})`);
+      report.view_error = failure(`the ${ordinal} view before any click`, error);
+      return finish('inconclusive', `stopped at the ${ordinal} view before any click: the view failed (${report.view_error.message})`);
     }
     report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
     if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`));
@@ -303,7 +319,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     try {
       seen = await view();
     } catch (error) {
-      entry.error = String(error?.message ?? error);
+      report.view_error = failure(step.id, error);
+      entry.error = report.view_error.message;
       return finish('inconclusive', `stopped at ${step.id}: the view failed (${entry.error})`);
     }
     entry.returned = seen.text;
@@ -326,6 +343,7 @@ export function summary(report) {
   const lines = [`${report.scenario} (version ${report.version}): ${String(report.verdict).toUpperCase()}`];
   for (const [name, state] of Object.entries(report.outcomes ?? {})) lines.push(`  ${name}: ${state}`);
   if (report.stopped) lines.push(`  ${report.stopped}`);
+  for (const cause of report.view_error?.causes ?? []) lines.push(`    caused by: ${cause}`);
   for (const step of report.steps) {
     for (const check of step.checks.filter(check => !check.pass)) {
       lines.push(`  ${step.id} expected ${JSON.stringify(check.expectation)}, found: ${JSON.stringify(check.found)}`);

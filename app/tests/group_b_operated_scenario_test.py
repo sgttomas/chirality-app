@@ -327,6 +327,31 @@ class TheWalkItself(unittest.TestCase):
         self.assertEqual((result['out'][0], result['out'][2]), ('fail', 0))
         self.assertIn('unavailable', result['out'][1])
 
+    def test_a_failed_view_keeps_its_message_and_each_cause_whole_and_nothing_else(self):
+        # As the supplier's client fails a cold start: its message, and the cause it attaches, which carries its own.
+        result = harness('''
+          const inner = new Error('Sky Computer Use native pipe connection timed out');
+          const middle = new Error('the last attempt', { cause: inner });
+          const outer = new Error('Sky Computer Use native pipe startup failed', { cause: middle });
+          outer.secret = 'not kept'; inner.cause = middle;  // a property and a loop, neither of which may be kept or followed
+          const failing = { get_app_state: async () => { throw outer; }, click: async () => {} };
+          const r = await walk.run({ ...base, sky: failing });
+          return [r.verdict, r.view_error, r.stopped, walk.summary(r), JSON.stringify(r).includes('not kept'), JSON.stringify(r).includes('    at ')];''')
+        verdict, failed, stopped, summary, kept_property, kept_stack = result['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertEqual(failed, {'where': 'the first view before any click', 'message': 'Sky Computer Use native pipe startup failed',
+                                  'causes': ['the last attempt', 'Sky Computer Use native pipe connection timed out']})
+        self.assertIn('the view failed (Sky Computer Use native pipe startup failed)', stopped)
+        self.assertIn('    caused by: the last attempt\n    caused by: Sky Computer Use native pipe connection timed out', summary)
+        self.assertEqual((kept_property, kept_stack), (False, False))
+        # A failure at a later step is kept the same way, and an error that is not an Error is kept as its text.
+        result = harness('''let calls = 0;
+          const failing = { get_app_state: async () => { calls += 1; if (calls > 3) throw 'plain text'; return { app: viewOf.app, text: nextView() }; }, click: async () => {} };
+          const r = await walk.run({ ...base, sky: failing });
+          return [r.view_error, r.steps.at(-1).error];''')
+        self.assertEqual(result['out'][0], {'where': 'S2', 'message': 'plain text', 'causes': []})
+        self.assertEqual(result['out'][1], 'plain text')
+
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
         result = harness('''
           const before = walk.parseView('Window: "Chirality"\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button');

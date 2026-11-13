@@ -532,6 +532,33 @@ has other words that begin the same way, which the walk does not click (it
 stops, inconclusive, exit 2). This is the check rejecting wrong states; it
 says nothing about a build.
 
+**The lane's sample of the service's socket folder.** From App Agent 0's go, the
+lane's agent (not the operator) samples, from its own shell, the names and times
+in the window service's socket folder once a second, until the walk's result
+file exists and fifteen seconds more, or thirty minutes at most. Names and times
+only: no file there is opened, read, connected to or removed, and nothing is
+written there. The output goes in the walk's evidence folder:
+
+```sh
+F="$HOME/Library/Group Containers/2DC432GLL2.com.openai.sky.CUAService/IPC"
+end=; stop=$(( $(date +%s) + 1800 ))
+while [ "$(date +%s)" -lt "$stop" ]; do
+  date -u +%FT%TZ; ls -laT "$F" | tail -n +2
+  [ -z "$end" ] && [ -e "<evidence folder>/scenario-result.json" ] && end=$(( $(date +%s) + 15 ))
+  [ -n "$end" ] && [ "$(date +%s)" -ge "$end" ] && break
+  sleep 1
+done > "<evidence folder>/socket-folder-sample.txt"
+```
+
+Why this folder: the supplier's client for the service, read where it lies
+inside ChatGPT.app (nothing copied into this repository, nothing run), first
+tries the service's socket in that folder for a fraction of a second; if
+nothing answers, it asks for the service to be started, then tries the socket
+again for up to five seconds, connecting and asking for a reply. "Sky Computer
+Use native pipe startup failed" is what it reports when those five seconds pass
+without an answer. The sample shows whether the socket appears during a walk,
+and when, against the walk's first call; it cannot show why.
+
 **In a window.** Steps 1 to 3 above first: the launcher running, the App's
 process number confirmed, the identifier taken from the identification record.
 Then start the watch, in the same way as the launcher. It keeps a small file
@@ -608,6 +635,11 @@ nodeRepl.write(walk.summary(report));
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
 - The result file holds every call made and every view's returned text whole.
+  When a view fails, it also holds the failure as messages only, in
+  `view_error`: where it failed, the error's own message, and each cause the
+  error carries, in order and whole (at most eight); the summary prints the
+  causes under the line that says where the walk stopped. Nothing else of the
+  error is kept.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt appearing, or the focus leaving the build) to its own
   record.
@@ -655,7 +687,9 @@ On a development candidate built from main, in two windows the owner gave:
 - Walk A2's second and third attempts, each by a fresh operator from this
   method alone, reached the walk's first call. Each call failed within about
   five seconds with "Sky Computer Use native pipe startup failed"; nothing was
-  clicked (observed). Why is not established.
+  clicked (observed). Why is not established. The walk then kept only that
+  message and dropped the causes the supplier's client attaches to it; it now
+  keeps them (`view_error`).
 - Each of those calls started, within the same second, a Codex app-server
   (`codex app-server --listen stdio://` from inside ChatGPT.app, a child of
   the operator's node runtime, which is itself inside ChatGPT.app) and a window
