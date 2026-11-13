@@ -1,0 +1,12 @@
+{
+ "what_is_wrong": "The control to select existing settings has other words that begin the same way and end with an ellipsis.",
+ "replace": [
+  {
+   "view": 5,
+   "from": "radio button Value: 0, Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+   "to": "radio button Value: 0, Use my existing Codex settings and delete my sign-in…"
+  }
+ ],
+ "stops": "S7",
+ "verdict": "inconclusive"
+}

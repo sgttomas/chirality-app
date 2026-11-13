@@ -1,6 +1,6 @@
 {
   "scenario": "first-use setup without a project, new settings",
-  "version": 1,
+  "version": 2,
   "what_it_is": "Agent-operated development evidence on an identified development build: the opening of the first-use setup page, up to and not including the App's own confirmation. It is neither setup completed nor a person's observation. It starts no Codex and needs no sign-in.",
   "starting_state": "An identified candidate built from main; a new throwaway home made by the launcher for this launch; no App data; the App running and confirmed from the shell; no child process.",
   "acts": "views and clicks only; nothing is typed, no file or folder is chosen, no confirmation is answered",
@@ -13,6 +13,13 @@
     "the menu bar"
   ],
   "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
   "starts_no_process": true,
   "steps": [
     {
@@ -35,11 +42,11 @@
           "is": "available"
         },
         {
-          "radio": "Start with new settings (recommended)",
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
           "is": "chosen"
         },
         {
-          "radio": "Use my existing Codex settings",
+          "radio": "Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
           "is": "not chosen"
         },
         {
@@ -102,25 +109,28 @@
         "label": "Review setup"
       },
       "wait_ms": 3000,
-      "says": "what setup will do, in five lines, and the control that would confirm it",
+      "says": "what setup will do: its five lines and no other, and the control that would confirm it",
       "expect": [
         {
           "heading": "What setup will do"
         },
         {
-          "text": "Create a new settings folder for this App, inside its data folder"
-        },
-        {
-          "text": "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder"
-        },
-        {
-          "text": "Create a new sign-in folder for this App, linked to those settings"
-        },
-        {
-          "text": "Project when you next open the App: none"
-        },
-        {
-          "text": "Save these choices privately for the next launch"
+          "texts_from": {
+            "kind": "heading",
+            "label": "What setup will do"
+          },
+          "up_to": {
+            "kind": "summary",
+            "label": "Exact locations"
+          },
+          "are": [
+            "What setup will do",
+            "Create a new settings folder for this App, inside its data folder",
+            "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+            "Create a new sign-in folder for this App, linked to those settings",
+            "Project when you next open the App: none",
+            "Save these choices privately for the next launch"
+          ]
         },
         {
           "text": "Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed."
@@ -197,16 +207,16 @@
       "act": "click",
       "control": {
         "kind": "radio",
-        "label": "Use my existing Codex settings"
+        "label": "Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in."
       },
       "says": "with existing settings and nothing chosen, Review setup is unavailable again, with its reason",
       "expect": [
         {
-          "radio": "Use my existing Codex settings",
+          "radio": "Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
           "is": "chosen"
         },
         {
-          "radio": "Start with new settings (recommended)",
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
           "is": "not chosen"
         },
         {
@@ -223,12 +233,12 @@
       "act": "click",
       "control": {
         "kind": "radio",
-        "label": "Start with new settings (recommended)"
+        "label": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them."
       },
       "says": "back to new settings; the page is ready to review again",
       "expect": [
         {
-          "radio": "Start with new settings (recommended)",
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
           "is": "chosen"
         },
         {

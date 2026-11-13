@@ -2,6 +2,7 @@
  "what_this_is": "Views for replay.mjs, not a recording of a run. The first is the first view of the walk of 13 November 2026 as the service returned it; the others are rebuilt from the differences that walk's later views returned. The home, the candidate folder and the build's identifier are replaced by invented ones, and generated folder names by zeros. Whether a whole view asked for with disableDiff looks exactly like this has not been observed.",
  "app": "dev.chirality.app-v4.candidate.invented",
  "home": "/invented/homes/launch-invented/home",
+ "bundle": "/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development invented).app",
  "views": [
   {
    "after": "first view",

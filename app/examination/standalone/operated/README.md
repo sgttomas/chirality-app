@@ -32,9 +32,33 @@ All of these hold, every time:
 1. **Launch through the launcher, and confirm the process is running, before
    any state call.** A state call for an application that is not running
    starts it through the system's launch service: outside the launcher, with
-   the account's real home.
+   the account's real home. See "A view of an application that is not
+   running" below for what remains of this once a walk is under way.
 2. **Address the build by its bundle identifier in every call, and never call
    `list_apps`.** An application name can match another application.
+
+## What the operator is given
+
+- **The candidate folder.** The operator does not build one. A candidate folder
+  is made beforehand by the lane with `app/examination/candidate_identity`:
+  `build_candidate.py` builds an unsigned development bundle from a named
+  revision into a new folder, and `identify.py record` writes its
+  identification record in `identification/` there. The assignment names the
+  folder and its candidate key. The operator confirms it is the one meant:
+
+  ```sh
+  python3 -B app/examination/candidate_identity/identify.py check \
+    --record <candidate folder>/identification/candidate-identification.json \
+    --app "$(ls -d <candidate folder>/target/debug/bundle/macos/*.app)"
+  ```
+
+  It exits 0 when the bundle is the one the record identifies, and the record's
+  `candidate_key` is the key the assignment names. The path the `ls` prints is
+  the bundle; it is needed again below.
+- **The homes root.** The launcher makes each launch folder under the lane's
+  homes root, which must already exist; it never creates it. If it does not
+  exist the launcher refuses and says so. The lane makes it, once.
+- **The window of time**, and the acts it allows.
 
 ## The steps
 
@@ -52,9 +76,10 @@ All of these hold, every time:
    It prints the launcher's process number and returns, and writes
    `launcher.started.json` in the evidence folder with that number and the
    command. It starts exactly the command given, with no shell reading it,
-   and does not watch or end it. The launcher's first
-   line, in `<evidence folder>/launcher.err`, names the launch folder; the home
-   is `home/` in it and the project folder is `project/`. The launcher stays
+   and does not watch or end it. Once the launcher has made the launch
+   folder, the first line of `<evidence folder>/launcher.err` names it; the
+   home is `home/` in it and the project folder is `project/`. A refusal made
+   before that names no folder. The launcher stays
    until the App ends, then publishes the launch record in `record/` and
    prints the outcome into `<evidence folder>/launcher.out`. If it refuses,
    `launcher.out` or `launcher.err` says so within seconds and no App is
@@ -125,7 +150,10 @@ All of these hold, every time:
    from outside, not a defect.
 9. **What stays.** The launch folder with its record, and the evidence
    folder. Nobody opens the home.
-10. **Nothing is left running.** The operator ends what it started: the
+10. **What is ended, and what is left.** The launcher, the App and the watch
+    are ended; the supplier's window service, which the first view starts, is
+    left as it is, its state is recorded, and what becomes of it is the
+    owner's. The operator ends what it started: the
     launcher as in step 8, which ends the App, and the watch, which ends by
     itself when the App does and is otherwise ended by its process number
     (`kill <the watch's process number>`). It then confirms, for the launcher,
@@ -139,6 +167,67 @@ All of these hold, every time:
     termination, as in step 8, ends the watch by its number, confirms all
     three are gone, and records that it did so and why. A launch left without
     its operator is ended, not continued by someone else.
+    The operator records whether a process named `SkyComputerUseService` is
+    running at the end, with its start time, and the lane reports that.
+11. **Look for a stray start.** After every run, and at once whenever a walk
+    stops because the watch no longer shows the build running:
+
+    ```sh
+    python3 -B app/examination/standalone/operated/stray.py "<the bundle>" <bundle identifier> <the App's process number>
+    ```
+
+    It ends nothing and opens nothing. It prints every running process whose
+    executable is inside the candidate's bundle other than the one the
+    launcher started, and, by name only, every entry named for the build's
+    identifier in the real Library's places the launcher compares. It exits 0
+    when it found neither. If it found a process: end it (`kill <number>`),
+    confirm it is gone, and record its number, its start time and that it ran
+    under the account's real home. Whatever it found is reported to the lane
+    at once, and by the lane to App Agent 0 within the hour. Nothing under the
+    real Library is removed by any agent.
+
+## A view of an application that is not running
+
+This is the one way the method can act outside the throwaway home, and it is
+not closed.
+
+- **What happens.** A view of an application that is not running starts it:
+  the service launches it in the background through the system's launch
+  service. Read in the supplier's own guidance for this service on the Mac,
+  which presents it as intended, and seen once on 8 to 9 November. A build
+  started that way is outside the launcher: it has the login session's
+  environment and the account's real home.
+- **No refusing route was found by reading.** On the Mac the service has one
+  way to read a window, addressed by the application's identifier or name; it
+  takes no option that refuses when the application is not running, and no
+  call addresses a process by its number. Its call that lists applications
+  says whether each appears to be running, and is never used here. What the
+  reading does not say: whether a click also starts an absent application.
+- **How it can arise in a walk.** The watch says the build is running, the
+  build ends by itself, and the next view is made. The script reads the watch
+  immediately before every click and every view and refuses on anything older
+  than three seconds, which narrows the interval to about a second and does
+  not close it. A walk makes about seventeen calls.
+- **What a stray start can and cannot do in this scenario.**
+  - It opens at first-use setup: no setup has been saved for a build with a
+    new identifier (read in the App's source: with no saved request the
+    launch is "setup-required").
+  - It starts no Codex: the App starts Codex only when it has a
+    configuration, which setup required does not give (read).
+  - The walk never confirms setup, and stops as soon as the watch shows the
+    launcher's build gone, so it does not go on to operate the stray build
+    (read in the script; a click or view already under way is not recalled).
+  - What it writes under the real Library before any choice: the App creates
+    its data folder there, named for the build's identifier, with a
+    `desktop-startup` folder in it (read: the first thing a start without a
+    saved request does); and the system's web view creates folders named for
+    the identifier under `WebKit` and `Caches` (seen on an earlier build
+    launched under the real home on 12 November). Whether it writes anything
+    else there before a choice has not been traced.
+  - It reads the owner's real home as any application the owner starts
+    would. It sends nothing: no sign-in, no model request and no conversation
+    exist before setup.
+- **How it is found and ended.** Step 11.
 
 ## Running a scenario
 
@@ -153,10 +242,10 @@ What it shows when it passes:
 
 - **SETUP CHOICES REVIEWED.** After "Continue without a project" the page reads
   "Ready to review. Nothing is created or saved until you confirm."; "Review
-  setup" shows "What setup will do" with its five lines and the control
-  "Create settings and save for next launch…", which is never clicked; "Exact
-  locations" shows three locations under the App's data folder in the throwaway
-  home.
+  setup" shows "What setup will do" with exactly its five lines, in order and
+  no other, and the control "Create settings and save for next launch…", which
+  is never clicked; "Exact locations" shows three locations under the App's
+  data folder in the throwaway home.
 - **Two refusals.** "Review setup" is unavailable, with its reason, before any
   choice; and again with "Use my existing Codex settings" selected and nothing
   chosen.
@@ -179,14 +268,19 @@ node replay.mjs first-use-setup.scenario.json ../../../tests/group_b_operated_fi
 The first prints PASS with every outcome shown and exits 0. The second makes one
 known wrong state in the recorded views (Review setup available before any
 choice) and must print FAIL, naming the step and what was found, and exit 1.
-The other `wrong.*.json` files beside it do the same for three more states.
-This is the check rejecting a wrong state; it says nothing about a build.
+The other `wrong.*.json` files beside it do the same for more states: a line
+of "What setup will do" missing, a sixth line added, a location outside the
+home, Review setup available with existing settings; and one where a control
+has other words that begin the same way, which the walk does not click (it
+stops, inconclusive, exit 2). This is the check rejecting wrong states; it
+says nothing about a build.
 
 **In a window.** Steps 1 to 3 above first: the launcher running, the App's
 process number confirmed, the identifier taken from the identification record.
 Then start the watch, in the same way as the launcher. It keeps a small file
-saying whether that process is running and what child processes it has, which
-the script reads because the node runtime cannot ask the system itself:
+saying whether that process is running, what its executable is and what child
+processes it has, which the script reads because the node runtime cannot ask
+the system itself:
 
 ```sh
 python3 -B app/examination/standalone/operated/detached.py <evidence folder> watch -- \
@@ -203,6 +297,7 @@ var walk = await import('file://<repository>/app/examination/standalone/operated
 var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalone/operated/first-use-setup.scenario.json', 'utf8'));
 var sky = (await import('@oai/sky')).sky;
 var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
+  bundle: '<the bundle, the path of the .app folder>',
   pid: <the App's process number>, watch: '<evidence folder>/watch.json'});
 fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(report, null, 2));
 nodeRepl.write(walk.summary(report));
@@ -214,19 +309,45 @@ nodeRepl.write(walk.summary(report));
   does.
 - The script refuses, before any call, an application not named by a
   development build's bundle identifier, and a process the watch file does not
-  show running within the last five seconds. It makes views and clicks and
-  nothing else, and clicks only the controls the scenario's steps name.
-- It stops, and says where, if a view holds a sheet, a dialog or an alert, if
-  the view is not of the App's own window, or if the watch file stops showing
-  the build running. A result that stopped this way is inconclusive, not a
-  pass: report it as it is.
+  show running, with its executable inside the bundle, within the last three
+  seconds. It reads the watch file again before every click and every view.
+  It makes views and clicks and nothing else. It clicks only a control a step
+  names, found by its words whole: a control whose words merely begin the
+  same way is not it, and a control whose words end with an ellipsis is never
+  clicked.
+- It stops, and says where, if a view holds anything that is not the
+  scenario's page. The rule is what a view may hold, not a list of things it
+  may not: the view must say it is of the bundle; at the top it holds the
+  App's one window and the menu bar and nothing else; directly inside the
+  window it holds only what the scenario lists. A sheet, a dialog, an alert,
+  a second window, or a kind of thing nobody named, stops it. It also stops
+  if the watch file stops showing the build running, at the last step as at
+  any other. A result that stopped this way is inconclusive, not a pass:
+  report it as it is.
+- An expected text is expected exactly once in the view, and a named location
+  exactly once; a second copy is a failure, not a pass.
+- **What the watch file is, and is not.** It is a sample taken once a second.
+  The build can end between a reading and the call that follows it; what a
+  view made then does, and how it is found, is the section "A view of an
+  application that is not running" above. Nothing in this scenario ends the
+  App, and the operator ends it only after the walk. A process the App started
+  that has been given another parent, or that came and went between samples,
+  is not seen as a child.
+- **Whole views, or nothing.** Before any click the script asks for two whole
+  views, one after the other; the first view of an application was seen to be
+  whole without asking, so only the second shows that asking is honoured. If
+  either of them, or any later view, comes back as differences, the walk stops
+  there. That view, and the window rebuilt from it, are kept in the result for
+  reading; no check is credited from a rebuilt view and no click is made from
+  one, because how differences place what they add has not been established.
 - This scenario starts no process. If the watch file shows the App with a
   child process, the script stops and the result is a failure.
 - A watch file that is missing, cannot be read, is for another process, says
-  the process has gone, or was last written more than five seconds ago is read
-  as the build not running: the script refuses before any call, or stops
-  between steps. It is never read as "no child process"; a step whose watch
-  file could not be used records its child processes as not known.
+  the process has gone, names an executable outside the bundle, or was last
+  written more than three seconds ago is read as the build not running: the
+  script refuses before any call, or stops. It is never read as "no child
+  process"; a step whose watch file could not be used records its child
+  processes as not known.
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
 - The result file holds every call made and every view's returned text whole.
@@ -260,7 +381,9 @@ On a development candidate built from main, in two windows the owner gave:
 - A view returned within seconds, with the first-use setup page as about fifty
   elements. Later views, made without `disableDiff`, returned differences.
 - Clicks by index worked on a disclosure, a button and a radio button.
-- Not yet observed: `disableDiff`; any method other than a view and a click.
+- Not yet observed: `disableDiff` (the supplier's guidance says it returns a
+  fresh whole view; a walk's first two calls observe it); any method other
+  than a view and a click.
 - The launcher on main at that time could not launch on that host, because
   macOS refused a listing of two Library folders it watched. The launches were
   made with those two names removed; the launcher's own change followed.

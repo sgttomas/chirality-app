@@ -13,7 +13,6 @@ export const DEVELOPMENT_PREFIX = 'dev.chirality.app-v4.candidate.';
 const ELEMENT = /^([~+]?)(\t*)(\d+) (.*)$/;
 const DIFFERENCE = 'The following is a diff from the previous accessibility tree';
 const NO_CHANGE = 'There has been no change in the accessibility tree';
-const OVERLAY = /^(sheet|dialog|system dialog|alert)\b/;
 
 /** The elements of a whole view: [{index, depth, content}] in the order returned. */
 export function parseView(text) {
@@ -60,26 +59,53 @@ export function applyDifference(previous, text) {
 
 const fill = (text, values) => String(text).replace(/\{(\w+)\}/g, (whole, name) => (name in values ? values[name] : whole));
 
-/** Every element a selector names. A selector is {kind, label} where kind is button, summary, radio, heading or text. */
+/**
+ * Every element a selector names. A selector is {kind, label} where kind is button, summary, radio, heading or text.
+ * The label is the control's words whole: a control whose words merely begin with the label is not it.
+ */
 export function select(elements, selector) {
   const { kind, label } = selector;
   return elements.filter(({ content }) => {
     if (kind === 'button') return content === `button ${label}` || content === `button (disabled) ${label}`;
-    if (kind === 'summary') return content.startsWith(`summary ${label}, Value: `);
-    if (kind === 'radio') return /^radio button Value: [01], /.test(content) && content.slice(content.indexOf(', ') + 2).startsWith(label);
-    if (kind === 'heading') return content === `heading ${label}` || content.startsWith(`heading ${label}, `);
+    if (kind === 'summary') return content === `summary ${label}, Value: on` || content === `summary ${label}, Value: off`;
+    if (kind === 'radio') return content === `radio button Value: 0, ${label}` || content === `radio button Value: 1, ${label}`;
+    if (kind === 'heading') return content.startsWith(`heading ${label}`) && /^(, Value: \d+)?$/.test(content.slice(`heading ${label}`.length));
     if (kind === 'text') return content === `text ${label}`;
     return false;
   });
+}
+
+const endsWithEllipsis = words => /(…|\.\.\.)\s*$/.test(words);
+
+/**
+ * What in a view is not the scenario's page, or null. The rule is what a view may hold, not a list of things it may
+ * not: at the top, the one window the scenario names and the menu bar; directly inside that window, only the
+ * entries the scenario lists. A sheet, a dialog, an alert, a second window or anything else unlisted is not the page.
+ */
+export function notThePage(elements, scenario) {
+  const title = `standard window ${scenario.window}`;
+  const isWindow = ({ content }) => content === title || content.startsWith(title + ', ');
+  const top = elements.filter(({ depth }) => depth === 0);
+  const other = top.find(element => !isWindow(element) && element.content !== 'menu bar');
+  if (other) return `the view holds something beside the window "${scenario.window}" (${other.content})`;
+  if (top.filter(isWindow).length !== 1) return `the view is not of exactly one window "${scenario.window}"`;
+  const start = elements.findIndex(isWindow);
+  for (let at = start + 1; at < elements.length && elements[at].depth > 0; at++) {
+    if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) {
+      return `the window holds something that is not the page (${elements[at].content})`;
+    }
+  }
+  return null;
 }
 
 /** One expectation against one view's elements: {expectation, pass, found}. */
 export function checkOne(elements, expectation, values) {
   const result = (pass, found) => ({ expectation, pass, found });
   const one = (kind, label) => select(elements, { kind, label: fill(label, values) });
-  if ('text' in expectation) {
+  const count = found => (found.length === 1 ? 'present' : found.length ? `present ${found.length} times` : 'absent');
+  if ('text' in expectation) {  // exactly once in the view
     const found = one('text', expectation.text);
-    return result(found.length >= 1, found.length ? 'present' : 'absent');
+    return result(found.length === 1, count(found));
   }
   if ('no_text' in expectation) {
     const found = one('text', expectation.no_text);
@@ -88,7 +114,7 @@ export function checkOne(elements, expectation, values) {
   if ('text_starts' in expectation) {
     const start = 'text ' + fill(expectation.text_starts, values);
     const found = elements.filter(({ content }) => content.startsWith(start));
-    return result(found.length >= 1, found.length ? found[0].content.slice(5) : 'absent');
+    return result(found.length === 1, found.length === 1 ? found[0].content.slice(5) : count(found));
   }
   if ('heading' in expectation) {
     const found = one('heading', expectation.heading);
@@ -110,9 +136,19 @@ export function checkOne(elements, expectation, values) {
     const state = found.length === 1 ? (found[0].content.startsWith('radio button Value: 1, ') ? 'chosen' : 'not chosen') : found.length ? 'more than one' : 'absent';
     return result(state === expectation.is, state);
   }
+  if ('texts_from' in expectation) {  // every text element from one element up to another, in order, and no other
+    const from = select(elements, expectation.texts_from), to = select(elements, expectation.up_to);
+    if (from.length !== 1 || to.length !== 1) return result(false, `the bounds were found ${from.length} and ${to.length} times`);
+    const first = elements.indexOf(from[0]), last = elements.indexOf(to[0]);
+    const texts = elements.slice(first + 1, last).filter(({ content }) => content.startsWith('text ')).map(({ content }) => content.slice(5));
+    const wanted = expectation.are.map(text => fill(text, values));
+    return result(first < last && JSON.stringify(texts) === JSON.stringify(wanted), texts);
+  }
   if ('location' in expectation) {  // a named location whose path, the next element, lies under a folder
-    const at = elements.findIndex(({ content }) => content === `text ${expectation.location}`);
-    const next = at >= 0 ? elements[at + 1] : undefined;
+    const named = elements.filter(({ content }) => content === `text ${expectation.location}`);
+    if (named.length !== 1) return result(false, `the name is ${count(named)}`);
+    const at = elements.indexOf(named[0]);
+    const next = elements[at + 1];
     const path = next && next.content.startsWith('text /') ? next.content.slice(5) : null;
     const under = fill(expectation.under, values);
     return result(path !== null && path.startsWith(under + '/') && !path.split('/').includes('..'), path ?? 'absent');
@@ -126,6 +162,8 @@ export function checkOne(elements, expectation, values) {
  *   scenario  the parsed scenario file
  *   app       the development build's bundle identifier
  *   home      the throwaway home the launcher made for this launch (launch folder + /home)
+ *   bundle    the candidate's bundle, the path of its .app folder: the watched process's executable must be inside
+ *             it, and every view must be of it
  *   pid       the running App's process number, confirmed from the shell
  *   watch     the path of the file watch.py keeps while that process runs; the walk reads it before the first view
  *             and at every step, since the node runtime cannot ask the system about a process itself
@@ -135,15 +173,17 @@ export function checkOne(elements, expectation, values) {
  * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped}. verdict is 'pass', 'fail' or
  * 'inconclusive'; a refusal before any call is 'inconclusive' with nothing called.
  */
-export async function run({ sky, scenario, app, home, pid, watch, readWatch, sleep, now }) {
+export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, sleep, now }) {
   if (!readWatch && typeof watch === 'string') {
     const fs = await import('node:fs');
     readWatch = () => { try { return JSON.parse(fs.readFileSync(watch, 'utf8')); } catch { return null; } };
   }
-  // The build is running when the watch file is for this process, says so, and was written in the last five seconds.
+  // The build is running when the watch file is for this process, says so, names an executable inside the bundle, and
+  // was written in the last three seconds. That is a sample, not custody: see README.md.
   const watched = () => {
     const seen = readWatch ? readWatch() : null;
-    const running = !!seen && seen.pid === pid && seen.running === true && Math.abs(Date.now() - seen.at_ms) <= 5000;
+    const running = !!seen && seen.pid === pid && seen.running === true && typeof seen.executable === 'string'
+      && seen.executable.startsWith(bundle + '/Contents/MacOS/') && Math.abs(Date.now() - seen.at_ms) <= 3000;
     return { running, children: running ? (seen.children ?? []) : [] };
   };
   sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -169,31 +209,67 @@ export async function run({ sky, scenario, app, home, pid, watch, readWatch, sle
   if (typeof home !== 'string' || !home.startsWith('/') || home.endsWith('/')) {
     return finish('inconclusive', 'refused before any call: the home is not an absolute path');
   }
+  if (typeof bundle !== 'string' || !bundle.startsWith('/') || !bundle.endsWith('.app')) {
+    return finish('inconclusive', 'refused before any call: the bundle is not the absolute path of an .app folder');
+  }
+  const steps = Array.isArray(scenario?.steps) ? scenario.steps : [];
+  if (typeof scenario?.window !== 'string' || !Array.isArray(scenario.window_holds) || !steps.length
+      || steps.some(step => !Array.isArray(step.expect) || !step.expect.length)
+      || Object.values(scenario.outcomes ?? {}).some(ids => !ids.length || ids.some(id => !steps.some(step => step.id === id)))) {
+    return finish('inconclusive', 'refused before any call: the scenario names no window and what it holds, has no steps, has a step with nothing expected, or has an outcome naming no such step');
+  }
   if (!Number.isInteger(pid) || pid <= 1 || !watched().running) {
     return finish('inconclusive', 'refused before any call: the watch file does not show the build running, and a view of an application that is not running would start it outside the launcher');
   }
   let elements = [];
+  // A view is whole, or the walk stops there. One that comes back as differences is kept, with the view rebuilt from
+  // it, for reading only: no check is credited from a rebuilt view and no click is made from one.
   const view = async () => {
     calls.push({ at: now(), call: 'get_app_state', app });
     const state = await sky.get_app_state({ app, disableDiff: true });
+    if (state?.app !== bundle) throw new Error(`the view does not say it is of the bundle; it names: ${state?.app}`);
     const text = String(state?.text ?? '');
-    if (text.startsWith(DIFFERENCE) || text.startsWith(NO_CHANGE)) elements = applyDifference(elements, text);
-    else elements = parseView(text);
-    return text;
+    if (text.startsWith(DIFFERENCE) || text.startsWith(NO_CHANGE)) {
+      let rebuilt = null;
+      try {
+        rebuilt = applyDifference(elements, text).map(({ index, depth, content }) => '\t'.repeat(depth) + index + ' ' + content).join('\n');
+      } catch { /* shown as not rebuilt */ }
+      return { whole: false, text, rebuilt };
+    }
+    elements = parseView(text);
+    return { whole: true, text };
   };
+  const gone = id => `stopped at ${id}: the watch file no longer shows the build running`;
+  const asDifferences = id => `stopped at ${id}: the view came back as differences although the whole window was asked for; nothing is checked or clicked from a rebuilt view`;
+  // Before any click: two whole views, one after the other. The first view of an application was seen to be whole
+  // without asking; only a second one shows that asking for the whole window is honoured.
+  report.whole_views_before_any_click = [];
+  for (const ordinal of ['first', 'second']) {
+    if (!watched().running) return finish('inconclusive', gone(`the ${ordinal} view before any click`));
+    let seen;
+    try {
+      seen = await view();
+    } catch (error) {
+      return finish('inconclusive', `stopped at the ${ordinal} view before any click: the view failed (${String(error?.message ?? error)})`);
+    }
+    report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
+    if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`));
+    const stray = notThePage(elements, scenario);
+    if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
+  }
   for (const step of scenario.steps) {
     const entry = { id: step.id, at: now(), act: step.act, says: step.says, checks: [] };
     report.steps.push(entry);
     const before = watched();
-    if (!before.running) return finish('inconclusive', `stopped at ${step.id}: the watch file no longer shows the build running`);
+    if (!before.running) return finish('inconclusive', gone(step.id));
     if (scenario.starts_no_process && before.children.length) {
       return finish('fail', `stopped at ${step.id}: the App has a child process (${before.children.length}), and this scenario starts none`);
     }
     if (step.act === 'click') {
-      const label = step.control.label;
-      if (label.endsWith('…') || label.endsWith('...')) return finish('inconclusive', `stopped at ${step.id}: a control whose words end with an ellipsis is never clicked`);
+      if (endsWithEllipsis(step.control.label)) return finish('inconclusive', `stopped at ${step.id}: a control whose words end with an ellipsis is never clicked`);
       const found = select(elements, step.control);
       entry.control = step.control;
+      if (found.some(({ content }) => endsWithEllipsis(content))) return finish('inconclusive', `stopped at ${step.id}: the control found has words that end with an ellipsis, and such a control is never clicked`);
       if (found.length !== 1) return finish(report.steps.some(s => s.checks.some(c => !c.pass)) ? 'fail' : 'inconclusive',
         `stopped at ${step.id}: the control to click was found ${found.length} times in the latest view`);
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
@@ -201,25 +277,28 @@ export async function run({ sky, scenario, app, home, pid, watch, readWatch, sle
       calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
       await sky.click({ app, element_index: found[0].index });
       if (step.wait_ms) await sleep(step.wait_ms);
+      if (!watched().running) return finish('inconclusive', gone(step.id));  // read again immediately before the view
     } else if (step.act !== 'view') {
       return finish('inconclusive', `stopped at ${step.id}: an act this script does not perform`);
     }
-    let text;
+    let seen;
     try {
-      text = await view();
+      seen = await view();
     } catch (error) {
       entry.error = String(error?.message ?? error);
-      return finish('inconclusive', `stopped at ${step.id}: the view failed`);
+      return finish('inconclusive', `stopped at ${step.id}: the view failed (${entry.error})`);
     }
-    entry.returned = text;
-    const overlay = elements.find(({ content }) => OVERLAY.test(content));
-    if (overlay) return finish('inconclusive', `stopped at ${step.id}: the view holds something that is not the page (${overlay.content.split(' ')[0]}); no agent answers it`);
-    if (scenario.window && !elements.some(({ depth, content }) => depth === 0 && content.startsWith(`standard window ${scenario.window}`))) {
-      return finish('inconclusive', `stopped at ${step.id}: the view is not of the window "${scenario.window}"`);
+    entry.returned = seen.text;
+    if (!seen.whole) {
+      entry.rebuilt_for_reading = seen.rebuilt;
+      return finish('inconclusive', asDifferences(step.id));
     }
+    const stray = notThePage(elements, scenario);
+    if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
     entry.checks = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values));
     const after = watched();
     entry.child_processes = after.running ? after.children.length : 'not known: the watch file does not show the build running';
+    if (!after.running) return finish('inconclusive', `stopped after ${step.id}: the watch file no longer shows the build running`);
     if (scenario.starts_no_process && after.children.length) {
       return finish('fail', `stopped after ${step.id}: the App has a child process (${after.children.length}), and this scenario starts none`);
     }
@@ -234,7 +313,7 @@ export function summary(report) {
   if (report.stopped) lines.push(`  ${report.stopped}`);
   for (const step of report.steps) {
     for (const check of step.checks.filter(check => !check.pass)) {
-      lines.push(`  ${step.id} expected ${JSON.stringify(check.expectation)}, found: ${check.found}`);
+      lines.push(`  ${step.id} expected ${JSON.stringify(check.expectation)}, found: ${JSON.stringify(check.found)}`);
     }
   }
   lines.push(`  calls made: ${report.calls.filter(c => c.call === 'get_app_state').length} views, ${report.calls.filter(c => c.call === 'click').length} clicks`);
