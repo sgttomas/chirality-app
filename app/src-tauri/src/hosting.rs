@@ -498,7 +498,7 @@ pub(crate) mod reading_gate;
 use reading_gate::ReadingHold;
 #[path = "access_settings.rs"]
 mod access_settings;
-pub(crate) use access_provider::ProviderAdmission;
+pub(crate) use access_provider::{ProviderAdmission, BUILT_IN_PROVIDER_UNREPORTED_FORK};
 #[path = "config_resource_continuation.rs"]
 pub(crate) mod config_resource_continuation;
 #[path = "provider_endpoint.rs"]
@@ -6258,6 +6258,8 @@ mod conversation_transport_tests {
             }
         }
         assert!(access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME.ends_with("no thread/resume sent")&&access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK.ends_with("no thread/fork sent"));
+        // The fork's refusal is returned before anything of the fork is registered: its role-supply record says so.
+        assert!(crate::conversation_roles::fork_refused_before_send(access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK));
     }
     /// DEL-01-05 AC-005: an account or key-home Continue or fork carries the reading it was admitted
     /// on into the registration and final-write checks a new start's reading passes: a newer reading
