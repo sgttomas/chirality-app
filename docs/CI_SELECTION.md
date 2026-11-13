@@ -223,9 +223,12 @@ than `*.test.mjs`, such as `group_b_runner_test.mjs`.
 `tools/ci/check_lib_cohorts.py` runs in `rust-integration` right after the
 test-target compile. It lists the library's default-feature tests and its
 ignored tests from that build and checks them against the workflow and
-`tools/ci/lib_cohort_exclusions.txt`. Its logic, and its reading of the
-workflow against PyYAML's, are tested with invented lists in
-`repository-checks` (`tools/ci/test_lib_cohorts.py`). Listing a built target
+`tools/ci/lib_cohort_exclusions.txt`, reading the workflow with the Python
+standard library (the macOS job has no YAML library). Its logic is tested with
+invented lists in `repository-checks` (`tools/ci/test_lib_cohorts.py`), which
+also compares its reading of the committed workflow with PyYAML's, job by job
+(job ids, conditions, `LIB_COHORTS`, and each step's name, `if`,
+`LIB_COHORTS` and run text, exactly) and fails on any difference. Listing a built target
 took 0.2 seconds locally on this project's Mac; no hosted figure is recorded.
 
 What it establishes: every test in the supplied default-feature listing is
@@ -235,17 +238,20 @@ command in a pull-request job's step), or ignored, or covered by a line of the
 exclusion file with its reason. "Selected" is that name match; it does not show
 that the test's body runs. An ignored (`#[ignore]`) test counts as neither
 selected nor left to the full route: the full route runs `cargo test` without
-`--ignored`, so it does not run them either. Each has a line saying so, either
+`--ignored`, so it does not select ignored tests directly, though a parent test
+it runs may start one as a child process. Each has a line saying so, either
 opt-in, run by no hosted job unless someone names it, or a child process that a
 named parent test starts, running only where that parent runs.
 
 It fails, naming them, on a test in none of those, an ignored test without such
 a line, a default-feature pull-request filter that selects no test that is not
 ignored, and an exclusion line that covers no test. It refuses, naming the job
-and step, what its reader does not read: more than one test filter, `--skip`
-or `--ignored` on a library test command, a step-level `LIB_COHORTS` or `if`,
-a `${{ }}` expression in a filter, folded blocks with blank lines, quoted values
-followed by comments, and anchors or aliases.
+and step, what it does not read: more than one test filter, `--skip` or
+`--ignored` on a library test command, a step-level `LIB_COHORTS` or `if`, a
+`${{ }}` expression or a shell variable other than the `$LIB_COHORTS` loop
+variable in a filter, an anchor, alias or merge key anywhere in the jobs, a
+line it does not recognise (including a value on the next line), flow forms
+where it reads below, and value forms it does not read exactly.
 
 What it does not establish: that a selected test passes; anything about tests
 compiled only with a feature; anything about a reason's text beyond the ignored

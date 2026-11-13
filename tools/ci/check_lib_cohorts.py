@@ -39,21 +39,29 @@ a line naming one test names a selected test; a line has no reason or
 repeats; the ignored listing names a test the listing does not; or the
 listing holds no test or the workflow no filter.
 
-It refuses, rather than guesses, what its reader does not read, naming the job
-and step: more than one test filter, ``--skip``, ``--ignored`` or
+It refuses, rather than guesses, what it does not read, naming the job and
+step: more than one test filter, ``--skip``, ``--ignored`` or
 ``--include-ignored`` on a library test command; a step-level ``LIB_COHORTS``;
 a step-level ``if`` on a step with a library test command (it does not
-evaluate step conditions); a ``${{ }}`` expression in a filter; and, in a
-value it reads, a folded block with blank lines, a quoted scalar followed by
-other text such as a comment, or an anchor, alias or merge key.
+evaluate step conditions); a ``${{ }}`` expression in a filter, examined before
+any substitution; a shell variable in a filter other than the loop variable of
+``for <var> in $LIB_COHORTS``; an anchor, alias or merge key (``<<``) anywhere
+in the jobs section; a structural line it does not recognise, which includes a
+value it reads placed on the next line; a flow form (``{...}``, ``[...]``) on
+a key under which it reads something; and, in a value it reads, a form it does
+not read exactly (a folded block with blank or more-indented lines, a quoted
+scalar followed by other text such as a comment or spread over lines, a block
+header other than ``|``, ``|-``, ``>`` or ``>-``).
 
 It needs only the Python standard library, because it runs on the macOS job
-that has the listings and no YAML library. ``read_workflow`` reads the few
-things the check uses from the workflow's own layout. ``tools/ci/test_lib_cohorts.py``,
-run by repository-checks with PyYAML, fails when this reading and PyYAML's give
-different jobs, conditions or cohorts; both readings then pass through the same
-extraction, so that test cannot catch a misreading the extraction itself makes.
-The refusals above are the answer to that.
+that has the listings and no YAML library. A hand-written reader cannot promise
+to recognise every YAML form, so its reading is also checked whole:
+``tools/ci/test_lib_cohorts.py``, run by repository-checks with PyYAML on every
+pull request, compares the reader's reading of the committed workflow with
+PyYAML's, job by job (job ids, each job's ``if`` and ``LIB_COHORTS``, and each
+step's ``name``, ``if``, ``LIB_COHORTS`` and ``run`` text, exactly), and fails
+on any difference or on any refusal. That compares the reading itself, not
+filters a shared extraction derives from it.
 
 What it establishes: every test in the supplied default-feature listing is
 matched by name by a pull-request default-feature filter, or is ignored, or is
@@ -99,11 +107,19 @@ class Unreadable(Exception):
     """A value the reader does not understand; the check refuses it rather than guess."""
 
 
+class Anchored(Unreadable):
+    """An anchor, alias or merge key: refused wherever it is, read or not."""
+
+
+ANCHOR_TOKEN = re.compile(r"(?:^|[\[{,\s])[&*][A-Za-z0-9_.-]")
+
+
 def _scalar(lines: list[str], index: int, key_indent: int, rest: str) -> tuple[str, int]:
-    """The value of a key whose text after the colon is rest; returns it and the next line index."""
+    """The value of a key whose text after the colon is rest, as YAML reads it; and the next line index.
+
+    Raises Unreadable for a form the reader does not read exactly.
+    """
     rest = rest.strip()
-    if rest[:1] in ("&", "*"):
-        raise Unreadable("an anchor or alias")
     following = []
     j = index + 1
     while j < len(lines) and (not lines[j].strip() or _indent(lines[j]) > key_indent):
@@ -112,89 +128,202 @@ def _scalar(lines: list[str], index: int, key_indent: int, rest: str) -> tuple[s
     while following and not following[-1].strip():
         following.pop()
         j -= 1
+    if rest[:1] in ("&", "*"):
+        raise Anchored("an anchor or alias")
     if rest[:1] in ("|", ">"):
-        body = [line for line in following]
-        if rest[0] == ">" and any(not line.strip() for line in body):
-            raise Unreadable("a folded block with blank lines")
-        depth = min((_indent(line) for line in body if line.strip()), default=0)
-        body = [line[depth:] for line in body]
-        return ("\n" if rest[0] == "|" else " ").join(body if rest[0] == "|" else [b for b in body if b]), j
-    if rest.startswith("'") and rest.endswith("'") and len(rest) > 1:
-        return rest[1:-1].replace("''", "'"), j
-    if rest.startswith('"') and rest.endswith('"') and len(rest) > 1:
-        return json.loads(rest), j
+        if rest not in ("|", "|-", ">", ">-"):
+            raise Unreadable(f"a block scalar header {rest!r}")
+        if not following:
+            return ("" if rest.endswith("-") else ""), j
+        depth = _indent(next(line for line in following if line.strip()))
+        if any(line.strip() and _indent(line) < depth for line in following):
+            raise Unreadable("a block scalar whose lines are less indented than its first")
+        body = [line[depth:] if line.strip() else "" for line in following]
+        if rest[0] == ">":
+            if any(not line for line in body):
+                raise Unreadable("a folded block with blank lines")
+            if any(line.startswith(" ") for line in body):
+                raise Unreadable("a folded block with more-indented lines")
+            value = " ".join(body)
+        else:
+            value = "\n".join(body)
+        return value + ("" if rest.endswith("-") else "\n"), j
     if rest[:1] in ("'", '"'):
+        if following:
+            raise Unreadable("a quoted scalar over several lines")
+        if len(rest) > 1 and rest.endswith(rest[0]):
+            if rest[0] == "'":
+                inner = rest[1:-1]
+                if "'" in inner.replace("''", ""):
+                    raise Unreadable("a quoted scalar followed by other text (such as a comment)")
+                return inner.replace("''", "'"), j
+            try:
+                return json.loads(rest), j
+            except ValueError:
+                raise Unreadable("a double-quoted scalar with escapes it does not read") from None
         raise Unreadable("a quoted scalar followed by other text (such as a comment)")
-    return " ".join([rest, *(line.strip() for line in following if line.strip())]).strip(), j
+    if rest[:1] in ("[", "{"):
+        if ANCHOR_TOKEN.search(rest) or any(ANCHOR_TOKEN.search(line) for line in following):
+            raise Anchored("an anchor or alias in a flow collection")
+        raise Unreadable("a flow collection")
+    if rest[:1] in ("!", "%", "@", "`", "?"):
+        raise Unreadable(f"a value beginning {rest[:1]!r}")
+    parts = [rest, *(line.strip() for line in following)]
+    if any(not part for part in parts[1:]):
+        raise Unreadable("a plain scalar over several lines with blank lines")
+    if any(" #" in part or part.startswith("#") for part in parts[1:]) or (" #" in rest and following):
+        raise Unreadable("a plain scalar over several lines with a comment")
+    if " #" in rest:
+        rest = rest[: rest.index(" #")].rstrip()
+        parts[0] = rest
+    return " ".join(part for part in parts if part).strip(), j
 
 
-KEY = re.compile(r"(-\s+)?([A-Za-z0-9_-]+):(?:\s+(.*))?$")
+KEY = re.compile(r"(<<|[A-Za-z0-9_.-]+):(?:[ \t]+(.*))?$")
+READ_JOB_KEYS = {("if",), ("env", "LIB_COHORTS"), ("steps",)}
+READ_STEP_KEYS = {("name",), ("run",), ("if",), ("env", "LIB_COHORTS")}
+
+
+def _skip(lines: list[str], index: int, indent: int) -> tuple[None, int]:
+    """Step past a line and the lines more indented than indent that follow it."""
+    j = index + 1
+    while j < len(lines) and (not lines[j].strip() or _indent(lines[j]) > indent):
+        j += 1
+    return None, j
 
 
 def read_workflow(text: str) -> dict:
     """Read job ids, each job's if and LIB_COHORTS, and its steps' name, if, env LIB_COHORTS and run.
 
-    What it cannot read is recorded under "unreadable" on the job or step,
-    and the check refuses it.
+    It parses each structural line of the jobs section and tracks where it
+    sits. What it cannot read exactly is recorded under "unreadable" on the
+    job or step, and the check refuses it: an anchor, alias or merge key
+    anywhere; a structural line it does not recognise (which includes a read
+    key's value placed on the next line); and, in a value it reads, any form it
+    does not read exactly.
     """
-    lines = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    lines = text.splitlines()
     jobs: dict[str, dict] = {}
     try:
-        start = lines.index("jobs:") + 1
+        i = lines.index("jobs:") + 1
     except ValueError:
         return {"jobs": jobs}
-    job_indent = job_key_indent = None
+    stack: list[tuple[int, str]] = []  # (indent, key or "-") of open mappings and items below jobs:
     job = step = None
-    step_key_indent = None
-    i = start
+
+    def owner() -> dict:
+        return step if step is not None else job
+
+    def refuse(reason: str) -> None:
+        if job is not None:
+            owner().setdefault("unreadable", []).append(reason)
+        else:
+            jobs.setdefault("(jobs)", {"steps": []}).setdefault("unreadable", []).append(reason)
+
     while i < len(lines):
         line = lines[i]
-        if not line.strip():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
             i += 1
             continue
         indent = _indent(line)
         if indent == 0:
             break
-        match = KEY.match(line.strip())
-        if job_indent is None:
-            job_indent = indent
-        if indent == job_indent and match and not match.group(1):
-            job = jobs.setdefault(match.group(2), {"steps": []})
-            job_key_indent = step = None
+        while stack and stack[-1][0] >= indent:
+            stack.pop()
+        key_indent = indent
+        if stripped == "-" or stripped.startswith("- "):
+            path = [label for _, label in stack]
+            stack.append((indent, "-"))
+            if len(path) == 2 and path[1] == "steps" and job is not None:
+                step = {}
+                job["steps"].append(step)
+            stripped = stripped[1:].lstrip()
+            key_indent = indent + (len(line.lstrip()) - len(stripped))
+            if not stripped:
+                i += 1
+                continue
+            if not KEY.match(stripped):
+                if step is not None and len(path) == 2:
+                    refuse(f"a step it does not read: {stripped[:60]!r}")
+                    _, i = _skip(lines, i, indent)
+                    continue
+                try:
+                    _, i = _scalar(lines, i, indent, stripped)
+                except Anchored as error:
+                    refuse(f"a list item: {error}")
+                    i += 1
+                except Unreadable:
+                    i += 1
+                continue
+        match = KEY.match(stripped)
+        if not match:
+            refuse(f"a line it does not recognise: {stripped[:60]!r}")
             i += 1
             continue
-        if job is None or not match:
+        key, rest = match.group(1), (match.group(2) or "").strip()
+        path = [label for _, label in stack if label != "-"]
+        depth = len(path)
+        if key == "<<":
+            refuse("<<: a merge key")
             i += 1
             continue
-        if job_key_indent is None:
-            job_key_indent = indent
-        dash, key, rest = match.group(1), match.group(2), match.group(3) or ""
-        if indent == job_key_indent and not dash:
+        if depth == 0:
+            if rest:
+                refuse(f"{key}: a job given as a value ({rest[:40]!r})")
+                _, i = _scalar(lines, i, key_indent, rest) if not rest.startswith(("&", "*")) else (None, i + 1)
+                continue
+            job = jobs.setdefault(key, {"steps": []})
             step = None
-        if dash:
-            step = {}
-            job["steps"].append(step)
-            step_key_indent = indent + len(dash)
-        owner = step if step is not None else job
-        if key == "<<" or (rest.strip()[:1] in ("&", "*")):
-            owner.setdefault("unreadable", []).append(f"{key}: an anchor, alias or merge key")
+            stack.append((key_indent, key))
+            i += 1
+            continue
+        if depth == 1:
+            step = None
+        relative = tuple(path[1:] + [key])
+        in_step = len(path) >= 2 and path[1] == "steps" and step is not None
+        if in_step:
+            relative = tuple(path[2:] + [key])
+            read_paths = READ_STEP_KEYS
+        else:
+            read_paths = READ_JOB_KEYS
+        read = relative in read_paths and relative != ("steps",)
+        leads_to_read = any(len(r) > len(relative) and r[:len(relative)] == relative for r in read_paths) or relative == ("steps",)
+        if rest[:1] in ("&", "*") or ANCHOR_TOKEN.search(rest) and rest[:1] in ("[", "{"):
+            refuse(f"{key}: an anchor or alias")
+            _, i = _skip(lines, i, key_indent)
+            continue
+        if rest and leads_to_read and not (relative == ("steps",) and rest == "[]"):
+            refuse(f"{key}: a value it does not read ({rest[:40]!r}) where the check reads what lies below")
+            _, i = _skip(lines, i, key_indent)
+            continue
+        if not rest:
+            if rest == "" and read:
+                refuse(f"{key}: a value it does not read (empty, or on the next line)")
+            stack.append((key_indent, key))
             i += 1
             continue
         try:
-            if step is None and indent == job_key_indent and key == "if":
-                job["if"], i = _scalar(lines, i, indent, rest)
-                continue
-            if key == "LIB_COHORTS":
-                owner.setdefault("env", {})["LIB_COHORTS"], i = _scalar(lines, i, indent, rest)
-                continue
-            if step is not None and key in ("name", "run", "if") and (dash or indent == step_key_indent):
-                step[key], i = _scalar(lines, i, step_key_indent, rest)
-                continue
+            value, i = _scalar(lines, i, key_indent, rest)
+        except Anchored as error:
+            refuse(f"{key}: {error}")
+            i += 1
+            continue
         except Unreadable as error:
-            owner.setdefault("unreadable", []).append(f"{key}: {error}")
-            if key == "run":
-                step[key] = ""
-        i += 1
+            if read:
+                refuse(f"{key}: {error}")
+                if in_step and relative == ("run",):
+                    step["run"] = ""
+            i += 1
+            while i < len(lines) and (not lines[i].strip() or _indent(lines[i]) > key_indent):
+                i += 1
+            continue
+        if read:
+            target = step if in_step else job
+            if relative[0] == "env":
+                target.setdefault("env", {})["LIB_COHORTS"] = value
+            else:
+                target[relative[0]] = value
     return {"jobs": jobs}
 
 
@@ -270,6 +399,15 @@ def cargo_lib_filters(run: str) -> list[tuple[str, bool, bool, list[str]]]:
     return found
 
 
+COHORT_LOOP = re.compile(r"\bfor\s+(\w+)\s+in\s+\$(?:LIB_COHORTS\b|\{LIB_COHORTS\})")
+
+
+def _is_cohort_loop(name: str, run: str) -> bool:
+    """Whether name is the variable of a `for <var> in $LIB_COHORTS` loop in the same script."""
+    loop = COHORT_LOOP.search(run)
+    return bool(loop) and name in (f"${loop.group(1)}", f"${{{loop.group(1)}}}")
+
+
 def pull_request_filters(workflow: dict, problems: list[str] | None = None) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """Default-feature and feature filters of the pull-request jobs, each with where it is.
 
@@ -302,9 +440,11 @@ def pull_request_filters(workflow: dict, problems: list[str] | None = None) -> t
                 refusals.append("a step-level if on a library test command (the check does not evaluate step conditions)")
             for name, _exact, _features, command_refusals in filters:
                 refusals += command_refusals
-                values = cohorts if "LIB_COHORTS" in run and name.startswith("$") else [name]
-                if any("${{" in value for value in values):
+                # The raw filter is examined before any substitution.
+                if "${{" in name or any("${{" in value for value in cohorts):
                     refusals.append("a ${{ }} expression in a filter")
+                elif "$" in name and not _is_cohort_loop(name, run):
+                    refusals.append(f"a shell variable in a filter ({name!r}) other than the loop over $LIB_COHORTS")
             if refusals and problems is not None:
                 for refusal in dict.fromkeys(refusals):
                     problems.append(f"{where}: the check cannot read {refusal}")
@@ -317,7 +457,9 @@ def pull_request_filters(workflow: dict, problems: list[str] | None = None) -> t
             if not pull_request:
                 continue
             for name, exact, features, _refusals in filters:
-                names = cohorts if "LIB_COHORTS" in run and name.startswith("$") else [name]
+                if "${{" in name or "$" in name and not _is_cohort_loop(name, run):
+                    continue
+                names = cohorts if _is_cohort_loop(name, run) else [name]
                 for value in names:
                     key = f"={value}" if exact else value
                     (featured if features else default).setdefault(key, []).append(where)
@@ -362,8 +504,9 @@ def prune(list_text: str, workflow_text: str, exclusions_text: str, ignored_text
     """The exclusion file without lines that cover no test or name a selected test, and those lines.
 
     Every other line, its reason and the comments stay as written. Nothing is
-    added: a test that becomes unselected stays a failure until a person gives
-    it a cohort or a line.
+    added. A test that becomes unselected is a failure until a person gives it
+    a cohort or a line, unless a module line already covers it: a test directly
+    in an excluded module is absorbed by that module's line without notice.
     """
     _, _, drop = _evaluate(list_text, workflow_text, exclusions_text, ignored_text)
     kept, dropped = [], []

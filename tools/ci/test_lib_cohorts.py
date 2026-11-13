@@ -16,11 +16,12 @@ LOOP = 'for cohort in $LIB_COHORTS; do cargo test --locked --manifest-path src-t
 
 def workflow(lib_cohorts: str, steps: list[str] = (LOOP,), full_steps: list[str] = ()) -> str:
     def block(runs):
-        return "".join(f"      - name: step {i}\n        run: '{run}'\n" for i, run in enumerate(runs)) or "      []\n"
+        items = "".join(f"      - name: step {i}\n        run: '{run}'\n" for i, run in enumerate(runs))
+        return "    steps:\n" + items if items else "    steps: []\n"
     return (
         "jobs:\n"
-        f"  shard:\n    if: {FOCUSED}\n    env:\n      LIB_COHORTS: >-\n          {lib_cohorts}\n    steps:\n{block(steps)}"
-        f"  product:\n    if: {FULL}\n    steps:\n{block(full_steps)}"
+        f"  shard:\n    if: {FOCUSED}\n    env:\n      LIB_COHORTS: >-\n          {lib_cohorts}\n{block(steps)}"
+        f"  product:\n    if: {FULL}\n{block(full_steps)}"
     )
 
 
@@ -146,19 +147,53 @@ def test_this_repository_workflow_yields_filters():
     assert problems == [] and entries
 
 
-def test_the_standard_library_reading_agrees_with_pyyaml_on_this_workflow():
-    # The macOS job has no YAML library; this is what lets the check rely on its own reader there.
-    workflow_text = (cohorts.ROOT / cohorts.WORKFLOW).read_text(encoding="utf-8")
-    ours, theirs = cohorts.read_workflow(workflow_text)["jobs"], yaml.safe_load(workflow_text)["jobs"]
+def _yaml_scalar(value):
+    if value is None or isinstance(value, str):
+        return value
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    return str(value)
+
+
+def _reading_by_pyyaml(text: str) -> dict:
+    jobs = {}
+    for job_id, job in (yaml.safe_load(text).get("jobs") or {}).items():
+        steps = []
+        for step in job.get("steps") or []:
+            steps.append({
+                "name": _yaml_scalar(step.get("name")), "if": _yaml_scalar(step.get("if")),
+                "LIB_COHORTS": _yaml_scalar((step.get("env") or {}).get("LIB_COHORTS")),
+                "run": _yaml_scalar(step.get("run"))})
+        jobs[job_id] = {"if": _yaml_scalar(job.get("if")),
+                        "LIB_COHORTS": _yaml_scalar((job.get("env") or {}).get("LIB_COHORTS")), "steps": steps}
+    return jobs
+
+
+def _reading_by_the_checker(text: str) -> dict:
+    jobs = {}
+    for job_id, job in cohorts.read_workflow(text)["jobs"].items():
+        steps = [{"name": step.get("name"), "if": step.get("if"),
+                  "LIB_COHORTS": (step.get("env") or {}).get("LIB_COHORTS"), "run": step.get("run")}
+                 for step in job["steps"]]
+        jobs[job_id] = {"if": job.get("if"), "LIB_COHORTS": (job.get("env") or {}).get("LIB_COHORTS"), "steps": steps}
+    return jobs
+
+
+def test_the_checkers_reading_of_this_workflow_equals_pyyamls():
+    # The macOS job has no YAML library, so the check reads the workflow itself. This compares the READING,
+    # job by job (id, condition, LIB_COHORTS, and each step's name, if, LIB_COHORTS and run text, exactly),
+    # not the filters a shared extraction derives from it, so any structural misreading fails here.
+    text = (cohorts.ROOT / cohorts.WORKFLOW).read_text(encoding="utf-8")
+    ours, theirs = _reading_by_the_checker(text), _reading_by_pyyaml(text)
     assert list(ours) == list(theirs)
-    for job_id, job in theirs.items():
-        assert ours[job_id].get("if") == job.get("if"), job_id
-        assert str((ours[job_id].get("env") or {}).get("LIB_COHORTS", "")).split() == \
-            str((job.get("env") or {}).get("LIB_COHORTS", "")).split(), job_id
-    ours_problems, theirs_problems = [], []
-    assert cohorts.pull_request_filters(cohorts.read_workflow(workflow_text), ours_problems) == \
-        cohorts.pull_request_filters(yaml.safe_load(workflow_text), theirs_problems)
-    assert ours_problems == theirs_problems == []
+    for job_id in theirs:
+        assert ours[job_id]["if"] == theirs[job_id]["if"], job_id
+        assert ours[job_id]["LIB_COHORTS"] == theirs[job_id]["LIB_COHORTS"], job_id
+        assert len(ours[job_id]["steps"]) == len(theirs[job_id]["steps"]), job_id
+        for mine, its in zip(ours[job_id]["steps"], theirs[job_id]["steps"]):
+            assert mine == its, (job_id, its["name"])
+    assert not any(job.get("unreadable") or any(step.get("unreadable") for step in job["steps"])
+                   for job in cohorts.read_workflow(text)["jobs"].values())
 
 
 def test_the_real_check_step_lists_and_checks_in_the_compile_job():
@@ -296,10 +331,61 @@ def test_refuses_a_quoted_run_with_a_trailing_comment():
 
 def test_refuses_anchors_and_aliases():
     steps = "      - name: s\n        run: &cmd cargo test --lib a::tests\n      - name: t\n        run: *cmd\n"
-    assert _refusal("", steps) == ["shard / s: the check cannot read run: an anchor, alias or merge key",
-                                   "shard / t: the check cannot read run: an anchor, alias or merge key"]
+    assert _refusal("", steps) == ["shard / s: the check cannot read run: an anchor or alias",
+                                   "shard / t: the check cannot read run: an anchor or alias"]
 
 
 def test_refuses_an_expression_in_a_filter():
     # The expression also splits into several words, so it is refused as more than one filter as well.
     assert "shard / s: the check cannot read a ${{ }} expression in a filter" in _refusal("cargo test --lib ${{ matrix.cohort }}")
+
+
+def test_refuses_an_expression_that_names_lib_cohorts():
+    # The reader's control: substitution must not hide the expression.
+    text = workflow("active other", steps=['cargo test --lib "${{ env.LIB_COHORTS }}" -- --test-threads=1'])
+    problems, _ = cohorts.check(listing("active::t", "other::t"), text, "")
+    assert "shard / step 0: the check cannot read a ${{ }} expression in a filter" in problems
+
+
+def test_refuses_a_merge_key_that_brings_in_the_full_route_condition():
+    # The reader's control: PyYAML gives this job the full-route condition; the reader must not count it.
+    text = (
+        "x-full: &full\n  if: " + FULL + "\n"
+        "jobs:\n"
+        "  shard:\n    <<: *full\n    steps:\n      - name: s\n        run: cargo test --lib a::t\n"
+    )
+    problems, _ = cohorts.check(listing("a::t"), text, "")
+    assert any(p.startswith("shard: the check cannot read") and "merge key" in p for p in problems), problems
+
+
+def test_refuses_a_job_level_anchor():
+    text = ("jobs:\n  shard:\n    if: " + FOCUSED + "\n    env: &e\n      LIB_COHORTS: a::t\n"
+            "    steps:\n      - name: s\n        run: cargo test --lib a::t\n")
+    problems, _ = cohorts.check(listing("a::t"), text, "")
+    assert any(p.startswith("shard: the check cannot read") and "anchor" in p for p in problems), problems
+
+
+def test_refuses_a_shell_variable_other_than_the_cohort_loop():
+    assert _refusal('cargo test --lib "$OTHER" -- --test-threads=1') == [
+        "shard / s: the check cannot read a shell variable in a filter ('$OTHER') other than the loop over $LIB_COHORTS"]
+
+
+def test_refuses_lib_cohorts_and_steps_in_forms_the_reader_does_not_parse():
+    flow_env = ("jobs:\n  shard:\n    if: " + FOCUSED + "\n    env: {LIB_COHORTS: a::t}\n"
+                "    steps:\n      - name: s\n        run: cargo test --lib a::t\n")
+    flow_step = ("jobs:\n  shard:\n    if: " + FOCUSED + "\n    steps:\n      - {name: s, run: cargo test --lib a::t}\n")
+    flow_steps = ("jobs:\n  shard:\n    if: " + FOCUSED + "\n    steps: [{name: s, run: cargo test --lib a::t}]\n")
+    next_line = ("jobs:\n  shard:\n    if: " + FOCUSED + "\n    steps:\n      - name: s\n        run:\n          cargo test --lib a::t\n")
+    for text, expected in ((flow_env, "shard: the check cannot read env: a value it does not read"),
+                           (flow_step, "shard / (unnamed step): the check cannot read a step it does not read"),
+                           (flow_steps, "shard: the check cannot read steps: a value it does not read"),
+                           (next_line, "shard / s: the check cannot read run: a value it does not read (empty, or on the next line)")):
+        problems, _ = cohorts.check(listing("a::t"), text, "")
+        assert any(p.startswith(expected) for p in problems), (expected, problems)
+
+
+def test_refuses_a_line_it_does_not_recognise_in_any_job():
+    text = ("jobs:\n  shard:\n    if: " + FOCUSED + '\n    "quoted-key": x\n'
+            "    steps:\n      - name: s\n        run: cargo test --lib a::t\n")
+    problems, _ = cohorts.check(listing("a::t"), text, "")
+    assert any(p.startswith("shard: the check cannot read a line it does not recognise") for p in problems), problems
