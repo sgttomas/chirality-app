@@ -4561,6 +4561,16 @@ impl WorkflowRootSession {
             .map_err(|e| format!("This App's included workflows could not be verified: {e}. Nothing can be selected or run from them (WR LS-5)"))?;
         Ok(root)
     }
+    /// An included entry's own text, read as `select_production_bundle` would
+    /// resolve it from this App's installed resources, without selecting it.
+    pub(crate) fn read_included_text(&self, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::included(self.installed_bundle(), target)
+    }
+    /// The chosen workflow's own text (the inspected one with no chat), read
+    /// from the location it was resolved from and verified there by `verify_store`.
+    pub(crate) fn read_chosen_text(&self, chat: Option<&crate::workflow_selection::Chat>, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::chosen(self.choice(chat).map(|s| (&s.selection, s.package.as_path())), target)
+    }
     pub(crate) fn retention_ready(&self)->Result<(),String>{
         if self.after_run_end.has_pending(){return Err("After-run-end observations still have pending records; wait for recording before closing project records".into());}
         for run in self.runs.values(){let run=run.try_lock().map_err(|_|"A workflow operation is pending; settle it before closing project records")?;
@@ -7986,6 +7996,7 @@ mod workflow_root_tests {
     mod real_backend_fixture_tests { use super::*; include!("workflow_real_backend_fixture_tests.rs"); }
     mod start_source_binding_tests { use super::*; include!("start_source_binding_tests.rs"); }
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
+    mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
