@@ -113,3 +113,46 @@ def test_this_repository_lists_every_web_test_file():
         (root / listing.EXCLUSIONS).read_text(encoding="utf-8"),
     )
     assert problems == []
+
+
+def test_an_environment_prefixed_line_naming_a_missing_file_fails(root):
+    text = workflow(["node --test tests/a.test.mjs tests/b.test.mjs tests/c.test.mjs",
+                     "REVIEW=1 node --test tests/review-env-missing.test.mjs"])
+    assert listing.check(root, text, "") == [
+        "app/tests/review-env-missing.test.mjs named on focused / step 1 does not exist"]
+
+
+def test_an_environment_prefixed_line_is_a_files_listing(root):
+    text = workflow(["node --test tests/a.test.mjs tests/b.test.mjs",
+                     "A=1 B='two words' env C=3 node --test tests/c.test.mjs && echo done"])
+    assert listing.check(root, text, "") == []
+
+
+def _jobs(*jobs: tuple[str, str | None, str]) -> str:
+    text = "defaults:\n  run:\n    working-directory: app\njobs:\n"
+    for name, condition, run in jobs:
+        text += f"  {name}:\n" + (f"    if: {condition}\n" if condition is not None else "")
+        text += f"    steps:\n      - name: s\n        run: {run}\n"
+    return text
+
+
+def test_a_job_with_an_unrecognised_condition_and_a_node_line_fails(root):
+    text = _jobs(("focused", FOCUSED, "node --test tests/a.test.mjs tests/b.test.mjs tests/c.test.mjs"),
+                 ("reworded", "\"github.event_name == 'pull_request'\"", "node --test tests/a.test.mjs"))
+    assert listing.check(root, text, "") == [
+        "job reworded has a node --test line and an if the check does not recognise: \"github.event_name == 'pull_request'\" "
+        f"(pull request: {listing.PULL_REQUEST_CONDITION!r}; full route: {listing.FULL_ROUTE_CONDITION!r})"]
+
+
+def test_a_job_with_an_unrecognised_condition_and_no_node_line_is_not_a_finding(root):
+    text = _jobs(("focused", FOCUSED, "node --test tests/a.test.mjs tests/b.test.mjs tests/c.test.mjs"),
+                 ("result", "always()", "test success = success"))
+    assert listing.check(root, text, "") == []
+
+
+def test_a_job_with_no_condition_counts_as_a_pull_request_job(root):
+    text = _jobs(("focused", FOCUSED, "node --test tests/a.test.mjs tests/b.test.mjs"),
+                 ("unconditioned", None, "node --test tests/c.test.mjs"))
+    assert listing.check(root, text, "") == []
+    # And it alone is enough to be a pull-request node --test line.
+    assert listing.check(root, _jobs(("unconditioned", None, "node --test tests/a.test.mjs tests/b.test.mjs tests/c.test.mjs")), "") == []
