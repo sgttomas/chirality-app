@@ -935,7 +935,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/records_index.rs`, `records_query.rs`, `records_index_tests.rs` | RS §13.8 derived SQLite query cache: disk-backed identities and positions, streamed rebuilding, authoritative line revalidation, and source-scan fallback; cache metadata is disposable |
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `records_continuity.rs`, `records_continuity_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
-| `src-tauri/src/records_store.rs`, `records_store_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
+| `src-tauri/src/records_store.rs`, `records_store_lines.rs`, `records_store_witness.rs`, `records_store_tests.rs`, `records_store_lines_tests.rs`, `records_store_witness_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records with the store's witness of it, the appender and shared reading of the store's own line files, and the host status `recordsStore` |
 | `src/RecordsStorePanel.tsx` | The records store panel: the store's placement, the project's identity with the acts that resolve a link fault, export, package import and recovery, retention, legal hold and disposal |
 | `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload and prior administration snapshot, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
 | `src-tauri/src/records_retention.rs`, `records_retention_tests.rs`, `resources/runtime_core/records-administration.entry.schema.json` | Native close/reopen, legal hold/release and recorded disposal after verified export; surviving administrative evidence, stable write admission and activity leases, truthful partial-failure recovery |
@@ -1696,7 +1696,41 @@ the originals left unchanged and no longer read. A copy carries only the
 trust of the folder it came from. A library's own act log in the project is
 library evidence, never part of the project's record set. The override
 `CHIRALITY_RECORDS_STORE` is read only by development and test builds, and a
-store inside the project or a Codex home is refused.
+store inside the project or a Codex home is refused. The store's own line
+files (`roots.jsonl`, the registry of project folders; each project's
+`imports.jsonl`; and `legacy-imports.jsonl`, the store's witness of legacy
+imports, written before any copy and kept outside every project's subtree)
+are appended so that an append never changes the meaning of earlier bytes
+(`src-tauri/src/records_store_lines.rs`): a new file is put in place whole,
+and a fragment left by an interrupted append is closed with the byte 0x1E,
+which no JSON line contains, and named by a
+`chirality.records-store.unread-line` line before the next append or at
+startup; its bytes are kept and never read. A complete line that cannot be
+read and does not end in that mark is never set aside, by the writer or by a
+naming line written for it, and a naming line in any form but the one the
+App writes names nothing: either leaves the file not read whole, so that
+reading continues, the limit is shown, nothing more is appended to it, and
+the App does not repair it. A package import writes its registry lines as one
+frozen write of its own; while that write is pending, every other registry
+write is refused with the registry unchanged, another package import's
+included, and if whether one is pending cannot be established (a journal
+that cannot be examined) the write is refused too. The witness begins with a
+store this build creates (or, in an older store, at the first startup,
+registration or import) and is backfilled once from each readable account.
+Its first line lists the store folder key of every project present when it
+began, taken from the store's project folders and its registry; if they
+cannot be listed whole the witness does not begin and the act that would
+have begun it is refused. That list records which projects predate the
+witness, and no time is compared. A witness line says an import was begun,
+not that anything was copied. The witness is written by this build and
+read by nothing that decides: its reader answers only that a legacy import
+is established, from a witness line read whole and wholly formed or from
+the project's account, or that it is not; it never concludes "no import",
+since the absence of a line is not evidence that none was begun. Its
+answer establishes the imports it lists, not an exhaustive history and not
+an authenticated origin (the store's files are unsigned). Nothing in the App
+reads it yet (the decision view does not consult it on this build), so exit
+criterion 5 is not served by it until that view does.
 
 The store is created (its folder and `store.json`) when the App starts, and
 otherwise only by the acts that write for the person: attaching a project with
@@ -1722,8 +1756,9 @@ exists and is refused, with the read, when it is missing. A control that is
 not a regular, singly linked file is refused without waiting. A store whose
 state cannot be read reads as unavailable, never as empty or as "no records
 yet": a project's import account is read whole, and nothing is concluded
-from one that is not. An account that exists and is empty, an unclosed last
-line, a blank line, bytes outside a line's one JSON object, bytes that are
+from one that is not. An account that exists and yields no import line (an
+empty file, or one holding only closed fragments and the lines that name
+them), a partial last line or a closed line not yet named, a blank line, bytes outside a line's one JSON object, bytes that are
 not UTF-8, a key given twice, a line that is not an object of the import
 format and version with an import identity, an unknown event, a member no
 form of import line has, a member the reader takes in a form it is not taken
@@ -1734,7 +1769,19 @@ records are read from, write admission, import, coverage, notes, status and
 export admission), never "no import" and never "the store holds records"; the
 fleet view does not consult the account, and a workflow record handle kept
 from an earlier read does not ask again. Only an account that is not there is
-"no import". The reader checks every member of a line that it takes, for the
+"no import". A fragment an interrupted append left, closed with the mark and
+named by the store's appender, is left out with its naming line, as the
+store's shared reading leaves it out; every other line is held to these
+rules. No evidence beside an existing account, the witness of legacy
+imports included, is taken to show that nothing was begun: the store's
+appender makes a new account whole and later appends keep the lines before
+them, so no supported path needs an existing account with no import line to
+read as "no import"; a historical or damaged account needs recovery, which
+reading it as "no import" would not give. And the witness reads a project's
+account through the same reading: an account that exists and cannot be read
+is an error there too, never "no account evidence"; and it concludes "no
+import" only from a witness read in full, every line of it wholly formed
+and naming a project. The reader checks every member of a line that it takes, for the
 form it takes it as (the format, the version, the import identity, the event,
 `storeHeld`, a started line's `at`, and the three lists), and checks no
 member of a line that it does not take (`root`, `method`, `resumes`,
@@ -1760,10 +1807,9 @@ establish. An export of such an account that verifies says that the package's
 present bytes agree with its manifests and heads, not that a preceding import
 completed or that no history was removed.
 Verification of a package says its bytes agree with its manifests and chain
-heads, not that the import behind them completed. (The store's appender
-creates the file and then writes, so a stop between the two leaves an empty
-account, which is then an error for that project until the safe-append
-change, which makes a new file whole or not at all, has landed.) The capability's read-log write makes only its own folder beneath
+heads, not that the import behind them completed. The store's appender makes
+a new file whole or not at all, so the App leaves no empty account of its
+own. The capability's read-log write makes only its own folder beneath
 parents that exist. A read writes
 only two things below an existing store: the records read log that the
 agents' records capability writes for each call (`reads/records-reads.jsonl`),

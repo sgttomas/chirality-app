@@ -9,6 +9,8 @@ use serde_json::json;
 use std::collections::BTreeMap;
 
 mod publication { include!("records_store_publication_tests.rs"); }
+mod safe_append { include!("records_store_lines_tests.rs"); }
+mod legacy_witness { include!("records_store_witness_tests.rs"); }
 
 fn folder(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
@@ -613,7 +615,7 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
     // "The store module" is these files: `records_store.rs` and every file a
     // line `#[path = "..."]` in it or in them names, test files apart. Other
     // ways a file can be brought in are not seen.
-    const STORE_MODULE: [&str; 5] = ["records_package.rs", "records_package_controls.rs", "records_package_identity.rs", "records_package_import.rs", "records_store.rs"];
+    const STORE_MODULE: [&str; 7] = ["records_package.rs", "records_package_controls.rs", "records_package_identity.rs", "records_package_import.rs", "records_store.rs", "records_store_lines.rs", "records_store_witness.rs"];
     let mut module = std::collections::BTreeSet::from(["records_store.rs".to_owned()]);
     let mut pending = vec!["records_store.rs".to_owned()];
     while let Some(file) = pending.pop() {
