@@ -194,7 +194,9 @@ fn marker_head(dir: &Path) -> Result<Option<String>, String> {
 }
 fn ensure_history_marker(dir: &Path) -> Result<(), String> {
     let first = control(dir)?.join("events/00000000000000000001.json");
-    if first.exists() {
+    // A required member that cannot be examined is an error: no marker is
+    // made or relied on, and no sync is claimed, over what was not seen.
+    if crate::records_export::present(&first)? {
         let head = util::sha256_hex(&read_plain(&first)?);
         if let Some(expected) = marker_head(dir)? {
             if expected != head {
@@ -762,11 +764,11 @@ fn event(
 }
 fn durable_history(dir: &Path) -> Result<(), String> {
     ensure_history_marker(dir)?;
-    if history_marker(dir)?.exists() {
+    if crate::records_export::present(&history_marker(dir)?)? {
         storage::sync_publication(&history_marker(dir)?)?;
     }
     let folder = control(dir)?.join("events");
-    if folder.exists() {
+    if crate::records_export::present(&folder)? {
         for e in std::fs::read_dir(folder).map_err(|e| e.to_string())? {
             storage::sync_publication(&e.map_err(|e| e.to_string())?.path())?;
         }
@@ -789,6 +791,8 @@ fn durable_history(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+#[cfg(test)]
+thread_local! { static AROUND_APPLY_HISTORY: std::cell::RefCell<Option<(Box<dyn FnOnce()>, Box<dyn FnOnce()>)>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
 thread_local! { static AFTER_DISPOSAL_ACT:std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const {std::cell::RefCell::new(None)}; static FAIL_COMPLETION_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_ADMIN_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_REMOVE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 #[cfg(test)]
@@ -819,7 +823,11 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     if current != plan.context {
         return Err("project, actor, closure, hold, export or payload changed during native confirmation; nothing changed; review again".into());
     }
+    #[cfg(test)]
+    let around = AROUND_APPLY_HISTORY.with(|h| h.borrow_mut().take()).map(|(before, after)| { before(); after });
     durable_history(&plan.dir)?;
+    #[cfg(test)]
+    if let Some(after) = around { after(); }
     let mut s = state(&plan.dir)?;
     if plan.action == "resume-disposal" && s.completed {
         if crate::records_export::present(&plan.dir)? {
@@ -904,15 +912,27 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         event(&plan.dir, &s, "disposal-completed", None, &current)?;
         Ok(())
     })();
-    // What is reported follows what is known. A completion that was published
-    // is reported as one, even when the state cannot be read again for the
-    // reply; an error with the state unreadable leaves whether the completion
-    // was recorded unknown, never "incomplete", and keeps the resync path.
+    // What is reported follows what THIS ATTEMPT established, in three
+    // phases; a state that cannot be read again never erases it, and
+    // nothing here asserts that unreadable store contents are absent.
+    //  1. Stopped before the completion's publication was attempted: this
+    //     attempt published no completion. No uncertainty marker from it.
+    //  2. Removal established and publication attempted, but it failed or
+    //     its durability is unknown: the marker, so Finish disposal syncs a
+    //     completion that is in fact recorded.
+    //  3. Publication and its required syncs succeeded: kept as success;
+    //     only the refreshed administration view may be unavailable.
     match result {
         Ok(()) => {
+            // Any marker an earlier unreadable outcome left is cleared: this
+            // completion's publication and syncs are established.
+            UNCERTAIN_COMPLETIONS
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(&plan.dir);
             let administration = match state(&plan.dir) {
                 Ok(s) => s.view(),
-                Err(read) => json!({"disposition":"unavailable","limit":format!("the completion is recorded; the retention state could not be read again for this reply: {read}")}),
+                Err(read) => json!({"disposition":"unavailable","limit":format!("this attempt published the completion and its syncs succeeded; the retention state could not be read again for this reply: {read}")}),
             };
             Ok(
             json!({"state":"disposed","projectId":current["projectId"],"administration":administration,"export":current["export"],"exportLogIntegrity":crate::records_export::stored_log_integrity(&current["export"]),"standing":match crate::records_export::integrity_statement(&crate::records_export::stored_log_integrity(&current["export"])) {
@@ -933,15 +953,16 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
                     uncertain();
                     Err(format!("records removed; completion publication durability uncertain; original disposal act retained and recording blocked; use Finish disposal to sync the existing completion evidence: {e}"))
                 }
+                Ok(_) if completion_attempted.get() => Err(format!("disposal incomplete: this attempt removed the payload, and its completion was not published; original act retained and recording blocked; use Finish disposal to publish it: {e}")),
                 Ok(_) => Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes: {e}")),
-                // No completion was attempted, so none exists (see the flag).
-                Err(read) if !completion_attempted.get() => Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes (the retention state could not be read again: {read}): {e}")),
+                // Phase 1: no completion was attempted by this call, and
+                // under its gate none can exist (see the flag).
+                Err(read) if !completion_attempted.get() => Err(format!("disposal incomplete: this attempt stopped before publishing a completion; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes (the retention state could not be read again: {read}): {e}")),
                 Err(read) => {
-                    // Marked as a completion that may be uncertain: it counts
-                    // only if a completion is in fact recorded, and then
-                    // Finish disposal syncs it rather than refusing.
+                    // Phase 2. The marker counts only if a completion is in
+                    // fact recorded; then Finish disposal syncs it.
                     uncertain();
-                    Err(format!("the disposal stopped, and whether its completion was recorded is not known: the retention state could not be read ({read}); original disposal act retained and recording blocked; use Finish disposal once the state can be read: {e}"))
+                    Err(format!("this attempt removed the payload and attempted to publish its completion; whether that completion was published, or published durably, is not known: the retention state could not be read ({read}); original disposal act retained and recording blocked; use Finish disposal once the state can be read: {e}"))
                 }
             }
         }

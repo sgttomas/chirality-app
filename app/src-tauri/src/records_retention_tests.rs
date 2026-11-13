@@ -1696,3 +1696,79 @@ fn reconciling_a_completed_disposal_refuses_when_the_payload_cannot_be_examined(
     assert_eq!(view(&dir)["disposition"], "completion durability uncertain", "the resync path is kept");
     assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
 }
+
+/// Finish disposal never says a completion's evidence was synced over
+/// history it could not examine, and never clears the uncertainty then.
+/// After a completion whose publication sync failed, the administration
+/// folder is made unsearchable while Finish disposal syncs the history, and
+/// readable again before it reads the state: the sync is refused, the
+/// marker kept, and a later Finish disposal syncs and reconciles.
+#[test]
+fn finishing_a_disposal_never_claims_a_sync_over_history_it_could_not_examine() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(true));
+    assert!(f.act("dispose", Some(&bag)).unwrap_err().contains("completion publication durability uncertain"));
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(false));
+    storage::fail_directory_for_test(None);
+    assert_eq!(view(&dir)["disposition"], "completion durability uncertain");
+    let administration = control(&dir).unwrap();
+    let (block, restore) = (administration.clone(), administration.clone());
+    let denied = std::rc::Rc::new(std::cell::Cell::new(None));
+    let seen = denied.clone();
+    let marker = history_marker(&dir).unwrap();
+    AROUND_APPLY_HISTORY.with(|h| *h.borrow_mut() = Some((
+        Box::new(move || {
+            std::fs::set_permissions(&block, std::fs::Permissions::from_mode(0o400)).unwrap();
+            seen.set(Some(std::fs::symlink_metadata(&marker).map(|_| ()).map_err(|e| e.kind())));
+        }),
+        Box::new(move || std::fs::set_permissions(&restore, std::fs::Permissions::from_mode(0o700)).unwrap()),
+    )));
+    let finished = f.act("resume-disposal", None);
+    std::fs::set_permissions(&administration, std::fs::Permissions::from_mode(0o700)).unwrap();
+    AROUND_APPLY_HISTORY.with(|h| *h.borrow_mut() = None);
+    assert_eq!(denied.get(), Some(Err(std::io::ErrorKind::PermissionDenied)), "a real permission failure while the history was synced");
+    assert!(finished.as_ref().map_or(true, |v| v["completion"] != "existing completion evidence synced; no new disposal act"), "no sync claimed: {finished:?}");
+    assert!(finished.is_err(), "{finished:?}");
+    assert_eq!(view(&dir)["disposition"], "completion durability uncertain", "the marker is kept");
+    let synced = f.act("resume-disposal", None).unwrap();
+    assert_eq!(synced["completion"], "existing completion evidence synced; no new disposal act");
+    assert_eq!(view(&dir)["disposition"], "disposed");
+}
+
+/// An uncertainty marker never outlives a later successful completion. An
+/// attempt removes the payload and attempts its completion, which is not
+/// published (the events folder made unsearchable after the last member is
+/// staged), and the state cannot be read for the report: completion is not
+/// known, and the marker set. Once readable, no completion is recorded, and
+/// Finish disposal publishes one: the view is then "disposed", with no
+/// further Finish disposal needed or admitted.
+#[test]
+fn a_retry_that_completes_a_disposal_clears_an_earlier_uncertainty() {
+    use std::os::unix::fs::PermissionsExt;
+    fn block_after(n: usize, folder: PathBuf) {
+        crate::records_export::AFTER_MEMBER_STAGE.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+            if n <= 1 { std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o400)).unwrap(); }
+            else { block_after(n - 1, folder); }
+        })));
+    }
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    let events = control(&dir).unwrap().join("events");
+    block_after(files_with_bytes(&dir).len(), events.clone());
+    let attempt = f.act("dispose", Some(&bag));
+    std::fs::set_permissions(&events, std::fs::Permissions::from_mode(0o700)).unwrap();
+    crate::records_export::AFTER_MEMBER_STAGE.with(|h| *h.borrow_mut() = None);
+    assert!(attempt.as_ref().is_err_and(|e| e.contains("is not known")), "{attempt:?}");
+    let s = state(&dir).unwrap();
+    assert!(!s.completed && s.disposition.is_some() && !dir.exists(), "removal done, no completion published");
+    assert_eq!(view(&dir)["disposition"], "disposal incomplete");
+    assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
+    assert_eq!(view(&dir)["disposition"], "disposed", "no stale uncertainty");
+    assert!(f.act("resume-disposal", None).is_err(), "no further Finish disposal is admitted");
+}
