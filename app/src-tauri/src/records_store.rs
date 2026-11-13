@@ -397,7 +397,10 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
             return still_bound(bound);
         }
     }
-    if !store.root.exists() {
+    // Only a store that is not there is "not created yet"; one that cannot
+    // be examined is reported with that cause (S1).
+    let there = crate::records_inspect::presence(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?.is_some();
+    if !there {
         if !create {
             return Err(format!("records store not created yet: {} does not exist; a read creates nothing", store.root.display()));
         }
@@ -407,8 +410,10 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
     }
 
     let root = std::fs::canonicalize(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
-    if !root.is_dir() {
-        return Err(format!("records store unavailable: {} is not a folder", root.display()));
+    match crate::records_inspect::presence(&root) {
+        Ok(Some(meta)) if meta.is_dir() => {}
+        Ok(Some(_)) | Ok(None) => return Err(format!("records store unavailable: {} is not a folder", root.display())),
+        Err(e) => return Err(format!("records store unavailable: {}: {e}", root.display())),
     }
     let identity = root.join("store.json");
     let read = |path: &Path| -> Result<Option<String>, String> {
@@ -2307,29 +2312,34 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
                 Some(reason) => notes.push(format!("{} is a §13.7 record not imported into the records store: {reason}; it is not read", file.rel)),
                 None => notes.push(format!("{} is a §13.7 record not imported into the records store; it is not read (import to include it)", file.rel)),
             },
-            Some((copy, sha, stamp)) => {
-                if drifted(&file.original, sha, stamp) {
-                    notes.push(format!("{} differs from its imported copy {copy} (sha256 {sha} at import); the records store copy governs", file.rel));
-                }
-            }
+            Some((copy, sha, stamp)) => match drifted(&file.original, sha, stamp) {
+                Ok(false) => {}
+                Ok(true) => notes.push(format!("{} differs from its imported copy {copy} (sha256 {sha} at import); the records store copy governs", file.rel)),
+                // S2: an original that cannot be examined or read is not
+                // known to differ; it is said to be not known.
+                Err(e) => notes.push(format!("{} could not be examined or read ({e}), so whether it differs from its imported copy {copy} is not known; the records store copy governs", file.rel)),
+            },
         }
     }
     notes
 }
-fn drifted(path: &Path, sha: &str, stamp: &Value) -> bool {
-    let Ok(meta) = std::fs::metadata(path) else { return true };
+/// Whether an imported original now differs from its copy: `Ok(true)` or
+/// `Ok(false)` from what was examined and read; an error when it could not
+/// be examined or read, which is never taken for a difference (S2).
+fn drifted(path: &Path, sha: &str, stamp: &Value) -> Result<bool, String> {
+    let meta = std::fs::metadata(path).map_err(|e| e.to_string())?;
     if stamp_value(&meta) == *stamp {
-        return false;
+        return Ok(false);
     }
     let now = crate::records_index::Stamp::of(&meta);
     let mut cache = DRIFT.lock().unwrap_or_else(|p| p.into_inner());
     if let Some((_, _, d)) = cache.iter().find(|(p, s, _)| p == path && *s == now) {
-        return *d;
+        return Ok(*d);
     }
-    let d = std::fs::read(path).map_or(true, |b| sha256_hex(&b) != sha);
+    let d = sha256_hex(&std::fs::read(path).map_err(|e| e.to_string())?) != sha;
     cache.retain(|(p, _, _)| p != path);
     cache.push((path.to_path_buf(), now, d));
-    d
+    Ok(d)
 }
 
 /// Host status: which store the App writes, and the project's standing in it.
