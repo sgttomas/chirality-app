@@ -171,3 +171,20 @@ fn an_unused_inherited_codex_home_never_refuses_an_unrelated_store() {
     assert!(chosen.as_ref().map_or_else(|e| !e.contains("Codex home"), |_| true), "never refused as a Codex home: {chosen:?}");
     let _ = std::fs::remove_dir_all(&data);
 }
+
+/// The bootstrap and placement agree on the local provider's home: the
+/// folder the bootstrap plans is the folder placement protects, from the one
+/// function both use (so a later change to where it is cannot leave the
+/// store's protection behind).
+#[test]
+fn the_bootstrap_plans_the_local_home_placement_protects() {
+    let data = folder("placement-agree-data-");
+    let root = folder("placement-agree-root-");
+    for home in ["account", "probe"] { std::fs::create_dir_all(root.join(home)).unwrap(); }
+    let cfg = hosting::HostConfig::new(PathBuf::from("/invented/bin/codex"), root.join("account"), root.join("probe"), root.clone());
+    let bootstrap = runtime_session::freeze_root_home_descriptors(&data, &cfg, None, [None, None, None]).unwrap();
+    let planned = bootstrap.local_plan().unwrap().native_path().to_path_buf();
+    assert_eq!(planned, runtime_session::local_provider_home(&data));
+    assert!(codex_homes_from([&cfg].into_iter(), Some(&data), |_| None).contains(&planned), "placement protects the planned folder");
+    let _ = (std::fs::remove_dir_all(&data), std::fs::remove_dir_all(&root));
+}
