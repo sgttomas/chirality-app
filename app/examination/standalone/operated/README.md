@@ -119,9 +119,10 @@ All of these hold, every time:
 
    Wait until `<evidence folder>/launcher.out` holds the outcome (about fifteen
    seconds), then confirm that neither process remains (`ps -p` on each
-   number prints no process). The launch record then says a termination was
-   passed to the App, and the outcome is "failed": that is the truthful record
-   of a launch ended from outside, not a defect.
+   number prints no process). The launch record then says the launcher
+   received the signal and attempted to pass a termination to the App, and
+   the outcome is "failed": that is the truthful record of a launch ended
+   from outside, not a defect.
 9. **What stays.** The launch folder with its record, and the evidence
    folder. Nobody opens the home.
 10. **Nothing is left running.** The operator ends what it started: the
