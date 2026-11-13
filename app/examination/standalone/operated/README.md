@@ -62,7 +62,22 @@ All of these hold, every time:
 
 ## The steps
 
-1. **Launch.** From the root of a clean checkout of main, with a new, empty
+1. **Launch.** First confirm that the login session's environment, which an
+   application started by the system's launch service is given, holds none of
+   the App's ten configuration variables (why: "A view of an application that
+   is not running", below). This prints the name of any that is set, and
+   never its value:
+
+   ```sh
+   for name in CHIRALITY_CODEX_BIN CHIRALITY_CODEX_HOME CHIRALITY_WORKSPACE CHIRALITY_KEY_HOME \
+     CHIRALITY_SHARED_CONFIG CHIRALITY_SHARED_AGENTS CHIRALITY_SHARED_SKILLS \
+     CHIRALITY_CODEX_EXPECTED_SHA256 CHIRALITY_ALLOW_UNVERIFIED CHIRALITY_DISTRIBUTION_SUCCESSOR; do
+     [ -n "$(launchctl getenv "$name")" ] && echo "$name is set"; done; true
+   ```
+
+   It prints nothing. If it prints a name, stop: no walk is made, and the lane
+   tells App Agent 0.
+   Then, from the root of a clean checkout of main, with a new, empty
    evidence folder of your own outside every checkout, start the launcher on
    the identified candidate so that it outlives the shell call that starts it
    (an agent's shell ends what it started when a call returns, so `&` is not
@@ -83,7 +98,11 @@ All of these hold, every time:
    until the App ends, then publishes the launch record in `record/` and
    prints the outcome into `<evidence folder>/launcher.out`. If it refuses,
    `launcher.out` or `launcher.err` says so within seconds and no App is
-   running: that refusal is the result. Record it and stop.
+   running: that refusal is the result. Record it and stop. If the starter
+   itself exits 3, it could not write its record and has ended the launcher
+   but cannot say that nothing the launcher started is left: run step 11 at
+   once with no process numbers, end by its number whatever it finds, and
+   stop.
 2. **Confirm.** The App is the launcher's one child process:
 
    ```sh
@@ -161,8 +180,10 @@ All of these hold, every time:
     the App's process group is gone (`pgrep -g <the App's process number>`
     prints nothing).
     The lane's agent, not the operator, then confirms the same from its own
-    shell after every run, from the process numbers in the evidence folder's
-    `*.started.json` files. If an operator ends half-way, those files are how
+    shell after every run: the launcher's and the watch's process numbers are
+    in the evidence folder's `*.started.json` files, and the App's is `pid` in
+    the launch record (or, if the launcher wrote none, the operator's record
+    of step 2). If an operator ends half-way, those files are how
     what it left is found: the lane's agent ends the launcher with a
     termination, as in step 8, ends the watch by its number, confirms all
     three are gone, and records that it did so and why. A launch left without
@@ -176,13 +197,18 @@ All of these hold, every time:
     python3 -B app/examination/standalone/operated/stray.py "<the bundle>" <bundle identifier> <the App's process number>
     ```
 
-    It ends nothing and opens nothing. It prints every running process whose
-    executable is inside the candidate's bundle other than the one the
-    launcher started, and, by name only, every entry named for the build's
-    identifier in the real Library's places the launcher compares. It exits 0
-    when it found neither. If it found a process: end it (`kill <number>`),
-    confirm it is gone, and record its number, its start time and that it ran
-    under the account's real home. Whatever it found is reported to the lane
+    It ends nothing and opens nothing. It prints every process of this user
+    whose executable is a file of the candidate's bundle, other than the one
+    the launcher started (decided by the file's identity, however its path is
+    spelled), and, by name only, every entry the launcher's own comparison
+    watches for this build in the real Library's places. It exits 0 only when
+    it could look everywhere and found neither, 1 when it found either, and 2
+    when it could not look; 2 is not "found neither", and the run is reported
+    as one whose check could not be completed. If it found a process: end it
+    (`kill <number>`), confirm it is gone, and record its number and start
+    time. The search does not tell under which home or environment that
+    process was started; record that as not known, unless something else
+    shows it. Whatever it found is reported to the lane
     at once, and by the lane to App Agent 0 within the hour. Nothing under the
     real Library is removed by any agent. This step is not optional: it and
     that report are the conditions on which the owner accepted the exposure
@@ -212,9 +238,18 @@ not closed.
   than three seconds, which narrows the interval to about a second and does
   not close it. A walk makes about seventeen calls.
 - **What a stray start can and cannot do in this scenario.**
+  - Both of the next two rest on a condition: the login session's environment
+    holds none of the App's ten configuration variables (`CHIRALITY_CODEX_BIN`
+    and the others step 1 names). Read in the App's source: when any of them
+    is set, the App takes its configuration from the environment and does not
+    look for a saved request at all, and with a usable configuration it
+    starts Codex (`lib.rs`, `explicit_environment_launch`;
+    `desktop_startup.rs`, `resolve`). On this host none was set on 13
+    November, asked by name and presence only; step 1 asks again before every
+    walk and stops if one is.
   - It opens at first-use setup: no setup has been saved for a build with a
-    new identifier (read in the App's source: with no saved request the
-    launch is "setup-required").
+    new identifier (read in the App's source: with no configuration from the
+    environment and no saved request the launch is "setup-required").
   - It starts no Codex: the App starts Codex only when it has a
     configuration, which setup required does not give (read).
   - The walk never confirms setup, and stops as soon as the watch shows the
@@ -233,8 +268,9 @@ not closed.
     November, where no Application Support folder existed afterwards). What
     else the system records for a newly seen application has not been read.
   - It reads the owner's real home as any application the owner starts
-    would. It sends nothing: no sign-in, no model request and no conversation
-    exist before setup.
+    would. It makes no sign-in, no model request and no conversation: none
+    exists before setup (read). Whether the system's web view or the
+    operating system sends anything on its behalf was not examined.
 - **How it is found and ended.** Step 11.
 - **The owner's decision, 13 November 2026, relayed by App Agent 0.** This
   exposure is accepted for the scenario "first-use setup without a project,

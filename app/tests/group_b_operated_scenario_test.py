@@ -10,6 +10,8 @@ import importlib.util
 import io
 import json
 import os
+import plistlib
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -230,7 +232,7 @@ class TheWalkItself(unittest.TestCase):
           return [r.verdict, r.stopped, r.calls.map(c => c.call).join(' ')];''')
         verdict, stopped, calls = result['out']
         self.assertEqual(verdict, 'inconclusive')
-        self.assertIn('stopped at S4: the watch file no longer shows the build running', stopped)
+        self.assertIn('stopped at S4, before its view: the watch file no longer shows the build running', stopped)
         self.assertTrue(calls.endswith('click'), calls)  # the click had been made; no view after it
         self.assertEqual(calls.count('get_app_state'), 5)
         # The build goes during the last view: the walk does not pass.
@@ -240,7 +242,7 @@ class TheWalkItself(unittest.TestCase):
         verdict, stopped, children = result['out']
         self.assertEqual(verdict, 'inconclusive')
         self.assertIn('stopped after S8', stopped)
-        self.assertTrue(children.startswith('not known'), children)
+        self.assertEqual(children, 'see why the walk stopped')
 
     def test_a_control_is_the_one_whose_words_are_exactly_the_scenarios(self):
         for words in ('Use my existing Codex settingsBackup', 'Use my existing Codex settings and delete my sign-in\u2026'):
@@ -277,15 +279,34 @@ class TheWalkItself(unittest.TestCase):
                 self.assertEqual((verdict, calls, steps), ('inconclusive', ' '.join(['get_app_state'] * made), 0), stopped)
                 self.assertIn(f'stopped at {name} view before any click: the view came back as differences', stopped)
 
-    def test_a_child_process_of_the_app_stops_the_walk_and_fails_it(self):
+    def test_a_child_process_of_the_app_stops_the_walk_and_fails_it_at_whichever_reading_shows_it(self):
         child = "[{ pid: 4242, command: '/invented/codex' }]"
-        result = harness(f'let readings = 0; const r = await walk.run({{ ...base, readWatch: () => watched({{ children: ++readings > 7 ? {child} : [] }})() }}); '
-                         'return [r.verdict, r.stopped, r.calls.length, r.steps.map(s => s.child_processes)];')
-        verdict, stopped, calls, counts = result['out']
-        self.assertEqual((verdict, calls, counts), ('fail', 5, [0, 1]), stopped)  # seen at the reading after the first click's view; nothing more is called
-        self.assertIn('the App has a child process (1), and this scenario starts none', stopped)
+        # Shown once, at the reading after the fourth step's click and wait, and gone by the next reading: no view follows.
+        result = harness(f'''let waited = false, shown = false;
+          const r = await walk.run({{ ...base, sleep: async () => {{ waited = true; }},
+            readWatch: () => watched({{ children: waited && !shown ? (shown = true, {child}) : [] }})() }});
+          return [r.verdict, r.stopped, r.calls.map(c => c.call).join(' ')];''')
+        verdict, stopped, calls = result['out']
+        self.assertEqual(verdict, 'fail', stopped)
+        self.assertIn('stopped at S4, before its view: the App has a child process (1), and this scenario starts none', stopped)
+        self.assertTrue(calls.endswith('click'), calls)
+        self.assertEqual(calls.count('get_app_state'), 5)
+        # Shown at every reading from the start: nothing is called at all.
+        result = harness(f'return await walk.run({{ ...base, readWatch: watched({{ children: {child} }}) }});')
+        self.assertEqual((result['out']['verdict'], result['out']['calls']), ('fail', []), result['out']['stopped'])
+        self.assertIn('stopped before any call', result['out']['stopped'])
+        # Shown at the reading after the first view before any click: the second is not made.
+        result = harness(f'''let readings = 0;
+          const r = await walk.run({{ ...base, readWatch: () => watched({{ children: ++readings === 4 ? {child} : [] }})() }});
+          return [r.verdict, r.stopped, r.calls.length];''')
+        self.assertEqual(result['out'][0::2], ['fail', 1], result['out'][1])
+        self.assertIn('after the first view before any click', result['out'][1])
         result = harness(f'scenario.starts_no_process = false; return (await walk.run({{ ...base, readWatch: watched({{ children: {child} }}) }})).verdict;')
         self.assertEqual(result['out'], 'pass')  # a scenario that may start a process is not stopped by one
+
+    def test_a_watch_file_without_its_list_of_children_is_not_taken_as_running(self):
+        result = harness('return await walk.run({ ...base, readWatch: watched({ children: undefined }) });')
+        self.assertEqual((result['out']['verdict'], result['out']['calls']), ('inconclusive', []))
 
     def test_it_never_clicks_a_control_whose_words_end_with_an_ellipsis_or_one_it_cannot_find_exactly_once(self):
         result = harness("scenario.steps[4] = { id: 'S5', act: 'click', control: { kind: 'button', label: 'Create settings and save for next launch\\u2026' }, expect: [{ text: 'x' }] }; "
@@ -416,7 +437,7 @@ class Detached(unittest.TestCase):
 
 
 class TheReceipt(unittest.TestCase):
-    def test_a_started_file_that_cannot_be_written_whole_ends_what_was_started(self):
+    def test_a_started_file_that_cannot_be_written_whole_ends_the_command_and_claims_no_more(self):
         spec = importlib.util.spec_from_file_location('detached_under_test', OPERATED / 'detached.py')
         detached = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(detached)
@@ -436,7 +457,9 @@ class TheReceipt(unittest.TestCase):
                 with mock.patch.object(detached.os, 'write', write), contextlib.redirect_stderr(said), contextlib.redirect_stdout(io.StringIO()):
                     code = detached.main(['detached.py', str(folder), 'stand-in', '--', '/bin/sleep', '60'])
                 report = json.loads(said.getvalue())
-                self.assertEqual((code, report['ended']), (3, True), report)
+                self.assertEqual((code, report['command_gone']), (3, True), report)
+                self.assertNotIn('ended', report)  # it does not say that everything was ended
+                self.assertIn('stray search', report['next'])
                 self.assertIn('could not be written whole', report['error'])
                 with self.assertRaises(ProcessLookupError):  # the command it started is gone
                     os.kill(report['pid'], 0)
@@ -451,48 +474,98 @@ class StrayStart(unittest.TestCase):
         spec.loader.exec_module(self.stray)
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.bundle = self.tmp / 'candidate' / 'Invented Build (development).app'
+        for path in ('Contents/MacOS/chirality-app-v4', 'Contents/Resources/codex/bin/codex'):
+            (self.bundle / path).parent.mkdir(parents=True, exist_ok=True)
+            (self.bundle / path).write_text('invented')
+        with open(self.bundle / 'Contents' / 'Info.plist', 'wb') as stream:
+            plistlib.dump({'CFBundleExecutable': 'chirality-app-v4'}, stream)
+        (self.tmp / 'elsewhere').mkdir()
+        (self.tmp / 'elsewhere' / 'chirality-app-v4').write_text('invented')
 
-    def test_a_process_inside_the_bundle_that_the_launcher_did_not_start_is_found_by_its_path(self):
-        bundle = '/invented/candidate/target/debug/bundle/macos/Invented Build (development).app'
+    def test_a_process_whose_executable_is_a_file_of_the_bundle_is_found_however_its_path_is_spelled(self):
+        bundle = str(self.bundle)
+        (self.tmp / 'alias').symlink_to(self.bundle.parent)
+        executable = bundle + '/Contents/MacOS/chirality-app-v4'
         when = 'Thu Nov 12 22:07:34 2026'
-        lines = [f'  501     1 {when} {bundle}/Contents/MacOS/invented-app',          # started by the system, not the launcher
-                 f'  502   400 {when} {bundle}/Contents/MacOS/invented-app',          # the one the launcher started
-                 f'  503   502 {when} {bundle}/Contents/Resources/codex/bin/codex',   # something inside the bundle
-                 f'  504     1 {when} /invented/elsewhere/Contents/MacOS/invented-app',  # the same name, another place
-                 f'  505     1 {when} {bundle} Copy/Contents/MacOS/invented-app',     # a path that only begins the same way
-                 'not a process line']
-        found = self.stray.processes(bundle, {502}, lines)
-        self.assertEqual([(entry['pid'], entry['parent'], entry['started']) for entry in found], [(501, 1, when), (503, 502, when)])
-        self.assertEqual(found[0]['executable'], bundle + '/Contents/MacOS/invented-app')
-        self.assertEqual([entry['pid'] for entry in self.stray.processes(bundle, set(), lines)], [501, 502, 503])
-        self.assertIsInstance(self.stray.listing(), list)  # the real listing can be made
+        paths = {501: executable,                                                        # started by the system
+                 502: executable,                                                        # the one the launcher started
+                 503: bundle + '/Contents/Resources/codex/bin/codex',                    # another file inside the bundle
+                 504: str(self.tmp / 'alias' / self.bundle.name / 'Contents/MacOS/chirality-app-v4'),  # through a link
+                 505: str(self.tmp / 'elsewhere' / 'chirality-app-v4'),                  # the same name, another file
+                 506: None,                                                              # gone since the listing
+                 507: str(self.tmp / 'removed-since')}                                   # its executable no longer exists
+        case_ignored = os.path.exists(executable.upper()) and os.path.samefile(executable, executable.upper())
+        if case_ignored:
+            paths[508] = executable.upper()                                              # another letter case
+        lines = [f'  {pid}     1 {when}' for pid in paths] + ['not a process line']
+        found = self.stray.processes(bundle, {502}, lines, path_of=paths.get)
+        expected = [501, 503, 504] + ([508] if case_ignored else [])
+        self.assertEqual([entry['pid'] for entry in found], expected)
+        self.assertEqual((found[0]['parent'], found[0]['started'], found[0]['executable']), (1, when, executable))
+        # The bundle named through the link finds the same processes.
+        again = self.stray.processes(str(self.tmp / 'alias' / self.bundle.name), {502}, lines, path_of=paths.get)
+        self.assertEqual([entry['pid'] for entry in again], expected)
 
-    def test_entries_named_for_the_build_are_found_by_name_and_nothing_is_opened(self):
+    def test_the_system_is_asked_for_an_executable_by_process_number(self):
+        own = self.stray.executable_of(os.getpid())
+        self.assertTrue(os.path.samefile(own, sys.executable), (own, sys.executable))
+        self.assertIsInstance(self.stray.listing(), list)  # the real listing of this user's processes can be made
+        gone = subprocess.Popen(['/usr/bin/true'])
+        gone.wait()
+        self.assertIsNone(self.stray.executable_of(gone.pid))
+
+    def test_entries_are_those_the_launchers_comparison_watches_and_nothing_is_opened(self):
         identifier = 'dev.chirality.app-v4.candidate.invented'
         library = self.tmp / 'Library'
         for path in (f'Application Support/{identifier}/state', f'Caches/{identifier}/x', f'Preferences/{identifier}.plist',
+                     f'Logs/{identifier.upper()}', f'WebKit/com.apple.WebKit.Networking+{identifier}/x',
                      f'WebKit/{identifier}-other/x', 'Caches/com.example.other/x', f'Mail/{identifier}/x'):
             (library / path).parent.mkdir(parents=True, exist_ok=True)
             (library / path).write_text('invented')
-        (library / 'Logs').mkdir()
-        (library / 'Logs').chmod(0o000)
-        self.addCleanup((library / 'Logs').chmod, 0o700)
-        real_open = open
         with mock.patch('builtins.open', side_effect=AssertionError('a file was opened')):
-            found, not_listed = self.stray.library_entries(identifier, library)
-        self.assertEqual(found, [str(library / 'Application Support' / identifier), str(library / 'Caches' / identifier),
-                                 str(library / 'Preferences' / (identifier + '.plist'))])
-        self.assertEqual(not_listed, [f"{library / 'Logs'} (PermissionError)"])
-        del real_open
+            found, not_listed = self.stray.library_entries(identifier, 'chirality-app-v4', library)
+        self.assertEqual(sorted(found), sorted(str(library / p) for p in (
+            f'Application Support/{identifier}', f'Caches/{identifier}', f'Logs/{identifier.upper()}',
+            f'Preferences/{identifier}.plist', f'WebKit/com.apple.WebKit.Networking+{identifier}')))
+        self.assertEqual(not_listed, [])
 
-    def test_its_exit_status_says_whether_it_found_anything(self):
+    def test_its_exit_status_says_whether_it_looked_everywhere_and_what_it_found(self):
+        identifier = 'dev.chirality.app-v4.candidate.invented'
+        library = self.tmp / 'Library'
+        (library / 'Logs').mkdir(parents=True)
+        argv = ['stray.py', str(self.bundle), identifier]
+        with mock.patch.object(self.stray, 'real_library', return_value=library), \
+                mock.patch.object(self.stray, 'listing', return_value=[]), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(self.stray.main(argv), 0)
+            (library / 'Logs').chmod(0o000)
+            self.addCleanup((library / 'Logs').chmod, 0o700)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(self.stray.main(argv), 2)  # a place that could not be listed is not "found neither"
+            self.assertEqual(json.loads(out.getvalue())['places_that_could_not_be_listed'], [f"{library / 'Logs'} (PermissionError)"])
+            (library / 'Caches').mkdir()
+            (library / 'Caches' / identifier).mkdir()
+            self.assertEqual(self.stray.main(argv), 1)  # something found is said, whatever else could not be listed
+        with contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(self.stray.main(['stray.py', str(self.tmp / 'no-such.app'), identifier]), 2)  # no bundle to look for
         tool = [sys.executable, '-B', str(OPERATED / 'stray.py')]
-        nothing = subprocess.run(tool + ['/invented/no-such-bundle.app', 'dev.chirality.app-v4.candidate.no-such-build'], capture_output=True, text=True)
-        self.assertEqual(nothing.returncode, 0, nothing.stderr)
-        self.assertEqual(json.loads(nothing.stdout)['processes_not_started_by_the_launcher'], [])
         for arguments in ([], ['relative.app', 'x'], ['/invented/folder', 'x'], ['/invented/x.app', 'id', 'not-a-number']):
             with self.subTest(arguments=arguments):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
+
+
+class TheMethod(unittest.TestCase):
+    def test_step_one_asks_for_exactly_the_variables_by_which_the_app_takes_its_configuration_from_the_environment(self):
+        source = (APP / 'src-tauri/src/lib.rs').read_text()
+        keys = source[source.index('fn explicit_environment_launch'):]
+        keys = keys[keys.index('const KEYS'):keys.index('];')]
+        in_app = set(re.findall(r'"(CHIRALITY_[A-Z0-9_]+)"', keys))
+        method = (OPERATED / 'README.md').read_text()
+        loop = method[method.index('for name in CHIRALITY_'):method.index('; do\n')]
+        asked = set(re.findall(r'CHIRALITY_[A-Z0-9_]+', loop))
+        self.assertTrue(in_app)
+        self.assertEqual(asked, in_app)
 
 
 class TheScenarioFile(unittest.TestCase):

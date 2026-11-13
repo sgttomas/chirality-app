@@ -14,8 +14,14 @@ reads it, nothing is expanded, and nothing else is started. It passes its own en
 puts no replacement in its place. It
 does not wait for the command, watch it or end it: ending it later is a signal sent to the recorded process
 number, and whoever started it is answerable for that. The started file is the record by which something left
-running is found. So nothing is left running without one: if the started file cannot be written whole after the
-command has started, the command's session is ended, that is said, and the exit status is 3.
+running is found.
+
+If the started file cannot be written whole after the command has started, it sends a termination to the command's
+process group, and a kill five seconds later if the command itself has not gone; it says whether the command itself
+is gone, and the exit status is 3. That is all it can say. A process the command started that left its process
+group is not reached, and the App the launcher starts runs in a session of its own; one that outlived the command
+is not seen here either. So after exit 3 the operator runs the stray search (README.md, step 11) at once, with no
+process numbers, and ends by its number whatever it finds.
 """
 import json
 import os
@@ -50,10 +56,11 @@ def main(argv):
                'out': paths[0], 'err': paths[1]}
     try:
         publish(handles[2], (json.dumps(started, indent=1) + '\n').encode())
-    except OSError as error:  # a process with no usable record of it is not left running
-        ended = end_session(process)
+    except OSError as error:  # the command is ended; what it started outside its group is for the stray search
+        gone = end_command(process)
         print(json.dumps({'error': f'{type(error).__name__}: the started file could not be written whole',
-                          'pid': process.pid, 'ended': ended}), file=sys.stderr)
+                          'pid': process.pid, 'command_gone': gone,
+                          'next': 'run the stray search (README.md, step 11) now, with no process numbers'}), file=sys.stderr)
         return 3
     print(json.dumps(started))
     return 0
@@ -73,8 +80,9 @@ def publish(handle, data):
         os.close(handle)
 
 
-def end_session(process):
-    """End the session the command leads; True when the command is known to have gone."""
+def end_command(process):
+    """Signal the command's process group; True when the command itself is known to have gone. Says nothing of any
+    other process."""
     for sent in (signal.SIGTERM, signal.SIGKILL):
         try:
             os.killpg(process.pid, sent)

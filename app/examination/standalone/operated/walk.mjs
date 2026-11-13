@@ -183,8 +183,20 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   const watched = () => {
     const seen = readWatch ? readWatch() : null;
     const running = !!seen && seen.pid === pid && seen.running === true && typeof seen.executable === 'string'
-      && seen.executable.startsWith(bundle + '/Contents/MacOS/') && Math.abs(Date.now() - seen.at_ms) <= 3000;
-    return { running, children: running ? (seen.children ?? []) : [] };
+      && seen.executable.startsWith(bundle + '/Contents/MacOS/') && Math.abs(Date.now() - seen.at_ms) <= 3000
+      && Array.isArray(seen.children);
+    return { running, children: running ? seen.children : [] };
+  };
+  // Every reading of the watch file is made through this one gate, and every one of them decides: the build gone
+  // stops the walk, and a child process, in a scenario that starts none, stops it and fails it. A reading is never
+  // taken and then set aside. Returns the finished report, or null to go on.
+  const gate = where => {
+    const seen = watched();
+    if (!seen.running) return finish('inconclusive', `stopped ${where}: the watch file no longer shows the build running`);
+    if (scenario.starts_no_process && seen.children.length) {
+      return finish('fail', `stopped ${where}: the App has a child process (${seen.children.length}), and this scenario starts none`);
+    }
+    return null;
   };
   sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
   now ??= () => new Date().toISOString();
@@ -221,6 +233,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   if (!Number.isInteger(pid) || pid <= 1 || !watched().running) {
     return finish('inconclusive', 'refused before any call: the watch file does not show the build running, and a view of an application that is not running would start it outside the launcher');
   }
+  const atStart = gate('before any call');
+  if (atStart) return atStart;
   let elements = [];
   // A view is whole, or the walk stops there. One that comes back as differences is kept, with the view rebuilt from
   // it, for reading only: no check is credited from a rebuilt view and no click is made from one.
@@ -239,13 +253,13 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     elements = parseView(text);
     return { whole: true, text };
   };
-  const gone = id => `stopped at ${id}: the watch file no longer shows the build running`;
   const asDifferences = id => `stopped at ${id}: the view came back as differences although the whole window was asked for; nothing is checked or clicked from a rebuilt view`;
   // Before any click: two whole views, one after the other. The first view of an application was seen to be whole
   // without asking; only a second one shows that asking for the whole window is honoured.
   report.whole_views_before_any_click = [];
   for (const ordinal of ['first', 'second']) {
-    if (!watched().running) return finish('inconclusive', gone(`the ${ordinal} view before any click`));
+    const beforeView = gate(`before the ${ordinal} view before any click`);
+    if (beforeView) return beforeView;
     let seen;
     try {
       seen = await view();
@@ -256,15 +270,14 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`));
     const stray = notThePage(elements, scenario);
     if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
+    const afterView = gate(`after the ${ordinal} view before any click`);
+    if (afterView) return afterView;
   }
   for (const step of scenario.steps) {
     const entry = { id: step.id, at: now(), act: step.act, says: step.says, checks: [] };
     report.steps.push(entry);
-    const before = watched();
-    if (!before.running) return finish('inconclusive', gone(step.id));
-    if (scenario.starts_no_process && before.children.length) {
-      return finish('fail', `stopped at ${step.id}: the App has a child process (${before.children.length}), and this scenario starts none`);
-    }
+    const before = gate(`at ${step.id}`);
+    if (before) return before;
     if (step.act === 'click') {
       if (endsWithEllipsis(step.control.label)) return finish('inconclusive', `stopped at ${step.id}: a control whose words end with an ellipsis is never clicked`);
       const found = select(elements, step.control);
@@ -277,7 +290,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
       await sky.click({ app, element_index: found[0].index });
       if (step.wait_ms) await sleep(step.wait_ms);
-      if (!watched().running) return finish('inconclusive', gone(step.id));  // read again immediately before the view
+      const beforeView = gate(`at ${step.id}, before its view`);  // read again immediately before the view
+      if (beforeView) return beforeView;
     } else if (step.act !== 'view') {
       return finish('inconclusive', `stopped at ${step.id}: an act this script does not perform`);
     }
@@ -296,12 +310,9 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     const stray = notThePage(elements, scenario);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
     entry.checks = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values));
-    const after = watched();
-    entry.child_processes = after.running ? after.children.length : 'not known: the watch file does not show the build running';
-    if (!after.running) return finish('inconclusive', `stopped after ${step.id}: the watch file no longer shows the build running`);
-    if (scenario.starts_no_process && after.children.length) {
-      return finish('fail', `stopped after ${step.id}: the App has a child process (${after.children.length}), and this scenario starts none`);
-    }
+    const after = gate(`after ${step.id}`);
+    entry.child_processes = after ? 'see why the walk stopped' : 0;
+    if (after) return after;
   }
   return finish(report.steps.every(step => step.checks.every(check => check.pass)) ? 'pass' : 'fail');
 }
