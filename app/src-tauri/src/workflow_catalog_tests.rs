@@ -255,6 +255,38 @@ mod package_root {
         }
     }
 
+    // Within one capture, after the open: the listing and every entry come from the opened folder itself.
+    // The path is swapped under the reader (the folder moved aside and another put in its place, then a link
+    // put there) and what is read is still the folder that was opened.
+    #[test]
+    fn after_the_open_a_capture_reads_the_opened_folder_whatever_the_path_then_names() {
+        let s = Scratch::new();
+        let package = s.package("library/package");
+        std::fs::create_dir(package.join("notes")).unwrap();
+        std::fs::write(package.join("notes/first.md"), b"first").unwrap();
+        let opened = workflow_workspace::open_package_root(&package).unwrap();
+        // Another folder now stands at the path, with other files.
+        std::fs::rename(s.0.join("library"), s.0.join("moved")).unwrap();
+        let other = s.package("library/package");
+        std::fs::write(other.join("WORKFLOW.md"), b"other text").unwrap();
+        std::fs::write(other.join("other-only.md"), b"other").unwrap();
+        let read = |dir: &std::fs::File| {
+            let (mut files, mut budget) = (std::collections::BTreeMap::new(), (0usize, 0u64));
+            workflow_workspace::walk_fd(dir, &package, "", &mut files, &mut budget).map(|()| files)
+        };
+        let files = read(&opened).unwrap();
+        assert_eq!(files.keys().map(String::as_str).collect::<Vec<_>>(), ["WORKFLOW.md", "notes/first.md"], "the opened folder's own listing, not the path's");
+        assert!(files["WORKFLOW.md"].starts_with(b"---\nname: invented"), "the opened folder's own bytes");
+        // The folder above becomes a link to yet another place: the same.
+        std::fs::remove_dir_all(s.0.join("library")).unwrap();
+        symlink(s.0.join("moved"), s.0.join("library")).unwrap();
+        assert_eq!(read(&opened).unwrap(), files);
+        // And with nothing at the path at all.
+        std::fs::remove_file(s.0.join("library")).unwrap();
+        assert_eq!(read(&opened).unwrap(), files);
+        assert_eq!(workflow_workspace::names_in(&opened).unwrap().len(), 2, "listed through the descriptor, twice over");
+    }
+
     #[test]
     fn what_a_plain_open_reaches_without_a_link_is_still_read() {
         let s = Scratch::new();
@@ -268,6 +300,23 @@ mod package_root {
             let package = s.package(&format!("{name}/package"));
             assert_eq!(Snapshot::capture(&package).unwrap().files().len(), 1, "{name:?}");
         }
+    }
+
+    #[test]
+    fn an_absent_folder_and_a_non_regular_entry_are_said_as_before() {
+        let s = Scratch::new();
+        let absent = Snapshot::capture(&s.0.join("library/absent")).unwrap_err();
+        assert!(!absent.contains(LINK) && !absent.starts_with("non-regular package root"), "an absent folder is not called a link or a non-regular root: {absent}");
+        let package = s.package("library/package");
+        let fifo = std::ffi::CString::new(package.join("pipe").to_str().unwrap()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(fifo.as_ptr(), 0o600) }, 0);
+        assert!(Snapshot::capture(&package).unwrap_err().starts_with("HY-3: non-regular entry"), "a FIFO is refused without blocking");
+        std::fs::remove_file(package.join("pipe")).unwrap();
+        symlink(package.join("WORKFLOW.md"), package.join("linked.md")).unwrap();
+        assert!(Snapshot::capture(&package).unwrap_err().starts_with("HY-3: non-regular entry"), "a link inside the package is refused");
+        let file = s.0.join("library/a-file");
+        std::fs::write(&file, b"not a folder").unwrap();
+        assert!(Snapshot::capture(&file).unwrap_err().starts_with("non-regular package root"), "a file where a package folder should be");
     }
 
     #[test]

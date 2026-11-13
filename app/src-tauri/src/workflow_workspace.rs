@@ -173,12 +173,18 @@ fn link_on_path(root: &Path) -> Option<std::path::PathBuf> {
 fn open_package_root(root: &Path) -> Result<fs::File, String> {
     use std::os::unix::fs::OpenOptionsExt;
     fs::OpenOptions::new().read(true).custom_flags(PACKAGE_ROOT_FLAGS).open(root).map_err(|e| {
-        // With the whole-path flag every link the lookup would follow is ELOOP, as a loop of links is.
+        // The system answers ELOOP for the whole path, for any link the lookup would follow (a loop
+        // of links included), and does not say at which component. A folder is named as the link
+        // only when the separate look finds one; otherwise only the path that was attempted is named.
         if e.raw_os_error() == Some(libc::ELOOP) {
             return match link_on_path(root) {
                 Some(link) => format!("non-regular package root: {LINK_IN_PACKAGE_PATH} ({} is a link); a package is read only through a path with no link in it", link.display()),
-                None => format!("non-regular package root: {LINK_IN_PACKAGE_PATH}; a package is read only through a path with no link in it"),
+                None => format!("non-regular package root: {LINK_IN_PACKAGE_PATH} (the path attempted was {}); a package is read only through a path with no link in it", root.display()),
             };
+        }
+        // An absent folder keeps the system's own words, as before.
+        if e.kind() == std::io::ErrorKind::NotFound {
+            return e.to_string();
         }
         format!("non-regular package root: {e}")
     })
@@ -186,8 +192,7 @@ fn open_package_root(root: &Path) -> Result<fs::File, String> {
 
 impl Snapshot {
     pub fn capture(root: &Path) -> Result<Self, String> {
-        #[cfg(unix)]
-        fixed_package_path(root)?;
+        #[cfg(not(unix))]
         if fs::symlink_metadata(root)
             .map_err(|e| e.to_string())?
             .file_type()
@@ -198,7 +203,9 @@ impl Snapshot {
         let mut files = BTreeMap::new();
         #[cfg(unix)]
         {
-            // The opened root descriptor, not the path, is the authority below.
+            // The opened root descriptor is the authority from here on: its kind, its listing and
+            // every entry beneath it are read through it. The path is kept for messages only.
+            fixed_package_path(root)?;
             let dir = open_package_root(root)?;
             let mut budget = (0usize, 0u64);
             walk_fd(&dir, root, "", &mut files, &mut budget)?;
@@ -325,11 +332,6 @@ impl Snapshot {
     }
 }
 const HY5_EXCEEDED: &str = "HY-5: package exceeds review bound (1000 files / 16 MiB)";
-#[cfg(unix)]
-fn same_inode(a: &fs::Metadata, b: &fs::Metadata) -> bool {
-    use std::os::unix::fs::MetadataExt;
-    a.dev() == b.dev() && a.ino() == b.ino()
-}
 /// `openat` relative to an opened directory: the descriptor, not a path that
 /// may have been swapped since, decides which entry is opened.
 #[cfg(unix)]
@@ -346,12 +348,74 @@ fn open_at(dir: &fs::File, name: &std::ffi::OsStr, flags: i32) -> std::io::Resul
     // SAFETY: `fd` is a fresh descriptor owned by nothing else.
     Ok(unsafe { fs::File::from_raw_fd(fd) })
 }
+/// The names in an opened directory, read through the descriptor itself: a
+/// directory stream over a duplicate of it. No path is looked up, so nothing
+/// that happens to the folders above after the open can change what is listed.
+#[cfg(unix)]
+fn names_in(dir: &fs::File) -> std::io::Result<Vec<std::ffi::OsString>> {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::ffi::OsStringExt;
+    // SAFETY: a duplicate of an open descriptor; on success the stream owns it and closes it.
+    let duplicate = unsafe { libc::fcntl(dir.as_raw_fd(), libc::F_DUPFD_CLOEXEC, 0) };
+    if duplicate < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    // SAFETY: `duplicate` is a fresh descriptor of a directory.
+    let stream = unsafe { libc::fdopendir(duplicate) };
+    if stream.is_null() {
+        let error = std::io::Error::last_os_error();
+        // SAFETY: the stream was not made, so the duplicate is still ours to close.
+        unsafe { libc::close(duplicate) };
+        return Err(error);
+    }
+    let mut names = Vec::new();
+    // SAFETY: `stream` is an open directory stream, used only here and closed below; `entry` is
+    // storage for one entry and `next` is set by the system to it or to null at the end.
+    let read = unsafe {
+        libc::rewinddir(stream); // the duplicate shares the descriptor's position
+        let mut entry: libc::dirent = std::mem::zeroed();
+        let mut next: *mut libc::dirent = std::ptr::null_mut();
+        loop {
+            let code = libc::readdir_r(stream, &mut entry, &mut next);
+            if code != 0 {
+                break Err(std::io::Error::from_raw_os_error(code));
+            }
+            if next.is_null() {
+                break Ok(());
+            }
+            let name = std::ffi::CStr::from_ptr(entry.d_name.as_ptr()).to_bytes();
+            if name != b"." && name != b".." {
+                names.push(std::ffi::OsString::from_vec(name.to_vec()));
+            }
+        }
+    };
+    // SAFETY: closes the stream and the duplicate it owns.
+    unsafe { libc::closedir(stream) };
+    read.map(|()| names)
+}
+/// Whether the entry `name` of an opened directory is neither a folder nor a
+/// regular file, asked of the descriptor (no link followed, no path looked up).
+#[cfg(unix)]
+fn non_regular_at(dir: &fs::File, name: &std::ffi::OsStr) -> bool {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::ffi::OsStrExt;
+    let Ok(name) = std::ffi::CString::new(name.as_bytes()) else { return false };
+    // SAFETY: `dir` is an open descriptor, `name` a NUL-terminated string, `stat` storage for the result.
+    unsafe {
+        let mut stat: libc::stat = std::mem::zeroed();
+        if libc::fstatat(dir.as_raw_fd(), name.as_ptr(), &mut stat, libc::AT_SYMLINK_NOFOLLOW) != 0 {
+            return false;
+        }
+        let kind = stat.st_mode & libc::S_IFMT;
+        kind != libc::S_IFDIR && kind != libc::S_IFREG
+    }
+}
 /// Package walk over opened descriptors (WR RV-2, HY-3, HY-5). Every entry is
 /// opened no-follow and non-blocking relative to its opened parent and checked
 /// with fstat: a link is refused (HY-3) and never followed, a FIFO or device is
 /// refused without blocking, and bytes are read against a running budget, so a
-/// growing file cannot exceed the bound. Names come from listing the parent's
-/// path, accepted only while that path still names the opened directory.
+/// growing file cannot exceed the bound. Names come from listing the opened
+/// directory itself. `path` is for messages only: nothing here looks it up.
 #[cfg(unix)]
 fn walk_fd(
     dir: &fs::File,
@@ -365,21 +429,7 @@ fn walk_fd(
     if !opened.is_dir() {
         return Err(format!("HY-3: non-regular entry {}", path.display()));
     }
-    let still_here = || {
-        fs::symlink_metadata(path)
-            .is_ok_and(|m| m.file_type().is_dir() && same_inode(&m, &opened))
-    };
-    if !still_here() {
-        return Err(format!("package folder changed while read: {}", path.display()));
-    }
-    let mut names = fs::read_dir(path)
-        .map_err(|e| format!("{}: {e}", path.display()))?
-        .map(|e| e.map(|e| e.file_name()))
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("{}: {e}", path.display()))?;
-    if !still_here() {
-        return Err(format!("package folder changed while read: {}", path.display()));
-    }
+    let mut names = names_in(dir).map_err(|e| format!("{}: {e}", path.display()))?;
     names.sort();
     for name in names {
         let shown = path.join(&name);
@@ -391,9 +441,7 @@ fn walk_fd(
         let entry = match open_at(dir, &name, flags) {
             Ok(entry) => entry,
             Err(e) => {
-                let non_regular = e.raw_os_error() == Some(libc::ELOOP)
-                    || fs::symlink_metadata(&shown)
-                        .is_ok_and(|m| !m.file_type().is_dir() && !m.file_type().is_file());
+                let non_regular = e.raw_os_error() == Some(libc::ELOOP) || non_regular_at(dir, &name);
                 return Err(if non_regular {
                     format!("HY-3: non-regular entry {}", shown.display())
                 } else {
