@@ -89,6 +89,9 @@ pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
+#[cfg(test)]
+#[path = "placement_homes_tests.rs"]
+mod placement_homes_tests;
 #[cfg(test)] mod pinned_codex_observations;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_assurance;
@@ -996,9 +999,26 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
 }
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
+/// The Codex homes the records store must stay out of, each where it is in
+/// fact used. A configured home is resolved where its child resolves it: the
+/// supplier is started in `cfg.cwd` with `CODEX_HOME` as given, and the label
+/// probe in its own folder. A raw environment value, which several consumers
+/// read, is compared under every resolution one of them might use: the
+/// App's own working folder (left relative here; `placement_problems` makes
+/// it absolute there) and each configured working folder. An absolute home
+/// is unchanged by any of this. Only refusals are added.
 fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
-    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [cfg.codex_home.clone(), cfg.probe_home.clone()]).collect();
-    homes.extend(["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
+    codex_homes_from(configs, |key| std::env::var_os(key))
+}
+fn codex_homes_from<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    let configs: Vec<&hosting::HostConfig> = configs.collect();
+    let mut homes: Vec<PathBuf> = configs.iter().flat_map(|cfg| [cfg.cwd.join(&cfg.codex_home), cfg.probe_home.join(&cfg.probe_home)]).collect();
+    for raw in ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| input(key).filter(|v| !v.is_empty()).map(PathBuf::from)) {
+        if raw.is_relative() {
+            homes.extend(configs.iter().map(|cfg| cfg.cwd.join(&raw)));
+        }
+        homes.push(raw);
+    }
     homes.sort();
     homes.dedup();
     homes

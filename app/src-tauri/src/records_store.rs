@@ -308,7 +308,21 @@ pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[Pa
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
-        let outer = resolve_lexically(outer);
+        // Never compared while still relative: a relative folder would never
+        // overlap an absolute store and so would pass silently. Made absolute
+        // against the App's own working folder (the caller has already added
+        // the resolution its child uses); a folder that cannot be made
+        // absolute is a refusal, never "no overlap".
+        let outer = match resolve_lexically(outer) {
+            relative if relative.is_relative() => match std::path::absolute(&relative) {
+                Ok(absolute) => resolve_lexically(&absolute),
+                Err(e) => {
+                    problems.push(format!("{what} {} could not be made absolute ({e}), so whether {} overlaps it is not known", relative.display(), root.display()));
+                    return;
+                }
+            },
+            resolved_outer => resolved_outer,
+        };
         if resolved.starts_with(&outer) || outer.starts_with(&resolved) {
             problems.push(format!("{} overlaps {what} {}", root.display(), outer.display()));
         }
