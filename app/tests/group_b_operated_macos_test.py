@@ -43,8 +43,15 @@ class StraySearchOnMacOS(unittest.TestCase):
         child = self.started()
         asked = stray.executable_of(child.pid)
         self.assertTrue(os.path.samefile(asked, self.STAND_IN), (asked, self.STAND_IN))
+        # This process too, against a second answer from the system and not the interpreter's own: ps reports the
+        # path a process was executed by. Compared only when that path is absolute; a relative one cannot be
+        # resolved from here, and then the answer is required only to be a file.
         own = stray.executable_of(os.getpid())
         self.assertTrue(os.path.isfile(own), own)
+        said = subprocess.run(['/bin/ps', '-p', str(os.getpid()), '-o', 'comm='], capture_output=True, text=True,
+                              env={'PATH': '/bin:/usr/bin'}).stdout.strip()
+        if os.path.isabs(said):
+            self.assertTrue(os.path.samefile(own, said), (own, said))
         gone = subprocess.Popen(['/usr/bin/true'])
         gone.wait()
         self.assertIsNone(stray.executable_of(gone.pid))
@@ -54,6 +61,7 @@ class StraySearchOnMacOS(unittest.TestCase):
         child = self.started()
         lines = [line.split() for line in stray.listing()]
         self.assertIn(str(child.pid), [parts[0] for parts in lines if parts])
+        self.assertIn(str(os.getpid()), [parts[0] for parts in lines if parts])
         found, _ = stray.processes(self.STAND_IN)
         self.assertIn(child.pid, [entry['pid'] for entry in found])
         self.assertNotIn(os.getpid(), [entry['pid'] for entry in found])
