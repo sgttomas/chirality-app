@@ -316,6 +316,15 @@ fn every_reading_of_send_unknown_and_of_old_rows_says_neither_sent_nor_interrupt
         for (held, live, current) in [(vec![], vec![(record.clone(), "kept".to_owned())], session.as_str()), (vec![entry.clone()], vec![], session.as_str()), (vec![entry.clone()], vec![], "later-session")] {
             let view = outcomes(&held, &live, current);
             let row = &view["records"][0];
+            // In a later session with no start record for session-a, unit 1's
+            // source rule reads the row as another session's whose end is not
+            // established: that sentence comes first, and a send-unknown row
+            // keeps its own reading after it.
+            let expected = if current != session && record["state"] == "send-unknown" {
+                format!("Recorded by another App session whose end is not established. No final status is recorded for this turn, and no label is derived. {expected}")
+            } else {
+                expected.clone()
+            };
             assert_eq!(row["reading"], expected.as_str(), "{row}");
             assert!(row["label"].is_null() && row["labelDerived"] == false && row["codexReported"].is_null(), "{row}");
             let shown = format!("{} {} {}", row["reading"], row["label"], row["state"]);

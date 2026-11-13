@@ -408,6 +408,12 @@ fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
         return (Some(label.to_owned()), reading.to_owned(), false);
     }
     let state = record["state"].as_str().unwrap_or_default();
+    // A send-unknown request of such a session keeps its own reading after
+    // the source sentence: whether its interrupt reached Codex is not known
+    // whatever became of that session.
+    if source == Source::OtherEndNotEstablished && state == "send-unknown" {
+        return (None, format!("{SOURCE_END_NOT_ESTABLISHED} {SEND_UNKNOWN_READING}"), false);
+    }
     if source == Source::OtherEndNotEstablished && state != "not-sent" {
         return (None, SOURCE_END_NOT_ESTABLISHED.to_owned(), false);
     }
