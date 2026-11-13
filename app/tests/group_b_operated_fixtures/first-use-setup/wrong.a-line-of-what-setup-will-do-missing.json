@@ -1,0 +1,16 @@
+{
+ "what_is_wrong": "What setup will do does not say that a new sign-in folder is created.",
+ "replace": [
+  {
+   "view": 3,
+   "from": "text Create a new sign-in folder for this App, linked to those settings",
+   "to": "text Use the sign-in folder you already have"
+  }
+ ],
+ "fails": {
+  "S4": {
+   "text": "Create a new sign-in folder for this App, linked to those settings"
+  }
+ },
+ "outcome_not_shown": "SETUP CHOICES REVIEWED"
+}
