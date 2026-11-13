@@ -217,11 +217,11 @@ def sha256_file(path):
     return digest.hexdigest()
 
 
-def kind_of(path, dir_fd=None):
+def kind_of(path):
     """'absent', 'dir', 'link' or 'other'. Anything else that stops the path being examined is raised, never taken
     for absence."""
     try:
-        info = os.stat(path, dir_fd=dir_fd, follow_symlinks=False)
+        info = os.stat(path, follow_symlinks=False)
     except FileNotFoundError:
         return 'absent'
     return 'link' if stat.S_ISLNK(info.st_mode) else 'dir' if stat.S_ISDIR(info.st_mode) else 'other'

@@ -9,6 +9,7 @@ touched; nothing here launches a real build.
 """
 import builtins
 import contextlib
+import errno
 import hashlib
 import importlib.util
 import io
@@ -386,14 +387,17 @@ class KilledLauncher(Fixture):  # STATEMENT 2: a killed launcher leaves no recor
                                            str(self.cache), str(self.root), str(sentinel),
                                            'launch', '--candidate', str(candidate)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                deadline = time.monotonic() + 20
-                while not (sentinel.exists() and sentinel.read_text().strip()) and time.monotonic() < deadline:
-                    time.sleep(0.05)
-                self.assertTrue(sentinel.exists())
-                helper.kill()
-                helper.wait()
-                if stage == 'running':
-                    self.groups.append(int(sentinel.read_text().strip()))
+                try:  # an interrupted test skips unittest's cleanups, so the helper is ended here whatever happens
+                    deadline = time.monotonic() + 20
+                    while not (sentinel.exists() and sentinel.read_text().strip()) and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                    self.assertTrue(sentinel.exists())
+                finally:
+                    helper.kill()
+                    helper.wait()
+                    if stage == 'running':
+                        with contextlib.suppress(OSError, ValueError, ProcessLookupError, PermissionError):
+                            os.killpg(int(sentinel.read_text().strip()), signal.SIGKILL)
                 [folder] = sorted(self.folders() - before)
                 for name in os.listdir(folder / launch.RECORD_FOLDER):
                     self.assertTrue(name.startswith('.' + launch.RECORD + '.partial-'), name)
@@ -402,24 +406,28 @@ class KilledLauncher(Fixture):  # STATEMENT 2: a killed launcher leaves no recor
 @contextlib.contextmanager
 def touches(names=(), dirs=()):
     """Instrumentation, lexical and resolved: every open, listing or stat whose path or last component is one of
-    `names`, or that lies under one of `dirs` (exclusive write-only creation is not counted)."""
+    `names`, or that is one of `dirs` or lies under one (exclusive write-only creation is not counted)."""
     dirs = [os.path.realpath(d) for d in dirs]
     touched = []
 
     def hit(text, raw):
         if text is None:
             return False
-        return os.path.basename(raw) in names or raw in names or any(text.startswith(d + os.sep) for d in dirs)
+        return (os.path.basename(raw) in names or raw in names
+                or any(text == d or text.startswith(d + os.sep) for d in dirs))
 
     def resolve(path, dir_fd):
         if isinstance(path, int):
-            return fd_path(path), ''
+            try:
+                return fd_path(path), ''
+            except OSError:  # a descriptor with no path (a pipe): not a touch of any watched place
+                return None, ''
         raw = os.fsdecode(path)
         if dir_fd is not None and not os.path.isabs(raw):
             return os.path.normpath(os.path.join(fd_path(dir_fd), raw)), raw
         return os.path.abspath(raw), raw
 
-    real = {name: getattr(os, name) for name in ('listdir', 'scandir', 'stat', 'lstat', 'open')}
+    real = {name: getattr(os, name) for name in ('listdir', 'scandir', 'stat', 'lstat', 'fstat', 'readlink', 'open')}
 
     def wrap(name):
         def spied(*args, **kwargs):
@@ -495,6 +503,29 @@ class NewHomeOnly(Fixture):  # the home is new: exclusive creates under the root
                 self.assertEqual(identities(self.root), before)
                 self.assertFalse((self.root / spelling / launch.HOME / 'received-env.txt').exists())
                 shutil.rmtree(self.root / spelling)
+
+
+    def test_each_create_inside_the_launch_folder_is_exclusive_and_its_failure_launches_nothing(self):
+        real_mkdir = os.mkdir
+        for child in (launch.HOME, launch.RECORD_FOLDER):
+            for name, failure in (('something already there', None), ('no space', OSError(errno.ENOSPC, 'invented'))):
+                with self.subTest(child=child, case=name):
+                    def mkdir(path, mode=0o777, *, dir_fd=None):
+                        if path == child and dir_fd is not None:
+                            if failure is not None:
+                                raise failure
+                            real_mkdir(path, 0o700, dir_fd=dir_fd)  # something else made it first
+                        return real_mkdir(path, mode, dir_fd=dir_fd)
+                    before = self.folders()
+                    candidate = self.candidate(where=f'create-{child}-{failure is None}')
+                    with mock.patch.object(os, 'mkdir', mkdir):
+                        code, out = self.call('launch', '--candidate', str(candidate))
+                    self.assertEqual(code, 2, out)
+                    if failure is None:
+                        self.assert_refused(code, out, f'{child}/ could not be created: something already exists there')
+                    [folder] = sorted(self.folders() - before)
+                    self.assertFalse((folder / launch.HOME / 'received-env.txt').exists())  # the App never ran
+                    self.assertFalse((folder / launch.RECORD_FOLDER / launch.RECORD).exists())  # and no record says it did
 
 
 class CandidateAdmission(Fixture):  # the only caller path
