@@ -65,6 +65,9 @@ needs:
   gating: false
 - from: external:person using the App
   condition: A person starts and ends runs and performs the acts that declared checkpoints require.
+    In an agent-operated journey examination as the release target defines it, the examining agent
+    performs these steps on examination material for control-and-record evidence only; the positive
+    case with the person as actor (AC-003) needs the person.
 - from: external:SWBPIPE implementation owner
   condition: The host publishes its catalog, runs its loop, receives a carried workflow package,
     delivers a host workflow's package with its origin, revision and act history, and offers

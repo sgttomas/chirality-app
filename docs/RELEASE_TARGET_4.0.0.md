@@ -163,16 +163,26 @@ identity verified, or that carries an actor value other than what the
 candidate observed by its own rule. A step whose conditions cannot be
 established is blocked.
 
-A synthetic confirmation supplies control-and-record examination evidence
-only; it does not meet a positive case that requires evidence of an act an
-actual person performed, and that case reads as not examined until its stated
-evidence is supplied. Four such cases stand: the positive cases of DEL-06-02
-AC-004, DEL-04-01 AC-002 and DEL-04-03 AC-003, and DEL-09-01's faithful
-recording of an actually performed act (AC-004). Agent 0 may recommend the
-candidate for the owner's evaluation with these human-positive cases
-explicitly not examined. Each passes only when its required act and comparison
-are observed on the identified candidate. A case the owner's chosen use does
-not exercise remains unmet; the owner's verdict supplies no missing evidence.
+A synthetic confirmation supplies control-and-record examination evidence only;
+it does not meet a positive case that requires evidence of an act an actual
+person performed, and that case reads as not examined until its stated evidence
+is supplied. Every acceptance criterion whose positive case is an act a person
+performed, recorded or handed over with the person as actor, is examined
+synthetically for its control and its record only; its human-positive case
+reads as not examined until an act an actual person performed is observed on
+the identified candidate. When this was written those were: the positive cases
+of DEL-06-02 AC-004, DEL-04-01 AC-002 and DEL-04-03 AC-003; DEL-09-01's
+faithful recording of an actually performed act (AC-004); DEL-01-02 AC-007 (an
+answer the person actually gave); DEL-02-02 AC-006 (a registration the person
+performed); DEL-02-03 AC-003 (a checkpoint act the person performed); DEL-01-03
+AC-005 (an act record handed in, shown with the person as actor); DEL-04-02
+AC-005 (a recorded act a person performed); and DEL-04-03 AC-010 (a permitted
+disposal recorded as the person's act). A criterion of the same kind not named
+here falls under the rule all the same. Agent 0 may recommend the candidate for
+the owner's evaluation with these human-positive cases explicitly not examined.
+Each passes only when its required act and comparison are observed on the
+identified candidate. A case the owner's chosen use does not exercise remains
+unmet; the owner's verdict supplies no missing evidence.
 
 ## Exit criteria
 
@@ -266,6 +276,16 @@ the owner decide on what was actually observed.
    (window loss, interrupt, requests, acknowledgment, restart and quit);
    DEL-02-03 AC-002 and AC-003 (checkpoints and the run they belong to), with
    the views of that behaviour owned by DEL-01-03 and DEL-01-04.
+   DEL-02-03 AC-003's positive case with the person as actor is one of the
+   human-positive cases named under Testing. A synthetic confirmation supplies
+   control-and-record examination evidence only; it does not meet a positive
+   case that requires evidence of an act an actual person performed, and that
+   case reads as not examined until its stated evidence is supplied. Agent 0
+   may recommend the candidate for the owner's evaluation with these
+   human-positive cases explicitly not examined. Each passes only when its
+   required act and comparison are observed on the identified candidate. A case
+   the owner's chosen use does not exercise remains unmet; the owner's verdict
+   supplies no missing evidence.
 5. **Coordinating delegated work.** A person delegates two bounded pieces of
    work, each with a complete brief, to agents that actually run. The person
    follows them on the undertaking's work graph, examines what they return
@@ -363,7 +383,7 @@ the owner decide on what was actually observed.
     What the owner uses it for, and for how long, is the owner's to choose at
     the time. With the recommendation, Agent 0 tells the owner which criteria
     were examined by agents and that no person has yet carried out the
-    journeys or performed the acts the four human-positive cases named under
+    journeys or performed the acts the human-positive cases named under
     Testing need, which read as not examined. Agent 0 gives every observation the owner makes a disposition;
     that is Agent 0's responsibility and not a question returned to the owner.
     The criterion is met on yes. A yes meets this criterion only: any other
@@ -415,6 +435,16 @@ the owner decide on what was actually observed.
     from the last sentence of AC-009 (a signed checkpoint verifying under the
     App's key) and the signature sentence of AC-011, which wait on the key of
     DEL-04-03 TBD-003.
+    AC-010's permitted disposal recorded as the person's act is one of the
+    human-positive cases named under Testing. A synthetic confirmation supplies
+    control-and-record examination evidence only; it does not meet a positive
+    case that requires evidence of an act an actual person performed, and that
+    case reads as not examined until its stated evidence is supplied. Agent 0
+    may recommend the candidate for the owner's evaluation with these
+    human-positive cases explicitly not examined. Each passes only when its
+    required act and comparison are observed on the identified candidate. A case
+    the owner's chosen use does not exercise remains unmet; the owner's verdict
+    supplies no missing evidence.
 
 ## What stays the owner's
 
