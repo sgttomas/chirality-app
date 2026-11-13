@@ -170,7 +170,8 @@ export function checkOne(elements, expectation, values) {
  *   readWatch optional: () => the parsed watch file, or null (default: reads `watch`)
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
  *   now       optional: () => the time as text (default: the UTC time)
- * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped, view_error when a view failed}. verdict is 'pass', 'fail' or
+ * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped, view_error when a view failed, click_error when a
+ * click failed}. verdict is 'pass', 'fail' or
  * 'inconclusive'; a refusal before any call is 'inconclusive' with nothing called.
  */
 /**
@@ -351,7 +352,15 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
       entry.element_index = found[0].index;
       calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
-      await sky.click({ app, element_index: found[0].index });
+      try {
+        await sky.click({ app, element_index: found[0].index });
+      } catch (error) {
+        // Kept as a view's failure is, and the walk stops with its result: a click that throws has not been shown to
+        // have had no effect, so nothing further is called and the verdict is inconclusive.
+        report.click_error = readFailure(step.id, error);
+        entry.error = report.click_error.message;
+        return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
+      }
       if (step.wait_ms) await sleep(step.wait_ms);
       const beforeView = gate(`at ${step.id}, before its view`);  // read again immediately before the view
       if (beforeView) return beforeView;
@@ -386,7 +395,7 @@ export function summary(report) {
   const lines = [`${report.scenario} (version ${report.version}): ${String(report.verdict).toUpperCase()}`];
   for (const [name, state] of Object.entries(report.outcomes ?? {})) lines.push(`  ${name}: ${state}`);
   if (report.stopped) lines.push(`  ${report.stopped}`);
-  for (const cause of report.view_error?.causes ?? []) lines.push(`    caused by: ${cause}`);
+  for (const cause of (report.view_error ?? report.click_error)?.causes ?? []) lines.push(`    caused by: ${cause}`);
   for (const step of report.steps) {
     for (const check of step.checks.filter(check => !check.pass)) {
       lines.push(`  ${step.id} expected ${JSON.stringify(check.expectation)}, found: ${JSON.stringify(check.found)}`);

@@ -644,7 +644,12 @@ Its last line is the verdict, or "no walk", and the evidence folder.
       activity. If anything says a service is not the walk's, it is
       unresolved, whatever its start time.
     - An ended process may stay listed with a state beginning with `Z` until
-      its parent collects it; that is ended. No process that predates the
+      its parent collects it; that is ended. A state containing `E` (often
+      `?E` straight after the signal) is a process still exiting, not yet
+      ended: check again after five seconds, up to three times. If it is then
+      still listed and not `Z`, it is recorded as not confirmed ended, the
+      recovery is incomplete and is reported in the return, and no stronger
+      signal is sent. No process that predates the
       walk is ever signalled. The operator signals nothing else: not the node
       runtime or its host; not the provider's Codex or any of its other
       children (its `codex-code-mode-host`, and other sessions' `node_repl`
@@ -887,6 +892,22 @@ setup", "Change my choices" and two disclosures) are none of the act controls
 REQ-009 names, so it makes no synthetic capture and the examination-name
 requirement does not arise in it.
 
+**When the page changes, the scenario is run again.** When a merge to main
+changes the first-use setup page, or what it shows or when it opens, the
+scenario is run again on a candidate built from that main, by a walk under
+this method or by the scripted driver once it has passed
+(`app/examination/scripted_driver/`), before that change is relied on. The
+lane notices such a merge by the files it touches, at least these (the list
+is not exclusive): `app/src/FirstUse.tsx`; in `app/src/App.tsx`, the branch
+that renders `FirstUseSetup` and decides that setup is required;
+`app/src/DailyWorkspace.tsx`, which holds the page's styles;
+`app/src/hostReads.ts`, through which the page reads the App's state; in
+`app/src-tauri/src/lib.rs`, `host_status` and the `desktop_setup_*`
+commands; and `app/src-tauri/src/desktop_startup.rs`, which decides that
+setup is required and builds what the page reviews. A merge that touches one
+of these is read to decide whether it bears on the page; where it is not
+clear, the scenario is run.
+
 What it shows when it passes:
 
 - **SETUP CHOICES REVIEWED.** After "Continue without a project" the page reads
@@ -1102,14 +1123,12 @@ failure, the same scenario and acts.
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
 - The result file holds every call made and every view's returned text whole,
-  with two exceptions. A view whose reply names another bundle is kept only as
-  an error naming that bundle; its returned text is not kept. And a click that
-  throws is not caught: `walk.run` rejects, the block above writes no result
-  file and prints no summary, and the calls and views made before it are not
-  saved. The operator then keeps the tool's error whole, records that nothing
-  was saved and the time the walk stopped, makes no other call, and goes to
-  steps 8 and 10. When a view fails, it also holds the failure as messages only, in
-  `view_error`: where it failed, the error's own message, and each cause the
+  with one exception: a view whose reply names another bundle is kept only as
+  an error naming that bundle; its returned text is not kept. When a view
+  fails, it also holds the failure as messages only, in `view_error`; when a
+  click fails, in `click_error`, and the walk stops there, inconclusive, with
+  nothing further called (a click that throws has not been shown to have had
+  no effect). Each holds where it failed, the error's own message, and each cause the
   error carries, in order and whole (at most eight); the summary prints the
   causes under the line that says where the walk stopped. The causes are
   diagnostic evidence supplied by the supplier's client, not causes
@@ -1256,3 +1275,31 @@ On a development candidate built from main, in two windows the owner gave:
   every sample of the eighth attempt, from 21:01:34 UTC, before the import
   (observed). A name in that folder does not show that a service is running;
   the process table showed none until the walk's first view.
+- Walk A3, at 21:49 UTC, on a candidate built from main 345b56ff (after this
+  method's order, provider check and return were added), by a fresh operator
+  given only a 41-line assignment of the run's parameters, the role, the
+  bounds and how to return, passed: every outcome shown, in ten views and
+  seven clicks (observed). The operator asked nothing and reported no
+  deviation from this method and no missing guidance; this method and that
+  assignment were its only instructions (its own statement). It ended the
+  helper and the window service by their rules, and the lane's step 11
+  found nothing remaining and the Library comparison unchanged. Both route
+  processes read `?E` straight after their signal; the operator did not count
+  that as ended and checked again, which this method now says to do. No
+  prompt was reported to the operator by the walk or its tools; nobody
+  watched the screen.
+- A4 was judged by App Agent 0 to be shown by A3, by the first clause of
+  the pilot's text for it, which reads: "the unchanged scenario is run by a
+  worker who is not its author on a later candidate, meaning one built from a
+  descendant of A2's main revision that contains a merged change to the App;
+  or a repair on that page is verified by it. No change is manufactured to
+  obtain a second candidate." (the pilot's own text, as Inter-Project gave it
+  to App Agent 0 on 13 November 2026). Between A2's main and A3's only this
+  README differed under `app/examination/standalone`, so the scenario file
+  and `walk.mjs` were the ones A2 ran; A3's main held two merged changes to
+  the App. Two limits: neither change was to the first-use page, so this
+  shows the scenario still passing on a changed App, not the scenario
+  catching a change to that page; and the pilot's second clause, a repair on
+  that page verified by the scenario, is unexercised. "When the page
+  changes, the scenario is run again" ("Running a scenario") is the standing
+  rule that follows.
