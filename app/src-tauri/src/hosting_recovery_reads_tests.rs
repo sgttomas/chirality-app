@@ -18,7 +18,15 @@ use std::time::Instant;
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,threading,time,os
 if '--version' in sys.argv:
+ r=os.path.dirname(os.getcwd())
+ if os.path.exists(r+'/probe-pause'):
+  open(r+'/probe-entered','w').close()
+  while not os.path.exists(r+'/probe-continue'): time.sleep(0.002)
  print('codex-cli 0.167.0');sys.exit(0)
+if os.path.exists('spawn-descendant'):
+ import subprocess
+ d=subprocess.Popen(['/bin/sleep','60'],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+ open('descendant.pid','w').write(str(d.pid))
 lock=threading.Lock()
 def emit(v):
  with lock: print(json.dumps(v),flush=True)
@@ -63,12 +71,15 @@ for line in sys.stdin:
  emit({'id':f['id'],'result':result})
 "#;
 
-struct Fixture { root: PathBuf, cfg: HostConfig, home: Arc<HomeSession>, first: Value }
+/// `_custody`: the root held as the App holds its App data before it opens a
+/// ledger, so that a later App session on it models a relaunch.
+struct Fixture { root: PathBuf, cfg: HostConfig, home: Arc<HomeSession>, first: Value, _custody: crate::AppDataCustody }
 impl Fixture {
     fn new() -> Self {
         use std::os::unix::fs::PermissionsExt;
         let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("recovery-reads-").unwrap());
         for name in ["account", "probe"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
+        let _custody = crate::hold_app_data_for_test(&root).unwrap();
         let peer = root.join("peer.py");
         std::fs::write(&peer, PEER).unwrap();
         std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -79,7 +90,7 @@ impl Fixture {
         let first = home.host.snapshot()["generation"].clone();
         home.host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         home.host.observe_conversation_project(&first, "thread", Some("H-acct"), &ExplicitAppProjectContext::known("P", AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();
-        Self { root, cfg, home, first }
+        Self { root, cfg, home, first, _custody }
     }
     /// A started Host with the App ledger (a new App session each time).
     fn session(root: &std::path::Path, cfg: &HostConfig) -> Arc<HomeSession> {
@@ -303,6 +314,8 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     // The App ends without a record; the relaunched App has its own session.
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.end_process_for_test();
     // Many turns since: the lost turn is on the second page of history.
     f.history(json!([{"id":"turn-3","status":"completed"},{"id":"turn-2","status":"completed"},{"id":"turn-1","status":"failed"}]));
     f.set("history-pages", "2");
@@ -334,6 +347,7 @@ fn cv19_relaunch_recovers_an_earlier_session_conversation_and_its_stop_request()
     assert_eq!(f.states().last().unwrap(), "indexed");
     // A third session finds nothing left to recover.
     let _ = relaunched.host.stop("fixture", "test relaunch");
+    relaunched.host.end_process_for_test();
     let third_start_wire = f.wire().len();
     let third = Fixture::session(&f.root, &f.cfg);
     // Ready establishes the Host's handshake write, not the peer's log append.
@@ -360,10 +374,15 @@ fn cv19_relaunch_over_an_imported_json_lines_ledger_reads_as_over_the_database()
     f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.end_process_for_test();
     f.history(json!([{"id":"turn-3","status":"completed"},{"id":"turn-2","status":"completed"},{"id":"turn-1","status":"failed"}]));
     f.set("history-pages", "2");
-    // The same earlier session, as an earlier build's JSON Lines ledger elsewhere.
-    let earlier = f.ledger();
+    // The same earlier session, as an earlier build's JSON Lines ledger
+    // elsewhere. Such a ledger predates the liveness field, so the entries
+    // compared below are read without it on both ledgers.
+    let without_liveness = |mut entry: Value| { entry.as_object_mut().unwrap().remove(crate::session_liveness::FIELD); entry };
+    let earlier: Vec<Value> = f.ledger().into_iter().map(without_liveness).collect();
     let legacy_root = f.root.join("legacy-app-data");
     std::fs::create_dir(&legacy_root).unwrap();
     let mut lines = Vec::new();
@@ -389,7 +408,7 @@ fn cv19_relaunch_over_an_imported_json_lines_ledger_reads_as_over_the_database()
         (json!({"priorSessionEnd":restart[0]["priorSessionEnd"],"outcome":outcome["outcome"],"cause":outcome["cause"],
             "label":back["label"],"earlierSession":back["earlierSession"],"transitions":transitions,
             "state":view["historicalConversations"][0]["index"]["lastObservedExecution"]["state"],
-            "earlierEntries":entries[..earlier.len()].to_vec()}), legacy)
+            "earlierEntries":entries[..earlier.len()].iter().cloned().map(without_liveness).collect::<Vec<_>>()}), legacy)
     };
     let (imported, legacy) = relaunch(&legacy_root);
     assert_eq!((legacy["state"].as_str(), legacy["importedLines"].as_u64()), (Some("imported"), Some(earlier.len() as u64)), "{legacy}");
@@ -468,6 +487,8 @@ fn relaunch_without_a_final_status_leaves_the_ledger_stop_request_reading_unchan
     f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.end_process_for_test();
     f.history(json!([{"id":"turn-1","status":"inProgress"}]));
     let relaunched = Fixture::session(&f.root, &f.cfg);
     let record = |home: &HomeSession| home.host.snapshot()["stopRequests"]["records"][0].clone();
@@ -512,6 +533,8 @@ fn relaunch_sr09_reaches_an_earlier_sent_request_behind_a_later_unsent_one() {
     f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.end_process_for_test();
     // A later request for the same turn that was never sent, as SR-03 records it.
     let sent = f.ledger().into_iter().rev().find(|e| e["kind"] == "stop_request").unwrap()["record"].clone();
     let generation = crate::recovery::generation_from_ref(sent["generation"].as_str().unwrap()).unwrap();
@@ -766,4 +789,484 @@ fn a_prepared_reply_waiting_for_the_frame_writer_ends_unanswered_without_io() {
     assert_eq!(after_restart, hot, "cold history retains the actual closed source without synthesizing an unanswered RQ-06 or a write result");
     let final_row = after_restart.last().unwrap();
     assert_eq!(final_row["state"], "closed");assert_eq!(final_row["transition"], "RQ-04");assert_eq!(final_row["replyWrite"], "not-attempted");assert_eq!(final_row["acknowledgment"], "not-observed");assert_eq!(final_row["context"], "supplier-exit");
+}
+
+/// A root with the fixture peer and its configuration; no Host started.
+fn peer_root() -> (PathBuf, HostConfig) {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("home-hold-peer-").unwrap());
+    for name in ["account", "probe"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
+    let peer = root.join("peer.py");
+    std::fs::write(&peer, PEER).unwrap();
+    std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let mut cfg = HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(2);
+    (root, cfg)
+}
+fn initializes(root: &std::path::Path) -> usize {
+    std::fs::read_to_string(root.join("wire.jsonl")).unwrap_or_default().lines().filter(|l| l.contains("\"initialize\"")).count()
+}
+
+/// DEL-01-02: while an App session lives (its liveness lock held), another
+/// session's startup on the same ledger draws no inference about it: no
+/// RQ-06 ending for its listed request, no SR-08 for its in-flight stop
+/// request, no restart fact for its live turn, no adoption or recovery read
+/// of its conversation and no run limit. Nothing is written. Once its lock is
+/// free, the same startup records exactly what it records for a session from
+/// before locks existed.
+#[test]
+fn a_live_session_is_given_no_endings_restart_facts_adoption_or_run_limit_by_another_startup() {
+    let f = Fixture::new();
+    f.live_work();
+    f.home.host.turn_interrupt_begin(&f.first, "thread", "turn-1", crate::stop_records::Cause::PersonInterrupt, "H-acct", &crate::stop_records::person("fixture person")).unwrap();
+    // The first App session lives on with its Codex: its own facts settle.
+    f.until("the first session's request, sent stop request and live turn are recorded", || {
+        f.home.host.flush_recovery_observations();
+        let rows = f.ledger();
+        rows.iter().any(|e| e["kind"] == "register_entry_summary" && e["state"] == "listed")
+            && rows.iter().any(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent")
+            && rows.iter().any(|e| e["kind"] == "conversation_index" && e["lastObservedExecution"]["state"] == "turn-live" && !e["lastObservedExecution"]["openItems"].as_array().unwrap().is_empty())
+    });
+    let path = f.root.join("recovery.ledger.jsonl");
+    let first_session = f.first["appSession"].as_str().unwrap().to_owned();
+    assert_eq!(crate::session_liveness::probe(&path, &first_session, true), crate::session_liveness::Liveness::Held);
+    let before = f.ledger();
+    // Another session's startup on the same ledger.
+    let second = Arc::new(Host::new());
+    let refused = second.configure_recovery(path.clone()).unwrap_err();
+    assert!(refused.contains(crate::recovery::STILL_RUNNING), "{refused}");
+    assert_eq!(f.ledger(), before, "no ending, closure or session start written");
+    let view = second.recovery_custody().snapshot();
+    assert!(view["restartEvents"].as_array().unwrap().is_empty(), "no restart fact");
+    assert!(view["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains(crate::recovery::STILL_RUNNING))), "the withheld inference is a limit: {view}");
+    // Even with Codex running on the same home, nothing is adopted or read.
+    // (One App at a time on a home would refuse this start; its hold is set
+    // aside here so that the withholding is shown on its own.)
+    f.home.host.home_holds.lock().unwrap().clear();
+    // So is the home's process lock, which the first session's Codex holds: its file is taken
+    // out of the home, and the second start makes and takes a new one. (The lock is the file;
+    // app/README.md states that limit.)
+    std::fs::remove_file(f.cfg.codex_home.join(crate::native_local_provider::PROCESS_LOCK)).unwrap();
+    second.start(&f.cfg, "second session").unwrap();
+    let second = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, second, Ok(f.cfg.clone())).unwrap());
+    assert_eq!(crate::host_tick::recovery_tick_home(&second), 0, "no recovery read of the live session's conversation");
+    assert!(second.host.recovery_custody().snapshot()["live"]["observations"].as_array().unwrap().is_empty(), "nothing adopted");
+    let limits = crate::run_restart::startup(&[Arc::clone(&second)], Some(&f.root));
+    assert!(limits["outcomes"].as_array().unwrap().is_empty(), "no run limit: {limits}");
+    assert!(!limits["limits"].as_array().unwrap().is_empty(), "the run limit writer says why: {limits}");
+    assert_eq!(f.ledger(), before);
+    let _ = second.host.stop("fixture", "second session ended");
+    // Once the first session's process has gone (modelled as the kernel ends
+    // it; its facts were written above), today's reading, exactly.
+    f.home.host.end_process_for_test();
+    let base = f.ledger().len();
+    // The comparison ledger is a copy of this one with the ended session's
+    // free lock file beside it, as the kernel leaves it.
+    std::fs::copy(f.root.join("recovery.ledger.sqlite"), f.root.join("before-locks.ledger.sqlite")).unwrap();
+    let copied = crate::session_liveness::lock_path(&f.root.join("before-locks.ledger.jsonl"), &first_session);
+    std::fs::create_dir_all(copied.parent().unwrap()).unwrap();
+    std::fs::copy(crate::session_liveness::lock_path(&path, &first_session), &copied).unwrap();
+    assert!(matches!(crate::session_liveness::probe(&path, &first_session, true), crate::session_liveness::Liveness::Silent(_)));
+    let started = |ledger: PathBuf| {
+        let mut ledger = crate::recovery::RecoveryLedger::open(ledger).unwrap();
+        ledger.start_session("app-session:relaunch", "chirality-app-v4-unqualified").unwrap();
+        // Times differ between two startups; everything else must not.
+        fn timeless(value: &mut Value) {
+            match value {
+                Value::Object(map) => { map.retain(|key, _| key != "at" && !key.ends_with("At")); map.values_mut().for_each(timeless); }
+                Value::Array(items) => items.iter_mut().for_each(timeless),
+                _ => {}
+            }
+        }
+        let mut rows = ledger.recorded_entries().as_array().unwrap()[base..].to_vec();
+        rows.iter_mut().for_each(timeless);
+        rows
+    };
+    let today = started(f.root.join("before-locks.ledger.jsonl"));
+    let now = started(path.clone());
+    assert_eq!(now, today, "the same entries on both ledgers: the ended session is read as ended under this App's custody of its data");
+    assert_eq!(now[0]["previousSessionEnd"], "ended-without-record");
+    assert_eq!(now[0]["previousSession"], first_session.as_str());
+    assert!(now.iter().any(|e| e["transition"] == "RQ-06"), "the listed request's ending: {now:?}");
+    assert!(now.iter().any(|e| e["kind"] == "stop_request"), "the stop request's closing: {now:?}");
+}
+
+/// DEL-01-01/05: two Hosts on one Codex home in one process: the second
+/// start is refused and spawns nothing; once the first has stopped and is
+/// dropped, the second starts.
+#[test]
+fn a_second_host_on_one_home_in_one_process_is_refused_until_the_first_is_gone() {
+    let (root, cfg) = peer_root();
+    let first = Arc::new(Host::new());
+    first.start(&cfg, "first").unwrap();
+    let second = Arc::new(Host::new());
+    let refused = second.start(&cfg, "second").unwrap_err();
+    assert_eq!(refused, crate::home_hold::IN_USE_HERE);
+    assert_eq!(second.snapshot()["state"], "absent", "nothing spawned or recorded");
+    assert_eq!(initializes(&root), 1, "one Codex on the home");
+    // The same home under another spelling is the same home.
+    let mut alias = cfg.clone();
+    std::os::unix::fs::symlink(root.join("account"), root.join("account-alias")).unwrap();
+    alias.codex_home = root.join("account-alias");
+    assert!(second.start(&alias, "second").is_err());
+    let generation = first.snapshot()["generation"].clone();
+    first.stop_scoped(&generation, "fixture", "first ended").unwrap();
+    drop(first);
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let ready = loop {
+        match second.start(&cfg, "second") {
+            Ok(ready) => break ready,
+            Err(e) => { assert!(Instant::now() < deadline, "{e}"); std::thread::sleep(Duration::from_millis(20)); }
+        }
+    };
+    assert_eq!(ready["state"], "ready");
+    let _ = second.stop("fixture", "test ended");
+    let inside: Vec<_> = std::fs::read_dir(root.join("account")).unwrap().map(|e| e.unwrap().file_name()).collect();
+    assert_eq!(inside, vec![std::ffi::OsString::from(crate::native_local_provider::PROCESS_LOCK)], "the App's one lock file and nothing else is created inside the home");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The child half: a Host ready on the given home, alive until killed.
+#[test]
+fn home_host_peer_process() {
+    let Some(root) = std::env::var_os("CHIRALITY_HOME_HOST_PEER") else { return; };
+    let root = PathBuf::from(root);
+    let mut cfg = HostConfig::new(root.join("peer.py"), root.join("account"), root.join("probe"), root.clone());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(2);
+    let host = Arc::new(Host::new());
+    match host.start(&cfg, "peer process") {
+        Ok(_) => println!("READY"),
+        Err(reason) => println!("REFUSED {reason}"),
+    }
+    std::io::Write::flush(&mut std::io::stdout()).unwrap();
+    let mut line = String::new();
+    let _ = std::io::stdin().read_line(&mut line);
+}
+/// The peer process, ended and waited for when it is dropped: a test that fails between the
+/// spawn and its own wait leaves no peer behind on a home it then removes.
+struct Peer(std::process::Child);
+impl std::ops::Deref for Peer {
+    type Target = std::process::Child;
+    fn deref(&self) -> &std::process::Child { &self.0 }
+}
+impl std::ops::DerefMut for Peer {
+    fn deref_mut(&mut self) -> &mut std::process::Child { &mut self.0 }
+}
+impl Drop for Peer {
+    fn drop(&mut self) {
+        if matches!(self.0.try_wait(), Ok(None)) {
+            let _ = self.0.kill();
+        }
+        let _ = self.0.wait();
+    }
+}
+/// The first line `home_host_peer_process` reports for `root`, with the peer.
+fn host_peer(root: &std::path::Path) -> (Peer, String) {
+    use std::io::BufRead;
+    let mut child = std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "hosting::recovery_reads::tests::home_host_peer_process", "--nocapture", "--test-threads=1"])
+        .env("CHIRALITY_HOME_HOST_PEER", root)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut lines = std::io::BufReader::new(child.stdout.take().unwrap()).lines();
+    let seen = loop {
+        // libtest prints "test <name> ... " before the body, without a newline.
+        match lines.next() {
+            Some(Ok(line)) => {
+                if let Some(at) = line.find("READY").or_else(|| line.find("REFUSED")) {
+                    break Ok(line[at..].to_owned());
+                }
+            }
+            other => break Err(format!("{other:?}")),
+        }
+    };
+    match seen {
+        Ok(seen) => (Peer(child), seen),
+        // The peer is ended and reaped before the test fails, so it leaves no process behind.
+        Err(other) => {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("the peer process reported neither READY nor REFUSED: {other}");
+        }
+    }
+}
+
+/// The reviewer's reproduction (finding 2), as a maintained test: two
+/// processes on one Codex home that does not exist. Each refuses before the
+/// probe and before Codex: no Codex is started, nothing is created, and the
+/// reason is the host status's last start refusal.
+#[test]
+fn a_missing_home_is_refused_before_anything_starts_in_every_process() {
+    let (root, cfg) = peer_root();
+    std::fs::remove_dir(root.join("account")).unwrap();
+    let (mut child, seen) = host_peer(&root);
+    assert_eq!(seen, format!("REFUSED {}", crate::home_hold::MISSING));
+    let host = Arc::new(Host::new());
+    assert_eq!(host.start(&cfg, "second App").unwrap_err(), crate::home_hold::MISSING);
+    let status = host.snapshot();
+    assert_eq!(status["state"], "absent", "no lifecycle transition, nothing spawned");
+    assert_eq!(status["lastStartRefusal"]["reason"], crate::home_hold::MISSING);
+    assert_eq!(status["lastStartRefusal"]["actor"], "second App");
+    assert_eq!(initializes(&root), 0, "no Codex on the missing home");
+    assert!(!root.join("account").exists(), "nothing created");
+    assert!(!root.join("probe").read_dir().unwrap().any(|_| true), "no probe ran");
+    drop(child.stdin.take());
+    child.wait().unwrap();
+    // Once the home exists, a start reaches ready and the refusal is cleared.
+    std::fs::create_dir(root.join("account")).unwrap();
+    assert_eq!(host.start(&cfg, "after the home was created").unwrap()["state"], "ready");
+    assert!(host.snapshot()["lastStartRefusal"].is_null());
+    let _ = host.stop("fixture", "test ended");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The reviewer's reproduction (finding 3), as a maintained test: the home
+/// is renamed and a new directory put at its path while the first Host's
+/// label probe runs. The first Host refuses at child admission and starts no
+/// Codex (it still holds the original directory); a Host on the replacement
+/// is the only Codex on that path.
+#[test]
+fn a_home_replaced_during_the_start_is_refused_at_child_admission() {
+    let (root, cfg) = peer_root();
+    std::fs::write(root.join("probe-pause"), b"").unwrap();
+    let first = Arc::new(Host::new());
+    let starting = {
+        let (first, cfg) = (Arc::clone(&first), cfg.clone());
+        std::thread::spawn(move || first.start(&cfg, "first"))
+    };
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !root.join("probe-entered").exists() {
+        assert!(Instant::now() < deadline, "the first probe did not run");
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    std::fs::rename(root.join("account"), root.join("original-account")).unwrap();
+    std::fs::create_dir(root.join("account")).unwrap();
+    std::fs::remove_file(root.join("probe-pause")).unwrap();
+    std::fs::write(root.join("probe-continue"), b"").unwrap();
+    let refused = starting.join().unwrap().unwrap_err();
+    assert_eq!(refused, crate::home_hold::REPLACED);
+    assert_eq!(first.snapshot()["state"], "refused");
+    assert_eq!(first.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::REPLACED);
+    assert_eq!(initializes(&root), 0, "no Codex was started on the replaced path");
+    let second = Arc::new(Host::new());
+    assert_eq!(second.start(&cfg, "second").unwrap()["state"], "ready");
+    assert_eq!(initializes(&root), 1, "one Codex on the path");
+    let _ = second.stop("fixture", "test ended");
+    drop(first);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// Finding 5: a Host that goes while a process group it started has not
+/// settled (its Codex exited, a descendant lives on in its group) keeps its
+/// home until that group's settlement is established; then the home is free.
+#[test]
+fn a_dropped_host_keeps_its_home_until_its_process_group_settles() {
+    let (root, cfg) = peer_root();
+    std::fs::write(root.join("spawn-descendant"), b"").unwrap();
+    let first = Arc::new(Host::new());
+    first.start(&cfg, "first").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while !root.join("descendant.pid").exists() || std::fs::read_to_string(root.join("descendant.pid")).unwrap().is_empty() {
+        assert!(Instant::now() < deadline, "no descendant");
+        std::thread::sleep(Duration::from_millis(2));
+    }
+    let descendant: i32 = std::fs::read_to_string(root.join("descendant.pid")).unwrap().trim().parse().unwrap();
+    std::fs::remove_file(root.join("spawn-descendant")).unwrap();
+    std::fs::write(root.join("crash-now"), b"").unwrap();
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while first.snapshot()["state"] != "exited-unexpectedly" {
+        assert!(Instant::now() < deadline, "unexpected exit not observed");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    std::fs::remove_file(root.join("crash-now")).unwrap();
+    let gone = Arc::downgrade(&first);
+    drop(first);
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while gone.upgrade().is_some() {
+        assert!(Instant::now() < deadline, "the Host was not dropped");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let second = Arc::new(Host::new());
+    for _ in 0..10 {
+        let refused = second.start(&cfg, "second").unwrap_err();
+        assert_eq!(refused, crate::home_hold::KEPT, "the kept home says why");
+        assert_eq!(second.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::KEPT);
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert_eq!(initializes(&root), 1);
+    assert_eq!(unsafe { libc::kill(descendant, libc::SIGKILL) }, 0);
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let ready = loop {
+        match second.start(&cfg, "second") {
+            Ok(ready) => break ready,
+            Err(e) => { assert!(Instant::now() < deadline, "{e}"); std::thread::sleep(Duration::from_millis(20)); }
+        }
+    };
+    assert_eq!(ready["state"], "ready");
+    let _ = second.stop("fixture", "test ended");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// Across processes, with different App data (no ledger at all here): a
+/// home another App's Host holds is refused with the plain reason and spawns
+/// nothing; once that App is killed (SIGKILL) a Host starts on it.
+#[test]
+fn a_host_on_a_home_another_process_holds_is_refused_until_that_process_is_killed() {
+    let (root, cfg) = peer_root();
+    let (mut child, seen) = host_peer(&root);
+    assert_eq!(seen, "READY");
+    let host = Arc::new(Host::new());
+    assert_eq!(host.start(&cfg, "second App").unwrap_err(), crate::home_hold::IN_USE);
+    assert_eq!(host.snapshot()["state"], "absent");
+    assert_eq!(host.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::IN_USE, "kept for the window");
+    assert_eq!(initializes(&root), 1, "no second Codex on the home");
+    assert_eq!(unsafe { libc::kill(child.id() as i32, libc::SIGKILL) }, 0);
+    child.wait().unwrap();
+    // The killed App's hold on the home went with its process. The Codex it started can outlive
+    // it for a time and holds the home's process lock until it has ended: until then the start
+    // is refused for that reason and no other, and starts nothing.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let ready = loop {
+        match host.start(&cfg, "after the first App was killed") {
+            Ok(ready) => break ready,
+            Err(e) => {
+                assert_eq!(e, crate::home_hold::PROCESS_HELD);
+                assert_eq!(initializes(&root), 1, "no second Codex while the first has not ended");
+                assert!(Instant::now() < deadline, "the killed App's Codex never ended");
+                std::thread::sleep(Duration::from_millis(20));
+            }
+        }
+    };
+    assert_eq!(ready["state"], "ready");
+    assert_eq!(initializes(&root), 2);
+    let _ = host.stop("fixture", "test ended");
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The reviewer's stand-in (round 2): the label probe can be paused
+/// (`probe-pause` → `probe-entered`, until `probe-continue`) and can answer a
+/// wrong label (`wrong-version`); each app-server start appends its pid and
+/// `CODEX_HOME` to `server-home`.
+const PAUSING_PEER: &str = "#!/usr/bin/python3\nimport sys,json,os,time\nr=os.getcwd()\nif '--version' in sys.argv:\n r=os.path.dirname(r)\n if os.path.exists(r+'/probe-pause'):\n  open(r+'/probe-entered','w').close()\n  while not os.path.exists(r+'/probe-continue'):time.sleep(0.002)\n print('wrong' if os.path.exists(r+'/wrong-version') else 'codex-cli 0.167.0');sys.exit(0)\nopen('server-home','a').write(str(os.getpid())+' '+os.environ.get('CODEX_HOME','')+'\\n')\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'review-stand-in'}}),flush=True)\n";
+fn pausing_root() -> PathBuf {
+    use std::os::unix::fs::PermissionsExt;
+    let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("start-attempt-").unwrap());
+    for name in ["account", "other", "probe"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
+    std::fs::write(root.join("peer.py"), PAUSING_PEER).unwrap();
+    std::fs::set_permissions(root.join("peer.py"), std::fs::Permissions::from_mode(0o700)).unwrap();
+    root
+}
+fn pausing_cfg(root: &std::path::Path, home: &str) -> HostConfig {
+    let mut cfg = HostConfig::new(root.join("peer.py"), root.join(home), root.join("probe"), root.to_owned());
+    cfg.allow_unverified_dev = true;
+    cfg.wait_limit = Duration::from_secs(2);
+    cfg
+}
+fn wait_for(path: &std::path::Path) {
+    let deadline = Instant::now() + Duration::from_secs(8);
+    while !path.exists() { assert!(Instant::now() < deadline, "{} never appeared", path.display()); std::thread::sleep(Duration::from_millis(2)); }
+}
+
+/// The reviewer's reproduction (round 2, finding 2), as a maintained test.
+/// While an admitted start is paused in its label probe on one home, a
+/// second start on the same Host naming another home is refused; it changes
+/// nothing of the admitted attempt and keeps no claim on the other home. The
+/// first home is then replaced at its path; the admitted attempt checks its
+/// own held home, finds it replaced, and starts no app-server on the
+/// replacement.
+#[test]
+fn a_refused_concurrent_start_changes_nothing_of_the_admitted_attempts_home() {
+    let root = pausing_root();
+    std::fs::write(root.join("probe-pause"), b"").unwrap();
+    let first = Arc::new(Host::new());
+    let active = { let h = Arc::clone(&first); let cfg = pausing_cfg(&root, "account"); std::thread::spawn(move || h.start(&cfg, "active attempt")) };
+    wait_for(&root.join("probe-entered"));
+    let before = first.snapshot();
+    assert!(first.start(&pausing_cfg(&root, "other"), "concurrent refused attempt").is_err());
+    let after = first.snapshot();
+    assert_eq!(after["lifecycle"], before["lifecycle"], "the refused call is no lifecycle record");
+    assert_eq!(after["state"], "verifying");
+    // The refused call keeps no claim on the other home: another Host here takes it.
+    let other_host = Arc::new(Host::new());
+    let owner: std::sync::Weak<dyn crate::home_hold::HoldOwner> = Arc::downgrade(&other_host) as std::sync::Weak<dyn crate::home_hold::HoldOwner>;
+    let claimed = crate::home_hold::claim_host(&root.join("other"), crate::home_hold::next_id(), owner, &Arc::new(std::sync::atomic::AtomicUsize::new(0)));
+    assert!(claimed.is_ok(), "no claim was kept on the other home");
+    drop(claimed);
+    // The admitted attempt's home is replaced at its path.
+    std::fs::rename(root.join("account"), root.join("original-account")).unwrap();
+    std::fs::create_dir(root.join("account")).unwrap();
+    std::fs::remove_file(root.join("probe-pause")).unwrap();
+    std::fs::write(root.join("probe-continue"), b"").unwrap();
+    let result = active.join().unwrap();
+    assert_eq!(result.unwrap_err(), crate::home_hold::REPLACED, "the attempt checked its own held home");
+    assert!(!root.join("server-home").exists(), "no app-server was started on the replacement");
+    assert_eq!(first.snapshot()["state"], "refused");
+    assert_eq!(first.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::REPLACED);
+    assert_eq!(first.snapshot()["lastStartRefusal"]["home"], crate::hosting::home_identity(&root.join("account")));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// The reviewer's reproduction (round 2, finding 4), as a maintained test. A
+/// refusal carries its home and attempt; it is cleared as soon as a later
+/// attempt is admitted (so no snapshot of that attempt carries it, whether it
+/// is under way, refused for another reason or ready) and replaced by a later
+/// refusal.
+#[test]
+fn a_start_refusal_is_bound_to_its_home_and_cleared_when_a_later_attempt_is_admitted() {
+    let root = pausing_root();
+    let host = Arc::new(Host::new());
+    let missing = pausing_cfg(&root, "missing");
+    assert_eq!(host.start(&missing, "missing").unwrap_err(), crate::home_hold::MISSING);
+    let refusal = host.snapshot()["lastStartRefusal"].clone();
+    assert_eq!(refusal["reason"], crate::home_hold::MISSING);
+    assert_eq!(refusal["home"], crate::hosting::home_identity(&root.join("missing")));
+    assert_eq!(refusal["attempt"], Value::Null, "refused before it was admitted as an attempt");
+    // A later attempt on the now existing home: under way, then refused for another reason.
+    std::fs::create_dir(root.join("missing")).unwrap();
+    std::fs::write(root.join("wrong-version"), b"").unwrap();
+    std::fs::write(root.join("probe-pause"), b"").unwrap();
+    let retry = { let h = Arc::clone(&host); let cfg = missing.clone(); std::thread::spawn(move || h.start(&cfg, "version mismatch")) };
+    wait_for(&root.join("probe-entered"));
+    let under_way = host.snapshot();
+    assert_eq!(under_way["state"], "verifying");
+    assert_eq!(under_way["lastStartRefusal"], Value::Null, "cleared once the later attempt was admitted");
+    std::fs::remove_file(root.join("probe-pause")).unwrap();
+    std::fs::write(root.join("probe-continue"), b"").unwrap();
+    assert!(retry.join().unwrap().unwrap_err().contains("mismatch"));
+    let status = host.snapshot();
+    assert_eq!(status["state"], "refused");
+    assert_eq!(status["lastStartRefusal"], Value::Null, "the old reason does not stand beside a later attempt's failure");
+    // A later refusal replaces it; a successful start's own snapshot carries none.
+    std::fs::remove_file(root.join("wrong-version")).unwrap();
+    assert_eq!(host.start(&pausing_cfg(&root, "absent-home"), "missing again").unwrap_err(), crate::home_hold::MISSING);
+    assert_eq!(host.snapshot()["lastStartRefusal"]["home"], crate::hosting::home_identity(&root.join("absent-home")));
+    // The earlier probe's settlement may still be being established.
+    let deadline = Instant::now() + Duration::from_secs(5);
+    let ready = loop {
+        match host.start(&missing, "ready") {
+            Ok(ready) => break ready,
+            Err(e) => { assert!(e.contains("prior label probe") && Instant::now() < deadline, "{e}"); std::thread::sleep(Duration::from_millis(20)); }
+        }
+    };
+    assert_eq!(ready["state"], "ready");
+    assert_eq!(ready["lastStartRefusal"], Value::Null, "the returned snapshot carries no earlier refusal");
+    // A home refusal is kept while the Host is ready (as the launch's automatic
+    // start keeps a reason it refuses before the Host is asked), and then a
+    // later request is refused for a reason that is not kept, before it is
+    // admitted: the earlier reason does not stay as why Codex was not started.
+    // A ready Host refuses by its state before its home is claimed, so even a
+    // missing home is not reported in place of that refusal.
+    host.note_start_refusal("app-startup", &root.join("absent-again"), crate::home_hold::MISSING);
+    assert_eq!(host.snapshot()["lastStartRefusal"]["reason"], crate::home_hold::MISSING);
+    let other = host.start(&pausing_cfg(&root, "absent-again"), "start while ready").unwrap_err();
+    assert_eq!(other, "start not accepted in state ready");
+    let after = host.snapshot()["lastStartRefusal"].clone();
+    assert!(after.is_null() || after["reason"] == other, "the latest request's refusal, or none, never an older one: {after}");
+    assert_eq!(host.snapshot()["state"], "ready", "the refused request changed nothing else");
+    let _ = host.stop("fixture", "test ended");
+    let _ = std::fs::remove_dir_all(root);
 }

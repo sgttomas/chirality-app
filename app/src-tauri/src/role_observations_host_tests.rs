@@ -55,6 +55,8 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
     crate::records_store::attach(&project, true).unwrap();
     let ledger = root.join("app/runtime/recovery.ledger.jsonl");
     std::fs::create_dir_all(ledger.parent().unwrap()).unwrap();
+    // The App data held as the App holds it: the later Host models a relaunch.
+    let _custody = crate::hold_app_data_for_test(&root.join("app")).unwrap();
     let host = Arc::new(Host::new());
     host.inner.0.lock().unwrap().app_session = "conversation-session".into();
     host.configure_recovery(ledger.clone()).unwrap();
@@ -248,6 +250,8 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
         count
     }
     let count = count_role_records(&store);
+    // The original App's process has ended (one App at a time on this data).
+    host.end_process_for_test();
     let cold_host = Arc::new(Host::new());
     cold_host.configure_recovery(ledger).unwrap();
     let cold_generation = {

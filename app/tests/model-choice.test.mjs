@@ -30,12 +30,14 @@ const snapshotFor = (mode = 'account', generation = g) => ({state:'ready', gener
 
 // Optional one-shot hold of the next host_status read (its snapshot is taken first).
 let hostGate = null;
+// When set, every host_status read rejects with it (a status refresh that fails).
+let statusFailure = null;
 async function mounted(handler, check, initial = snapshotFor()) {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
   let snapshot = initial;
   const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args:structuredClone(args)});
-    if (command === 'host_status') { const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
+    if (command === 'host_status') { if (statusFailure) throw statusFailure; const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     return handler(command, args, {get snapshot() { return snapshot; }});
@@ -394,4 +396,63 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, 'no local route without a current observation');
     assertNoSecretTraffic(ui);
   });
+});
+
+// oMLX key entry refused (a reading sentence, or an ordinary refusal), then a failed status refresh:
+// the entry's own message stands, then the fixed refresh line once; nothing raw from the refresh.
+for (const [label, refusal] of [['the gate sentence', loadSrc('readingSentences').READING_GATE], ['an ordinary refusal', 'Keyed oMLX unavailable: invented refusal']]) test(`keyed oMLX: key entry refused (${label}) then a failed refresh shows its message, then the fixed line`, async () => {
+  const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  try {
+    await mounted(async command => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('entry-required'); }
+      if (command === 'submit_local_provider_key') { statusFailure = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_58'; throw refusal; }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      await ui.press('Enter oMLX key in a secure field…');
+      const shown = region(ui.c, 'Keyed oMLX connection').textContent;
+      assert.ok(shown.includes(`oMLX key entry did not complete: ${refusal} ${REFRESH_FAILED}`), shown);
+      assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_58/);
+      statusFailure = null;
+    });
+  } finally { statusFailure = null; }
+});
+
+// The model list's provider note ending with a reading sentence (model_catalog.rs `providerLimit`):
+// the sentence is shown as it is, with no second full stop after it.
+test('a provider note ending with a reading sentence is shown once, without a doubled full stop', async () => {
+  const {READING_GATE} = loadSrc('readingSentences');
+  const note = `provider not established: ${READING_GATE}`;
+  await mounted(async command => { if (command === 'read_available_models') return packet({serverProvider:null, serverProviderState:'not-established', providerLimit:note}); throw Error(`unexpected ${command}`); }, async ui => {
+    await ui.press('Use my ChatGPT account (built-in OpenAI)');
+    await ui.press('Read available models');
+    const shown = region(ui.c, 'Available models').textContent;
+    assert.ok(shown.includes(note), shown);
+    assert.ok(!shown.includes(`${READING_GATE}.`), 'no second full stop after the sentence');
+  });
+});
+
+// A home command that succeeds and whose status refresh then fails: the command is not shown as
+// failed, the account panel shows no raw refresh text, and the App line adds the fixed line once.
+// The same command with a successful refresh shows what it showed before (no refresh line).
+for (const refreshFails of [true, false]) test(`keyed oMLX: using the local home ${refreshFails ? 'then a failed refresh adds only the fixed line' : 'with a successful refresh shows no refresh line'}`, async () => {
+  const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  try {
+    await mounted(async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+      if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); if (refreshFails) statusFailure = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64'; return {state:'selected'}; }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      await ui.press('Use local oMLX home');
+      assert.equal(ui.issued().filter(call => call.command === 'select_home').length, 1);
+      assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64/, 'no raw refresh text anywhere');
+      const shown = ui.c.textContent.split(REFRESH_FAILED).length - 1;
+      if (refreshFails) assert.ok(shown >= 1, 'the fixed line (App line and guides)'); else assert.equal(shown, 0, 'no refresh line after a successful refresh');
+      assert.doesNotMatch(region(ui.c, 'Account connection')?.textContent ?? '', /did not complete|INVENTED_PRIVATE/, 'the account panel does not show the command as failed');
+      statusFailure = null;
+    });
+  } finally { statusFailure = null; }
 });

@@ -1,6 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 type Json = any;
 const text = (value: Json) => value == null ? "not established" : typeof value === "string" ? value : JSON.stringify(value);
+/** What a recorded startup ending establishes, by the event's own kind. An
+ *  ending an earlier build recorded as ended unanswered is shown as recorded;
+ *  a kind this view does not know is shown by its name, never as an ending. */
+export const OPEN_AT_APP_SESSION_END_WORDS = "The App session that held this request ended while the request was recorded open; this App session cannot answer it. No reply to it is recorded. Whether one was sent after the last record was not observed.";
+export const requestEndWords = (event: Json): string => event?.kind === "request_open_at_app_session_end"
+  ? OPEN_AT_APP_SESSION_END_WORDS
+  : event?.kind === "request_ended_unanswered" ? "Recorded by an earlier build as ended unanswered when its App session ended without a record:"
+  : `${text(event?.kind) || "unnamed event"}:`;
+/** What a restart fact establishes: live work as an earlier App session last recorded it, and
+ *  whether it was live when that session ended only where the App recorded that at its quit. */
+export const LAST_RECORDED_LIVE_WORDS = "Live work as an earlier App session last recorded it. That session has ended; whether the work was still live when it ended was not observed.";
+export const RECORDED_AT_QUIT_WORDS = "Live work an earlier App session recorded losing sight of at its quit.";
+export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${text(event?.kind) || "unnamed event"}:`
+  : event?.liveAtSessionEnd === "recorded-at-quit" ? RECORDED_AT_QUIT_WORDS : LAST_RECORDED_LIVE_WORDS;
 const detail = (value: Json) => <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(value, null, 2)}</pre>;
 
 export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (threadId: string) => void }) {
@@ -28,12 +42,12 @@ export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (t
     <h3>Loss and recovery events observed in this App process</h3>
     <p>A source event is separate from whether its pointer facts reached durable storage. A recovery event reports what Codex history said when the App read it after a restart; the App sent Codex only those history reads, resumed nothing and sent nothing to the conversation.</p>
     {(custody.live?.events ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: {event.cause ?? event.priorEvents ?? event.outcome} · {text(event.generation ?? event.threadId)}</summary>{detail(event)}</details>)}
-    <h3>Restart observations derived from persisted prior-session facts</h3>
-    {(custody.restartEvents ?? []).length === 0 && <p>No restart interruption is established by the available persisted facts.</p>}
-    {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: home {event.home}, thread {event.threadId}, prior session {event.priorSession}</summary>{detail(event)}</details>)}
-    <h3>Requests ended unanswered after an App restart</h3>
-    <p>These are recorded endings of earlier requests. They cannot be answered in this App session.</p>
-    {(custody.requestEndEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>Ended unanswered: {event.entry.method} · {text(event.entry.subject?.threadId)} · recorded {event.at}</summary>{detail(event)}</details>)}
+    <h3>Restart facts derived from persisted App records</h3>
+    {(custody.restartEvents ?? []).length === 0 && <p>No restart fact was derived from the available App history. See the retained pointers and recovery limits.</p>}
+    {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{restartWords(event)} Home {event.home}, thread {event.threadId}, prior session {event.priorSession}</summary>{detail(event)}</details>)}
+    <h3>Requests an earlier App session left recorded open</h3>
+    <p>These are endings recorded when a later App session started. They cannot be answered in this App session.</p>
+    {(custody.requestEndEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{requestEndWords(event)} {event.entry.method} · {text(event.entry.subject?.threadId)} · recorded {event.at}</summary>{detail(event)}</details>)}
     <h3>Persisted conversation pointer history</h3>
     <p>{data.historicalScope}</p>
     {(custody.historicalConversations ?? []).map((row: Json, i: number) => <article key={i}>
@@ -89,6 +103,7 @@ export function RecoveryRequestHistory({ modeHomeClass, generation, read }: { mo
         const summary = entry.summary;
         return <details key={JSON.stringify([summary.generation, summary.requestIdentity]) + i}>
           <summary>{text(summary.endedAs)}: {summary.method} · request {summary.requestIdentity}{entry.requestIdentityType === "legacy-unknown" ? " (legacy type unknown)" : ""} · recorded {summary.at}</summary>
+          {summary.endedAs === "open-at-app-session-end" && <p>{OPEN_AT_APP_SESSION_END_WORDS}</p>}
           <p>Source home: {text(entry.sourceGeneration?.home)}; source App session: {text(entry.sourceGeneration?.appSession)}; spawn: {text(entry.sourceGeneration?.spawnCounter)}.</p>
           <p>Transition: {summary.transition}; context: {text(summary.context)}; reply write: {summary.replyWrite}; acknowledgment: {summary.acknowledgment}.</p>
           <p>{entry.projectAssociation}</p>

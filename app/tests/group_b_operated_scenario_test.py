@@ -589,11 +589,28 @@ class SessionEnvironment(unittest.TestCase):
         return str(bundle)
 
     def test_it_asks_for_exactly_the_variables_by_which_the_app_takes_its_configuration_from_the_environment(self):
+        # The list by which the App selects the environment route (lib.rs ENVIRONMENT_KEYS, read by
+        # environment_selected). It names CHIRALITY_APP_DATA by its constant, APP_DATA_ENV, resolved here from that
+        # constant's own line.
         source = (APP / 'src-tauri/src/lib.rs').read_text()
-        keys = source[source.index('fn explicit_environment_launch'):]
-        keys = keys[keys.index('const KEYS'):keys.index('];')]
-        self.assertEqual(set(self.env.NAMES), set(re.findall(r'"(CHIRALITY_[A-Z0-9_]+)"', keys)))
-        self.assertEqual(len(self.env.NAMES), 10)
+        list_at = re.search(r'const ENVIRONMENT_KEYS: &\[&str\] = &\[(.*?)\];', source, re.S)
+        self.assertIsNotNone(list_at, 'lib.rs: const ENVIRONMENT_KEYS not found')
+        constant = re.search(r'const APP_DATA_ENV: &str = "(CHIRALITY_[A-Z0-9_]+)";', source)
+        self.assertIsNotNone(constant, 'lib.rs: const APP_DATA_ENV not found')
+        entries = [entry.strip() for entry in list_at.group(1).split(',') if entry.strip()]
+        names = set()
+        for entry in entries:
+            literal = re.fullmatch(r'"(CHIRALITY_[A-Z0-9_]+)"', entry)
+            if literal:
+                names.add(literal.group(1))
+            elif entry == 'APP_DATA_ENV':
+                names.add(constant.group(1))
+            else:
+                self.fail(f'lib.rs: ENVIRONMENT_KEYS holds an entry this test cannot resolve: {entry}')
+        self.assertTrue(names, 'lib.rs: ENVIRONMENT_KEYS names nothing')
+        self.assertIn('CHIRALITY_APP_DATA', names)
+        self.assertEqual(set(self.env.NAMES), names)
+        self.assertEqual(len(self.env.NAMES), 11)
 
     def test_a_variable_present_and_empty_is_present_and_refuses(self):
         names, reason = self.env.session_names(self.domain('SSH_AUTH_SOCK => /invented', 'CHIRALITY_WORKSPACE => '))

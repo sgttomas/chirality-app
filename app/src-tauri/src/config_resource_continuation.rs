@@ -120,7 +120,7 @@ pub(crate) fn complete(
             wait,
             PrivateConfigPurpose::ConfigContinuation,
         )
-        .map_err(|_| refused())?;
+        .map_err(|e| crate::hosting::reading_gate::reading_or(e, refused))?;
     current(host, &reading)?;
     object.check().map_err(|_| refused())?;
     desktop
