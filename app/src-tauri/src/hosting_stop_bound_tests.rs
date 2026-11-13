@@ -84,12 +84,15 @@ fn assert_no_interrupted(shown: &[Value]) {
 /// The reason the assigner gives for an interrupt not written in time.
 const NOT_READING: &str = "the interrupt could not be written within the stop limit";
 
+/// `_custody`: the root held as the App holds its App data before it opens a
+/// ledger, so that a later App session on it models a relaunch.
 struct Fixture {
     root: PathBuf,
     cfg: HostConfig,
     home: Arc<HomeSession>,
     generation: Value,
     held: Vec<std::thread::JoinHandle<()>>,
+    _custody: crate::AppDataCustody,
 }
 impl Fixture {
     fn new() -> Self {
@@ -98,6 +101,7 @@ impl Fixture {
         for name in ["account", "probe"] {
             std::fs::create_dir_all(root.join(name)).unwrap();
         }
+        let _custody = crate::hold_app_data_for_test(&root).unwrap();
         let peer = root.join("peer.py");
         std::fs::write(&peer, PEER).unwrap();
         std::fs::set_permissions(&peer, std::fs::Permissions::from_mode(0o700)).unwrap();
@@ -110,7 +114,7 @@ impl Fixture {
         let generation = host.snapshot()["generation"].clone();
         host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
-        Self { root, cfg, home, generation, held: Vec::new() }
+        Self { root, cfg, home, generation, held: Vec::new(), _custody }
     }
     fn host(&self) -> &Arc<Host> {
         &self.home.host
@@ -214,9 +218,11 @@ impl Fixture {
     fn rows(host: &Host, turn: &str) -> Vec<Value> {
         host.snapshot()["stopRequests"]["records"].as_array().unwrap().iter().filter(|r| r["turnId"] == turn).cloned().collect()
     }
-    /// A later App session on the same ledger: the startup closure of the
+    /// A later App session on the same ledger: the earlier App's process has
+    /// ended (one App at a time on this data), the startup closure of the
     /// earlier session's stop requests runs, then a Host reads the rows.
     fn relaunch(&self) -> (Vec<Value>, Vec<Value>) {
+        self.host().end_process_for_test();
         crate::recovery::RecoveryLedger::open(self.ledger()).unwrap();
         let before = crate::recovery::stored_entries(&self.ledger());
         let mut ledger = crate::recovery::RecoveryLedger::open(self.ledger()).unwrap();

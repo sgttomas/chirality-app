@@ -993,7 +993,9 @@ for line in sys.stdin:
         std::fs::write(f.root.join("interrupt-mode"), "silent").unwrap();
         f.live_turn("turn-1");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
-        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(1), |_| true, || Err("no start".into()));
+        // The limit leaves time for the interrupt's write to begin (a write
+        // not begun by the limit is withdrawn); the peer never answers it.
+        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(300), |_| true, || Err("no start".into()));
         let rows = ledger_rows(&f);
         let last_sent = rows.iter().rposition(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent").expect("sent record");
         let source = f.generation["appSession"].as_str().unwrap();

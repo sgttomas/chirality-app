@@ -1283,6 +1283,8 @@ fn relaunch_leaves_send_unknown_and_old_write_failed_requests_as_they_are() {
     let generation = f.first.clone();
     f.crash();
     let _ = f.home.host.stop("fixture", "test relaunch");
+    // The earlier App's process has ended (one App at a time on this data).
+    f.home.host.end_process_for_test();
     let person = crate::stop_records::person("fixture person");
     let mut unknown = crate::stop_records::StopRequest::requested(&generation, "H-acct", "thread", "turn-1", crate::stop_records::Cause::CodexStop, &person).unwrap();
     let unknown = unknown.send_unknown("host-request:fixture:client:7").unwrap();

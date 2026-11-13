@@ -411,6 +411,8 @@ const SEND_UNKNOWN: &str = "Stop requested; the interrupt's write began and its 
 #[test]
 fn a_person_interrupt_whose_write_fails_after_it_began_is_send_unknown() {
     let root = scratch();
+    // Held as the App holds its App data: the relaunch below models a new App.
+    let _custody = crate::hold_app_data_for_test(&root).unwrap();
     let (host, g, path) = ledger_host(&root);
     event(&host, &g, "turn", "inProgress");
     install_broken_test_input(&host);
