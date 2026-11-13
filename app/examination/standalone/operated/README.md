@@ -484,7 +484,9 @@ Its last line is the verdict, or "no walk", and the evidence folder.
    ```
 
    Wait until `<evidence folder>/launcher.out` holds the outcome (about fifteen
-   seconds; wait at most sixty), then confirm that neither process remains
+   seconds; wait at most sixty, since the launcher lists the real Library
+   about five and again about ten seconds after the App exits, before it
+   writes the outcome, so fifteen is the normal case), then confirm that neither process remains
    (`ps -p` on each number prints no process). If no outcome comes within
    sixty seconds, or a process remains, the recovery is incomplete: the
    operator records it, tells the lane in its return, and goes on with the
