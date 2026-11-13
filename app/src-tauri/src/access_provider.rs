@@ -749,8 +749,11 @@ impl Host {
         if cwd.is_empty() {
             return Err(unavailable());
         }
+        // One absolute deadline: the wait for the generation's reservation, for the frame writer
+        // and for the reply (`reading_gate`).
+        let deadline = std::time::Instant::now() + wait;
         let source = self
-            .request_begin_with_access_offer(
+            .request_begin_with_access_offer_guarded(
                 "config/read",
                 json!({"cwd":cwd,"includeLayers":true}),
                 match purpose {
@@ -770,13 +773,16 @@ impl Host {
                 None,
                 true,
                 None,
+                None,
+                None,
+                Some(deadline),
             )
-            .map_err(|_| unavailable())?;
+            .map_err(|e| reading_gate::reading_or(e, unavailable))?;
         #[cfg(test)]
         if let Some(hook) = self.before_provider_wait.lock().unwrap().as_ref() {
             hook(self, &source);
         }
-        let received = source.receiver.lock().unwrap().recv_timeout(wait);
+        let received = source.receiver.lock().unwrap().recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()));
         // End every private wait, including malformed/error/timeout/stale paths.
         // Late replies arrive reduced. Drain only this receipt's receiver.
         self.delegation_wait_ended(&source);
@@ -813,7 +819,7 @@ impl Host {
     ) -> Result<Value, String> {
         let read = self
             .private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Observation)
-            .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
+            .map_err(|e| reading_gate::reading_or(e, || OBSERVATION_LIMIT.to_owned()))?;
         self.check_provider_read(&self.inner.0.lock().unwrap(), &read.source, cwd)
             .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
         let view = project_configured_providers(&read, project)?;
@@ -822,8 +828,9 @@ impl Host {
         Ok(view)
     }
     /// Non-authoritative current revision for the settings reading and the
-    /// native confirmations: the latest configuration read of any kind that
-    /// named this folder, absent after an App configuration write.
+    /// native confirmations: the newest reading of the generation, when it is a
+    /// configuration read that named this folder; absent after a later reading
+    /// of any folder or none, a requirements reading, or an App configuration write.
     /// This is generated source metadata, never a private configuration value.
     pub(crate) fn configured_provider_revision(&self, generation: &Value, cwd: &str) -> Value {
         self.read_revision(generation, cwd, false)
@@ -846,7 +853,8 @@ impl Host {
         {
             return Value::Null;
         }
-        if private_reads_only { &i.provider_observation_revisions } else { &i.provider_read_revisions }
+        if !private_reads_only { return Self::reading_revision(&i, generation, cwd); }
+        i.provider_observation_revisions
             .get(cwd)
             .filter(|(g, _)| g == generation)
             .map(|(_, revision)| json!(revision))
@@ -863,8 +871,9 @@ impl Host {
             .source_requests
             .get(&source.request_id().to_string())
             .ok_or_else(unavailable)?;
-        if i.provider_read_revisions.get(cwd)
-            != Some(&(source.generation.clone(), source.request_ref.clone()))
+        // The newest reading of the generation, whatever folder any later one named; and still
+        // bound to its own folder, source and parameters (below).
+        if !Self::reading_is_current(i, &source.generation, &source.request_ref)
             || !Arc::ptr_eq(&actual, &self.inner)
             || i.generation != source.generation
             || i.state != "ready"

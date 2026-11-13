@@ -337,7 +337,7 @@ pub(crate) fn offer(state: &AppState, id: &str, endpoint: &str) -> Result<Offer,
                 .min(Duration::from_secs(10)),
             PrivateConfigPurpose::EndpointOffer,
         )
-        .map_err(|_| LIMIT.to_owned())?;
+        .map_err(|e| crate::hosting::reading_gate::reading_or(e, || LIMIT.to_owned()))?;
     host.check_provider_read(&host.inner.0.lock().unwrap(), &read.source, &pending.cwd)
         .map_err(|_| LIMIT.to_owned())?;
     let target = pending.slot.target().map_err(|_| LIMIT)?;
@@ -522,6 +522,7 @@ impl Host {
                 None,
                 None,
                 Some(write),
+                None,
             )
             .map_err(|_| WriteFailure::NotSent)?;
         let failure = || {

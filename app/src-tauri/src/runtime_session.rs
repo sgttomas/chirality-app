@@ -2872,13 +2872,16 @@ pub(crate) fn native_api_key_entry(app: &tauri::AppHandle) -> Result<Option<Stri
 /// Explicit native source read; no credential/config filesystem access or automatic refresh.
 pub fn read_native_home_access(home: &HomeSession, generation: &Value) -> Result<Value, String> {
     for method in ["configRequirements/read", "account/read"] {
+        // The requirements reading's deadline covers its wait for the generation's reservation,
+        // for the frame writer and for its reply.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
         let source = match method {
-            "configRequirements/read" => home.host.account_requirements_read_scoped(generation)?,
+            "configRequirements/read" => home.host.account_requirements_read_until(generation, deadline)?,
             _ => home.host.account_read_scoped(generation)?,
         };
         home.account_sources.lock().unwrap().push(source.clone());
         home.host
-            .source_request_wait(&source, std::time::Duration::from_secs(20))?;
+            .source_request_wait(&source, deadline.saturating_duration_since(std::time::Instant::now()))?;
     }
     Ok(home.account_view())
 }
@@ -2942,10 +2945,11 @@ pub fn submit_native_home_key<F: FnOnce() -> Result<Option<String>, ()>>(
     }
     let config = home.host_config.as_ref().map_err(Clone::clone)?;
     bootstrap.validate_binding(home.class(), config)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
     home.account_sources.lock().unwrap().push(policy.clone());
     home.host
-        .source_request_wait(&policy, std::time::Duration::from_secs(20))?;
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))?;
     let source =
         home.host
             .account_login_api_key_from_native_entry(generation, Some(&policy), || {
@@ -3350,10 +3354,11 @@ pub(crate) fn start_native_oauth<F: FnOnce() -> bool>(
         });
     }
     check_native_oauth_home(home, bootstrap, generation)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
     home.account_sources.lock().unwrap().push(policy.clone());
     home.host
-        .source_request_wait(&policy, std::time::Duration::from_secs(20))?;
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))?;
     check_native_oauth_home(home, bootstrap, generation)?;
     let login = std::sync::Arc::new(home.host.account_oauth_start(
         generation,

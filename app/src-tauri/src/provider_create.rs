@@ -117,7 +117,7 @@ fn read(pending: &PendingConfigResource) -> Result<PrivateConfigReading, String>
                 .min(Duration::from_secs(10)),
             PrivateConfigPurpose::CreateOffer,
         )
-        .map_err(|_| LIMIT)?;
+        .map_err(|e| crate::hosting::reading_gate::reading_or(e, || LIMIT.to_owned()))?;
     pending
         .home
         .host

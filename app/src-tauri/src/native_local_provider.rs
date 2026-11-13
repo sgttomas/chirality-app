@@ -255,14 +255,18 @@ pub(crate) fn submit(
         .cwd
         .to_str()
         .ok_or(LIMIT)?;
+    // Readings of one generation are made one at a time and each supersedes every earlier proof,
+    // so the requirements reading comes first and the configuration reading the key entry rests
+    // on last. The requirements reply is still what decides whether a key may be entered.
+    let deadline = std::time::Instant::now() + Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
+    home.account_sources.lock().unwrap().push(policy.clone());
+    home.host
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))
+        .map_err(|_| LIMIT)?;
     let _proof = home
         .host
         .provider_admission_read(generation, cwd, ENTRY, PROVIDER, MODEL)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
-    home.account_sources.lock().unwrap().push(policy.clone());
-    home.host
-        .source_request_wait(&policy, Duration::from_secs(20))
-        .map_err(|_| LIMIT)?;
     source(home, plan, generation)?;
     window_current()?;
     // Consumed even on cancel or unknown outcome. A replacement source is a separate explicit act.

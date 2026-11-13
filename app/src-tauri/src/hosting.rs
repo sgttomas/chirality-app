@@ -380,12 +380,20 @@ struct Inner {
     malformed: u64,
     pending: HashMap<String, (usize, Sender<Value>)>,
     source_requests: HashMap<String, SourceEvidence>,
-    provider_read_revisions: HashMap<String,(Value,String)>,
+    /// This generation's one place for an outstanding configuration reading, and its stage
+    /// (`reading_gate`). Changed only under this lock.
+    reading_slot: Option<reading_gate::ReadingSlot>,
+    /// The newest configuration reading of the generation: what admission, the settings reading
+    /// and the native confirmations follow. Set at registration; cleared by a withdrawal, a
+    /// confirmed provider write's attempt and the generation's close; never restored by a reply.
+    reading_current: Option<reading_gate::ReadingCurrent>,
+    /// Callers waiting for the reservation, in arrival order.
+    reading_queue: reading_gate::ReadingQueue,
     /// The latest private configuration read per folder: what the chooser's
     /// provider list is compared with, and nothing else. A model list or
     /// delegation read is not one, so it leaves a chosen provider current;
-    /// `provider_read_revisions` (admission, the settings reading and the
-    /// native confirmations) still follows every read.
+    /// `reading_current` (admission, the settings reading and the native
+    /// confirmations) still follows every read.
     provider_observation_revisions: HashMap<String,(Value,String)>,
     private_config_channels: Vec<Value>,
     local_provider: Option<access_provider::LocalProviderBinding>,
@@ -443,6 +451,9 @@ struct Inner {
 
 #[path = "access_provider.rs"]
 mod access_provider;
+#[path = "hosting_reading_gate.rs"]
+pub(crate) mod reading_gate;
+use reading_gate::ReadingHold;
 #[path = "access_settings.rs"]
 mod access_settings;
 pub(crate) use access_provider::ProviderAdmission;
@@ -888,6 +899,15 @@ pub struct Host {
     before_delegation_wait: Mutex<Option<Box<dyn Fn(&SourceRequest) + Send>>>,
     #[cfg(test)]
     before_provider_wait: Mutex<Option<Box<dyn Fn(&Host,&SourceRequest) + Send>>>,
+    /// Runs once when a reading first finds the reservation held, before it waits.
+    #[cfg(test)]
+    pub(crate) reading_waiting: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Runs once after a reading registers, before it asks for the frame writer.
+    #[cfg(test)]
+    pub(crate) reading_after_register: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Runs once after any request's final admission, frame writer held, before its write.
+    #[cfg(test)]
+    pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
@@ -971,6 +991,9 @@ impl Host {
             before_delegation_wait: Mutex::new(None),
             #[cfg(test)]
             before_provider_wait: Mutex::new(None),
+            #[cfg(test)] reading_waiting: Mutex::new(None),
+            #[cfg(test)] reading_after_register: Mutex::new(None),
+            #[cfg(test)] before_request_write: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
             #[cfg(test)]
@@ -2036,6 +2059,10 @@ impl Host {
 
     /// H10: every pending client request of the closing generation becomes unknown.
     fn close_generation(i: &mut Inner) -> Value {
+        // A reading outstanding in this generation ends with it, and so does its currency. Its
+        // waiter is released below (its sender dropped); reservation waiters look again within
+        // `reading_gate`'s poll interval.
+        let closing=i.generation.clone();Self::reading_close_locked(i,&closing);
         if let Some(c)=i.aa_capture.as_mut(){c.retire();}
         if let Some(o)=i.cce_offer.as_mut(){o.retire();}
         let mut unknown = 0;
@@ -2164,7 +2191,7 @@ impl Host {
         self.request_begin_with_access_offer(method,params,initiator,handshake,expected_generation,private_credential,oauth_cancel,aa_reservation,cce_intent,records_project,false,None)
     }
     fn request_begin_with_access_offer(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>)->Result<SourceRequest,String>{
-        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None)
+        self.request_begin_with_access_offer_guarded(method, params, initiator, handshake, expected_generation, private_credential, oauth_cancel, aa_reservation, cce_intent, records_project, private_config, provider_admission, None, None, None)
     }
     fn request_begin_ordinary(&self, generation: &Value, params: Value, inherited_mode: bool) -> Result<SourceRequest, String> {
         self.request_begin_ordinary_effort(generation, params, inherited_mode, false)
@@ -2175,14 +2202,19 @@ impl Host {
             "effortGuard": inherited_effort,
             "effort": params["collaborationMode"]["settings"]["reasoning_effort"]
         }));
-        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None)
+        self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None, None)
     }
-    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>)->Result<SourceRequest,String>{
+    fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>)->Result<SourceRequest,String>{
         if matches!(method,"config/batchWrite"|"config/value/write") && endpoint_write.is_none() {return Err("Configuration writes require a confirmed typed provider operation; generic route refused".into());}
         if endpoint_write.is_some() && (method!="config/batchWrite" || !private_config) {return Err("Private endpoint method context differs".into());}
         if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
         #[cfg(test)] let cce_selected=cce_intent.is_some();
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
+        // A configuration reading first takes its generation's reservation, holding no lock while
+        // it waits (`reading_gate`). The hold is declared before every lock guard below, so it is
+        // dropped after them: an early return or a panic before the write is admitted withdraws.
+        let reading=reading_gate::is_reading(method);
+        let hold:Option<ReadingHold>=if reading {Some(self.reading_reserve(method,expected_generation,reading_deadline.unwrap_or_else(||std::time::Instant::now()+reading_gate::READING_DEFAULT_BUDGET))?)} else {None};
         let (tx, rx) = channel();
         let mut i = self.inner.0.lock().unwrap();
         if let Some(write)=endpoint_write {write.check(self,&i)?;}
@@ -2215,9 +2247,10 @@ impl Host {
         let bytes=Self::frame_bytes(&raw_frame)?;drop(raw_frame);drop(params);
         if auth_rpc::account_method(method)&&!i.account_channels.contains(&i.generation){let g=i.generation.clone();i.account_channels.push(g);}
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
-        if method=="config/read" {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
-            i.provider_read_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
-            if private_config {i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));}
+        // Reserved to Registered: this reading becomes the newest of its generation.
+        if let Some(hold)=&hold {Self::reading_register_locked(&mut i,hold,&request,method)?;}
+        if method=="config/read"&&private_config {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
+            i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
         }}
         if private_config&&!i.private_config_channels.contains(&request.generation){i.private_config_channels.push(request.generation.clone());}
         let cce_bound=cce_intent.map(|intent|call_custody::Offer::bind(intent,&self.inner,&request)).transpose().map_err(|e|e.message())?;
@@ -2246,7 +2279,12 @@ impl Host {
             i.aa_capture=Some(core);
         }
         drop(i);
-        let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if private_credential||endpoint_write.is_some(){
+        #[cfg(test)] if hold.is_some() {let hook=self.reading_after_register.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        let write_result=(||->Result<(),String>{let mut bound=captured?;let serial=if let Some(hold)=&hold{
+            // A reading asks for the frame writer only until its deadline; past it the reading is
+            // withdrawn and nothing is written.
+            loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{if std::time::Instant::now()>=hold.deadline{return Err(reading_gate::READING_WITHDRAWN.into());}std::thread::sleep(Duration::from_millis(2));}}}
+        }else if private_credential||endpoint_write.is_some(){
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
         }else{self.frame_write.lock().unwrap()};
             // Source IO has bounded work and holds neither Inner nor the
@@ -2258,7 +2296,9 @@ impl Host {
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
                 if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_local_resume_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
-                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());i.provider_observation_revisions.remove(write.cwd());}
+                // A confirmed provider write's attempt: no reading of this generation is current, for
+                // any folder, and an earlier reading's reply arriving later restores nothing.
+                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.reading_current=None;i.provider_observation_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
@@ -2273,10 +2313,13 @@ impl Host {
                     }
                     Self::turn_requested_context(&i, &frame["params"], cut)
                 } else { Value::Null };
+                // Registered to WriteStarted, the deadline rechecked with the frame writer held.
+                if let Some(hold)=&hold {Self::reading_write_started_locked(&mut i,hold)?;}
                 i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
                 let epoch=i.aa_epoch;let cut=i.receipt_position;
                 if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
             #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
+            #[cfg(test)] {let hook=self.before_request_write.lock().unwrap().take();if let Some(h)=hook{h(self);}}
             #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else{None};
             #[cfg(test)] let result=match simulated{Some(reason)=>Err(format!("simulated write settlement: {reason}")),None=>Self::write_complete(&mut bound.file,&bytes)};
             #[cfg(not(test))] let result=Self::write_complete(&mut bound.file,&bytes);
@@ -2285,6 +2328,7 @@ impl Host {
         drop(bytes);
         let mut i=self.inner.0.lock().unwrap();let key=id.to_string();let closed=i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||!matches!(i.state.as_str(),"ready"|"handshaking");
         let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
+        let reading_error=hold.as_ref().map(|_|write_result.as_ref().err().cloned());
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
@@ -2308,6 +2352,20 @@ impl Host {
             let written=e.written&&!e.write_attempt_in_progress&&e.write_error.is_none()&&e.source_limit.is_none()&&!closed&&pipe.is_some_and(|(epoch,_)|epoch==i.attachment_pipe_epoch);
             let epoch=i.aa_epoch;
             if let Some(c)=i.aa_capture.as_mut(){c.settle(&request.generation,epoch,request.request_ref(),pipe,written);}
+        }
+        // A reading's stage after its write: written, or a failed attempt (still outstanding: bytes
+        // may have reached Codex), or refused before any attempt (withdrawn, nothing sent).
+        if let (Some(hold),Some(error))=(&hold,reading_error) {
+            let attempted=i.source_requests[&key].attempt_position.is_some();
+            match error {
+                None=>Self::reading_written_locked(&mut i,hold.token,true),
+                Some(_) if attempted=>Self::reading_written_locked(&mut i,hold.token,false),
+                Some(error)=>{
+                    if Self::reading_withdraw_locked(&mut i,hold.token,&error){self.inner.1.notify_all();}
+                    drop(i);
+                    return Err(error);
+                }
+            }
         }
         Ok(request)
     }
@@ -2347,7 +2405,7 @@ impl Host {
         self.check_account_entry_scope(generation)?;self.account_key_policy_standing(generation,policy)?;
         self.account_login_api_key(generation,input,policy).map(Some)
     }
-    pub(crate) fn account_requirements_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("configRequirements/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
+    pub(crate) fn account_requirements_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.account_requirements_read_until(generation,std::time::Instant::now()+Duration::from_secs(20))}
     pub(crate) fn account_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
     /// Account kind only; explicitly no proactive token refresh.
     pub(crate) fn account_read_no_refresh_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({"refreshToken":false}),json!({"kind":"person-directed"}),false,Some(generation))}
@@ -3607,11 +3665,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             if silent.get() { return Err(format!("{method} not sent: an earlier read of this reading got no response")); }
             let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
             if wait.is_zero() { return Err(format!("{method} not sent: the reading's time limit was reached")); }
-            let request = self.request_begin_scoped(method, params, initiator.clone(), false, Some(generation))?;
+            // One absolute deadline for this request: a configuration reading waits for its
+            // generation's reservation and the frame writer within it, then for its reply.
+            let until = std::time::Instant::now() + wait;
+            let request = if reading_gate::is_reading(method) { self.request_reading(method, params, initiator.clone(), generation, false, until)? }
+                else { self.request_begin_scoped(method, params, initiator.clone(), false, Some(generation))? };
             sent.borrow_mut().push(request.request_id().to_string());
             #[cfg(test)]
             if let Some(hook) = self.before_delegation_wait.lock().unwrap().as_ref() { hook(&request); }
-            let response = self.wait_source_response(&request, wait).map_err(|e| {
+            let response = self.wait_source_response(&request, until.saturating_duration_since(std::time::Instant::now())).map_err(|e| {
                 if e.contains("within the wait limit") { silent.set(true); }
                 // Any failure ends this reading's wait: a later reply is kept
                 // as its outcome only (`on_line`).
@@ -3719,10 +3781,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             if wait.is_zero() { return Err(format!("{method} not sent: the read's time limit was reached")); }
             // Only fixed wording leaves this read: native errors and schema
             // findings can quote configuration, so neither is passed on.
-            let request = self.request_begin_scoped(method, params, json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR}), false, Some(generation))
-                .map_err(|_| format!("{method} not sent in this Codex generation"))?;
+            let until = std::time::Instant::now() + wait;
+            let initiator = json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR});
+            let request = if reading_gate::is_reading(method) { self.request_reading(method, params, initiator, generation, false, until) }
+                else { self.request_begin_scoped(method, params, initiator, false, Some(generation)) }
+                .map_err(|e| reading_gate::reading_or(e, || format!("{method} not sent in this Codex generation")))?;
             sent.borrow_mut().push(request.request_id().to_string());
-            let response = self.wait_source_response(&request, wait).map_err(|e| {
+            let response = self.wait_source_response(&request, until.saturating_duration_since(std::time::Instant::now())).map_err(|e| {
                 let silence = e.contains("within the wait limit");
                 if silence { silent.set(true); }
                 self.delegation_wait_ended(&request);
@@ -3812,6 +3877,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let Some(idx) = i.source_requests.get(&key).map(|e| e.index) else { return };
         if i.client_requests[idx].is_object() { i.client_requests[idx]["waitingEnded"] = json!(true); }
         if let Some(e) = i.source_requests.get_mut(&key) { e.observation_base["waitingEnded"] = json!(true); }
+        // A reading whose caller stopped waiting stays outstanding until its reply or the close.
+        let generation = request.generation.clone();
+        Self::reading_abandoned_locked(&mut i, &generation, &key);
     }
     /// Test view: every reply body the request evidence keeps, and its count.
     #[cfg(test)]
@@ -4296,6 +4364,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         if class == "response" {
             let key = frame["id"].to_string();
+            // A terminal reply naming this line's generation and the outstanding reading's request
+            // releases the reservation; one naming another generation or request releases nothing.
+            if Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
