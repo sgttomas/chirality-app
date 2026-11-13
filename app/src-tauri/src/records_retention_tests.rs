@@ -322,6 +322,105 @@ fn records_retention_strict_history_and_uncertain_publication_never_enable_dispo
     assert!(f.act("dispose", None).is_err());
     assert!(f.dir().exists());
 }
+/// Alters the first line of the fixture's log in the store after a second
+/// line was written, so that line's link no longer names it. Returns the
+/// log's path within the project's store folder.
+fn break_chain(f: &Fixture) -> String {
+    f.record();
+    let log = crate::storage::project_log(&f.project, None, "app-writer:fixture").unwrap();
+    let mut bytes = std::fs::read(&log).unwrap();
+    let at = bytes.windows(8).position(|w| w == b"invented").unwrap();
+    bytes[at] = b'I';
+    std::fs::write(&log, bytes).unwrap();
+    log.strip_prefix(f.dir()).unwrap().to_str().unwrap().to_owned()
+}
+fn dispose_entry(dir: &Path) -> Value {
+    let events = control(dir).unwrap().join("events");
+    let mut found = None;
+    for entry in std::fs::read_dir(events).unwrap() {
+        let v: Value = serde_json::from_slice(&std::fs::read(entry.unwrap().path()).unwrap()).unwrap();
+        if v["action"] == "dispose" { found = Some(v); }
+    }
+    found.unwrap()
+}
+#[test]
+fn records_retention_disposal_relying_on_an_export_with_a_broken_chain_is_not_refused_and_states_and_records_the_limit() {
+    let f = Fixture::new();
+    let rel = break_chain(&f);
+    let dir = f.dir();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let p = prepare(&f.project, "dispose", Some(&bag), &f.actor, &f.observed).unwrap();
+    assert_eq!(p.context["export"]["logIntegrity"]["state"], "limited");
+    // Its own statement in the native question, with the log and the line.
+    let asked = statement(&p).unwrap();
+    assert!(asked.text.contains("Log integrity: LIMITED."), "{}", asked.text);
+    assert!(asked.text.contains("This is the export you are relying on, and this is recorded with the disposal."), "{}", asked.text);
+    match &asked.in_app {
+        None => assert!(asked.text.contains(&format!("{rel}: chain broken at line 2")), "{}", asked.text),
+        // The bounded summary names the line whole; the App shows every limit.
+        Some(shown) => {
+            assert!(asked.text.contains("1 limit(s); each is named in full in the App under this confirmation."), "{}", asked.text);
+            assert!(shown.content["export"]["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")));
+        }
+    }
+    let summary = crate::records_export::integrity_summary(&p.context["export"]["logIntegrity"]).unwrap();
+    assert!(summary.contains("1 limit(s); each is named in full in the App under this confirmation."), "{summary}");
+    assert!(p.context["export"]["verification"].as_str().unwrap().contains("separately, log integrity: limited (1,"), "the verification sentence read alone is not a clean pass");
+    // Not refused, and recorded with the act.
+    let result = apply(p, &f.actor, &f.observed).unwrap();
+    assert_eq!(result["state"], "disposed");
+    assert_eq!(result["exportLogIntegrity"]["state"], "limited");
+    assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "{result}");
+    let entry = dispose_entry(&dir);
+    assert_eq!(entry["export"]["logIntegrity"]["state"], "limited");
+    assert!(entry["export"]["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")), "{entry}");
+    assert_eq!(view(&dir)["disposalExportLogIntegrity"], entry["export"]["logIntegrity"]);
+}
+#[test]
+fn records_retention_disposal_always_records_whether_the_export_states_a_broken_chain_and_an_older_entry_reads_as_not_stated() {
+    // An export with no chain recorded broken: stated as such, and the
+    // question makes no integrity statement.
+    let f = Fixture::new();
+    let dir = f.dir();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let p = prepare(&f.project, "dispose", Some(&bag), &f.actor, &f.observed).unwrap();
+    assert_eq!(p.context["export"]["logIntegrity"], json!({"state":"no chain recorded broken"}));
+    assert!(!statement(&p).unwrap().text.contains("Log integrity"));
+    apply(p, &f.actor, &f.observed).unwrap();
+    assert_eq!(dispose_entry(&dir)["export"]["logIntegrity"], json!({"state":"no chain recorded broken"}));
+    assert_eq!(view(&dir)["disposalExportLogIntegrity"]["state"], "no chain recorded broken");
+    drop(f);
+    // A disposal act recorded before the member existed (its export object
+    // as that build wrote it), left incomplete. It still reads; its absent
+    // member is "not stated", never "no chain recorded broken"; and the
+    // resumed disposal carries the member from its own check of the export.
+    let f = Fixture::new();
+    let rel = break_chain(&f);
+    let dir = f.dir();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    crate::records_export::BEFORE_LOG_INTEGRITY.with(|b| b.set(true));
+    fail_remove_for_test(true);
+    let error = f.act("dispose", Some(&bag)).unwrap_err();
+    fail_remove_for_test(false);
+    crate::records_export::BEFORE_LOG_INTEGRITY.with(|b| b.set(false));
+    assert!(error.contains("disposal incomplete"), "{error}");
+    let entry = dispose_entry(&dir);
+    assert!(entry["export"].get("logIntegrity").is_none(), "{entry}");
+    let older = view(&dir);
+    assert_eq!(older["disposition"], "disposal incomplete", "the older entry still reads");
+    assert_eq!(older["disposalExportLogIntegrity"], json!({"state":"not stated"}));
+    let resume = prepare(&f.project, "resume-disposal", None, &f.actor, &f.observed).unwrap();
+    assert_eq!(resume.context["export"]["logIntegrity"]["state"], "limited");
+    assert!(resume.context["export"]["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")));
+    assert!(statement(&resume).unwrap().text.contains("Log integrity: LIMITED."));
+    let result = apply(resume, &f.actor, &f.observed).unwrap();
+    assert_eq!(result["state"], "disposed");
+    assert_eq!(result["exportLogIntegrity"]["state"], "limited");
+    assert_eq!(view(&dir)["disposalExportLogIntegrity"], json!({"state":"not stated"}), "the original act is not rewritten");
+}
 #[test]
 fn records_retention_stale_member_bytes_and_legacy_bag_do_not_satisfy_disposal() {
     let f = Fixture::new();
@@ -639,6 +738,34 @@ fn records_retention_visible_but_uncertain_completion_has_a_resync_path_without_
         "reconciliation records no second person's disposal or second completion event"
     );
     assert_eq!(view(&dir)["disposition"], "disposed");
+}
+#[test]
+fn records_retention_completion_resync_returns_the_resumed_checks_finding_about_the_export() {
+    // An older disposal act (no logIntegrity member) whose completion was
+    // visible but not confirmed durable, relying on an export with a broken
+    // chain. The resync performs no new act, and still says what the resumed
+    // check found about the export.
+    let f = Fixture::new();
+    let rel = break_chain(&f);
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    crate::records_export::BEFORE_LOG_INTEGRITY.with(|b| b.set(true));
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(true));
+    let e = f.act("dispose", Some(&bag)).unwrap_err();
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(false));
+    crate::records_export::BEFORE_LOG_INTEGRITY.with(|b| b.set(false));
+    storage::fail_directory_for_test(None);
+    assert!(e.contains("completion publication durability uncertain"), "{e}");
+    assert_eq!(view(&dir)["disposition"], "completion durability uncertain");
+    let sequence = state(&dir).unwrap().sequence;
+    let result = f.act("resume-disposal", None).unwrap();
+    assert_eq!(result["state"], "disposed");
+    assert_eq!(result["exportLogIntegrity"]["state"], "limited");
+    assert!(result["exportLogIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")), "{result}");
+    assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "{result}");
+    assert_eq!(state(&dir).unwrap().sequence, sequence, "no second act");
+    assert_eq!(view(&dir)["disposalExportLogIntegrity"], json!({"state":"not stated"}), "the original act is not rewritten");
 }
 #[test]
 fn records_retention_disposed_unlinked_project_never_falls_back_when_store_becomes_unavailable() {

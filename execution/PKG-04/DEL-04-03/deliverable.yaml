@@ -121,8 +121,10 @@ code_paths:
 - app/src-tauri/resources/runtime_core/records-administration.entry.schema.json
 - app/src-tauri/resources/runtime_core/records-read-log.entry.schema.json
 - app/tools/verify_records_bag.py
+- app/src-tauri/src/role_observations.rs
 checks:
 - app/src-tauri/src/record_lines_tests.rs
+- app/src-tauri/src/role_observations_tests.rs
 - app/src-tauri/src/record_lines_regression_tests.rs
 - app/src-tauri/tests/record_semantics.rs
 - app/src-tauri/tests/record_relations.rs

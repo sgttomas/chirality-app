@@ -141,7 +141,7 @@ impl RecordsSource for ProjectPaths {
                     }
                     continue;
                 }
-                if line.limits.iter().any(|l| l.contains("chain broken")) {
+                if line.broken.is_some() {
                     corpus.limits.push(format!("{log}: the chain is broken at line {at}"));
                 }
                 if line.limits.iter().any(|l| l.contains("sequence incomplete")) {
