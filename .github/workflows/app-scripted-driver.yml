@@ -36,9 +36,12 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+      # The shared setup restores the compiled-dependency cache and saves nothing of it here (no save step follows);
+      # the npm download cache, which setup-node would also save, is off.
       - uses: ./.github/actions/app-v4-setup
         with:
           rust-cache-job: scripted-driver
+          npm-cache: 'false'
       - name: Build the test bundle
         run: python3 -B examination/scripted_driver/proof.py build --out "$RUNNER_TEMP/driver"
       - name: Launch it once and read its report

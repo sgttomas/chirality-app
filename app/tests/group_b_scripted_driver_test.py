@@ -78,6 +78,13 @@ class KeptOutOfTheShippedApp(unittest.TestCase):
         self.assertEqual(workflow.count('upload-artifact'), 1)
         self.assertIn('path: ${{ runner.temp }}/driver/report.json\n', workflow)
         self.assertIn('runs-on: macos-26', workflow)
+        # Nothing else leaves the runner: the npm download cache is off, and no cache is saved.
+        self.assertIn("npm-cache: 'false'", workflow)
+        self.assertNotIn('rust-cache-save', workflow)
+        self.assertNotIn('actions/cache', workflow)
+        setup = (REPO / '.github/actions/app-v4-setup/action.yml').read_text()
+        self.assertIn("cache: ${{ inputs.npm-cache != 'false' && ", setup)
+        self.assertNotIn('actions/cache/save', setup)
         self.assertIn('proof.py release-free', workflow)
 
 
