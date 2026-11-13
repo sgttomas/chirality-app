@@ -3968,10 +3968,11 @@ fn native_local_settings_key_entry_records_the_bound_address_before_the_field_an
                 assert_eq!(std::fs::read(plan.native_path().join("key-address")).unwrap(), format!("{}\n", set.endpoint()).into_bytes());
                 Ok(Some(CANARY.into()))
             }));
-            assert_eq!(peer.frame()["method"], "config/read");
+            // Requirements first, then the configuration reading the entry rests on.
             let policy = peer.frame();
             assert_eq!(policy["method"], "configRequirements/read");
             peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(), &peer.g);
+            assert_eq!(peer.frame()["method"], "config/read");
             if case == "entered" {
                 let login = peer.frame();
                 assert_eq!(login["method"], "account/login/start");
@@ -4182,9 +4183,11 @@ fn native_local_settings_key_entry_across_a_prepared_send_is_admitted_only_for_t
             assert_eq!(address, set.endpoint());
             Ok(Some(CANARY.into()))
         }));
-        assert_eq!(peer.frame()["method"], "config/read");
+        // Requirements first, then the configuration reading the entry rests on.
         let policy = peer.frame();
+        assert_eq!(policy["method"], "configRequirements/read");
         peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(), &peer.g);
+        assert_eq!(peer.frame()["method"], "config/read");
         let login = peer.frame();
         assert_eq!(login["method"], "account/login/start");
         peer.host.on_line(&serde_json::to_vec(&json!({"id":login["id"],"result":{"type":"apiKey"}})).unwrap(), &peer.g);
