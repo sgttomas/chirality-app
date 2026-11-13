@@ -36,7 +36,7 @@ def test_selected_and_excluded_tests_pass():
         TESTS, workflow("a::tests top_level"),
         "b::tests: full route only\nb::tests::deep: selected only with the feature\n")
     assert problems == []
-    assert counts == {"tests": 5, "selected": 3, "excluded": 2}
+    assert counts == {"tests": 5, "selected": 3, "excluded": 2, "ignored": 0}
 
 
 def test_unselected_unexcluded_test_is_named():
@@ -57,7 +57,7 @@ def test_matching_is_by_substring_as_libtest_does():
 
 def test_filter_selecting_nothing_fails():
     problems, _ = cohorts.check(TESTS, workflow("a::tests top_level b::tests gone_cohort"), "")
-    assert problems == ["filter gone_cohort on shard / step 0 selects no test"]
+    assert problems == ["default-feature filter gone_cohort on shard / step 0 selects no test that is not ignored"]
 
 
 def test_stale_exclusion_fails():
@@ -77,7 +77,7 @@ def test_a_module_line_whose_tests_are_all_selected_is_stale():
 
 def test_a_module_line_covers_only_the_unselected_tests_of_a_mixed_module():
     problems, counts = cohorts.check(TESTS, workflow("a::tests::one top_level b::tests"), "a::tests: r\n")
-    assert problems == [] and counts == {"tests": 5, "selected": 4, "excluded": 1}
+    assert problems == [] and counts == {"tests": 5, "selected": 4, "excluded": 1, "ignored": 0}
 
 
 def test_a_test_line_takes_precedence_over_its_module_line():
@@ -207,3 +207,99 @@ def test_a_listing_command_selects_nothing():
     text = workflow("a::tests", steps=[LOOP, 'cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --list > "$RUNNER_TEMP/l.txt"'])
     problems, _ = cohorts.check(listing("a::tests::one", "b::tests::two"), text, "")
     assert problems == ["b::tests::two is selected by no pull-request cohort and covered by no line of tools/ci/lib_cohort_exclusions.txt"]
+
+
+IGNORED_REASON = "ignored (#[ignore]): opt-in; run by no hosted job unless someone names it"
+
+
+def test_an_ignored_test_under_a_full_route_line_fails():
+    # The reader's control: a "full route only" line cannot cover an ignored test.
+    problems, _ = cohorts.check(TESTS, workflow("a::tests top_level"), "b::tests: full route only\nb::tests::deep: r\n",
+                                listing("b::tests::three"))
+    assert problems == ["b::tests::three is ignored (#[ignore]) but its line b::tests does not say so "
+                        "(its reason must begin 'ignored (#[ignore])')"]
+
+
+def test_an_ignored_test_is_its_own_category_and_never_selected():
+    text = workflow("a::tests top_level")
+    exclusions = f"a::tests::two: {IGNORED_REASON}\nb::tests: r\nb::tests::deep: r\n"
+    problems, counts = cohorts.check(TESTS, text, exclusions, listing("a::tests::two"))
+    assert problems == [] and counts == {"tests": 5, "selected": 2, "excluded": 2, "ignored": 1}
+    problems, _ = cohorts.check(TESTS, text, "b::tests: r\nb::tests::deep: r\n", listing("a::tests::two"))
+    assert problems == ["a::tests::two is ignored (#[ignore]) and covered by no line of tools/ci/lib_cohort_exclusions.txt"]
+
+
+def test_an_ignored_line_cannot_cover_a_test_that_is_not_ignored():
+    problems, _ = cohorts.check(TESTS, workflow("a::tests top_level"), f"b::tests: {IGNORED_REASON}\nb::tests::deep: r\n",
+                                listing("b::tests::three"))
+    assert problems == []
+    problems, _ = cohorts.check(TESTS, workflow("a::tests top_level"), f"b::tests: r\nb::tests::deep: {IGNORED_REASON}\n", "")
+    assert problems == ["b::tests::deep::four is not ignored but its line b::tests::deep says it is"]
+
+
+def test_a_filter_matching_only_ignored_tests_selects_nothing():
+    problems, _ = cohorts.check(listing("a::t", "b::t"), workflow("a::t b::t"), f"b::t: {IGNORED_REASON}\n", listing("b::t"))
+    assert problems == ["default-feature filter b::t on shard / step 0 selects no test that is not ignored"]
+
+
+def test_ignored_list_from_another_build_fails():
+    problems, _ = cohorts.check(listing("a::t"), workflow("a::t"), "", listing("z::t"))
+    assert "z::t is in the ignored list but not in the test list (were both listed from one build?)" in problems
+
+
+def test_an_absorbed_test_is_not_detected():
+    # Documented limit: removing a filter that selected a direct test of an excluded module is absorbed by the module line.
+    tests = listing("m::tests::x", "m::tests::y", "u::t")
+    before, c1 = cohorts.check(tests, workflow("m::tests::x u::t"), "m::tests: r\n")
+    after, c2 = cohorts.check(tests, workflow("u::t"), "m::tests: r\n")
+    assert before == after == [] and (c1["excluded"], c2["excluded"]) == (1, 2)
+
+
+def _refusal(run_block: str, steps_yaml: str | None = None) -> list[str]:
+    text = ("jobs:\n  shard:\n    if: " + FOCUSED + "\n    env:\n      LIB_COHORTS: a::tests\n    steps:\n"
+            + (steps_yaml if steps_yaml is not None else f"      - name: s\n        run: {run_block}\n"))
+    return [p for p in cohorts.check(TESTS, text, "")[0] if "cannot read" in p]
+
+
+def test_refuses_more_than_one_filter():
+    assert _refusal("cargo test --lib a::tests -- b::tests --test-threads 1") == [
+        "shard / s: the check cannot read more than one test filter (the check reads one)"]
+
+
+def test_refuses_skip_and_ignored_runs():
+    assert _refusal("cargo test --lib a::tests -- --skip x") == ["shard / s: the check cannot read --skip (the check does not read it)"]
+    assert _refusal("cargo test --lib a::tests -- --include-ignored") == [
+        "shard / s: the check cannot read --ignored or --include-ignored (the check does not count runs of ignored tests)"]
+
+
+def test_refuses_a_step_level_lib_cohorts():
+    steps = "      - name: s\n        env:\n          LIB_COHORTS: b::tests\n        run: cargo test --lib a::tests\n"
+    assert _refusal("", steps) == ["shard / s: the check cannot read a step-level LIB_COHORTS (the check reads only the job's)"]
+
+
+def test_refuses_a_step_level_if_on_a_library_test_command():
+    steps = "      - name: s\n        if: false\n        run: cargo test --lib a::tests\n"
+    assert _refusal("", steps) == [
+        "shard / s: the check cannot read a step-level if on a library test command (the check does not evaluate step conditions)"]
+    assert _refusal("", "      - name: s\n        if: always()\n        run: npm test\n") == []
+
+
+def test_refuses_a_folded_block_with_blank_lines():
+    steps = "      - name: s\n        run: >-\n          cargo test --lib a::tests\n\n          -- --test-threads=1\n"
+    assert _refusal("", steps) == ["shard / s: the check cannot read run: a folded block with blank lines"]
+
+
+def test_refuses_a_quoted_run_with_a_trailing_comment():
+    assert _refusal("'cargo test --lib a::tests' # note") == [
+        "shard / s: the check cannot read run: a quoted scalar followed by other text (such as a comment)"]
+
+
+def test_refuses_anchors_and_aliases():
+    steps = "      - name: s\n        run: &cmd cargo test --lib a::tests\n      - name: t\n        run: *cmd\n"
+    assert _refusal("", steps) == ["shard / s: the check cannot read run: an anchor, alias or merge key",
+                                   "shard / t: the check cannot read run: an anchor, alias or merge key"]
+
+
+def test_refuses_an_expression_in_a_filter():
+    # The expression also splits into several words, so it is refused as more than one filter as well.
+    assert "shard / s: the check cannot read a ${{ }} expression in a filter" in _refusal("cargo test --lib ${{ matrix.cohort }}")

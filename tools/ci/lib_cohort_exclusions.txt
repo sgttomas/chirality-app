@@ -8,14 +8,24 @@
 # no pull-request filter selects, not those of its submodules; a line naming
 # one test takes precedence over its module's line.
 #
-# Reasons are of three kinds: the full route only, with the reason where one is
+# Reasons are of four kinds: the full route only, with the reason where one is
 # recorded; selected on pull requests only by a successor-feature filter, with
-# its step; selected on pull requests only by a web test fixture, with its step.
+# its step; selected on pull requests only by a web test fixture, with its step;
+# and ignored (#[ignore]), which the full route does not run either: opt-in, run
+# by no hosted job unless someone names it, or a child process that a named
+# parent test starts, running only where that parent runs. Every ignored test
+# has a line of that last kind, whether or not a filter's name matches it.
 # A test left to the full route runs on main nightly and on a product dispatch,
 # not on the pull request that changes it.
+#
+# The check does not verify a reason's text beyond the ignored marker: not the
+# named feature step, web fixture or parent, nor the full route's command.
+# Refresh after cohorts change (removes stale lines only; adds none):
+#   cargo test --locked --manifest-path app/src-tauri/Cargo.toml --lib -- --list > /tmp/l.txt && cargo test --locked --manifest-path app/src-tauri/Cargo.toml --lib -- --list --ignored > /tmp/i.txt && python3 tools/ci/check_lib_cohorts.py --list /tmp/l.txt --ignored-list /tmp/i.txt --prune
 
 access::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 act_control::a15::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+act_control::file_act::tests::file_act_fifo_worker: ignored (#[ignore]): a child process that act_control::file_act::tests::file_act_fifo_refusals_have_bounded_subprocess_lifetime (selected on pull requests by the cohort file_act; the full route runs it too) starts by name with --ignored; it runs only where that test runs
 act_control::native_statement::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 act_control::persistence_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 bundle_resources_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
@@ -39,10 +49,13 @@ group_b_fixture_consumer: full route only; left out of the pull-request shards w
 historical_run_learning::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::additive_guidance_transport_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::child_environment_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::child_environment_tests::child_environment_inner_observed_on_every_start_path: ignored (#[ignore]): a child process that hosting::child_environment_tests::child_environment_lacks_removed_names_and_keeps_the_rest_on_every_start_path (left out of pull requests by the line hosting::child_environment_tests; the full route runs it) starts by name with --ignored; it runs only where that test runs
 hosting::closed_receipt_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::conversation_transport_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::conversation_transport_tests::attachment_host_nonreader_probe: ignored (#[ignore]): a child process that hosting::conversation_transport_tests::attachment_host_nonreader_stop_and_midwrite_status_actual_bounded_watchdog (left out of pull requests by the line hosting::conversation_transport_tests; the full route runs it) starts by name with --ignored; it runs only where that test runs
 hosting::conversation_transport_tests::local_role_metadata_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::conversation_transport_tests::namespace_admission_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_blocked_write_worker: ignored (#[ignore]): a child process that hosting::conversation_transport_tests::namespace_admission_tests::namespace_admission_blocked_write_stop_has_bounded_watchdog (left out of pull requests by the line hosting::conversation_transport_tests::namespace_admission_tests; the full route runs it) starts by name with --ignored; it runs only where that test runs
 hosting::hosting_delegation_reply_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::hosting_identity_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::missing_custody_mapping_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
@@ -52,13 +65,19 @@ hosting::request_event_join::aa_cap_tests: full route only; left out of the pull
 hosting::request_transport_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::successor::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::successor::tests::build_selection: selected on pull requests only with --features distribution-successor, by filter s2_ in sources-packaging / Staged distribution successor; the full route runs it without the feature
+hosting::successor::tests::build_selection::s2_existing_stock_vendor_tree_matches_without_execution: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "requires an explicitly supplied existing stock vendor tree; reads only"
 hosting::successor::tests::dev_model_address_successor_start_carries_the_setting_only_when_admitted: selected on pull requests only with --features distribution-successor, by filter dev_model_address in sources-packaging / Development model address is absent from the release configuration (fixture supplier); the full route runs it without the feature
 hosting::successor::tests::installed_s4: selected on pull requests only with --features distribution-successor, by filter hosting::successor::tests::installed_s4 in sources-packaging / Installed integrity and S4 evidence (synthetic source fixtures); the full route runs it without the feature
 hosting::successor::tests::lt23: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::successor::tests::production_cannot_be_overridden_by_development_fields: selected on pull requests only with --features distribution-successor, by filter production_cannot_be_overridden_by_development_fields in sources-packaging / Installed integrity and S4 evidence (synthetic source fixtures); the full route runs it without the feature
 hosting::successor::tests::s4_export: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::successor::tests::s4_export::export_group_b_s4_selected_and_unselected: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "explicit offline Group B fixture export; set CHIRALITY_S4_EXPORT_ROOT"
+hosting::successor::tests::startup_refusal::startup_refusal_stock_config_control_and_first_start_restart_refusal: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "Opt-in cached stock binary; fresh file-auth homes, macOS localhost-only OS sandbox, no model/login calls"
 hosting::successor::tests::stop_admission: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 hosting::successor::tests::terminal_export: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+hosting::successor::tests::terminal_export::export_group_b_terminal_selected_and_unselected: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "explicit offline terminal exchange; set CHIRALITY_TERMINAL_EXPORT_ROOT"
+hosting::supplier_0167_tests::retained_canonical_0167_mutations_refuse_before_probe: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "requires explicit retained canonical vendor; private CoW mutations only, no supplier execution"
+hosting::supplier_0167_tests::retained_canonical_0167_passes_actual_static_preflight: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "requires explicit retained canonical vendor; static read only, never supplier execution"
 installed_custody::tests: selected on pull requests only with --features distribution-successor, by filter installed_custody::tests in sources-packaging / Installed integrity and S4 evidence (synthetic source fixtures); the full route runs it without the feature
 main_window::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_conversation_links::delegation::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
@@ -75,8 +94,11 @@ pinned_codex_observations: full route only; left out of the pull-request shards 
 publisher_recipe::publisher_selection::tests: selected on pull requests only with --features distribution-successor, by filter publisher_recipe::, publisher_selection::tests in sources-packaging / Publisher build selection (synthetic inputs, default None); the full route runs it without the feature
 publisher_selection::tests: selected on pull requests only with --features distribution-successor, by filter publisher_selection::tests in sources-packaging / Publisher build selection (synthetic inputs, default None); the full route runs it without the feature
 publisher_selection::tests::recipe: selected on pull requests only with --features distribution-successor, by filter publisher_selection::tests in sources-packaging / Publisher build selection (synthetic inputs, default None); the full route runs it without the feature
+records::durability_tests::durability_child: ignored (#[ignore]): a child process that the durability witnesses of records::durability_tests start by name with --ignored (selected on pull requests by the cohort records::durability_tests; the full route runs it too); it runs only where they run
 records::supply::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 records::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+records_index::tests::records_index_disk_scale_child: ignored (#[ignore]): a child process that records_index::tests::records_index_disk_scale_report (itself ignored (opt-in)) starts by name with --ignored; it runs only where that test runs
+records_index::tests::records_index_disk_scale_report: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "bounded disk query index measurement; run on request"
 recovery::connected_transition_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 recovery::framing_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 recovery::generation_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
@@ -87,7 +109,10 @@ runtime_session::oauth_root_tests: full route only; left out of the pull-request
 runtime_session::oauth_root_tests::dev_model_address_refuses_sign_in_before_anything_is_sent: selected on pull requests only with --features distribution-successor, by filter dev_model_address in sources-packaging / Development model address is absent from the release configuration (fixture supplier); the full route runs it without the feature
 runtime_session::workflow_journey_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 runtime_session::workflow_root_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
-runtime_session::workflow_root_tests::real_backend_fixture_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+runtime_session::workflow_root_tests::real_backend_fixture_tests::parent_authorized_stock_native_bundled_workflow_fixture: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "Parent only: explicit local workflow fixture opt-in; stock Codex, loopback fixture, no model, credential or owner home"
+runtime_session::workflow_root_tests::real_backend_fixture_tests::parent_authorized_stock_native_clean_trial_bring_back_fixture: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "Parent only: explicit local trial/bring-back fixture opt-in; stock Codex, loopback fixture, no model, credential or owner home"
+runtime_session::workflow_root_tests::records_scale_child: ignored (#[ignore]): a child process that runtime_session::workflow_root_tests::records_scale_report (itself ignored (opt-in)) and records_index::tests::records_index_disk_scale_report (itself ignored (opt-in)) start by name with --ignored; it runs only where those tests run
+runtime_session::workflow_root_tests::records_scale_report: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step passes --ignored or --include-ignored); its marker says "multi-year scale measurement; run on request"
 runtime_session::workflow_root_tests::run_preparation_order_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 runtime_session::workflow_root_tests::start_source_binding_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 runtime_session::workflow_root_tests::text_read_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)

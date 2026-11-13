@@ -82,7 +82,8 @@ jobs:
         # tools/ci/lib_cohort_exclusions.txt says what is left out and why.
         run: |
           cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --list > "$RUNNER_TEMP/lib-tests.txt"
-          python ../tools/ci/check_lib_cohorts.py --list "$RUNNER_TEMP/lib-tests.txt"
+          cargo test --locked --manifest-path src-tauri/Cargo.toml --lib -- --list --ignored > "$RUNNER_TEMP/lib-ignored.txt"
+          python ../tools/ci/check_lib_cohorts.py --list "$RUNNER_TEMP/lib-tests.txt" --ignored-list "$RUNNER_TEMP/lib-ignored.txt"
       - name: Clippy correctness and suspicious lints
         # Gates only these deny-level groups; every other lint stays a warning.
         run: |
