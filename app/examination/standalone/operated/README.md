@@ -82,9 +82,9 @@ All of these hold, every time:
   text below allows it; the first-use setup scenario names none.
 - A walk by this route starts the helper's Codex app-server on `~/.codex` and
   the window service, as the owner has accepted (see "What the route starts"); both are
-  found and ended after every walk (steps 10 and 11). At the go, before the
-  first call, neither may already be running; if one is, no walk is made
-  (step 10). No agent opens or reads
+  found and ended after every walk (steps 10 and 11). Neither may already be
+  running when the operator looks, as the last thing before the walk's first
+  call; if one is, no walk is made (step 10). No agent opens or reads
   anything under `~/.codex` or `~/.codex-hub`, signs in, copies a sign-in or
   sees a credential's value.
 - The App itself starts no Codex in the first-use setup scenario. Launches
@@ -335,13 +335,21 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       whose parent is launchd (process 1), and whose start, in UTC, is no
       earlier than App Agent 0's go and no later than the walk's end. Every
       process meeting all three is ended.
-    - **None may predate the walk.** At the go, before the operator's first
-      call, the lane looks for a window service (by its command, as above)
-      and for any process meeting the app-server's first two tests. If one is
-      running, no walk is made: it is recorded with its number, start time and
-      parent, and it comes to App Agent 0. A process that predates its interval
-      found at the end despite that check is recorded, left and reported; no
-      process that predates the walk is ever signalled.
+    - **None may predate the walk.** As the last thing before the walk's
+      first call, the operator looks for a window service (by its command, as
+      above) and for any process meeting the app-server's first two tests,
+      with the `ps` command above, immediately before it runs the walk's `js`
+      block ("Running a scenario"); nothing else comes between that look and
+      the block. If one is running, no walk is made: it is recorded with its
+      number, start time and parent, the operator ends what it started (steps
+      8 and 10) and returns, and it comes to App Agent 0. A process that
+      predates its interval found at the end despite that look is recorded,
+      left and reported; no process that predates the walk is ever signalled.
+    - **What the look cannot rule out.** Something else could start a window
+      service between the look and the walk's first call. It would lie inside
+      the interval, be taken for the walk's and be ended. The look cannot rule
+      that out; one operator at a time across this project and the others on
+      this machine is what makes it unlikely.
     - An ended process may stay listed with a state beginning with `Z` until
       its parent collects it; that is ended. The operator signals nothing
       else: not the node runtime, not the provider's Codex, not a process
@@ -626,7 +634,9 @@ the system itself:
 
 The watch ends by itself when the App does.
 
-Then, in the operator's `js` tool, with the values filled in:
+Then the operator's look for route processes that predate the walk (step 10,
+"None may predate the walk"), as the last thing before the block; if it finds
+one, no walk. Then, in the operator's `js` tool, with the values filled in:
 
 ```js
 var fs = await import('node:fs');
