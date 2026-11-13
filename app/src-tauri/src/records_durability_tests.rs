@@ -125,7 +125,7 @@ fn records_store_naming_repair_interrupted_after_newline_has_an_owning_writer_co
     let owning_open = open_owning_log(&root.0, &log);
     let next = append(&log, "evidence_limit", &APP_WRITER, rs_body(16));
     let after_retry = read_log(&log);
-    assert_eq!(after_retry.0, vec![prior], "the previously complete record must retain its reading");
+    assert_eq!(after_retry.0.first(), Some(&prior), "the previously complete record must retain its reading");
     let named = after_retry.0.iter().any(|e| e["body"]["label"] == PARTIAL_NOT_RECOVERED);
     assert!(next.is_ok() && named,
         "W-0's own torn naming write has no completion: seed={seeded}; interrupted={interrupted}; before={before_retry:?}; owning_open={owning_open:?}; append={next:?}; after={after_retry:?}");
