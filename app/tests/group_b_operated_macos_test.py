@@ -44,12 +44,17 @@ class StraySearchOnMacOS(unittest.TestCase):
         asked = stray.executable_of(child.pid)
         self.assertTrue(os.path.samefile(asked, self.STAND_IN), (asked, self.STAND_IN))
         # This process too, against a second answer from the system and not the interpreter's own: ps reports the
-        # path a process was executed by. Compared only when that path is absolute; a relative one cannot be
-        # resolved from here, and then the answer is required only to be a file.
+        # path a process was executed by. ps must answer; a failure or an empty answer fails the test. The paths are
+        # compared only when ps gives an absolute one: a relative one cannot be resolved from here, and then this
+        # process's executable is checked only to be a file, its identity left unexamined (the started child above
+        # is the comparison that never depends on this).
         own = stray.executable_of(os.getpid())
         self.assertTrue(os.path.isfile(own), own)
-        said = subprocess.run(['/bin/ps', '-p', str(os.getpid()), '-o', 'comm='], capture_output=True, text=True,
-                              env={'PATH': '/bin:/usr/bin'}).stdout.strip()
+        asked_ps = subprocess.run(['/bin/ps', '-p', str(os.getpid()), '-o', 'comm='], capture_output=True, text=True,
+                                  env={'PATH': '/bin:/usr/bin'})
+        said = asked_ps.stdout.strip()
+        self.assertEqual(asked_ps.returncode, 0, asked_ps.stderr)
+        self.assertTrue(said, 'ps gave no path for this process')
         if os.path.isabs(said):
             self.assertTrue(os.path.samefile(own, said), (own, said))
         gone = subprocess.Popen(['/usr/bin/true'])
