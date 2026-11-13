@@ -28,12 +28,40 @@ All of these hold, every time:
   calls any of its methods.
 - Only the App's development build, addressed by its own bundle identifier.
   Never the installed application, never another application.
-- No agent answers a macOS prompt or an App confirmation dialog, types a
-  password or dismisses the lock screen. If one appears, the operator stops and
-  reports its application name and the permission it asks for; the owner
-  answers it.
+- No agent answers a macOS prompt, ever, types a password or dismisses the
+  lock screen. If one appears, the operator stops and reports its application
+  name and the permission it asks for; the owner answers it. An App
+  confirmation is operated only where a scenario names it and the governing
+  text below allows it; the first-use setup scenario names none.
 - No Codex is started unless launches that start a real Codex are open for the
   lane.
+
+## What governs it
+
+Agent-operated examination is governed by the release target's Testing
+paragraph (`docs/RELEASE_TARGET_4.0.0.md`) and DEL-09-02's REQ-009, REQ-010,
+AC-003 and VER-003 (`execution/PKG-09/DEL-09-02/ScopeOfWork.md`); this method
+does not restate them and does not contradict them. In short:
+
+- Solely for synthetic development examination on examination material, the
+  examining agent operates every shipped control the named examinations
+  need, including those at which the candidate captures an act. Sign-in, key
+  entry and criterion 8's keychain acts are the owner's and never an
+  agent's. The exception reaches examination material only.
+- A synthetic capture needs the App's name set to an examination name and
+  verified before every capture and again after every restart; it stays
+  within the identified examination material; what is a finding, and that a
+  step whose conditions cannot be established is blocked, are as REQ-009
+  states; the human-positive cases read as not examined.
+- Each step's record says who operated it and by what means, names the
+  preparation and observation done outside the controls, and notes where
+  completing it needed knowledge the interface did not give (REQ-010; step 7
+  below).
+
+A scenario may be narrower than that, and the first-use setup scenario is, on
+purpose: no setup confirmed, nothing typed, no Codex started, no macOS prompt
+answered (see "Running a scenario"). The governing text does not enlarge the
+exception the owner accepted, and App Agent 0 decided, for its live runs.
 
 ## Two cautions
 
@@ -162,7 +190,17 @@ All of these hold, every time:
 7. **Record.** Keep every call as it was sent and every returned text whole,
    with the time of each. What a step shows is the text a view returned, in the
    page's own words; nothing is claimed beyond it. Words on the page about a
-   dialog are page text, not a dialog.
+   dialog are page text, not a dialog. The operator's record also says, for
+   the run and for any step that differs (REQ-010): who operated it (the
+   operator, an agent, by its model) and by what means (the supplier's
+   computer-use service, views and clicks by element index, through
+   `walk.mjs` when a scenario is run); the preparation and observation done
+   outside the controls (identification, `session_env.py`, the launcher, the
+   watch, and afterwards the lane's step 11); and where completing a step
+   needed knowledge the interface did not give. In a scenario every click's
+   control is named by the scenario file, which is such knowledge: the walk
+   is not evidence that the interface alone led to each step. The result file
+   `walk.mjs` writes carries none of this; the operator's record does.
 8. **End.** When the App's own quit is not among the allowed acts, send a
    termination to the launcher; it passes it to the App:
 
@@ -388,8 +426,13 @@ A scenario is a file of steps and expected states, walked by a script the
 operator loads. There is one: `first-use-setup.scenario.json`, "first-use setup
 without a project, new settings". It is the opening of the first-use setup page
 up to, and not including, the App's own confirmation. Its acts are views and
-clicks; nothing is typed, no file or folder is chosen and no confirmation is
-answered. It starts no Codex and needs no sign-in.
+clicks; nothing is typed, no file or folder is chosen, no confirmation is
+answered and no setup is confirmed. It starts no Codex and needs no sign-in.
+These prohibitions are narrower than the governing text on purpose (see "What
+governs it"). Its controls (a project choice, two settings choices, "Review
+setup", "Change my choices" and two disclosures) are none of the act controls
+REQ-009 names, so it makes no synthetic capture and the examination-name
+requirement does not arise in it.
 
 What it shows when it passes:
 
