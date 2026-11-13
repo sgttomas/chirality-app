@@ -39,11 +39,17 @@ LIMITS = [
     'a person\'s observation, and does not replace the owner\'s own use.',
     'A script inside the page sees the page only: native sheets, alerts, the window\'s own buttons and the menu bar are '
     'unseen. There is no second reading through the accessibility tree.',
-    'Windows and web views are counted by the App as each is created, from startup (exactly one of each is '
-    'required); an open in-page dialog is counted by the script at each step. Native sheets and alerts are not '
-    'windows the App creates and are not counted.',
-    'Other processes are sampled every half second below the launched process; one that starts and ends between two '
-    'samples is not seen.',
+    'Windows and web views are counted in Tauri\'s creation notifications, in the one process the runner launched, '
+    'from before its first window: a second of either ends the run at once, and the final count, stage and exit are '
+    'made on the main thread after any notification already queued. A window made outside Tauri (a native sheet, '
+    'alert or dialog) passes through no such notification and is not counted; it is unseen. An open in-page dialog '
+    'is counted by the script at each step of the scenario.',
+    'Other processes: the App is exactly the launched process; every process below it, and every other member of its '
+    'process group, is recorded at each census, about every half second (each census followed by a half-second '
+    'pause), in both runs, and none is allowed. A process that starts and ends between two censuses, or that leaves '
+    'the App\'s process group for another session, is not seen. The run is held awake by a separate caffeinate that '
+    'waits on the App\'s number and is in neither.',
+    'Exactly one process start is accepted: a run whose stages show the build started more than once does not pass.',
 ]
 
 
@@ -76,8 +82,9 @@ def read_stages(path):
 
 
 def launch(bundle, run_dir, timeout, scenario_input=None, hold_awake=None):
-    """Launch the bundle once in a new home; return what happened. With scenario_input ({scenario, values}), the
-    build walks the scenario, and the App's own child processes are watched throughout (the scenario starts none)."""
+    """Launch the bundle once in a new home; return what happened. The App is exactly the launched process. Throughout
+    the run, every other process below it or in its process group is recorded: in both runs, none is allowed. With
+    scenario_input ({scenario, values}), the build walks the scenario."""
     executable = bundle / 'Contents/MacOS' / EXECUTABLE
     run_dir.mkdir(parents=True)  # new: an existing run folder is refused
     home, tmp = run_dir / 'home', run_dir / 'tmp'
@@ -87,47 +94,37 @@ def launch(bundle, run_dir, timeout, scenario_input=None, hold_awake=None):
         (home / 'scripted-driver/scenario.json').write_text(json.dumps(scenario_input))
     # An environment built from nothing: no CHIRALITY_ configuration variable, no inherited home.
     env = {'HOME': str(home), 'TMPDIR': str(tmp), 'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'LANG': 'en_US.UTF-8'}
-    # On macOS the run is held awake (caffeinate exists there); elsewhere, as in this file's tests, it runs bare.
-    caffeinate = Path('/usr/bin/caffeinate').is_file() if hold_awake is None else hold_awake
-    command = (['/usr/bin/caffeinate', '-di'] if caffeinate else []) + [str(executable)]
-    started, children = time.time(), set()
-    app = {'pid': None, 'ambiguous': False}
+    command = [str(executable)]
+    # On macOS the run is held awake by a separate caffeinate that waits on the App's number: it is not in the App's
+    # tree or group, so nothing in them is exempted. Elsewhere, as in this file's tests, the run is not held awake.
+    awake = Path('/usr/bin/caffeinate').is_file() if hold_awake is None else hold_awake
+    started, others_seen, samples = time.time(), set(), 0
 
-    def children_of(pid):
-        found = subprocess.run(['pgrep', '-P', str(pid)], capture_output=True, text=True).stdout.split()
-        return [int(p) for p in found]
+    def numbers(*args):
+        found = subprocess.run(['pgrep', *args], capture_output=True, text=True).stdout.split()
+        return {int(p) for p in found}
 
-    def below(pid):
-        """Every process below the launched one, with its command."""
-        found, queue = {}, children_of(pid)
+    def census(app):
+        """Every process below the App, and every other member of its process group (the App leads its own group and
+        session), with its command."""
+        found, queue = set(), list(numbers('-P', str(app)))
         while queue:
             child = queue.pop()
-            queue += children_of(child)
-            command = subprocess.run(['ps', '-o', 'command=', '-p', str(child)], capture_output=True, text=True).stdout.strip()
-            if command:
-                found[child] = command
-        return found
-
-    def others(pid):
-        """Every process below the launched one except the one App and caffeinate's own: a child the scenario does not
-        allow. The App is the launched process itself, or, under caffeinate, the one process whose command begins with
-        the bundle's executable, latched by its number at the first sample that shows it. A second process running the
-        executable is counted, not excluded."""
-        everything = below(pid)
-        if app['pid'] is None:
-            if not caffeinate:
-                app['pid'] = pid
-            else:
-                running = [p for p, c in everything.items() if c == str(executable) or c.startswith(str(executable) + ' ')]
-                if len(running) == 1:
-                    app['pid'] = running[0]
-                elif len(running) > 1:
-                    app['ambiguous'] = True
-        return {p: c for p, c in everything.items()
-                if p != app['pid'] and not (caffeinate and c.startswith('/usr/bin/caffeinate'))}
+            if child not in found:
+                found.add(child)
+                queue += numbers('-P', str(child))
+        found |= numbers('-g', str(app))
+        found.discard(app)
+        named = {}
+        for pid in sorted(found):
+            command_line = subprocess.run(['ps', '-o', 'command=', '-p', str(pid)], capture_output=True, text=True).stdout.strip()
+            named[pid] = command_line or '(ended before it could be named)'
+        return named
 
     with open(run_dir / 'app.out', 'wb') as stdout, open(run_dir / 'app.err', 'wb') as stderr:
         process = subprocess.Popen(command, env=env, stdout=stdout, stderr=stderr, start_new_session=True)
+        holder = (subprocess.Popen(['/usr/bin/caffeinate', '-di', '-w', str(process.pid)],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) if awake else None)
         deadline, timed_out = started + timeout, False
         while process.poll() is None:
             if time.time() > deadline:
@@ -139,14 +136,21 @@ def launch(bundle, run_dir, timeout, scenario_input=None, hold_awake=None):
                     os.killpg(process.pid, signal.SIGKILL)
                     process.wait()
                 break
-            if scenario_input is not None:
-                children.update(f'{pid} {command}' for pid, command in others(process.pid).items())
+            others_seen.update(f'{pid} {command_line}' for pid, command_line in census(process.pid).items())
+            samples += 1
             time.sleep(0.5)
         code = process.returncode
+        if holder is not None:
+            try:
+                holder.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                holder.terminate()
+                holder.wait()
     stages = read_stages(home / 'scripted-driver/stages.jsonl')
-    return {'command': command, 'environment': env, 'seconds': round(time.time() - started, 1), 'exit_code': code,
-            'timed_out': timed_out, 'stages': stages, 'app_children_seen': sorted(children),
-            'app_pid': process.pid if not caffeinate else app['pid'], 'app_identified': (not caffeinate or app['pid'] is not None) and not app['ambiguous'],
+    return {'command': command, 'held_awake_by': ['/usr/bin/caffeinate', '-di', '-w', '<the App\'s number>'] if awake else None,
+            'environment': env, 'seconds': round(time.time() - started, 1), 'exit_code': code, 'timed_out': timed_out,
+            'stages': stages, 'app_pid': process.pid, 'census_samples': samples, 'other_processes_seen': sorted(others_seen),
+            'process_started_stages': sum(1 for s in stages if s.get('stage') == 'process started'),
             'app_stderr_tail': (run_dir / 'app.err').read_bytes()[-4000:].decode('utf-8', 'replace')}
 
 
@@ -162,9 +166,12 @@ def run(bundle, out, timeout):
     returned = (evaluated or {}).get('detail', {}).get('returned') or {}
     windows = (evaluated or {}).get('detail', {}).get('windows')
     created = (evaluated or {}).get('detail', {}).get('created') or {}
+    finished = next((s for s in stages if s.get('stage') == 'proof finished'), None)
     shown = (bool(evaluated) and returned.get('heading') == EXPECTED_HEADING and windows == 1
              and created.get('windows_ever_created') == 1 and created.get('webviews_ever_created') == 1
+             and bool(finished) and finished.get('detail', {}).get('exactly_one_each') is True
              and returned.get('open_dialogs') == 0 and code == 0 and not timed_out
+             and ran['process_started_stages'] == 1 and not ran['other_processes_seen']
              and all(s.get('marker') == MARKER.decode() for s in stages))
     reached = [name for name in STAGES if name in names]
     report = {
@@ -174,7 +181,9 @@ def run(bundle, out, timeout):
         'stopped_after': reached[-1] if reached else 'nothing: no stage was written',
         'result': 'shown' if shown else 'not shown',
         'expected': {'heading': EXPECTED_HEADING, 'windows': 1, 'windows_ever_created': 1, 'webviews_ever_created': 1,
-                     'open_dialogs': 0, 'exit_code': 0},
+                     'open_dialogs': 0, 'exit_code': 0, 'process_started_stages': 1, 'other_processes': 0},
+        'app_pid': ran['app_pid'], 'held_awake_by': ran['held_awake_by'], 'census_samples': ran['census_samples'],
+        'other_processes_seen': ran['other_processes_seen'], 'process_started_stages': ran['process_started_stages'],
         'app_stderr_tail': ran['app_stderr_tail'],
         'limits': LIMITS,
     }
@@ -186,8 +195,9 @@ def run(bundle, out, timeout):
 
 
 def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
-    """Walk the scenario in the test build and report its verdict. A pass needs: the walk's own verdict pass; one
-    window throughout; the App with no child process at any sample; the build ending itself with status 0."""
+    """Walk the scenario in the test build and report its verdict. A pass needs: the walk's own verdict pass; exactly
+    one window and one web view created; one process start; no other process at any sample; the build ending itself
+    with status 0."""
     bundle = bundle.resolve()
     if not (bundle / 'Contents/MacOS' / EXECUTABLE).is_file():
         print(f'refused: no {EXECUTABLE} in {bundle}', file=sys.stderr)
@@ -206,11 +216,13 @@ def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
     one_window = (created.get('windows_ever_created') == 1 and created.get('webviews_ever_created') == 1
                   and most_windows == 1)
     verdict = result.get('verdict') if finished else None
-    passed = (verdict == 'pass' and one_window and ran['app_identified'] and not ran['app_children_seen']
+    one_window = one_window and (finished or {}).get('detail', {}).get('exactly_one_each') is True
+    passed = (verdict == 'pass' and one_window and ran['process_started_stages'] == 1 and not ran['other_processes_seen']
               and ran['exit_code'] == 0 and not ran['timed_out'] and all(s.get('marker') == MARKER.decode() for s in stages))
+    second = any(s.get('stage', '').startswith('run ended: a second') for s in stages)
     if passed:
         overall = 'pass'
-    elif verdict == 'fail' or ran['app_children_seen'] or (finished and not one_window):
+    elif verdict == 'fail' or ran['other_processes_seen'] or second or ran['process_started_stages'] > 1 or (finished and not one_window):
         overall = 'fail'
     else:
         overall = 'inconclusive'
@@ -221,8 +233,9 @@ def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
         'verdict': overall, 'walk_verdict': verdict, 'stopped': result.get('stopped'),
         'outcomes': result.get('outcomes'), 'steps': result.get('steps'),
         'census_at_start': result.get('census_at_start'), 'census_at_end': result.get('census_at_end'),
-        'most_windows': most_windows, 'created': created, 'app_pid': ran['app_pid'],
-        'app_identified': ran['app_identified'], 'app_children_seen': ran['app_children_seen'],
+        'most_windows': most_windows, 'created': created, 'app_pid': ran['app_pid'], 'held_awake_by': ran['held_awake_by'],
+        'census_samples': ran['census_samples'], 'other_processes_seen': ran['other_processes_seen'],
+        'process_started_stages': ran['process_started_stages'],
         'stages': [{k: v for k, v in s.items() if k != 'detail' or s.get('stage') != 'scenario finished'} for s in stages],
         'app_stderr_tail': ran['app_stderr_tail'],
         'limits': LIMITS + [
@@ -240,7 +253,8 @@ def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
             if not check['pass']:
                 lines.append(f"  {step['id']} expected {json.dumps(check['expectation'])}, found: {json.dumps(check['found'])}")
     lines.append(f"  windows ever created {created.get('windows_ever_created')}, web views {created.get('webviews_ever_created')}; "
-                 f"App identified {ran['app_identified']}; other processes seen {len(ran['app_children_seen'])}; exit {ran['exit_code']}")
+                 f"other processes seen {len(ran['other_processes_seen'])} in {ran['census_samples']} samples; "
+                 f"process starts {ran['process_started_stages']}; exit {ran['exit_code']}")
     print('\n'.join(lines))
     return 0 if overall == 'pass' else 1
 

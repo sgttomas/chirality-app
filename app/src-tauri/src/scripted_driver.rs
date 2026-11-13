@@ -55,14 +55,30 @@ pub fn stage(name: &str, detail: Value) {
     }
 }
 
-/// Every window and web view the App creates from startup, counted as each is created (not sampled), so a second
-/// one that comes and goes is still counted. A pass needs exactly one of each.
+/// Every window and web view Tauri notifies as created in this process, counted in its creation notification (not
+/// sampled). A second one of either ends the run at once, in that notification, before anything else is written.
 static WINDOWS_CREATED: AtomicUsize = AtomicUsize::new(0);
 static WEBVIEWS_CREATED: AtomicUsize = AtomicUsize::new(0);
 
 fn created() -> Value {
     json!({ "windows_ever_created": WINDOWS_CREATED.load(Ordering::SeqCst),
             "webviews_ever_created": WEBVIEWS_CREATED.load(Ordering::SeqCst) })
+}
+
+fn exactly_one_each() -> bool {
+    WINDOWS_CREATED.load(Ordering::SeqCst) == 1 && WEBVIEWS_CREATED.load(Ordering::SeqCst) == 1
+}
+
+/// The run's last act, on the main thread, where Tauri also runs its creation notifications: so the counts are read,
+/// the final stage written and the process ended in one step, after any notification already queued.
+fn finish_on_main<R: Runtime>(app: &tauri::AppHandle<R>, finish: impl FnOnce() -> i32 + Send + 'static) -> ! {
+    if app.run_on_main_thread(move || std::process::exit(finish())).is_err() {
+        stage("finish not run", json!({ "reason": "the main thread could not be reached" }));
+        std::process::exit(11);
+    }
+    loop {
+        std::thread::park();
+    }
 }
 
 /// Adds the page-load hook to the App's builder (the App has no other), and a plugin with no commands whose only
@@ -73,10 +89,18 @@ pub fn install<R: Runtime>(builder: Builder<R>) -> Builder<R> {
         .on_window_ready(|window| {
             let n = WINDOWS_CREATED.fetch_add(1, Ordering::SeqCst) + 1;
             stage("window created", json!({ "label": window.label(), "windows_ever_created": n }));
+            if n > 1 {
+                stage("run ended: a second window", json!({ "windows_ever_created": n }));
+                std::process::exit(10);
+            }
         })
         .on_webview_ready(|webview| {
             let n = WEBVIEWS_CREATED.fetch_add(1, Ordering::SeqCst) + 1;
             stage("web view created", json!({ "label": webview.label(), "webviews_ever_created": n }));
+            if n > 1 {
+                stage("run ended: a second web view", json!({ "webviews_ever_created": n }));
+                std::process::exit(10);
+            }
         })
         .build();
     let builder = builder.plugin(counter);
@@ -125,7 +149,12 @@ fn evaluate<R: Runtime>(webview: tauri::Webview<R>) {
                 std::process::exit(5);
             }
             match scenario_input() {
-                None => std::process::exit(0),
+                None => finish_on_main(webview.app_handle(), || {
+                    let ever = created();
+                    let one = exactly_one_each();
+                    stage("proof finished", json!({ "created": ever, "exactly_one_each": one }));
+                    if one { 0 } else { 10 }
+                }),
                 Some(Ok(input)) => walk(&webview, input),
                 Some(Err(reason)) => {
                     stage("scenario not started", json!({ "reason": reason }));
@@ -173,10 +202,13 @@ fn walk<R: Runtime>(webview: &tauri::Webview<R>, input: Value) -> ! {
             continue;
         }
         let verdict = read.get("verdict").and_then(Value::as_str).unwrap_or("").to_owned();
-        let ever = created();
-        let one = ever["windows_ever_created"] == 1 && ever["webviews_ever_created"] == 1 && most_windows == 1;
-        stage("scenario finished", json!({ "result": read, "most_windows": most_windows, "created": ever }));
-        std::process::exit(match verdict.as_str() { "pass" if one => 0, "pass" | "fail" => 6, _ => 7 });
+        finish_on_main(webview.app_handle(), move || {
+            let ever = created();
+            let one = exactly_one_each() && most_windows == 1;
+            stage("scenario finished", json!({ "result": read, "most_windows": most_windows, "created": ever,
+                                               "exactly_one_each": one }));
+            match verdict.as_str() { "pass" if one => 0, "pass" | "fail" => 6, _ => 7 }
+        });
     }
     stage("scenario did not finish", json!({ "seconds": WALK_LIMIT.as_secs(), "most_windows": most_windows, "created": created() }));
     std::process::exit(8);

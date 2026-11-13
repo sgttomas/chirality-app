@@ -52,7 +52,9 @@ throttling off. `proof.py run` launches it once with:
 
 - an environment built from nothing;
 - `HOME` a new folder;
-- `caffeinate -di`.
+- the App as exactly the launched process, held awake by a separate
+  `caffeinate -di -w <the App's number>` that is outside the App's tree and
+  process group.
 
 It then reads what the build wrote. The build writes one line per stage as it
 happens, so a run that stops says where:
@@ -66,10 +68,11 @@ The script reads the page title, the first heading, the number of buttons and
 any open in-page dialog. It clicks, types and changes nothing. The build then
 ends its own process. **Shown** means all of these:
 
-- the script ran;
-- the heading is "Welcome to Chirality";
-- the App has one window;
+- the script ran, and the heading is "Welcome to Chirality";
+- exactly one window and one web view were created, and one window is open;
 - no in-page dialog is open;
+- the build started once and finished on its main thread (below);
+- no other process was seen below the App or in its process group;
 - the build ended itself with status 0.
 
 The job is `.github/workflows/app-scripted-driver.yml`. It runs on the macOS
@@ -99,12 +102,27 @@ the walk's progress until it is done:
 A pass needs all of these:
 
 - the walk's own verdict is pass;
-- the App created exactly one window and one web view from startup, each
-  counted by the App as it was created (not sampled);
-- no other process was seen below the launched one, apart from the one App
-  (latched by its process number) and `caffeinate`, at any half-second
-  sample. One that starts and ends between two samples is not seen;
+- exactly one window and one web view were created (below), and one window
+  was open at every poll;
+- the build started once;
+- no other process was seen below the App or in its process group;
 - the build ended itself with status 0.
+
+**What is counted, and what is sampled.**
+
+- **Windows and web views:** counted in Tauri's creation notifications, in
+  the one process the runner launched, from before its first window. A
+  second of either ends the run at once, in that notification. The final
+  count, stage and exit are made on the main thread, after any notification
+  already queued. A window made outside Tauri (a native sheet, alert or
+  dialog) passes through no such notification and is unseen.
+- **Other processes:** at each census, about every half second (each census
+  is followed by a half-second pause), every process below the App and every
+  other member of its process group is recorded. This holds in both runs, and
+  none is allowed. A process that starts and ends between two censuses, or
+  that leaves the App's process group for another session, is not seen.
+- **Process starts:** a run whose stages show the build started more than
+  once does not pass.
 
 It types nothing, chooses no file, answers nothing, and never clicks a control
 the scenario says is never clicked, or one whose words end with an ellipsis.
