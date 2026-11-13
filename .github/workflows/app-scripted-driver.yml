@@ -2,14 +2,16 @@ name: App scripted driver (test build proof)
 
 # The scripted driver's bounded first step (app/examination/scripted_driver/README.md): a test build of the App
 # opens its window on the macOS runner the App workflow already uses, loads its page, evaluates a trivial script
-# and reports. Development evidence only. It reads the repository, holds no secret, writes nothing back, and
-# uploads only the report.
+# and reports; then walks the first-use setup scenario in its page and reports. Development evidence only. It
+# reads the repository, holds no secret, writes nothing back, and uploads only its two reports.
 on:
   pull_request:
     paths:
       - .github/workflows/app-scripted-driver.yml
       - app/examination/scripted_driver/**
       - app/src-tauri/src/scripted_driver.rs
+      # The scenario the driver walks: a change to it alone reruns this job.
+      - app/examination/standalone/operated/first-use-setup.scenario.json
   workflow_dispatch:
 
 permissions:
@@ -48,6 +50,11 @@ jobs:
         run: |
           bundle="$(ls -d "$RUNNER_TEMP"/driver/target/debug/bundle/macos/*.app)"
           python3 -B examination/scripted_driver/proof.py run --bundle "$bundle" --out "$RUNNER_TEMP/driver" --timeout 180
+      - name: Walk the first-use setup scenario in the test build
+        if: ${{ !cancelled() }}
+        run: |
+          bundle="$(ls -d "$RUNNER_TEMP"/driver/target/debug/bundle/macos/*.app)"
+          python3 -B examination/scripted_driver/proof.py scenario --bundle "$bundle" --out "$RUNNER_TEMP/driver" --timeout 300
       - name: The release features carry none of it
         if: ${{ !cancelled() }}
         run: python3 -B examination/scripted_driver/proof.py release-free --out "$RUNNER_TEMP/driver"
@@ -56,6 +63,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: scripted-driver-report
-          path: ${{ runner.temp }}/driver/report.json
+          path: |
+            ${{ runner.temp }}/driver/report.json
+            ${{ runner.temp }}/driver/scenario-report.json
           if-no-files-found: warn
           retention-days: 14
