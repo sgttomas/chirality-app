@@ -832,3 +832,46 @@ fn a_replaced_recovery_ledger_closes_after_the_host_state_is_released() {
     assert!(probe.closed.load(Ordering::SeqCst), "the replaced ledger's database was closed");
     assert!(!probe.held.load(Ordering::SeqCst), "and not while the Host's state was held");
 }
+
+/// Round 2's reproduction: a records-tool notification (no request identity,
+/// so never a request) and a fork whose source receipt names another records
+/// project context take no project reading, as the parent read nothing there.
+#[test]
+fn records_notifications_and_mismatched_fork_inheritance_take_no_project_reading() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    {
+        let f = Fixture::new();
+        let host = f.host(true, None, "account");
+        f.start(&host, "fixture-model").unwrap();
+        let generation = host.snapshot()["generation"].clone();
+        let reads = Arc::new(AtomicUsize::new(0));
+        let count = Arc::clone(&reads);
+        *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || { count.fetch_add(1, Ordering::SeqCst); }));
+        host.on_line(&serde_json::to_vec(&json!({"method":"item/tool/call","params":{"tool":crate::records_access::TOOL,"threadId":"thread","namespace":null}})).unwrap(), &generation);
+        assert_eq!(reads.load(Ordering::SeqCst), 0, "a notification is never a records request");
+        assert!(f.reads().is_empty());
+        stop(&host);
+    }
+    {
+        let f = Fixture::new();
+        let host = f.host(true, None, "account");
+        f.start(&host, "fixture-model").unwrap();
+        let generation = host.snapshot()["generation"].clone();
+        let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+        host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+        host.configure_records_capability_with_context(host.records_capability().unwrap(), ExplicitAppProjectContext::known("different explicit project", AppProjectSource::OpenedDirectory).unwrap());
+        // The first reading taken, if any, is recorded with where it was taken.
+        // The fork's own offer check (persist_records_receipt, which the parent
+        // also read for) may read; receipt inheritance for another records
+        // project context must not.
+        let taken = Arc::new(std::sync::Mutex::new(None::<String>));
+        let at = Arc::clone(&taken);
+        *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || { *at.lock().unwrap() = Some(std::backtrace::Backtrace::force_capture().to_string()); }));
+        host.thread_fork_finish(&request).unwrap();
+        if let Some(trace) = taken.lock().unwrap().as_deref() {
+            assert!(trace.contains("offered_reading"), "the only reading is the fork's offer check, not receipt inheritance: {trace}");
+        }
+        assert!(!host.inner.0.lock().unwrap().records_receipts.iter().any(|(_, thread, _)| thread == "forked"));
+        stop(&host);
+    }
+}

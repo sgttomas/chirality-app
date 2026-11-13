@@ -3368,8 +3368,10 @@ impl Host {
         if t["id"]==*source||t["forkedFromId"]!=*source {return Err("thread/fork did not report a new thread forked from the source; nothing admitted".into());}
         let generation=request.generation();
         // Read before the state is held (the reading touches the filesystem),
-        // and only where the source has a receipt to inherit.
-        let inherits=self.inner.0.lock().unwrap().records_receipts.iter().any(|(g,thread,_)|g==generation&&Some(thread.as_str())==source.as_str());
+        // and only where the source has a receipt to inherit for the current
+        // records project context, as the comparison under the state requires.
+        let inherits={let i=self.inner.0.lock().unwrap();let context=i.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned);
+            i.records_receipts.iter().any(|(g,thread,receipt)|g==generation&&Some(thread.as_str())==source.as_str()&&context.as_deref()==Some(receipt.project.as_str()))};
         let records_reading=if inherits {self.read_records_identity()} else {None};
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
@@ -4971,7 +4973,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // (it touches the filesystem), and only for a call that could be one:
         // the records tool with no namespace, in the current generation, on a
         // conversation offered it. All of it is checked again under the state.
-        let records_reading=parsed.as_ref().filter(|f|f["method"]=="item/tool/call"&&f["params"]["tool"]==crate::records_access::TOOL&&f["params"]["namespace"].is_null())
+        let records_reading=parsed.as_ref().filter(|f|f["method"]=="item/tool/call"&&f.get("id").is_some()&&f["params"]["tool"]==crate::records_access::TOOL&&f["params"]["namespace"].is_null())
             .filter(|f|{let i=self.inner.0.lock().unwrap();i.generation==*generation&&i.records_offers.iter().any(|(g,t)|g==generation&&*t==f["params"]["threadId"])})
             .and_then(|_|self.read_records_identity());
         let mut i = self.inner.0.lock().unwrap();
