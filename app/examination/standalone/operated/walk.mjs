@@ -174,12 +174,24 @@ export function checkOne(elements, expectation, values) {
  * 'inconclusive'; a refusal before any call is 'inconclusive' with nothing called.
  */
 /**
- * A failed call, as messages only: the error's own message and then each cause it carries, in order, whole. Nothing
- * else of the error object is kept, and nothing of it is converted to text by its own code: a message is kept only
- * when it is a string, a thrown string or other primitive is kept as its text, and anything else is named for what
- * it is. At most eight causes; a cause seen before ends the chain. Reading the error can never throw from here: a
- * part that cannot be read is said to be so, and the walk's stop and result are the same as without this.
+ * A failed call, as messages only: the error's own message and then each cause it carries, in order, whole. A message
+ * is kept only when it is a string; a thrown string or other primitive is kept as its text; anything else is named
+ * for what it is. At most eight causes; a cause seen before ends the chain. An exception raised while reading the
+ * error is caught and the part said to be unreadable.
+ *
+ * What it cannot do: reading an error's message and cause can run code the error carries (a getter, a Proxy), and
+ * that code runs in this runtime. The error comes from the supplier's client, which runs in the same runtime as the
+ * walk and could change anything the walk holds without throwing at all; so the walk's result rests on that client,
+ * as every call does, and not on how a failure is read. Nothing here defends against it.
  */
+export function readFailure(where, error) {
+  try {
+    return failure(where, error);
+  } catch {
+    return { where, message: '(the failure could not be read)', causes: [] };
+  }
+}
+
 export function failure(where, error) {
   const text = value => {
     try {
@@ -305,7 +317,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     try {
       seen = await view();
     } catch (error) {
-      report.view_error = failure(`the ${ordinal} view before any click`, error);
+      report.view_error = readFailure(`the ${ordinal} view before any click`, error);
       return finish('inconclusive', `stopped at the ${ordinal} view before any click: the view failed (${report.view_error.message})`);
     }
     report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
@@ -341,7 +353,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     try {
       seen = await view();
     } catch (error) {
-      report.view_error = failure(step.id, error);
+      report.view_error = readFailure(step.id, error);
       entry.error = report.view_error.message;
       return finish('inconclusive', `stopped at ${step.id}: the view failed (${entry.error})`);
     }

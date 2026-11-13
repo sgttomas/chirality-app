@@ -642,8 +642,12 @@ nodeRepl.write(walk.summary(report));
   error carries, in order and whole (at most eight); the summary prints the
   causes under the line that says where the walk stopped. Nothing else of the
   error is kept: a message is kept only when it is text, anything else is
-  named for what it is, and a part that cannot be read is said to be so, so
-  reading a failure never changes where the walk stops or its result.
+  named for what it is, and a part that cannot be read is said to be so.
+  What it cannot do: reading an error's message and cause can run code the
+  error carries, in the same runtime as the walk. The error comes from the
+  supplier's client, which runs there too and could change anything the walk
+  holds without throwing at all; so the walk's result rests on that client, as
+  every call does, not on how a failure is read.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt appearing, or the focus leaving the build) to its own
   record.

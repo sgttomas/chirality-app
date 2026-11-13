@@ -368,6 +368,17 @@ class TheWalkItself(unittest.TestCase):
             ['inconclusive', True, ['(a thrown object with no message text)']],
             ['inconclusive', True, ['(a cause that could not be read)']],
             ['inconclusive', True, ['(a thrown object with no message text)']]])
+        # A failure whose reading breaks the collector itself (a cause getter that replaces Array.prototype.push, as
+        # code in the same runtime can): the walk still returns its result, with the failure said to be unreadable.
+        result = harness('''
+          const push = Array.prototype.push;
+          const thrown = { message: 'top', get cause() { Array.prototype.push = () => { throw new Error('broken'); }; return { message: 'inner' }; } };
+          const failing = { get_app_state: async () => { throw thrown; }, click: async () => {} };
+          let r;
+          try { r = await walk.run({ ...base, sky: failing }); } finally { Array.prototype.push = push; }
+          return [r.verdict, r.view_error];''')
+        self.assertEqual(result['out'], ['inconclusive', {'where': 'the first view before any click',
+                                                          'message': '(the failure could not be read)', 'causes': []}])
 
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
         result = harness('''
