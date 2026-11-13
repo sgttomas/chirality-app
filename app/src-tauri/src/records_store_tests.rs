@@ -1487,19 +1487,8 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
         [valid.as_slice(), b"\n\n"].concat(),
         // A valid line with a member no form of import line has.
         [&valid[..valid.len() - 1], b",\"added\":true}\n".as_slice()].concat()]);
-    // With pull request 261 the store's witness of legacy imports decides an
-    // account that exists and is empty: for the imported project its witness
-    // line shows an import begun (unknown, as here); for the project with no
-    // import, created after the witness began and with no witness line,
-    // nothing was begun and it is no import
-    // (an_empty_import_account_is_no_import_only_where_the_witness_shows_nothing_begun).
-    // So that case is taken here with the witness set aside, where whether an
-    // import was begun is not known.
-    let witness_file = own.0.join(witness::WITNESS_FILE);
     for (root, content) in [&imported, &empty].into_iter().flat_map(|root| unknown.iter().map(move |content| (root, content.as_slice()))) {
         let dir = attach(root, false).unwrap().dir.unwrap();
-        let set_aside = root == &empty && content.is_empty();
-        if set_aside { std::fs::rename(&witness_file, own.0.join("witness-aside")).unwrap(); }
         std::fs::write(dir.join("imports.jsonl"), content).unwrap();
         let known = |e: &str| e.contains("unknown") && e.contains("import record is unreadable");
         let failed = home(root).unwrap_err();
@@ -1525,7 +1514,6 @@ fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_or
         assert_ne!(shown["project"]["reading"], "no records yet");
         assert!(notes(root).iter().any(|n| known(n)), "{:?}", notes(root));
         assert!(capability_read(root).is_err(), "{:?}", capability_read(root));
-        if set_aside { std::fs::rename(own.0.join("witness-aside"), &witness_file).unwrap(); }
     }
     // The valid line alone is read (an import begun and not completed), so
     // the refusals above are of what was added to it and of nothing else.
@@ -1653,14 +1641,6 @@ fn an_import_account_that_exists_and_is_empty_is_unknown_and_only_a_missing_one_
     assert!(!dir.join("imports.jsonl").exists());
     assert_eq!(status(Some(&fresh))["project"]["reading"], "no records yet");
     std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
-    // With pull request 261 the store's witness of legacy imports decides
-    // it: this project was created after the witness began and no witness
-    // line names it, so nothing was begun and its empty account is no import.
-    assert!(home(&fresh).is_ok());
-    assert_eq!(status(Some(&fresh))["project"]["reading"], "no records yet");
-    // Where the witness does not show that (here: set aside), it is unknown.
-    let witness_file = own.0.join(witness::WITNESS_FILE);
-    std::fs::rename(&witness_file, own.0.join("witness-aside")).unwrap();
     assert!(known(&home(&fresh).unwrap_err()));
     let shown = status(Some(&fresh));
     assert_eq!(shown["project"]["state"], "unavailable", "{shown}");
@@ -1668,7 +1648,6 @@ fn an_import_account_that_exists_and_is_empty_is_unknown_and_only_a_missing_one_
     let (entries, limits) = storage::read_all(&fresh);
     assert!(entries.is_empty() && limits.iter().any(|l| known(l)), "{limits:?}");
     assert!(write_dir(&fresh).is_err(), "nothing is written for it either");
-    std::fs::rename(own.0.join("witness-aside"), &witness_file).unwrap();
     std::fs::remove_file(dir.join("imports.jsonl")).unwrap();
     assert_eq!(status(Some(&fresh))["project"]["reading"], "no records yet", "an account that is not there is no import");
     // An imported project: its account emptied.

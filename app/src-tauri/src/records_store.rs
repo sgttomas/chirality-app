@@ -1221,11 +1221,8 @@ fn imports(dir: &Path) -> Result<Imports, String> {
     // completed". (What a line's form does not establish: `import_line`.)
     //
     // Only an account that is not there is "no import". One that exists and
-    // is empty is unknown too (it cannot be told from an account emptied
-    // after an import), except where the store's witness of legacy imports
-    // shows that nothing was begun (`witness::empty_account_is_nothing_begun`):
-    // the store's appender makes a new file whole, so the App leaves no empty
-    // account of its own. And a line is one JSON object and nothing else: no
+    // yields no import line is unknown too (below). And a line is one JSON
+    // object and nothing else: no
     // byte before or after it (no padding, no carriage return, no byte-order
     // mark), valid UTF-8, and no key given twice at any depth, since a
     // repeated key reads as its last value and the App writes none.
@@ -1265,17 +1262,16 @@ fn imports(dir: &Path) -> Result<Imports, String> {
             lines.push((line, event));
         }
     }
-    // Whether an import was begun is decided on what was READ, not on the
-    // bytes: an account that exists and yields no import line (an empty
-    // file, or one holding only closed fragments and the lines that name
-    // them) cannot be told from an account emptied after an import, so it is
-    // unknown, except where nothing was begun for the project
-    // (`witness::empty_account_is_nothing_begun`).
+    // An account that exists and yields no import line (an empty file, or
+    // one holding only closed fragments and the lines that name them) cannot
+    // be told from an account emptied after an import: it is unknown, always,
+    // decided on what was read and not on the bytes (App Agent 0, after
+    // review round 4: no evidence beside it, the witness included, is taken
+    // to show that nothing was begun). The App leaves no such account of its
+    // own: the store's appender makes a new file whole or not at all, and an
+    // interrupted later append leaves its fragment after lines that remain.
     if let Some(bytes) = &account {
         if lines.is_empty() {
-            if witness::empty_account_is_nothing_begun(dir) {
-                return Ok(Imports::default());
-            }
             return Err(unknown(if bytes.is_empty() {
                 "it exists and is empty; whether an import was begun is not known"
             } else {

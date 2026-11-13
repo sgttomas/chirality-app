@@ -1067,12 +1067,20 @@ fn administrative_lines(path: &Path, format: &str) -> Result<Vec<Value>, String>
         .collect()
 }
 fn check_import_source(dir: &Path) -> Result<(), String> {
-    // An import account that exists and is empty is unknown, as it is to the
-    // store's own reader: it cannot be told from one emptied after an import.
-    if std::fs::symlink_metadata(dir.join("imports.jsonl")).is_ok_and(|m| m.len() == 0) {
-        return Err("original project import state is unknown (its import account exists and is empty); Fleet publication withheld".into());
+    let path = dir.join("imports.jsonl");
+    let exists = match std::fs::symlink_metadata(&path) {
+        Ok(_) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(format!("original project import state is unknown ({e}); Fleet publication withheld")),
+    };
+    let rows = administrative_lines(&path, "chirality.records-store.import")?;
+    // An import account that exists and yields no import line (empty, or only
+    // closed fragments and the lines that name them) is unknown, as it is to
+    // the store's own reader: decided on the rows read, not on the bytes.
+    if exists && rows.is_empty() {
+        return Err("original project import state is unknown (its import account exists and is empty or holds no import line); Fleet publication withheld".into());
     }
-    for row in administrative_lines(&dir.join("imports.jsonl"), "chirality.records-store.import")? {
+    for row in rows {
         if row["importId"].as_str().is_none_or(str::is_empty)
             || !matches!(row["event"].as_str(), Some("started" | "completed"))
             || (row["event"] == "completed"

@@ -1599,10 +1599,9 @@ exists and is refused, with the read, when it is missing. A control that is
 not a regular, singly linked file is refused without waiting. A store whose
 state cannot be read reads as unavailable, never as empty or as "no records
 yet": a project's import account is read whole, and nothing is concluded
-from one that is not. An account that exists and is empty (unless the
-store's witness of legacy imports shows that nothing was begun for it: the
-witness began, its first line does not list the project, and no witness line
-names it), a partial last line or a closed line not yet named, a blank line, bytes outside a line's one JSON object, bytes that are
+from one that is not. An account that exists and yields no import line (an
+empty file, or one holding only closed fragments and the lines that name
+them), a partial last line or a closed line not yet named, a blank line, bytes outside a line's one JSON object, bytes that are
 not UTF-8, a key given twice, a line that is not an object of the import
 format and version with an import identity, an unknown event, a member no
 form of import line has, a member the reader takes in a form it is not taken
@@ -1616,10 +1615,16 @@ from an earlier read does not ask again. Only an account that is not there is
 "no import". A fragment an interrupted append left, closed with the mark and
 named by the store's appender, is left out with its naming line, as the
 store's shared reading leaves it out; every other line is held to these
-rules. And the store's witness of legacy imports reads a project's account
-through the same reading: an account that exists and cannot be read is an
-error there too, never "no account evidence" from which a project the
-witness does not list would read "no import". The reader checks every member of a line that it takes, for the
+rules. No evidence beside an existing account, the witness of legacy
+imports included, is taken to show that nothing was begun: the store's
+appender makes a new account whole and later appends keep the lines before
+them, so no supported path needs an existing account with no import line to
+read as "no import"; a historical or damaged account needs recovery, which
+reading it as "no import" would not give. And the witness reads a project's
+account through the same reading: an account that exists and cannot be read
+is an error there too, never "no account evidence"; and it concludes "no
+import" only from a witness read in full, every line of it wholly formed
+and naming a project. The reader checks every member of a line that it takes, for the
 form it takes it as (the format, the version, the import identity, the event,
 `storeHeld`, a started line's `at`, and the three lists), and checks no
 member of a line that it does not take (`root`, `method`, `resumes`,

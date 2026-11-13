@@ -238,6 +238,14 @@ fn native_links_an_import_account_that_exists_and_is_empty_withholds_publication
     f.put(&imports, b"");
     let withheld = check_import_source(&f.scope.dir.path).unwrap_err();
     assert!(withheld.contains("exists and is empty") && withheld.contains("publication withheld"), "{withheld}");
+    // Decided on the rows read, not the bytes: an account holding only a
+    // closed fragment and the line that names it is the same case (the
+    // premise of pull request 261's review rounds 3 and 4).
+    std::fs::remove_file(&imports).unwrap();
+    let line = [crate::records_store::lines::MARK];
+    f.put(&imports, &[line.as_slice(), b"\n", &crate::records_store::lines::naming_line(1, &line).unwrap()].concat());
+    let withheld = check_import_source(&f.scope.dir.path).unwrap_err();
+    assert!(withheld.contains("holds no import line") && withheld.contains("publication withheld"), "{withheld}");
     std::fs::remove_file(&imports).unwrap();
     assert!(check_import_source(&f.scope.dir.path).is_ok());
 }

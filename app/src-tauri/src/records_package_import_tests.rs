@@ -686,16 +686,16 @@ fn package_import_reads_a_registry_holding_a_named_fragment_before_it_began() {
     assert!(roots(&store).unwrap().iter().all(|r| r["format"] == ROOT_FORMAT));
 }
 
-/// Review round 3, App Agent 0's decision on its package-import consequence,
-/// with the INTERLOCUTOR's terms: an account that exists and yields no import
-/// line needs AFFIRMATIVE evidence that nothing was begun, and a package
-/// import, finished or not, is evidence that something was. A project whose
+/// Review round 3's package-import consequence, as App Agent 0 decided after
+/// round 4: an account that exists and yields no import line is unknown,
+/// always. A project whose
 /// records arrived by package import into this store, with its account then
 /// emptied or left holding only closed fragments, reads unknown and is
 /// refused, never "no import", through reading and export alike; so does one
 /// whose package import is unfinished. The destination's witness is begun
 /// before the import, so the project is not listed and no witness line names
-/// it: without the package-import condition it would read "nothing begun".
+/// it: the state in which an exception for "nothing begun" would have read
+/// "no import".
 #[test]
 fn package_import_an_emptied_or_fragments_only_account_is_unknown_never_no_import() {
     let tail = br#"{"format":"chirality.records-import","formatVersion":"#;
@@ -707,7 +707,6 @@ fn package_import_an_emptied_or_fragments_only_account_is_unknown_never_no_impor
         let dir = f.dir();
         for (form, content, said) in [("emptied", Vec::new(), "exists and is empty"), ("fragments only", fragments_only.clone(), "holds no import line, only closed fragments")] {
             std::fs::write(dir.join("imports.jsonl"), &content).unwrap();
-            assert!(!crate::records_store::witness::empty_account_is_nothing_begun(&dir), "{label}, {form}");
             let refused = crate::records_store::home(&f.root).map(|_| ()).unwrap_err();
             assert!(!account_said || (refused.contains(said) && refused.contains("whether an import was begun is not known")), "{label}, {form}: {refused}");
             let (entries, limits) = crate::storage::read_all(&f.root);
