@@ -147,6 +147,7 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
     require_no_admin_layers()?;
     let mut config = base.clone();
     config.codex_home = plan.native_path().into();
+    config.process_lock = Some(plan.native_path().join(PROCESS_LOCK));
     config.session_flags = vec![
         "analytics.enabled=false".into(), "features.plugins=false".into(),
         // Session flags merge into lower layers; a foreign catalogue URL must never receive the home key.
@@ -156,6 +157,84 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
         format!("model_providers.{PROVIDER}={{name=\"oMLX\",base_url=\"{ENDPOINT}\",wire_api=\"responses\",requires_openai_auth=true}}"),
     ];
     Ok(config)
+}
+/// App-owned lock file in the dedicated local home. A Codex the App starts there inherits the
+/// locked descriptor, so the lock is held while that Codex, or anything it started that kept the
+/// descriptor, lives. Not auth.lock, not Codex's.
+pub(crate) const PROCESS_LOCK: &str = "chirality-codex-process.lock";
+/// What a held lock establishes is only that something holds it: the sentence names what may,
+/// and asserts neither which nor for how long.
+pub(crate) const EARLIER_PROCESS: &str = "The App's lock for the local model home is held, so Codex was not started there. A Codex process started earlier for that home, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
+/// The refusal when the App cannot open or lock its lock file at all.
+pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
+/// The same two refusals for a start that meets the lock by the folder rule alone (its
+/// configuration names none): such a start is not known to be the local model home's, so the
+/// sentences name the folder and not that home.
+pub(crate) const EARLIER_PROCESS_BY_FOLDER: &str = "The App's lock in this home's folder is held, so Codex was not started there. A Codex process started earlier in that folder, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
+pub(crate) const PROCESS_LOCK_UNAVAILABLE_BY_FOLDER: &str = "The App could not check its lock in this home's folder, so Codex was not started there.";
+pub(crate) fn folder_wording(reason: String) -> String {
+    if reason == EARLIER_PROCESS {
+        EARLIER_PROCESS_BY_FOLDER.into()
+    } else if reason == PROCESS_LOCK_UNAVAILABLE {
+        PROCESS_LOCK_UNAVAILABLE_BY_FOLDER.into()
+    } else {
+        reason
+    }
+}
+/// The lock a start in this home must take. The lock follows the folder and not the route that
+/// reached it: where the home folder already holds the App's lock file, that file is the lock,
+/// whatever the configuration names, so a start pointed at such a folder by another configuration
+/// meets an earlier Codex's lock. Where the folder holds none, it is the one the configuration
+/// names (the dedicated local home's first start creates it), and none where it names none. The
+/// name is looked at only (`symlink_metadata`); presence that cannot be established refuses.
+/// What this does not cover: absence is decided once, so a start with no lock configured that
+/// looks before the file's first creation takes none. That is closed only when every start takes
+/// its home's lock and creates the file, and this rule is expected to be removed by that change.
+pub(crate) fn process_lock_for(configured: Option<&Path>, home: &Path) -> Result<Option<std::path::PathBuf>, String> {
+    let path = home.join(PROCESS_LOCK);
+    match std::fs::symlink_metadata(&path) {
+        Ok(_) => Ok(Some(path)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(configured.map(Path::to_path_buf)),
+        Err(_) => Err(PROCESS_LOCK_UNAVAILABLE.into()),
+    }
+}
+/// Opens (creating it private if absent) the App's lock file and takes an exclusive, non-waiting
+/// flock. The returned descriptor is close-on-exec (std opens with O_CLOEXEC); the start clears that
+/// in the Codex child only. Held by another open file description: EARLIER_PROCESS. A link, a file
+/// not private to this user, a hard-linked file or any other failure: PROCESS_LOCK_UNAVAILABLE.
+#[cfg(unix)]
+pub(crate) fn take_process_lock(path: &Path) -> Result<std::fs::File, String> {
+    use std::os::fd::AsRawFd;
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)
+        .map_err(|_| PROCESS_LOCK_UNAVAILABLE)?;
+    let m = file.metadata().map_err(|_| PROCESS_LOCK_UNAVAILABLE)?;
+    if !m.is_file() || m.uid() != unsafe { libc::geteuid() } || m.mode() & 0o077 != 0 || m.nlink() != 1 {
+        return Err(PROCESS_LOCK_UNAVAILABLE.into());
+    }
+    // Descriptors 0 to 2 are replaced by the child's standard streams before the pre-exec step.
+    if file.as_raw_fd() <= libc::STDERR_FILENO {
+        return Err(PROCESS_LOCK_UNAVAILABLE.into());
+    }
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+        return Err(if std::io::Error::last_os_error().raw_os_error() == Some(libc::EWOULDBLOCK) {
+            EARLIER_PROCESS.into()
+        } else {
+            PROCESS_LOCK_UNAVAILABLE.into()
+        });
+    }
+    Ok(file)
+}
+#[cfg(not(unix))]
+pub(crate) fn take_process_lock(_: &Path) -> Result<std::fs::File, String> {
+    Err(PROCESS_LOCK_UNAVAILABLE.into())
 }
 /// Codex 0.167 loads administrator configuration (legacy managed_config.toml, requirements.toml and
 /// macOS managed preferences) ABOVE session flags, so the fixed flags cannot hold the provider,
@@ -352,6 +431,22 @@ mod tests {
         )
         .unwrap();
         (root, plan)
+    }
+    /// The typed route: the dedicated local home is bound only with its own lock file's path.
+    #[test]
+    fn local_process_lock_binding_requires_the_homes_own_lock_path() {
+        let (root, plan) = fixture();
+        prepare(&plan).unwrap();
+        let base = HostConfig::new(root.join("not-an-executable"), root.join("account"), root.join("probe"), root.clone());
+        let cfg = config(&base, &plan).unwrap();
+        assert_eq!(cfg.process_lock.as_deref(), Some(plan.native_path().join(PROCESS_LOCK).as_path()));
+        for wrong in [None, Some(root.join("account").join(PROCESS_LOCK)), Some(plan.native_path().join("auth.lock"))] {
+            let mut changed = cfg.clone();
+            changed.process_lock = wrong;
+            assert!(crate::hosting::Host::new().bind_local_destination(&changed, &plan).is_err());
+        }
+        crate::hosting::Host::new().bind_local_destination(&cfg, &plan).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn native_local_provider_fixed_nonsecret_config_is_private_create_only_and_has_no_account_links(

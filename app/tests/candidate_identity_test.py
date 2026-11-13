@@ -30,6 +30,31 @@ import build_candidate  # noqa: E402
 import bundled_supplier  # noqa: E402
 import identify  # noqa: E402
 
+_PRIVATE_TMP = None
+_SAVED_TEMPDIR = None
+
+
+def setUpModule():
+    """Every fixture lives in a private folder made for this run under the account's home.
+
+    Identification refuses a bundle whose ancestry changes while it is read, so a
+    busy shared temporary folder (other processes creating files beside the
+    fixtures) can fail a run that is not a regression; and under /private/tmp the
+    fixtures inherit a group the user may not belong to, so set-group-ID bits
+    cannot be set. The account's home is taken from the password database, so a
+    hosted runner uses its own home. Removed after the run.
+    """
+    global _PRIVATE_TMP, _SAVED_TEMPDIR
+    home = os.path.realpath(pwd.getpwuid(os.getuid()).pw_dir)
+    _PRIVATE_TMP = tempfile.mkdtemp(prefix='.candidate-identity-test-', dir=home)
+    _SAVED_TEMPDIR, tempfile.tempdir = tempfile.tempdir, _PRIVATE_TMP
+
+
+def tearDownModule():
+    tempfile.tempdir = _SAVED_TEMPDIR
+    shutil.rmtree(_PRIVATE_TMP, ignore_errors=True)
+
+
 MAC = sys.platform == 'darwin'
 IDENTIFIER = 'dev.chirality.app-v4.test-candidate'  # the record route accepts development identifiers only
 WHEN = '2000-01-01T00:00:00Z'  # invented fixture, never a run-date dependency
@@ -1714,7 +1739,8 @@ class CandidateBuild(Scratch):
         fd, root_id = build_candidate.create_root(p); self.addCleanup(os.close, fd)
         self.write_built_bundle(p)
         with mock.patch.object(identify, 'judge_development_bundle', wraps=identify.judge_development_bundle) as judge:
-            build_candidate.validate_bundle(p, root_id)
+            observed = build_candidate.validate_bundle(p, root_id)
+        self.assertEqual(observed, {'identifier': p['identifier'], 'name': p['product'], 'executable': 'chirality-app-v4'})
         judge.assert_called_once_with(p['identifier'], Path(p['bundle']).name, (p['product'], p['product']))
         with mock.patch.object(identify, 'judge_development_bundle', side_effect=ValueError('shared rule refused')):
             with self.assertRaisesRegex(ValueError, 'shared rule refused'):

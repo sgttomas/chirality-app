@@ -3346,6 +3346,8 @@ pub(crate) fn start_native_oauth<F: FnOnce() -> bool>(
         .oauth_start_gate
         .try_lock()
         .map_err(|_| "Another native sign-in start is pending; no replacement/retry")?;
+    // DEL-01-05: sign-in is off in a home whose Codex carries the development model address.
+    crate::dev_model_address::check_sign_in(&home.host_config)?;
     check_native_oauth_home(home, bootstrap, generation)?;
     if !confirm() {
         return Ok(NativeOAuthStart {
@@ -3717,6 +3719,9 @@ mod oauth_root_tests {
     }
     impl Fixture {
         fn new() -> Self {
+            Self::with(|_| {})
+        }
+        fn with(change: impl FnOnce(&mut HostConfig)) -> Self {
             use std::os::unix::fs::PermissionsExt;
             let root = std::fs::canonicalize(std::env::temp_dir())
                 .unwrap()
@@ -3767,6 +3772,7 @@ for line in sys.stdin:
                 HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
             cfg.allow_unverified_dev = true;
             cfg.wait_limit = Duration::from_secs(2);
+            change(&mut cfg);
             let host = Arc::new(Host::new());
             host.start(&cfg, "owned unqualified Root fixture").unwrap();
             assert_eq!(
@@ -3841,6 +3847,48 @@ for line in sys.stdin:
             let _ = self.home.host.stop("owned Root fixture", "bounded cleanup");
             let _ = std::fs::remove_dir_all(&self.root);
         }
+    }
+    /// DEL-01-05: a home whose Codex carries the development model address refuses sign-in
+    /// before anything is sent, in both sign-in modes, and never asks the person.
+    #[test]
+    fn dev_model_address_refuses_sign_in_before_anything_is_sent() {
+        let f = Fixture::with(|cfg| {
+            *cfg = crate::dev_model_address::apply(Ok(cfg.clone()), true, |_| {
+                Some("http://127.0.0.1:9/v1".into())
+            })
+            .unwrap();
+        });
+        for mode in [NativeLoginMode::Browser, NativeLoginMode::DeviceCode] {
+            let refusal = start_native_oauth(&f.home, &f.generation, mode, None, || {
+                panic!("the person is not asked")
+            })
+            .err()
+            .unwrap();
+            assert_eq!(refusal, crate::dev_model_address::SIGN_IN_OFF);
+        }
+        // What the host itself sent, which does not depend on when the stand-in logs a frame:
+        // the start's own request and nothing else.
+        let sent: Vec<String> = f
+            .home
+            .host
+            .client_requests()
+            .iter()
+            .map(|request| request["method"].as_str().unwrap_or_default().to_owned())
+            .collect();
+        assert_eq!(sent, ["initialize"], "no request was sent after the start's own");
+        // And what the stand-in has received so far: the start's handshake at most. Its second
+        // frame, the `initialized` notification, may be logged at any moment after the start
+        // returns, so the frames are compared by what they are and never counted.
+        let beyond: Vec<Value> = f
+            .wire()
+            .into_iter()
+            .filter(|frame| !matches!(frame["method"].as_str(), Some("initialize" | "initialized")))
+            .collect();
+        assert!(beyond.is_empty(), "a frame beyond the start's handshake reached the supplier: {beyond:?}");
+        assert!(f.home.oauth_login.lock().unwrap().is_none());
+        // The same home without the setting still starts a sign-in.
+        let plain = Fixture::new();
+        plain.start(NativeLoginMode::Browser);
     }
     #[test]
     fn oauth_root_browser_once_original_cancel_and_safe_observations() {
@@ -4528,6 +4576,16 @@ impl WorkflowRootSession {
         crate::workflow_workspace::development_catalog::verify_bundle_manifest(&root)
             .map_err(|e| format!("This App's included workflows could not be verified: {e}. Nothing can be selected or run from them (WR LS-5)"))?;
         Ok(root)
+    }
+    /// An included entry's own text, read as `select_production_bundle` would
+    /// resolve it from this App's installed resources, without selecting it.
+    pub(crate) fn read_included_text(&self, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::included(self.installed_bundle(), target)
+    }
+    /// The chosen workflow's own text (the inspected one with no chat), read
+    /// from the location it was resolved from and verified there by `verify_store`.
+    pub(crate) fn read_chosen_text(&self, chat: Option<&crate::workflow_selection::Chat>, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::chosen(self.choice(chat).map(|s| (&s.selection, s.package.as_path())), target)
     }
     pub(crate) fn retention_ready(&self)->Result<(),String>{
         if self.after_run_end.has_pending(){return Err("After-run-end observations still have pending records; wait for recording before closing project records".into());}
@@ -7954,6 +8012,7 @@ mod workflow_root_tests {
     mod real_backend_fixture_tests { use super::*; include!("workflow_real_backend_fixture_tests.rs"); }
     mod start_source_binding_tests { use super::*; include!("start_source_binding_tests.rs"); }
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
+    mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })

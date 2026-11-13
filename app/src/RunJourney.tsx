@@ -1,7 +1,8 @@
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { errorWords } from "./NativeActivity";
-import { chatWorkflow, workflowAssurance } from "./workflowSelection";
+import { chatWorkflow, workflowAssurance, workflowContext } from "./workflowSelection";
+import { WorkflowTextControl, useWorkflowTexts } from "./WorkflowText";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
 import { IncludedWorkflows, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -280,6 +281,10 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
 }) {
   // The unknown-start acknowledgement names one run; a later run starts unacknowledged.
   const [checkedRun, setCheckedRun] = useState<string | null>(null);
+  // Workflow texts the person asked to read. Held here, above the withheld
+  // view, so a text is still shown when the steps come back after the status
+  // read that follows the press.
+  const workflowTexts = useWorkflowTexts();
   const ready = host?.state === "ready" && host?.generationClosed !== true;
   const sourceCurrent = !!data?.context?.sourceRef && host?.workflowRoot?.context?.sourceRef === data.context.sourceRef && same(data.context.generation, host?.generation);
   const conversations = list(host?.threads).filter((row: Json) => same(row.generation, host?.generation));
@@ -358,6 +363,13 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : chosen.identity?.origin === "bundled" ? `a bundled copy${chosen.identity?.source_root ? ` (source ${text(chosen.identity.source_root)})` : ""}`
     : `${text(chosen.identity?.origin)} library`;
   const chosenReady = chosen?.runnable === true && !chosen?.currentLimit;
+  // A workflow's own text: an included entry read by name, the chosen one as
+  // the conversation's selection. Each is held against the identity it was read for.
+  const includedSource = `included with the App${librarySource ? `, from ${librarySource}` : ""}`;
+  const includedSlot = (entry: Json) => `included:${text(entry?.name)}`;
+  const chosenSlot = `chosen:${text(data?.context?.sourceRef)}:${thread}`;
+  const includedText = (entry: Json) => <WorkflowTextControl slot={includedSlot(entry)} identity={entry?.identity} source={includedSource} texts={workflowTexts} disabled={!canAct}
+    target={{ kind: "included", name: entry?.name, revision: entry?.identity?.revision }} context={() => workflowContext(data, host, "")}/>;
   const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
   const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
@@ -397,6 +409,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
         {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
+        {chosen && <WorkflowTextControl slot={chosenSlot} identity={chosen.identity} source={chosenSource} texts={workflowTexts} disabled={!canAct}
+          target={{ kind: "selection", revision: chosen.identity?.revision }} context={() => workflowContext(data, host, thread)}/>}
         {chosen && <RoleBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} conversation={conversations.find((row: Json) => row.threadId === thread)}/>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
         {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
@@ -420,7 +434,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
         {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}
         {active && <button disabled={!canAct} onClick={() => perform("workflow_library_entries_refresh", { libraryRef: active.reference })}>Look for other workflows in this library</button>}
-        <IncludedWorkflows catalog={data?.productionCatalog} chosen={chosen} disabled={!canAct} needsConversation={!thread} choose={name => perform("workflow_select_production_bundle", { name })}/>
+        <IncludedWorkflows catalog={data?.productionCatalog} chosen={chosen} disabled={!canAct} needsConversation={!thread} choose={name => perform("workflow_select_production_bundle", { name })}
+          readText={includedText} holdsText={entry => workflowTexts.of(includedSlot(entry), entry?.identity) !== undefined}/>
       </li>
       <li aria-labelledby="run-inputs-heading"><h3 id="run-inputs-heading">Inputs</h3>
         {inputs.length > 0 ? <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
