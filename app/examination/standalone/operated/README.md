@@ -95,6 +95,75 @@ All of these hold, every time:
    outside, and is not a clean run.
 9. **What stays.** The launch folder with its record. Nobody opens the home.
 
+## Running a scenario
+
+A scenario is a file of steps and expected states, walked by a script the
+operator loads. There is one: `first-use-setup.scenario.json`, "first-use setup
+without a project, new settings". It is the opening of the first-use setup page
+up to, and not including, the App's own confirmation. Its acts are views and
+clicks; nothing is typed, no file or folder is chosen and no confirmation is
+answered. It starts no Codex and needs no sign-in.
+
+What it shows when it passes:
+
+- **SETUP CHOICES REVIEWED.** After "Continue without a project" the page reads
+  "Ready to review. Nothing is created or saved until you confirm."; "Review
+  setup" shows "What setup will do" with its five lines and the control
+  "Create settings and save for next launch…", which is never clicked; "Exact
+  locations" shows three locations under the App's data folder in the throwaway
+  home.
+- **Two refusals.** "Review setup" is unavailable, with its reason, before any
+  choice; and again with "Use my existing Codex settings" selected and nothing
+  chosen.
+- **The starting state.** "Technical details" says setup is required and gives
+  the App's data folder under the throwaway home.
+
+It is agent-operated development evidence on a development build. It is neither
+setup completed nor a person's observation.
+
+**Before a window: the same walk on recorded views.** No application and no
+screen are involved.
+
+```sh
+cd app/examination/standalone/operated
+node replay.mjs first-use-setup.scenario.json ../../../tests/group_b_operated_fixtures/first-use-setup/views.json
+node replay.mjs first-use-setup.scenario.json ../../../tests/group_b_operated_fixtures/first-use-setup/views.json \
+  ../../../tests/group_b_operated_fixtures/first-use-setup/wrong.review-available-before-any-choice.json
+```
+
+The first prints PASS with every outcome shown and exits 0. The second makes one
+known wrong state in the recorded views (Review setup available before any
+choice) and must print FAIL, naming the step and what was found, and exit 1.
+The other `wrong.*.json` files beside it do the same for three more states.
+This is the check rejecting a wrong state; it says nothing about a build.
+
+**In a window.** Steps 1 to 3 above first: the launcher running, the App's
+process number confirmed, the identifier taken from the identification record.
+Then, in the operator's `js` tool, with the four values filled in:
+
+```js
+var fs = await import('node:fs');
+var walk = await import('file://<repository>/app/examination/standalone/operated/walk.mjs');
+var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalone/operated/first-use-setup.scenario.json', 'utf8'));
+var sky = (await import('@oai/sky')).sky;
+var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home', pid: <the App's process number>});
+fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(report, null, 2));
+nodeRepl.write(walk.summary(report));
+```
+
+- The script refuses, before any call, an application not named by a
+  development build's bundle identifier, and a process number that is not
+  running. It makes views and clicks and nothing else, and clicks only the
+  controls the scenario's steps name.
+- It stops, and says where, if a view holds a sheet, a dialog or an alert, if
+  the view is not of the App's own window, or if the build has ended. A result
+  that stopped is inconclusive, not a pass: report it as it is.
+- The result file holds every call made and every view's returned text whole.
+  The operator adds the times of its own calls and what it saw outside the
+  script (a prompt, the pointer or the focus moving) to its own record.
+- Then step 8: end the launch, confirm that neither process remains, and keep
+  the launch record with the result.
+
 ## What the calls take
 
 Read in the supplier's own documentation of its window service, and given here
