@@ -10,7 +10,10 @@ if (!globalThis.document) installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {useOrderedHost, shownBeforePress, invoke, SELF_ISSUED_QUIET, POLL_MS} = loadSrc('hostReads');
-const {readFileSync, readdirSync} = await import('node:fs');
+const {readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync} = await import('node:fs');
+const {join} = await import('node:path');
+const {tmpdir} = await import('node:os');
+const {fileURLToPath} = await import('node:url');
 const {REFRESH_FAILED} = loadSrc('statusRefresh');
 
 function controlledHost() {
@@ -261,22 +264,44 @@ test('a failed status read rejects with the fixed line alone and carries none of
     assert.equal(Object.hasOwn(error, 'cause'), false);
   } finally { await ui.close(); host.restore(); }
 });
-// Every invocation of host_status in app/src is the direct argument of readHost, so it gets that
-// construction. Limit: this is a check of spelling. It finds the literal "host_status" command
-// passed to invoke; a status read under a new command name, or through a constant, is not seen.
-test('every invocation of host_status in app/src is the direct argument of readHost', () => {
-  const src = new URL('../src/', import.meta.url);
+// Every invocation of host_status in app/src, in every .ts and .tsx file at any depth, is the direct
+// argument of readHost, so it gets that construction. Limit: this is a check of spelling. It finds the
+// literal "host_status" command passed to invoke; a status read under a new command name, or through a
+// constant, is not seen.
+function hostStatusInvocations(root) {
   const found = [], outside = [];
-  for (const name of readdirSync(src).filter(name => /\.tsx?$/.test(name))) {
-    const text = readFileSync(new URL(name, src), 'utf8')
-      .replace(/\/\*[\s\S]*?\*\//g, comment => comment.replace(/[^\n]/g, ' ')).replace(/^\s*\/\/.*$/gm, comment => ' '.repeat(comment.length));
-    text.split('\n').forEach((line, index) => {
-      for (const match of line.matchAll(/invoke(?:<[^>]*>)?\(\s*["']host_status["']/g)) {
-        found.push(`${name}:${index + 1}`);
-        if (!/readHost\(\s*$/.test(line.slice(0, match.index))) outside.push(`${name}:${index + 1}`);
-      }
-    });
-  }
+  const visit = relative => {
+    for (const entry of readdirSync(join(root, relative), {withFileTypes: true})) {
+      const name = relative ? `${relative}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) { visit(name); continue; }
+      if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue;
+      const text = readFileSync(join(root, name), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, comment => comment.replace(/[^\n]/g, ' ')).replace(/^\s*\/\/.*$/gm, comment => ' '.repeat(comment.length));
+      text.split('\n').forEach((line, index) => {
+        for (const match of line.matchAll(/invoke(?:<[^>]*>)?\(\s*["']host_status["']/g)) {
+          found.push(`${name}:${index + 1}`);
+          if (!/readHost\(\s*$/.test(line.slice(0, match.index))) outside.push(`${name}:${index + 1}`);
+        }
+      });
+    }
+  };
+  visit('');
+  return {found, outside};
+}
+test('every invocation of host_status in app/src is the direct argument of readHost', () => {
+  const {found, outside} = hostStatusInvocations(fileURLToPath(new URL('../src/', import.meta.url)));
   assert.ok(found.length > 0, 'no invocation of host_status was found: zero is not a pass');
   assert.deepEqual(outside, [], `not the direct argument of readHost: ${outside.join(', ')}`);
+});
+test('the host_status search reaches files in subfolders at any depth and names one outside readHost', () => {
+  const root = mkdtempSync(join(tmpdir(), 'host-status-search-'));
+  try {
+    mkdirSync(join(root, 'sub', 'deeper'), {recursive: true});
+    writeFileSync(join(root, 'top.tsx'), 'const a = await readHost(invoke<Json>("host_status"));\n');
+    writeFileSync(join(root, 'sub', 'deeper', 'inner.ts'), '// invoke("host_status") in a comment is not counted\nconst b = await invoke("host_status");\n');
+    writeFileSync(join(root, 'sub', 'notes.md'), 'invoke("host_status")\n');
+    const {found, outside} = hostStatusInvocations(root);
+    assert.deepEqual([...found].sort(), ['sub/deeper/inner.ts:2', 'top.tsx:1'], 'both files found, the comment and the .md file not counted');
+    assert.deepEqual(outside, ['sub/deeper/inner.ts:2']);
+  } finally { rmSync(root, {recursive: true, force: true}); }
 });

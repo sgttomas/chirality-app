@@ -2097,8 +2097,9 @@ export function App() {
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     } finally {
+      // The outcome and the busy state are set first; a failed refresh adds the fixed line once.
       setProcessBusy(false);
-      await refresh();
+      await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
     }
   };
 

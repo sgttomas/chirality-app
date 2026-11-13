@@ -320,11 +320,12 @@ for (const commandFails of [false, true]) {
   });
 }
 
-// Status reads after a command whose failure used to change what the command's caller sees: the
-// workflow assurance setting, the attachment selection panel, the external observation selection and
-// the trace selection. The command's own outcome stands (a completed command does not reject; its own
-// failure is shown as before), the fixed line is added once to the App line, the raw diagnostic
-// appears nowhere, and the command is sent once.
+// Status reads after a command whose failure used to change what the command's caller sees, or went
+// unhandled: the workflow assurance setting, the attachment selection panel, the external observation
+// selection, the trace selection, the generic act (decide) and the Codex process controls. The
+// command's own outcome stands (a completed command does not reject; its own failure is shown as
+// before), the fixed line is added once to the App line, the raw diagnostic appears nowhere, and the
+// command is sent once.
 const afterCanary = 'INVENTED_PRIVATE_STATUS_READ_DIAGNOSTIC_AFTER';
 async function afterCommand(kind, commandFails, check) {
   const g = {appSession:'after-session', home:'after-home', spawnCounter:1};
@@ -334,7 +335,7 @@ async function afterCommand(kind, commandFails, check) {
     ...(kind === 'attachment' ? {attachmentCustody:{state:'opened'}, attachmentSelections:{ownerRef:'owner-after', listRevision:1, selections:[{selection:{selectionRef:'sel-after', displayName:'invented.txt'}}], submissions:[]}} : {}),
     ...(kind === 'external' ? {externalObservation:{selection:{state:'not-selected'}}} : {}),
     ...(kind === 'trace' ? {traceReceiving:{selection:{state:'not-selected'}}} : {})};
-  const commands = {assurance:'workflow_assurance_relaxed', attachment:'remove_attachment', external:'select_external_observation', trace:'select_trace_record', decide:'decide'};
+  const commands = {assurance:'workflow_assurance_relaxed', attachment:'remove_attachment', external:'select_external_observation', trace:'select_trace_record', decide:'decide', process:'host_start'};
   const offer = {offerId:'offer-after', wording:'Invented decision', actKind:'decide', subject:{ref:'subject-after', contentIdentity:{value:'identity-after'}}, purpose:'invented', scope:'invented', answers:{standing:'invented'}, alternatives:[{id:'alt-a', statement:'invented', consequences:['none']}]};
   let failStatus = false; const calls = [];
   const idle = installIdleNativeWaiting(async command => {
@@ -357,7 +358,7 @@ async function afterCommand(kind, commandFails, check) {
     if (kind === 'trace') { const selects = nodes(region(c, 'Supplied trace record') ?? c, 'select').filter(node => [...nodes(node, 'option')].some(o => props(o).value === 'exam_result') || [...nodes(node, 'option')].some(o => props(o).value === 'own_code'));
       await change(selects[0], 'exam_result'); await change(selects[1], 'own_code'); }
     if (kind === 'decide') { await tap('Open act control (decide)'); const radio = nodes(c, 'input').find(node => props(node).value === 'alt-a'); await React.act(async () => { props(radio).onChange({target:{value:'alt-a'}}); }); }
-    await tap({assurance:'Allow disk records (native confirmation)…', attachment:'Remove', external:'Select observation documents…', trace:'Select supplied record…', decide:'Decide…'}[kind]);
+    await tap({assurance:'Allow disk records (native confirmation)…', attachment:'Remove', external:'Select observation documents…', trace:'Select supplied record…', decide:'Decide…', process:'Start Codex'}[kind]);
     assert.doesNotMatch(c.textContent, new RegExp(afterCanary), 'the raw status-read diagnostic appears nowhere');
     assert.equal(calls.filter(command => command === commands[kind]).length, 1, 'sent once: no automatic retry');
     assert.ok(c.textContent.includes(REFRESH_FAILED), 'the fixed line is shown');
@@ -368,7 +369,7 @@ async function afterCommand(kind, commandFails, check) {
   }
 }
 const alerts = c => nodes(c, 'p').filter(node => node.getAttribute('role') === 'alert').map(node => node.textContent);
-for (const kind of ['assurance', 'attachment', 'external', 'trace', 'decide']) for (const commandFails of [false, true]) test(`${kind}: a ${commandFails ? 'refused' : 'completed'} command whose status refresh fails keeps its own outcome; the fixed line once, nothing raw`, async () => {
+for (const kind of ['assurance', 'attachment', 'external', 'trace', 'decide', 'process']) for (const commandFails of [false, true]) test(`${kind}: a ${commandFails ? 'refused' : 'completed'} command whose status refresh fails keeps its own outcome; the fixed line once, nothing raw`, async () => {
   await afterCommand(kind, commandFails, c => {
     const own = `invented ${kind} refusal`;
     if (kind === 'decide') {
@@ -376,11 +377,15 @@ for (const kind of ['assurance', 'attachment', 'external', 'trace', 'decide']) f
       assert.ok(!c.textContent.includes('Act control: Invented decision'), 'decide closes its offer after the command, as before');
     } else if (kind === 'external') {
       assert.ok(c.textContent.includes(`${commandFails ? own : 'External selection: invented-selected invented-stage'} ${REFRESH_FAILED}`), 'the selection outcome stands, then the fixed line');
+    } else if (kind === 'process') {
+      assert.ok(c.textContent.includes(commandFails ? `host_start: ${own} ${REFRESH_FAILED}` : `host_start: {"selection"`), 'the process outcome stands');
+      assert.equal(once(region(c, 'Latest App response').textContent, REFRESH_FAILED), 1, 'the fixed line once on the App line');
+      assert.equal(!!props(button(c, 'Start Codex')).disabled, false, 'the busy state is cleared as before');
     } else if (kind === 'trace' && !commandFails) {
       assert.ok(c.textContent.includes(`Supplied trace selection: invented-selected ${REFRESH_FAILED}`), 'the selection outcome stands, then the fixed line');
     }
     // The command's caller: its own panel shows its own failure, and no failure at all when it completed.
-    if (commandFails && !['external', 'decide'].includes(kind)) assert.ok(alerts(c).some(text => text === own), `${kind}: its own failure is shown as before`);
+    if (commandFails && !['external', 'decide', 'process'].includes(kind)) assert.ok(alerts(c).some(text => text === own), `${kind}: its own failure is shown as before`);
     if (!commandFails) assert.ok(!alerts(c).some(text => text === REFRESH_FAILED), `${kind}: a completed command is not shown as failed`);
   });
 });
