@@ -679,7 +679,7 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
         ("records_access.rs", "519c5024fe3afbe5", "the records capability's own read log, a writer: its path in the project's store folder, refused with the read when the attachment gives none"),
         ("role_observations.rs", "c024537e4e6f86bd", "the census of files kept in the project folder, read only to REFUSE role observation history while an import is needed; and a writer taking the project's identity from the attachment (none for a refused one)"),
         ("role_record_source.rs", "b7a86f4abea1daee", "the role source takes the project's identity from the attachment, to refuse a reference that belongs to another project; no place is taken"),
-        ("workflow_record_store.rs", "b1cc7691732bfd74", "the workflow record store's read admission takes the attachment and returns its refusal for a refused one before anything is read"),
+        ("workflow_record_store.rs", "06f4e510163168a1", "the workflow record store's read admission takes the attachment and returns its refusal for a refused one before anything is read; and the census of files kept in the project folder, read only to decide whether a kept reader binds in place (records in place hold records), never to take a place: the place is the binding's, from readable_home"),
         ("native_conversation_links.rs", "58c2472c29734ec3", "the native relationship writer captures the attachment it will write under and refuses a refusal"),
         ("lib.rs", "49b753d2e7327969", "the App at startup gives the opened project its identity (a minting attachment), a writer"),
     ];
