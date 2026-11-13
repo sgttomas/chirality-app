@@ -689,3 +689,30 @@ fn a_begun_write_is_never_reported_not_sent() {
     assert_eq!(f.attempted_interrupts("turn-1"), 1);
     f.assert_nothing_held();
 }
+
+/// A configuration reading and a bounded interrupt are exclusive by
+/// construction: a request that names both a reading deadline and an
+/// interrupt bound is refused before anything is taken, so nothing is
+/// registered, nothing is written and the bound's decision is untouched.
+#[test]
+fn a_request_with_both_a_reading_deadline_and_an_interrupt_bound_is_refused() {
+    let f = Fixture::new();
+    f.live_turn("thread", "turn-1");
+    for (method, params) in [("turn/interrupt", json!({"threadId":"thread","turnId":"turn-1"})), ("config/read", json!({}))] {
+        let limit = WriteBound { deadline: Instant::now() + LIMIT, phase: Arc::new(Mutex::new(SendPhase::Pending)), gave_up: Mutex::new(None) };
+        let count = |host: &Host| {
+            let i = host.inner.0.lock().unwrap();
+            (i.next_id, i.source_requests.len(), i.client_requests.len(), i.pending.len(), i.interrupt_requests.len())
+        };
+        let before = count(f.host());
+        let wire = f.wire_interrupts();
+        let refused = f.host().request_begin_with_access_offer_guarded(method, params, json!({"kind":"person-directed"}), false, Some(&f.generation), false, None, None, None, None, false, None, None, None, Some(Instant::now() + LIMIT), Some(&limit));
+        assert_eq!(refused.err().as_deref(), Some("a configuration reading is never an interrupt; nothing sent"), "{method}");
+        assert_eq!(count(f.host()), before, "{method}: nothing registered");
+        assert_eq!(f.wire_interrupts(), wire, "{method}: nothing written");
+        assert_eq!(*limit.phase.lock().unwrap(), SendPhase::Pending, "{method}: no write began");
+        assert!(limit.gave_up.lock().unwrap().is_none(), "{method}");
+    }
+    assert_eq!(f.attempted_interrupts("turn-1"), 0);
+    f.assert_nothing_held();
+}

@@ -907,6 +907,8 @@ pub(crate) enum InterruptSend {
 }
 pub(crate) const NOT_WRITTEN_IN_LIMIT: &str = "the interrupt could not be written within the stop limit";
 const GATE_NOT_HAD_IN_LIMIT: &str = "the interrupt could not be written within the stop limit (another interrupt to this Codex process had not finished its own send)";
+/// Why a request that names both a reading deadline and an interrupt bound is refused.
+const READING_NOT_INTERRUPT: &str = "a configuration reading is never an interrupt; nothing sent";
 const PROCESS_ENDING: &str = "the Codex process was ending before the interrupt could be written";
 pub(crate) const WRITE_OUTCOME_UNKNOWN: &str = "write outcome unknown: the interrupt's write to Codex began and its completion was not observed, so whether it reached Codex is not known";
 const WRITE_UNFINISHED_AT_LIMIT: &str = "write outcome unknown: the interrupt's write to Codex began and its completion was not observed within the stop limit, so whether it reached Codex is not known";
@@ -2665,6 +2667,9 @@ impl Host {
         self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None, None, None)
     }
     fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>,write_bound:Option<&WriteBound>)->Result<SourceRequest,String>{
+        // A configuration reading and a bounded interrupt are exclusive by construction: each has
+        // its own withdrawal at the write-start point, and one request never carries both.
+        if reading_deadline.is_some()&&write_bound.is_some() {return Err(READING_NOT_INTERRUPT.into());}
         if matches!(method,"config/batchWrite"|"config/value/write") && endpoint_write.is_none() {return Err("Configuration writes require a confirmed typed provider operation; generic route refused".into());}
         if endpoint_write.is_some() && (method!="config/batchWrite" || !private_config) {return Err("Private endpoint method context differs".into());}
         if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
