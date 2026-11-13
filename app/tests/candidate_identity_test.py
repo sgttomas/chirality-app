@@ -1443,9 +1443,20 @@ class CandidateBuild(Scratch):
                                                         '/usr/bin', '/bin', '/usr/sbin', '/sbin'])
                 elif value.startswith('/'):
                     self.assertTrue(Path(value) == root or root in Path(value).parents, value)
-        for key in ('HOME', 'TMPDIR', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'CODEX_HOME', 'NPM_CONFIG_CACHE',
+        for key in ('HOME', 'TMPDIR', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'NPM_CONFIG_CACHE',
                     'NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG', 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR'):
             self.assertIn(key, p['env'])
+
+    def test_the_build_makes_no_codex_home_and_carries_none_from_the_caller(self):
+        self.assertEqual(self.environ['CODEX_HOME'], '/invented/personal')  # the caller has one
+        p = self.plan()
+        self.assertNotIn('CODEX_HOME', p['env'])
+        self.assertNotIn('CODEX_HOME', build_candidate.WRITABLE)
+        root = Path(p['root'])
+        fd, root_id = build_candidate.create_root(p); self.addCleanup(os.close, fd)
+        build_candidate.prepare_environment(p, root_id)
+        self.assertEqual([name for name in os.listdir(root) if 'codex' in name.lower()], [])
+        self.assertFalse((root / 'home/.codex').exists())
 
     def test_planned_install_leaves_the_callers_home_and_caches_unchanged(self):
         node = shutil.which('node')
