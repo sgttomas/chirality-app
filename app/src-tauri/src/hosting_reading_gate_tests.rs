@@ -434,16 +434,37 @@ fn a_close_ends_the_reading_and_an_old_generations_late_reply_touches_nothing() 
 /// large frame): the reading stays outstanding, later readings get the gate sentence, and the
 /// blocked one is never told it was not sent; a write error after the attempt leaves the reading
 /// outstanding as well.
+///
+/// The blocked reading's limit is counted from the call, before its large frame is built and the
+/// writer taken, and no write begins once it has passed. A slow host can pass it first: that
+/// attempt is withdrawn (correctly, and only at its deadline), which is not what this test is
+/// about, so it is recognised by its own result and repeated with a longer limit, up to LONG.
 #[test]
 fn a_blocked_or_failed_write_keeps_its_reading_outstanding_and_is_never_called_not_sent() {
     let rig = Rig::new();
     let mut sleeper = Command::new("/bin/sleep").arg("30").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
     *rig.host.stdin.lock().unwrap() = sleeper.stdin.take();
-    let (host, g) = (rig.host.clone(), rig.g.clone());
-    let blocked = std::thread::spawn(move || read(&host, &g, json!({"cwd":"x".repeat(4 * 1024 * 1024),"includeLayers":false}), Duration::from_millis(300)));
-    let deadline = Instant::now() + LONG;
-    while !matches!(rig.stage(), Some((Some(_), ReadingStage::WriteStarted))) { assert!(Instant::now() < deadline); std::thread::sleep(Duration::from_millis(5)); }
-    std::thread::sleep(Duration::from_millis(400));
+    let mut limits = [Duration::from_millis(300), Duration::from_secs(1), LONG].into_iter();
+    let (blocked, deadline) = loop {
+        let limit = limits.next().expect("the blocked reading's write never started within any limit up to LONG: nothing was observed inside a write");
+        let (host, g, deadline) = (rig.host.clone(), rig.g.clone(), Instant::now() + limit);
+        let blocked = std::thread::spawn(move || host.request_reading("config/read", json!({"cwd":"x".repeat(4 * 1024 * 1024),"includeLayers":false}), json!({"kind":"synthetic reader"}), &g, false, deadline));
+        let started = loop {
+            if matches!(rig.stage(), Some((Some(_), ReadingStage::WriteStarted))) { break true; }
+            if blocked.is_finished() { break false; }
+            assert!(Instant::now() < deadline + LONG, "the blocked reading neither started its write nor returned");
+            std::thread::sleep(Duration::from_millis(5));
+        };
+        if started { break (blocked, deadline); }
+        match blocked.join().unwrap() {
+            Err(e) if e == READING_WITHDRAWN => {
+                assert!(Instant::now() >= deadline, "withdrawn only once its deadline had passed");
+                assert!(rig.stage().is_none(), "a withdrawn attempt leaves no reading outstanding");
+            }
+            other => panic!("the blocked reading returned instead of staying inside its write (does the stand-in read its input?): {:?}", other.map(|_| rig.stage())),
+        }
+    };
+    std::thread::sleep((deadline + Duration::from_millis(100)).saturating_duration_since(Instant::now()));
     assert!(matches!(rig.stage(), Some((Some(_), ReadingStage::WriteStarted))), "inside the write past its deadline: still outstanding");
     assert!(!blocked.is_finished(), "the caller inside the write cannot be timed out");
     assert_eq!(read(&rig.host, &rig.g, json!({"cwd":W}), Duration::from_millis(150)).err().unwrap(), READING_GATE);
