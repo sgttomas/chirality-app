@@ -1,0 +1,270 @@
+{
+  "scenario": "first-use setup without a project, new settings",
+  "version": 2,
+  "what_it_is": "Agent-operated development evidence on an identified development build: the opening of the first-use setup page, up to and not including the App's own confirmation. It is neither setup completed nor a person's observation. It starts no Codex and needs no sign-in.",
+  "starting_state": "An identified candidate built from main; a new throwaway home made by the launcher for this launch; no App data; the App running and confirmed from the shell; no child process.",
+  "acts": "views and clicks only; nothing is typed, no file or folder is chosen, no confirmation is answered",
+  "never_clicked": [
+    "Create settings and save for next launch…",
+    "Browse for project folder",
+    "Choose…",
+    "any text field",
+    "the window's own buttons",
+    "the menu bar"
+  ],
+  "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
+  "starts_no_process": true,
+  "steps": [
+    {
+      "id": "S1",
+      "act": "view",
+      "says": "the page a new person first sees; Review setup is unavailable, with its reason, before any choice",
+      "expect": [
+        {
+          "heading": "Welcome to Chirality"
+        },
+        {
+          "button": "Review setup",
+          "is": "unavailable"
+        },
+        {
+          "text": "Choose the folder you want to work in, or continue without a project."
+        },
+        {
+          "button": "Continue without a project",
+          "is": "available"
+        },
+        {
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+          "is": "chosen"
+        },
+        {
+          "radio": "Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+          "is": "not chosen"
+        },
+        {
+          "summary": "Technical details",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Technical details"
+      },
+      "says": "setup is required and the App's data folder is under the throwaway home",
+      "expect": [
+        {
+          "summary": "Technical details",
+          "is": "on"
+        },
+        {
+          "text_starts": "Launch: setup-required."
+        },
+        {
+          "text": "App data: {app_data}"
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "act": "click",
+      "control": {
+        "kind": "button",
+        "label": "Continue without a project"
+      },
+      "says": "no project is chosen; the page is ready to review",
+      "expect": [
+        {
+          "text": "No project for now. You can still have conversations, and choose a project later in Desktop setup."
+        },
+        {
+          "text": "Ready to review. Nothing is created or saved until you confirm."
+        },
+        {
+          "button": "Review setup",
+          "is": "available"
+        },
+        {
+          "button": "Continue without a project",
+          "is": "absent"
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "act": "click",
+      "control": {
+        "kind": "button",
+        "label": "Review setup"
+      },
+      "wait_ms": 3000,
+      "says": "what setup will do: its five lines and no other, and the control that would confirm it",
+      "expect": [
+        {
+          "heading": "What setup will do"
+        },
+        {
+          "texts_from": {
+            "kind": "heading",
+            "label": "What setup will do"
+          },
+          "up_to": {
+            "kind": "summary",
+            "label": "Exact locations"
+          },
+          "are": [
+            "What setup will do",
+            "Create a new settings folder for this App, inside its data folder",
+            "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+            "Create a new sign-in folder for this App, linked to those settings",
+            "Project when you next open the App: none",
+            "Save these choices privately for the next launch"
+          ]
+        },
+        {
+          "text": "Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed."
+        },
+        {
+          "button": "Create settings and save for next launch…",
+          "is": "available"
+        },
+        {
+          "button": "Change my choices",
+          "is": "available"
+        },
+        {
+          "summary": "Exact locations",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Exact locations"
+      },
+      "says": "three locations, each under the App's data folder in the throwaway home",
+      "expect": [
+        {
+          "summary": "Exact locations",
+          "is": "on"
+        },
+        {
+          "location": "Settings folder",
+          "under": "{app_data}"
+        },
+        {
+          "location": "Sign-in folder",
+          "under": "{app_data}"
+        },
+        {
+          "location": "Saved choices",
+          "under": "{app_data}"
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "act": "click",
+      "control": {
+        "kind": "button",
+        "label": "Change my choices"
+      },
+      "says": "the review closes; nothing was confirmed",
+      "expect": [
+        {
+          "button": "Change my choices",
+          "is": "absent"
+        },
+        {
+          "button": "Create settings and save for next launch…",
+          "is": "absent"
+        },
+        {
+          "text": "Ready to review. Nothing is created or saved until you confirm."
+        },
+        {
+          "button": "Review setup",
+          "is": "available"
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "act": "click",
+      "control": {
+        "kind": "radio",
+        "label": "Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in."
+      },
+      "says": "with existing settings and nothing chosen, Review setup is unavailable again, with its reason",
+      "expect": [
+        {
+          "radio": "Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+          "is": "chosen"
+        },
+        {
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+          "is": "not chosen"
+        },
+        {
+          "button": "Review setup",
+          "is": "unavailable"
+        },
+        {
+          "text": "Choose your config.toml, AGENTS.md and skills folder, or start with new settings."
+        }
+      ]
+    },
+    {
+      "id": "S8",
+      "act": "click",
+      "control": {
+        "kind": "radio",
+        "label": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them."
+      },
+      "says": "back to new settings; the page is ready to review again",
+      "expect": [
+        {
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+          "is": "chosen"
+        },
+        {
+          "text": "Ready to review. Nothing is created or saved until you confirm."
+        },
+        {
+          "button": "Review setup",
+          "is": "available"
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "SETUP CHOICES REVIEWED": [
+      "S3",
+      "S4",
+      "S5"
+    ],
+    "REFUSAL: REVIEW SETUP UNAVAILABLE BEFORE ANY CHOICE": [
+      "S1"
+    ],
+    "REFUSAL: REVIEW SETUP UNAVAILABLE WITH EXISTING SETTINGS AND NOTHING CHOSEN": [
+      "S7"
+    ],
+    "STARTING STATE: SETUP REQUIRED, APP DATA UNDER THE THROWAWAY HOME": [
+      "S2"
+    ]
+  }
+}
