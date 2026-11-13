@@ -120,6 +120,20 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     finally { finish(); }
   };
 
+  // Another process holds this App data (which one is not known): nothing
+  // operational started and setup cannot run, so the host's reason is the
+  // whole surface.
+  if (view.launch?.state === "data-held") return <section className="first-use" aria-label="Welcome">
+    <h1>This App's data is in use</h1>
+    <p className="first-use-lead" role="alert">{view.launch.reason}</p>
+  </section>;
+  // A Codex home the saved setup names is held: setup is not what is needed,
+  // and nothing operational started, so the host's reason is the whole surface.
+  if (view.launch?.state === "home-held") return <section className="first-use" aria-label="Welcome">
+    <h1>A Codex home this App uses is held</h1>
+    <p className="first-use-lead" role="alert">{view.launch.reason}</p>
+    <p>Nothing operational was started. This launch did not change your saved setup. Quit this Chirality instance (⌘Q), then reopen it after the process holding the home has released it.</p>
+  </section>;
   return <section className="first-use" aria-label="Welcome" aria-busy={busy}>
     <h1>Welcome to Chirality</h1>
     <p className="first-use-lead">Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.{shown.pending ? "" : " First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App."}</p>

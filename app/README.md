@@ -1324,6 +1324,160 @@ incomplete or invalid; there is no fallback or field merge from saved desktop
 requests. A compiled production successor continues to refuse without its
 installed-custody issuer, regardless of a desktop development selection.
 
+One App at a time holds an App data directory and each Codex home it starts
+Codex on, on this route as on the saved one. Each hold is an exclusive `flock`
+on the directory itself; a conflicting lock shows that some process holds it,
+not which one, so the refusals say what was observed and name no owner. An App
+whose App data is held by another process starts nothing operational (no Codex,
+no recovery ledger, no record) and shows "Chirality did not start here: its
+data is held by another process on this computer"; a start of Codex on a home
+held by another process is refused, and so is a home that does not exist. A
+home this App still holds because a Codex process it started has not been
+confirmed ended refuses a later start in the same App and says so; quitting
+Chirality releases it. If App data cannot be resolved or held (an invalid
+`CHIRALITY_APP_DATA`, an unavailable platform path), nothing operational starts
+and the reason is shown. Every committed configuration uses the identifier
+`dev.chirality.app-v4.skeleton`, so development runs that do not name their
+App data share one directory and only the first of them starts. To run in
+parallel, give each run its own `CHIRALITY_APP_DATA` (an absolute path; it is
+created if missing, and setting it alone selects this route) and its own
+existing `CHIRALITY_CODEX_HOME`.
+
+When the App data hold is taken. On the environment route, at launch, after
+the App data directory is created if missing. On the saved route, at launch
+only if the App data directory already exists; with no directory the App sits
+at setup with no hold and takes it when setup is first saved, which creates
+the directory. Two Apps on a never-used machine can therefore both show setup;
+the second to save is refused.
+
+How an earlier App session is read. A later session start reads an earlier
+session without a recorded end as ended only when this process holds the App
+data directory that contains the ledger (established by device and inode, not
+by path text) and that session is not alive in this process. A session's
+liveness lock file can only ever say that it is still running (a held lock
+refuses the start); a free, missing or replaced lock file says nothing, and a
+crashed session's lock file is never what its ending rests on: it is removed
+only after that session's end is recorded. Otherwise the start is refused,
+nothing is written, and it is shown as a recovery limit. Limit: an App of a
+build before this hold, started on the environment route, takes no lock of any
+kind and cannot be excluded or detected; while it runs on the same App data, a
+later App can hold that App data and read its session as ended.
+
+What that reading says of live work. Where a conversation's turn was live when
+the earlier session last recorded it, the custody view carries a restart fact
+(`app_restart_interruption`) with standing `App-recorded`, the turn under
+`liveTurnsLastRecorded`, and `liveAtSessionEnd` `not-known`: it is the record
+as that session left it, not an observation of its end, and the turn may have
+ended after the last record. Only where the App itself recorded at its own quit
+that it lost sight of the live turn does the fact say `recorded-at-quit`. The
+run-limit record the host writes from that fact says the same: what was last
+recorded, that the end was not observed, and that no end of the run is
+inferred. Records written before this change keep what they say.
+
+What that reading says of stop requests. After this App session has
+successfully started on the ledger and established the earlier sessions'
+endings, startup closes an earlier session's unsettled stop request (SR-08)
+only when that source session has a start record in the ledger. The view of stop outcomes follows the same rule: for a request of
+a session with no start record it shows the record as recorded, derives no
+label, does not call the session earlier or ended, and says as a limit that the
+session's end is not established. An outcome-unknown record is read as "No
+final turn status is recorded for this stop request. That does not establish
+that Codex's process ended.", whichever way it came to be written.
+
+What that reading records. A request the earlier session left listed is closed
+in the ledger as `open-at-app-session-end` (RECOVERY RQ-06, context
+`app-ended-without-record`), and the custody view shows it as the event
+`request_open_at_app_session_end` with standing `App-recorded`: the App records
+that its own earlier session ended while the request was recorded open. It is
+not an observation. It asserts no Codex process exit and no missing reply; a
+Codex the earlier session started may still be alive, and a reply sent after
+the last record was not observed. Rows an earlier build wrote
+(`ended-unanswered(process-exit)`) stay as written and keep their kind. The
+custody-event schema is 0.3; 0.2 is retained beside it.
+
+The home check before Codex starts compares the home's path with the held
+directory by device and inode immediately before the label probe and again
+before the app-server is spawned. A window remains between the last check and
+the child's exec, because the child is handed the home by path (`CODEX_HOME`):
+a directory put in place of the home inside that window is not detected.
+
+The process lock of a home. Every start of Codex, for every home, first takes
+an exclusive, non-waiting `flock` on one small private file the App keeps in
+the home, `chirality-codex-process.lock` (created at the home's first start,
+opened by name inside the held directory, never through a link). The Codex
+child is given that one descriptor and the App closes its own copy as soon as
+the child is spawned, so the lock is held by the Codex process, and by any
+program it passed the descriptor to, for as long as each keeps it open, and by
+nothing of the App. This is what excludes a second Codex on a home after an
+App is killed (its Codex can outlive it: the supplier's app-server exits by
+itself up to about 45 seconds after its input closes) and after a Stop that did
+not end the process. A held lock refuses the start before it is an attempt: no
+lifecycle record, the state unchanged, the reason kept as the host status's
+`lastStartRefusal`, and no retry by the App; Start can be pressed again. What
+the refusal says is what the App knows. Where this App started a Codex process
+on the home and has not confirmed it ended, it says so with its census of that
+process's group as just taken; otherwise it says only that a Codex process
+started earlier, or a program it started, may hold the lock, and that the App
+cannot tell which program it is. A lock that cannot be tried (a link in its
+place, a file not private to the user, any other failure) refuses and never
+reads as free. Limits. Taking the lock shows that nothing still holds it. It
+does not show that every program Codex started has ended: a program that was
+passed the descriptor can close it and keep running, and a process Codex
+started without it never held it. At the pinned supplier version
+the commands of a turn and local MCP servers are started with other descriptors
+closed (best-effort on the supplier's side), so they do not hold the lock and a
+free lock does not show they have ended; hooks and the notifier program of the
+person's own Codex settings are started with Codex's descriptors, so one of
+those left running keeps the home from being started on until it lets go of
+the lock or ends. That the supplier itself keeps the descriptor for as long as
+it runs is an assumption about the supplier: the hosted handshake test
+observes the real supplier holding the lock while it is ready, and nothing
+more. The App's census and settlement of the process groups it
+started are unchanged and are what Quit and the home hold rest on, and they are
+a second condition on a start, beside the lock: a Host starts no further Codex
+on a home while a process group it started there is not established settled
+(its leader's exit observed and its group known empty), whatever the lock says,
+and none while the lock is held, whatever the Host believes. "There" is the
+directory, by device and inode, recorded for each process when it is started:
+the same home named through another spelling or a link is the same home, and a
+process with no recorded home counts for every home. A process that was
+created but whose exit reservation was already lost (another reaper had taken
+its leader) is kept too, as one that can never be established settled: the
+start fails as a failed spawn (its record says the process was created and
+custody of it was lost), and for the life of that App process nothing further
+is started on that home and the menu quit is withheld. For that state, and for
+a reservation lost at any later observation, the person reads: "Chirality
+cannot establish whether a Codex process group it started has ended. Retrying
+Quit cannot resolve this in the current App session. You can end Chirality
+using macOS Force Quit, but that does not establish that Codex or its
+descendants have ended." A settlement that was only unavailable this time keeps
+its earlier sentence. Force Quit can end the App without its end being
+recorded, and a later start on that home is still answered by the home's lock. A start refused on
+the first ground alone, the lock being free, is told that this App is still
+holding the home for a Codex process not confirmed ended. A build
+before this lock takes none and is not excluded by it. The lock is the file:
+if the lock file is removed or replaced in the home while a Codex holds it, a
+later start makes and takes a new file and is not excluded by that earlier
+process. A Stop that cancels a start before anything is spawned releases that
+start's lock at once.
+
+Relaunch. The holds and the process lock have no wait and no retry, and
+process exit is the reliable final release. A deliberate relaunch by the App itself would have to
+start its successor after the predecessor has exited, or after an explicit,
+proven release of each hold; a successor started first is refused at once.
+The predecessor's exit releases its own holds only: a Codex it started that
+still holds a home's process lock keeps a start on that home refused after it.
+Tests construct their state in their own scratch folders and need neither.
+`CHIRALITY_APP_DATA` is read only by a development run (`tauri dev`), as
+`CHIRALITY_RECORDS_STORE` is; a built App does not read it, so it cannot point
+an installed App at other data. It moves the App's own data only. The system
+web view keeps its website data, caches and application support in folders
+named for the build's bundle identifier within the launch's home. Set both
+`CFFIXED_USER_HOME` and `HOME` to the same throwaway folder for a development
+launch (the App does not set them): two runs of one build under different
+throwaway homes then do not share web view storage. Without both set (`HOME`
+alone redirects none of it), they share it under `~/Library`.
+
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
 `CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary
 hash is a development assertion. Full qualified distribution identity is absent,

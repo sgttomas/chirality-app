@@ -74,6 +74,8 @@ fn exchange<T>(host: &Arc<Host>, g: &Value, response: Option<Value>, at_send: im
 #[test]
 fn person_interrupt_writes_sr01_before_the_send_and_settles_from_the_observed_end() {
     let root = scratch();
+    // Held as the App holds its App data: the relaunch below models a new App.
+    let _custody = crate::hold_app_data_for_test(&root).unwrap();
     let (host, g, path) = ledger_host(&root);
     event(&host, &g, "turn", "inProgress");
     let ledger = path.clone();
@@ -157,8 +159,10 @@ fn a_ledger_that_refuses_the_write_is_visible_and_the_stop_still_proceeds() {
     let row = &snapshot["stopRequests"]["records"][0];
     assert!(row["persistence"].as_str().unwrap().starts_with("not yet written to the App ledger"), "{row}");
     assert!(snapshot["recoveryPersistenceError"].is_string(), "the failure is visible");
-    // Never relocated: nothing was written anywhere else.
-    assert_eq!(std::fs::read_dir(&root).unwrap().count(), 2);
+    // Never relocated: nothing was written anywhere else (beside the ledger and
+    // its database there is only this session's liveness directory).
+    let liveness = crate::session_liveness::directory(&path);
+    assert_eq!(std::fs::read_dir(&root).unwrap().filter(|e| e.as_ref().unwrap().path() != liveness).count(), 2);
     std::fs::remove_dir(&database).unwrap();
     std::fs::rename(&saved, &database).unwrap();
     host.flush_recovery_observations();
@@ -351,6 +355,8 @@ fn readings(host: &Host, path: &Path, session: &str) -> Value {
 #[test]
 fn entries_repeated_by_a_retried_drain_read_as_one_copy() {
     let root = scratch();
+    // Held as the App holds its App data: the relaunch below models a new App.
+    let _custody = crate::hold_app_data_for_test(&root).unwrap();
     let (host, g, path) = ledger_host(&root);
     host.observe_conversation_project(&g, "thread", Some("H-acct"), &crate::recovery::ExplicitAppProjectContext::known("P", crate::recovery::AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();
     event(&host, &g, "turn", "inProgress");

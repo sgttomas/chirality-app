@@ -106,7 +106,7 @@ impl Host {
                 wait,
                 PrivateConfigPurpose::AccessSettings,
             )
-            .map_err(|_| LIMIT.to_owned())?;
+            .map_err(|e| crate::hosting::reading_gate::reading_or(e, || LIMIT.to_owned()))?;
         self.check_provider_read(&self.inner.0.lock().unwrap(), &read.source, cwd)
             .map_err(|_| LIMIT.to_owned())?;
         let view = project(&read, class)?;

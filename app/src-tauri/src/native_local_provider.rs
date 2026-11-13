@@ -158,54 +158,80 @@ pub(crate) fn config(base: &HostConfig, plan: &OwnedHomePlan) -> Result<HostConf
     ];
     Ok(config)
 }
-/// App-owned lock file in the dedicated local home. A Codex the App starts there inherits the
-/// locked descriptor, so the lock is held while that Codex, or anything it started that kept the
-/// descriptor, lives. Not auth.lock, not Codex's.
+/// App-owned lock file in every Codex home the App starts Codex on. A Codex the App starts there
+/// is given the locked descriptor, so the lock is held while that Codex, or anything it started
+/// that kept the descriptor, keeps it open. Not auth.lock, not Codex's.
 pub(crate) const PROCESS_LOCK: &str = "chirality-codex-process.lock";
 /// What a held lock establishes is only that something holds it: the sentence names what may,
 /// and asserts neither which nor for how long.
 pub(crate) const EARLIER_PROCESS: &str = "The App's lock for the local model home is held, so Codex was not started there. A Codex process started earlier for that home, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
 /// The refusal when the App cannot open or lock its lock file at all.
 pub(crate) const PROCESS_LOCK_UNAVAILABLE: &str = "The App could not check that no earlier Codex process for the local model home is running, so Codex was not started there.";
-/// The same two refusals for a start that meets the lock by the folder rule alone (its
-/// configuration names none): such a start is not known to be the local model home's, so the
-/// sentences name the folder and not that home.
-pub(crate) const EARLIER_PROCESS_BY_FOLDER: &str = "The App's lock in this home's folder is held, so Codex was not started there. A Codex process started earlier in that folder, a program it started, or another copy of the App may hold it. Try again in a minute. If it stays held, whatever holds it has to let go of it or end before Codex can start there; the App cannot tell which program it is.";
-pub(crate) const PROCESS_LOCK_UNAVAILABLE_BY_FOLDER: &str = "The App could not check its lock in this home's folder, so Codex was not started there.";
-pub(crate) fn folder_wording(reason: String) -> String {
-    if reason == EARLIER_PROCESS {
-        EARLIER_PROCESS_BY_FOLDER.into()
-    } else if reason == PROCESS_LOCK_UNAVAILABLE {
-        PROCESS_LOCK_UNAVAILABLE_BY_FOLDER.into()
-    } else {
-        reason
-    }
+/// What trying the App's process lock of a home found, when it was not taken.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ProcessLockRefusal {
+    /// Another open file description holds it.
+    Held,
+    /// A link, a file not private to this user, a hard-linked file or any other failure: the lock
+    /// could not be tried, which never reads as free.
+    Unavailable,
 }
-/// The lock a start in this home must take. The lock follows the folder and not the route that
-/// reached it: where the home folder already holds the App's lock file, that file is the lock,
-/// whatever the configuration names, so a start pointed at such a folder by another configuration
-/// meets an earlier Codex's lock. Where the folder holds none, it is the one the configuration
-/// names (the dedicated local home's first start creates it), and none where it names none. The
-/// name is looked at only (`symlink_metadata`); presence that cannot be established refuses.
-/// What this does not cover: absence is decided once, so a start with no lock configured that
-/// looks before the file's first creation takes none. That is closed only when every start takes
-/// its home's lock and creates the file, and this rule is expected to be removed by that change.
-pub(crate) fn process_lock_for(configured: Option<&Path>, home: &Path) -> Result<Option<std::path::PathBuf>, String> {
-    let path = home.join(PROCESS_LOCK);
-    match std::fs::symlink_metadata(&path) {
-        Ok(_) => Ok(Some(path)),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(configured.map(Path::to_path_buf)),
-        Err(_) => Err(PROCESS_LOCK_UNAVAILABLE.into()),
-    }
-}
-/// Opens (creating it private if absent) the App's lock file and takes an exclusive, non-waiting
-/// flock. The returned descriptor is close-on-exec (std opens with O_CLOEXEC); the start clears that
-/// in the Codex child only. Held by another open file description: EARLIER_PROCESS. A link, a file
-/// not private to this user, a hard-linked file or any other failure: PROCESS_LOCK_UNAVAILABLE.
+/// The checks and the exclusive, non-waiting flock on the opened lock file.
 #[cfg(unix)]
-pub(crate) fn take_process_lock(path: &Path) -> Result<std::fs::File, String> {
+fn lock_opened(file: std::fs::File) -> Result<std::fs::File, ProcessLockRefusal> {
     use std::os::fd::AsRawFd;
-    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    use std::os::unix::fs::MetadataExt;
+    let m = file.metadata().map_err(|_| ProcessLockRefusal::Unavailable)?;
+    if !m.is_file() || m.uid() != unsafe { libc::geteuid() } || m.mode() & 0o077 != 0 || m.nlink() != 1 {
+        return Err(ProcessLockRefusal::Unavailable);
+    }
+    // Descriptors 0 to 2 are replaced by the child's standard streams before the pre-exec step.
+    if file.as_raw_fd() <= libc::STDERR_FILENO {
+        return Err(ProcessLockRefusal::Unavailable);
+    }
+    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
+        return Err(if std::io::Error::last_os_error().raw_os_error() == Some(libc::EWOULDBLOCK) {
+            ProcessLockRefusal::Held
+        } else {
+            ProcessLockRefusal::Unavailable
+        });
+    }
+    Ok(file)
+}
+/// The lock every start of Codex takes, for every home: the App's lock file inside the home
+/// directory `home` (an opened directory the caller has established is the one it holds), created
+/// private if absent and opened by name inside that directory, never through a link. Exclusive and
+/// non-waiting. The returned descriptor is close-on-exec; the start clears that in the Codex
+/// child only.
+#[cfg(unix)]
+pub(crate) fn take_process_lock_in(home: &std::fs::File) -> Result<std::fs::File, ProcessLockRefusal> {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    let name = std::ffi::CString::new(PROCESS_LOCK).map_err(|_| ProcessLockRefusal::Unavailable)?;
+    let fd = unsafe {
+        libc::openat(
+            home.as_raw_fd(),
+            name.as_ptr(),
+            libc::O_RDWR | libc::O_CREAT | libc::O_NOFOLLOW | libc::O_CLOEXEC,
+            0o600 as libc::c_uint,
+        )
+    };
+    if fd < 0 {
+        return Err(ProcessLockRefusal::Unavailable);
+    }
+    lock_opened(unsafe { std::fs::File::from_raw_fd(fd) })
+}
+#[cfg(not(unix))]
+pub(crate) fn take_process_lock_in(_: &std::fs::File) -> Result<std::fs::File, ProcessLockRefusal> {
+    Err(ProcessLockRefusal::Unavailable)
+}
+/// Opens (creating it private if absent) the App's lock file by path and takes an exclusive,
+/// non-waiting flock: the same file and the same checks as a start's own lock
+/// ([`take_process_lock_in`]), for a holder or a contender that is not a start. Held by another
+/// open file description: EARLIER_PROCESS. A link, a file not private to this user, a hard-linked
+/// file or any other failure: PROCESS_LOCK_UNAVAILABLE.
+#[cfg(all(test, unix))]
+pub(crate) fn take_process_lock(path: &Path) -> Result<std::fs::File, String> {
+    use std::os::unix::fs::OpenOptionsExt;
     let file = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -215,26 +241,10 @@ pub(crate) fn take_process_lock(path: &Path) -> Result<std::fs::File, String> {
         .custom_flags(libc::O_NOFOLLOW)
         .open(path)
         .map_err(|_| PROCESS_LOCK_UNAVAILABLE)?;
-    let m = file.metadata().map_err(|_| PROCESS_LOCK_UNAVAILABLE)?;
-    if !m.is_file() || m.uid() != unsafe { libc::geteuid() } || m.mode() & 0o077 != 0 || m.nlink() != 1 {
-        return Err(PROCESS_LOCK_UNAVAILABLE.into());
-    }
-    // Descriptors 0 to 2 are replaced by the child's standard streams before the pre-exec step.
-    if file.as_raw_fd() <= libc::STDERR_FILENO {
-        return Err(PROCESS_LOCK_UNAVAILABLE.into());
-    }
-    if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } != 0 {
-        return Err(if std::io::Error::last_os_error().raw_os_error() == Some(libc::EWOULDBLOCK) {
-            EARLIER_PROCESS.into()
-        } else {
-            PROCESS_LOCK_UNAVAILABLE.into()
-        });
-    }
-    Ok(file)
-}
-#[cfg(not(unix))]
-pub(crate) fn take_process_lock(_: &Path) -> Result<std::fs::File, String> {
-    Err(PROCESS_LOCK_UNAVAILABLE.into())
+    lock_opened(file).map_err(|refusal| match refusal {
+        ProcessLockRefusal::Held => EARLIER_PROCESS.into(),
+        ProcessLockRefusal::Unavailable => PROCESS_LOCK_UNAVAILABLE.into(),
+    })
 }
 /// Codex 0.167 loads administrator configuration (legacy managed_config.toml, requirements.toml and
 /// macOS managed preferences) ABOVE session flags, so the fixed flags cannot hold the provider,
@@ -334,14 +344,18 @@ pub(crate) fn submit(
         .cwd
         .to_str()
         .ok_or(LIMIT)?;
+    // Readings of one generation are made one at a time and each supersedes every earlier proof,
+    // so the requirements reading comes first and the configuration reading the key entry rests
+    // on last. The requirements reply is still what decides whether a key may be entered.
+    let deadline = std::time::Instant::now() + Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
+    home.account_sources.lock().unwrap().push(policy.clone());
+    home.host
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))
+        .map_err(|_| LIMIT)?;
     let _proof = home
         .host
         .provider_admission_read(generation, cwd, ENTRY, PROVIDER, MODEL)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
-    home.account_sources.lock().unwrap().push(policy.clone());
-    home.host
-        .source_request_wait(&policy, Duration::from_secs(20))
-        .map_err(|_| LIMIT)?;
     source(home, plan, generation)?;
     window_current()?;
     // Consumed even on cancel or unknown outcome. A replacement source is a separate explicit act.
@@ -442,6 +456,31 @@ mod tests {
             assert!(crate::hosting::Host::new().bind_local_destination(&changed, &plan).is_err());
         }
         crate::hosting::Host::new().bind_local_destination(&cfg, &plan).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    /// The App never removes, replaces or recreates a home's process lock file: preparing,
+    /// checking and configuring the dedicated local home again while its lock is held leaves the
+    /// same file, still held. (No other App code removes or renames anything inside a Codex
+    /// home; an account home that already exists is never prepared again.)
+    #[test]
+    fn preparing_the_local_home_again_leaves_a_held_process_lock_file_as_it_is() {
+        use std::os::unix::fs::MetadataExt;
+        let (root, plan) = fixture();
+        prepare(&plan).unwrap();
+        let path = plan.native_path().join(PROCESS_LOCK);
+        let held = take_process_lock(&path).unwrap();
+        let before = std::fs::symlink_metadata(&path).unwrap();
+        let base = HostConfig::new(root.join("not-an-executable"), root.join("account"), root.join("probe"), root.clone());
+        for _ in 0..2 {
+            prepare(&plan).unwrap();
+            check(&plan).unwrap();
+            config(&base, &plan).unwrap();
+        }
+        let after = std::fs::symlink_metadata(&path).unwrap();
+        assert_eq!((after.dev(), after.ino(), after.nlink(), after.mode()), (before.dev(), before.ino(), before.nlink(), before.mode()), "the same file");
+        assert_eq!(take_process_lock(&path).unwrap_err(), EARLIER_PROCESS, "still held by the first holder");
+        drop(held);
+        drop(take_process_lock(&path).expect("free once that holder lets go"));
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]

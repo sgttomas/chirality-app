@@ -35,7 +35,7 @@ const draft='Existing unsent text é / 家\n';
 
 async function mounted(options,check){
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
- const calls=[],unexpected=[],timers=new Map(),actions=new Set();let timer=0,fail=false,resumed=false,active='account',starts=0,homes=0,selects=0,holdObserver=true,metadataReads=0;
+ const calls=[],unexpected=[],timers=new Map(),actions=new Set();let timer=0,fail=false,selectFailure=null,resumed=false,active='account',starts=0,homes=0,selects=0,holdObserver=true,metadataReads=0;
  const account={state:'ready',generation:g,threads:[thread('existing'),thread('other')],roleLimits:{account:{roles:[]}},nativeHistory:{state:'history-receiving',home:g.home,generation:g,selectionEpoch:0,threads:[{native:native()},{native:native('stored-other')}],dispatches:[]}};
  const keyHome={state:'ready',generation:{...g,home:'other-home'},threads:[],nativeHistory:{state:'history-receiving',home:'other-home',generation:{...g,home:'other-home'},selectionEpoch:0,selected:null,threads:[],dispatches:[]}};
  const snapshot=()=>structuredClone({...(active==='account'?account:keyHome),homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});
@@ -54,6 +54,7 @@ async function mounted(options,check){
   }
   if(command==='history_select'){
    assert.deepEqual(args,{generation:g,selectionEpoch:account.nativeHistory.selectionEpoch,threadId:args.threadId});
+   if(selectFailure){const failure=selectFailure;selectFailure=null;throw failure;}
    account.nativeHistory={...account.nativeHistory,selectionEpoch:account.nativeHistory.selectionEpoch+1,selected:{threadId:args.threadId,state:'indexed-read-only',resumeEligibilityCurrent:false,appRole:unknown}};return structuredClone(account.nativeHistory);
   }
   if(command==='history_action'){
@@ -85,7 +86,7 @@ async function mounted(options,check){
  try{
   await React.act(async()=>root.render(React.createElement(App)));await change(elements(conversation(c),'select')[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
   await change(labelled(c,'select','Stored conversation '),'stored');for(let n=0;n<(options.metadataReads??1);n++)await press('Read metadata');assert.equal(selected(),key('existing'));assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,0);
-  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>elements(conversation(c),'select')[0],browser:()=>labelled(c,'select','Stored conversation ')});
+  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},failStatus:()=>{fail=true;},failSelect:failure=>{selectFailure=failure;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>elements(conversation(c),'select')[0],browser:()=>labelled(c,'select','Stored conversation ')});
   assert.deepEqual(unexpected,[]);assert.equal(calls.filter(x=>x.command==='thread_start').length,starts,'only explicit Start presses');assert.equal(calls.filter(x=>x.command==='select_home').length,homes);assert.equal(calls.filter(x=>x.command==='history_select').length,selects);
   assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,1,'one original explicit Continue, never a retry on read');
   assert.equal(props(elements(conversation(c),'textarea')[0]).value,draft,'Continue never clears or replaces the unsent draft');
@@ -240,4 +241,24 @@ test('an admitted Continue shows the Conversation view with its message box focu
    assert.match(note.textContent,/written while another conversation was shown\. It is kept; if you send it now it goes to Conversation/);
   });
  }finally{proto.focus=previousFocus;proto.scrollIntoView=previousScroll;}
+});
+
+// A Continue refused (a reading sentence, or an ordinary refusal) whose view refresh then fails:
+// the refusal stands, then the fixed refresh line once; the raw refresh diagnostic is withheld.
+const {READING_GATE}=loadSrc('readingSentences');const {REFRESH_FAILED}=loadSrc('statusRefresh');
+for(const commandError of [READING_GATE,'original Continue refused before dispatch'])test(`a refused Continue then a failed refresh: its message, then the fixed line: ${commandError.slice(0,40)}`,async()=>{
+ await mounted({admit:false,failObserver:true,commandError},async ui=>{await ui.press('Continue selected conversation');assert.ok(ui.c.textContent.includes(`${commandError} ${REFRESH_FAILED}`),ui.c.textContent.slice(-800));assert.doesNotMatch(ui.c.textContent,/original Continue view unavailable/);ui.recover();});
+});
+
+// Selecting a stored conversation whose status refresh then fails: the selection's own error (if
+// any) stands, then the fixed refresh line once; the raw refresh diagnostic is never shown.
+for(const selectError of [null,'invented stored-conversation selection refusal'])test(`a stored-conversation selection then a failed refresh: ${selectError?'its error, then':'only'} the fixed line`,async()=>{
+ await mounted({},async ui=>{
+  await ui.press('Continue selected conversation');
+  ui.failStatus();if(selectError)ui.failSelect(selectError);
+  await ui.change(ui.browser(),'stored-other');
+  assert.ok(ui.c.textContent.includes(selectError?`${selectError} ${REFRESH_FAILED}`:REFRESH_FAILED),ui.c.textContent.slice(-600));
+  assert.doesNotMatch(ui.c.textContent,/original Continue view unavailable/);
+  ui.recover();
+ });
 });

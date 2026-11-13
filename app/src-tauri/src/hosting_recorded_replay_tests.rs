@@ -48,6 +48,9 @@ struct Fixture {
     recording: Value,
     generation: Value,
     _store: OwnStore,
+    /// The root held as the App holds its App data before it opens a ledger,
+    /// so that a later App on it models a relaunch.
+    _custody: crate::AppDataCustody,
 }
 
 impl Fixture {
@@ -59,6 +62,7 @@ impl Fixture {
         for name in ["account", "probe"] {
             std::fs::create_dir_all(root.join(name)).unwrap();
         }
+        let _custody = crate::hold_app_data_for_test(&root).unwrap();
         let path = PathBuf::from(RECORDINGS).join(format!("{scenario}.recording.json"));
         let bytes = std::fs::read(&path).unwrap();
         let recording: Value = serde_json::from_slice(&bytes).unwrap();
@@ -129,6 +133,7 @@ runpy.run_path({peer},run_name='__main__')
             recording,
             generation,
             _store: store,
+            _custody,
         };
         let result = &fixture.recording["frames"][5]["frame"]["result"];
         fixture
@@ -345,6 +350,10 @@ runpy.run_path({peer},run_name='__main__')
             .host
             .stop("recorded replay old App cleanup", "done")
             .unwrap();
+        // The old App's process has ended: one App at a time on this data.
+        self.home.host.end_process_for_test();
+        // The old App's process has ended: one App at a time on this data.
+        self.home.host.end_process_for_test();
         std::fs::write(self.root.join("generation"), "2").unwrap();
         let host = Arc::new(Host::new());
         host.configure_recovery(self.root.join("recovery.ledger.jsonl"))

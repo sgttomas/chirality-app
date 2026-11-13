@@ -8,7 +8,7 @@ fn run_start_record(peer:&Peer,run:&str)->crate::workflow_workspace::publication
         .find(|r|r.body()["record_kind"]=="run_text"&&r.body()["purpose"]=="run start"&&r.body()["run"]==run).expect("run-start record")
 }
 fn restart_fact(id:&str,thread:&str)->Value{
-    json!({"kind":"app_restart_interruption","eventId":id,"appSession":"app-session:now","at":"2026-10-10T00:00:00Z","standing":"App-observed","threadId":thread,"home":"H-acct","priorSession":"app-session:before","priorSessionEnd":"ended-without-record","liveTurnsAtEnd":[{"threadId":thread,"turnId":"turn"}]})
+    json!({"kind":"app_restart_interruption","eventId":id,"appSession":"app-session:now","at":"2026-10-10T00:00:00Z","standing":"App-recorded","threadId":thread,"home":"H-acct","priorSession":"app-session:before","priorSessionEnd":"ended-without-record","liveTurnsLastRecorded":[{"threadId":thread,"turnId":"turn"}],"liveAtSessionEnd":"not-known"})
 }
 fn index_row(thread:&str,tags:Value)->Value{
     json!({"kind":"conversation_index","session":"app-session:before","at":"2026-10-09T00:00:00Z","threadId":thread,"home":"H-acct","project":"fixture App project","tags":tags,"lastObservedExecution":{"state":"turn-live","at":"2026-10-09T00:00:00Z"}})
@@ -84,6 +84,10 @@ fn restart_limit_written_once_on_the_current_run(){
     let limits=limits_named(&peer,&b,label);assert_eq!(limits.len(),1);
     assert_eq!(limits[0]["body"]["subjectRef"],"cev:restart:one");
     let detail=limits[0]["body"]["detail"].as_str().unwrap();assert!(detail.contains("app-session:before")&&detail.contains("ended-without-record")&&detail.contains("REC run tag"),"{detail}");
+    // The record says what was last recorded and that the end was not observed; it does not say
+    // the session ended with live work, or that the run stays interrupted on that ground.
+    assert!(detail.contains("had live work when that session last recorded it")&&detail.contains("was not observed")&&detail.contains("none is inferred"),"{detail}");
+    for claim in ["with live work","stays interrupted","current there at the end"] {assert!(!detail.contains(claim),"{claim}: {detail}");}
     assert!(limits_named(&peer,&a,label).is_empty(),"the earlier ended run is untouched");
     assert!(!rs_for(&peer,&b).iter().any(|e|e["kind"]=="run_ended"),"no run_ended is written automatically");
     // Idempotent on rerun (the next startup with the same fact).
