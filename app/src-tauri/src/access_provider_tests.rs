@@ -96,12 +96,16 @@ fn access_provider_access_settings_source_and_newer_read_staleness_refuse_withou
     for mode in ["home", "generation", "closed", "newer-read"] {
         *peer.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
             host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":access_settings_config(json!("file"),json!(false))})).unwrap(),source.generation());
+            if mode == "newer-read" {
+                // A newer reading of the generation, registered once this one was answered.
+                host.request_begin_scoped("config/read", json!({"cwd":"/invented/work","includeLayers":true}), json!({"kind":"synthetic newer reader"}), false, Some(source.generation())).unwrap();
+                return;
+            }
             let mut i = host.inner.0.lock().unwrap();
             match mode {
                 "home" => i.generation["home"] = json!("other-home"),
                 "generation" => i.generation["spawnCounter"] = json!(2),
-                "closed" => i.state = "stopped".into(),
-                _ => { i.provider_read_revisions.insert("/invented/work".into(),(source.generation.clone(),"newer-private-read".into())); },
+                _ => i.state = "stopped".into(),
             }
         }));
         assert!(peer.host.effective_access_settings_read_within(&peer.g,"/invented/work","account",Duration::from_millis(30)).is_err());
@@ -1787,8 +1791,10 @@ fn access_provider_actual_private_refusal_output_has_only_safe_public_consumers(
     crate::records_store::use_store_for_test(None);
     std::fs::remove_dir_all(root).unwrap();
 }
+/// Readings of one generation are one at a time and any reading supersedes every earlier proof:
+/// a reading of another folder leaves the original admission not current.
 #[test]
-fn access_provider_unrelated_folder_read_preserves_original_source_admission() {
+fn access_provider_another_folder_read_supersedes_the_original_admission() {
     let mut peer = Peer::new("home");
     peer.answer(config(json!({"anonymous":local()})));
     let original = peer.read("local-provider", "anonymous").unwrap();
@@ -1806,10 +1812,11 @@ fn access_provider_unrelated_folder_read_preserves_original_source_admission() {
         )
         .is_err());
     assert_eq!(peer.frame()["params"]["cwd"], "/invented/other");
-    peer.host
+    assert!(peer
+        .host
         .thread_start_with_access_dispatch(&original, "guidance")
-        .unwrap();
-    assert_eq!(peer.frame()["params"]["cwd"], "/invented/work");
+        .is_err());
+    assert!(peer.host.client_requests().iter().all(|r| r["method"] != "thread/start"), "nothing started on the superseded proof");
 }
 /// DEL-01-05 new-conversation chooser: a provider observation, and a row chosen
 /// from it, stay current across a read that is not a private configuration
@@ -1870,8 +1877,10 @@ fn access_provider_chooser_revision_follows_private_reads_and_admission_follows_
     peer.host.inner.0.lock().unwrap().state = "ready".into();
     peer.safe();
 }
+/// The delegation transport's configuration read supersedes the admission whatever folder it
+/// names, none included: readings of one generation are one at a time.
 #[test]
-fn access_provider_delegation_config_read_invalidates_only_its_known_folder() {
+fn access_provider_delegation_config_read_of_any_folder_or_none_supersedes_the_admission() {
     let mut peer = Peer::new("home");
     peer.answer(config(json!({})));
     let old = peer.read("chatgpt-account", "openai").unwrap();
@@ -1901,7 +1910,7 @@ fn access_provider_delegation_config_read_invalidates_only_its_known_folder() {
                 &old,
                 &json!({"cwd":"/invented/work","modelProvider":"openai","model":"chosen-model"}),
             )
-            .unwrap();
+            .unwrap_err();
     }
     let newer = peer
         .host
@@ -2268,10 +2277,12 @@ fn native_children_queued_mutation_cannot_promote_or_strip_prepared_supply() {
                 std::fs::write(file, "changed").unwrap();
             }
             "receipt" => {
-                let mut i = peer.host.inner.0.lock().unwrap();
-                i.provider_read_revisions.insert(
-                    "/invented/work".into(),
-                    (peer.g.clone(), "newer-private-read".into()),
+                // A newer reading registers while the start waits for the writer; with the writer
+                // still held it is withdrawn at its deadline, and no reading is current.
+                let deadline = std::time::Instant::now() + Duration::from_millis(50);
+                assert_eq!(
+                    peer.host.request_reading("config/read", json!({"cwd":"/invented/work","includeLayers":true}), json!({"kind":"synthetic newer reader"}), &peer.g, true, deadline).err().unwrap(),
+                    crate::hosting::reading_gate::READING_WITHDRAWN
                 );
             }
             _ => unreachable!(),
@@ -2993,13 +3004,7 @@ fn native_children_167_requires_canonical_whole_source_and_does_not_rebind_after
         )
         .unwrap();
         if case == "unestablished-source" {
-            peer.host
-                .inner
-                .0
-                .lock()
-                .unwrap()
-                .provider_read_revisions
-                .clear();
+            peer.host.inner.0.lock().unwrap().reading_current = None;
         }
         peer.host
             .prepare_role_children(&mut proof, &mut c, &root.join("instructions"), &root)
@@ -3061,9 +3066,10 @@ fn native_local_provider_one_private_login_frame_and_safe_receipts_without_suppl
     let generation = peer.g.clone();
     let result=std::thread::scope(|scope| {
         let work=scope.spawn(||local_route::submit(&home,&plan,&generation,&entry,||Ok(()),||Ok(Some(CANARY.into()))));
-        assert_eq!(peer.frame()["method"],"config/read");
+        // Requirements first, then the configuration reading the entry rests on.
         let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
         peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);
+        assert_eq!(peer.frame()["method"],"config/read");
         let login=peer.frame();assert_eq!(login["method"],"account/login/start");
         assert_eq!(login["params"],json!({"type":"apiKey","apiKey":CANARY}));
         peer.safe();assert!(!json!(peer.host.journal()).to_string().contains(CANARY));
@@ -3554,8 +3560,9 @@ fn native_local_provider_cancel_window_or_source_change_never_writes_or_replays_
                 if case=="window" {current.store(false,Ordering::SeqCst);}else{home.host.inner.0.lock().unwrap().generation["spawnCounter"]=json!(2);}
                 Ok(Some(CANARY.into()))
             }));
-            assert_eq!(peer.frame()["method"],"config/read");let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
-            peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);worker.join().unwrap()
+            let policy=peer.frame();assert_eq!(policy["method"],"configRequirements/read");
+            peer.host.on_line(&serde_json::to_vec(&json!({"id":policy["id"],"result":{"requirements":null}})).unwrap(),&peer.g);
+            assert_eq!(peer.frame()["method"],"config/read");worker.join().unwrap()
         });
         assert_eq!(result.is_ok(),case=="cancel");
         assert!(peer.host.client_requests().iter().all(|r|r["method"]!="account/login/start"));peer.safe();

@@ -124,10 +124,13 @@ impl Host {
         let mut hold = ReadingHold { inner: Arc::clone(&self.inner), token: 0, ticket: Some(ticket), deadline };
         #[cfg(test)] let mut announced = false;
         loop {
-            if i.generation != generation || i.server_requests.is_closed(&generation) || i.state != "ready" {
+            if i.generation != generation || i.server_requests.is_closed(&generation) {
                 drop(i);
                 return Err(format!("refused-not-sent: {method} generation changed before request registration"));
             }
+            // Not ready: no reservation is taken and registration refuses it as it does today
+            // (with its not-ready record); a reservation token of 0 names no slot.
+            if i.state != "ready" { i.reading_queue.waiting.remove(&ticket); hold.ticket = None; return Ok(hold); }
             let free = i.reading_slot.as_ref().is_none_or(|slot| slot.generation != i.generation);
             if free && i.reading_queue.waiting.first() == Some(&ticket) {
                 i.reading_queue.waiting.remove(&ticket);
