@@ -6,11 +6,30 @@
 use super::*;
 use std::path::{Path, PathBuf};
 
-/// A folder for invented material, under the temporary folder.
+/// One test's own root under the temporary folder, made new by that test
+/// (never a folder already there) and removed when the test's thread ends:
+/// after its assertions, or after a failure, which still shows. It removes
+/// nothing but the root it made.
+struct TestRoot(PathBuf);
+impl Drop for TestRoot {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+thread_local! { static ROOT: std::cell::RefCell<Option<TestRoot>> = const { std::cell::RefCell::new(None) }; }
+/// A new folder for invented material, in this test's own root.
 fn folder(prefix: &str) -> PathBuf {
-    let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
-    std::fs::create_dir_all(&p).unwrap();
-    std::fs::canonicalize(p).unwrap()
+    ROOT.with(|root| {
+        let mut root = root.borrow_mut();
+        let base = &root.get_or_insert_with(|| {
+            let made = std::env::temp_dir().join(crate::util::opaque_id("placement-test-").unwrap());
+            std::fs::create_dir(&made).unwrap();
+            TestRoot(std::fs::canonicalize(made).unwrap())
+        }).0;
+        let p = base.join(crate::util::opaque_id(prefix).unwrap());
+        std::fs::create_dir(&p).unwrap();
+        p
+    })
 }
 /// A relative name that names nothing in the App's own working folder.
 const RELATIVE: &str = "invented-relative-codex-home";
