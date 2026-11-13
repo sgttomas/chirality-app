@@ -275,7 +275,7 @@ impl Host {
     pub(crate) fn request_reading(&self, method: &str, params: Value, initiator: Value, generation: &Value, private_config: bool, deadline: std::time::Instant) -> Result<SourceRequest, String> {
         if !is_reading(method) { return Err("not a configuration reading".into()); }
         auth_rpc::generic_guard(method, &params)?;
-        self.request_begin_with_access_offer_guarded(method, params, initiator, false, Some(generation), false, None, None, None, None, private_config, None, None, None, Some(deadline))
+        self.request_begin_with_access_offer_guarded(method, params, initiator, false, Some(generation), false, None, None, None, None, private_config, None, None, None, Some(deadline), None)
     }
     /// The requirements reading with its sender's absolute deadline.
     pub(crate) fn account_requirements_read_until(&self, generation: &Value, deadline: std::time::Instant) -> Result<SourceRequest, String> {

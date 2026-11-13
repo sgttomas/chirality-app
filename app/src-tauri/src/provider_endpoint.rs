@@ -528,6 +528,7 @@ impl Host {
                 None,
                 Some(write),
                 None,
+                None,
             )
             .map_err(|_| WriteFailure::NotSent)?;
         let failure = || {

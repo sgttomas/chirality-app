@@ -84,6 +84,8 @@ checks:
 - app/src-tauri/src/codex_stop_tests.rs
 - app/src-tauri/src/stop_records_tests.rs
 - app/src-tauri/src/stop_records_host_tests.rs
+- app/src-tauri/src/hosting_stop_bound_tests.rs
+- app/tests/stop-not-sent.test.mjs
 - app/src-tauri/src/execution_custody_tests.rs
 - app/src-tauri/src/hosting_recovery_reads_tests.rs
 - app/src-tauri/src/session_liveness_tests.rs
