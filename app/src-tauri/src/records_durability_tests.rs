@@ -72,6 +72,65 @@ fn ledger_entry() -> Value {
 fn rs_body(pad: usize) -> Value {
     json!({"label":"unresolvable reference","subjectRef":"durability witness","detail":"x".repeat(pad)})
 }
+
+// Kernel short-write injection, isolated in a test-binary child because the
+// file-size limit and SIGXFSZ disposition are process-wide. No product hook
+// exists inside w0_write. This uses the same mechanism as durability_child.
+#[test]
+fn records_store_naming_repair_child() {
+    let Ok(path) = std::env::var("CHIRALITY_NAMING_REPAIR_PATH") else { return };
+    let log = PathBuf::from(path);
+    let seed = std::env::var("CHIRALITY_NAMING_REPAIR_MODE").unwrap() == "seed";
+    unsafe { libc::signal(libc::SIGXFSZ, libc::SIG_IGN); }
+    let mut original = libc::rlimit { rlim_cur: 0, rlim_max: 0 };
+    assert_eq!(unsafe { libc::getrlimit(libc::RLIMIT_FSIZE, &mut original) }, 0);
+    // macOS checks the append descriptor's offset, initially zero. Linux
+    // checks the file size. Leave exactly the leading W-0 newline writable.
+    let size = std::fs::metadata(&log).map(|m| m.len()).unwrap_or(0);
+    let allowance = if seed { 64 } else { 1 };
+    let budget = if cfg!(target_os = "macos") { allowance } else { size + allowance };
+    let limited = libc::rlimit { rlim_cur: budget, rlim_max: original.rlim_max };
+    assert_eq!(unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &limited) }, 0);
+    let result = append(&log, "evidence_limit", &APP_WRITER, rs_body(4096));
+    assert_eq!(unsafe { libc::setrlimit(libc::RLIMIT_FSIZE, &original) }, 0);
+    assert!(result.is_err(), "short write was not injected: {result:?}");
+    println!("NAMING-REPAIR-RESULT {result:?}");
+}
+
+#[test]
+fn records_store_naming_repair_interrupted_after_newline_has_an_owning_writer_completion() {
+    struct Cleanup(PathBuf);
+    impl Drop for Cleanup { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }
+    let root = Cleanup(scratch("records-naming-repair-"));
+    let log = root.0.join("owning.jsonl");
+    let prior = append(&log, "evidence_limit", &APP_WRITER, rs_body(16)).unwrap();
+    let run = |mode| {
+        let output = Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "records::durability_tests::records_store_naming_repair_child", "--nocapture", "--test-threads=1"])
+            .env("CHIRALITY_NAMING_REPAIR_PATH", &log)
+            .env("CHIRALITY_NAMING_REPAIR_MODE", mode)
+            .output().unwrap();
+        assert!(output.status.success(), "child failed: {} {}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+        let text = String::from_utf8(output.stdout).unwrap();
+        assert!(text.contains("1 passed"), "child must run one test: {text}");
+        text
+    };
+    let seeded = run("seed");
+    let fragment = std::fs::read(&log).unwrap();
+    assert!(!fragment.is_empty() && !fragment.ends_with(b"\n"));
+    let interrupted = run("repair");
+    let after = std::fs::read(&log).unwrap();
+    assert_eq!(after, [fragment.as_slice(), b"\n"].concat(), "the injected W-0 write must stop immediately after closing the old fragment");
+    let before_retry = read_log(&log);
+    let owning_open = open_owning_log(&root.0, &log);
+    let next = append(&log, "evidence_limit", &APP_WRITER, rs_body(16));
+    let after_retry = read_log(&log);
+    assert_eq!(after_retry.0, vec![prior], "the previously complete record must retain its reading");
+    let named = after_retry.0.iter().any(|e| e["body"]["label"] == PARTIAL_NOT_RECOVERED);
+    assert!(next.is_ok() && named,
+        "W-0's own torn naming write has no completion: seed={seeded}; interrupted={interrupted}; before={before_retry:?}; owning_open={owning_open:?}; append={next:?}; after={after_retry:?}");
+    assert!(std::fs::read(&log).unwrap().starts_with(&after), "all interrupted bytes must survive completion");
+}
 /// A unit of two 24 KiB entries (RS §13.8 "Units written together").
 fn unit() -> Vec<Spec<'static>> {
     (0..2).map(|_| Spec { kind: "evidence_limit", recorder: &APP_WRITER, body: rs_body(24 * 1024), id: crate::util::opaque_id("rec:app:").unwrap(), observed_at: None }).collect()

@@ -358,6 +358,45 @@ fn sent(kind: TrialKind) -> SentTrial {
     }
 }
 
+#[test]
+fn records_store_sync_failed_trial_link_publication_is_not_reported_recorded() {
+    let s = Scratch::new();
+    s.put("sync-trace", "invented trial");
+    let trial = s.prepare("sync-trace").unwrap();
+    let directory = s.app_data().join(TRIAL_POINTERS);
+    storage::ensure_directory(&directory).unwrap();
+    let mut links = TrialLinks::open(&s.app_data());
+    storage::fail_directory_for_test(Some(directory));
+    let result = links.record_sent(&trial, &sent(TrialKind::Delegated));
+    storage::fail_directory_for_test(None);
+    assert!(result.is_err(), "failed publication sync was reported as a recorded trial link: {result:?}; limits={:?}", links.limits());
+}
+
+#[test]
+fn records_store_sync_failed_trial_observation_publication_is_not_reported_recorded() {
+    let s = Scratch::new();
+    s.put("sync-trace", "invented trial");
+    let trial = s.prepare("sync-trace").unwrap();
+    let mut links = TrialLinks::open(&s.app_data());
+    links.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
+    storage::fail_directory_for_test(Some(s.app_data().join(TRIAL_POINTERS)));
+    let result = links.record_observation(trial.text.reference(), TrialObservation::SubAgentUnlinked { child_thread: "invented child".into() });
+    storage::fail_directory_for_test(None);
+    assert!(result.is_err(), "failed publication sync was reported as a recorded trial observation: {result:?}; limits={:?}", links.limits());
+}
+
+#[test]
+fn records_store_sync_failed_trial_mark_publication_is_not_reported_persistent() {
+    let s = Scratch::new();
+    let directory = s.app_data().join(TRIAL_CONVERSATIONS);
+    storage::ensure_directory(&directory).unwrap();
+    let mut marks = TrialConversationMarks::open(&s.app_data());
+    storage::fail_directory_for_test(Some(directory));
+    let result = marks.mark("invented thread", "trial:00000000-0000-4000-8000-000000000000", 1, "invented draft", None);
+    storage::fail_directory_for_test(None);
+    assert!(result.is_err(), "failed publication sync lost the memory-only warning for a conversation mark: {result:?}; limits={:?}", marks.limits());
+}
+
 // TT-4: create-once links written on acknowledgment, surviving a new process,
 // one per trial, listed per draft newest first with their observations.
 #[test]
