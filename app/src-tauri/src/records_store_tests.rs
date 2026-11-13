@@ -2383,3 +2383,33 @@ fn an_identity_record_that_cannot_be_examined_is_never_taken_for_one_the_store_d
     assert!(adopted.is_err(), "{adopted:?}");
 }
 
+/// Startup recovery shows what it left as it was. What it could not examine
+/// (the store's own record, or a project's import account) is shown too,
+/// never passed over as though there were nothing there to recover.
+#[test]
+fn startup_recovery_never_passes_over_what_it_could_not_examine() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let root = folder("recovery-unexaminable-");
+    let dir = attach(&root, true).unwrap().dir.unwrap();
+    let store = opened().unwrap().0;
+    let account = dir.join("imports.jsonl");
+    // An append cut short: a fragment recovery would close and name.
+    std::fs::write(&account, b"{\"cut short").unwrap();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(&account).map(|_| ()).map_err(|e| e.kind());
+    let left = recover_at_startup();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    let left = left.unwrap();
+    assert!(left.iter().any(|l| l.contains(&account.display().to_string()) && l.contains("could not be examined")), "the account is shown as not examined: {left:?}");
+    assert_eq!(std::fs::read(&account).unwrap(), b"{\"cut short", "left as it was");
+
+    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(store.join("store.json")).map(|_| ()).map_err(|e| e.kind());
+    let recovered = recover_at_startup();
+    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(recovered.as_ref().is_err_and(|e| e.contains("store.json")), "a store whose record cannot be examined is not a store not yet created: {recovered:?}");
+}
+

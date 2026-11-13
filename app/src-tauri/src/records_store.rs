@@ -702,8 +702,14 @@ fn recover_file(path: &Path) -> Result<Option<String>, String> {
 /// if it has not been (`witness`). A store not yet created is left alone. Returns what was left as it was.
 pub fn recover_at_startup() -> Result<Vec<String>, String> {
     let configured = current()?;
-    if !configured.root.join("store.json").exists() {
-        return Ok(vec![]);
+    // Only a store that is not there is left alone; one whose record cannot
+    // be examined is not a store not yet created. What recovery could not
+    // examine is shown, never passed over as though nothing were there.
+    let record = configured.root.join("store.json");
+    match std::fs::symlink_metadata(&record) {
+        Ok(_) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) => return Err(format!("records store unreadable: {}: {e}", record.display())),
     }
     let (store, _) = opened()?;
     let _lock = store_lock(&store)?;
@@ -711,16 +717,27 @@ pub fn recover_at_startup() -> Result<Vec<String>, String> {
     left.extend(recover_file(&store.join("roots.jsonl"))?);
     left.extend(recover_file(&store.join(witness::WITNESS_FILE))?);
     let projects = store.join("projects");
-    let mut dirs: Vec<PathBuf> = match std::fs::read_dir(&projects) {
-        Ok(rd) => rd.filter_map(|e| e.ok().map(|e| e.path())).collect(),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => vec![],
+    let mut dirs: Vec<PathBuf> = Vec::new();
+    match std::fs::read_dir(&projects) {
+        Ok(rd) => for entry in rd {
+            match entry {
+                Ok(entry) => dirs.push(entry.path()),
+                Err(e) => left.push(format!("{}: a project folder could not be listed ({e}), so its import account could not be examined; left as it is", projects.display())),
+            }
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
         Err(e) => return Err(format!("records store unreadable: {}: {e}", projects.display())),
-    };
+    }
     dirs.sort();
     for dir in dirs {
         let path = dir.join("imports.jsonl");
-        if !path.exists() {
-            continue;
+        match std::fs::symlink_metadata(&path) {
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => {
+                left.push(format!("{}: could not be examined ({e}); left as it is", path.display()));
+                continue;
+            }
         }
         if let Err(e) = crate::records_retention::check_write(&dir) {
             left.push(format!("{}: left as it is: {e}", path.display()));
