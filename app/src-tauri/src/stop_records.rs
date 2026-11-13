@@ -334,9 +334,14 @@ pub(crate) fn codex_stop_entry(session: &str, actor: &Value, home: &str, restart
 enum Source {
     /// This App session's own request.
     Current,
-    /// An earlier App session's, whose end this ledger establishes: it has a
-    /// start record here, so a later session start read it as ended under the
-    /// custody rule or found its end recorded.
+    /// An earlier App session's, whose end is established: it has a start
+    /// record in the ledger and this App session has successfully started on
+    /// that ledger, which it does only after reading every earlier session as
+    /// ended under the custody rule or finding its end recorded. The start
+    /// record alone is not the ground: the view is given a ledger's entries
+    /// only after this session's own start on it succeeded (a refused start,
+    /// or none yet, shows no entries), and a caller that hands it entries any
+    /// other way must have established the same.
     EarlierEnded,
     /// Another App session's, with no start record in this ledger: nothing
     /// establishes that the session has ended.

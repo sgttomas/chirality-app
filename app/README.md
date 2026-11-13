@@ -1316,10 +1316,10 @@ run-limit record the host writes from that fact says the same: what was last
 recorded, that the end was not observed, and that no end of the run is
 inferred. Records written before this change keep what they say.
 
-What that reading says of stop requests. A stop request an earlier session
-left without a final status is closed at the next start (SR-08) only where that
-session has a start record in the ledger, which is what makes its end
-established. The view of stop outcomes follows the same rule: for a request of
+What that reading says of stop requests. After this App session has
+successfully started on the ledger and established the earlier sessions'
+endings, startup closes an earlier session's unsettled stop request (SR-08)
+only when that source session has a start record in the ledger. The view of stop outcomes follows the same rule: for a request of
 a session with no start record it shows the record as recorded, derives no
 label, does not call the session earlier or ended, and says as a limit that the
 session's end is not established. An outcome-unknown record is read as "No

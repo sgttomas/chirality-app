@@ -2041,10 +2041,13 @@ impl Host {
         // lock, for as long as that Codex or anything it passed the descriptor to keeps it open.
         drop(process_lock);
         let child = match spawned {
-            // The one place an app-server process is created. It is tied here, before anything
-            // else can fail, to the identity of the directory this start holds (from the handle
+            // The one place an app-server process is created. It is tied here, immediately on a
+            // successful spawn, to the identity of the directory this start holds (from the handle
             // the home hold opened at admission, never from the path again), so that every way
-            // it can be left behind carries it: a failed allocation that retires it at once, a
+            // it can then be left behind carries it. (A spawn that reports an error after the
+            // operating system created the process, which it does when the child's reservation
+            // was already lost to another reaper, returns no process to bind or to keep.)
+            // The ways: a failed allocation that retires it at once, a
             // handshake that fails, a Stop during the start, and its later move to the retired
             // list when another child takes the slot. Label probes are not given a home: an
             // unsettled probe refuses every start, on any home.
