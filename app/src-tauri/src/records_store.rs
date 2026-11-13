@@ -54,6 +54,13 @@ use std::sync::{Mutex, RwLock};
 pub(crate) mod package;
 #[path = "records_package.rs"]
 pub(crate) mod custody;
+#[path = "records_store_lines.rs"]
+pub(crate) mod lines;
+#[path = "records_store_witness.rs"]
+pub(crate) mod witness;
+// The witness reader, for other code to use (the Delegation lane's decision reader).
+#[allow(unused_imports)]
+pub(crate) use witness::{legacy_import_origin, LegacyOrigin};
 
 /// The explicit store location for tests and development.
 pub const OVERRIDE_ENV: &str = "CHIRALITY_RECORDS_STORE";
@@ -127,8 +134,8 @@ fn node(path: &Path) -> std::io::Result<(u64, u64)> {
 }
 /// Store project folder -> the project root it was attached from in this process.
 static DIRS: Mutex<Vec<(PathBuf, PathBuf)>> = Mutex::new(Vec::new());
-/// The roots record, parsed: (length read, stamp of the file, lines).
-static ROOTS: Mutex<Option<(PathBuf, u64, Option<crate::records_index::Stamp>, Vec<Value>)>> = Mutex::new(None);
+/// The roots record, read: (length read, stamp of the file, the reading).
+static ROOTS: Mutex<Option<(PathBuf, u64, Option<crate::records_index::Stamp>, lines::Read)>> = Mutex::new(None);
 /// Drift checks of imported originals, by path and stamp.
 static DRIFT: Mutex<Vec<(PathBuf, crate::records_index::Stamp, bool)>> = Mutex::new(Vec::new());
 
@@ -549,46 +556,217 @@ fn store_lock(store: &Path) -> Result<crate::storage::Ownership, String> {
     crate::storage::lock(&store.join(".store.lock"))
 }
 
-/// Appends one JSON line, terminating a torn last line first, and syncs.
+/// Appends one JSON line to a store line file (`roots.jsonl`, an
+/// `imports.jsonl`, `legacy-imports.jsonl`), under the store lock, so that the
+/// append never changes the meaning of bytes already in the file (`lines`).
+/// A new file is made whole or not at all (its first line written to a
+/// temporary file beside it, synced, and put in place by an exclusive rename).
+/// An existing file has every fragment closed and named first, then the line,
+/// all in one write, then a sync. A file not read whole is refused, as is the
+/// registry while an interrupted package import is still writing it; either
+/// way its bytes are left exactly as they were.
 fn append_line(path: &Path, value: &Value) -> Result<(), String> {
-    crate::storage::ensure_directory(path.parent().ok_or("record has no folder")?)?;
-    let existing = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
-    let mut line = Vec::new();
-    if existing > 0 {
-        let mut f = std::fs::File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
-        use std::io::{Seek, SeekFrom};
-        f.seek(SeekFrom::Start(existing - 1)).map_err(|e| e.to_string())?;
-        let mut last = [0u8; 1];
-        f.read_exact(&mut last).map_err(|e| e.to_string())?;
-        if last[0] != b'\n' {
-            line.push(b'\n');
-        }
-    }
-    line.extend(serde_json::to_vec(value).map_err(|e| e.to_string())?);
+    let parent = path.parent().ok_or("record has no folder")?;
+    crate::storage::ensure_directory(parent)?;
+    let mut line = serde_json::to_vec(value).map_err(|e| e.to_string())?;
     line.push(b'\n');
-    let mut f = std::fs::OpenOptions::new().create(true).append(true).open(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    f.write_all(&line).map_err(|e| format!("{}: write: {e}", path.display()))?;
+    let existing = match std::fs::symlink_metadata(path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            refuse_pending_registry(path, b"")?;
+            return create_whole(path, &line);
+        }
+        Err(e) => return Err(format!("records store unreadable: {}: {e}; nothing in it changed", path.display())),
+        Ok(_) => crate::records_retention::read_plain(path).map_err(|e| format!("records store unreadable: {}: {e}; nothing in it changed", path.display()))?,
+    };
+    refuse_pending_registry(path, &existing)?;
+    let read = lines::read(&existing, path);
+    if !read.whole {
+        return Err(lines::not_read_whole(path, &read.limits));
+    }
+    let mut bytes = read.recovery()?;
+    bytes.extend(line);
+    write_appending(path, &bytes)
+}
+/// The registry's bytes are left untouched while an interrupted package
+/// import's frozen registry write is pending over them (its own recovery
+/// appends the rest of that write; `publish_roots`).
+fn refuse_pending_registry(path: &Path, existing: &[u8]) -> Result<(), String> {
+    if path.file_name().is_some_and(|n| n == "roots.jsonl") && package::roots_write_pending(path.parent().ok_or("record has no folder")?, existing)? {
+        return Err("an interrupted package import's write to the registry of project folders is pending; finish that import first; nothing in the registry changed".into());
+    }
+    Ok(())
+}
+#[cfg(test)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum AppendStop {
+    /// Stop before anything is written (an existing file), or before the
+    /// temporary file is put in place (a new file).
+    BeforeWrite,
+    /// Write only this many bytes of the append's one write, then stop.
+    AfterBytes(usize),
+    /// Write everything, then stop before the sync.
+    BeforeSync,
+}
+#[cfg(test)]
+thread_local! {
+    static APPEND_STOP: std::cell::Cell<Option<AppendStop>> = const { std::cell::Cell::new(None) };
+    static APPEND_SKIP: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+/// Stops this thread's next store line write at `stop` (an interruption).
+#[cfg(test)]
+pub(crate) fn interrupt_append_for_test(stop: Option<AppendStop>) {
+    interrupt_append_after_for_test(0, stop);
+}
+/// Lets `skip` store line writes on this thread complete, then stops the next at `stop`.
+#[cfg(test)]
+pub(crate) fn interrupt_append_after_for_test(skip: usize, stop: Option<AppendStop>) {
+    APPEND_SKIP.with(|c| c.set(skip));
+    APPEND_STOP.with(|c| c.set(stop));
+}
+#[cfg(test)]
+fn append_stop() -> Option<AppendStop> {
+    APPEND_STOP.with(|c| c.get())?;
+    if APPEND_SKIP.with(|c| c.get()) > 0 {
+        APPEND_SKIP.with(|c| c.set(c.get() - 1));
+        return None;
+    }
+    APPEND_STOP.with(|c| c.take())
+}
+/// A new store line file, whole or not at all.
+fn create_whole(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    let parent = path.parent().ok_or("record has no folder")?;
+    let temp = parent.join(format!(".{}.{}.tmp", path.file_name().unwrap_or_default().to_string_lossy(), crate::util::opaque_id("")?));
+    let result = (|| {
+        let mut f = std::fs::OpenOptions::new().create_new(true).write(true).open(&temp).map_err(|e| format!("{}: {e}; nothing changed", temp.display()))?;
+        f.write_all(bytes).map_err(|e| format!("{}: write: {e}; nothing changed", temp.display()))?;
+        f.sync_all().map_err(|e| format!("{}: sync: {e}; nothing changed", temp.display()))?;
+        #[cfg(test)]
+        if append_stop().is_some() {
+            return Err("store line write interrupted (injected) before the new file was put in place".to_string());
+        }
+        crate::records_export::publish(&temp, path).map_err(|e| format!("{}: {e}; nothing changed", path.display()))?;
+        crate::storage::sync_dir(parent).map_err(|e| format!("{}: sync uncertain: {e}", path.display()))
+    })();
+    if temp.exists() {
+        let _ = std::fs::remove_file(&temp);
+    }
+    result
+}
+/// One write appended to an existing store line file, then synced. The file
+/// is never created here.
+fn write_appending(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut f = std::fs::OpenOptions::new().append(true).custom_flags(libc::O_NOFOLLOW).open(path).map_err(|e| format!("{}: {e}; nothing changed", path.display()))?;
+    #[cfg(test)]
+    match append_stop() {
+        Some(AppendStop::BeforeWrite) => return Err("store line write interrupted (injected) before the write".into()),
+        Some(AppendStop::AfterBytes(n)) => {
+            f.write_all(&bytes[..n.min(bytes.len())]).map_err(|e| e.to_string())?;
+            f.sync_all().map_err(|e| e.to_string())?;
+            return Err("store line write interrupted (injected) during the write".into());
+        }
+        Some(AppendStop::BeforeSync) => {
+            f.write_all(bytes).map_err(|e| e.to_string())?;
+            return Err("store line write interrupted (injected) before the sync".into());
+        }
+        None => {}
+    }
+    f.write_all(bytes).map_err(|e| format!("{}: write: {e}", path.display()))?;
     f.sync_all().map_err(|e| format!("{}: sync uncertain: {e}", path.display()))?;
     crate::storage::sync_dir(path.parent().unwrap())
 }
-/// The complete lines of an append-only store file (a torn last line is not read).
+/// Closes and names the fragments of one store line file, writing nothing
+/// else (startup). Returns what was left as it was, and why.
+fn recover_file(path: &Path) -> Result<Option<String>, String> {
+    let existing = match std::fs::symlink_metadata(path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("{}: {e}", path.display())),
+        Ok(_) => crate::records_retention::read_plain(path).map_err(|e| format!("{}: {e}", path.display()))?,
+    };
+    let read = lines::read(&existing, path);
+    if !read.whole {
+        return Ok(Some(lines::not_read_whole(path, &read.limits)));
+    }
+    let bytes = read.recovery()?;
+    if bytes.is_empty() {
+        return Ok(None);
+    }
+    if let Err(refusal) = refuse_pending_registry(path, &existing) {
+        return Ok(Some(refusal));
+    }
+    write_appending(path, &bytes).map(|_| None)
+}
+/// Once at startup, under the store lock: every fragment in the store's line
+/// files (the registry, each project's import account and the legacy import
+/// witness) is closed and named, and the witness of legacy imports is begun
+/// if it has not been (`witness`). A store not yet created is left alone. Returns what was left as it was.
+pub fn recover_at_startup() -> Result<Vec<String>, String> {
+    let configured = current()?;
+    if !configured.root.join("store.json").exists() {
+        return Ok(vec![]);
+    }
+    let (store, _) = opened()?;
+    let _lock = store_lock(&store)?;
+    let mut left = Vec::new();
+    left.extend(recover_file(&store.join("roots.jsonl"))?);
+    left.extend(recover_file(&store.join(witness::WITNESS_FILE))?);
+    let projects = store.join("projects");
+    let mut dirs: Vec<PathBuf> = match std::fs::read_dir(&projects) {
+        Ok(rd) => rd.filter_map(|e| e.ok().map(|e| e.path())).collect(),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => vec![],
+        Err(e) => return Err(format!("records store unreadable: {}: {e}", projects.display())),
+    };
+    dirs.sort();
+    for dir in dirs {
+        let path = dir.join("imports.jsonl");
+        if !path.exists() {
+            continue;
+        }
+        if let Err(e) = crate::records_retention::check_write(&dir) {
+            left.push(format!("{}: left as it is: {e}", path.display()));
+            continue;
+        }
+        left.extend(recover_file(&path)?);
+    }
+    // A witness that cannot begin now (the projects present could not be
+    // listed whole) is a limit shown, not a failed recovery: it begins at a
+    // later start, or the act that needs it is refused.
+    match witness::begin(&store) {
+        Ok(not_established) => left.extend(not_established),
+        Err(e) => left.push(e),
+    }
+    Ok(left)
+}
+/// The readable lines of a store line file (the shared reading), or the
+/// refusal when it was not read whole; a missing file reads as empty.
 fn read_lines(path: &Path) -> Result<Vec<Value>, String> {
+    read_store_file(path)?.require_whole(path)
+}
+/// A store line file as read by the one shared reading (`lines`); a missing
+/// file reads as empty.
+fn read_store_file(path: &Path) -> Result<lines::Read, String> {
     let bytes = match std::fs::symlink_metadata(path) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(lines::read(b"", path)),
         Err(e) => return Err(format!("records store unreadable: {}: {e}",path.display())),
         Ok(_)=>crate::records_retention::read_plain(path).map_err(|e|format!("records store unreadable: {}: {e}",path.display()))?,
     };
-    parse_lines(&bytes, path)
+    Ok(lines::read(&bytes, path))
 }
+/// The readable lines of a store line file's `bytes` (the shared reading), or
+/// the refusal when they were not read whole.
 fn parse_lines(bytes: &[u8], path: &Path) -> Result<Vec<Value>, String> {
-    let end = bytes.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1);
-    bytes[..end].split(|b| *b == b'\n').filter(|l| !l.is_empty()).map(|l| {
-        serde_json::from_slice(l).map_err(|e| format!("records store unreadable: {}: {e}", path.display()))
-    }).collect()
+    lines::read(bytes, path).require_whole(path)
 }
 
-/// Every line of `<store>/roots.jsonl`, read again only as far as it grew.
+/// Every readable line of `<store>/roots.jsonl`, or the refusal when the
+/// registry was not read whole.
 fn roots(store: &Path) -> Result<Vec<Value>, String> {
+    let (values, whole, limits) = roots_read(store)?;
+    if whole { Ok(values) } else { Err(lines::not_read_whole(&store.join("roots.jsonl"), &limits)) }
+}
+/// The registry as read (its readable lines, whether it was read whole, and
+/// its limits), read again only when its stamp changes.
+fn roots_read(store: &Path) -> Result<(Vec<Value>, bool, Vec<String>), String> {
     let path = store.join("roots.jsonl");
     let meta = match std::fs::metadata(&path) {
         Ok(m) => Some(m),
@@ -597,14 +775,15 @@ fn roots(store: &Path) -> Result<Vec<Value>, String> {
     };
     let stamp = meta.as_ref().map(crate::records_index::Stamp::of);
     let mut cache = ROOTS.lock().unwrap_or_else(|p| p.into_inner());
-    if let Some((p, _, s, lines)) = cache.as_ref() {
+    if let Some((p, _, s, read)) = cache.as_ref() {
         if *p == path && *s == stamp {
-            return Ok(lines.clone());
+            return Ok((read.values.clone(), read.whole, read.limits.clone()));
         }
     }
-    let lines = read_lines(&path)?;
-    *cache = Some((path, 0, stamp, lines.clone()));
-    Ok(lines)
+    let read = read_store_file(&path)?;
+    let out = (read.values.clone(), read.whole, read.limits.clone());
+    *cache = Some((path, 0, stamp, read));
+    Ok(out)
 }
 /// What every attachment says while the roots registry's last line is unread.
 const REGISTRY_TORN: &str = "the records store's registry of project folders (roots.jsonl) was not read whole: its last line is incomplete and was not read, and its bytes are kept as found. That line may change which folder a project belongs to, so records are only read, from what its complete lines record; nothing is written, minted, adopted or restored for any project until it is resolved";
@@ -744,12 +923,13 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     }
     let _lock = if mint { Some(store_lock(&store)?) } else { None };
     package::require_root(&canonical)?;
-    let lines = roots(&store)?;
+    // Reading continues past what the registry could not read; that is shown.
+    let (lines, _, registry_limits) = roots_read(&store)?;
     let at = canonical.to_str().ok_or("project folder is not Unicode; no project identity")?.to_owned();
     let listed = listed(&lines, &at);
     let link = read_link(&canonical);
     let torn = roots_torn(&store)?;
-    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: vec![], refusal: None, how: "attached", recorded: None, fault: None, linked: None, resolutions: vec![],
+    let mut out = Attachment { root: canonical.clone(), project: None, dir: None, limits: registry_limits, refusal: None, how: "attached", recorded: None, fault: None, linked: None, resolutions: vec![],
         registry: torn.then(|| REGISTRY_TORN.to_owned()) };
     // Other folders the store records for `project` whose own link still names it.
     let held_elsewhere = |project: &str| -> Vec<String> {
@@ -941,6 +1121,9 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
     let record = dir.join("project.json");
     if !record.exists() {
         crate::records_retention::check_write(&dir)?;
+        // The witness of legacy imports begins before any project is created
+        // after it, so such a project is known to have been created after it.
+        witness::begin(store)?;
         crate::storage::create_json(&record, &json!({"format":PROJECT_FORMAT,"formatVersion":VERSION,"projectId":project,"createdAt":now_rfc3339(),"how":how}))?;
     }
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":root,"at":now_rfc3339(),"how":how}))
@@ -1038,11 +1221,18 @@ fn imports(dir: &Path) -> Result<Imports, String> {
     // completed". (What a line's form does not establish: `import_line`.)
     //
     // Only an account that is not there is "no import". One that exists and
-    // is empty is unknown too: it cannot be told from an account emptied
-    // after an import. And a line is one JSON object and nothing else: no
+    // yields no import line is unknown too (below). And a line is one JSON
+    // object and nothing else: no
     // byte before or after it (no padding, no carriage return, no byte-order
     // mark), valid UTF-8, and no key given twice at any depth, since a
     // repeated key reads as its last value and the App writes none.
+    //
+    // The store's appender closes a fragment an interrupted append left with
+    // the mark and names it (`lines`); such a line and the one naming line
+    // that names it are left out, as the store's shared reading leaves them
+    // out, and every other line is held to the rule above. The account must
+    // be settled for that: a partial last line, or a closed line not yet
+    // named, makes it unknown until the appender's recovery has named it.
     let path = dir.join("imports.jsonl");
     let unknown = |why: String| format!("records store unreadable: {}: {why}", path.display());
     let account = match std::fs::symlink_metadata(&path) {
@@ -1051,13 +1241,18 @@ fn imports(dir: &Path) -> Result<Imports, String> {
         Ok(_) => Some(crate::records_retention::read_plain(&path).map_err(unknown)?),
     };
     let mut lines: Vec<(Value, &'static str)> = Vec::new();
-    if let Some(bytes) = &account {
-        if bytes.is_empty() {
-            return Err(unknown("it exists and is empty; whether an import was begun is not known".into()));
-        }
+    if let Some(bytes) = account.as_ref().filter(|bytes| !bytes.is_empty()) {
         let Some(body) = bytes.strip_suffix(b"\n") else { return Err(unknown("its last line is not closed".into())) };
+        let shared = lines::read(bytes, &path);
+        let set_aside = shared.set_aside.clone();
+        shared.require_settled(bytes, &path).map_err(unknown)?;
         for (index, raw) in body.split(|b| *b == b'\n').enumerate() {
             let number = index + 1;
+            // A closed fragment that a naming line set aside, and that naming
+            // line (the shared reading has checked both): never read.
+            if set_aside.contains(&number) || serde_json::from_slice::<Value>(raw).is_ok_and(|v| v["format"] == lines::UNREAD_FORMAT) {
+                continue;
+            }
             if raw.first() != Some(&b'{') || raw.last() != Some(&b'}') {
                 return Err(unknown(format!("its line {number} is not one JSON object and nothing else")));
             }
@@ -1065,6 +1260,23 @@ fn imports(dir: &Path) -> Result<Imports, String> {
             let line = crate::workflow_declaration::parse_unique(text).map_err(|e| unknown(format!("its line {number} is not JSON, or gives a key twice ({e})")))?;
             let Some(event) = import_line(&line) else { return Err(unknown(format!("its line {number} is not an import line in a form this App reads"))) };
             lines.push((line, event));
+        }
+    }
+    // An account that exists and yields no import line (an empty file, or
+    // one holding only closed fragments and the lines that name them) cannot
+    // be told from an account emptied after an import: it is unknown, always,
+    // decided on what was read and not on the bytes (App Agent 0, after
+    // review round 4: no evidence beside it, the witness included, is taken
+    // to show that nothing was begun). The App leaves no such account of its
+    // own: the store's appender makes a new file whole or not at all, and an
+    // interrupted later append leaves its fragment after lines that remain.
+    if let Some(bytes) = &account {
+        if lines.is_empty() {
+            return Err(unknown(if bytes.is_empty() {
+                "it exists and is empty; whether an import was begun is not known"
+            } else {
+                "it exists and holds no import line, only closed fragments and the lines that name them; whether an import was begun is not known"
+            }.into()));
         }
     }
     let mut out = Imports { any: !lines.is_empty(), lines: lines.len(), ..Imports::default() };
@@ -1765,6 +1977,11 @@ pub fn import(root: &Path) -> Result<Value, String> {
     // during which (and if it is interrupted) readers keep reading the store.
     let store_held = store_holds(&dir).map_err(|e| format!("{e}; nothing imported"))?;
     let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
+    // The store's witness of this import, outside the project's subtree,
+    // before the account's "started" line and before any copy.
+    let project = attachment.project.clone().ok_or("nothing imported: no project identity")?;
+    let witnessed: Vec<witness::WitnessedFile> = pending.iter().map(|(file, sha, bytes, _)| witness::WitnessedFile { copy: file.copy.clone(), length: bytes.len() as u64, sha256: sha.clone() }).collect();
+    witness::record(&store, &project, &id, &witnessed)?;
     append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
         "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
         "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;
