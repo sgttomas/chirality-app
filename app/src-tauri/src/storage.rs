@@ -764,25 +764,6 @@ mod tests {
         assert_eq!(crate::records_retention::read_plain(&path).unwrap(), bytes);
         std::fs::remove_file(&path).unwrap();
 
-        // Also exercise the existing publication boundary, with every ancestor
-        // named explicitly instead of deriving expectations from the publisher.
-        let chirality = root.join(".chirality");
-        let parent = chirality.join("records");
-        ensure_directory(&parent).unwrap();
-        let nested = parent.join(path.file_name().unwrap());
-        assert_publication_order_for_test(
-            &nested,
-            &parent,
-            &[parent.clone(), chirality, root.clone()],
-            || {
-                if json {
-                    create_json(&nested, &value)
-                } else {
-                    create_bytes(&nested, &bytes)
-                }
-            },
-        );
-
         for point in [PublicationPoint::Staged, PublicationPoint::Published] {
             let staged = Rc::new(RefCell::new(None));
             let observed = staged.clone();

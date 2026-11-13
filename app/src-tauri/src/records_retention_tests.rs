@@ -2028,7 +2028,35 @@ fn publication_interruption(marker: bool) {
             );
         }
     }
+    // Project-store publications sync every ancestor through the store root.
+    // Keep these fixture paths in the dedicated test file.
+    let f = Fixture::new();
+    let dir = f.dir();
+    let parent = dir.join("sync-order");
+    storage::ensure_directory(&parent).unwrap();
+    let directories = [
+        parent.clone(),
+        dir.clone(),
+        dir.parent().unwrap().to_path_buf(),
+        f.store.clone(),
+    ];
+    let value = json!({"fixture":"direct project-store publication order"});
+    for json in [true, false] {
+        let path = parent.join(if json {
+            "evidence.json"
+        } else {
+            "evidence.jsonl"
+        });
+        storage::assert_publication_order_for_test(&path, &parent, &directories, || {
+            if json {
+                storage::create_json(&path, &value)
+            } else {
+                storage::create_bytes(&path, b"invented publication fixture\n")
+            }
+        });
+    }
 }
+
 #[test]
 fn records_store_publication_events_stage_outside_strict_history_at_both_windows() {
     publication_interruption(false);
