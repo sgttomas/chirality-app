@@ -2505,6 +2505,22 @@ fn a_record_set_that_cannot_be_walked_whole_never_decides_a_record_is_missing() 
     let _ = std::fs::remove_dir_all(&root);
 }
 
+/// A test build's default store is this process's own: two stores made for
+/// one process id differ, so a later process given a reused id never opens an
+/// earlier process's store.
+#[test]
+fn two_test_stores_for_one_process_id_are_never_the_same() {
+    let pid = std::process::id();
+    let prefix = format!("chirality-test-records-{pid}-");
+    let (first, second) = (fresh_test_store_name(pid), fresh_test_store_name(pid));
+    assert!(first.starts_with(&prefix) && second.starts_with(&prefix), "{first} {second}");
+    assert_ne!(first, second, "a reused process id never names the same store");
+    // This process's own store carries its id and a nonce, and is stable.
+    let own = test_store_name();
+    assert!(own.starts_with(&prefix) && own.len() > prefix.len(), "{own}");
+    assert_eq!(own, test_store_name());
+}
+
 /// S1. A store that cannot be examined when a read opens it is reported with
 /// that cause, never as a store not created yet.
 #[test]
