@@ -147,6 +147,9 @@ checks:
 - app/src-tauri/src/records_store_tests.rs
 - app/src-tauri/src/placement_homes_tests.rs
 - app/src-tauri/src/records_inspect_tests.rs
+- tools/ci/check_records_presence.py
+- tools/ci/records_presence_list.yaml
+- tools/ci/test_check_records_presence.py
 - app/src-tauri/src/records_store_lines_tests.rs
 - app/src-tauri/src/records_store_witness_tests.rs
 - app/src-tauri/src/records_store_publication_tests.rs

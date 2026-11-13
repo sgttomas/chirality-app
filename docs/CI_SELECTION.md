@@ -218,6 +218,26 @@ does not see a file reached only through a shell variable, a `node --test` line
 that is not at the start of a command, or a web test under a name pattern other
 than `*.test.mjs`, such as `group_b_runner_test.mjs`.
 
+## Records presence spelling
+
+The records store asks whether something is there through `records_inspect`, which
+keeps "not there" apart from "not known" and does not follow a link.
+`tools/ci/check_records_presence.py`, run by `repository-checks` through
+`tools/ci/test_check_records_presence.py`, finds every line of the records modules'
+non-test code (`app/src-tauri/src/records*.rs`, without `*_tests.rs` files or items
+under `#[cfg(test)]`) that spells `.exists()`, `.is_dir()`, `.is_file()` or
+`.is_symlink()`. Each such line must be on the reviewed list
+`tools/ci/records_presence_list.yaml`, keyed by its file and the line's own text,
+with its kind and reason. A call on a path also says what its caller concludes when
+it cannot tell. The check fails on a new such line and on a listed line no longer
+found, so a change that adds one lists it with its reason in the same PR, or asks
+through `records_inspect` instead.
+
+The check reads spelling, not meaning. It does not see `try_exists()`, a call
+through an alias, wrapper or macro, a spelling split across lines, or a module
+outside `records*.rs` that reads the store. Its passing says only that no new such
+spelling appeared in its scope.
+
 ## Rust dependency cache
 
 Every macOS product job, including the full route, restores compiled third-party
