@@ -315,6 +315,17 @@ fn a_completed_package_import_does_not_excuse_an_import_account_that_cannot_be_r
 }
 
 #[test]
+fn records_store_import_gate_completed_package_import_waives_census() {
+    let f = Fixture::new(false);
+    f.import();
+    let legacy = f.root.join(".chirality/records/acts");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join("late.jsonl"), b"late in-place evidence").unwrap();
+    assert!(completed(&f.dir()).unwrap());
+    assert!(crate::records_store::write_dir(&f.root).is_ok());
+}
+
+#[test]
 fn incomplete_original_import_finishes_from_retained_or_reselected_exact_package() {
     for reselect in [false, true] {
         let f = Fixture::new(false);

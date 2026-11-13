@@ -79,16 +79,21 @@ pub fn write_capture_path(root: &Path, id: &str) -> Result<PathBuf, String> {
 pub fn write_pending_path(root: &Path, id: &str) -> Result<PathBuf, String> {
     Ok(write_capture_dir(root)?.join("pending").join(format!("{}.json", key(id))))
 }
+/// U-STORE-2: registration capture evidence belongs to its workflow library,
+/// never to the project's records store, including when found in the wrong home.
+pub(crate) fn capture_belongs_to_library(capture: &Value) -> bool {
+    capture["actKind"] == "A15"
+}
 /// The capture file of `capture` for a write or a recovery: an A15 capture
 /// stays with its library (`root` is the library), every other with the
 /// project's store subtree.
 pub fn capture_file_for(root: &Path, capture: &Value) -> Result<PathBuf, String> {
     let id = capture["captureId"].as_str().ok_or("capture identity absent")?;
-    if capture["actKind"] == "A15" { Ok(library_capture_path(root, id)) } else { write_capture_path(root, id) }
+    if capture_belongs_to_library(capture) { Ok(library_capture_path(root, id)) } else { write_capture_path(root, id) }
 }
 pub fn pending_file_for(root: &Path, capture: &Value) -> Result<PathBuf, String> {
     let id = capture["captureId"].as_str().ok_or("capture identity absent")?;
-    if capture["actKind"] == "A15" { Ok(library_pending_path(root, id)) } else { write_pending_path(root, id) }
+    if capture_belongs_to_library(capture) { Ok(library_pending_path(root, id)) } else { write_pending_path(root, id) }
 }
 /// The capture lock for `capture`'s home.
 pub fn capture_lock_for(root: &Path, capture: &Value) -> Result<PathBuf, String> {
@@ -97,7 +102,7 @@ pub fn capture_lock_for(root: &Path, capture: &Value) -> Result<PathBuf, String>
 /// The owning log a pending capture submission names: an A15 log relative to
 /// the library, every other relative to the project's records home.
 pub fn submission_log(root: &Path, capture: &Value, log: &str) -> Result<PathBuf, String> {
-    if capture["actKind"] == "A15" { Ok(root.join(log)) } else { project_file(root, log) }
+    if capture_belongs_to_library(capture) { Ok(root.join(log)) } else { project_file(root, log) }
 }
 /// A log's name for presentation: `records-store:<path>` in the project's
 /// store subtree, otherwise relative to the project (or the full path).
