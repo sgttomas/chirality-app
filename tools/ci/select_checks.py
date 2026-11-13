@@ -26,6 +26,20 @@ PROSE_PATHS = frozenset({
     "docs/user-manual/README.md",
     "tools/deliverables/README.md",
 })
+# Inputs no macOS product job consumes; their readers run in repository checks.
+# docs/CI_SELECTION.md maps each class to its readers and the search behind it.
+# Class A, governing text: Markdown under docs/ (execution/ is documentary above).
+GOVERNING_TEXT = "docs/"
+# Class B, examination tooling: the standalone examination and its Group B tests.
+EXAMINATION_ROOTS = ("app/examination/standalone/", "app/tests/group_b_")
+EXAMINATION_SUFFIXES = (".py", ".mjs", ".cjs", ".js", ".json", ".md")
+# Inside those roots, read by a macOS product job: the Rust lib compiles the
+# consumer and its tests read standalone/fixtures; sources-packaging reads the
+# two fixture trees. These stay product inputs.
+MACOS_INPUTS_IN_CLASS_ROOTS = (
+    "app/examination/standalone/fixtures/", "app/tests/group_b_fixture_consumer.rs",
+    "app/tests/group_b_fixtures/", "app/tests/group_b_sq_receiving_fixtures/",
+)
 # These domains contain code, contracts, fixtures or retained source inputs.
 # Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
 PRODUCT_DOMAINS = (
@@ -78,6 +92,11 @@ def parse_changes(raw: bytes) -> list[dict[str, str]]:
 def path_rule(path: str) -> str:
     if path in PROSE_PATHS or path.startswith("execution/"):
         return "documentary"
+    if path.startswith(GOVERNING_TEXT) and path.endswith(".md"):
+        return "governing-text"
+    if (path.startswith(EXAMINATION_ROOTS) and path.endswith(EXAMINATION_SUFFIXES)
+            and not path.startswith(MACOS_INPUTS_IN_CLASS_ROOTS)):
+        return "examination"
     if path in PRODUCT_FILES:
         return "product-file"
     if path.startswith(PRODUCT_DOMAINS):
@@ -91,6 +110,13 @@ def inventory(repo: Path) -> dict:
     return {"tracked_paths": len(paths), "unmatched": unmatched}
 
 
+REPOSITORY_RULES = {
+    "documentary": "Audited documentary file",
+    "governing-text": "Governing text read only by repository checks",
+    "examination": "Examination tooling run only by repository checks",
+}
+
+
 def classify(change: dict[str, str]) -> dict[str, str]:
     rule = path_rule(change["path"])
     reason = "Unmatched path requires full product verification" if rule == "unmatched" else \
@@ -99,8 +125,8 @@ def classify(change: dict[str, str]) -> dict[str, str]:
         reason = "Deletion or file-type change requires product verification"
     elif change["new_mode"] != "100644" or change["old_mode"] not in {"000000", "100644"}:
         reason = "Only ordinary non-executable documentary files qualify"
-    elif rule == "documentary":
-        return {**change, "rule": rule, "checks": "repository", "reason": "Audited documentary file"}
+    elif rule in REPOSITORY_RULES:
+        return {**change, "rule": rule, "checks": "repository", "reason": REPOSITORY_RULES[rule]}
     return {**change, "rule": rule, "checks": "product", "reason": reason}
 
 

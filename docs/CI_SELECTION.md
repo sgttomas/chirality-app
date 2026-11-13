@@ -31,10 +31,18 @@ exact documentary paths, and all paths under the guarded declarative `execution/
 - `docs/user-manual/README.md`
 - `tools/deliverables/README.md`
 
+Two further classes select repository checks without product verification,
+because no macOS product job consumes them (see
+[Inputs the macOS jobs do not consume](#inputs-the-macos-jobs-do-not-consume)):
+governing text, Markdown under `docs/`; and examination tooling, the Python,
+JavaScript, JSON and Markdown under `app/examination/standalone/` and the
+`app/tests/group_b_*` tests and fixtures, except the four paths in them that a
+macOS job reads.
+
 Everything else retains the existing App product verification. This includes
 Rust and frontend code, dependencies/locks, workflows, the selector and its
-tests, App schema/fixture copies, packaging resources, examination readers,
-packaged Markdown and unknown paths. Mixed changes select the union: one
+tests, App schema/fixture copies, packaging resources, the other examination
+readers, packaged Markdown and unknown paths. Mixed changes select the union: one
 product-relevant path selects the product workflow. Deletions, executable-mode
 changes, symlinks and other file-type changes select product checks even at an
 allowlisted path. Renames are examined as deletion plus addition, so neither
@@ -74,6 +82,49 @@ Path moves and all App/tool/guard/selector edits select full product checks.
 Other product domains remain conservative; no partial frontend/Rust mapping is
 introduced.
 
+## Inputs the macOS jobs do not consume
+
+A path skips the three macOS product jobs only when no step of theirs reads it,
+directly or through what it builds, and every reader it has runs in the
+always-run `repository-checks` job. Neither the frontend build (`tsc` includes
+only `app/src`; Vite starts at `app/index.html`) nor the Rust code and its tests
+read outside `app/src-tauri` except `app/tests/fixtures`,
+`app/supplier_checks/recordings`, `app/packaging/unsigned`,
+`tools/verify_records_bag.py` and the kept paths below. `build.rs` watches only
+`src-tauri` files, and the bundle takes only `resources/instructions` and
+`resources/production_workflows`.
+The searches were made by reading each consumer and searching all tracked files
+for the paths, not by file extension.
+
+| Class and paths | Readers, and where they run | Search |
+| --- | --- | --- |
+| A: `docs/**/*.md` | `tools/validation/test_document_metadata.py` reads every header, in `repository-checks`. No App source, test, build script, bundle or pin names a `docs/` path. | `git grep` for `docs/`, `../docs/`, `"docs"`, every `docs/` basename and `include_str!`/`include_bytes!` targets in `app`, `tools` and `.github` |
+| A: `execution/**` | Already documentary; `tools.deliverables check` and `check_execution_layout.py` in `repository-checks`. | as above, plus `ScopeOfWork`, `deliverable.yaml` |
+| B: `app/examination/standalone/**` except `fixtures/` (`.py`, `.mjs`, `.cjs`, `.js`, `.json`, `.md`) | The Group B suites (`app/tests/group_b*test.py`), `repin.py --check` and `examination_repin_test.py` (which copies the standalone pin profiles), all in `repository-checks`; `native_forms/` reads the pre-run inputs and pins and is run only by `group_b_native_forms_test.py`. | every top-level standalone entry name, `standalone`, `group_b` |
+| B: `app/tests/group_b_*` except below (same types) | Run only by the `repository-checks` step `pytest -q app/tests/group_b*test.py`; no macOS step names `group_b`. | every `group_b_*` directory and file name |
+| Kept product: `app/examination/standalone/fixtures/` | Read at runtime by the lib tests in `group_b_fixture_consumer.rs`; no PR lib cohort runs them today, only the full suite, but a cohort filter change would. | `CARGO_MANIFEST_DIR` joins in Rust |
+| Kept product: `app/tests/group_b_fixture_consumer.rs` | Compiled into the lib by `lib.rs` (`#[path]`): the test-target build and clippy in `rust-integration`. | `group_b` in `app/src-tauri` |
+| Kept product: `app/tests/group_b_fixtures/` | `packaging/static_distribution/test_s1_value_model.py`, `sources-packaging`. | `group_b_*fixtures` outside the class |
+| Kept product: `app/tests/group_b_sq_receiving_fixtures/` | `tests/package_successor_receiving_fixtures.py` through `package_successor_test.py`, `sources-packaging`. | as above |
+
+`examination_repin_test.py` runs in `sources-packaging` and now also in
+`repository-checks`, so that a standalone pin change is examined on the route it
+takes. It uses only the standard library.
+
+The Group B suites never ran in a macOS PR job, so the narrowing removes no
+macOS PR coverage from them: the one Darwin-only test,
+`group_b_launch_home_test.py`'s identification check, is skipped on Ubuntu and
+runs only in the nightly full suite, as before. `group_b_runner_test.mjs` is run
+by no CI route.
+
+Deletions, mode or type changes, renames (each side examined), other file types
+in these roots, lookalike paths and any change with a product input keep the
+full product route. `tools/ci/test_selection.py` fails when a tracked file
+outside the classes names one of their paths and is not a reader listed there
+with its reason, so a new reader must be placed in this table, or the path it
+reads kept as a product input. It also fails if `repository-checks` stops
+running a reader listed here.
+
 ## Required result
 
 The macOS reusable product workflow is called only when explicitly selected. It
@@ -81,7 +132,8 @@ needs only `change-selection`, so product jobs start as soon as the route is
 known, not after the slower repository checks. `harness` runs with `always()`
 and requires a successful `change-selection` with valid outputs and successful
 repository checks. It accepts `app-v4: skipped` only for the explicit `prose`
-selection. A product selection requires `app-v4: success`; failures,
+selection, which every documentary, governing-text and examination change
+alone receives. A product selection requires `app-v4: success`; failures,
 cancellations, unexpected skips and missing/inconsistent outputs block merging.
 A failing repository check therefore blocks the merge although the product jobs
 still run to completion.
