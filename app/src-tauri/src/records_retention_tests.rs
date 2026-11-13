@@ -1843,3 +1843,29 @@ fn a_dangling_active_association_never_admits_recording() {
     let recorded = record();
     assert!(recorded.is_err(), "a dangling active link is never taken for no active association: {recorded:?}");
 }
+
+/// An export never publishes a staged member that is a link. After the
+/// staged export is verified, its data folder is replaced by a link to that
+/// folder (moved aside), once with the target readable and once unreadable
+/// (the second reading's construction): the export is refused both times
+/// and nothing is published.
+#[test]
+fn an_export_never_publishes_a_linked_member() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    for readable in [true, false] {
+        let f = Fixture::new();
+        let moved = f.output.join("moved-data");
+        let target = moved.clone();
+        crate::records_export::BEFORE_EXPORT_SYNC.with(|h| *h.borrow_mut() = Some(Box::new(move |stage: &Path| {
+            std::fs::rename(stage.join("data"), &target).unwrap();
+            symlink(&target, stage.join("data")).unwrap();
+            if !readable { std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o000)).unwrap(); }
+        })));
+        let bag = f.output.join("bag");
+        let exported = crate::records_export::export(&f.project, &bag);
+        crate::records_export::BEFORE_EXPORT_SYNC.with(|h| *h.borrow_mut() = None);
+        std::fs::set_permissions(&moved, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(exported.is_err(), "readable target {readable}: never published with a link inside: {exported:?}");
+        assert!(!bag.exists(), "readable target {readable}: nothing published");
+    }
+}

@@ -187,7 +187,13 @@ pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
             let entries = crate::records_inspect::listing(path).map_err(io)?.ok_or_else(|| format!("{}: the staged export folder is gone; nothing published", path.display()))?;
             for entry in entries {
                 let meta = entry.metadata.map_err(|e| format!("{}: could not be examined ({e}), so whether it is a folder to sync is not known; nothing published", entry.path.display()))?;
+                // Only plain files and folders belong in an export. A link
+                // (followed by nothing here) or any other kind stops the
+                // export: it is never passed over as "not a folder".
                 if meta.is_dir() { sync_dirs(&entry.path)?; }
+                else if !meta.is_file() {
+                    return Err(format!("{}: is a link or another kind of member, not a file or a folder, in the staged export; nothing published", entry.path.display()));
+                }
             }
             crate::storage::sync_dir(path)
         }
