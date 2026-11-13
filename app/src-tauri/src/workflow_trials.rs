@@ -175,6 +175,32 @@ pub(crate) enum TrialObservation {
     BroughtBack { target_conversation: String, transcript: String, shortenings: Vec<String> },
 }
 
+/// Readable JSON establishes identity, not publication durability. Flush the
+/// final file and App-data ancestry, including folders left by a failed mkdir.
+fn sync_trial_record(path: &Path, value: &Value) -> Result<(), String> {
+    let read = || -> Result<Value, String> {
+        let bytes = crate::workflow_workspace::read_regular_file(path).map_err(|e| e.to_string())?;
+        serde_json::from_slice(&bytes).map_err(|e| format!("trial record malformed: {e}"))
+    };
+    if read()? != *value { return Err("another record already has this name; nothing overwritten".into()); }
+    storage::sync_publication(path)?;
+    for ancestor in path.parent().ok_or("trial record has no parent")?.ancestors().skip(1) {
+        storage::sync_dir(ancestor)?;
+    }
+    if read()? != *value { return Err("trial record changed while durability was established".into()); }
+    Ok(())
+}
+
+fn publish_trial_record(path: &Path, value: &Value) -> Result<(), String> {
+    let publication = storage::create_json(path, value);
+    // Also flush after cleanup: create_json's first sync precedes alias removal.
+    // A failed create is settled only by matching readback AND successful syncs.
+    sync_trial_record(path, value).map_err(|cause| match publication {
+        Ok(()) => cause,
+        Err(error) => format!("{error}; publication not confirmed: {cause}"),
+    })
+}
+
 /// The trial links and observations kept in the App data folder, read at
 /// open. Each record is its own create-once file: a link is named by its trial
 /// reference (`trial-<uuid>.json`), an observation by its identity
@@ -192,6 +218,8 @@ pub(crate) struct TrialLinks {
     /// trial_pointer records: earlier attachment pointers and trial links.
     pointers: Vec<Value>,
     observations: Vec<Value>,
+    /// Exact attempted records, kept for retry but never listed as recorded.
+    pending: std::collections::BTreeMap<String, Value>,
     limits: Vec<String>,
 }
 impl TrialLinks {
@@ -212,6 +240,7 @@ impl TrialLinks {
             || crate::workflow_workspace::read_regular_file(&path).map_err(|e| e.to_string())? != bytes {
             return Err("durable trial link changed while read".into());
         }
+        sync_trial_record(&path, &link)?;
         Ok((link, json!({"physical":before,"bytes":bytes.len(),"sha256":crate::util::sha256_hex(&bytes)})))
     }
     /// Reads every record already kept under `app_data`.
@@ -276,6 +305,10 @@ impl TrialLinks {
             match value["record_kind"].as_str() {
                 Some("trial_pointer") => match check_pointer(&value, &stem) {
                     Ok(()) => {
+                        if let Err(cause) = sync_trial_record(&file, &value) {
+                            store.pending_record(&format!("{stem}.json"), &value, &cause);
+                            continue;
+                        }
                         let reference = &value["trial"]["reference"];
                         if !reference.is_null() && store.pointers.iter().any(|p| &p["trial"]["reference"] == reference) {
                             store.limits.push(format!("trial pointer malformed: {shown}: a second link for trial {reference}; not listed"));
@@ -286,7 +319,13 @@ impl TrialLinks {
                     Err(e) => store.limits.push(format!("trial pointer malformed: {shown}: {e}")),
                 },
                 Some("trial_observation") => match check_observation(&value, &stem) {
-                    Ok(()) => store.observations.push(value),
+                    Ok(()) => {
+                        if let Err(cause) = sync_trial_record(&file, &value) {
+                            store.pending_record(&format!("{stem}.json"), &value, &cause);
+                        } else {
+                            store.observations.push(value);
+                        }
+                    },
                     Err(e) => store.limits.push(format!("trial observation malformed: {shown}: {e}")),
                 },
                 _ => store.limits.push(format!("trial pointer malformed: {shown}: not a trial_pointer or trial_observation record")),
@@ -340,9 +379,13 @@ impl TrialLinks {
             "text_identity":text.identity(),"text_bytes":text.bytes(),"snapshot_folder":text.snapshot_folder(),
             "authoring_conversation":sent.authoring_conversation,"client_message":sent.client_message,
             "turn":sent.turn,"clean_conversation":sent.clean_conversation});
-        if let Some(existing) = self.link(text.reference()) {
+        let file = format!("{}.json", link_stem(text.reference()));
+        let existing = self.link(text.reference()).or_else(|| self.pending.get(&file)).cloned();
+        if let Some(existing) = existing {
             if existing["trial"] == trial && existing["draft"] == prepared.key && existing["content"] == prepared.content {
-                return Ok(existing.clone());
+                self.keep(&file, &existing)?;
+                if self.link(text.reference()).is_none() { self.pointers.push(existing.clone()); }
+                return Ok(existing);
             }
             return Err(format!("trial {} already has its link; one link per trial", text.reference()));
         }
@@ -350,7 +393,7 @@ impl TrialLinks {
             "conversation":conversation,"time":crate::util::now_rfc3339(),"standing":LINK_STANDING,"trial":trial});
         crate::workflow_workspace::wr_validate("trial_pointer", &link)?;
         check_pointer(&link, &link_stem(text.reference()))?;
-        self.keep(&format!("{}.json", link_stem(text.reference())), &link)?;
+        self.keep(&file, &link)?;
         self.pointers.push(link.clone());
         Ok(link)
     }
@@ -360,9 +403,7 @@ impl TrialLinks {
         if self.link(reference).is_none() {
             return Err(format!("no trial link for {reference}; nothing recorded"));
         }
-        let id = crate::util::opaque_id("trial-observation:")?;
-        let mut record = json!({"record_kind":"trial_observation","observation_id":id,"trial":reference,
-            "time":self.later_time(reference),"standing":OBSERVATION_STANDING});
+        let mut record = json!({"record_kind":"trial_observation","trial":reference,"standing":OBSERVATION_STANDING});
         match observation {
             TrialObservation::SubAgentLinked { child_thread, method } => {
                 record["observation"] = json!("sub-agent linked");
@@ -387,9 +428,25 @@ impl TrialLinks {
                     "bytes":transcript.len(),"shortenings":shortenings});
             }
         }
+        // Retry the same uncertain fact with its original identity and time.
+        // Once recorded, a later observation is still a new fact.
+        let pending = self.pending.values().find(|p| {
+            let mut fact = (*p).clone();
+            fact.as_object_mut().unwrap().remove("observation_id");
+            fact.as_object_mut().unwrap().remove("time");
+            fact == record
+        }).cloned();
+        let record = if let Some(pending) = pending { pending } else {
+            record["observation_id"] = json!(crate::util::opaque_id("trial-observation:")?);
+            record["time"] = json!(self.later_time(reference));
+            record
+        };
         crate::workflow_workspace::wr_validate("trial_observation", &record)?;
-        self.keep(&format!("{}.json", observation_stem(&id)), &record)?;
+        self.keep(&format!("{}.json", observation_stem(record["observation_id"].as_str().unwrap())), &record)?;
         self.observations.push(record.clone());
+        // A recovered observation can precede facts recorded while it was
+        // pending. Keep the same ordering that open() reconstructs by time.
+        self.observations.sort_by(|a, b| a["time"].as_str().cmp(&b["time"].as_str()));
         Ok(record)
     }
 
@@ -402,6 +459,7 @@ impl TrialLinks {
         let latest = self
             .observations
             .iter()
+            .chain(self.pending.values())
             .filter(|o| o["trial"] == reference)
             .filter_map(|o| o["time"].as_str())
             .max()
@@ -411,29 +469,35 @@ impl TrialLinks {
         })
     }
 
-    /// One create-once file; an uncertain outcome is settled by reading the
-    /// file back (equal bytes: written; absent: not written; other bytes:
-    /// refused, nothing overwritten).
+    fn pending_record(&mut self, file: &str, value: &Value, cause: &str) {
+        self.pending.insert(file.to_owned(), value.clone());
+        let prefix = format!("trial record publication not confirmed: {file}: ");
+        self.limits.retain(|limit| !limit.starts_with(&prefix));
+        self.limits.push(format!("{prefix}{cause}; same identity retained"));
+    }
+
+    /// Readback identifies the record; successful file and ancestor syncs
+    /// establish durability before it is reported recorded.
     fn keep(&mut self, file: &str, value: &Value) -> Result<(), String> {
-        if let Some(cause) = &self.refused {
-            return Err(format!("trial record not written: the App data trial folder is refused ({cause})"));
-        }
-        let Some(dir) = &self.dir else {
-            self.limits
-                .push("trial record held in process memory only: App data folder not attached (WR §3)".into());
-            return Ok(());
+        let result = if let Some(cause) = &self.refused {
+            Err(format!("trial record not written: the App data trial folder is refused ({cause})"))
+        } else if let Some(dir) = &self.dir {
+            publish_trial_record(&dir.join(file), value)
+        } else {
+            self.limits.push("trial record held in process memory only: App data folder not attached (WR §3)".into());
+            Ok(())
         };
-        let path = dir.join(file);
-        match storage::create_json(&path, value) {
-            Ok(()) => Ok(()),
-            Err(error) => match crate::workflow_workspace::read_regular_file(&path)
-                .ok()
-                .and_then(|b| serde_json::from_slice::<Value>(&b).ok())
-            {
-                Some(found) if &found == value => Ok(()),
-                Some(_) => Err(format!("{}: another record already has this name; nothing overwritten ({error})", path.display())),
-                None => Err(format!("trial record not written: {error}")),
-            },
+        match result {
+            Ok(()) => {
+                self.pending.remove(file);
+                let prefix = format!("trial record publication not confirmed: {file}: ");
+                self.limits.retain(|limit| !limit.starts_with(&prefix));
+                Ok(())
+            }
+            Err(cause) => {
+                self.pending_record(file, value, &cause);
+                Err(format!("trial record publication not confirmed: {file}: {cause}; same identity retained"))
+            }
         }
     }
 
@@ -565,6 +629,9 @@ impl TrialConversationMarks {
                     && v["thread"].as_str().is_some_and(|t| format!("{}.json", mark_stem(t)) == name)
                     && v["trial"].as_str().is_some_and(valid_trial_reference) =>
                 {
+                    if let Err(cause) = sync_trial_record(&file, &v) {
+                        store.mark_limit(v["thread"].as_str().unwrap(), &cause);
+                    }
                     store.marks.push(v)
                 }
                 Ok(_) => store.limits.push(format!("trial conversation mark malformed: {shown}: not a mark named for its conversation; not listed")),
@@ -578,9 +645,10 @@ impl TrialConversationMarks {
     /// for the same trial returns the existing mark. The mark holds in this
     /// process even when it cannot be written; the error says so.
     pub(crate) fn mark(&mut self, thread: &str, reference: &str, sequence: u64, draft: &str, fork_of: Option<&str>) -> Result<Value, String> {
-        if let Some(existing) = self.find(thread) {
+        if let Some(existing) = self.find(thread).cloned() {
             if existing["trial"] == reference {
-                return Ok(existing.clone());
+                self.persist(&existing)?;
+                return Ok(existing);
             }
             return Err(format!("conversation {thread} is already marked as trial {}'s", existing["trial"]));
         }
@@ -588,22 +656,33 @@ impl TrialConversationMarks {
             "relation":if fork_of.is_some(){"fork of a trial conversation"}else{"clean trial conversation"},"fork_of":fork_of,
             "time":crate::util::now_rfc3339(),"standing":MARK_STANDING});
         self.marks.push(mark.clone());
-        if let Some(cause) = &self.refused {
-            return Err(format!("trial conversation mark held in process memory only: the App data folder is refused ({cause})"));
-        }
-        let Some(dir) = &self.dir else {
+        self.persist(&mark)?;
+        Ok(mark)
+    }
+    fn mark_limit(&mut self, thread: &str, cause: &str) {
+        let prefix = format!("trial conversation mark publication not confirmed: {}: ", mark_stem(thread));
+        self.limits.retain(|limit| !limit.starts_with(&prefix));
+        self.limits.push(format!("{prefix}{cause}; held in process memory; persistence not established"));
+    }
+    fn persist(&mut self, mark: &Value) -> Result<(), String> {
+        let thread = mark["thread"].as_str().unwrap();
+        let result = if let Some(cause) = &self.refused {
+            Err(format!("the App data folder is refused ({cause})"))
+        } else if let Some(dir) = &self.dir {
+            publish_trial_record(&dir.join(format!("{}.json", mark_stem(thread))), mark)
+        } else {
             self.limits.push("trial conversation mark held in process memory only: App data folder not attached (WR §3)".into());
-            return Ok(mark);
+            Ok(())
         };
-        let path = dir.join(format!("{}.json", mark_stem(thread)));
-        match storage::create_json(&path, &mark) {
-            Ok(()) => Ok(mark),
-            Err(error) => {
-                let found = crate::workflow_workspace::read_regular_file(&path).ok().and_then(|b| serde_json::from_slice::<Value>(&b).ok());
-                match found {
-                    Some(found) if found["thread"] == thread && found["trial"] == reference => Ok(mark),
-                    _ => Err(format!("trial conversation mark not written (held in process memory only): {error}")),
-                }
+        match result {
+            Ok(()) => {
+                let prefix = format!("trial conversation mark publication not confirmed: {}: ", mark_stem(thread));
+                self.limits.retain(|limit| !limit.starts_with(&prefix));
+                Ok(())
+            }
+            Err(cause) => {
+                self.mark_limit(thread, &cause);
+                Err(format!("trial conversation mark persistence not established (held in process memory only): {cause}"))
             }
         }
     }

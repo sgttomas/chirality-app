@@ -358,6 +358,45 @@ fn sent(kind: TrialKind) -> SentTrial {
     }
 }
 
+#[test]
+fn records_store_sync_failed_trial_link_publication_is_not_reported_recorded() {
+    let s = Scratch::new();
+    s.put("sync-trace", "invented trial");
+    let trial = s.prepare("sync-trace").unwrap();
+    let directory = s.app_data().join(TRIAL_POINTERS);
+    storage::ensure_directory(&directory).unwrap();
+    let mut links = TrialLinks::open(&s.app_data());
+    storage::fail_directory_for_test(Some(directory));
+    let result = links.record_sent(&trial, &sent(TrialKind::Delegated));
+    storage::fail_directory_for_test(None);
+    assert!(result.is_err(), "failed publication sync was reported as a recorded trial link: {result:?}; limits={:?}", links.limits());
+}
+
+#[test]
+fn records_store_sync_failed_trial_observation_publication_is_not_reported_recorded() {
+    let s = Scratch::new();
+    s.put("sync-trace", "invented trial");
+    let trial = s.prepare("sync-trace").unwrap();
+    let mut links = TrialLinks::open(&s.app_data());
+    links.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
+    storage::fail_directory_for_test(Some(s.app_data().join(TRIAL_POINTERS)));
+    let result = links.record_observation(trial.text.reference(), TrialObservation::SubAgentUnlinked { child_thread: "invented child".into() });
+    storage::fail_directory_for_test(None);
+    assert!(result.is_err(), "failed publication sync was reported as a recorded trial observation: {result:?}; limits={:?}", links.limits());
+}
+
+#[test]
+fn records_store_sync_failed_trial_mark_publication_is_not_reported_persistent() {
+    let s = Scratch::new();
+    let directory = s.app_data().join(TRIAL_CONVERSATIONS);
+    storage::ensure_directory(&directory).unwrap();
+    let mut marks = TrialConversationMarks::open(&s.app_data());
+    storage::fail_directory_for_test(Some(directory));
+    let result = marks.mark("invented thread", "trial:00000000-0000-4000-8000-000000000000", 1, "invented draft", None);
+    storage::fail_directory_for_test(None);
+    assert!(result.is_err(), "failed publication sync lost the memory-only warning for a conversation mark: {result:?}; limits={:?}", marks.limits());
+}
+
 // TT-4: create-once links written on acknowledgment, surviving a new process,
 // one per trial, listed per draft newest first with their observations.
 #[test]
@@ -652,4 +691,135 @@ fn a_refused_app_data_folder_refuses_writes_instead_of_keeping_them_in_memory() 
     assert!(store.link(trial.text.reference()).is_none(), "nothing kept in memory");
     assert!(store.record(&trial.key, &trial.content, "thread").is_err());
     assert!(entries(&elsewhere.0).is_empty());
+}
+
+
+#[test]
+fn records_store_sync_trial_link_retry_keeps_exact_record_until_durable() {
+    let s = Scratch::new();
+    s.put("sync-retry", "invented trial");
+    let trial = s.prepare("sync-retry").unwrap();
+    let ack = sent(TrialKind::Delegated);
+    let dir = s.app_data().join(TRIAL_POINTERS);
+    storage::ensure_directory(&dir).unwrap();
+    let path = dir.join(format!("{}.json", link_stem(trial.text.reference())));
+    let mut links = TrialLinks::open(&s.app_data());
+    storage::fail_directory_for_test(Some(dir.clone()));
+    let first = links.record_sent(&trial, &ack);
+    let bytes = fs::read(&path).unwrap();
+    let retained: Value = serde_json::from_slice(&bytes).unwrap();
+    let again = links.record_sent(&trial, &ack);
+    let cold = TrialLinks::open(&s.app_data());
+    storage::fail_directory_for_test(None);
+    assert!(first.is_err() && again.is_err());
+    assert!(links.all_links().is_empty() && cold.all_links().is_empty());
+    assert!(!links.limits().is_empty() && !cold.limits().is_empty());
+    assert_eq!(entries(&dir).len(), 1);
+    assert_eq!(links.record_sent(&trial, &ack).unwrap(), retained);
+    assert_eq!(links.all_links().len(), 1);
+    assert!(links.limits().is_empty());
+    assert_eq!(fs::read(&path).unwrap(), bytes);
+    // The cached success branch also has to sync, never just return its cache.
+    storage::fail_directory_for_test(Some(dir));
+    let cached = links.record_sent(&trial, &ack);
+    storage::fail_directory_for_test(None);
+    assert!(cached.is_err());
+    assert_eq!(links.record_sent(&trial, &ack).unwrap(), retained);
+    assert_eq!(TrialLinks::open(&s.app_data()).all_links(), vec![retained]);
+}
+
+#[test]
+fn records_store_sync_trial_observation_retry_keeps_identity_and_time() {
+    let s = Scratch::new();
+    s.put("sync-retry", "invented trial");
+    let trial = s.prepare("sync-retry").unwrap();
+    let mut links = TrialLinks::open(&s.app_data());
+    links.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
+    let dir = s.app_data().join(TRIAL_POINTERS);
+    let observation = || TrialObservation::SubAgentUnlinked { child_thread: "invented child".into() };
+    storage::fail_directory_for_test(Some(dir.clone()));
+    let first = links.record_observation(trial.text.reference(), observation());
+    let path = fs::read_dir(&dir).unwrap().map(|e| e.unwrap().path())
+        .find(|p| p.file_name().unwrap().to_string_lossy().starts_with("observation-")).unwrap();
+    let bytes = fs::read(&path).unwrap();
+    let retained: Value = serde_json::from_slice(&bytes).unwrap();
+    let again = links.record_observation(trial.text.reference(), observation());
+    let cold = TrialLinks::open(&s.app_data());
+    storage::fail_directory_for_test(None);
+    assert!(first.is_err() && again.is_err());
+    assert!(links.observations(trial.text.reference()).is_empty());
+    assert!(cold.observations(trial.text.reference()).is_empty());
+    assert!(!cold.limits().is_empty());
+    assert_eq!(entries(&dir).len(), 2, "one link and one retained observation");
+    assert_eq!(links.record_observation(trial.text.reference(), observation()).unwrap(), retained);
+    assert_eq!(links.observations(trial.text.reference()), vec![retained.clone()]);
+    assert_eq!(fs::read(path).unwrap(), bytes);
+    assert!(links.limits().is_empty());
+    assert_eq!(TrialLinks::open(&s.app_data()).observations(trial.text.reference()), vec![retained]);
+}
+
+#[test]
+fn records_store_sync_trial_mark_cached_retry_and_reopen_keep_the_warning_until_durable() {
+    let s = Scratch::new();
+    let dir = s.app_data().join(TRIAL_CONVERSATIONS);
+    storage::ensure_directory(&dir).unwrap();
+    let mut marks = TrialConversationMarks::open(&s.app_data());
+    let reference = "trial:00000000-0000-4000-8000-000000000000";
+    storage::fail_directory_for_test(Some(dir.clone()));
+    let first = marks.mark("invented thread", reference, 1, "invented draft", None);
+    let retained = marks.find("invented thread").unwrap().clone();
+    let path = dir.join(format!("{}.json", mark_stem("invented thread")));
+    let bytes = fs::read(&path).unwrap();
+    let retry = marks.mark("invented thread", reference, 1, "invented draft", None);
+    let mut cold = TrialConversationMarks::open(&s.app_data());
+    let cold_retry = cold.mark("invented thread", reference, 1, "invented draft", None);
+    storage::fail_directory_for_test(None);
+    assert!(first.is_err() && retry.is_err() && cold_retry.is_err());
+    assert!(!marks.limits().is_empty() && !cold.limits().is_empty());
+    assert_eq!(marks.mark("invented thread", reference, 1, "invented draft", None).unwrap(), retained);
+    assert_eq!(cold.mark("invented thread", reference, 1, "invented draft", None).unwrap(), retained);
+    assert!(marks.limits().is_empty() && cold.limits().is_empty());
+    assert_eq!(fs::read(path).unwrap(), bytes);
+    assert_eq!(entries(&dir).len(), 1);
+}
+
+#[test]
+fn records_store_sync_trial_retry_reestablishes_app_data_ancestor_durability() {
+    let s = Scratch::new();
+    s.put("sync-ancestor", "invented trial");
+    let trial = s.prepare("sync-ancestor").unwrap();
+    storage::ensure_directory(&s.app_data().join(TRIAL_POINTERS)).unwrap();
+    storage::ensure_directory(&s.app_data().join(TRIAL_CONVERSATIONS)).unwrap();
+    let mut links = TrialLinks::open(&s.app_data());
+    let mut marks = TrialConversationMarks::open(&s.app_data());
+    storage::fail_directory_for_test(Some(s.app_data().join("runtime")));
+    let link = links.record_sent(&trial, &sent(TrialKind::Delegated));
+    let mark = marks.mark("invented thread", trial.text.reference(), 1, "sync-ancestor", None);
+    storage::fail_directory_for_test(None);
+    assert!(link.is_err() && mark.is_err(), "final directories synced, ancestor still failed: {link:?}; {mark:?}");
+    assert!(links.record_sent(&trial, &sent(TrialKind::Delegated)).is_ok());
+    assert!(marks.mark("invented thread", trial.text.reference(), 1, "sync-ancestor", None).is_ok());
+}
+
+
+#[test]
+fn records_store_sync_pending_observation_retry_keeps_its_original_order() {
+    let s = Scratch::new();
+    s.put("sync-order", "invented trial");
+    let trial = s.prepare("sync-order").unwrap();
+    let mut links = TrialLinks::open(&s.app_data());
+    links.record_sent(&trial, &sent(TrialKind::Delegated)).unwrap();
+    let old = || TrialObservation::SubAgentUnlinked { child_thread: "invented child".into() };
+    storage::fail_directory_for_test(Some(s.app_data().join(TRIAL_POINTERS)));
+    let pending = links.record_observation(trial.text.reference(), old());
+    storage::fail_directory_for_test(None);
+    assert!(pending.is_err());
+    let newer = links.record_observation(trial.text.reference(), TrialObservation::SubAgentLinked {
+        child_thread: "invented child".into(), method: TrialLinkMethod::ExplicitControl,
+    }).unwrap();
+    let recovered = links.record_observation(trial.text.reference(), old()).unwrap();
+    assert!(recovered["time"].as_str().unwrap() < newer["time"].as_str().unwrap());
+    assert_eq!(links.observations(trial.text.reference()), vec![recovered, newer]);
+    assert_eq!(links.trials_for_draft(&trial.key, None)[0]["subAgent"]["state"], "linked");
+    assert_eq!(TrialLinks::open(&s.app_data()).observations(trial.text.reference()), links.observations(trial.text.reference()));
 }

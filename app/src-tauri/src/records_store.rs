@@ -2094,21 +2094,43 @@ pub fn import(root: &Path) -> Result<Value, String> {
             (imported != sha).then(|| json!({"original":file.rel,"copy":copy,"reason":format!("the original differs from its imported copy (sha256 {imported} at import); the records store copy governs and is not replaced")}))
         }).collect();
         conflicts.extend(drifted);
+        for (file, sha, ..) in &read {
+            if let Some((copy, imported, _)) = state.covered.get(&file.rel) {
+                if imported == sha {
+                    crate::storage::sync_publication(&dir.join(copy))
+                        .map_err(|e| format!("imported copy durability not established: {copy}: {e}"))?;
+                }
+            }
+        }
         return Ok(outcome(&attachment, None, census.len(), 0, read.len(), conflicts, census_changed));
     }
-    let id = crate::util::opaque_id("import:")?;
+    let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
+    // An unchanged interrupted census is the same import, including when its
+    // copies are readable but their publication could not be synced. Changed
+    // input still uses the existing explicit resumption account below.
+    let same_import = state.incomplete.as_ref().filter(|started| started["census"] == json!(named));
+    let id = match same_import {
+        Some(started) => started["importId"].as_str().ok_or("incomplete import has no identity")?.to_owned(),
+        None => crate::util::opaque_id("import:")?,
+    };
     // Whether the store already held the project's records: a late import,
     // during which (and if it is interrupted) readers keep reading the store.
     let store_held = store_holds(&dir).map_err(|e| format!("{e}; nothing imported"))?;
-    let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
     // The store's witness of this import, outside the project's subtree,
     // before the account's "started" line and before any copy.
     let project = attachment.project.clone().ok_or("nothing imported: no project identity")?;
     let witnessed: Vec<witness::WitnessedFile> = pending.iter().map(|(file, sha, bytes, _)| witness::WitnessedFile { copy: file.copy.clone(), length: bytes.len() as u64, sha256: sha.clone() }).collect();
-    witness::record(&store, &project, &id, &witnessed)?;
-    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
-        "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
-        "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;
+    if same_import.is_none() {
+        witness::record(&store, &project, &id, &witnessed)?;
+        append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
+            "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
+            "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;
+    } else {
+        // A prior account/witness publication may itself have returned a sync
+        // error. Reusing its identity requires re-establishing both first.
+        crate::storage::sync_publication(&store.join(witness::WITNESS_FILE))?;
+        crate::storage::sync_publication(&dir.join("imports.jsonl"))?;
+    }
     let mut files = Vec::new();
     let (mut copied, mut present) = (0, 0);
     for (file, sha, bytes, meta) in &read {
@@ -2116,6 +2138,8 @@ pub fn import(root: &Path) -> Result<Value, String> {
         // an original that no longer matches is reported, never imported again.
         if let Some((copy, imported, _)) = state.covered.get(&file.rel) {
             if imported == sha {
+                crate::storage::sync_publication(&dir.join(copy))
+                    .map_err(|e| format!("import {id}: copy {copy} durability not established: {e}; the import did not complete"))?;
                 present += 1;
             } else {
                 conflicts.push(json!({"original":file.rel,"copy":copy,"reason":format!("the original differs from its imported copy (sha256 {imported} at import); the records store copy governs and is not replaced")}));
@@ -2125,10 +2149,7 @@ pub fn import(root: &Path) -> Result<Value, String> {
         let target = dir.join(&file.copy);
         crate::storage::check_path(&target)?;
         let outcome = match std::fs::read(&target) {
-            Ok(existing) if existing == *bytes => {
-                present += 1;
-                "present"
-            }
+            Ok(existing) if existing == *bytes => "present",
             Ok(existing) => {
                 conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":format!("the store already holds a different file there (sha256 {}); not overwritten", sha256_hex(&existing))}));
                 continue;
@@ -2150,7 +2171,8 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 if IMPORT_STOP_AFTER.with(|c| c.get()) == Some(copied) {
                     return Err("import interrupted (injected); it did not complete".into());
                 }
-                crate::storage::create_bytes(&target, bytes)?;
+                crate::storage::create_bytes(&target, bytes)
+                    .map_err(|e| format!("import {id}: copy {} publication not confirmed: {e}; the import did not complete", file.copy))?;
                 #[allow(unused_mut)]
                 let mut back = std::fs::read(&target).map_err(|e| format!("imported copy unreadable: {e}; the import did not complete"))?;
                 #[cfg(test)]
@@ -2160,11 +2182,15 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 if sha256_hex(&back) != *sha {
                     return Err(format!("imported copy of {} does not verify; the import stopped and did not complete", file.rel));
                 }
-                copied += 1;
                 "copied"
             }
             Err(e) => return Err(format!("records store unreadable: {}: {e}; the import did not complete", target.display())),
         };
+        // Equality identifies the copy; only fresh file and ancestor syncs
+        // establish its durability (also after temporary alias cleanup).
+        crate::storage::sync_publication(&target)
+            .map_err(|e| format!("import {id}: copy {} durability not established: {e}; the import did not complete", file.copy))?;
+        if outcome == "present" { present += 1; } else { copied += 1; }
         files.push(json!({"original":file.rel,"copy":file.copy,"outcome":outcome,"sha256":sha,"bytes":bytes.len(),"stamp":stamp_value(meta)}));
     }
     append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"completed","importId":id,"at":now_rfc3339(),
