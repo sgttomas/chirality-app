@@ -341,6 +341,23 @@ pub(crate) fn append_run_entry(
 pub(crate) fn run_log(root: &std::path::Path, run: &str) -> Result<std::path::PathBuf, String> {
     crate::storage::project_log(root, Some(run), LIVE_WRITER)
 }
+/// The run's own log as a reader finds it: through the project's read home,
+/// with no writer admission and no identity minted. A project whose records
+/// are not in the store has no such log there to read.
+pub(crate) fn run_log_for_read(root: &std::path::Path, run: &str) -> Result<std::path::PathBuf, String> {
+    // The one decision says where the project's records are read from: it
+    // refuses for a refused attachment and for a store whose state cannot be
+    // read, before any place is given.
+    let read = crate::records_store::readable_home(root)?;
+    let Some(dir) = read.in_store() else {
+        return Err(if read.attachment.dir.is_none() {
+            "the project has no records store identity, so the run's own log is not there to read"
+        } else {
+            "the project's records are read in place (import needed), so the run's own log is not in the records store"
+        }.into());
+    };
+    Ok(dir.join(crate::storage::log_rel(Some(run), LIVE_WRITER)))
+}
 /// As `append_run_entry`, with what the writer requires of the project's other
 /// logs (`RecordSet`). The run's own log must be complete either way.
 pub(crate) fn append_run_entry_in(

@@ -237,10 +237,7 @@ impl RoleLog {
         let dir = if write {
             records_store::write_dir(&self.project)?
         } else {
-            let home = records_store::home(&self.project)?;
-            if let Some(refusal) = home.attachment.refusal {
-                return Err(refusal);
-            }
+            let home = records_store::readable_home(&self.project)?;
             let Some(dir) = home.attachment.dir else {
                 return Ok(None);
             };

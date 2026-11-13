@@ -129,11 +129,11 @@ fn home_qualified_hot_run_physical_source_and_store_association_required() {
     assert!(!hot_run_proved(&root, &a, &b, &recorded));
     std::fs::remove_dir_all(&a.fixture.root).unwrap(); std::fs::rename(&moved, &a.fixture.root).unwrap();
     assert!(hot_run_proved(&root, &a, &b, &recorded));
-    // The store's governing identity survives a changed but readable link.
-    // This is not a different association; an unusable link is unknown.
+    // A changed link, like a missing one, attaches nothing until the person
+    // resolves it (DEL-04-03 AC-008), so the association is not proved.
     let other_link = std::fs::read(b.fixture.root.join(".chirality/project.json")).unwrap();
     std::fs::write(&link, other_link).unwrap();
-    assert!(hot_run_proved(&root, &a, &b, &recorded));
+    assert!(!hot_run_proved(&root, &a, &b, &recorded));
     std::fs::remove_file(&link).unwrap();
     assert!(!hot_run_proved(&root, &a, &b, &recorded));
     std::fs::write(&link, &link_bytes).unwrap();
