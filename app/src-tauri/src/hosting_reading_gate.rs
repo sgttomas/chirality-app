@@ -246,6 +246,16 @@ impl Host {
     pub(crate) fn reading_stage_for_test(&self) -> Option<(Option<String>, ReadingStage)> {
         self.inner.0.lock().unwrap().reading_slot.as_ref().map(|s| (s.request_id.clone(), s.stage))
     }
+    /// The request identity the reservation names, if any.
+    #[cfg(test)]
+    pub(crate) fn reading_request_id_for_test(&self) -> Option<String> {
+        self.inner.0.lock().unwrap().reading_slot.as_ref().and_then(|s| s.request_id.clone())
+    }
+    /// The method of the request whose write is in progress, if any.
+    #[cfg(test)]
+    pub(crate) fn writing_method_for_test(&self) -> Option<String> {
+        self.inner.0.lock().unwrap().source_requests.values().find(|e| e.write_attempt_in_progress).map(|e| e.request.frame["method"].as_str().unwrap_or("").to_owned())
+    }
     #[cfg(test)]
     pub(crate) fn reading_current_for_test(&self) -> Option<String> {
         self.inner.0.lock().unwrap().reading_current.as_ref().map(|c| c.request_ref.clone())

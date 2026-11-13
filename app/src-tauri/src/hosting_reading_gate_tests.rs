@@ -449,19 +449,3 @@ fn a_blocked_or_failed_write_keeps_its_reading_outstanding_and_is_never_called_n
     assert!(matches!(rig.stage(), Some((Some(_), ReadingStage::WriteFailed))));
     assert_eq!(admit(&rig.host, &rig.g, Duration::from_millis(150)).err().unwrap(), READING_GATE);
 }
-
-/// A confirmed provider write's attempt clears currency for the generation; an earlier reading's
-/// reply arriving after it restores nothing.
-#[test]
-fn a_provider_write_attempt_clears_currency_and_a_late_reply_restores_nothing() {
-    let rig = Rig::new();
-    let (host, g) = (rig.host.clone(), rig.g.clone());
-    let admitting = std::thread::spawn(move || admit(&host, &g, LONG));
-    let frame = rig.frame();
-    // What the request path does at a confirmed write's final admission (`endpoint_write`).
-    rig.host.inner.0.lock().unwrap().reading_current = None;
-    rig.answer(&frame, cfg());
-    let proof = admitting.join().unwrap();
-    assert!(proof.is_err() || rig.host.thread_start_with_access_dispatch(proof.as_ref().unwrap(), "guidance").is_err(), "nothing current again");
-    assert!(rig.current().is_none(), "the late reply restored nothing");
-}

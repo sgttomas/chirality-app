@@ -3524,6 +3524,45 @@ mod tests {
         peer.endpoint_private_taps();
         f.public_endpoint_records_safe();
     }
+    /// A confirmed provider write's attempt, made through the real endpoint write, leaves no
+    /// configuration reading of the generation current; the offer reading's reply arriving again
+    /// after the attempt restores nothing.
+    #[test]
+    fn access_provider_endpoint_write_attempt_clears_reading_currency_and_a_late_reply_restores_nothing() {
+        let f = Fixture::new();
+        let (_desktop, state, _home, mut peer) = f.continuation();
+        peer.endpoint_replies(f.shared[0].clone(), f.shared[0].clone(), "fixture.dot", "https://example.invalid/new");
+        let offered: Arc<Mutex<Option<Value>>> = Arc::default();
+        let kept = offered.clone();
+        *peer.host.reading_after_register.lock().unwrap() = Some(Box::new(move |h| {
+            *kept.lock().unwrap() = h.reading_request_id_for_test().map(|id| serde_json::from_str::<Value>(&id).unwrap());
+        }));
+        let offer = crate::hosting::provider_endpoint::offer(&state, "fixture.dot", "https://example.invalid/new").unwrap();
+        let offer_id = offered.lock().unwrap().clone().expect("the offer's reading registered");
+        assert!(peer.host.reading_current_for_test().is_some(), "the offer's reading is the newest");
+        let observed: Arc<Mutex<Option<(String, Option<String>, Option<String>)>>> = Arc::default();
+        let seen = observed.clone();
+        *peer.host.before_request_write.lock().unwrap() = Some(Box::new(move |h| {
+            // The first request after the offer is the write itself, past its final admission.
+            let method = h.writing_method_for_test().unwrap_or_default();
+            let after_attempt = h.reading_current_for_test();
+            let generation = h.snapshot()["generation"].clone();
+            h.native_frame_for_test(&generation, &json!({"id":offer_id,"result":{"config":{},"origins":{}}}));
+            *seen.lock().unwrap() = Some((method, after_attempt, h.reading_current_for_test()));
+        }));
+        let _ = crate::hosting::provider_endpoint::save(
+            &state,
+            offer,
+            |_| Ok(tauri_plugin_dialog::MessageDialogResult::Custom(crate::hosting::provider_endpoint::WRITE_ACTION.into())),
+            |candidate, _| Ok(Some(candidate.accept_checked_current_object())),
+        );
+        let (method, after_attempt, after_late_reply) = observed.lock().unwrap().clone().expect("the write reached its attempt");
+        assert_eq!(method, "config/batchWrite");
+        assert_eq!(after_attempt, None, "the attempt cleared the generation's currency");
+        assert_eq!(after_late_reply, None, "the offer reading's late reply restored nothing");
+        assert_eq!(peer.continuation_frame()["method"], "config/read");
+        assert_eq!(peer.continuation_frame()["method"], "config/batchWrite");
+    }
     #[test]
     fn access_provider_endpoint_private_writer_checked_link_and_real_consumers() {
         for receiving_alias in [false, true] {
