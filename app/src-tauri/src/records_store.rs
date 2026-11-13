@@ -1401,6 +1401,17 @@ fn imports(dir: &Path) -> Result<Imports, String> {
     Ok(out)
 }
 
+/// Re-prove the retained import account before it admits an operation. Read
+/// routing and status only report the readable state; they do not call this.
+/// Also used before continuing a started account, without changing its bytes.
+fn accept_import_completion(dir: &Path, attempts: &str) -> Result<(), String> {
+    let store = dir.parent().and_then(Path::parent).ok_or("project store absent")?;
+    crate::storage::sync_publication(&store.join(witness::WITNESS_FILE))
+        .map_err(|e| format!("import {attempts}: witness durability not established: {e}; retry the import to prove it"))?;
+    crate::storage::sync_publication(&dir.join("imports.jsonl"))
+        .map_err(|e| format!("import {attempts}: account durability not established: {e}; retry the import to prove it"))
+}
+
 /// Whether the store holds the project's records, so they are read from the
 /// store: an import has completed, or (with no import ever started) the App
 /// has written records there. Folders an interrupted import created do not
@@ -1416,6 +1427,12 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
     // The account is read, and found whole, before anything is concluded:
     // a completed package import does not excuse an account that cannot be read.
     let state = imports(dir).map_err(|e| unknown(format!("the project's import record is unreadable: {e}")))?;
+    store_holds_from_imports(dir, &state)
+}
+/// Admission uses the same account snapshot for completion acceptance and
+/// store routing, so a completion cannot enter through a second account read.
+fn store_holds_from_imports(dir: &Path, state: &Imports) -> Result<bool, String> {
+    let unknown = |e: String| format!("whether the records store holds this project's records is unknown, so nothing is read in its place: {e}");
     if package::completed(dir).map_err(unknown)? { return Ok(true); }
     Ok(match state {
         i if i.completed => true,
@@ -1476,7 +1493,10 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if state.incomplete.is_some() {
         return Err("project import incomplete; finish the explicit import before export".into());
     }
-    if store_holds(dir).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
+    if state.completed {
+        accept_import_completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", ")).map_err(|e| format!("{e}; nothing exported"))?;
+    }
+    if store_holds_from_imports(dir, &state).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
     if !state.any && ["fleet","role-supply"].iter().any(|name|std::fs::symlink_metadata(dir.join(name)).is_ok()) && legacy_census(root)?.is_empty() {
         return Ok(());
     }
@@ -1667,10 +1687,13 @@ fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     let current=attach(root,false)?;
     if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err("project root association changed; stale queued writer refused".into());}
     let state = imports(dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
-    if let Some(started) = state.incomplete {
+    if let Some(started) = &state.incomplete {
         return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
     }
-    if !store_holds(dir).map_err(|e| format!("{e}; nothing written"))? {
+    if state.completed {
+        accept_import_completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", ")).map_err(|e| format!("{e}; nothing written"))?;
+    }
+    if !store_holds_from_imports(dir, &state).map_err(|e| format!("{e}; nothing written"))? {
         let legacy = legacy_census(root)?;
         if !legacy.is_empty() {
             return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
@@ -2063,13 +2086,11 @@ pub fn import(root: &Path) -> Result<Value, String> {
     if state.any || orphan.is_some() {
         let attempts = orphan.as_ref().map(|w| w.import_id.clone())
             .unwrap_or_else(|| state.ids.iter().cloned().collect::<Vec<_>>().join(", "));
-        crate::storage::sync_publication(&store.join(witness::WITNESS_FILE))
-            .map_err(|e| format!("import {attempts}: witness durability not established: {e}; nothing imported"))?;
         if state.any {
-            // A readable completion is not proof that its own appended bytes
-            // synced. This covers completed/no-new-input retries too.
-            crate::storage::sync_publication(&dir.join("imports.jsonl"))
-                .map_err(|e| format!("import {attempts}: account durability not established: {e}; nothing imported"))?;
+            accept_import_completion(&dir, &attempts).map_err(|e| format!("{e}; nothing imported"))?;
+        } else {
+            crate::storage::sync_publication(&store.join(witness::WITNESS_FILE))
+                .map_err(|e| format!("import {attempts}: witness durability not established: {e}; nothing imported"))?;
         }
     }
     // Read every original once, stably, before the started line names it.
