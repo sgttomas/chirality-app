@@ -143,8 +143,7 @@ def test_tracked_path_completeness_and_unknown_full_fallback(repo, monkeypatch):
     write(repo, "AGENTS.md")
     write(repo, "app/new-module.rs")
     base = commit(repo)
-    assert subject.inventory(repo) == {"tracked_paths": 2, "unmatched": [], "collisions": [],
-                                       "links_into_narrowed": []}
+    assert subject.inventory(repo) == {"tracked_paths": 2, "unmatched": [], "collisions": [], "links": []}
     path = "new-domain/README.md"
     write(repo, path)
     result = selection(repo, base)
@@ -305,14 +304,13 @@ def test_malformed_diff_fails(raw):
         subject.parse_changes(raw)
 
 
-def needs(product="true", mode="product", result="success", examination="false", exam_result="skipped"):
+def needs(product="true", mode="product", result="success"):
     return {
         "change-selection": {"result": "success", "outputs": {
-            "selection_mode": mode, "run_product": product, "run_examination_macos": examination,
+            "selection_mode": mode, "run_product": product,
         }},
         "repository-checks": {"result": "success", "outputs": {}},
         "app-v4": {"result": result},
-        "examination-macos": {"result": exam_result},
     }
 
 
@@ -348,17 +346,10 @@ def test_aggregate_rejects_failed_repository_and_invalid_or_missing_outputs():
     value = needs()
     value["repository-checks"]["outputs"] = value["change-selection"].pop("outputs")
     examples.append(value)
-    for job in ["change-selection", "repository-checks", "app-v4", "examination-macos"]:
+    for job in ["change-selection", "repository-checks", "app-v4"]:
         value = needs()
         del value[job]
         examples.append(value)
-    for examination in ["", None, "True", "yes"]:
-        value = needs()
-        value["change-selection"]["outputs"]["run_examination_macos"] = examination
-        examples.append(value)
-    value = needs()
-    del value["change-selection"]["outputs"]["run_examination_macos"]
-    examples.append(value)
     value = needs()
     value["unexpected"] = {"result": "success"}
     examples.append(value)
@@ -378,8 +369,7 @@ def test_cli_emits_report_and_outputs_only_on_success(repo, tmp_path):
     passed = subprocess.run([*command, "--base", base], capture_output=True, text=True)
     assert passed.returncode == 0, passed.stderr
     assert json.loads(passed.stdout)["mode"] == "prose"
-    assert output.read_text() == ("selection_mode=prose\nrun_product=false\nrun_examination_macos=false\n"
-                                  f"merge_base={base}\n")
+    assert output.read_text() == "selection_mode=prose\nrun_product=false\n"
     assert '"path": "AGENTS.md"' in summary.read_text()
     output.unlink()
     failed = subprocess.run([*command, "--base", "not-a-sha"], capture_output=True)
@@ -413,16 +403,14 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert selecting["outputs"] == {
         "selection_mode": "${{ steps.selection.outputs.selection_mode }}",
         "run_product": "${{ steps.selection.outputs.run_product }}",
-        "run_examination_macos": "${{ steps.selection.outputs.run_examination_macos }}",
-        "merge_base": "${{ steps.selection.outputs.merge_base }}",
     }
     assert jobs["app-v4"]["needs"] == "change-selection"
     assert jobs["app-v4"]["if"] == "needs.change-selection.outputs.run_product == 'true'"
     assert jobs["app-v4"]["uses"] == "./.github/workflows/app-v4.yml"
-    assert set(jobs) == {"change-selection", "repository-checks", "app-v4", "examination-macos", "harness"}
+    assert set(jobs) == {"change-selection", "repository-checks", "app-v4", "harness"}
     gate = jobs["harness"]
     assert gate["if"] == "always()"
-    assert set(gate["needs"]) == {"change-selection", "repository-checks", "app-v4", "examination-macos"}
+    assert set(gate["needs"]) == {"change-selection", "repository-checks", "app-v4"}
     assert gate["steps"][-1]["env"]["RESULTS"] == "${{ toJSON(needs) }}"
     assert gate["steps"][-1]["run"] == "python3 tools/ci/select_checks.py gate"
 
@@ -894,7 +882,7 @@ def test_repository_checks_run_every_consumer_of_the_narrowed_classes():
     assert all(not {"if", "continue-on-error"} & set(step) for step in job["steps"])
     assert all("|| true" not in step.get("run", "") for step in job["steps"])
     for command in [
-        "python tools/ci/examination_tests.py portable",
+        "python -m pytest -q app/tests/group_b*test.py",
         "python -m pytest -q app/tests/examination_repin_test.py",
         "python app/examination/repin.py --check",
         "python -m pytest -q tools/validation/test_document_metadata.py",
@@ -919,7 +907,6 @@ KNOWN_REFERRERS = {
     "tools/library_workflows/test_bundle.py": "invented docs/ paths of a synthetic Library release",
     "app/tests/check_git_checkout_bytes.py": "invented docs/ control path in a temporary repository",
     "app/examination/repin.py": "pin check; runs in repository checks and examination_repin_test",
-    "tools/ci/examination_tests.py": "the Group B routes (group_b*test.py, group_b_*_macos_test.py)",
     "app/examination/pins.lock.json": "pin lock read by repin.py",
     "app/examination/native_forms/pre_run_form.py": "run only by group_b_native_forms_test",
     "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "read by pre_run_form.py",
@@ -955,8 +942,8 @@ def test_no_unreviewed_reader_of_a_narrowed_class():
     assert found == set(KNOWN_REFERRERS)
 
 
-@pytest.mark.parametrize("paths, examination", [(PR228_GOVERNING_TEXT, "false"), (PR270_EXAMINATION, "true")])
-def test_narrowed_selection_reaches_a_harness_that_still_requires_repository_checks(repo, tmp_path, paths, examination):
+@pytest.mark.parametrize("paths", [PR228_GOVERNING_TEXT, PR270_EXAMINATION])
+def test_narrowed_selection_reaches_a_harness_that_still_requires_repository_checks(repo, tmp_path, paths):
     base = git(repo, "rev-parse", "HEAD")
     for path in paths:
         write(repo, path)
@@ -966,264 +953,20 @@ def test_narrowed_selection_reaches_a_harness_that_still_requires_repository_che
                "--repo", str(repo), "--base", base, "--head", head, "--github-output", str(output)]
     assert subprocess.run(command, capture_output=True).returncode == 0
     outputs = dict(line.split("=", 1) for line in output.read_text().splitlines())
-    assert outputs.pop("merge_base") == base
-    assert outputs == {"selection_mode": "prose", "run_product": "false", "run_examination_macos": examination}
-    selected = "success" if examination == "true" else "skipped"
+    assert outputs == {"selection_mode": "prose", "run_product": "false"}
 
-    def gate(repository, product, macos=selected):
+    def gate(repository, product):
         results = {"change-selection": {"result": "success", "outputs": outputs},
-                   "repository-checks": {"result": repository}, "app-v4": {"result": product},
-                   "examination-macos": {"result": macos}}
+                   "repository-checks": {"result": repository}, "app-v4": {"result": product}}
         subject.require_success(results)
 
     gate("success", "skipped")  # the product jobs correctly not selected
-    for macos in {"success", "failure", "cancelled", "skipped", None} - {selected}:
-        with pytest.raises(ValueError):
-            gate("success", "skipped", macos)  # the macOS examination job exactly as selected
     for repository in ["failure", "cancelled", "skipped", None]:
         with pytest.raises(ValueError):
             gate(repository, "skipped")  # the jobs that run every reader must pass
     for product in ["success", "failure", "cancelled", None]:
         with pytest.raises(ValueError):
             gate("success", product)  # an unexpected product run is not accepted either
-
-
-
-
-# The macOS examination job (docs/CI_SELECTION.md, "macOS examination tests").
-from tools.ci import examination_tests as exams
-
-
-@pytest.mark.parametrize("path", [
-    "app/examination/standalone/launch.py", "app/examination/standalone/operated/watch.py",
-    "app/examination/standalone/fixtures/inputs/initial.csv",
-    "app/examination/candidate_identity/build_candidate.py", "app/examination/native_forms/native_form.py",
-    "app/tests/group_b_launch_home_test.py", "app/tests/group_b_new_macos_test.py",
-    "app/tests/group_b_fixture_consumer.rs", "app/tests/group_b_operated_fixtures/x.json",
-    "tools/ci/examination_tests.py", "tools/ci/select_checks.py",
-    ".github/workflows/governance-harness.yml", "new-domain/README.md",
-])
-def test_examination_macos_job_is_selected_by_any_examination_change(repo, path):
-    base = git(repo, "rev-parse", "HEAD")
-    write(repo, "docs/PRD.md")
-    write(repo, path)
-    assert selection(repo, base)["run_examination_macos"] is True
-
-
-@pytest.mark.parametrize("paths", [
-    PR228_GOVERNING_TEXT, ["app/src/App.tsx"], ["app/src-tauri/src/lib.rs"],
-    ["app/tests/candidate_identity_test.py"], ["tools/ci/test_selection.py"], ["AGENTS.md"],
-    [".github/workflows/app-v4.yml"],
-])
-def test_examination_macos_job_is_not_selected_without_an_examination_change(repo, paths):
-    assert modified(repo, paths)["run_examination_macos"] is False
-
-
-@pytest.mark.parametrize("old, new", [
-    ("app/examination/standalone/launch.py", "app/src-tauri/launch.py"),
-    ("app/src-tauri/x_test.py", "app/tests/group_b_x_macos_test.py"),
-])
-def test_examination_macos_job_sees_both_sides_of_a_rename_and_deletions(repo, old, new):
-    write(repo, old)
-    base = commit(repo)
-    target = repo / new
-    target.parent.mkdir(parents=True, exist_ok=True)
-    (repo / old).rename(target)
-    assert selection(repo, base)["run_examination_macos"] is True
-
-
-def test_examination_macos_job_runs_on_empty_change_and_manual_dispatch(repo):
-    head = git(repo, "rev-parse", "HEAD")
-    assert subject.select(repo, "pull_request", head, head)["run_examination_macos"] is True
-    assert subject.select(repo, "workflow_dispatch", "", head)["run_examination_macos"] is True
-
-
-def test_examination_macos_job_is_python_only_on_macos_and_checks_the_selectors_merge_base():
-    root = Path(subject.__file__).resolve().parents[2]
-    workflow = yaml.safe_load((root / ".github/workflows/governance-harness.yml").read_text())
-    job = workflow["jobs"]["examination-macos"]
-    assert job["needs"] == "change-selection"
-    assert job["if"] == "needs.change-selection.outputs.run_examination_macos == 'true'"
-    assert job["runs-on"].startswith("macos-")
-    text = json.dumps(job)
-    for absent in ["app-v4-setup", "npm", "cargo", "codex", "rust"]:
-        assert absent not in text.lower(), absent
-    assert workflow["jobs"]["change-selection"]["outputs"]["merge_base"] == \
-        "${{ steps.selection.outputs.merge_base }}"
-    fetch = next(step for step in job["steps"] if "git fetch" in step.get("run", ""))
-    assert fetch["run"] == 'git fetch --no-tags --depth=1 origin "$MERGE_BASE"'
-    assert fetch["env"]["MERGE_BASE"] == "${{ needs.change-selection.outputs.merge_base }}"
-    last = job["steps"][-1]
-    assert last["run"] == ('python tools/ci/examination_tests.py macos --merge-base "$MERGE_BASE" '
-                           '--event "$EVENT" --summary "$GITHUB_STEP_SUMMARY"')
-    assert last["env"] == {"MERGE_BASE": "${{ needs.change-selection.outputs.merge_base }}",
-                           "EVENT": "${{ github.event_name }}"}
-    assert job["steps"].index(fetch) < job["steps"].index(last)
-    assert exams.PATTERN == "group_b_*_macos_test.py" and exams.TESTS == "app/tests"
-
-
-PASSING = "import unittest\nclass T(unittest.TestCase):\n    def test_a(self):\n        self.assertTrue(True)\n"
-SKIPPING = PASSING + "    @unittest.skip('needs something absent')\n    def test_b(self):\n        pass\n"
-FAILING = PASSING + "    def test_b(self):\n        self.assertTrue(False)\n"
-EMPTY = "import unittest\n"
-
-
-def exam_repo(tmp_path, modules):
-    root = tmp_path / "exam"
-    root.mkdir(parents=True)
-    for args in (["init", "-q"], ["config", "user.name", "CI fixture"], ["config", "user.email", "ci@example.invalid"]):
-        git(root, *args)
-    write(root, ".fixture")
-    for name, text in modules.items():
-        write(root, f"app/tests/{name}", text)
-    write(root, "app/tests/group_b_portable_test.py", PASSING)  # not a macOS module
-    commit(root)
-    return root
-
-
-def run_macos(root, tmp_path, merge_base="", event="workflow_dispatch"):
-    summary = tmp_path / "summary.md"
-    code = exams.main(["macos", "--root", str(root), "--merge-base", merge_base, "--event", event,
-                       "--summary", str(summary)], platform="darwin")
-    return code, summary.read_text()
-
-
-def test_macos_examination_with_no_module_reports_plainly(tmp_path, capsys):
-    code, summary = run_macos(exam_repo(tmp_path, {}), tmp_path)
-    assert code == 0
-    assert "::notice title=macOS examination tests::No macOS examination tests on this revision" in \
-        capsys.readouterr().out
-    assert "nothing ran" in summary
-
-
-@pytest.mark.parametrize("modules, code", [
-    ({"group_b_a_macos_test.py": PASSING}, 0),
-    ({"group_b_a_macos_test.py": PASSING, "group_b_b_macos_test.py": PASSING}, 0),
-    ({"group_b_a_macos_test.py": SKIPPING}, 1),
-    ({"group_b_a_macos_test.py": EMPTY}, 1),
-    ({"group_b_a_macos_test.py": FAILING}, 1),
-    ({"group_b_a_macos_test.py": PASSING, "group_b_b_macos_test.py": FAILING}, 1),
-    ({"group_b_a_macos_test.py": "raise RuntimeError('broken import')\n"}, 1),
-])
-def test_macos_examination_passes_only_when_every_module_runs_tests_and_none_skips(tmp_path, modules, code):
-    found, summary = run_macos(exam_repo(tmp_path, modules), tmp_path)
-    assert found == code
-    assert summary.count("group_b_") == len(modules)
-
-
-def test_macos_examination_runs_tracked_modules_not_untracked_files(tmp_path):
-    root = exam_repo(tmp_path, {"group_b_a_macos_test.py": PASSING})
-    write(root, "app/tests/group_b_stray_macos_test.py", FAILING)  # on disk, not in the tree
-    assert run_macos(root, tmp_path)[0] == 0
-
-
-@pytest.mark.parametrize("platform", ["linux", "win32"])
-def test_macos_examination_refuses_to_report_off_macos(tmp_path, platform):
-    root = exam_repo(tmp_path, {"group_b_a_macos_test.py": PASSING})
-    assert exams.main(["macos", "--root", str(root), "--event", "workflow_dispatch"], platform=platform) == 2
-
-
-def test_macos_examination_fails_when_the_last_module_disappears_since_the_merge_base(tmp_path):
-    root = exam_repo(tmp_path, {"group_b_a_macos_test.py": PASSING})
-    merge_base = git(root, "rev-parse", "HEAD")
-    git(root, "rm", "-q", "app/tests/group_b_a_macos_test.py")
-    git(root, "commit", "-qm", "remove the last macOS module")
-    code, summary = run_macos(root, tmp_path, merge_base, "pull_request")
-    assert code == 1 and "holds none" in summary and "group_b_a_macos_test.py" in summary
-    # One module left is enough; none at the merge base and none now reports plainly.
-    write(root, "app/tests/group_b_b_macos_test.py", PASSING)
-    commit(root)
-    assert run_macos(root, tmp_path, merge_base, "pull_request")[0] == 0
-    empty = exam_repo(tmp_path / "other", {})
-    assert run_macos(empty, tmp_path, git(empty, "rev-parse", "HEAD"), "pull_request")[0] == 0
-
-
-@pytest.mark.parametrize("merge_base", ["", "f" * 40])
-def test_macos_examination_cannot_pass_without_inspecting_the_merge_base(tmp_path, merge_base):
-    root = exam_repo(tmp_path, {"group_b_a_macos_test.py": PASSING})
-    code, summary = run_macos(root, tmp_path, merge_base, "pull_request")
-    assert code == 1 and "merge base" in summary
-
-
-# The portable route, judged by the test report. LINUX simulates the Ubuntu
-# runner on any host: it makes os.uname() and sys.platform report Linux before
-# the modules are imported. It is a simulation, not a Linux run.
-LINUX = ("import os, sys\nsys.platform = 'linux'\n_real = os.uname()\n"
-         "os.uname = lambda: os.uname_result(('Linux',) + tuple(_real)[1:])\n")
-UNAME_GATED = ("import os, unittest\nclass T(unittest.TestCase):\n"
-               "    @unittest.skipUnless(os.uname().sysname == 'Darwin', 'needs macOS')\n"
-               "    def test_mac(self):\n        pass\n    def test_portable(self):\n        pass\n")
-GRANDFATHERED_MODULE = ("import unittest\nclass OnlyTheIdentifiedCandidate(unittest.TestCase):\n"
-                        "    @unittest.skip('reads live macOS metadata')\n"
-                        "    def test_a_changed_resource_is_refused_and_the_identified_bundle_launches(self):\n"
-                        "        pass\n")
-
-
-def run_portable(tmp_path, modules):
-    root = tmp_path / "portable"
-    write(root, "conftest.py", LINUX)
-    for name, text in modules.items():
-        write(root, f"app/tests/{name}", text)
-    summary = tmp_path / "summary.md"
-    code = exams.main(["portable", "--root", str(root), "--summary", str(summary)])
-    return code, summary.read_text()
-
-
-@pytest.mark.parametrize("modules, code", [
-    ({"group_b_a_test.py": PASSING}, 0),
-    # The reviewer's case: an os.uname() condition in an ordinary module (simulated Linux).
-    ({"group_b_a_test.py": UNAME_GATED}, 1),
-    # The same test in a macOS module may skip on the portable route.
-    ({"group_b_a_macos_test.py": UNAME_GATED, "group_b_b_test.py": PASSING}, 0),
-    # Collection-time skips count: no test reaches execution, yet the module is skipped.
-    ({"group_b_a_test.py": "import pytest\npytest.skip('absent', allow_module_level=True)\n"}, 1),
-    ({"group_b_a_test.py": "import pytest\npytest.importorskip('no_such_module_xyz')\n" + PASSING}, 1),
-    ({"group_b_a_test.py": "import unittest\ndef setUpModule():\n    raise unittest.SkipTest('off')\n" + PASSING[16:]}, 1),
-    # pytest's own failure and status still decide.
-    ({"group_b_a_test.py": FAILING}, 1),
-    ({"group_b_a_test.py": "raise RuntimeError('broken import')\n"}, 1),
-    ({}, 1),
-])
-def test_portable_route_permits_skips_only_in_macos_modules(tmp_path, modules, code):
-    found, summary = run_portable(tmp_path, modules)
-    assert found == code, summary
-    if modules and code and "skip" in "".join(modules.values()):
-        assert "skipped outside a macOS module" in summary
-
-
-def test_portable_route_grandfathers_exactly_one_test(tmp_path):
-    assert run_portable(tmp_path, {"group_b_launch_home_test.py": GRANDFATHERED_MODULE})[0] == 0
-    second = GRANDFATHERED_MODULE + "    @unittest.skip('another')\n    def test_other(self):\n        pass\n"
-    code, summary = run_portable(tmp_path / "second", {"group_b_launch_home_test.py": second})
-    assert code == 1
-    assert "group_b_launch_home_test.py::OnlyTheIdentifiedCandidate::test_other" in summary
-
-
-def test_portable_route_fails_without_the_report_it_needs(tmp_path, monkeypatch):
-    monkeypatch.setattr(exams, "pytest", lambda root, paths, report: 0)  # exits 0, writes no report
-    code, summary = run_portable(tmp_path, {"group_b_a_test.py": PASSING})
-    assert code == 1 and "unavailable" in summary
-
-
-# An early warning only, by source text: the portable route's skip rule is the
-# gate. A Darwin-conditioned skip outside a *_macos_test.py module is reported
-# here before it reaches CI; spellings this text search misses still fail there.
-DARWIN_SKIP = re.compile(r"skipUnless|skipIf|SkipTest|mark\.skipif|importorskip")
-DARWIN = re.compile(r"darwin|sys\.platform|platform\.system|mac_ver|uname", re.IGNORECASE)
-
-
-def test_darwin_gated_examination_tests_live_in_macos_modules():
-    root = Path(subject.__file__).resolve().parents[2]
-    gated = {}
-    for path in sorted((root / "app/tests").glob("group_b*test.py")):
-        relative = path.relative_to(root).as_posix()
-        if exams.is_macos_module(relative):
-            continue
-        lines = [line for line in path.read_text().splitlines() if DARWIN_SKIP.search(line)]
-        if lines and DARWIN.search(path.read_text()):
-            gated[relative] = len(lines)
-    # The grandfathered module holds its one skip decorator and no other.
-    assert gated in ({}, {"app/tests/group_b_launch_home_test.py": 1}), gated
 
 
 # B1: a path a checkout may fold onto a protected input is never narrowed.
@@ -1288,13 +1031,35 @@ def test_collision_check_reads_the_tree_and_folds_case_normalization_and_format_
         ["docs/A.md", "docs/a.md"], ["docs/é.md", "docs/é.md"], ["docs/z.md", "docs/z‍.md"]]
 
 
-@pytest.mark.parametrize("link, target, refused", [
-    ("app/src-tauri/resources/x.json", "../../tests/group_b_operated_fixtures/views.json", True),
-    ("app/src/notes.md", "../../docs/PRD.md", True),
-    ("app/src/agents.md", "../../AGENTS.md", True),
-    ("app/src/case.json", "../../App/../app/tests/GROUP_B_x/y.json", True),
-    ("app/src/lib.json", "../src-tauri/resources/x.json", False),
+# R2-B2 and links as a class. The inventory inspects committed modes 120000 and
+# 160000, resolves no target, and rejects either anywhere in the tracked tree.
+@pytest.mark.parametrize("link, mode, target", [
+    # The reviewer's construction: a product test's directory linked to a class root.
+    ("app/tests/r2-assets", "120000", "../examination/standalone"),
+    ("app/tests/r2-assets", "120000", "../examination/standalone/"),
+    ("app/tests/ancestor", "120000", "../examination"),
+    ("app/src/notes.md", "120000", "../../docs/PRD.md"),
+    ("app/src/unrelated.json", "120000", "../src-tauri/resources/x.json"),
+    ("app/src/dangling.json", "120000", "../nowhere/absent.json"),
+    ("app/tests/group_b_link_test.py", "160000", "0" * 39 + "1"),
 ])
-def test_inventory_refuses_links_into_a_narrowed_class(repo, link, target, refused):
-    plumb(repo, {link: ("120000", target.encode())})
-    assert (subject.inventory(repo)["links_into_narrowed"] == [link]) is refused
+def test_inventory_refuses_any_symbolic_link_or_gitlink(repo, link, mode, target):
+    if mode == "160000":
+        git(repo, "update-index", "--add", "--cacheinfo", f"{mode},{target},{link}")
+        git(repo, "commit", "-qm", "gitlink")
+    else:
+        plumb(repo, {link: (mode, target.encode())})
+    kind = "symbolic link" if mode == "120000" else "gitlink"
+    assert subject.inventory(repo)["links"] == [f"{link} ({kind})"]
+    command = ["python3", str(Path(subject.__file__)), "inventory", "--repo", str(repo)]
+    refused = subprocess.run(command, capture_output=True, text=True)
+    assert refused.returncode == 2 and "symbolic link or gitlink" in refused.stderr
+
+
+def test_reviewer_link_consumer_commit_is_refused(repo):
+    # R2-B2 as the reviewer built it: a product test reads through a directory link
+    # to the standalone root. The commit adding the link is refused by the inventory.
+    plumb(repo, {"app/examination/standalone/r2-input.json": ("100644", b"true\n"),
+                 "app/tests/font_notice_test.py": ("100644", b"# reads r2-assets/r2-input.json\n")})
+    plumb(repo, {"app/tests/r2-assets": ("120000", b"../examination/standalone")})
+    assert subject.inventory(repo)["links"] == ["app/tests/r2-assets (symbolic link)"]

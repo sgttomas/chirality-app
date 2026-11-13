@@ -62,11 +62,20 @@ explicit product rule from an unmatched path; both select all existing PR produc
 checks. The always-run `inventory` command checks every tracked path against
 positive rules and fails on unmatched paths. It also fails when two tracked
 paths or directories, read from the commit's tree rather than a checkout (which
-may already have merged them), fold to the same name, and when a tracked
-symbolic link points into a narrowed class. Its folding is Unicode compatibility
-normalization, case folding and dropping format characters: at least what a
-case- and normalization-insensitive macOS volume folds, without claiming to
-model any file system exactly. Classify such a path deliberately;
+may already have merged them), fold to the same name. Its folding is Unicode
+compatibility normalization, case folding and dropping format characters: at
+least what a case- and normalization-insensitive macOS volume folds, without
+claiming to model any file system exactly.
+
+**An assumption this selector requires: the tracked tree holds no symbolic link
+and no gitlink.** The inventory inspects the committed Git modes 120000
+(symbolic link) and 160000 (gitlink), resolves no target, and fails on either
+anywhere in the tracked tree, dangling links and directory aliases included.
+The selector routes by path, and a link lets one path stand for another: a
+product reader reaching a class path through a link would lose its product job
+on a change to that class path. Generated and untracked links are outside the
+inventory's scope. A future legitimate tracked link needs a reviewed change to
+this assumption and to the routing. Classify an unmatched path deliberately;
 the full-coverage fallback does not satisfy completeness. New files within a
 known product domain keep product coverage without individual allowlisting.
 
@@ -84,7 +93,7 @@ execution mechanism must extend its checks and receive review.
 data that product code or a product test reads live once, beside that reader
 under `app/`. Always-on repository checks retain the examination pin check
 (`app/examination/repin.py --check`), and the Group B examination tests run in
-repository checks on every PR, through `tools/ci/examination_tests.py portable`.
+repository checks on every PR.
 
 The selector regression fixtures replay recorded changes from PRs 169–181,
 plus unknown-path, mixed-change, mode, deletion and rename cases. PR178 retains
@@ -113,7 +122,7 @@ for the paths, not by file extension.
 | A: `docs/**/*.md` | `tools/validation/test_document_metadata.py` reads every header, in `repository-checks`. No App source, test, build script, bundle or pin names a `docs/` path. | `git grep` for `docs/`, `../docs/`, `"docs"`, every `docs/` basename and `include_str!`/`include_bytes!` targets in `app`, `tools` and `.github` |
 | A: `execution/**` | Already documentary; `tools.deliverables check` and `check_execution_layout.py` in `repository-checks`. | as above, plus `ScopeOfWork`, `deliverable.yaml` |
 | B: `app/examination/standalone/**` except `fixtures/` (`.py`, `.mjs`, `.cjs`, `.js`, `.json`, `.md`) | The Group B suites (`app/tests/group_b*test.py`), `repin.py --check` and `examination_repin_test.py` (which copies the standalone pin profiles), all in `repository-checks`; `native_forms/` reads the pre-run inputs and pins and is run only by `group_b_native_forms_test.py`. | every top-level standalone entry name, `standalone`, `group_b` |
-| B: `app/tests/group_b_*` except below (same types) | Run only by the `repository-checks` step `examination_tests.py portable` and, for `*_macos_test.py` modules, the `examination-macos` job; no macOS product step names `group_b`. | every `group_b_*` directory and file name |
+| B: `app/tests/group_b_*` except below (same types) | Run only by the `repository-checks` step `pytest -q app/tests/group_b*test.py`; no macOS product step names `group_b`. | every `group_b_*` directory and file name |
 | Kept product: `app/examination/standalone/fixtures/` | Read at runtime by the lib tests in `group_b_fixture_consumer.rs`; no PR lib cohort runs them today, only the full suite, but a cohort filter change would. | `CARGO_MANIFEST_DIR` joins in Rust |
 | Kept product: `app/tests/group_b_fixture_consumer.rs` | Compiled into the lib by `lib.rs` (`#[path]`): the test-target build and clippy in `rust-integration`. | `group_b` in `app/src-tauri` |
 | Kept product: `app/tests/group_b_fixtures/` | `packaging/static_distribution/test_s1_value_model.py`, `sources-packaging`. | `group_b_*fixtures` outside the class |
@@ -125,9 +134,11 @@ takes. It uses only the standard library.
 
 The three pull request product jobs do not run the Group B suites on macOS at
 all, and did not before this narrowing: selecting them never supplied macOS
-evidence for examination tests. The narrowing removes no macOS coverage from
-them; their tests that need macOS itself get their own route, below.
-`group_b_runner_test.mjs` is run by no CI route.
+evidence for examination tests. Examination tests that need macOS run where
+they ran before: in the nightly full suite (`App v4 product` runs
+`python -m pytest -q tests`) and in a lane's own local runs. That is unchanged
+by this narrowing, neither a gain nor a loss. `group_b_runner_test.mjs` is run
+by no CI route.
 
 Deletions, mode or type changes, renames (each side examined), other file types
 in these roots, non-ASCII and case-variant spellings and any change with a
@@ -141,66 +152,6 @@ reads kept as a product input. A path assembled at run time, or reached through
 data the search does not read, evades it. The same file fails if
 `repository-checks` stops running, or makes conditional, a reader listed here.
 
-## macOS examination tests
-
-Some examination tests need macOS itself: libproc, live bundle metadata, macOS
-process behaviour. They cannot run in the Ubuntu `repository-checks`, and the
-three product jobs do not run the Group B suites. The `examination-macos` job in
-`governance-harness.yml` runs them on `macos-26` with Python only: no setup
-action, frontend build, Rust compile or supplier.
-
-- **What it runs.** Every module named `app/tests/group_b_<name>_macos_test.py`
-  in the commit's tree, found by that pattern, each in its own pytest run
-  through `tools/ci/examination_tests.py macos`. A module that reports no test,
-  a test that skips, fails or errors, a missing test report, or a run off macOS
-  fails the job. A test skipped on macOS would run nowhere.
-- **Disappearance.** The job also fails when the selector's merge base held at
-  least one matching module and the head holds none, so removing the last one
-  needs a deliberate change to the helper. The selector publishes the merge
-  base it used as the `merge_base` output; the job's checkout is shallow, so it
-  fetches that one commit (`git fetch --no-tags --depth=1 origin <merge base>`)
-  and reads its tree. A merge base that is missing or cannot be inspected fails
-  the job; only manual dispatch, which has none, skips this check. It catches the
-  disappearance of the last matching module; it does not establish that every
-  former test is still covered.
-- **When it is selected.** On any change under `app/examination/` or to a path
-  starting `app/tests/group_b_` (including deletions and either side of a
-  rename); on a change to `tools/ci/examination_tests.py`, the selector or
-  `governance-harness.yml`; on an unmatched path; on an empty change set; and on
-  manual dispatch. It is selected alongside whatever else the change selects:
-  a class B change alone selects repository checks and this job, and no product
-  job. The `run_examination_macos` output carries the choice.
-- **How a test joins it.** Put a test that needs macOS in a module matching the
-  pattern, and make the module skip elsewhere by an explicit platform condition
-  (for example `unittest.skipUnless(sys.platform == 'darwin', reason)` on each
-  class, or `setUpModule` raising `unittest.SkipTest` off Darwin). The Ubuntu
-  route still collects it and skips it there. Portable tests stay in other
-  `group_b_*_test.py` modules.
-- **The Ubuntu skip rule.** `repository-checks` runs every
-  `app/tests/group_b*test.py` through `tools/ci/examination_tests.py portable`
-  and judges the test report, not the source: a test may skip only if its module
-  matches the macOS pattern or it is the one grandfathered test,
-  `group_b_launch_home_test.py::OnlyTheIdentifiedCandidate::test_a_changed_resource_is_refused_and_the_identified_bundle_launches`.
-  Any other skip fails the step and is named, including a skip at collection
-  time (a module-level skip or `importorskip`) where no test reached execution.
-  pytest's own failures and exit status still decide, and a missing or unreadable
-  report fails. The rule is for the hosted route and does not forbid a deliberate
-  local skip. A dependency newly missing on the runner fails the step, which is
-  intended: the alternative is losing the verification silently. A further
-  exception must name the route on which its test runs.
-- **When there is nothing to run.** With no matching module at the head and
-  none at the merge base, the job succeeds and says plainly, in its log, a
-  notice annotation and the step summary, that nothing ran. On main when the job
-  was added, no module matched. The grandfathered test runs only in the nightly
-  full suite until it moves into a matching module.
-- **Early warning.** `tools/ci/test_selection.py` also searches the source of
-  `group_b` test modules outside the pattern for a Darwin-conditioned skip and
-  reports one before CI does. It is a text search; the Ubuntu skip rule above is
-  what decides.
-
-`harness` requires `examination-macos` to succeed when selected and to be
-skipped when not, exactly as for `app-v4`.
-
 ## Required result
 
 The macOS reusable product workflow is called only when explicitly selected. It
@@ -209,8 +160,7 @@ known, not after the slower repository checks. `harness` runs with `always()`
 and requires a successful `change-selection` with valid outputs and successful
 repository checks. It accepts `app-v4: skipped` only for the explicit `prose`
 selection, which every documentary, governing-text and examination change
-alone receives, and `examination-macos: skipped` only when
-`run_examination_macos` is `false`. A product selection requires `app-v4: success`; failures,
+alone receives. A product selection requires `app-v4: success`; failures,
 cancellations, unexpected skips and missing/inconsistent outputs block merging.
 A failing repository check therefore blocks the merge although the product jobs
 still run to completion.

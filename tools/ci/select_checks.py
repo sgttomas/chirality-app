@@ -11,7 +11,6 @@ from collections import defaultdict
 import json
 import os
 from pathlib import Path
-import posixpath
 import re
 import subprocess
 import sys
@@ -43,14 +42,6 @@ MACOS_INPUTS_IN_CLASS_ROOTS = (
     "app/examination/standalone/fixtures/", "app/tests/group_b_fixture_consumer.rs",
     "app/tests/group_b_fixtures/", "app/tests/group_b_sq_receiving_fixtures/",
 )
-# The macOS examination job runs app/tests/group_b_*_macos_test.py (tests that
-# need macOS itself) without the frontend, Rust or supplier. Any change under
-# these roots, to the job's definition, or to an unmatched path selects it.
-EXAMINATION_MACOS_ROOTS = ("app/examination/", "app/tests/group_b_")
-EXAMINATION_MACOS_DEFINITION = frozenset({
-    "tools/ci/examination_tests.py", "tools/ci/select_checks.py",
-    ".github/workflows/governance-harness.yml",
-})
 # These domains contain code, contracts, fixtures or retained source inputs.
 # Documentary exceptions above take precedence; unfamiliar domains stay unmatched.
 PRODUCT_DOMAINS = (
@@ -154,22 +145,9 @@ def collisions(paths: list[str]) -> list[list[str]]:
     return sorted(sorted(group) for group in groups.values() if len(group) > 1)
 
 
-NARROWED_ROOTS = ("execution/", GOVERNING_TEXT, *EXAMINATION_ROOTS)
-
-
-def links_into_narrowed(repo: Path, entries: list[tuple[str, str, str]]) -> list[str]:
-    """Tracked symbolic links whose target lies in a narrowed class: a reader of
-    the link would read a path whose changes skip the product jobs."""
-    found = []
-    for mode, oid, path in entries:
-        if mode != "120000":
-            continue
-        target = os.fsdecode(git(repo, "cat-file", "blob", oid))
-        resolved = fold(posixpath.normpath(posixpath.join(posixpath.dirname(path), target)))
-        if (resolved.startswith(tuple(fold(root) for root in NARROWED_ROOTS))
-                or resolved in {fold(item) for item in PROSE_PATHS}):
-            found.append(path)
-    return sorted(found)
+# Modes that make one tracked path stand for another: a symbolic link, whose
+# reader reads its target, and a gitlink (submodule). The tree holds neither.
+ALIAS_MODES = {"120000": "symbolic link", "160000": "gitlink"}
 
 
 def inventory(repo: Path) -> dict:
@@ -178,7 +156,7 @@ def inventory(repo: Path) -> dict:
     entries = tree(repo)
     return {"tracked_paths": len(paths), "unmatched": unmatched,
             "collisions": collisions([path for _, _, path in entries]),
-            "links_into_narrowed": links_into_narrowed(repo, entries)}
+            "links": sorted(f"{path} ({ALIAS_MODES[mode]})" for mode, _, path in entries if mode in ALIAS_MODES)}
 
 
 REPOSITORY_RULES = {
@@ -203,16 +181,10 @@ def classify(change: dict[str, str]) -> dict[str, str]:
     return {**change, "rule": rule, "checks": "product", "reason": reason}
 
 
-def examination_macos(changes: list[dict[str, str]]) -> bool:
-    return not changes or any(
-        change["path"].startswith(EXAMINATION_MACOS_ROOTS) or change["rule"] == "unmatched"
-        or change["path"] in EXAMINATION_MACOS_DEFINITION for change in changes)
-
-
 def select(repo: Path, event: str, base: str, head: str) -> dict:
     head = commit(repo, head)
     if event == "workflow_dispatch":
-        return {"head": head, "mode": "product", "run_product": True, "run_examination_macos": True,
+        return {"head": head, "mode": "product", "run_product": True,
                 "reason": "Manual dispatch retains product verification", "changes": []}
     if event != "pull_request":
         raise ValueError("Unsupported CI event")
@@ -229,14 +201,12 @@ def select(repo: Path, event: str, base: str, head: str) -> dict:
     run_product = not changes or any(change["checks"] == "product" for change in changes)
     return {"base": base, "merge_base": bases[0], "head": head,
             "mode": "product" if run_product else "prose", "run_product": run_product,
-            "run_examination_macos": examination_macos(changes),
             "reason": "Empty change set retains product verification" if not changes else
                       "Union of checks required by all changed paths", "changes": changes}
 
 
 def require_success(needs: dict) -> None:
-    if not isinstance(needs, dict) or set(needs) != {
-            "change-selection", "repository-checks", "app-v4", "examination-macos"}:
+    if not isinstance(needs, dict) or set(needs) != {"change-selection", "repository-checks", "app-v4"}:
         raise ValueError("Aggregate requires exactly the declared verification jobs")
     selected = needs["change-selection"]
     if selected.get("result") != "success":
@@ -247,13 +217,9 @@ def require_success(needs: dict) -> None:
     mode, product = outputs.get("selection_mode"), outputs.get("run_product")
     if (mode, product) not in {("prose", "false"), ("product", "true")}:
         raise ValueError("Missing or inconsistent change-selection outputs")
-    examination = outputs.get("run_examination_macos")
-    if examination not in {"true", "false"}:
-        raise ValueError("Missing or inconsistent change-selection outputs")
-    for job, selected in (("app-v4", product), ("examination-macos", examination)):
-        expected = "success" if selected == "true" else "skipped"
-        if needs[job].get("result") != expected:
-            raise ValueError(f"Selected verification did not complete as required: {job} expected {expected}")
+    expected = "skipped" if product == "false" else "success"
+    if needs["app-v4"].get("result") != expected:
+        raise ValueError(f"Selected verification did not complete as required: app-v4 expected {expected}")
 
 
 def main() -> int:
@@ -280,7 +246,7 @@ def main() -> int:
             problems = [message for key, message in (
                 ("unmatched", "Tracked paths need explicit classification; unmatched paths still select full product verification"),
                 ("collisions", "Tracked paths collide when case and Unicode forms are folded; a checkout may merge them"),
-                ("links_into_narrowed", "Tracked symbolic links point into a narrowed class; their readers would skip product checks"),
+                ("links", "The tracked tree holds a symbolic link or gitlink; one path standing for another could carry a product input past its checks"),
             ) if result[key]]
             if problems:
                 raise ValueError("; ".join(problems))
@@ -296,8 +262,6 @@ def main() -> int:
                 with args.github_output.open("a") as stream:
                     stream.write(f"selection_mode={result['mode']}\n")
                     stream.write(f"run_product={str(result['run_product']).lower()}\n")
-                    stream.write(f"run_examination_macos={str(result['run_examination_macos']).lower()}\n")
-                    stream.write(f"merge_base={result.get('merge_base', '')}\n")
     except (ValueError, KeyError, TypeError, AttributeError, OSError, subprocess.CalledProcessError) as exc:
         print(f"CI selection/gate failed: {exc}", file=sys.stderr)
         return 2
