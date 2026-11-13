@@ -3853,7 +3853,6 @@ for line in sys.stdin:
             })
             .unwrap();
         });
-        let before = f.wire().len();
         for mode in [NativeLoginMode::Browser, NativeLoginMode::DeviceCode] {
             let refusal = start_native_oauth(&f.home, &f.generation, mode, None, || {
                 panic!("the person is not asked")
@@ -3862,13 +3861,25 @@ for line in sys.stdin:
             .unwrap();
             assert_eq!(refusal, crate::dev_model_address::SIGN_IN_OFF);
         }
-        assert_eq!(f.wire().len(), before, "no request reached the supplier");
-        assert!(f.wire().iter().all(|frame| {
-            !matches!(
-                frame["method"].as_str(),
-                Some("account/login/start" | "configRequirements/read" | "account/read")
-            )
-        }));
+        // What the host itself sent, which does not depend on when the stand-in logs a frame:
+        // the start's own request and nothing else.
+        let sent: Vec<String> = f
+            .home
+            .host
+            .client_requests()
+            .iter()
+            .map(|request| request["method"].as_str().unwrap_or_default().to_owned())
+            .collect();
+        assert_eq!(sent, ["initialize"], "no request was sent after the start's own");
+        // And what the stand-in has received so far: the start's handshake at most. Its second
+        // frame, the `initialized` notification, may be logged at any moment after the start
+        // returns, so the frames are compared by what they are and never counted.
+        let beyond: Vec<Value> = f
+            .wire()
+            .into_iter()
+            .filter(|frame| !matches!(frame["method"].as_str(), Some("initialize" | "initialized")))
+            .collect();
+        assert!(beyond.is_empty(), "a frame beyond the start's handshake reached the supplier: {beyond:?}");
         assert!(f.home.oauth_login.lock().unwrap().is_none());
         // The same home without the setting still starts a sign-in.
         let plain = Fixture::new();
