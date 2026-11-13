@@ -17,9 +17,14 @@ could not be asked for its executable, or gave a path that was gone when it was 
 
 One kind of process is listed by number and not counted: one for which the system gives no path at all (ENOENT),
 which it does for a file that no longer has a name. That is sound only while the bundle's executable has exactly
-one name and stays the same file for the whole search, so both are required: its link count is 1 and its device,
-inode and link count are the same before and after the search, or the search exits 2. Then a process running it is
-running a file with a name, the bundle's own. That the system gives a path for every file that has a name is how
+one name and stays the same file for the whole search. That is an operating condition the lane keeps (README.md,
+"The condition of the exception": the identified bundle is not rebuilt, replaced, renamed or given another link from
+identification through recovery), not something this search proves. The search only detects a change it can see:
+it refuses unless the link count is 1, and compares device, inode, link count, size and modification and change
+times (in nanoseconds) before and after the search, exiting 2 on a difference. A file written anew at the same path
+differs at least in its change time, even where the file system gives it the inode number of the one removed (seen
+on Linux). Equal values do not show that the file was unchanged in between. While the condition
+holds, a process running it is running a file with a name, the bundle's own. That the system gives a path for every file that has a name is how
 the call is documented and what the third reviewer saw on this host (a hard link removed: the system gave the
 surviving name), not something this search proves.
 
@@ -67,6 +72,11 @@ def listing():
     return done.stdout.splitlines()
 
 
+def fingerprint(info):
+    """What the two looks at the bundle's executable compare. Equal does not prove the same, unchanged file."""
+    return (info.st_dev, info.st_ino, info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+
 def processes(executable, lines=None, path_of=None):
     """Every process of this user whose executable is the same file as the given one; and, by number, those for
     which the system gives no path (see the module's docstring for why those are not that file, and when)."""
@@ -89,8 +99,7 @@ def processes(executable, lines=None, path_of=None):
             raise OSError(f'process {parts[0]} gave an executable path that was gone when it was examined')
         if (info.st_dev, info.st_ino) == (target.st_dev, target.st_ino):
             found.append({'pid': int(parts[0]), 'parent': int(parts[1]), 'started': ' '.join(parts[2:7]), 'executable': path})
-    after = os.stat(executable)
-    if (after.st_dev, after.st_ino, after.st_nlink) != (target.st_dev, target.st_ino, target.st_nlink):
+    if fingerprint(os.stat(executable)) != fingerprint(target):
         raise OSError("the bundle's executable changed during the search")
     return found, no_path
 

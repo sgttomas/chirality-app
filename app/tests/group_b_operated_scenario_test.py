@@ -18,6 +18,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -519,13 +520,25 @@ class StrayStart(unittest.TestCase):
         with self.assertRaisesRegex(OSError, '2 names, not one'):
             self.stray.processes(str(executable), line, path_of=lambda pid: self.stray.NO_PATH)
         os.unlink(self.tmp / 'second-name')
-        # The bundle's executable replaced during the search.
+        # The bundle's executable replaced during the search, by a file of the same size. A file system may give
+        # the new file the inode number of the one removed (Linux did, on the hosted run), so device and inode
+        # alone would not see it; its times do. The original's times are set back first, so that this holds
+        # whatever the file system's time resolution.
+        os.utime(executable, ns=(1_577_836_800_000_000_000, 1_577_836_800_000_000_000))
         def replaced(pid):
             executable.unlink()
-            executable.write_text('another file now')
+            executable.write_text('INVENTED')  # the same size as the original
             return self.stray.NO_PATH
         with self.assertRaisesRegex(OSError, 'changed during the search'):
             self.stray.processes(str(executable), line, path_of=replaced)
+
+    def test_a_file_with_the_same_device_inode_links_size_and_modification_time_still_differs_by_its_change_time(self):
+        # What a replacement given a reused inode number, the same size and the same modification time leaves: the
+        # change time, which a write sets and nothing a caller does can set back.
+        base = dict(st_dev=1, st_ino=42, st_nlink=1, st_size=8, st_mtime_ns=10, st_ctime_ns=10)
+        before, after = SimpleNamespace(**base), SimpleNamespace(**{**base, 'st_ctime_ns': 11})
+        self.assertNotEqual(self.stray.fingerprint(before), self.stray.fingerprint(after))
+        self.assertEqual(self.stray.fingerprint(before), self.stray.fingerprint(SimpleNamespace(**base)))
 
     def test_its_exit_status_says_whether_it_looked_and_what_it_found(self):
         argv = ['stray.py', str(self.bundle)]

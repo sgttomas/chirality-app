@@ -62,7 +62,9 @@ All of these hold, every time:
 
   It exits 0 when the bundle is the one the record identifies, and the record's
   `candidate_key` is the key the assignment names. The path the `ls` prints is
-  the bundle; it is needed again below.
+  the bundle; it is needed again below. The lane keeps that bundle unchanged
+  from identification through recovery: no rebuild, replacement, renaming or
+  added link (see "The condition of the exception").
 - **The homes root.** The launcher makes each launch folder under the lane's
   homes root, which must already exist; it never creates it. If it does not
   exist the launcher refuses and says so. The lane makes it, once.
@@ -218,9 +220,9 @@ All of these hold, every time:
        processes: every process of this user running the bundle's executable,
        decided by the file's identity however its path is spelled. It exits 0
        when it found none, 1 when it found one or more, and 2 when it could
-       not look, which includes a process it could not tie to a file and a
-       bundle executable with more than one name or changed during the
-       search; 2 is not "found none", and the run is reported as one whose
+       not look, which includes a process it could not tie to a file, a
+       bundle executable with more than one name, and a change to it the
+       search detected; 2 is not "found none", and the run is reported as one whose
        check could not be completed. Processes for which the system gives no
        path at all are listed by number and not counted; why, and when that
        holds, is in `stray.py`.
@@ -231,9 +233,12 @@ All of these hold, every time:
        tell the home or environment either was started with. Only step 10's
        records, where they exist, can say more.
     4. The launch record's Library comparison (`real_library` in
-       `record/launch-record.json` in the launch folder) is read: what
-       changed in the real Library, in places named for the build, while the
-       launcher ran. Where the launcher wrote no record, that is said.
+       `record/launch-record.json` in the launch folder) is read. The
+       launcher lists the real Library's places named for the build before
+       the launch, and again about five and about ten seconds after the App
+       exits, and compares those listings; it does not watch in between, and
+       nothing is listed after its last listing. Where the launcher wrote no
+       record, there is no comparison, and that is said.
     5. What steps 1 to 4 found, and what could not be done, is reported by
        the lane to App Agent 0 within the hour.
 
@@ -313,11 +318,17 @@ not closed.
   whatever path it ended, the lane ends what the started files show,
   searches for remaining candidate processes by the executable's file, ends
   what it finds, reads the launch record's Library comparison (or records
-  that the launcher wrote none), and reports the same hour (step 11). A run after which any of that was not done is a
-  breach, reported to App Agent 0 as one; it is not an inconclusive run.
+  that the launcher wrote none), and reports the same hour (step 11). A run
+  after which any of that was not done is a breach, reported to App Agent 0
+  as one; it is not an inconclusive run. Throughout, the lane keeps the
+  identified bundle unchanged: no rebuild, replacement, renaming or added
+  link, from identification through recovery. The search's comparisons of
+  the bundle's executable detect a change; they do not prove the file
+  stayed unchanged.
   What the two checks do not see: a stray start that began after the
   launcher's last listing and ended by itself before the search is seen by
-  neither.
+  neither. **Neither a clean process search nor an unchanged Library
+  comparison establishes that no stray start occurred.**
 - **The owner's decision, 13 November 2026, relayed by App Agent 0.** This
   exposure is accepted for the scenario "first-use setup without a project,
   new settings" and for no other. The question as it was put to the owner:
