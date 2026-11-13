@@ -142,23 +142,71 @@ impl Receipt {
     }
 }
 
+/// One reading of the records capability's physical project identity, taken
+/// with no Host state held: the reading canonicalizes the project and reads its
+/// metadata, and a stalled filesystem must not hold the Host's state. It is
+/// used for one decision, compared under the Host state with [`Self::current`].
+/// The Host state never excluded a change on disk (nothing that replaces a
+/// project folder takes it); what it gives is consistency with the Host's own
+/// state, which `current` keeps: a reading counts only through the capability
+/// still configured, and an error never counts as an identity.
+pub(super) struct IdentityReading {
+    capability: std::sync::Arc<crate::records_access::RecordsCapability>,
+    identity: Result<Value, String>,
+}
+impl IdentityReading {
+    /// A reading through `capability`, taken now; the caller holds no Host state.
+    pub(super) fn through(capability: std::sync::Arc<crate::records_access::RecordsCapability>) -> Self {
+        let identity = capability.project_identity();
+        Self { capability, identity }
+    }
+    /// Under the Host state: the identity read, while the capability it was
+    /// read through is still the one configured. Cleared or replaced since,
+    /// or a read that failed (project replaced, moved, gone or not a folder),
+    /// is an error, never an identity.
+    pub(super) fn current<'a>(&'a self, inner: &super::Inner) -> Result<&'a Value, String> {
+        let configured = inner.records_capability.as_ref().ok_or("records capability unavailable")?;
+        if !std::sync::Arc::ptr_eq(configured, &self.capability) {
+            return Err("records capability configured again since its project was read".into());
+        }
+        self.identity.as_ref().map_err(Clone::clone)
+    }
+}
+
 impl super::Host {
+    /// A reading of the configured capability's project identity, taken with
+    /// no Host state held while it reads; None when none is configured.
+    pub(super) fn read_records_identity(&self) -> Option<IdentityReading> {
+        let capability = self.inner.0.lock().unwrap().records_capability.clone()?;
+        Some(self.records_reading(capability))
+    }
+    /// A reading through `capability`, taken now with no Host state held.
+    pub(super) fn records_reading(
+        &self,
+        capability: std::sync::Arc<crate::records_access::RecordsCapability>,
+    ) -> IdentityReading {
+        let reading = IdentityReading::through(capability);
+        #[cfg(test)]
+        if let Some(hook) = self.within_records_identity_read.lock().unwrap().take() {
+            hook();
+        }
+        reading
+    }
     pub(super) fn records_offer_is_current(
         inner: &super::Inner,
         generation: &Value,
         thread: &Value,
+        reading: Option<&IdentityReading>,
     ) -> bool {
         inner
             .records_offers
             .iter()
             .any(|(g, t)| g == generation && t == thread)
-            && inner
-                .records_capability
-                .as_ref()
-                .and_then(|capability| capability.project_identity().ok())
+            && reading
+                .and_then(|reading| reading.current(inner).ok())
                 .is_some_and(|project| {
                     inner.records_offer_projects.iter().any(|(g, t, expected)| {
-                        g == generation && t == thread && *expected == project
+                        g == generation && t == thread && expected == project
                     })
                 })
             && inner
@@ -202,9 +250,10 @@ impl super::Host {
                 .map(|(_, _, receipt)| receipt.clone())
         };
         let Some(mut receipt) = receipt else {
+            let reading = self.read_records_identity();
             let current = {
                 let inner = self.inner.0.lock().unwrap();
-                Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread))
+                Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread), reading.as_ref())
             };
             self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"persistence":"memory-only","limit":"original exact offered start or explicit project receipt unavailable; cold binding unknown, no older offering backfilled"}));
             return;
@@ -218,6 +267,7 @@ impl super::Host {
             Ok(value) => self.tag_conversation(generation, thread, home, OWNER, &value),
             Err(limit) => serde_json::json!({"persistence":"memory-only","limit":limit}),
         };
+        let reading = self.read_records_identity();
         let mut inner = self.inner.0.lock().unwrap();
         if Self::context_scope(&inner, generation, thread, home).is_err() {
             return;
@@ -229,8 +279,12 @@ impl super::Host {
         {
             *held = receipt;
         }
-        let current =
-            Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread));
+        let current = Self::records_offer_is_current(
+            &inner,
+            generation,
+            &serde_json::json!(thread),
+            reading.as_ref(),
+        );
         drop(inner);
         self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"persistence":persistence["persistence"],"limit":if current{persistence.get("limit").cloned().unwrap_or(Value::Null)}else{serde_json::json!("current capability project differs from the original offering")},"standing":"unverified App operational metadata; cold use requires a healthy durable receipt observation"}));
     }
@@ -347,6 +401,9 @@ impl super::Host {
         if let Some(hook) = self.before_records_receipt_bind.lock().unwrap().take() {
             hook();
         }
+        // The binding compares a reading of its own, taken after the lookup's
+        // and before any state is held.
+        let binding_reading = self.read_records_identity();
         // Reacquire the shared REC writer after staging/hook and compare only
         // this receiver's source basis. Read-only observation changes do not
         // invalidate it; a newly conflicting tag does. Hold through binding.
@@ -373,11 +430,14 @@ impl super::Host {
                     "records receipt REC source changed or became incomplete during lookup".into(),
                 );
             }
-            let capability = inner
+            inner
                 .records_capability
                 .as_ref()
                 .ok_or("records capability unavailable during binding")?;
-            if receipt.directory != capability.project_identity()? {
+            let reading = binding_reading
+                .as_ref()
+                .ok_or("records capability unavailable during binding")?;
+            if receipt.directory != *reading.current(&inner)? {
                 return Err(
                     "records receipt physical capability project changed during lookup".into(),
                 );

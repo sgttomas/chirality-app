@@ -664,3 +664,114 @@ for line in sys.stdin:
   emit({'id':'other-'+tid,'method':'item/tool/call','params':{'threadId':tid,'turnId':'turn-'+tid,'callId':'other-'+tid,'tool':'another_tool','namespace':None,'arguments':{}}})
  else:emit({'id':f['id'],'result':{}})
 "#;
+
+// ---- The project identity is read with no Host state held, and compared
+// under it (the read touches the filesystem: canonicalize and metadata).
+
+/// Replaces the fixture's project at the same path (same canonical path, a
+/// different folder), keeping its records-store link, and returns where the
+/// old folder (the running peer's working directory) now is.
+fn replace_project(root: &Path) -> PathBuf {
+    let project = root.join("project");
+    let old = root.join("physical-a");
+    fs::rename(&project, &old).unwrap();
+    fs::create_dir(&project).unwrap();
+    let link = crate::records_store::PROJECT_LINK;
+    fs::create_dir_all(project.join(link).parent().unwrap()).unwrap();
+    fs::copy(old.join(link), project.join(link)).unwrap();
+    old
+}
+
+/// A reading that does not return (a stalled project filesystem) holds no
+/// Host state: the Host's snapshot is had at once meanwhile, and the records
+/// call is answered once the reading returns.
+#[test]
+fn records_identity_reading_that_stalls_does_not_hold_the_host_state() {
+    let f = Fixture::new();
+    let first = f.host(true, None, "account");
+    f.start(&first, "fixture-model").unwrap();
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::channel::<()>();
+    *first.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
+        entered_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    }));
+    // While the records call's reading is stalled, another thread takes the
+    // Host's snapshot, then lets the reading return.
+    let host = Arc::clone(&first);
+    let checker = std::thread::spawn(move || {
+        entered_rx.recv_timeout(Duration::from_secs(3)).expect("the records call's reading began");
+        let (snap_tx, snap_rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || { let _ = snap_tx.send(host.snapshot()["state"].clone()); });
+        let state = snap_rx.recv_timeout(Duration::from_millis(500));
+        release_tx.send(()).unwrap();
+        state
+    });
+    let reply = f.tool(&first, "thread");
+    let state = checker.join().unwrap().expect("the Host's state is not held by the stalled reading");
+    assert_eq!(state, "ready");
+    assert_eq!(reply["result"]["success"], true, "answered once the reading returned: {reply}");
+    stop(&first);
+}
+
+/// The project replaced (or gone) after the Host's reading and before its
+/// use: the Host admits the call on the reading it took, as it did when the
+/// reading was taken under its state (nothing on disk ever waited for that
+/// state). The capability reads the identity again before it reads anything,
+/// refuses, and returns nothing from either folder.
+#[test]
+fn records_project_replaced_after_the_hosts_reading_is_never_read_as_the_old_one() {
+    for change in ["replaced", "gone"] {
+        let f = Fixture::new();
+        let first = f.host(true, None, "account");
+        f.start(&first, "fixture-model").unwrap();
+        let root = f.0.clone();
+        let moved = root.join("physical-a");
+        *first.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
+            if change == "replaced" { replace_project(&root); } else { fs::rename(root.join("project"), root.join("physical-a")).unwrap(); }
+        }));
+        let reply = f.tool_at(&first, "thread", &moved);
+        assert_ne!(reply["result"]["success"], true, "{change}: {reply}");
+        assert!(f.reads().iter().all(|read| read["outcome"] == "refused"), "{change}: {:?}", f.reads());
+        assert!(!reply.to_string().contains("CONTINUITY-MARKER"), "{change}: nothing from the old project is returned: {reply}");
+        stop(&first);
+    }
+}
+
+/// The capability configured again after the Host's reading and before its
+/// comparison: the reading went through the old capability and is not
+/// current for the new one, so the call is not admitted as a records read.
+#[test]
+fn records_capability_configured_again_after_the_reading_is_not_current() {
+    let f = Fixture::new();
+    let first = f.host(true, None, "account");
+    f.start(&first, "fixture-model").unwrap();
+    let weak = Arc::downgrade(&first);
+    let (project, reads, context) = (f.0.join("project"), f.0.join("app/reads.jsonl"), f.context());
+    *first.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
+        let host = weak.upgrade().unwrap();
+        host.configure_records_capability_with_context(Arc::new(crate::records_access::RecordsCapability::at(&project, reads).unwrap()), context);
+    }));
+    let reply = f.tool(&first, "thread");
+    assert!(reply["error"].is_object(), "{reply}");
+    assert!(f.reads().is_empty());
+    stop(&first);
+}
+
+/// A receipt's binding compares a reading of its own, taken after its
+/// lookup's: the project replaced between the two is caught at binding.
+#[test]
+fn records_receipt_binding_reads_the_project_again_after_its_lookup() {
+    let f = Fixture::new();
+    let first = f.host(true, None, "account");
+    f.start(&first, "fixture-model").unwrap();
+    stop(&first);
+    drop(first);
+    let cold = f.host(true, None, "account");
+    let root = f.0.clone();
+    *cold.before_records_receipt_bind.lock().unwrap() = Some(Box::new(move || { replace_project(&root); }));
+    let row = f.resume(&cold, "thread").unwrap();
+    assert_eq!(row["recordsCapabilityBinding"]["state"], "unknown/unsupported", "{row}");
+    assert!(row["recordsCapabilityBinding"]["limit"].as_str().unwrap_or_default().contains("physical project changed"), "{row}");
+    stop(&cold);
+}

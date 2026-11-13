@@ -1055,6 +1055,10 @@ pub struct Host {
     before_thread_insert: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_records_receipt_bind: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// Runs inside a records identity reading, after the read and before the
+    /// Host state is taken again to compare it (the window the reading leaves).
+    #[cfg(test)]
+    within_records_identity_read: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     /// Runs with each delegation read's request after its write and before
@@ -1216,6 +1220,8 @@ impl Host {
             before_thread_insert: Mutex::new(None),
             #[cfg(test)]
             before_records_receipt_bind: Mutex::new(None),
+            #[cfg(test)]
+            within_records_identity_read: Mutex::new(None),
             #[cfg(test)]
             before_turn_result: Mutex::new(None),
             #[cfg(test)]
@@ -3359,6 +3365,8 @@ impl Host {
         let source=&request.frame["params"]["threadId"];let t=&response["result"]["thread"];
         if t["id"]==*source||t["forkedFromId"]!=*source {return Err("thread/fork did not report a new thread forked from the source; nothing admitted".into());}
         let generation=request.generation();
+        // Read before the state is held: the reading touches the filesystem.
+        let records_reading=self.read_records_identity();
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
         if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
@@ -3378,7 +3386,7 @@ impl Host {
         }
         let inherited = i.records_receipts.iter().find(|(g,thread,_)|g == generation && Some(thread.as_str()) == source.as_str())
             .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference()) == Some(receipt.project.as_str())
-                &&i.records_capability.as_ref().and_then(|capability|capability.project_identity().ok()).as_ref() == Some(&receipt.directory))
+                &&records_reading.as_ref().and_then(|reading|reading.current(&i).ok()) == Some(&receipt.directory))
             .and_then(|(_,_,receipt)|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
         let context = i.records_project_context.clone();
         let home = inherited.as_ref().map(|receipt|receipt.home_class.clone());
@@ -3710,16 +3718,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// capability (RS §13.9) when it is configured and `cwd` is its project.
     fn offered_start_params(&self, cwd: &str, model: &str, model_provider: &str, developer_instructions: Option<&str>) -> Result<(Value,Option<records_continuity::Project>), String> {
         let mut params = Self::thread_start_params(cwd, model, model_provider, developer_instructions)?;
+        // The cwd's canonical path and the project's identity are read with no
+        // Host state held (they touch the filesystem), through one capability,
+        // for this one offer; under the state that capability must still be the
+        // one configured, or nothing is offered.
+        let capability = self.inner.0.lock().unwrap().records_capability.clone();
+        let reading = capability.filter(|capability|capability.offered_for(cwd)).map(|capability|self.records_reading(capability));
         let mut inner = self.inner.0.lock().unwrap();
-        let capability = inner.records_capability.clone();
         let mut project = None;
-        if let Some(capability) = capability.filter(|capability|capability.offered_for(cwd)) {
-            match capability.project_identity() {
+        if let Some(reading) = &reading {
+            match reading.current(&inner) {
                 Ok(directory) => {
                     params["dynamicTools"] = json!([crate::records_access::definition()]);
-                    project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory });
+                    project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory: directory.clone() });
                 }
-                Err(limit) => inner.records_capability_limit = Some(limit),
+                Err(limit) => if inner.records_capability.is_some() { inner.records_capability_limit = Some(limit) },
             }
         }
         Ok((params,project))
@@ -4950,6 +4963,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // The one reply prepared here by the App's own rule (current time): the local home's files
         // are checked before Inner is taken, and a refusal leaves the request waiting.
         let local_reply_refused=parsed.as_ref().filter(|f|f["method"]=="currentTime/read"&&f.get("id").is_some()).and_then(|_|self.check_local_reply().err());
+        // A records tool call's project reading, taken before the state is held:
+        // it touches the filesystem.
+        let records_reading=parsed.as_ref().filter(|f|f["method"]=="item/tool/call"&&f["params"]["tool"]==crate::records_access::TOOL).and_then(|_|self.read_records_identity());
         let mut i = self.inner.0.lock().unwrap();
         let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
         // The reply can beat public client-record publication. Its registered
@@ -5024,7 +5040,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
             let offered=if frame["method"]=="item/tool/call"{i.cce_offer.as_ref().and_then(|o|o.classify(&gen,&frame))}else{None};
             let records=offered.is_none()&&frame["method"]=="item/tool/call"&&frame["params"]["tool"]==crate::records_access::TOOL&&frame["params"]["namespace"].is_null()
-                &&Self::records_offer_is_current(&i,&gen,&frame["params"]["threadId"]);
+                &&Self::records_offer_is_current(&i,&gen,&frame["params"]["threadId"],records_reading.as_ref());
             if records {
                 match i.server_requests.receive_named_tool(&gen,pos,&frame,"app-rule:records-read") {
                     Ok(()) => records_call=Some(Self::records_call(&i,&gen,&frame)),
