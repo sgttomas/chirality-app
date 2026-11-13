@@ -78,7 +78,7 @@ fn the_witness_exists_before_the_first_copied_byte_at_every_interruption_point_o
     ];
     for (label, stop) in stops {
         let l = Legacy::new();
-        assert_eq!(l.origin().unwrap(), LegacyOrigin::NoImport, "{label}: before any import");
+        assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "{label}: before any import, nothing is established (never \"no import\")");
         stop();
         let result = import(&l.root);
         interrupt_append_for_test(None);
@@ -90,13 +90,10 @@ fn the_witness_exists_before_the_first_copied_byte_at_every_interruption_point_o
         for file in &present {
             assert!(witnessed.contains(file), "{label}: imported bytes {} without their witness: {origin:?}", file.copy);
         }
-        if present.is_empty() && label == "witness line not written" {
-            assert_eq!(origin, LegacyOrigin::NoImport, "{label}: no copy and no witness: no import");
-        }
-        // A witness line cut short is left unread: it may have been this
-        // project's, so "no import" is not concluded from that witness
-        // (App Agent 0, after review round 4), though nothing was copied.
-        if label == "witness line cut short" {
+        // No copy and no witness line read whole: nothing is established,
+        // and the reader never says "no import" (App Agent 0, after the
+        // fifth review): a line not written and a line cut short alike.
+        if present.is_empty() && label.starts_with("witness line") && !label.ends_with("synced") {
             assert!(matches!(origin, LegacyOrigin::NotEstablished(_)), "{label}: {origin:?}");
         }
         // The import, run again after the App's next start (whose recovery
@@ -178,17 +175,19 @@ fn a_project_from_before_the_witness_with_no_account_reads_not_established_and_a
     recover_at_startup().unwrap();
     match l.origin().unwrap() {
         LegacyOrigin::NotEstablished(reason) => {
-            assert!(reason.contains("was present in the store when the store's witness of legacy imports began") && reason.contains("absent"), "{reason}");
-            assert!(reason.contains("whether it holds imported records cannot be known") && reason.contains("This does not change."), "{reason}");
+            assert!(reason.contains("is not taken as evidence that none was begun"), "{reason}");
             for instruction in ["repair", "restore", "import them", "run ", "fix"] {
                 assert!(!reason.to_lowercase().contains(instruction), "no instruction to repair: {reason}");
             }
         }
         other => panic!("never \"no import\" for a project that predates the witness: {other:?}"),
     }
-    // A project created after the witness began, with no import: no import.
+    // A project created after the witness began, with no import: nothing is
+    // established, and the reader does not say "no import" (the store's own
+    // reading does, from the absent account).
     let later = attach(&folder("witness-later-project-"), true).unwrap();
-    assert_eq!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport);
+    assert!(matches!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NotEstablished(_)));
+    assert!(home(&later.root).is_ok());
 }
 
 #[test]
@@ -198,7 +197,7 @@ fn a_witness_not_read_whole_is_an_error_and_refuses_an_import_before_any_copy() 
     let mut bytes = l.witness();
     bytes.extend(b"{\"damaged from outside\n");
     std::fs::write(&path, &bytes).unwrap();
-    assert!(l.origin().unwrap_err().contains("not read whole"), "never \"no import\"");
+    assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "nothing established, never \"no import\"");
     assert!(import(&l.root).unwrap_err().contains("not read whole"));
     assert!(l.present().is_empty(), "nothing copied");
     assert_eq!(std::fs::read(&path).unwrap(), bytes);
@@ -240,7 +239,7 @@ fn a_project_registered_in_the_same_startup_that_begins_the_witness_is_known_to_
     // existed: the list names the earlier project and not the new one.
     assert_eq!(first["projectsPresent"], json!([key_of(&l.dir)]));
     assert_ne!(key_of(fresh.dir.as_ref().unwrap()), key_of(&l.dir));
-    assert_eq!(legacy_import_origin(&l.store, fresh.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport);
+    assert!(matches!(legacy_import_origin(&l.store, fresh.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NotEstablished(_)));
 }
 
 #[test]
@@ -274,7 +273,7 @@ fn a_store_created_by_this_build_has_the_witness_from_its_first_line() {
     assert_eq!(read.values.len(), 1, "only its first line");
     assert_eq!(read.values[0]["storeExisted"], false, "the witness began with the store");
     assert_eq!(read.values[0]["projectsPresent"], json!([]), "no project was present when it began");
-    assert_eq!(legacy_import_origin(&store, attachment.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport);
+    assert!(matches!(legacy_import_origin(&store, attachment.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NotEstablished(_)));
     drop(own);
 }
 
@@ -302,7 +301,8 @@ fn the_witness_boundary_is_the_recorded_list_of_projects_present_and_no_clock() 
     assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)), "never \"no import\", whatever its creation time says");
     let later = attach(&folder("witness-clock-set-back-"), true).unwrap();
     set_created(later.dir.as_ref().unwrap(), "2000-01-01T00:00:00.000Z");
-    assert_eq!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NoImport, "made after the witness began, whatever its creation time says");
+    assert!(matches!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NotEstablished(_)), "made after the witness began: nothing established, never \"no import\"");
+    assert!(!first_line(&l.witness())["projectsPresent"].as_array().unwrap().contains(&json!(key_of(later.dir.as_ref().unwrap()))), "not on the recorded list, whatever its creation time says");
     // Condition 2. What the list records is the project's store folder key,
     // which comes from its identity and which no act changes. The folder is
     // given a new identity: that is a new project with its own folder and
@@ -319,7 +319,7 @@ fn the_witness_boundary_is_the_recorded_list_of_projects_present_and_no_clock() 
     for copy in l.copies() {
         assert!(!new_dir.join(&copy).exists(), "{copy}: nothing imported is under the new identity");
     }
-    assert_eq!(legacy_import_origin(&l.store, &new_project).unwrap(), LegacyOrigin::NoImport);
+    assert!(matches!(legacy_import_origin(&l.store, &new_project).unwrap(), LegacyOrigin::NotEstablished(_)));
     // Condition 3. The list is never changed, and the witness begins once.
     recover_at_startup().unwrap();
     assert_eq!(first_line(&l.witness()), first_line(&began), "the first line is as it was written");
@@ -333,11 +333,12 @@ fn the_witness_boundary_is_the_recorded_list_of_projects_present_and_no_clock() 
         assert!(listed.contains(&key_of(dir)), "{}", dir.display());
     }
     assert!(matches!(legacy_import_origin(&l.store, later.project.as_deref().unwrap()).unwrap(), LegacyOrigin::NotEstablished(_)));
-    // A first line that does not carry the list concludes nothing.
+    // A first line that does not carry the list: nothing is concluded from
+    // it either (the reader does not read the list at all).
     let mut stripped = again.clone();
     stripped.as_object_mut().unwrap().remove("projectsPresent");
     std::fs::write(&path, format!("{stripped}\n")).unwrap();
-    assert!(l.origin().unwrap_err().contains("does not list the projects present"));
+    assert!(matches!(l.origin().unwrap(), LegacyOrigin::NotEstablished(_)));
 }
 
 /// Condition 1 of that decision: the listing is whole or the witness does not
@@ -416,7 +417,7 @@ fn an_existing_import_account_with_no_import_line_is_unknown_whatever_the_witnes
     let later = attach(&later_root, true).unwrap();
     let (later_project, later_dir) = (later.project.unwrap(), later.dir.unwrap());
     assert!(home(&later_root).is_ok());
-    assert_eq!(legacy_import_origin(&l.store, &later_project).unwrap(), LegacyOrigin::NoImport);
+    assert!(matches!(legacy_import_origin(&l.store, &later_project).unwrap(), LegacyOrigin::NotEstablished(_)));
     std::fs::write(later_dir.join("imports.jsonl"), b"").unwrap();
     assert!(unknown(&home(&later_root).map(|_| ()).unwrap_err()));
     assert!(legacy_import_origin(&l.store, &later_project).is_err_and(|e| unknown(&e)), "the origin reader never reads it as no import");
@@ -443,7 +444,7 @@ fn an_unreadable_import_account_never_reads_no_import_through_the_witness() {
     let l = Legacy::new();
     let later = attach(&folder("unreadable-account-later-"), true).unwrap();
     let (project, dir) = (later.project.unwrap(), later.dir.unwrap());
-    assert_eq!(legacy_import_origin(&l.store, &project).unwrap(), LegacyOrigin::NoImport, "an account that is not there: no import");
+    assert!(matches!(legacy_import_origin(&l.store, &project).unwrap(), LegacyOrigin::NotEstablished(_)), "an account that is not there: nothing established");
     for (label, content) in [
         ("a line that is not an import line", &b"{}\n"[..]),
         ("a padded line", &b" {}\n"[..]),
@@ -577,43 +578,60 @@ fn an_account_with_no_import_line_is_refused_whatever_state_the_witness_is_in() 
             if reading_and_export_refused(&l.root) != (true, true) {
                 admitted.push(format!("{form}; witness {state}: reading or export admitted"));
             }
-            if matches!(l.origin(), Ok(LegacyOrigin::NoImport)) {
-                admitted.push(format!("{form}; witness {state}: origin read as no import"));
+            // The origin reader: the import is established only from the
+            // project's own line read whole and intact.
+            let established = matches!(l.origin(), Ok(LegacyOrigin::Imported(_)));
+            if established != (*state == "intact") {
+                admitted.push(format!("{form}; witness {state}: origin {:?}", l.origin()));
             }
         }
     }
     assert!(admitted.is_empty(), "{admitted:#?}");
 }
 
-/// Review round 4, as the INTERLOCUTOR asked: the ORIGIN READER with the
-/// account ABSENT (so nothing upstream refuses) and the project's own witness
-/// line damaged or naming no project as a string. Witness lines are checked
-/// before any is set aside as another project's; a witness not read in full
-/// and wholly formed gives "not established" or an error, never "no import".
-/// With the witness intact the import is shown.
+/// The ORIGIN READER with the account ABSENT (so nothing upstream refuses),
+/// as the INTERLOCUTOR asked after round 4 and App Agent 0 decided after the
+/// fifth review: it never says "no import", and it establishes an import only
+/// from the project's own witness line read whole and wholly formed. With the
+/// line damaged, blank, naming no project as a string, naming it as an empty
+/// string, or giving projectId twice (whichever value comes last), nothing is
+/// established; with it intact, the import is.
 #[test]
-fn the_origin_reader_with_no_account_never_reads_no_import_from_a_damaged_witness() {
-    for state in DAMAGED_LINE {
+fn the_origin_reader_establishes_an_import_only_from_a_line_read_whole_and_never_says_no_import() {
+    let line_of = |l: &Legacy| -> (Vec<u8>, Value) {
+        let original = std::fs::read(l.store.join(witness::WITNESS_FILE)).unwrap();
+        let boundary = original.iter().position(|b| *b == b'\n').unwrap() + 1;
+        (original[..boundary].to_vec(), serde_json::from_slice(&original[boundary..]).unwrap())
+    };
+    for state in DAMAGED_LINE.iter().chain(&["blank", "empty projectId", "projectId twice, this project last", "projectId twice, another last"]) {
         let l = Legacy::new();
         import(&l.root).unwrap();
-        assert!(matches!(l.origin(), Ok(LegacyOrigin::Imported(_))), "{state}: intact first");
         std::fs::remove_file(l.dir.join("imports.jsonl")).unwrap();
-        assert!(matches!(l.origin(), Ok(LegacyOrigin::Imported(_))), "{state}: the account absent, the witness shows the import");
-        witness_with_line_in(&l, state);
+        assert!(matches!(l.origin(), Ok(LegacyOrigin::Imported(_))), "{state}: the account absent, the intact witness shows the import");
+        let (began, line) = line_of(&l);
+        let path = l.store.join(witness::WITNESS_FILE);
+        match *state {
+            "blank" => std::fs::write(&path, [began.as_slice(), b"\n"].concat()).unwrap(),
+            "empty projectId" => {
+                let mut empty = line.clone();
+                empty["projectId"] = json!("");
+                std::fs::write(&path, [began.as_slice(), &serde_json::to_vec(&empty).unwrap(), b"\n"].concat()).unwrap();
+            }
+            "projectId twice, this project last" | "projectId twice, another last" => {
+                let (first, last) = if *state == "projectId twice, this project last" { ("chirality-project:another", l.project.as_str()) } else { (l.project.as_str(), "chirality-project:another") };
+                let mut without = line.clone();
+                without.as_object_mut().unwrap().remove("projectId");
+                let rest = serde_json::to_string(&without).unwrap();
+                let twice = format!("{{\"projectId\":\"{first}\",\"projectId\":\"{last}\",{}", &rest[1..]);
+                // A lenient parse keeps the last value: the case the line's
+                // reading must not trust.
+                assert_eq!(serde_json::from_str::<Value>(&twice).unwrap()["projectId"], json!(last));
+                std::fs::write(&path, [began.as_slice(), twice.as_bytes(), b"\n"].concat()).unwrap();
+            }
+            other => witness_with_line_in(&l, other),
+        }
         let origin = l.origin();
-        assert!(!matches!(origin, Ok(LegacyOrigin::NoImport)), "{state}: {origin:?}");
-    }
-    // Another project's line damaged, for a project created after the
-    // witness began with no account and no import: not "no import" either,
-    // since the line left unread may have been its own.
-    for state in DAMAGED_LINE {
-        let l = Legacy::new();
-        import(&l.root).unwrap();
-        let later = attach(&folder("origin-damaged-other-"), true).unwrap().project.unwrap();
-        assert_eq!(legacy_import_origin(&l.store, &later).unwrap(), LegacyOrigin::NoImport, "{state}: read in full first");
-        witness_with_line_in(&l, state);
-        let origin = legacy_import_origin(&l.store, &later);
-        assert!(!matches!(origin, Ok(LegacyOrigin::NoImport)), "{state}: {origin:?}");
+        assert!(matches!(origin, Ok(LegacyOrigin::NotEstablished(_)) | Err(_)), "{state}: nothing is established: {origin:?}");
     }
 }
 

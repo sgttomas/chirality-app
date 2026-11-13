@@ -8,8 +8,8 @@
 //!   already existed then, and the store folder key of every project present
 //!   at that moment (`projectsPresent`), listed under the store lock from the
 //!   store's project folders and from its registry ([`BEGAN_FORMAT`]). That
-//!   list is the boundary: a project named in it predates the witness, a
-//!   project not named in it was made after, and no time is compared. A
+//!   list records which projects predate the witness, with no time compared;
+//!   nothing in this build reads it to decide anything (below). A
 //!   project's store folder key comes from its identity and no act changes
 //!   it: giving a folder a new identity makes a new project with its own
 //!   folder and leaves the earlier project, its records and its key as they
@@ -32,12 +32,11 @@
 //!   before its "started" account line and before any copy: wherever imported
 //!   bytes exist in a subtree, the witness exists.
 //!
-//! The reader ([`legacy_import_origin`]): a witness line shows an import
-//! was begun (not that anything was copied); for a project not named in the
-//! first line's list, no witness line means no import; for a project named
-//! there, no witness line and no readable account showing an import means
-//! the origin is not established, never "no import". A witness not read
-//! whole is an error, never "no import".
+//! The reader ([`legacy_import_origin`]) answers only positively: a witness
+//! line read whole and wholly formed, naming the project, shows an import
+//! was begun (not that anything was copied); anything else is "not
+//! established", never "no import". No product code calls it yet: the
+//! witness is written by this build and read by nothing that decides.
 use super::*;
 
 pub(crate) const WITNESS_FILE: &str = "legacy-imports.jsonl";
@@ -73,12 +72,11 @@ pub(crate) struct WitnessedImport {
 /// What the store shows of a project's legacy import.
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) enum LegacyOrigin {
-    /// The project was not present when the witness began (it is not in the
-    /// first line's list), and no import is witnessed.
-    NoImport,
     /// Imports shown by the witness (or, failing it, by the project's account).
     Imported(Vec<WitnessedImport>),
-    /// Neither an import nor its absence can be established; the reason.
+    /// No legacy import is established; the reason. Never "no import": the
+    /// absence of a witness line is not evidence that none was begun (App
+    /// Agent 0, after the fifth review of pull request 261).
     NotEstablished(String),
 }
 
@@ -162,81 +160,63 @@ pub(crate) fn record(store: &Path, project: &str, import: &str, files: &[Witness
 }
 
 #[cfg_attr(not(test), allow(dead_code))]
-/// For `project` in `store`: whether the witness shows a legacy import, with
-/// each imported file's copy path, length and digest. The witness's own
-/// unread state is an error, never "no import".
+/// For `project` in `store`: whether a legacy import of the project is
+/// established, with each imported file's copy path, length and digest.
 ///
-/// No product code calls this yet (the decision reader of pull request 247 is
-/// to). What a caller may conclude: `Imported`, that an import of this
-/// project's was begun (a witness line says begun, not copied); `NoImport`,
-/// only that this store's witness, read in full with every line wholly
-/// formed, began before the project's folder existed and names no legacy
-/// import of it, and that its account (if there) shows none: it says nothing
-/// of records that arrived by package import, which carries no witness line,
-/// nor of an account removed or cut from outside; `NotEstablished` and an
-/// error, that neither can be concluded. A caller may not read
-/// `NotEstablished` or an error as "no import".
+/// It never concludes "no import" (App Agent 0, after the fifth review of
+/// pull request 261): the absence of evidence in the witness is not evidence
+/// of absence, and every attempt to make it so had a hole at whatever the
+/// reading could not see. An existing account with no import line is
+/// unknown, and an absent account reads "no import", by the store's own
+/// reading (`imports`), not by the witness.
+///
+/// No product code calls this yet. What a caller may conclude: `Imported`,
+/// that an import of this project's was begun (a witness line says begun,
+/// not copied), from a witness line read whole and wholly formed or from the
+/// project's account; `NotEstablished` or an error, nothing at all. Pull
+/// request 247 may rely on it only for the positive answer; a caller that
+/// wants "no import" from the witness needs its own design and its own
+/// review.
 pub(crate) fn legacy_import_origin(store: &Path, project: &str) -> Result<LegacyOrigin, String> {
     let path = store.join(WITNESS_FILE);
     let dir = project_dir(store, project);
-    let present = match std::fs::symlink_metadata(&path) {
-        Ok(_) => true,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+    let bytes = match std::fs::symlink_metadata(&path) {
+        Ok(_) => crate::records_retention::read_plain(&path).map_err(|e| format!("the store's witness of legacy imports is unreadable: {e}"))?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
         Err(e) => return Err(format!("the store's witness of legacy imports is unreadable: {e}")),
     };
-    if !present {
-        return Ok(from_account(&dir)?.unwrap_or_else(|| LegacyOrigin::NotEstablished(
-            "The origin of this project's records is not established: the store's witness of legacy imports has not begun yet, and the project's own import account shows no import. Until the witness has begun, whether it holds imported records cannot be known.".into())));
-    }
-    let read = read_store_file(&path)?;
-    // Whether every byte of the witness was read: no partial last line, no
-    // closed line (named or not) and nothing else left unread. A line left
-    // unread may have been this project's; "no import" is never concluded
-    // from a witness that was not read in full (review round 4).
-    let read_in_full = read.whole && read.limits.is_empty() && read.set_aside.is_empty() && read.unnamed_closures.is_empty() && read.tail.is_none();
-    let values = read.require_whole(&path)?;
-    let began = values.first().filter(|v| v["format"] == BEGAN_FORMAT && v["formatVersion"] == VERSION)
-        .ok_or("the store's witness of legacy imports does not begin with its first line; nothing is concluded from it")?;
+    // Positive evidence only, and only from a line trusted whole: one JSON
+    // object and nothing else, valid UTF-8, no key given twice (the
+    // repository's duplicate-refusing parser, since a repeated key reads as
+    // its last value), of the witness's format and version, naming this
+    // project as a non-empty string, and in its stated form. A blank,
+    // partial, closed, ambiguous or malformed line establishes nothing.
+    let complete = bytes.iter().rposition(|b| *b == b'\n').map_or(&[][..], |end| &bytes[..end]);
     let mut witnessed = Vec::new();
-    for value in &values[1..] {
-        if value["format"] != WITNESS_FORMAT || value["formatVersion"] != VERSION {
-            return Err(format!("the store's witness of legacy imports holds a line of an unknown format ({}); nothing is concluded from it", value["format"]));
-        }
-        // A line that does not name a project as a string, or is not in its
-        // stated form, says nothing of whose import it is: nothing is
-        // concluded (review round 4: "not this project" is not evidence).
-        let Some(named) = value["projectId"].as_str() else {
-            return Err("a line of the store's witness of legacy imports does not name a project in its stated form; nothing is concluded from it".into());
-        };
-        let import = witnessed_import(value).ok_or("a line of the store's witness of legacy imports is not in its stated form; nothing is concluded from it")?;
-        if named == project {
-            witnessed.push(import);
+    if !project.is_empty() {
+        for raw in complete.split(|b| *b == b'\n') {
+            if raw.first() != Some(&b'{') || raw.last() != Some(&b'}') {
+                continue;
+            }
+            let Some(line) = std::str::from_utf8(raw).ok().and_then(|text| crate::workflow_declaration::parse_unique(text).ok()) else { continue };
+            if line["format"] == WITNESS_FORMAT && line["formatVersion"] == VERSION && line["projectId"].as_str() == Some(project) {
+                if let Some(import) = witnessed_import(&line) {
+                    witnessed.push(import);
+                }
+            }
         }
     }
     if !witnessed.is_empty() {
         return Ok(LegacyOrigin::Imported(witnessed));
     }
-    // An import the project's account shows is never read as no import, even
-    // without its witness line (which the App always writes first).
+    // An import the project's account shows (read strictly: one that exists
+    // and cannot be read is an error here).
     if let Some(found) = from_account(&dir)? {
         return Ok(found);
     }
-    // The boundary is a recorded fact: the projects present when the witness
-    // began. No time is compared, and a first line without the list concludes
-    // nothing.
-    let present = began["projectsPresent"].as_array()
-        .and_then(|listed| listed.iter().map(Value::as_str).collect::<Option<Vec<&str>>>())
-        .ok_or("the first line of the store's witness of legacy imports does not list the projects present when it began; nothing is concluded from it")?;
-    if !present.contains(&folder_key(store, project)?.as_str()) {
-        if !read_in_full {
-            return Ok(LegacyOrigin::NotEstablished("The origin of this project's records is not established: the store's witness of legacy imports was not read in full (a line in it is partial or closed and not read), and a line left unread may have been an import of this project's.".into()));
-        }
-        return Ok(LegacyOrigin::NoImport);
-    }
-    Ok(LegacyOrigin::NotEstablished(format!(
-        "The origin of this project's records is not established: the project was present in the store when the store's witness of legacy imports began ({}), no witness line names an import for it, and its own import account is {}. So whether it holds imported records cannot be known. This does not change.",
-        began["at"].as_str().unwrap_or("at a time its first line does not give"),
-        if dir.join("imports.jsonl").exists() { "unreadable or shows no import" } else { "absent" })))
+    Ok(LegacyOrigin::NotEstablished(
+        "No legacy import of this project's is established: no line of the store's witness of legacy imports, read whole and wholly formed, names one, and its import account shows none. The absence of such a line is not taken as evidence that none was begun, so whether the project holds imported records is not concluded here.".into(),
+    ))
 }
 /// The name of `project`'s folder in the store: what the witness's first line
 /// lists. It comes from the project's identity and no act changes it.
