@@ -4,6 +4,31 @@
 Reads an already built, unpackaged App bundle without executing it, computes its
 tree identity and writes or checks a candidate identification record. It builds
 nothing, launches nothing, opens no examination and establishes no qualification.
+
+What an identity describes: the bundle the reader actually examined, not whatever
+occupied its pathname when the caller asked. The reader makes two complete passes
+and requires their inventories to be equal. In each pass:
+- It opens each directory on the way to the bundle, and the bundle root, relative
+  to the handle of its parent, without following links, and holds those handles
+  until the pass's walk and its closing comparisons are done.
+- When it opens one, it compares what it opened with what it had just examined
+  by that name: device, inode, mode, owner, group and flags for a directory above
+  the bundle; the full stamp for the bundle root.
+- It walks the bundle from its held root, opening each directory and file inside
+  relative to its parent's handle without following links and closing it as the
+  walk goes, and comparing each entry's stamp before and after reading it. The
+  access list and extended attributes of a symbolic link inside the bundle are
+  read by pathname, not through a handle.
+- When the walk ends it examines each named directory on the way, and the bundle
+  root, once more by its name under its held parent, and compares device, inode,
+  mode, owner, group and flags with the held handle and with the first examination.
+These are comparisons at particular points. Nothing watches a pathname between
+them or between the passes. A bundle put at the name before a pass first examined
+it is what that pass describes, as one whole bundle: if both passes describe it,
+it is the bundle identified; if only the second does and its inventory differs
+from the first pass's, the reading is refused. So whoever identifies a candidate
+sees to it that nothing rebuilds or replaces the bundle during identification and
+its intended use, and identifies it in the place it will be opened from.
 """
 import argparse
 import contextlib
@@ -26,6 +51,10 @@ METHOD = 'chirality.app.bundle-tree.sha256/v2'
 FORMAT = 'chirality.app-v4.candidate-identification/v2'
 BUNDLED_FORMAT = 'chirality.app-v4.candidate-identification/v3'
 INVENTORY_FORMAT = 'chirality.app-v4.bundle-inventory/v2'
+DEVELOPMENT_PREFIX = 'dev.chirality.app-v4.'
+RELEASE_IDENTIFIER = 'com.chirality.app'  # the 4.0.0 package's identity, refused on this route
+RELEASE_NAME = 'chirality'
+RELEASE_BUNDLE_NAME = 'chirality.app'
 XATTR_ALLOWLIST = ('com.apple.provenance',)
 KINDS = ('dir', 'file', 'symlink')
 MAX_LINK_HOPS = 32
@@ -34,7 +63,7 @@ TIMESTAMP = re.compile(r'[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:[0-9]{2}:[0-5][0
                        r'(?:\.[0-9]+)?(?:[Zz]|[+-](?:[01][0-9]|2[0-3]):[0-5][0-9])')
 LIMITS = [
     'Identifies the exact bundle bytes, structure, modes, ownership and allowlisted extended attributes read at identification; reproducible rebuilding is not claimed.',
-    'Unpackaged development build (route native_development): no signing, notarisation, package record or packaged witness.',
+    'Unpackaged development build (route native_development): this route identifies unpackaged development builds only, with a bundle identifier under dev.chirality.app-v4.; a signed or installed package is identified by a separate route. No signing, notarisation, package record or packaged witness.',
     'File times and location are outside the identity: examine this copy in a controlled location without relying on timestamps, launch-registration caches or timestamp-based resource selection; record the actual examination environment separately.',
     'ACLs, non-zero file flags, set-id bits, extended attributes outside the allowlist, absolute or escaping links and special files are refused, not omitted.',
     'Descriptor-relative no-follow reads with two equal passes detect ordinary change during reading; they do not establish custody against a concurrent hostile writer.',
@@ -42,6 +71,11 @@ LIMITS = [
     'No examination is opened, no App is launched and no candidate qualification, replacement or acceptance follows from this record.',
     'App-data absence is historical at identification, limited to the three declared identifier-selected locations; it is not a freshness promise after launch or a census of external state.',
 ]
+SUPPLIER_LIMITS = {
+    False: 'Bundled supplier files and modes match the measured official-source archive; acquisition authorization/custody remains the supplied record, not authenticated by this tool.',
+    True: 'Bundled supplier files and modes match the measured archive and the inventory of the retained canonical distribution record, which states the archive locator, size, digest and inventory only; '
+          'no acquirer or acquisition authorization is recorded for this archive, and custody is not authenticated by this tool.',
+}
 _AFTER_FILE_READ = None  # test hook: called with the entry path after its bytes are read
 
 XATTR_NOFOLLOW = 0x0001
@@ -67,6 +101,26 @@ if sys.platform == 'darwin':  # bundle metadata is read through the macOS libc i
     _libc.acl_free.argtypes = [ctypes.c_void_p]
     _libc.acl_valid.argtypes = [ctypes.c_void_p]
     _libc.acl_valid.restype = ctypes.c_int
+
+
+def judge_development_bundle(identifier, bundle_name, names=()):
+    """The one rule for a development bundle's observed identity on route native_development.
+
+    The identifier is under DEVELOPMENT_PREFIX and is not the release identifier;
+    no bundle name (CFBundleName, CFBundleDisplayName) is the release name
+    Chirality; the bundle's file name is not Chirality.app. Names compare
+    case-insensitively after trimming. build_candidate.py, record and check call
+    this on what they observe; absent names are not judged.
+    """
+    if not isinstance(identifier, str) or not identifier.startswith(DEVELOPMENT_PREFIX) \
+            or identifier.strip().lower() == RELEASE_IDENTIFIER:
+        raise ValueError('route native_development identifies unpackaged development builds only; bundle identifier '
+                         'must be under ' + DEVELOPMENT_PREFIX + ': ' + repr(identifier))
+    if not isinstance(bundle_name, str) or bundle_name.strip().lower() == RELEASE_BUNDLE_NAME:
+        raise ValueError('a development bundle is not named Chirality.app: ' + repr(bundle_name))
+    for name in names:
+        if name is not None and (not isinstance(name, str) or name.strip().lower() == RELEASE_NAME):
+            raise ValueError('a development bundle does not carry the release name Chirality: ' + repr(name))
 
 
 def _require_macos():
@@ -171,7 +225,15 @@ def _stamp(info):
 
 
 def _binding(info):
-    return info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid
+    """A directory's identity with its mode, owner, group and flags.
+
+    Not its access list or extended attributes, and never its contents. An ancestor
+    of an examined tree (a temporary folder, a home, a build root) is written by
+    other processes: an entry made or removed there can change its times, size and
+    link count and says nothing about the tree. It is bound by this.
+    """
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            getattr(info, 'st_flags', None))
 
 
 @contextlib.contextmanager
@@ -186,13 +248,23 @@ def _open_directory(root, bundle=False):
         fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY)
         held.append(fd)
         bindings = []
-        for part in root.parts[1:]:
+        parts = root.parts[1:]
+        for index, part in enumerate(parts):
             info = os.stat(part, dir_fd=fd, follow_symlinks=False)
             if stat.S_ISLNK(info.st_mode):
                 raise ValueError('symlink in bundle root ancestry: ' + part)
             child = os.open(part, os.O_RDONLY | os.O_NOFOLLOW | os.O_DIRECTORY, dir_fd=fd)
             held.append(child)
-            if _stamp(info) != _stamp(os.fstat(child)):
+            # The directory opened must be the one just examined by name. For a bundle
+            # root that is its full stamp, as for everything inside it. For a directory
+            # above or outside the examined tree it is _binding: its contents are other
+            # processes' to change, and a busy one must not refuse a bundle nobody
+            # touched. What this gives up: an entry changed in such a directory in the
+            # instant between these two calls is not refused, including the next
+            # component itself being put there; that component is first examined after
+            # this (see the module docstring for which comparisons follow).
+            same = _stamp if bundle and index == len(parts) - 1 else _binding
+            if same(info) != same(os.fstat(child)):
                 raise ValueError('bundle ancestry changed during identification')
             bindings.append((fd, part, child, info))
             fd = child
@@ -589,6 +661,8 @@ def bundle_metadata(root, inv):
     _check_name(name)
     identifier = plist.get('CFBundleIdentifier')
     _check_identifier(identifier)
+    judge_development_bundle(identifier, Path(os.path.abspath(root)).name,
+                             (plist.get('CFBundleName'), plist.get('CFBundleDisplayName')))
     for field in ('CFBundleShortVersionString', 'CFBundleVersion'):
         if field in plist:
             value = plist[field]
@@ -642,7 +716,7 @@ def make_record(args):
         record['identified_by']['supplier_tool_sha256'] = sha(Path(__file__).with_name('bundled_supplier.py').read_bytes())
         record['limits'] = [s for s in LIMITS if not s.startswith('The Codex supplier is not part')]
         record['limits'] += [
-            'Bundled supplier files and modes match the measured official-source archive; acquisition authorization/custody remains the supplied record, not authenticated by this tool.',
+            SUPPLIER_LIMITS['form' in record['supplier']['acquisition']],
             'Unsigned development candidate only: no installed-custody issuer, supplier qualification, signing, notarisation, native launch or release follows from identification.',
         ]
     else:
@@ -654,7 +728,7 @@ def make_record(args):
     out.mkdir(parents=True, exist_ok=False)
     (out / 'bundle-inventory.json').write_bytes(inventory_bytes)
     if acquisition is not None:
-        (out / 'supplier-acquisition.json').write_bytes(acquisition)
+        (out / record['supplier']['acquisition']['path']).write_bytes(acquisition)
     (out / 'candidate-identification.json').write_bytes(json.dumps(record, indent=2, ensure_ascii=False).encode() + b'\n')
     return record
 
@@ -684,6 +758,7 @@ def validate_record(record):
         raise ValueError('candidate key does not derive from revision and build identity')
     if record['source']['revision'] != record['app_candidate']['revision']:
         raise ValueError('source and candidate revisions differ')
+    judge_development_bundle(record['bundle']['identifier'], record['bundle']['name'])
     if record['app_data']['present_at_identification']:
         raise ValueError('App data already present; the candidate would not start fresh: ' + ', '.join(record['app_data']['present_at_identification']))
     if record['app_data'] != app_data_declaration(record['bundle']['identifier']):
@@ -730,8 +805,8 @@ def main(argv=None):
     p.add_argument('--export-root', required=True); p.add_argument('--build-facts', required=True)
     p.add_argument('--repository', default='sgttomas/chirality-app'); p.add_argument('--identified-at', required=True)
     p.add_argument('--out-dir', required=True)
-    p.add_argument('--supplier-archive', help='Existing official macOS arm64 platform tarball; never downloaded or executed')
-    p.add_argument('--supplier-acquisition', help='Exact acquisition record for that archive; retained with the v3 record')
+    p.add_argument('--supplier-archive', help='Existing macOS arm64 npm platform tarball or supplier release package; never downloaded or executed')
+    p.add_argument('--supplier-acquisition', help='Its npm acquisition record or committed canonical distribution record; retained with the v3 record')
     p = sub.add_parser('check'); p.add_argument('--record', required=True); p.add_argument('--app', required=True)
     args = parser.parse_args(argv)
     try:

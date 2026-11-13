@@ -220,8 +220,9 @@ reconstructs from the project's files what was asked, what the agent
 proposed, what the engineer accepted and what changed, with the host's
 receipts. *Verifies* V4-REC-01, V4-REC-03…05 and V4-HI-70…71 for the host's run.
 The App-run placement and records management of V4-REC-02, V4-REC-04 and
-V4-REC-06 (PRD R-STORE) have no examination criterion yet; one is assigned when
-the App's records store (RS §13.8) is implemented. Preserve what is unknown and the scope
+V4-REC-06 (PRD R-STORE) are examined on the candidate under exit criterion 15
+of the [release target](RELEASE_TARGET_4.0.0.md), by the verifications of
+DEL-04-03 that criterion names; no further scenario is defined here. Preserve what is unknown and the scope
 of any actual human act. Records of source resolution or transport success
 alone must not fill an unobserved provider/host outcome.
 

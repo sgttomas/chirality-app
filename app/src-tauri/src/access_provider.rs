@@ -821,9 +821,24 @@ impl Host {
             .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
         Ok(view)
     }
-    /// Non-authoritative current observation revision for the ordinary chooser.
+    /// Non-authoritative current revision for the settings reading and the
+    /// native confirmations: the latest configuration read of any kind that
+    /// named this folder, absent after an App configuration write.
     /// This is generated source metadata, never a private configuration value.
     pub(crate) fn configured_provider_revision(&self, generation: &Value, cwd: &str) -> Value {
+        self.read_revision(generation, cwd, false)
+    }
+    /// The same for the new-conversation chooser's provider list only: the
+    /// latest private configuration read of this folder. A model list or
+    /// delegation signals read of the folder does not change it, so the next
+    /// step of the chooser does not retire the provider just chosen. Nothing
+    /// is admitted on it: admission, the settings reading and the native
+    /// confirmations follow every read (`check_provider_read`,
+    /// `configured_provider_revision`).
+    pub(crate) fn configured_provider_observation_revision(&self, generation: &Value, cwd: &str) -> Value {
+        self.read_revision(generation, cwd, true)
+    }
+    fn read_revision(&self, generation: &Value, cwd: &str, private_reads_only: bool) -> Value {
         let i = self.inner.0.lock().unwrap();
         if i.generation != *generation
             || i.state != "ready"
@@ -831,7 +846,7 @@ impl Host {
         {
             return Value::Null;
         }
-        i.provider_read_revisions
+        if private_reads_only { &i.provider_observation_revisions } else { &i.provider_read_revisions }
             .get(cwd)
             .filter(|(g, _)| g == generation)
             .map(|(_, revision)| json!(revision))
@@ -1073,7 +1088,8 @@ impl Host {
     pub(crate) fn bind_local_destination(&self, config: &HostConfig, plan: &crate::home_resources::OwnedHomePlan) -> Result<(), String> {
         crate::native_local_provider::check(plan)?;
         let expected = crate::native_local_provider::config(config,plan)?;
-        if config.codex_home != plan.native_path() || config.session_flags != expected.session_flags { return Err(unavailable()); }
+        if config.codex_home != plan.native_path() || config.session_flags != expected.session_flags
+            || config.process_lock.as_deref() != Some(plan.native_path().join(crate::native_local_provider::PROCESS_LOCK).as_path()) { return Err(unavailable()); }
         let mut i=self.inner.0.lock().map_err(|_| unavailable())?;
         if i.local_provider.is_some() || i.state!="absent" || !i.generation.is_null() { return Err(unavailable()); }
         i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into()}); Ok(())

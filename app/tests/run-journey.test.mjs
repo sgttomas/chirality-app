@@ -9,7 +9,7 @@ import {loadSrc} from './support/load-src.mjs';
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {RunWorkflowGuide, runReading} = loadSrc('RunJourney');
+const {RunWorkflowGuide, runReading, runTurnNotices, turnStatusWords, guideResultWords} = loadSrc('RunJourney');
 const UNKNOWN = {state:'native workflow-text send outcome unknown; original source retained', limit:'reply lost'};
 const REFUSED = {state:'native workflow-text turn/start refused by Codex; original source retained', limit:'invented refusal'};
 const NOT_CONFIRMED = 'start not confirmed (turn refused or outcome unknown); not opened, not live';
@@ -167,12 +167,11 @@ test('an unregistered library entry is reviewed singly; the bundled candidate is
   await ui.press('Look for other workflows in this library');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_library_entries_refresh', args:{libraryRef:'lib:project'}});
   const guide = region(ui.c, 'Run a workflow');
-  assert.match(guide.textContent, /Included with the App: coordinated-knowledge-work\. This build can't run it directly; you can inspect it in the workflow studio\./);
-  const why = all(guide, 'details').find(d => d.textContent.startsWith('Why'));
-  assert.match(why.textContent, /production bundle candidate; not a published release/, 'the host reason stays available under Why');
+  const included = region(guide, 'Included workflow coordinated-knowledge-work');
+  assert.match(included.textContent, /Can't be used in this App: production bundle candidate; not a published release\./, 'the host reason is said beside the workflow');
   assert.equal(all(guide, 'button').some(b => b.textContent.includes('coordinated-knowledge-work')), false);
   await ui.rerender({data:data({productionCatalog:{standing:'released', entries:[{name:'coordinated-knowledge-work', revision:'bundled-rev-0123456789', runnable:true, runLimit:null}]}})});
-  await ui.press('Use coordinated-knowledge-work (included with the App)');
+  await ui.press('Use coordinated-knowledge-work');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_production_bundle', args:{name:'coordinated-knowledge-work'}}, 'a host-runnable bundled entry uses the existing bundled selection');
   await ui.rerender({data:data()});
   await ui.rerender({data:data({selections:selected(false)})});
@@ -258,7 +257,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
-  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text");
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text", 'an unrecognised refusal stays in the App\'s words');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'', failed:false, settled:false}});
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
@@ -383,8 +382,8 @@ for (const [replacement, currentGeneration] of [
   const projection = (generation, runs) => data({context:{sourceRef:'src', generation}, selections:selected(), runs});
   const ui = await mount({thread:'T1', navigate:true, host:snapshot(g, 'active'), data:projection(g, [original])});
   try {
-    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
-    assert.match(region(ui.c, 'Run open-original').textContent, /Working/);
+    assert.match(region(ui.c, 'Run progress').textContent, /Codex reports this conversation active/);
+    assert.match(region(ui.c, 'Run open-original').textContent, /Codex reports this conversation active/);
     const replacementQuestion = {generation:currentGeneration, state:'outstanding', nativeParameters:{threadId:'T1'}};
     // The open row is unchanged while both the current source and its same-ID
     // activity are replaced. No ended result or new-run order is fabricated.
@@ -410,7 +409,7 @@ for (const [replacement, currentGeneration] of [
     await ui.press('Answer in the conversation');
     assert.deepEqual(ui.shown, [['T1', 'conversation-requests']]);
     await ui.rerender({host:snapshot(currentGeneration, 'active')});
-    assert.match(region(ui.c, 'Run progress').textContent, /Working/);
+    assert.match(region(ui.c, 'Run progress').textContent, /Codex reports this conversation active/);
     assert.equal(JSON.stringify(original), originalBytes, 'the retained open run was never ended or rewritten');
     assert.deepEqual(ui.calls, [], 'all these readings and navigation issue no host command');
   } finally { await ui.close(); }
@@ -455,4 +454,335 @@ test('a saved desktop setup shows the project folder only when its projection ma
     assert.match(region(ui.c,'Project location').textContent,/Project is set; its folder name is unavailable/,`unknown source ${source} supplies no folder`);
   }
   assert.deepEqual(ui.calls,[]);await ui.close();
+});
+
+// Walk of the development App at main 4bb28164: a press that met a passing
+// history reader failed with the host's own words under Progress, a start the
+// App could not record left "Check your inputs, then start the run", and an
+// included workflow showed a library's "newer revisions can't be checked".
+test('a refused press is said in plain words under Next only where nothing was done, and an included workflow shows no library revision note', async () => {
+  const busy = {command:'workflow_select_production_bundle', message:'Error: Native history context is busy; refresh the workflow choice', failed:true, settled:true};
+  const ui = await mount({host:host(), data:data(), thread:'T1', outcome:busy});
+  const last = region(ui.c, 'Run a workflow — last result');
+  assert.equal(all(last, 'p')[0].textContent, "Couldn't choose the included workflow: the App was busy reading conversation history, so nothing was done. Press the button again.");
+  assert.match(last.textContent, /What the App reportedNative history context is busy; refresh the workflow choice$/, 'the exact reply stays under details');
+  assert.equal(last.getAttribute('role'), 'alert');
+  const section = region(ui.c, 'Run a workflow');
+  const children = Array.from(section.childNodes);
+  assert.equal(children.indexOf(last), children.findIndex(node => /^Next:/.test(node.textContent)) + 1, 'the result follows the Next line, before the steps');
+  // The App's own refusal before any host command is issued.
+  await ui.rerender({outcome:{command:'workflow_open_project_library', message:'Error: Workflow source or chat changed; refresh the displayed choice before acting', failed:true, settled:true}});
+  assert.match(region(ui.c, 'Run a workflow — last result').textContent, /^Couldn't show this project's workflows: the conversation chosen here is no longer open in this view, so nothing was done\. Choose the conversation again/);
+  // Plain words only for the exact message from a command that checks first.
+  // A start refused after its records were written is never "nothing was done".
+  for (const [command, message] of [
+    ['workflow_send_run', 'refused-not-sent: turn/start generation changed before request registration'],
+    ['workflow_send_run', 'Workflow native generation changed; refresh the displayed choice'],
+    ['workflow_end_run', 'Native history context is busy; refresh the workflow choice'],
+    ['workflow_prepare_run', 'Workflow App source changed; nothing selected or prepared'],
+    ['workflow_prepare_run', 'the Native history context is busy; refresh the workflow choice, later'],
+  ]) {
+    await ui.rerender({outcome:{command, message:`Error: ${message}`, failed:true, settled:true}});
+    const words = region(ui.c, 'Run a workflow — last result').textContent;
+    assert.ok(words.includes(message), `${command}: the App's own words are shown`);
+    assert.doesNotMatch(words, /nothing was done|nothing was changed|nothing was sent|Press the button again/, `${command}: ${message}`);
+  }
+  await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: refused-not-sent: turn/start generation changed before request registration', failed:true, settled:true}});
+  assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: refused-not-sent: turn/start generation changed before request registration", 'a failed start points nowhere: the result is also shown while Progress is withheld');
+
+  const included = {kind:'workflow', origin:'bundled', source_root:'invented-library:library-v9.9.9', name:'coordinated-knowledge-work', revision:'3730d84debb5aa', revision_method:'invented/v1', derived_from:null};
+  const bundled = [{...selected()[0], selection:{...selected()[0].selection, identity:included,
+    newerRevision:{limit:"the selection's library is not open in this App session; newer revisions not read"}}}];
+  const catalogue = source => ({standing:'s', ...(source ? {source} : {}), entries:[{name:included.name, revision:included.revision, identity:included, runnable:true}]});
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()}), outcome:null});
+  assert.doesNotMatch(section.textContent, /can't be checked/, 'an included workflow has no library revisions to follow');
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, revision 3730d84debb5…\. Ready to run\./, 'source and revision of an included workflow, with no library named');
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
+  assert.match(region(ui.c, 'Workflow chosen for this run').textContent, /^coordinated-knowledge-work — included with the App, from Chirality Library 9\.9\.9, revision 3730d84debb5…\./);
+  // The role line: the conversation's role beside the roles the Library lists for the chosen included workflow.
+  const withRoles = source => ({...catalogue(source), entries:[{...catalogue(source).entries[0], roles:['TASK', 'WORKING_ITEMS']}]});
+  const roleLine = () => region(ui.c, "Role and the workflow's listed roles");
+  await ui.rerender({data:data({selections:bundled, productionCatalog:withRoles({tag:'library-v9.9.9'})})});
+  assert.equal(roleLine().textContent, "This conversation's role is not known to this App process. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.", 'a conversation row with no role established by the App');
+  await ui.rerender({host:host({threads:[{threadId:'T1', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'HELP_HUMAN', supply_ref:'sup:1'}}, {threadId:'T2', generation:g, model:'invented-model', status:{type:'idle'}, appRole:{standing:'app-observed', role:'TASK'}}]})});
+  assert.equal(roleLine().textContent, 'This conversation is in the role HELP_HUMAN. The Library lists coordinated-knowledge-work for: TASK, WORKING_ITEMS.', 'the chosen conversation\'s own role, not another conversation\'s');
+  await ui.rerender({host:host()});
+  // Review round 1: the development holding copy also has the bundled origin, with another source root.
+  const development = [{...bundled[0], selection:{...bundled[0].selection, identity:{...included, source_root:'chirality-root', revision:'1b1733864cd8aa'}}}];
+  await ui.rerender({data:data({selections:development, productionCatalog:catalogue({tag:'library-v9.9.9'})})});
+  const other = region(ui.c, 'Workflow chosen for this run').textContent;
+  assert.match(other, /^coordinated-knowledge-work — a bundled copy \(source chirality-root\), revision 1b1733864cd8…\./, 'a selection that is not a catalogue entry is described by its own source');
+  assert.doesNotMatch(other, /included with the App|Chirality Library/);
+  assert.equal(roleLine(), undefined, 'a selection that is not a catalogue entry gets no role line: the Library\'s list is the catalogue\'s');
+  await ui.rerender({data:data({selections:bundled, productionCatalog:catalogue()})});
+  await ui.rerender({data:data({selections:[{...bundled[0], selection:{...bundled[0].selection, identity:{name:'resolve-spacing', origin:'project', revision:'rev-2-abcdef0123456789'}}}]})});
+  assert.match(section.textContent, /Newer revisions of resolve-spacing can't be checked/, 'a library workflow still says when newer revisions could not be read');
+  await ui.close();
+});
+
+test('a prepared run the host did not send says what happened in plain words and then the host\'s own recovery text', async () => {
+  const unsent = (state, limit, retry) => ({reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{sent:false, state, limit, ...(retry ? {retry} : {})}});
+  const ui = await mount({host:host(), data:data({selections:selected(), runs:[unsent('WR pre-send publication failed; nothing sent', 'nothing written: no records store', 'Retry publishes the same original records; sending stays a separate once-only step')]}), thread:'T1'});
+  const section = region(ui.c, 'Run a workflow');
+  assert.match(section.textContent, /Next: The run didn't start\. Progress says why and what to do\./);
+  assert.equal(region(ui.c, 'Run progress').textContent.split(' Start the run')[0].replace(/^Not started\./, '').trim().startsWith("Nothing was sent. The App couldn't finish saving the run's record. What the App says to do: Retry publishes the same original records; sending stays a separate once-only step. The App reported: WR pre-send publication failed; nothing sent: nothing written: no records store"), true);
+  assert.ok(button(ui.c, 'Start the run'), 'the prepared run can be started again');
+  for (const [state, what] of [
+    ['generated supporting files changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the copy of the workflow's supporting files that this run was prepared with\./],
+    ['selected revision source changed or unavailable; nothing sent', /Nothing was sent\. The App couldn't verify the chosen workflow for this run\./],
+    ['workflow approval changed since preparation; nothing sent', /Nothing was sent\. The App couldn't apply the same workflow approval it applied when you prepared this run\./],
+  ]) {
+    await ui.rerender({data:data({selections:selected(), runs:[unsent(state, 'invented cause', 'invented host recovery text')]})});
+    const progress = region(ui.c, 'Run progress').textContent;
+    assert.match(progress, what, state); assert.match(progress, /What the App says to do: invented host recovery text\. The App reported: /, 'the next action is the host\'s own');
+    assert.doesNotMatch(progress, /Prepare the run again|Start the run again|Choose the workflow again/, 'the guide prescribes nothing the host did not');
+  }
+  await ui.rerender({data:data({selections:selected(), runs:[unsent('a state the guide does not know', 'invented cause')]})});
+  const unknown = region(ui.c, 'Run progress').textContent;
+  assert.match(unknown, /^Not started\. The App reports that this run was not sent\. The App reported: a state the guide does not know: invented cause/);
+  assert.doesNotMatch(unknown, /Nothing was sent\.|What the App says to do/, 'an unknown state is given no words the host did not establish');
+  await ui.press('Prepare this run again');
+  assert.equal(ui.calls.at(-1).command, 'workflow_prepare_run', 'preparing again stays offered; the host accepts it while a prepared run is unsent');
+  await ui.close();
+});
+
+// Review rounds 1 and 2 of pull request 241, the question asked of every
+// result: can something not observed, or failed, come out as done?
+test('a result line says only what the command established', () => {
+  assert.equal(guideResultWords({command:'workflow_end_and_start', message:'{"start":{"state":"successor not started"}}', failed:false, settled:true}), null, 'an unnamed command\'s reply is never called done');
+  assert.equal(guideResultWords({command:'workflow_prepare_run', message:'', failed:false, settled:false}), null, 'a press whose result has not arrived claims nothing');
+  const bundle = message => guideResultWords({command:'workflow_select_production_bundle', message, failed:false, settled:true}).words;
+  assert.equal(bundle('{"state":"selected","choiceChat":{"sourceRef":"src","threadId":"T1"}}'), 'Chose the included workflow for this conversation.');
+  assert.equal(bundle('{"state":"selected","choiceChat":null}'), 'Opened the included workflow to read. Nothing was chosen for a conversation.', 'the studio\'s inspection with no conversation is not a choice');
+  for (const reply of ['{"state":"selected"}', 'not json', '']) assert.equal(bundle(reply), 'The App accepted this. The Workflow step shows what is chosen for the conversation.', `a reply that does not say which: ${reply}`);
+  assert.equal(guideResultWords({command:'workflow_open_project_library', message:'{}', failed:false, settled:true}).words, "Opened this project's workflow library.", 'opening the library is not having listed it');
+});
+
+// Review rounds 2 and 3 of pull request 241: after a start that succeeded, a
+// view from before the press read "Ready to start", "Nothing has been sent
+// yet" and offered Start again; with a marker set, other steps still showed
+// cached states as current.
+test('while its view may be from before the last press, the guide shows none of its steps and offers nothing', async () => {
+  const preparedRun = {reference:'run-1', conversation:'T1', home:'account', generation:g, preparationOrder:0, workflow:{name:'resolve-spacing'}, lifecycle:{state:PREPARED}, status:{}};
+  const earlier = {reference:'run-0', conversation:'T1', home:'account', generation:{...g, spawnCounter:0}, source:'s', workflow:{name:'resolve-spacing'}, lifecycle:{state:OPEN}};
+  const view = {data:data({selections:selected(), runs:[preparedRun, earlier]}), outcome:{command:'workflow_send_run', message:'{"state":"native workflow-text turn observed; run opened"}', failed:false, settled:true}};
+  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
+  const render = (viewStale, busy = false) => React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy, text:'', viewStale,
+    chooseThread:() => {}, setText:() => {}, act:async (command, args) => { calls.push({command, args}); }, outcome:view.outcome, showConversation:() => {}})));
+  await render(false);
+  assert.ok(button(c, 'Start the run'), 'the view alone offers Start');
+  assert.match(region(c, 'Run a workflow').textContent, /Ready to run\./);
+  await render(true);
+  const section = region(c, 'Run a workflow');
+  assert.match(section.textContent, /^Run a workflowNext: What this view showed may be from before the App's last operation finished\. The App is not showing its steps until it has read its state again after that; it reads again by itself\./);
+  assert.doesNotMatch(section.textContent, /The last read failed/, 'no failure is said when no read failed');
+  assert.match(region(c, 'Run a workflow — last result').textContent, /^Start requested\.(?! See Progress)/, 'the press\'s own result stays');
+  assert.doesNotMatch(region(c, 'Run a workflow — last result').textContent.split('What the App reported')[0], /Progress|below/, 'without its pointer to Progress, which is withheld');
+  assert.deepEqual(all(section, 'button').map(node => node.textContent), ['Show the conversation'], 'no start, prepare, end or choice is offered');
+  assert.equal(all(section, 'li').length, 0, 'none of the steps is shown');
+  assert.doesNotMatch(section.textContent, /Ready to start|Ready to run|has not been sent|Nothing has been sent yet|Prepared resolve-spacing|Open —|Working/, 'nothing cached is shown as current, earlier runs included');
+  // A status read that failed since is said in the guide itself, where the person is looking.
+  await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data:view.data, host:host(), thread:'T1', busy:false, text:'', viewStale:true, readFailure:'Error: invented status failure',
+    chooseThread:() => {}, setText:() => {}, act:async () => {}, outcome:view.outcome, showConversation:() => {}})));
+  assert.match(region(c, 'Run a workflow').textContent, /it reads again by itself\.The last read failed: Error: invented status failure/);
+  // While the press is still in progress the steps stay, disabled, and its result is not yet said.
+  await render(true, true);
+  assert.equal(region(c, 'Run a workflow — last result'), undefined, 'no result is claimed beside steps from before the press');
+  for (const node of all(region(c, 'Run a workflow'), 'button')) if (!/Show the conversation/.test(node.textContent)) assert.equal(props(node).disabled, true, `${node.textContent} is disabled while the press is in progress`);
+  await render(false);
+  assert.ok(button(c, 'Start the run'), 'once a read started after the press is applied, the view is shown again');
+  assert.ok(region(c, 'Run a workflow — last result'));
+  assert.deepEqual(calls, []);
+  await React.act(async () => root.unmount());
+});
+
+test('a library folder the App could not list is said where the list would be', async () => {
+  const base = data().libraries[0];
+  const unavailable = {...base, entryListing:{state:'unavailable', reference:'listing-2', libraryRef:'lib:project', entries:[], limits:['library entry folder unreadable: invented cause']}};
+  const ui = await mount({thread:'T1', host:host(), data:data({libraries:[unavailable]})});
+  assert.match(region(ui.c, 'Run a workflow').textContent, /The App couldn't look in this library's folder for other workflows: library entry folder unreadable: invented cause/);
+  assert.equal(region(ui.c, 'Workflows that need a first review'), undefined);
+  await ui.close();
+});
+
+// Each reading of an open run says what Codex reported for this conversation and nothing that would follow from it.
+test('an open run is read from what Codex reported for its conversation and no more', () => {
+  const run = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const reading = (row, extra = {}) => runReading(run, host({threads:row ? [{threadId:'T1', generation:g, ...row}] : [], ...extra}));
+  // Idle is Codex's report for this conversation; it is not a claim that nothing is working (a delegated agent may be).
+  const idle = reading({status:{type:'idle'}, statusSource:{method:'thread/status/changed', receiptPosition:9}});
+  assert.equal(idle.tone, 'idle'); assert.equal(idle.title, 'Open — Codex reports this conversation idle');
+  assert.match(idle.detail, /says nothing about agents it delegated work to/);
+  assert.doesNotMatch(idle.title + idle.detail, /not working/);
+  assert.equal(reading({status:{type:'idle'}}).title, 'Open — Codex reports this conversation idle', 'the admission reply is Codex\'s report too');
+  // A status that was never reported, cannot be read, or is not one the guide knows says nothing.
+  for (const row of [{}, {status:null}, {status:{type:'notLoaded'}}, {status:{type:'invented'}}, {status:'idle'}, null]) {
+    const unknown = reading(row);
+    assert.equal(unknown.tone, 'uncertain', JSON.stringify(row)); assert.equal(unknown.title, 'Open — what Codex is doing is not known');
+    assert.doesNotMatch(unknown.title + unknown.detail, /idle|Working|waiting/);
+  }
+  const limited = reading({status:null, statusSource:{method:'thread/status/changed', receiptPosition:9, limit:'the notification does not match the pinned ThreadStatusChangedNotification; status unknown'}});
+  assert.match(limited.detail, /The App cannot establish what Codex is doing in this conversation: the notification does not match the pinned ThreadStatusChangedNotification; status unknown\./);
+  // A report that was received but could not be ordered against the admission reply is said as that, not as "nothing readable".
+  const unordered = reading({status:null, statusSource:{method:'thread/status/changed', limit:'a status report was received for this conversation and its order relative to the admission reply is not established; status unknown'}});
+  assert.match(unordered.detail, /cannot establish what Codex is doing in this conversation: a status report was received for this conversation and its order relative to the admission reply is not established/);
+  assert.doesNotMatch(unordered.detail, /no status from Codex|has not reported/);
+  assert.match(reading({status:{type:'notLoaded'}}).detail, /: Codex reports the conversation as not loaded\./);
+  assert.match(reading({}).detail, /: it holds no status from Codex for it that it can read\./);
+  // The end of the App's observation: the last status seen is not a reading, and nothing is claimed about Codex's process.
+  for (const [row, extra] of [[{status:null, lastObservedStatus:{type:'active', activeFlags:[]}, statusObservationEnded:true}, {}], [{status:{type:'idle'}}, {generationClosed:true}], [{status:{type:'active', activeFlags:[]}}, {generationClosed:true}], [{status:{type:'idle'}, statusObservationEnded:true}, {}]]) {
+    const ended = reading(row, extra);
+    assert.equal(ended.tone, 'uncertain', JSON.stringify([row, extra])); assert.equal(ended.title, 'Open — the App is no longer receiving from Codex');
+    assert.match(ended.detail, /no longer receiving from the Codex process this run was in/);
+    assert.doesNotMatch(ended.title + ended.detail, /Codex has stopped|has ended|exited/);
+  }
+  // Active is working; active with a waiting flag is Codex's own word that it waits, before any request has reached the App.
+  assert.equal(reading({status:{type:'active', activeFlags:[]}}).tone, 'working');
+  for (const flag of ['waitingOnApproval', 'waitingOnUserInput']) {
+    const waits = reading({status:{type:'active', activeFlags:[flag]}});
+    assert.equal(waits.tone, 'waiting', flag); assert.equal(waits.title, 'Codex reports it is waiting for an approval or an answer');
+    assert.match(waits.detail, /The request appears in the conversation once the App has received it\./);
+    assert.notEqual(waits.title, 'Working');
+  }
+});
+
+test('a run recorded open in an earlier Codex session carries the uncertain tone its words describe', () => {
+  const reading = runReading({reference:'run-old', conversation:'same-id', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}}, host({generation:{...g, spawnCounter:2}, threads:[{threadId:'same-id', generation:{...g, spawnCounter:2}, status:{type:'idle'}}]}));
+  assert.equal(reading.title, 'Open in an earlier Codex session'); assert.equal(reading.tone, 'uncertain');
+});
+
+// Each reading says what Codex reported for the conversation and nothing that would follow from it.
+test('the waiting, active and starting readings claim no more than was reported', () => {
+  const open = {conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}};
+  const waiting = runReading(open, host({serverRequests:[{state:'outstanding', nativeParameters:{threadId:'T1'}}]}));
+  assert.equal(waiting.detail, 'Codex is asking a question or approval in the conversation. Answer it there.');
+  assert.doesNotMatch(waiting.detail, /Nothing continues/, 'one outstanding request says nothing of other work in progress');
+  const active = runReading(open, host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}]}));
+  assert.deepEqual([active.tone, active.title, active.detail], ['working', 'Open — Codex reports this conversation active', 'Codex last reported this conversation as active. Follow its progress in the conversation.']);
+  assert.doesNotMatch(`${active.title} ${active.detail}`, /is working on this run|^Working/, 'a last report of active is not a claim that work is being done on the run');
+  const starting = runReading({conversation:'T1', source:'sent', lifecycle:{state:PREPARED}}, host());
+  assert.equal(starting.detail, "The App has issued the starting message and is waiting for Codex's reply. The run opens when Codex confirms the starting turn.");
+  assert.doesNotMatch(starting.detail, /when that reply is observed/, 'a refusal is also a reply, and it does not open the run');
+  assert.doesNotMatch(starting.detail, /was sent/, 'a source is the App issuing the message; Codex receiving it is not established until its reply');
+});
+
+test('an open run says each error notice the App holds with its turn and that turn\'s status, and compares no turns', async () => {
+  const run = {reference:'run-1', conversation:'T1', home:'account', generation:g, source:'s', lifecycle:{state:OPEN}, workflow:{name:'resolve-spacing', origin:'project', revision:'r'}, status:{}};
+  // The case observed against an unreachable model: a conversation Codex reports active whose only news is its retry notice.
+  // Every notice has its own words, by its order of receipt, so that saying the wrong notice of a turn fails.
+  const words = order => `Reconnecting... ${order} — Connection failed: error sending request`;
+  const notice = (turnId, observedOrder, extra = {}) => ({threadId:'T1', turnId, generation:g, error:{message:`Reconnecting... ${observedOrder}`, additionalDetails:'Connection failed: error sending request'},
+    willRetry:true, receiptPosition:observedOrder, ordinalInTurn:1, observedOrder, turnFirstObservedOrder:observedOrder, laterFrameForTurn:false, standing:'live-observed', ...extra});
+  // The host's view: the notices, the turns it holds (a row with the turn's id, and separately which conversation holds a turn of that id), and its item rows.
+  const held = (id, status, startedAt, threadId = 'T1') => ({record:{threadId, turnId:id}, turn:{id, status, startedAt}});
+  const item = (turnId, observedOrder, extra = {}) => ({threadId:'T1', turnId, native:{id:`m-${observedOrder}`, type:'agentMessage'}, standing:'live-observed', observedOrder, ...extra});
+  const view = (turnErrors, turns = [], items = []) => ({turnErrors, turnRecords:turns.map(t => t.record), turns:turns.map(t => t.turn), items});
+  const activeHost = (nativeView, over = {}) => host({threads:[{threadId:'T1', generation:g, status:{type:'active', activeFlags:[]}}], nativeView, ...over});
+  const said = (nativeView, over) => runTurnNotices(run, activeHost(nativeView, over));
+  const RETRY = 'Codex said it will retry.';
+  const one = (turnId, turnStatus, order, over = {}) => ({turnId, words:words(order), retry:RETRY, count:1, turnStatus, ...over});
+  assert.deepEqual(said(view([])), []); assert.deepEqual(runTurnNotices(run, host()), [], 'no native view, no notice');
+
+  // One form: the turn's latest notice, with the status the App holds for that same turn, whatever it is.
+  assert.deepEqual(said(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2})], [held('B', 'inProgress', 200)])), [one('B', 'inProgress', 41, {count:2})]);
+  assert.deepEqual(said(view([notice('B', 41, {ordinalInTurn:2}), notice('B', 40)], [held('B', 'inProgress', 200)])), [one('B', 'inProgress', 41, {count:2})], 'the last received, wherever it stands in the host\'s list');
+  for (const status of ['completed', 'failed', 'interrupted'])
+    assert.deepEqual(said(view([notice('B', 40)], [held('B', status, 200)])), [one('B', status, 40)], `a turn the App holds as ${status} with no later frame naming it: said with that status, not hidden and not inferred to be over`);
+  assert.deepEqual(said(view([notice('A', 40)])), [one('A', null, 40)], 'the App holds no status for the turn, and says none');
+  assert.equal(said(view([notice('B', 40, {willRetry:false})]))[0].retry, 'Codex said it will not retry.');
+  assert.equal(said(view([notice('B', 40, {willRetry:undefined})]))[0].retry, 'Codex did not say whether it will retry.');
+  assert.equal(said(view([notice('B', 90, {ordinalInTurn:33})]))[0].count, 33, 'what the host accepted for that turn, which can exceed the 32 it keeps');
+  // The status is what the App holds from Codex's reports, not "the last reported": the host keeps a reported end over a later stale report of progress.
+  assert.equal(turnStatusWords(null), ''); assert.equal(turnStatusWords('inProgress'), 'The App holds Codex\'s report of that turn as in progress.');
+  assert.equal(turnStatusWords('paused'), 'The App holds Codex\'s report of that turn as “paused”.', 'a status the App does not know is quoted, not interpreted');
+  for (const status of ['inProgress', 'completed', 'failed', 'interrupted', 'paused']) assert.doesNotMatch(turnStatusWords(status), /last|latest|now|still/);
+
+  // A status is this conversation's turn's only where the host's report ties it: one record of that id, this conversation's, and one row of that id.
+  assert.deepEqual(said(view([notice('A', 40)], [held('A', 'completed', 100, 'T2')])), [one('A', null, 40)], 'another conversation\'s turn of that id is not this turn');
+  const shared = {turnErrors:[notice('U', 40)], turnRecords:[{threadId:'T2', turnId:'U'}, {threadId:'T1', turnId:'U'}], turns:[{id:'U', status:'completed', startedAt:100}, {id:'U', status:'inProgress', startedAt:100}], items:[]};
+  assert.deepEqual(said(shared), [one('U', null, 40)], 'two conversations hold a turn of that id: the rows cannot be told apart, so no status is said');
+  assert.deepEqual(said({...shared, turnRecords:[...shared.turnRecords].reverse()}), [one('U', null, 40)], 'in either order: the lists are not paired by position');
+  assert.deepEqual(said({...shared, turns:[shared.turns[0]]}), [one('U', null, 40)], 'two records and one row');
+  assert.deepEqual(said({...shared, turnRecords:[shared.turnRecords[1]]}), [one('U', null, 40)], 'one record and two rows');
+  assert.deepEqual(said({...shared, turnRecords:[shared.turnRecords[1]], turns:[shared.turns[1]]}), [one('U', 'inProgress', 40)], 'one record, this conversation\'s, and one row');
+
+  // Left out only on evidence about that same turn.
+  assert.deepEqual(said(view([notice('B', 40, {laterFrameForTurn:true})], [held('B', 'inProgress', 200)])), []);
+  assert.deepEqual(said(view([notice('B', 40, {observationEnded:true})], [held('B', 'inProgress', 200)])), []);
+  assert.deepEqual(said(view([notice('B', 40)], [held('B', 'inProgress', 200)]), {generationClosed:true}), []);
+  assert.deepEqual(said(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2, laterFrameForTurn:true})])), [], 'the turn\'s latest notice decides, by order of receipt within that one turn');
+
+  // No comparison between turns. Each of the cases the earlier reviews reproduced gives the attributed notice, and nothing about another turn changes it.
+  const compared = [
+    [view([notice('A', 40)], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)]), [one('A', 'inProgress', 40)], 'another held turn with a later start time'],
+    [view([notice('A', 30), notice('A', 41, {ordinalInTurn:2})], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)], [item('B', 35)]), [one('A', 'inProgress', 41, {count:2})], 'a retry received after another turn\'s frame'],
+    [view([notice('A', 30), notice('A', 41, {ordinalInTurn:2})], [held('A', 'inProgress', 100)], [item('B', 35)]), [one('A', 'inProgress', 41, {count:2})], 'another turn known only by a live item'],
+    [view([notice('B', 40)], [held('A', 'completed', 100), held('B', 'inProgress', 200)], [item('A', 45)]), [one('B', 'inProgress', 40)], 'a late frame for another turn'],
+    [view([notice('A', 35)], [], [item('A', 30)]), [one('A', null, 35)], 'a turn known only by its items and its notice'],
+    [view([notice('A', 40)], [held('A', 'inProgress', 100)], [item('B', 45, {standing:'recovered-from-supplier'})]), [one('A', 'inProgress', 40)], 'another turn known only from a history read\'s row'],
+    [view([notice('A', 40)], [held('A', 'inProgress', null), held('B', 'inProgress', 100)]), [one('A', 'inProgress', 40)], 'start times, present or missing, are not read'],
+  ];
+  for (const [nativeView, expected, why] of compared) assert.deepEqual(said(nativeView), expected, why);
+  // Two turns with a notice each: both are said, each with its own turn, in the order the host lists them. Neither is called the latest.
+  assert.deepEqual(said(view([notice('B', 40), notice('A', 50)], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)])), [one('B', 'inProgress', 40), one('A', 'inProgress', 50)]);
+  assert.deepEqual(said(view([notice('A', 50), notice('B', 40)], [held('A', 'inProgress', 100), held('B', 'inProgress', 200)])), [one('A', 'inProgress', 50), one('B', 'inProgress', 40)]);
+
+  // Never another conversation's notice, another Codex session's, one naming no session or no turn, or for a run not open in the current source.
+  const g2 = {...g, spawnCounter:2};
+  assert.deepEqual(said(view([{...notice('A', 40), threadId:'T2'}])), []);
+  assert.deepEqual(said(view([{...notice('A', 40), generation:g2}])), []);
+  assert.deepEqual(said(view([{...notice('A', 40), generation:undefined}])), []);
+  assert.deepEqual(said(view([{...notice('A', 40), turnId:''}])), []);
+  assert.deepEqual(runTurnNotices({...run, generation:g2}, activeHost(view([notice('A', 40)]))), [], 'a run of an earlier Codex session');
+  assert.deepEqual(runTurnNotices({...run, lifecycle:{state:PREPARED}}, activeHost(view([notice('A', 40)]))), []);
+
+  // In the guide, each case asserts what is shown.
+  const LABEL = 'Error notices the App holds for this conversation', LAST = 'The conversation\'s activity shows each notice the App has kept, with its turn.';
+  const STATUS = {inProgress:'in progress', completed:'completed', failed:'failed', interrupted:'interrupted'};
+  const ui = await mount({host:activeHost(view([notice('B', 40), notice('B', 41, {ordinalInTurn:2})], [held('A', 'completed', 100), held('B', 'inProgress', 200)])), data:data({selections:selected(), runs:[run]}), thread:'T1'});
+  const notices = () => region(ui.c, LABEL), lines = () => all(notices(), 'p').map(p => p.textContent);
+  const line = n => `The App holds an error notice from Codex for turn ${n.turnId} of this conversation${n.count > 1 ? `; it is the latest of ${n.count} for that turn` : ''}: ${n.words} ${n.retry}${n.turnStatus ? ` The App holds Codex's report of that turn as ${STATUS[n.turnStatus]}.` : ''}`;
+  assert.deepEqual(lines(), ['The App holds an error notice from Codex for turn B of this conversation; it is the latest of 2 for that turn: Reconnecting... 41 — Connection failed: error sending request Codex said it will retry. The App holds Codex\'s report of that turn as in progress.', LAST]);
+  // A held notice with its turn, not an alert on the run: a note, no alert and no live region on it, in it or around it up to the guide, and outside the state box and its marking.
+  const noteLike = () => {
+    assert.equal(props(notices()).role, 'note'); assert.equal(props(notices()).className, undefined);
+    const live = node => { const p = props(node) ?? {}; return p.role === 'alert' || p.role === 'status' || p['aria-live'] !== undefined; };
+    assert.equal(live(notices()), false); assert.equal(notices().querySelectorAll(live).length, 0, 'nothing inside the note is announced as it changes');
+    for (let node = notices().parentNode; node && node !== ui.c; node = node.parentNode) assert.equal(live(node), false, 'no live region around the note');
+    assert.equal(ui.c.querySelectorAll(node => props(node)?.role === 'alert').length, 0);
+    assert.equal(region(ui.c, 'Run progress').querySelectorAll(node => node === notices()).length, 0, 'not inside the state box');
+    assert.doesNotMatch(region(ui.c, 'Run progress').textContent, /error notice|Reconnecting/, 'the notice is no part of the run\'s state');
+  };
+  noteLike();
+  assert.match(region(ui.c, 'Run progress').textContent, /^Open — Codex reports this conversation active\./, 'the state Codex reported stays as reported');
+  // The App's own words conclude nothing about the run, claim no absence and name no turn as current or latest.
+  const CLAIMS = /latest turn|current|most recent|last reported|still|now\b|can't reach|stopped|recovered|No later|no other record|does not hold|cannot establish|earlier turn|later turn/i;
+  const ownWords = () => lines().join(' ').replace(/Reconnecting\.\.\. \d+ — Connection failed: error sending request/g, '');
+  assert.doesNotMatch(ownWords(), CLAIMS);
+  // Each reproduced case shows the attributed line, and none claims currency.
+  for (const [nativeView, expected, why] of compared) {
+    await ui.rerender({host:activeHost(nativeView)});
+    assert.deepEqual(lines(), [...expected.map(line), LAST], why);
+    assert.doesNotMatch(ownWords(), CLAIMS, why); noteLike();
+  }
+  // Every status the App can hold for the turn, as shown; an end is said as held, with no alert even where Codex said it will not retry.
+  for (const status of ['completed', 'interrupted', 'failed']) {
+    await ui.rerender({host:activeHost(view([notice('B', 40, {willRetry:false})], [held('B', status, 200)]))});
+    assert.deepEqual(lines(), [`The App holds an error notice from Codex for turn B of this conversation: ${words(40)} Codex said it will not retry. The App holds Codex's report of that turn as ${status}.`, LAST]);
+    noteLike();
+  }
+  // Two conversations hold a turn of that id: no status sentence, and the rest of the line unchanged.
+  await ui.rerender({host:activeHost(shared)});
+  assert.deepEqual(lines(), [`The App holds an error notice from Codex for turn U of this conversation: ${words(40)} ${RETRY}`, LAST]);
+  assert.doesNotMatch(lines().join(' '), /report of that turn|completed|in progress/);
+  // Two turns: two lines, each with its turn.
+  await ui.rerender({host:activeHost(view([notice('B', 40), notice('A', 50)], [held('B', 'inProgress', 200)]))});
+  assert.deepEqual(lines(), [line(one('B', 'inProgress', 40)), line(one('A', null, 50)), LAST]);
+  noteLike();
+  // Evidence about the turn itself: nothing is shown.
+  for (const nativeView of [view([notice('B', 41, {laterFrameForTurn:true})], [held('B', 'inProgress', 200)]), view([notice('B', 41, {observationEnded:true})]), view([])]) {
+    await ui.rerender({host:activeHost(nativeView)});
+    assert.equal(notices(), undefined);
+  }
+  await ui.close?.();
 });

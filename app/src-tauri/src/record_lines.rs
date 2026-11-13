@@ -127,7 +127,7 @@ impl Chain {
                     Err(match (&l["value"], &self.last) {
                         (Value::Null, Some(_)) => format!("chain broken at line {no}: it starts a new chain after earlier lines; never repaired"),
                         (v, Some(last)) => format!("chain broken at line {no}: it links to {v}, but the preceding line's identity is {last}; never repaired"),
-                        (v, None) => format!("chain broken at line {no}: it links to {v}, but it is the first line of its log; never repaired"),
+                        (v, None) => format!("chain broken at line {no}: it links to {v}; never repaired"),
                     })
                 } else {
                     Ok(())
@@ -182,6 +182,9 @@ pub(crate) struct ParsedLine {
     /// The expected `seq` and the chain as they stood before this line.
     pub expected_before: u64,
     pub chain_before: Chain,
+    /// The limit for a chain broken at this line, when it is (also among
+    /// `limits`): kept apart so that no reader has to find it by its words.
+    pub broken: Option<String>,
 }
 /// A log (or its part after `first` complete lines) as read.
 pub(crate) struct Parsed {
@@ -235,7 +238,7 @@ pub(crate) fn parse_reader(mut reader: impl std::io::BufRead, name: &str, first:
         raw.pop();
         let next = read(&mut reader)?;
         no += 1;
-        let mut line = ParsedLine { no, offset, len: raw.len(), digest: line_identity(&raw), entries: vec![], limits: vec![], notes: vec![], expected_before: expected, chain_before: chain.clone() };
+        let mut line = ParsedLine { no, offset, len: raw.len(), digest: line_identity(&raw), entries: vec![], limits: vec![], notes: vec![], expected_before: expected, chain_before: chain.clone(), broken: None };
         // Only a complete following line can name a recovered partial. A
         // still-torn W-0 observation is not evidence that recovery happened.
         let mut recovered = false;
@@ -258,7 +261,7 @@ pub(crate) fn parse_reader(mut reader: impl std::io::BufRead, name: &str, first:
             let decoded = match &validator { Ok(v) => decode_line(&raw, v), Err(e) => Err(NotRead::Invalid(e.clone())) };
             match decoded {
                 Ok((entries, link)) => {
-                    if let Err(broken) = chain.step_identity(no, line.digest.clone(), link.as_ref()) { line.limits.push(format!("{name}: {broken}")); }
+                    if let Err(broken) = chain.step_identity(no, line.digest.clone(), link.as_ref()) { line.limits.push(format!("{name}: {broken}")); line.broken = Some(format!("{name}: {broken}")); }
                     for entry in &entries {
                         let seq = entry["seq"].as_u64().unwrap_or(0);
                         if seq != expected { line.limits.push(format!("{name}: sequence incomplete/disagrees: expected {expected}, found {seq} at line {no}")); }
@@ -291,9 +294,48 @@ pub(crate) fn chain_head(path: &std::path::Path) -> Value {
         Err(e) => return json!({"state":"unreadable","error":e.to_string()}),
     };
     let mut limits: Vec<String> = Vec::new();
-    let parsed = parse_with(&bytes, &name, 0, 0, 1, Chain::default(), &mut |l| limits.extend(l.limits.into_iter().filter(|m| m.contains("chain broken"))));
+    let parsed = parse_with(&bytes, &name, 0, 0, 1, Chain::default(), &mut |l| limits.extend(l.broken));
     json!({"method":LINE_METHOD,"head":parsed.chain.last,"lines":parsed.chain.lines,"linked":parsed.chain.linked,
         "unchained":parsed.chain.unchained,"unchainedLimit":parsed.chain.unchained_note(&name),"broken":limits,
+        "signedCheckpoints":"not written: they wait for App signing (OI-011)"})
+}
+
+/// A log's chain head with the reader's account of its lines, as an export
+/// package of chain-head profile 0.3 records it: `setAside`, the lines the
+/// reader counted in the chain without reading them as records (unreadable or
+/// invalid; such a line's own link is not examined), and `torn`, the torn
+/// lines the App closed and set aside (not counted; the line after each names
+/// its exact length and SHA-256). Line numbers are from 1. It also records the
+/// log's exact length and SHA-256 (`bytes`, `sha256`) and the length of an
+/// unclosed final part (`unclosedEnd`), so that the tag commits to the log's
+/// bytes and not only to what its links bind.
+pub(crate) fn chain_account(path: &std::path::Path) -> Value {
+    let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    let bytes = match std::fs::read(path) {
+        Ok(b) => b,
+        Err(e) => return json!({"state":"unreadable","error":e.to_string()}),
+    };
+    let mut limits: Vec<String> = Vec::new();
+    // (line, lines counted before it, read as no entry, torn)
+    let mut seen: Vec<(usize, usize, bool, bool)> = Vec::new();
+    let parsed = parse_with(&bytes, &name, 0, 0, 1, Chain::default(), &mut |l| {
+        seen.push((l.no, l.chain_before.lines, l.entries.is_empty(), !l.notes.is_empty()));
+        limits.extend(l.broken);
+    });
+    let (mut set_aside, mut torn) = (Vec::new(), Vec::new());
+    for (index, (no, before, unread, is_torn)) in seen.iter().enumerate() {
+        // Counted: the chain's line count advanced over this line.
+        let after = seen.get(index + 1).map_or(parsed.chain.lines, |next| next.1);
+        if *is_torn { torn.push(*no); } else if *unread && after == before + 1 { set_aside.push(*no); }
+    }
+    json!({"method":LINE_METHOD,"head":parsed.chain.last,"lines":parsed.chain.lines,"linked":parsed.chain.linked,
+        "unchained":parsed.chain.unchained,"unchainedLimit":parsed.chain.unchained_note(&name),"broken":limits,
+        "setAside":set_aside,"torn":torn,
+        // The exact bytes this account is of: any change to the log's bytes
+        // disagrees with the tag, whatever the chain's links can show.
+        "bytes":bytes.len(),"sha256":crate::util::sha256_hex(&bytes),
+        // The length of an unclosed final part (a partial entry, not read), or null.
+        "unclosedEnd":parsed.partial_tail.as_ref().map(|_| bytes.len() as u64 - parsed.tail_offset),
         "signedCheckpoints":"not written: they wait for App signing (OI-011)"})
 }
 

@@ -690,11 +690,13 @@ implemented behavior and qualification limits.
     including the person's `run_ended`, are written in order. I/O failures still
     hold strict order.
 24. **Conversation roles** (NIR §5.4, §5.8; ROLE §3.2, §3.3, §4.4, §6.2). The
-    start display lists the role set readably, with the `default_for_new_chat`
-    role labelled as a preselection (the bundled set marks none today, U-R11),
-    "No role", and each role's limits as the limit account hands them (TASK
-    "A task agent does not delegate: Stated, not enforced"; a modified copy
-    reads not known). The start display and Continue as offer HELP_HUMAN,
+    start display lists the role set readably, each role with a plain line
+    from its shipped guidance, with the `default_for_new_chat` role shown
+    preselected and clearable (HELP_HUMAN in the bundled set, DEL-02-04
+    TBD-004), "No role", and each role's limits as the limit account hands
+    them, in plain words (TASK "A task agent does not delegate: Stated, not
+    enforced", then that Codex does not enforce it and that approval, sandbox,
+    configuration and depth do not either; a modified copy reads not known). The start display and Continue as offer HELP_HUMAN,
     HELPS_HUMANS and WORKING_ITEMS (the host's `roleSet.conversationRoles`)
     and No role. TASK is not listed as a choice: it is the role a manager
     assigns bounded work to, and its guidance is supplied for that delegation
@@ -855,6 +857,40 @@ implemented behavior and qualification limits.
     currently unsigned and unchained; cold reads restore no conversation or
     role authority.
 
+    The host records what it observes of Codex's **native delegation** the
+    same way, in the same 0.2 format (`fleet.native-links.schema.json`), with
+    no undertaking named. A completed spawn item received live in a
+    conversation of the selected project is written once as
+    `dispatch_observed`: the home-qualified parent and child thread
+    identities, the spawn item, the content identity of the spawn prompt
+    (never its text, or that Codex supplied none) and the association. The
+    association comes only from one line of the prompt,
+    `Chirality-Brief: briefs/<file>.json sha256:<64 lowercase hex>` (path
+    relative to `.chirality/fleet/`, digest of the file's exact bytes),
+    compared with the brief file when the dispatch is recorded, and the dispatch
+    records what that brief record itself states (its record identity, work
+    item and undertaking): brief
+    referenced, brief referenced whose content does not match the
+    reference, brief reference not resolved (with the reason), or no brief
+    reference. A match shows which brief was named, not that the child
+    received or read it. A file that is not a brief record is never a
+    reference that resolves, whatever its digest. `child_observed` is
+    written when the status Codex reports for a child changes, and
+    `observation_ended` when the generation it was observed in closes
+    (Codex stopped or exited) or when the App itself exits (cause "App
+    quit"). A session records the end only of its own observation, and every
+    later fact of a child, in whatever generation of Codex reports it, goes
+    through the recording context frozen when that child was first
+    recorded, with the writer's physical check:
+    nothing is ever written about a child another session recorded, or
+    under another identity or folder, and after a crash or a kill no end is
+    recorded at all. Each child's facts reach
+    the store in the order observed; a later one waits while an earlier one
+    of that child is unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
+    conversation whose folder is not the selected project, is not recorded.
+    An observation whose project has no usable records-store attachment
+    waits and is recorded once it has one.
+
 27. **Refresh fleet records** rebuilds the file-based coordination workspace
     for each undertaking: the selected graph, outstanding returns and review
     ownership, recorded integration, selected work and waiting causes. It reads
@@ -867,8 +903,19 @@ implemented behavior and qualification limits.
     Missing, changed or duplicate selections never fall back to an older graph.
     Inputs are contained Fleet-relative files; connector needs are interpreted
     from their declared receiving records with claim/route gaps shown. Decision
-    needs and current native execution remain unknown without their required
-    evidence. An incomplete source packet cannot produce unqualified readiness
+    needs remain unknown without their required evidence. A dispatch is
+    tied by what its own record says: the work item and undertaking the
+    referenced brief named when the dispatch was recorded. Nothing in the
+    project's files is consulted to tie anything, so a brief file changed,
+    replaced or superseded afterwards moves no worker. An item so held, with
+    no return recorded, reads `dispatched` and lists every worker dispatched
+    for it, each with its last recorded status, when it was recorded and
+    that nothing has been recorded since; it reads `unknown` once an end of
+    every such worker's observation is recorded, or where its named brief
+    cannot be found. A dispatch under an earlier brief of the item still
+    holds it and says so. A worker still observed for work that is not
+    selected in the current graph leaves no row plainly ready. A child tied to no brief
+    leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 
@@ -1161,6 +1208,49 @@ including unknown acknowledgment after process loss and a delegated child
 outliving its parent. This is development verification; the existing C1 EXP
 records remain capture-only and no candidate qualification is claimed.
 
+## Supplier intake and recordings at a pin
+
+A pin advance is deliberate (DEL-01-01 REQ-006). One of its steps is a maintained
+tool, `supplier_checks/intake.py`, run from `app/`. It does not sign in, use a
+model or read a person's Codex home, and fetching a release archive is not among
+its acts (a download needs the owner's permission naming the file, source and
+size).
+
+A pin is a key of the table `PINS` in `intake.py`, which holds, for each pin
+that has a consumer today, the release archive's address, size, SHA-256 and
+source commit. The tool accepts no other pin and builds no path from a caller's
+text; adding a pin is a reviewed change to that table.
+
+`intake.py --archive <file> --pin <pin> --out <new directory>` checks the
+archive's size and SHA-256 against the table, extracts regular files and
+directories only, writes the distribution record (`CANONICAL_DISTRIBUTION.json`),
+compares the tree with it, runs the supplier's schema generators and writes the
+manifest, the two compiled bundles and `GENERATION.json`. A refusal at any point
+removes the output directory.
+
+What the generator is given is six variables (HOME, CODEX_HOME and TMPDIR in a
+fresh scratch directory, PATH, LANG and TZ=UTC). Before each execution the tool
+refuses when configuration from outside the fresh homes could reach the
+supplier: a `.git` or `.codex` entry in any ancestor of the scratch working
+directory, the system folder `/etc/codex`, or a managed preference the supplier
+reads. Each is checked by presence alone; a check that cannot be made refuses,
+and the generation record names the checks made. These are controls on what the
+supplier is given, not a sandbox: they do not stop supplier code opening a file
+by an absolute path. The generator's sockets are sampled while it runs, which is
+not network isolation.
+
+This is an operator-run tool on stable inputs. It is built so that a check that
+was not made or that failed cannot come out as a distribution record or a
+generated basis. It is not built to withstand a writer changing the inputs
+during the run, nor someone with write access forging a record.
+
+Recorded exchanges at a pin are kept as evidence under
+`supplier_checks/recordings/<pin>/`, with a note beside them saying how they
+were made and what the files do and do not establish. The harness that made
+them is not maintained; `supplier_checks/test_recordings.py` checks what the
+files themselves establish. Neither a recording nor a generated basis is
+qualification of the pin (DEL-01-01 AC-011).
+
 ## Group B offline examination support
 
 `examination/check.py` checks EXP result and PKG identity files and their explicit
@@ -1244,12 +1334,76 @@ plugins = false
 enabled = false
 ```
 
+A configuration file does not decide where a development launch's model
+requests go: the stand-in provider above applies only where a conversation
+uses it, the first-use route writes its own configuration, and the App can
+rewrite one while it runs. A conversation on the built-in provider is
+addressed to the supplier's real service, signed in or not: the API address,
+or with a ChatGPT sign-in the ChatGPT service address.
+
+So a launch that is not the owner's sitting also sets
+`CHIRALITY_DEV_OPENAI_BASE_URL` to a same-machine address, for example
+`http://127.0.0.1:9/v1` (nothing listens there) or a loopback stub's address.
+A development build passes it to the account home's Codex at every start as
+the command-line setting `openai_base_url`, which outranks the person's and
+the project's configuration files and replaces either default address. A
+system managed configuration or managed preference outranks it, so such a home
+is not started while either is present. The rule for the value: at most
+2048 bytes; `http://` or `https://`; then `127.0.0.1` or `[::1]` written
+literally (no name is accepted, `localhost` included, so nothing is resolved);
+an optional port from 1 to 65535 without leading zeroes; and an optional path
+containing only ASCII letters, digits and `._~/-`. No user or password part,
+query or fragment. With any other value Codex is not started. Loopback restricts where the request goes; it does not make
+whatever listens there trusted. The release configuration (built with
+`distribution-successor`, and not a development run) never consults the input.
+The dedicated local home never carries the setting; its provider has its own
+address.
+
+The input is for scratch homes nobody has signed in to, because a stand-in
+that listens there may record what it receives. A home whose Codex would
+carry the setting is not started while it holds a sign-in file (looked at by
+name only); sign-in is refused in it; and the separate key home is not
+prepared at all. Two things the App does not detect: a sign-in kept in the
+login keychain instead of the file, and a sign-in file put there from outside
+the App after its last check (if that happens between App start-up and the
+first start, Codex is not started and the reason shows only when the person
+starts it). The launch helper's home kind is the first hold: a home
+made for the owner's sitting never carries the input.
+
+The setting replaces the built-in provider's address for model requests, and
+for the model list unless a model catalogue address is configured
+(`model_providers.openai.model_catalog_url`, which it does not replace).
+Nothing else: the sign-in, token, plugin, connector and analytics addresses
+are separate. As far as the supplier's source shows, a home with no sign-in
+does not ask for the model list at all and lists the catalogue bundled with
+Codex; where a request is made and fails, Codex logs the failure and still
+lists the bundled catalogue. For those, such a launch also sets the proxy
+variables to a loopback port where nothing listens and exempts loopback, as
+the examination launch helper does: `HTTPS_PROXY`, `HTTP_PROXY`, `ALL_PROXY`
+and their lower-case forms to `http://127.0.0.1:9`, and `NO_PROXY` and
+`no_proxy` to `127.0.0.1,localhost,::1`. The supplier's own HTTP and websocket
+clients honour these by default. Not covered: a home whose configuration turns
+on the supplier's system proxy feature, clients the supplier builds for direct
+routing, redirects, anything Codex itself starts, the web view's helper
+processes, and the system. So a launch made this way has had the built-in
+provider's address replaced and some other clients obstructed; it has not been
+held to this machine. What it shows is behaviour against a local substitute,
+which does not qualify the account route to the real service.
+
 Copy the maintained `tests/fixtures/FX-DP1/project/decisions` files into the
 scratch workspace's `project/decisions/`, then run `npx --offline tauri dev`.
 For the offline thread exercise, enter model `skeleton-no-model` and provider
 `skeleton_local` explicitly. These are test choices, not product defaults.
 Open a package, choose an alternative and confirm its full native text.
 Authenticated/live model work remains coordinated with the owner.
+
+A launch writes the system web view's data and caches, and the App's own data
+unless redirected, under the home's `Library` in folders named for the build's
+bundle identifier, whatever `HOME` alone is set to. Setting `CFFIXED_USER_HOME`
+together with `HOME` to one throwaway folder redirects them;
+[`examination/standalone/launch.py`](examination/standalone/launch.py) does that
+for an identified development build. Agents do not remove those folders from
+the owner's Library.
 
 For stored history, choose **Read stored conversations**, then select a received
 conversation. **Read metadata**, **Read turns**, **Read goal**, and per-turn item
@@ -1326,9 +1480,87 @@ project store files byte for byte, with SHA-256 manifests and each copied RS
 log's chain head. Store-wide query caches and the two known owning lock controls are omitted;
 imported connector publication evidence is preserved.
 **Verify an exported package** checks inventories, hashes and RS heads again.
-The included `verify.py` checks bytes and inventories with standard Python 3,
-without the App. Exports are unsigned until App signing; byte verification
-confers no source authenticity. New packages include a protected
+The included `verify.py`, with standard Python 3 and without the App, checks
+bytes and inventories.
+A package faithfully exported from a store whose chain was already
+broken is not refused: its bytes are consistent, and the log's integrity is
+limited at the line the package records, which the App's full statement
+names with its log and line and which stays reported by the store's reader
+after import. For a package whose chain-head
+tag is of profile 0.3 its checks are three: the manifests and inventory; that
+each chained log's exact length and SHA-256 equal the ones the tag records
+for it; and each chain recomputed from the lines and compared with the
+recorded head, line count and breaks. Then it lists limits under three
+labels: FOUND by this verifier (a break in a recomputed chain that the
+package records too; an unclosed final part of a log), STATED by the package
+and not checked here (a line the package's account says the App set aside; a
+role supply log the package says the App could not read), and NOT CHECKED (a
+chain it did not recompute). It ends with exit status 0 when every check it
+makes passed and no limit is listed, 2 when every check passed and at least
+one limit is listed, and 1 when a check failed. Exit status 0 means exactly
+that; it does not mean the records are intact, because `verify.py` does not
+hold the record format and does not check the package's account.
+
+Three things are kept apart, in the tag, in what either checker says and
+here, and none stands for another: equal bytes say that an exported log is
+the log that was exported; whether its records are intact is the chain
+recomputation and, in the App, the reading of every line with the record
+format; and nothing in a verification says whether a record may be disposed
+of.
+
+The chain-head tag `records-chain-heads.json` is written in profile 0.3
+(`formatVersion` "0.3"; a package format addition decided by App Agent 0,
+2026-11-12). Each log's head, as before, records the SHA-256 of its last
+counted line, the lines counted, whether lines carry links, the lines written
+before chaining began, and each place the chain was broken (the words of one
+kind of break differ from those an earlier build wrote; see the earlier
+profiles, below). Profile 0.3 adds,
+for every chained log whose file the App could read when it wrote the tag,
+`bytes` and `sha256`, the exact length and SHA-256 of the log file as
+exported, also for a role supply log the App could not take; and for every
+chained log the App took: `setAside`, the numbers (from 1) of the lines the
+App counted in the chain without reading them as records; `torn`, the numbers
+of the lines the App closed and set aside (not counted); and `unclosedEnd`,
+the length of an unclosed final part or null.
+
+What holds for a profile 0.3 package: a package altered in any chained log,
+with the tag not changed to agree, fails verification in both checkers,
+whether or not its manifests were regenerated. `verify.py` compares each
+log's bytes with the tag before it makes anything of the lines. The App's
+verification recomputes the whole tag from the payload, with the record
+format, and compares it with the recorded one, which includes those members;
+so it also refuses a package whose account differs from what its reader
+finds. That equality, and not the chain's links, is what binds every byte:
+the App does not examine the link of a line it sets aside, so the links alone
+do not tie the lines before such a line to the recorded head. The package is
+unsigned: someone who rewrites a log, the tag and the manifests together is
+not detected (LIM-007).
+
+Packages of profiles 0.1 and 0.2 record neither a log's bytes nor an account
+of its lines. The App reads them as before, except that one whose log has a
+break at a line no read line precedes, exported by a build before this
+change, no longer verifies in the App, because the App compares the recorded
+break's words with the ones it now writes. The App reports a line it sets
+aside as a limit for a package of any profile, since it recomputes the
+account from the payload. `verify.py` checks only the manifests and inventory of such a
+package, lists every chain as NOT CHECKED; it
+does not follow their chains, so for them a changed log with regenerated
+manifests is shown only by the App. No release exported those profiles.
+
+Where the App states a limit on log integrity (at verification, import,
+repair and disposal) it gives the number of limits and each one as its
+reader found it, or marked NOT CHECKED, and says nothing of when or why a
+limit arose. The bounded summary in a native confirmation gives the number
+only and says each is named in full in the App: it reads no limit's text, so
+nothing a path or a line's content spells can be taken for a log or a line. Disposal may rely on an export
+that carries a limited log: the native disposal question says so as its own
+statement, and the disposal act records it in its `export` member as
+`logIntegrity` (state "no chain recorded broken" or "limited", with each log
+and line); an act recorded before that member existed reads as "not stated".
+Exports are unsigned until App
+signing: the verification compares a package with its own manifests and
+recorded heads, so a package whose records, manifests and heads were replaced
+together still verifies, and it confers no source authenticity. New packages include a protected
 `records-administration.json` tag, reversibly retaining each prior administrative
 event's exact UTF-8 bytes and its project identity. Legacy packages without it
 have unknown retention history and cannot satisfy disposal prerequisites.
@@ -1436,11 +1668,17 @@ must stand together, such as an act counted and the disposition change it
 makes, are written as one group line and read whole or not at all. Lines
 written before the chain, imported ones included, read as "unchained
 (legacy)", a limit that leaves the log complete; the chain starts after
-them. An edited, removed or unlinked line after the chain started is a broken
-chain: the log is incomplete and nothing repairs it. Until a chain head is
-kept elsewhere (signed checkpoints, export manifests), removing a log's last
-lines, or every link of a log this process has not read chained, is not
-detected. The host status
+them. An edited, removed or unlinked line after the chain started, with the
+links of the lines after it left as written, is a broken chain at the first
+line whose link no longer agrees with the line before it: the log is
+incomplete and nothing repairs it. The chain links alone do not show a change
+to the content of a log's last line that keeps its own backward link, lines
+removed from a log's end, an edit after which the later links were
+recomputed, or the removal of every link of a log this process has not read
+chained. Showing those needs comparison with a trusted head kept from before
+the alteration, which the App does not keep while log checkpoints are
+unsigned; the head an export package records shows such a change only against
+that package. The host status
 (`recordChain`) shows bounded counts of chained, legacy and broken logs;
 each log's chain head comes on demand (`records_chain_heads`).
 Signed checkpoints wait for App signing (OI-011).

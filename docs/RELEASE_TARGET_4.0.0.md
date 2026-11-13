@@ -69,6 +69,12 @@ selection, and any specialised workspace, keep their own.
 - **Standalone OpenAI API-key access.** The access modes are the ChatGPT
   account and a local model server (PRD V4-APP-02).
 - **Key rotation.** It is unavailable in 4.0.0, and the release says so.
+- **Signed records.** Log checkpoints and exported records packages are
+  unsigned in 4.0.0, because no key is chosen to sign them (DEL-04-03
+  TBD-003). In 4.0.0 the App's records are tamper-evident only as far as an
+  unsigned hash chain is: it shows a changed, removed or reordered line whose
+  later links were left as written, and can miss a change at the end of a
+  log or one made by someone who recomputes the links. The release says so.
 - **A comparison, regression or migration campaign against v3.** v4 is tested
   as v4. Because 4.0.0 keeps the existing production identifier, a person's
   existing data under that identity is preserved: nothing imports, resets or
@@ -133,7 +139,7 @@ acceptance criteria that govern it. The named criteria are what is met; the
 description narrows none of them.
 
 Every result names the candidate it was observed on: an App source revision, a
-build identity and the supplier pin. Criteria 1 to 7 may be observed on an
+build identity and the supplier pin. Criteria 1 to 7 and 15 may be observed on an
 identified development build, because they concern how the App behaves and
 looks. Criteria 8 and 10 are observed on the installed, signed package, because
 they concern that package. A merged change, a source check or a component pass
@@ -248,7 +254,7 @@ the owner decide on what was actually observed.
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
    AC-011.
 7. **Visual design.** A person meeting the App's views in the journeys and
-   examinations of criteria 1 to 6 finds that they share one visual form,
+   examinations of criteria 1 to 6 and 15 finds that they share one visual form,
    drawn from v3.0.1 as installed, that they are consistent with one another,
    and that nothing reads as unfinished or out of place. Function and
    interaction are designed for v4 and are App Agent 0's to decide; the
@@ -294,8 +300,9 @@ the owner decide on what was actually observed.
     unchanged after the package has been installed and run.
 
     *Governed by:* DEL-01-06 AC-001, AC-002, AC-003 and AC-009. That the
-    shipped workflows are the selected Library's whole set is governed by this
-    criterion as stated, with AC-001 for the inventory comparison.
+    shipped workflows are the selected Library's whole set is governed by
+    DEL-02-02 AC-014, with DEL-01-06 AC-001 for the inventory comparison on
+    the installed package.
 11. **Terms position.** The supplier's written position on distributing the
     offering is held with the owner's statement that it applies, and the
     candidate's offering and sign-in flow are the ones that statement covers.
@@ -322,7 +329,7 @@ the owner decide on what was actually observed.
     *Governed by:* this criterion as stated; DEL-09-12 holds the record of the
     owner's use, the answer and the dispositions (AC-007).
 14. **Decision packet.** The owner has, for the final candidate, the owning
-    deliverable's result for each criterion above, the release limitations and
+    deliverable's result for each of the other criteria, the release limitations and
     the continuing obligations, with every unrun, failed, blocked or limited
     result shown as such. A result from another candidate appears only with
     the assessment that joins it. Publication and replacement are put as two
@@ -330,28 +337,41 @@ the owner decide on what was actually observed.
 
     *Governed by:* DEL-11-03 AC-001, AC-003 and AC-007, with DEL-11-01 for the
     continuing obligations.
+15. **The records the App keeps.** The decisions and run records written in
+    the journeys and examinations of criteria 1 to 5 are found as append-only
+    files in the App's records store, in their project's part of it and
+    outside the project folder and every Codex home, and the acts that
+    register a workflow are found with their workflow library. A store placed
+    inside a project, a Codex home or a temporary folder is refused. With the
+    store unavailable, recording is refused with its cause and nothing is
+    written elsewhere. A project whose link to the store is missing, changed,
+    duplicated or found at another folder is not attached until the person
+    resolves it. A written line that is changed, removed or reordered, with
+    the links of the lines after it left unchanged, is reported as a broken
+    chain at the first line whose link no longer agrees, and is not repaired,
+    and the index rebuilt from the logs gives the same answers. No record is
+    removed by the passage of time, and disposing of a project's records is refused while the project is open,
+    while no verified export of them exists and while a legal hold stands.
+    Through the App a person exports a project's records as a package. With
+    no App present the package verifies against its manifest and chain heads,
+    a package altered without its manifests and chain heads being changed to
+    agree fails verification and is not imported, and importing into a store
+    that already holds some of the records overwrites nothing and reports the
+    duplicates. A change to the content of a log's last line that keeps its
+    backward link, lines removed from its end, an edit after which the later
+    links were recomputed, and a package whose files and manifests were
+    replaced together can evade detection, and a signed checkpoint and a
+    package signature are not observed, because no signing key is chosen
+    (LIM-007). The store's default placement, a saved location the person
+    chose and the refusal of a forbidden placement are observed on the
+    installed package, because a development build takes its store only from
+    the one named for it; the rest may be observed on such a development
+    build.
 
-## Open choices
-
-Each of these decides whether a criterion can be met, or whether one is
-added, and nothing accepted settles it. Every other undecided item stands as
-its owning scope states it.
-
-- **Tying a delegated child to its brief (criterion 5).** How a child is tied
-  to its brief where the supplier exposes neither the dispatch message nor a
-  mark the App can set is undecided (DEL-06-01 TBD-003), and the criterion
-  needs each delegation connected to its brief.
-- **The records the App keeps (no criterion yet).** The PRD commits to where
-  decisions and run records are kept, that they are append-only and report a
-  changed line, and that they export as a package that verifies without the
-  App and import without overwriting (V4-REC-02, V4-REC-04, V4-REC-06). The
-  missing fact is whether the App's records store is implemented; it is
-  established from the code. If it is, this becomes a criterion governed by
-  DEL-04-03 AC-001, AC-009 and AC-011 at least, observable on a development
-  build. If it is not, it is stated as outside this release, with a
-  limitations entry for what a person cannot do. Until a signing key is chosen
-  (DEL-04-03 TBD-003) an exported package is unsigned, which is a limitation
-  to list either way.
+    *Governed by:* DEL-04-03 AC-001, AC-008, AC-009, AC-010 and AC-011, apart
+    from the last sentence of AC-009 (a signed checkpoint verifying under the
+    App's key) and the signature sentence of AC-011, which wait on the key of
+    DEL-04-03 TBD-003.
 
 ## What stays the owner's
 

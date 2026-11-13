@@ -165,16 +165,123 @@ fn assessment_preflight(cfg: &HostConfig) -> Result<Option<crate::distribution_p
     Ok(Some(actual))
 }
 
-/// Environment variables never passed to the child (ACCESS CR-7: no credential variable).
-const CREDENTIAL_VARS: &[&str] = &[
-    "OPENAI_API_KEY",
-    "CODEX_API_KEY",
-    "CODEX_ACCESS_TOKEN",
-    "OPENAI_ORG_ID",
-    "OPENAI_PROJECT_ID",
-    "AZURE_OPENAI_API_KEY",
-    "ANTHROPIC_API_KEY",
-];
+/// Why an inherited variable is removed from a supplier process. Every removal
+/// is by name: a name taken from the pinned supplier binary's strings shows that
+/// the name exists, not what the variable does. A class gives the reason for
+/// removing the name and claims nothing about the variable's effect or about
+/// what removing it changes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RemovalClass {
+    /// Provider credential variables by their well-known names (the first seven since ACCESS CR-7).
+    CredentialVariable,
+    /// Credential custody: a credential-bearing name.
+    CredentialBearing,
+    /// Credential custody: a name for sign-in or token refresh.
+    SignInOrTokenRefresh,
+    /// Separation of the App's Codex homes: a name for a state location.
+    HomeSeparation,
+    /// Direct-vendor launcher convention: a wrapper setting (successor plan only).
+    LauncherWrapper,
+}
+impl RemovalClass {
+    pub(crate) fn code(self) -> &'static str {
+        match self {
+            Self::CredentialVariable => "credential-custody/credential-variable",
+            Self::CredentialBearing => "credential-custody/credential-bearing",
+            Self::SignInOrTokenRefresh => "credential-custody/sign-in-or-token-refresh",
+            Self::HomeSeparation => "home-separation",
+            Self::LauncherWrapper => "launcher-wrapper",
+        }
+    }
+    fn reason(self) -> &'static str {
+        match self {
+            Self::CredentialVariable => "Removed by name for credential custody: a provider credential variable, listed by its well-known name. The name is what is known; what any program does with the variable is not claimed.",
+            Self::CredentialBearing => "Removed by name for credential custody: a credential-bearing name. The name is known to exist; what the variable does is not claimed.",
+            Self::SignInOrTokenRefresh => "Removed by name for credential custody: a name for sign-in or token refresh. The name is known to exist; what the variable does is not claimed.",
+            Self::HomeSeparation => "Removed by name for the separation of the App's Codex homes: a name for a state location. The name is known to exist; what the variable does is not claimed.",
+            Self::LauncherWrapper => "Removed by name by the direct-vendor launcher convention: a wrapper setting.",
+        }
+    }
+    /// Names whose values the configuration record treats as secret
+    /// (`secret_redactions`). Home-separation and sign-in names are not secrets.
+    pub(crate) fn secret(self) -> bool {
+        matches!(self, Self::CredentialVariable | Self::CredentialBearing)
+    }
+}
+
+/// Inherited environment variables removed, by name, from every supplier
+/// process the host starts: the label probe and the app-server child, on the
+/// ordinary and the successor path. This is a list of named exceptions: no
+/// other inherited variable is removed on its account. Apart from it, the host
+/// sets CODEX_HOME on every start, and the successor plan sets PATH and removes
+/// its two wrapper settings. CODEX_CA_CERTIFICATE is deliberately not listed,
+/// and CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED is neither set nor
+/// removed (its presence alone is recorded).
+pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
+    use RemovalClass::*;
+    &[
+        ("OPENAI_API_KEY", CredentialVariable),
+        ("CODEX_API_KEY", CredentialVariable),
+        ("CODEX_ACCESS_TOKEN", CredentialVariable),
+        ("OPENAI_ORG_ID", CredentialVariable),
+        ("OPENAI_PROJECT_ID", CredentialVariable),
+        ("AZURE_OPENAI_API_KEY", CredentialVariable),
+        ("ANTHROPIC_API_KEY", CredentialVariable),
+        ("ANTHROPIC_AUTH_TOKEN", CredentialVariable),
+        ("CODEX_AUTH", CredentialBearing),
+        ("CODEX_CONNECTORS_TOKEN", CredentialBearing),
+        ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", CredentialBearing),
+        ("CODEX_GUARDIAN_DECISIONS_API_KEY", CredentialBearing),
+        ("CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN", CredentialBearing),
+        ("CODEX_APP_SERVER_LOGIN_ISSUER", SignInOrTokenRefresh),
+        ("CODEX_APP_SERVER_LOGIN_CLIENT_ID", SignInOrTokenRefresh),
+        ("CODEX_AUTHAPI_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_REFRESH_TOKEN_URL_OVERRIDE", SignInOrTokenRefresh),
+        ("CODEX_REVOKE_TOKEN_URL_OVERRIDE", SignInOrTokenRefresh),
+        ("CODEX_AGENT_IDENTITY_AUTHAPI_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_AGENT_IDENTITY_JWKS_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_APP_SERVER_CHATGPT_BASE_URL", SignInOrTokenRefresh),
+        ("CODEX_SQLITE_HOME", HomeSeparation),
+        ("CODEX_ROLLOUT_TRACE_ROOT", HomeSeparation),
+        ("CODEX_PLUGIN_METRICS_OUTPUT", HomeSeparation),
+        ("CODEX_TUI_SESSION_LOG_PATH", HomeSeparation),
+    ]
+};
+/// Inherited by the child, neither set nor removed; only its presence in the
+/// App's environment when the child is started is recorded, never its value.
+pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
+
+pub(crate) fn removed_environment_names() -> impl Iterator<Item = &'static str> {
+    REMOVED_ENVIRONMENT.iter().map(|(name, _)| *name)
+}
+/// The `secret_redactions` names: the credential variables and the credential-bearing names.
+pub(crate) fn secret_environment_names() -> Vec<&'static str> {
+    REMOVED_ENVIRONMENT.iter().filter(|(_, class)| class.secret()).map(|(name, _)| *name).collect()
+}
+/// Applied after every `env` the host sets on a supplier command, so no listed
+/// name can be re-added by the host after its removal.
+pub(crate) fn remove_inherited_environment(cmd: &mut Command) {
+    for name in removed_environment_names() {
+        cmd.env_remove(name);
+    }
+}
+/// The configuration identity's plain name list (`removedEnvironment`, read as
+/// a list of names) and the same names with their classes
+/// (`removedEnvironmentClasses`). `wrapper` is the successor plan's removals.
+fn removed_environment_record(wrapper: &[&'static str]) -> (Vec<&'static str>, Vec<Value>) {
+    let classed: Vec<(&str, RemovalClass)> = REMOVED_ENVIRONMENT.iter().copied()
+        .chain(wrapper.iter().map(|name| (*name, RemovalClass::LauncherWrapper))).collect();
+    let names = classed.iter().map(|(name, _)| *name).collect();
+    let classes = classed.iter()
+        .map(|(name, class)| json!({"name": name, "class": class.code(), "reason": class.reason()})).collect();
+    (names, classes)
+}
+fn presence_only_record(present: bool) -> Value {
+    json!({RECORDED_PRESENCE_ONLY: {
+        "inAppEnvironmentAtStart": if present { "present" } else { "absent" },
+        "handling": "inherited unchanged; neither set nor removed by the App; value not recorded",
+    }})
+}
 
 #[derive(Clone, Debug)]
 pub struct HostConfig {
@@ -201,6 +308,12 @@ pub struct HostConfig {
     pub(crate) probe_wait_limit: Duration,
     pub(crate) distribution: Option<successor::Distribution>,
     pub(crate) require_distribution_artifacts: bool,
+    /// The dedicated local home only (None for every other home): the App's lock file there. A
+    /// start takes an exclusive, non-waiting lock on it and the Codex child inherits that one
+    /// descriptor, so the lock is held while that Codex, or anything it started that kept the
+    /// descriptor, lives; held, nothing starts. A home folder that holds the lock file is locked
+    /// at every start whatever this field says (`native_local_provider::process_lock_for`).
+    pub(crate) process_lock: Option<PathBuf>,
 }
 
 impl HostConfig {
@@ -220,6 +333,7 @@ impl HostConfig {
             probe_wait_limit: Duration::from_secs(20),
             distribution: None,
             require_distribution_artifacts: false,
+            process_lock: None,
         }
     }
 }
@@ -274,6 +388,12 @@ struct Inner {
     pending: HashMap<String, (usize, Sender<Value>)>,
     source_requests: HashMap<String, SourceEvidence>,
     provider_read_revisions: HashMap<String,(Value,String)>,
+    /// The latest private configuration read per folder: what the chooser's
+    /// provider list is compared with, and nothing else. A model list or
+    /// delegation read is not one, so it leaves a chosen provider current;
+    /// `provider_read_revisions` (admission, the settings reading and the
+    /// native confirmations) still follows every read.
+    provider_observation_revisions: HashMap<String,(Value,String)>,
     private_config_channels: Vec<Value>,
     local_provider: Option<access_provider::LocalProviderBinding>,
     /// Private effective-configuration reading each local fork was admitted on, by fork request ref.
@@ -308,6 +428,10 @@ struct Inner {
     configuration_identity: Option<Value>,
     stop_record: Option<Value>,
     threads: Vec<Value>,
+    /// The latest `thread/status/changed` of the open generation per
+    /// conversation, with its receipt position. Cleared only when the
+    /// generation closes.
+    thread_status_observations: std::collections::BTreeMap<String, Value>,
     conversation_turns: Vec<Value>,
     execution_custody: execution_custody::ExecutionCustody,
     turn_request_threads: HashMap<String, (Value, String, u64)>,
@@ -1502,10 +1626,10 @@ impl Host {
             Err(reason) => return (json!({"result":"mismatch","element":"canonical .167 distribution preflight","reason":reason}),None,vec![]),
         };
         let mut probe = Command::new(&cfg.codex_bin);
-        for name in CREDENTIAL_VARS { probe.env_remove(name); }
         probe.arg("--version").env("CODEX_HOME", &cfg.probe_home)
             .current_dir(&cfg.probe_home).stdin(Stdio::null())
             .stdout(Stdio::piped()).stderr(Stdio::piped());
+        remove_inherited_environment(&mut probe);
         let label = match self.run_label_probe(attempt, &mut probe, cfg.probe_wait_limit) {
             Ok(label) => label.trim().to_owned(),
             Err(error) => return (json!({"result":"unverifiable","reason":error}), None, vec![]),
@@ -1545,8 +1669,36 @@ impl Host {
 
     /// HOSTING §4.2 start sequence. Returns the `ready` snapshot or the reason it did not get there.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
+        // DEL-01-05: a home whose Codex would carry the development model address holds no sign-in file.
+        crate::dev_model_address::check_start(cfg)?;
         let records_activity=if cfg.records_project {crate::records_retention::activity(&cfg.cwd)?}else{None};
         *self.this.lock().unwrap() = Arc::downgrade(self);
+        // The dedicated local home: an earlier Codex there must be known ended before another
+        // starts. The exclusive, non-waiting lock is taken before the attempt is admitted, so a
+        // refusal is an ordinary early refusal: nothing is recorded and the state is unchanged, and
+        // Prepare or Start can be tried again. A state that admits no start refuses as admission
+        // would, before the lock is tried. The App's copy is closed as soon as the child is spawned.
+        // The lock follows the folder, not only the configuration: a start whose home folder holds
+        // the App's lock file takes it whatever its configuration names. The folder looked in is
+        // the one the child will use: it is given `cfg.cwd` as its working folder and resolves a
+        // relative CODEX_HOME there, so the home is resolved the same way here.
+        let process_lock = match crate::native_local_provider::process_lock_for(cfg.process_lock.as_deref(), &cfg.cwd.join(&cfg.codex_home)) {
+            Ok(None) => None,
+            found => {
+                {
+                    let i = self.inner.0.lock().unwrap();
+                    if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
+                        return Err(format!("start not accepted in state {}", i.state));
+                    }
+                }
+                // Met by the folder rule alone, the refusals name the folder, not the local home.
+                let worded = |reason: String| if cfg.process_lock.is_none() { crate::native_local_provider::folder_wording(reason) } else { reason };
+                match found.map_err(worded)? {
+                    Some(path) => Some(crate::native_local_provider::take_process_lock(&path).map_err(worded)?),
+                    None => None,
+                }
+            }
+        };
         let attempt = {
             let _gate=self.attachment_gate.lock().unwrap();
             self.check_quit_fence()?;
@@ -1697,20 +1849,36 @@ impl Host {
         args.push("app-server".into());
         let executable = prepared.as_ref().map(|p| &p.plan.executable).unwrap_or(&cfg.codex_bin);
         let mut cmd = Command::new(executable);
-        if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
         cmd.args(&args)
             .current_dir(&cfg.cwd)
             .env("CODEX_HOME", &cfg.codex_home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped()); // owning spawn applies process_group(0)
-        for v in CREDENTIAL_VARS {
-            cmd.env_remove(v);
-        }
+        // Last, after every `env` set here, so no listed name is set after its removal.
+        if let Some(p) = &prepared { successor::configure(&mut cmd, &p.plan); }
+        remove_inherited_environment(&mut cmd);
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c|c.end_observation.lock().unwrap().is_some()){return Err("App session end observed; native source not spawned".into());}
         let home_identity=format!("app-home:{}",sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
         if self.spawn_counters.lock().unwrap().get(&home_identity)==Some(&u64::MAX){return Err("home spawn counter exhausted; native source not spawned, no reuse".into());}
-        let child = match process_group_custody::OwnedProcess::spawn(&mut cmd) {
+        // Read at the start of the child, which inherits this variable unchanged.
+        let presence_only = std::env::var_os(RECORDED_PRESENCE_ONLY).is_some();
+        if let Some(file) = &process_lock {
+            use std::os::fd::AsRawFd;
+            let fd = file.as_raw_fd();
+            // In the child only, after process_group(0)'s setpgid and before exec: clear
+            // close-on-exec on this one descriptor. One fcntl; async-signal-safe.
+            unsafe {
+                cmd.pre_exec(move || {
+                    if libc::fcntl(fd, libc::F_SETFD, 0) == -1 { Err(std::io::Error::last_os_error()) } else { Ok(()) }
+                });
+            }
+        }
+        let spawned = process_group_custody::OwnedProcess::spawn(&mut cmd);
+        // The App's copy is closed at once, spawned or not: the child's inherited copy is what holds
+        // the lock, for as long as that Codex or anything it left holding the descriptor lives.
+        drop(process_lock);
+        let child = match spawned {
             Ok(c) => c,
             Err(e) => {
                 let mut i = self.inner.0.lock().unwrap();
@@ -1767,11 +1935,14 @@ impl Host {
             i.child_pid = Some(pid);
             i.stop_record = None;
             i.server_cwd = Some(cfg.cwd.to_string_lossy().into_owned());
+            let (removed_names, removed_classes) = removed_environment_record(prepared.as_ref().map(|p| &p.plan.removed[..]).unwrap_or(&[]));
             let conf = json!({
                 "launcher": executable.display().to_string(),
                 "arguments": args,
                 "environment": {"CODEX_HOME": "App-owned home (path recorded by the App, not here)"},
-                "removedEnvironment": CREDENTIAL_VARS.iter().copied().chain(prepared.as_ref().into_iter().flat_map(|p|p.plan.removed)).collect::<Vec<_>>(),
+                "removedEnvironment": removed_names,
+                "removedEnvironmentClasses": removed_classes,
+                "inheritedEnvironmentPresence": presence_only_record(presence_only),
                 "sessionFlags": cfg.session_flags,
             });
             i.configuration_identity = Some(conf.clone());
@@ -1940,6 +2111,17 @@ impl Host {
         for turn in &mut i.conversation_turns {
             if turn["generation"] == generation { turn["observationEnded"] = json!(true); }
         }
+        // A status is the last one received. With the generation closed it is
+        // no longer a reading of what the conversation is doing, so it moves
+        // aside and the status itself reads as not known: a reader that looks
+        // only at `status` cannot take a stopped Codex for a working one.
+        for thread in &mut i.threads {
+            if thread["generation"] == generation && thread["statusObservationEnded"] != true {
+                thread["lastObservedStatus"] = thread["status"].take();
+                thread["statusObservationEnded"] = json!(true);
+            }
+        }
+        i.thread_status_observations.clear();
         json!({"unknownNoResponse": unknown, "endedUnanswered": ended})
     }
 
@@ -2085,6 +2267,7 @@ impl Host {
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
         if method=="config/read" {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
             i.provider_read_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
+            if private_config {i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));}
         }}
         if private_config&&!i.private_config_channels.contains(&request.generation){i.private_config_channels.push(request.generation.clone());}
         let cce_bound=cce_intent.map(|intent|call_custody::Offer::bind(intent,&self.inner,&request)).transpose().map_err(|e|e.message())?;
@@ -2125,7 +2308,7 @@ impl Host {
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
                 if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_local_resume_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
-                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());}
+                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.provider_read_revisions.remove(write.cwd());i.provider_observation_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
@@ -2506,7 +2689,7 @@ impl Host {
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
         Self::check_local_reported(&i,&response["result"])?;
         self.check_local_reading_current(&i,dispatch.local_config.as_ref())?;
-        let result=&response["result"];let row=json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()});i.threads.push(row.clone());
+        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}),response);i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
         let thread=native["id"].as_str().unwrap();
@@ -2580,7 +2763,7 @@ impl Host {
         let reading=i.local_fork_configs.get(request.request_ref()).cloned();
         self.check_local_reading_current(&i,reading.as_ref())?;
         let standing=i.supplier_standing.clone();let result=&response["result"];
-        let row=json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()});
+        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
         // after the correlated fork of a source offered it in this generation.
         // The capability still checks the fork's observed cwd on every read.
@@ -2674,9 +2857,49 @@ impl Host {
         if result.is_err()&&owns_preparation{let _=f.state.compare_exchange(1,5,Ordering::SeqCst,Ordering::SeqCst);}
         result
     }
-    fn validate_native_result(target: &str, result: &Value) -> Result<(),String> {
-        let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
-        jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?.validate(result).map_err(|e|format!("native {target} schema: {e}"))
+    /// A conversation row about to be admitted from `reply`, the exact
+    /// admission reply its caller validated. The row carries the reply's
+    /// status unless Codex reported a status for the conversation that the
+    /// App can establish it received after that reply: then the report
+    /// stands. Where a report is held and the order cannot be established,
+    /// the status is not known; it is never the reply's by default. Nothing
+    /// discards a held report except the end of its generation.
+    fn with_observed_status(i: &Inner, mut row: Value, reply: &Value) -> Value {
+        let Some(observed) = row["threadId"].as_str().and_then(|thread| i.thread_status_observations.get(thread)) else { return row };
+        let reply_position = i.source_requests.get(&reply["id"].to_string())
+            .filter(|e| e.request.generation == i.generation && e.response.as_ref() == Some(reply)).and_then(|e| e.response_position);
+        match (observed["statusSource"]["receiptPosition"].as_u64(), reply_position) {
+            (Some(reported), Some(replied)) if reported > replied => {
+                row["status"] = observed["status"].clone();
+                row["statusSource"] = observed["statusSource"].clone();
+            }
+            (Some(reported), Some(replied)) if reported < replied => {}
+            // Equal positions establish neither order.
+            _ => {
+                row["status"] = Value::Null;
+                row["statusSource"] = json!({"method":"thread/status/changed","limit":"a status report was received for this conversation and its order relative to the admission reply is not established; status unknown"});
+            }
+        }
+        row
+    }
+    /// Validates against one definition of the pinned generated schema. The
+    /// schema is static for the pin, so each definition's compiled validator
+    /// is built once and kept.
+    pub(crate) fn validate_native_result(target: &str, result: &Value) -> Result<(),String> {
+        static VALIDATORS: std::sync::OnceLock<Mutex<std::collections::BTreeMap<String, Arc<jsonschema::Validator>>>> = std::sync::OnceLock::new();
+        let validator = {
+            let mut held = VALIDATORS.get_or_init(Default::default).lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            match held.get(target) {
+                Some(validator) => Arc::clone(validator),
+                None => {
+                    let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
+                    let built = Arc::new(jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?);
+                    held.insert(target.to_owned(), Arc::clone(&built));
+                    built
+                }
+            }
+        };
+        validator.validate(result).map_err(|e|format!("native {target} schema: {e}"))
     }
 
 
@@ -2957,7 +3180,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
             }
         }
-        let standing=i.supplier_standing.clone();i.threads.push(json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}));Ok(())
+        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -4083,6 +4306,29 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 for thread in i.threads.iter_mut().filter(|t| t["generation"] == gen && t["threadId"] == frame["params"]["threadId"]) {
                     thread["name"] = name.clone();
                 }
+            }
+        }
+        // The supplier's own report of a conversation's status, applied as sent
+        // to the admitted row of the generation it arrived in. It admits no
+        // conversation. One that does not match the pinned type leaves the
+        // status unknown: the earlier value is no longer what Codex reports.
+        // The latest one is also kept, with its receipt position, for every
+        // conversation of the generation, admitted or not: a status can arrive
+        // after an admission reply was received and before its caller admits
+        // the row, and must not be lost to the reply's older value. Only the
+        // admission itself compares the two (`with_observed_status`); no
+        // received frame discards a held report.
+        if class == "notification" && frame["method"] == "thread/status/changed" {
+            let matched = Self::validate_native_result("ThreadStatusChangedNotification", &frame["params"]);
+            let mut observed = json!({"status":if matched.is_ok() { frame["params"]["status"].clone() } else { Value::Null },
+                "statusSource":{"method":"thread/status/changed","receiptPosition":pos}});
+            if matched.is_err() { observed["statusSource"]["limit"] = json!("the notification does not match the pinned ThreadStatusChangedNotification; status unknown"); }
+            if let Some(thread_id) = frame["params"]["threadId"].as_str().filter(|id| !id.is_empty()) {
+                for thread in i.threads.iter_mut().filter(|t| t["generation"] == gen && t["threadId"] == thread_id) {
+                    thread["status"] = observed["status"].clone();
+                    thread["statusSource"] = observed["statusSource"].clone();
+                }
+                i.thread_status_observations.insert(thread_id.to_owned(), observed);
             }
         }
         if class == "notification" && matches!(frame["method"].as_str(), Some("turn/started" | "turn/completed")) {
@@ -5432,6 +5678,48 @@ mod conversation_transport_tests {
         assert!(host.client_requests().is_empty(), "display notifications send nothing");
     }
 
+    // The supplier's status reaches the admitted conversation of the generation
+    // it arrived in, as sent. One the pinned type does not describe leaves the
+    // status unknown, never the earlier value; a closed generation's status
+    // moves aside so that it cannot read as current.
+    #[test]
+    fn conversation_status_events_are_applied_as_sent_and_never_outlive_their_source() {
+        let host = host();
+        host.inner.0.lock().unwrap().threads[0]["status"] = json!({"type":"idle"});
+        let notify = |generation: &Value, params: Value| host.on_line(
+            &serde_json::to_vec(&json!({"method":"thread/status/changed", "params":params})).unwrap(), generation);
+        let row = || host.snapshot()["threads"][0].clone();
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"active","activeFlags":[]}}));
+        assert_eq!(row()["status"], json!({"type":"active","activeFlags":[]}));
+        assert_eq!(row()["statusSource"], json!({"method":"thread/status/changed","receiptPosition":1}));
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"active","activeFlags":["waitingOnApproval"]}}));
+        assert_eq!(row()["status"]["activeFlags"], json!(["waitingOnApproval"]));
+        let current = host.snapshot()["threads"].clone();
+        notify(&g(), json!({"threadId":"unknown", "status":{"type":"systemError"}}));
+        let mut stale = g(); stale["spawnCounter"] = json!(99);
+        notify(&stale, json!({"threadId":"thread", "status":{"type":"idle"}}));
+        assert_eq!(host.snapshot()["threads"], current, "another conversation's or another generation's status changes nothing");
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"systemError"}}));
+        assert_eq!(row()["status"], json!({"type":"systemError"}));
+        for unknown in [json!({"threadId":"thread", "status":{"type":"invented"}}), json!({"threadId":"thread", "status":{"type":"active"}}), json!({"threadId":"thread"})] {
+            notify(&g(), json!({"threadId":"thread", "status":{"type":"idle"}}));
+            assert_eq!(row()["status"], json!({"type":"idle"}));
+            notify(&g(), unknown);
+            assert_eq!(row()["status"], Value::Null, "a status the pinned type does not describe is unknown, not the earlier value");
+            assert!(row()["statusSource"]["limit"].as_str().unwrap().contains("status unknown"));
+        }
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"active","activeFlags":["waitingOnUserInput"]}}));
+        assert!(row()["statusSource"].get("limit").is_none());
+        assert!(row().get("statusObservationEnded").is_none());
+        { let mut i = host.inner.0.lock().unwrap(); Host::close_generation(&mut i); Host::close_generation(&mut i); }
+        assert_eq!(row()["status"], Value::Null);
+        assert_eq!(row()["statusObservationEnded"], true);
+        assert_eq!(row()["lastObservedStatus"], json!({"type":"active","activeFlags":["waitingOnUserInput"]}));
+        notify(&g(), json!({"threadId":"thread", "status":{"type":"idle"}}));
+        assert_eq!(row()["status"], Value::Null, "a frame after the close is not applied");
+        assert!(host.client_requests().is_empty(), "status notifications send nothing");
+    }
+
     #[test]
     fn history_bridge_scripted_reply_after_wait_uses_completed_source_evidence() {
         let host = host(); let mut view = history_selected(); let query = view.read_metadata().unwrap();
@@ -5520,6 +5808,137 @@ mod conversation_transport_tests {
         for (status,direct) in [("notLoaded",true),("idle",false)] {let host=host();let mut view=history_selected();let q=view.continue_query().unwrap();let(r,e,_)=history_exchange(&host,&q,Some(json!({"result":history_resume(status,direct)})));view.receive(&q,"conversation-home",&g(),&e["response"]["result"]).unwrap();assert!(host.history_admit_resume(&view,&r).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);}
         let host=host();let mut view=history_selected();let q=view.continue_query().unwrap();let error=json!({"code":-32600,"message":"resume refused","data":{"kept":"native"}});let(r,e,_)=history_exchange(&host,&q,Some(json!({"error":error})));assert_eq!(e["response"]["error"],error);view.receive_error(&q,"conversation-home",&g(),&error).unwrap();assert!(host.history_admit_resume(&view,&r).is_err());
         let q=view.continue_query().unwrap();let mut wrong=history_resume("idle",true);wrong["thread"]["id"]=json!("foreign-thread");let(r,e,_)=history_exchange(&host,&q,Some(json!({"result":wrong})));assert!(view.receive(&q,"conversation-home",&g(),&e["response"]["result"]).is_err());assert!(host.history_admit_resume(&view,&r).is_err());assert_eq!(host.journal().last().unwrap()["frame"],e["response"]);
+    }
+    // The rule at every admission (start, resume, fork): the row carries the
+    // admission reply's status unless Codex reported a status for that
+    // conversation which the App can establish it received after the exact
+    // reply being admitted; then the report stands. No received frame discards
+    // a held report: not a duplicate reply, not a reply for another request.
+    // A status notification alone admits no conversation.
+    #[test]
+    fn a_status_reported_between_the_admission_reply_and_the_row_is_not_lost() {
+        let status=|host:&Arc<Host>,params:Value|host.on_line(&serde_json::to_vec(&json!({"method":"thread/status/changed","params":params})).unwrap(),&g());
+        let begin=|host:&Arc<Host>,before:Vec<Value>|{let mut receipt=None;let(result,_)=exchange(host,Some(json!({"result":history_resume("idle",true)})),before,||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured","guidance")?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});result.unwrap();receipt.unwrap()};
+        let row=|host:&Arc<Host>|host.snapshot()["threads"].as_array().unwrap().iter().find(|t|t["threadId"]=="stored").cloned();
+        let active=json!({"type":"active","activeFlags":["waitingOnApproval"]});
+        // Reply, then the newer status, then admission.
+        let host=host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"stored","status":active}));
+        assert!(row(&host).is_none(),"a status notification admits no conversation");
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        let admitted=row(&host).unwrap();
+        assert_eq!(admitted["status"],active,"the reply said idle; Codex has since said otherwise");
+        assert_eq!(admitted["statusSource"]["method"],"thread/status/changed");
+        // The same, where the newer status is one the pinned type does not describe: unknown, not the reply's idle.
+        let host=self::host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"stored","status":{"type":"invented"}}));
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        let admitted=row(&host).unwrap();
+        assert_eq!(admitted["status"],Value::Null);assert!(admitted["statusSource"]["limit"].as_str().unwrap().contains("status unknown"));
+        // Status first, then the reply: the reply is newer and the row carries its status alone.
+        let host=self::host();let receipt=begin(&host,vec![json!({"method":"thread/status/changed","params":{"threadId":"stored","status":active}})]);
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        let admitted=row(&host).unwrap();
+        assert_eq!(admitted["status"],json!({"type":"idle"}));assert!(admitted.get("statusSource").is_none());
+        // Reply, the newer status, then a DUPLICATE of the reply before admission: the duplicate discards nothing.
+        let host=self::host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"stored","status":active}));
+        host.on_line(&serde_json::to_vec(&json!({"id":receipt.request_id(),"result":history_resume("idle",true)})).unwrap(),&g());
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        assert_eq!(row(&host).unwrap()["status"],active,"a duplicate reply is not the admitted reply and erases nothing");
+        // Reply, the newer status, then ANOTHER request's reply naming the same conversation before admission.
+        let host=self::host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"stored","status":active}));
+        let other=begin(&host,vec![]);
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        assert_eq!(row(&host).unwrap()["status"],active,"another request's later reply is not the one admitted");
+        assert!(host.thread_start_dispatch_finish(&other).is_err(),"and the conversation is admitted once");
+        // Admitting from the later of two replies: the status reported between them is older than that reply.
+        let host=self::host();let first=begin(&host,vec![]);
+        status(&host,json!({"threadId":"stored","status":active}));
+        let second=begin(&host,vec![]);
+        host.thread_start_dispatch_finish(&second).unwrap();
+        let admitted=row(&host).unwrap();
+        assert_eq!(admitted["status"],json!({"type":"idle"}),"the admitted reply was received after the report");assert!(admitted.get("statusSource").is_none());
+        drop(first);
+        // Another conversation's status changes nothing here, and nothing is carried past the close.
+        let host=self::host();let receipt=begin(&host,vec![]);
+        status(&host,json!({"threadId":"another","status":active}));
+        host.thread_start_dispatch_finish(&receipt).unwrap();
+        assert_eq!(row(&host).unwrap()["status"],json!({"type":"idle"}));
+        status(&host,json!({"threadId":"later","status":active}));
+        {let mut i=host.inner.0.lock().unwrap();assert!(i.thread_status_observations.contains_key("another")&&i.thread_status_observations.contains_key("later"));Host::close_generation(&mut i);assert!(i.thread_status_observations.is_empty(),"nothing is carried past the close");}
+    }
+    // The same rule at the other two admission sites, through the real
+    // admissions: continuing a stored conversation, and forking one.
+    #[test]
+    fn a_status_reported_between_a_resume_or_fork_reply_and_its_admission_stands() {
+        let active=json!({"type":"active","activeFlags":[]});
+        let status=|host:&Arc<Host>,thread:&str|host.on_line(&serde_json::to_vec(&json!({"method":"thread/status/changed","params":{"threadId":thread,"status":{"type":"active","activeFlags":[]}}})).unwrap(),&g());
+        // Continue: reply, the newer status, admission.
+        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();
+        let (receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));
+        view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();
+        status(&host,"stored");status(&host,"some-other-conversation");
+        let resumed=host.history_admit_resume(&view,&receipt).unwrap();
+        assert_eq!(resumed["status"],active,"the resume reply said idle; Codex has since said otherwise");
+        assert_eq!(resumed["statusSource"]["method"],"thread/status/changed");
+        // Continue: the status came first, so the reply is the newer word.
+        let host=self::host();let mut view=history_selected();let query=view.continue_query().unwrap();
+        status(&host,"stored");
+        let (receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));
+        view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();
+        let resumed=host.history_admit_resume(&view,&receipt).unwrap();
+        assert_eq!(resumed["status"],json!({"type":"idle"}));assert!(resumed.get("statusSource").is_none());
+        // Fork: the forked conversation's own status, reported after the fork reply; the source's status is not the fork's.
+        let host=self::host();
+        let mut native=history_resume("idle",true);native["thread"]["id"]=json!("started");
+        let (started,_)=exchange(&host,Some(json!({"result":native})),vec![],||host.thread_start_with_guidance("/invented","chosen","configured","original guidance"));
+        assert!(started.is_ok(),"{started:?}");
+        let mut native=history_resume("idle",true);native["thread"]["id"]=json!("forked");native["thread"]["forkedFromId"]=json!("started");
+        let (forked,_)=exchange(&host,Some(json!({"result":native})),vec![],||{
+            let request=host.thread_fork_dispatch(&g(),"started")?;
+            host.source_request_wait(&request,Duration::from_secs(2))?;
+            status(&host,"forked");
+            host.thread_fork_finish(&request)
+        });
+        let forked=forked.unwrap();
+        assert_eq!(forked["status"],active,"{forked}");assert_eq!(forked["statusSource"]["method"],"thread/status/changed");
+        let source=host.snapshot()["threads"].as_array().unwrap().iter().find(|t|t["threadId"]=="started").unwrap().clone();
+        assert_eq!(source["status"],json!({"type":"idle"}),"the fork's status is not applied to its source");
+    }
+    // The comparison itself, for the row any admission site builds: a held
+    // report stands only when received after the exact reply; a reply the
+    // host does not hold as that request's response establishes no order.
+    #[test]
+    fn a_held_status_stands_only_when_received_after_the_exact_admitted_reply() {
+        let host=host();let mut receipt=None;
+        let(result,_)=exchange(&host,Some(json!({"result":history_resume("idle",true)})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured","guidance")?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});
+        let reply=result.unwrap()["response"].clone();let receipt=receipt.unwrap();
+        let built=||json!({"generation":g(),"threadId":"stored","status":{"type":"idle"}});
+        let observe=|position:u64|host.inner.0.lock().unwrap().thread_status_observations.insert("stored".into(),json!({"status":{"type":"active","activeFlags":[]},"statusSource":{"method":"thread/status/changed","receiptPosition":position}}));
+        let replied=host.inner.0.lock().unwrap().source_requests[&receipt.request_id().to_string()].response_position.unwrap();
+        let admit=|reply:&Value|Host::with_observed_status(&host.inner.0.lock().unwrap(),built(),reply);
+        assert_eq!(admit(&reply),built(),"no report held: the reply's status");
+        observe(replied+1);
+        assert_eq!(admit(&reply)["status"],json!({"type":"active","activeFlags":[]}));
+        observe(replied-1);
+        assert_eq!(admit(&reply),built(),"a report received before the reply is older than it");
+        // Equal positions, and a report with no position, establish neither order.
+        observe(replied);
+        assert_eq!(admit(&reply)["status"],Value::Null,"equal positions are neither after nor older");
+        host.inner.0.lock().unwrap().thread_status_observations.insert("stored".into(),json!({"status":{"type":"active","activeFlags":[]},"statusSource":{"method":"thread/status/changed"}}));
+        assert_eq!(admit(&reply)["status"],Value::Null,"a report with no receipt position");
+        assert!(admit(&reply)["statusSource"]["limit"].as_str().unwrap().contains("order relative to the admission reply is not established"));
+        assert!(host.inner.0.lock().unwrap().thread_status_observations.contains_key("stored"),"the comparison discards nothing");
+        // A reply that is not the one held for its request (a different body, or an unknown request) establishes no order.
+        observe(replied+1);
+        let mut altered=reply.clone();altered["result"]["thread"]["preview"]=json!("not the held reply");
+        for unplaced in [altered,json!({"id":"unknown-request","result":{"thread":{"id":"stored"}}})] {
+            let row=admit(&unplaced);
+            assert_eq!(row["status"],Value::Null,"neither the report nor the reply's status is asserted");
+            assert!(row["statusSource"]["limit"].as_str().unwrap().contains("order relative to the admission reply is not established"));
+        }
     }
     #[test]
     fn history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup() {
@@ -5974,7 +6393,7 @@ mod conversation_transport_tests {
     fn app_custody_named_cr7_environment_removal_uses_only_explicit_canaries(){
         // No inherited environment/value read: an owned env utility receives
         // only these known synthetic variables, then actual production list.
-        let mut cmd=Command::new("/usr/bin/env");cmd.env_clear();for name in ["OPENAI_API_KEY","CODEX_API_KEY","CODEX_ACCESS_TOKEN"]{cmd.env(name,AUTH_CANARY);}cmd.env("CHIRALITY_SYNTHETIC_VISIBLE","ordinary");for name in CREDENTIAL_VARS{cmd.env_remove(name);}let output=cmd.output().unwrap();assert!(output.status.success());let text=String::from_utf8(output.stdout).unwrap();assert!(!text.contains(AUTH_CANARY));assert!(!text.contains("CODEX_ACCESS_TOKEN="));assert_eq!(text.trim(),"CHIRALITY_SYNTHETIC_VISIBLE=ordinary");assert!(CREDENTIAL_VARS.contains(&"CODEX_ACCESS_TOKEN"));
+        let mut cmd=Command::new("/usr/bin/env");cmd.env_clear();for name in ["OPENAI_API_KEY","CODEX_API_KEY","CODEX_ACCESS_TOKEN"]{cmd.env(name,AUTH_CANARY);}cmd.env("CHIRALITY_SYNTHETIC_VISIBLE","ordinary");remove_inherited_environment(&mut cmd);let output=cmd.output().unwrap();assert!(output.status.success());let text=String::from_utf8(output.stdout).unwrap();assert!(!text.contains(AUTH_CANARY));assert!(!text.contains("CODEX_ACCESS_TOKEN="));assert_eq!(text.trim(),"CHIRALITY_SYNTHETIC_VISIBLE=ordinary");assert!(removed_environment_names().any(|name|name=="CODEX_ACCESS_TOKEN"));
     }
     #[test]
     fn app_custody_one_session_shared_actual_ledger_equal_request_ids_and_recreated_counter(){
@@ -6454,3 +6873,249 @@ mod observer_journal_tests;
 #[cfg(test)]
 #[path = "hosting_0167_tests.rs"]
 mod supplier_0167_tests;
+
+/// DEL-01-05: a Codex for the dedicated local home must be known ended before another
+/// starts there. Stand-in children only (a Python stand-in for Codex, /bin/sleep); never the real Codex.
+#[cfg(all(test, target_os = "macos"))]
+mod local_process_lock_tests {
+    use super::*;
+    use crate::native_local_provider::{take_process_lock, EARLIER_PROCESS, PROCESS_LOCK};
+    use std::os::unix::fs::PermissionsExt;
+    struct Fixture { root: PathBuf, cfg: HostConfig }
+    /// Ends a left-behind stand-in if a test fails before it does.
+    struct LeftBehind(i32);
+    impl Drop for LeftBehind { fn drop(&mut self) { if self.0 > 0 { unsafe { libc::kill(self.0, libc::SIGKILL); } } } }
+    impl Fixture {
+        /// A stand-in "codex" that answers every request and stays alive until its input closes; in
+        /// app-server mode it first leaves a marker in its CODEX_HOME. With `leave_behind` it also
+        /// starts a /bin/sleep in a new session that inherits only the lock descriptor, as a command
+        /// Codex ran and left behind might.
+        fn new(local: bool, leave_behind: bool) -> Self {
+            let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("local-lock-").unwrap());
+            for d in ["vendor/bin", "vendor/codex-path", "vendor/codex-resources", "home", "probe"] {
+                std::fs::create_dir_all(root.join(d)).unwrap();
+            }
+            std::fs::set_permissions(root.join("home"), std::fs::Permissions::from_mode(0o700)).unwrap();
+            std::fs::write(root.join("vendor/codex-package.json"), b"{}\n").unwrap();
+            let bin = root.join("vendor/bin/codex");
+            let left = if leave_behind { "import subprocess\nlock=os.stat(os.environ['CODEX_HOME']+'/chirality-codex-process.lock').st_ino\nfd=[int(n) for n in os.listdir('/dev/fd') if int(n)>2 and os.path.exists('/dev/fd/'+n) and os.fstat(int(n)).st_ino==lock][0]\np=subprocess.Popen(['/bin/sleep','30'],close_fds=True,pass_fds=(fd,),start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\nopen(os.environ['CODEX_HOME']+'/left-behind','w').write(str(p.pid))\n" } else { "" };
+            std::fs::write(&bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\n{left}for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)\n")).unwrap();
+            std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let mut cfg = HostConfig::new(bin.clone(), root.join("home"), root.join("probe"), root.clone());
+            cfg.distribution = Some(successor::Distribution::development_from_binary(&bin).unwrap());
+            cfg.allow_unverified_dev = true;
+            cfg.wait_limit = Duration::from_secs(2);
+            if local { cfg.process_lock = Some(root.join("home").join(PROCESS_LOCK)); }
+            Self { root, cfg }
+        }
+        fn lock_path(&self) -> PathBuf { self.root.join("home").join(PROCESS_LOCK) }
+        fn started(&self) -> bool { self.root.join("home/started").exists() }
+    }
+    impl Drop for Fixture { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.root); } }
+    fn until(what: &str, done: impl Fn() -> bool) {
+        let end = std::time::Instant::now() + Duration::from_secs(5);
+        while !done() { assert!(std::time::Instant::now() < end, "{what}"); std::thread::sleep(Duration::from_millis(10)); }
+    }
+    fn alive(pid: i32) -> bool { (unsafe { libc::kill(pid, 0) }) == 0 }
+    /// Stop, then wait until the child itself is gone: Stop's word is not relied on.
+    fn stop_and_wait(host: &Host) {
+        let pid = host.inner.0.lock().unwrap().child_pid.expect("a spawned child");
+        let _ = host.stop("fixture", "test");
+        until("the stand-in Codex has ended", || !alive(pid));
+    }
+
+    #[test]
+    fn local_process_lock_is_held_by_the_child_alone_and_freed_when_it_exits() {
+        let f = Fixture::new(true, false);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(f.started());
+        // The App closed its own copy at spawn: the lock is held by the child alone.
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS);
+        // A child started the ordinary way while the first lives inherits nothing.
+        let mut ordinary = Command::new("/bin/sleep").arg("30").stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();
+        stop_and_wait(&host);
+        let lock = take_process_lock(&f.lock_path()).expect("free once the child has exited");
+        assert!(ordinary.try_wait().unwrap().is_none(), "the ordinary child is still running and does not hold the lock");
+        drop(lock);
+        ordinary.kill().unwrap();
+        ordinary.wait().unwrap();
+    }
+
+    #[test]
+    fn local_process_lock_lasts_until_what_the_child_left_behind_has_ended_too() {
+        let f = Fixture::new(true, true);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        until("the stand-in left a process behind", || std::fs::read_to_string(f.root.join("home/left-behind")).is_ok_and(|v| v.parse::<i32>().is_ok()));
+        let mut left = LeftBehind(std::fs::read_to_string(f.root.join("home/left-behind")).unwrap().parse().unwrap());
+        stop_and_wait(&host);
+        assert!(alive(left.0), "the left-behind process is in its own session and outlives the stop");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by what the child left behind");
+        let lifecycle = host.lifecycle_events().len();
+        let state = host.snapshot()["state"].clone();
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS, "no successor while it lives");
+        assert_eq!((host.snapshot()["state"].clone(), host.lifecycle_events().len()), (state, lifecycle), "an early refusal changes nothing");
+        unsafe { libc::kill(left.0, libc::SIGKILL); }
+        until("the left-behind process has ended", || !alive(left.0));
+        left.0 = 0;
+        drop(take_process_lock(&f.lock_path()).expect("free once the last holder has ended"));
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "the same Host starts again");
+        stop_and_wait(&host);
+        // The second stand-in left one behind too.
+        if let Ok(pid) = std::fs::read_to_string(f.root.join("home/left-behind")).unwrap_or_default().parse::<i32>() { drop(LeftBehind(pid)); }
+    }
+
+    #[test]
+    fn local_start_while_the_lock_is_held_is_an_early_refusal_that_leaves_the_state_unchanged() {
+        let f = Fixture::new(true, false);
+        let host = Arc::new(Host::new());
+        let earlier = take_process_lock(&f.lock_path()).unwrap();
+        for _ in 0..2 {
+            assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS);
+            assert_eq!(host.snapshot()["state"], "absent", "the state is as it was");
+            assert!(host.lifecycle_events().is_empty(), "no attempt was admitted or recorded");
+            assert!(!f.started(), "no Codex was started, so nothing was written to one");
+            assert!(host.child.lock().unwrap().is_none() && host.stdin.lock().unwrap().is_none(), "no child and no input pipe");
+        }
+        for absent in ["/", ".lock", "pid", "PID", "home/"] {
+            assert!(!EARLIER_PROCESS.contains(absent), "the sentence carries no path or process detail: {absent}");
+        }
+        assert!(!EARLIER_PROCESS.bytes().any(|b| b.is_ascii_digit()), "no process number");
+        // Once the earlier holder is gone, the same start route starts Codex: nothing to undo.
+        drop(earlier);
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(f.started());
+        // A state that admits no start refuses as admission would, without trying the lock.
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), "start not accepted in state ready");
+        stop_and_wait(&host);
+    }
+
+    #[test]
+    fn local_restart_after_the_apps_own_stop_is_not_refused_by_the_apps_own_hand() {
+        let f = Fixture::new(true, false);
+        let host = Arc::new(Host::new());
+        for round in 1..=3 {
+            let ready = host.start(&f.cfg, "fixture").unwrap();
+            assert_eq!(ready["generation"]["spawnCounter"], round);
+            stop_and_wait(&host);
+            // No copy is kept by the App: with the child gone the lock is free at once.
+            drop(take_process_lock(&f.lock_path()).expect("free: the App keeps no descriptor"));
+        }
+    }
+
+    /// The lock follows the folder: a start whose configuration names no lock, pointed at a home
+    /// folder that holds the App's lock file (the development environment route can name the
+    /// local home's folder as the account home), still takes it.
+    #[test]
+    fn local_process_lock_is_taken_by_any_start_in_a_folder_that_holds_the_lock_file() {
+        use crate::native_local_provider::{process_lock_for, EARLIER_PROCESS_BY_FOLDER, PROCESS_LOCK_UNAVAILABLE, PROCESS_LOCK_UNAVAILABLE_BY_FOLDER};
+        let f = Fixture::new(false, false);
+        assert!(f.cfg.process_lock.is_none());
+        // An earlier Codex of that home holds the lock (a stand-in holder here).
+        let earlier = take_process_lock(&f.lock_path()).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), EARLIER_PROCESS_BY_FOLDER);
+        assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
+        drop(earlier);
+        // Free: the same configuration starts, and its child now holds the lock itself.
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
+        stop_and_wait(&host);
+        drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));
+        // The rule itself: the folder's lock file is the lock whatever the configuration names;
+        // without one it is the configured lock, or none; a name that cannot be examined refuses.
+        let (home, elsewhere) = (f.root.join("home"), std::path::Path::new("/elsewhere/lock"));
+        assert_eq!(process_lock_for(Some(elsewhere), &home).unwrap(), Some(f.lock_path()));
+        assert_eq!(process_lock_for(None, &home).unwrap(), Some(f.lock_path()));
+        assert_eq!(process_lock_for(Some(elsewhere), &f.root.join("probe")).unwrap().as_deref(), Some(elsewhere));
+        assert_eq!(process_lock_for(None, &f.root.join("probe")).unwrap(), None);
+        assert_eq!(process_lock_for(None, &f.root.join("no-such-home")).unwrap(), None);
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let unexaminable = (process_lock_for(None, &home), Arc::new(Host::new()).start(&f.cfg, "fixture"));
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(unexaminable.0.unwrap_err(), PROCESS_LOCK_UNAVAILABLE);
+        assert_eq!(unexaminable.1.unwrap_err(), PROCESS_LOCK_UNAVAILABLE_BY_FOLDER, "a start by the folder rule names the folder");
+    }
+    /// A relative home is looked up where the child will resolve it (its working folder), not in
+    /// the App's own working folder, which here holds no folder of that name.
+    #[test]
+    fn local_process_lock_is_looked_for_where_the_child_resolves_a_relative_home() {
+        let f = Fixture::new(false, false);
+        let mut cfg = f.cfg.clone();
+        assert!(cfg.process_lock.is_none() && cfg.codex_home == f.root.join("home") && cfg.cwd.is_absolute());
+        cfg.cwd = f.root.clone();
+        cfg.codex_home = PathBuf::from("home");
+        assert!(!std::env::current_dir().unwrap().join("home").join(PROCESS_LOCK).exists());
+        let earlier = take_process_lock(&f.lock_path()).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&cfg, "fixture").unwrap_err(), crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER);
+        assert!(!f.started() && host.inner.0.lock().unwrap().state == "absent" && host.lifecycle_events().is_empty());
+        drop(earlier);
+    }
+    /// A state that admits no start refuses as admission would, before a folder that cannot be
+    /// searched is reported.
+    #[test]
+    fn local_process_lock_lookup_failure_does_not_precede_the_states_own_refusal() {
+        let f = Fixture::new(false, false);
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        let home = f.root.join("home");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let refused = host.start(&f.cfg, "fixture");
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(refused.unwrap_err(), "start not accepted in state ready");
+        stop_and_wait(&host);
+    }
+    /// Lexical only: the claims withdrawn from this sentence stay out of it. Whether the sentence
+    /// is true of what was observed is a reader's judgment, not this test's.
+    #[test]
+    fn local_process_lock_refusal_does_not_carry_the_withdrawn_claims() {
+        for sentence in [EARLIER_PROCESS, crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER] {
+            for claim in ["has not ended", "is still running", "ends by itself", "within a minute", "does not end it", "has to end before"] {
+                assert!(!sentence.contains(claim), "{claim}");
+            }
+            assert!(!sentence.contains('/') && !sentence.chars().any(|c| c.is_ascii_digit()));
+        }
+        assert!(!crate::native_local_provider::EARLIER_PROCESS_BY_FOLDER.contains("local model"));
+        assert!(!crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE_BY_FOLDER.contains("local model"));
+    }
+
+    #[test]
+    fn account_home_start_takes_no_process_lock() {
+        let f = Fixture::new(false, false);
+        assert!(f.cfg.process_lock.is_none() && HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into()).process_lock.is_none());
+        // A held lock file elsewhere is never consulted by an account start.
+        let held = take_process_lock(&f.root.join("probe").join(PROCESS_LOCK)).unwrap();
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
+        assert!(!f.lock_path().exists(), "no lock file in the account home");
+        stop_and_wait(&host);
+        drop(held);
+    }
+
+    #[test]
+    fn local_process_lock_file_that_is_not_the_apps_private_file_refuses() {
+        let f = Fixture::new(true, false);
+        let path = f.lock_path();
+        std::os::unix::fs::symlink(f.root.join("elsewhere"), &path).unwrap();
+        assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "a link");
+        let host = Arc::new(Host::new());
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE);
+        assert_eq!(host.snapshot()["state"], "absent", "an early refusal");
+        std::fs::remove_file(&path).unwrap();
+        std::fs::write(&path, "").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "not private");
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        std::fs::hard_link(&path, f.root.join("alias")).unwrap();
+        assert_eq!(take_process_lock(&path).unwrap_err(), crate::native_local_provider::PROCESS_LOCK_UNAVAILABLE, "hard-linked");
+        std::fs::remove_file(f.root.join("alias")).unwrap();
+        assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready", "the private file works");
+        stop_and_wait(&host);
+    }
+}
+
+#[cfg(test)]
+#[path = "hosting_child_environment_tests.rs"]
+mod child_environment_tests;

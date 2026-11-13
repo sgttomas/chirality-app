@@ -10,6 +10,50 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
+RUN_LABELS = {'V4-EXM-12': 'RUN-B', 'J1': 'RUN-J1', 'J2': 'RUN-J2'}
+JOURNEYS = ('J1', 'J2')
+# What every recorded J1 or J2 step and journey states (sq.dossier.schema.json, SQ-R11 to SQ-R13 and SQ-R18).
+JOURNEY_RECORD_REQUIREMENTS = {
+    'journeys': list(JOURNEYS),
+    'limits': 'No time or step limit applies to either journey.',
+    'journey_actions': "Each journey action goes through the App's shipped controls.",
+    'outside_the_controls': 'Preparing fixtures and independent observation (reading the supplier\'s events, '
+                            'inspecting records on disk, verifying an export without the App) are done outside the '
+                            'controls, listed for the step as preparation or independent_observation, apart from the '
+                            'journey action; any operator may do them.',
+    'step_operation': {
+        'present_on': 'a recorded step whose outcome shows an attempt (pass, fail, blocked, inconclusive); '
+                      'absent on a not-run or unrecorded step. A blocked step was attempted (DEL-09-01) and '
+                      'carries the operation of whoever began it; a step no one began is not run.',
+        'operator': {'kind': ['person', 'agent'], 'identity': 'required',
+                     'agent_requires': ['provider', 'model', 'session']},
+        'means': ['app_controls_by_hand', 'app_controls_by_computer_use', 'not_through_app_controls'],
+        'observations': {'status': ['made', 'not_made'],
+                         'result': {'preparation': ['arranged', 'not_arranged'],
+                                    'independent_observation': ['equal', 'differs']},
+                         'evidence': 'a reference, required when made'},
+        'outside_controls': ['preparation', 'independent_observation'],
+        'interface_gaps': "What the App's window did not give a user; empty when none; a step with any cannot pass.",
+        'examination_limits': 'What the operator or its tool could not perceive or operate; empty when none; not '
+                              'an interface failure; an operator that cannot tell which it was records inconclusive.',
+        'interventions': {'by': ['examiner', 'agent', 'other_person'], 'actor': 'person or agent, identified',
+                          'kind': ['operated_control', 'explained_control', 'other']},
+    },
+    'not_through_app_controls_can_pass': False,
+    'planned_parts': 'A step with planned parts records each part with its own outcome in its result; none is '
+                     'left out, declared not applicable or marked as not needing native evidence.',
+    'outcome_rule': "SQ-R18: a step is not accepted as passed when its facts forbid it: an interface gap, an "
+                    "examination limit, a step not through the App's controls, a required observation missing, not "
+                    'made or not as expected, or a planned part missing, set aside, marked not native or passed '
+                    "without native evidence. Which other outcome is DEL-09-01's aggregate of its parts.",
+    'parts_rule': 'A step is given planned parts only when those parts are together the whole of the step: everything done and observed in carrying out the step is done and observed in carrying out one of its parts. A gap met while carrying out such a step was therefore met in carrying out one of its parts, and that part is not passed. A step whose parts would not be exhaustive must not be declared with planned parts.',
+    'basis': ['person_observed', 'agent_operated', 'not_established'],
+    'basis_from': 'attempted steps only; none attempted is not_established',
+    'person_observed_only_when': "every attempted step was operated by a person by their own hand through the "
+                                 "App's shipped controls, with no control operated or explained by anyone else",
+    'agent_operated_when': 'any attempted step was operated by an agent or through computer use, or an agent '
+                           'operated a control in it',
+}
 
 
 def read_json(path):
@@ -57,15 +101,17 @@ def prepare(root=ROOT):
         for original in steps:
             step = copy.deepcopy(original)
             step.update(state='awaiting_input', missing_input='candidate_and_configuration',
-                        required_native_route='N-1',
+                        # A journey step is operated through the App's shipped controls by a person or an
+                        # agent, so it names no person-operated form route; its record states the operation.
+                        required_native_route='native_app_controls' if name in JOURNEYS else 'N-1',
                         native_evidence_kinds=['native_development', 'native_packaged'],
                         source_action_observation=operations[step['step']])
             prepared.append(step)
-        scenarios.append({'scenario': name, 'run_label': 'RUN-B' if name == 'V4-EXM-12' else 'RUN-A',
+        scenarios.append({'scenario': name, 'run_label': RUN_LABELS.get(name, 'RUN-A'),
                           'candidate_slot': 'one_same_candidate', 'steps': prepared})
     return {
         'artifact_kind': 'standalone_case_preparation',
-        'preparation_version': 3,
+        'preparation_version': 4,
         'standing': 'test_definition_only',
         'sources': lock['sources'],
         'candidate_slot': {'id': 'one_same_candidate', 'revision': None,
@@ -73,10 +119,11 @@ def prepare(root=ROOT):
         'scenarios': scenarios,
         'stimuli': step_map['stimuli'],
         'access_mode_requirements': {
-            'kinds': ['chatgpt_account', 'api_key', 'local_provider'],
-            'homes': {'chatgpt_account': 'H-acct', 'api_key': 'H-key'},
-            'distinct_conversations': 3, 'configured_together': True,
+            'kinds': ['chatgpt_account', 'local_provider'],
+            'homes': {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'},
+            'distinct_conversations': 2, 'configured_together': True,
             'substitute_mode_satisfies': False},
+        'journey_record_requirements': JOURNEY_RECORD_REQUIREMENTS,
         'missing_inputs': parse_json(captured['missing-inputs.json']),
         'invented_material': parse_json(captured['invented-inputs.json']),
         'boundary': 'No candidate named, examination opened, run attempted, result recorded, '

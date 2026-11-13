@@ -138,6 +138,73 @@ fn package_import_preserves_original_identity_bytes_groups_and_source() {
 }
 
 #[test]
+fn package_import_of_a_store_with_a_broken_chain_is_not_refused_and_reports_the_break_before_and_after() {
+    let f = Fixture::new();
+    // The source store's log is altered in place after it was written: line 1
+    // changes, so the link line 2 carries no longer names it. The store keeps
+    // the log as it is (a broken chain is reported, never repaired).
+    Fixture::choose(&f.source);
+    let log = crate::storage::project_log(&f.root, Some("run:fixture"), "app-writer:local").unwrap();
+    let mut changed = std::fs::read(&log).unwrap();
+    let at = changed.windows(8).position(|w| w == b"invented").unwrap();
+    changed[at] = b'I';
+    std::fs::write(&log, &changed).unwrap();
+    let rel = log.strip_prefix(project_dir(&f.source, &f.project)).unwrap().to_str().unwrap().to_owned();
+    // Export is not refused, and the package records the break.
+    let bag = f.base.join("export/broken");
+    crate::records_export::export(&f.root, &bag).unwrap();
+    assert_eq!(std::fs::read(bag.join("data").join(&rel)).unwrap(), changed, "the payload is the store's file byte for byte");
+    let verified = crate::records_export::verify(&bag).unwrap();
+    // Two statements, never one pass.
+    assert_eq!(verified["state"], "package bytes consistent; log integrity limited");
+    assert_eq!(verified["packageBytes"], "consistent with the manifests and the recorded chain heads");
+    assert_eq!(verified["logIntegrity"]["state"], "limited");
+    let named = verified["logIntegrity"]["limits"].as_array().unwrap();
+    assert_eq!(named.len(), 1);
+    assert!(named[0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")), "{verified}");
+    // The standalone verifier says the same two things, with its own exit status.
+    let standalone = std::process::Command::new("python3").arg(bag.join("verify.py")).arg(&bag).output().unwrap();
+    assert_eq!(standalone.status.code(), Some(2), "{}", String::from_utf8_lossy(&standalone.stderr));
+    let stdout = String::from_utf8_lossy(&standalone.stdout);
+    assert!(stdout.starts_with("Manifests and inventory: agree.") && stdout.contains("\nLimits: 1.\n"), "{stdout}");
+    assert!(stdout.contains(&format!("  FOUND by this verifier: {rel}: chain broken at line 2")), "{stdout}");
+    // Import is not refused: the person is told before deciding, as its own
+    // statement, and in the result.
+    Fixture::choose(&f.destination);
+    let plan = prepare(&f.root, &bag, &actor(), &observed()).unwrap();
+    let asked = statement(&plan).unwrap();
+    assert!(asked.text.contains("Log integrity: LIMITED."), "{}", asked.text);
+    match &asked.in_app {
+        // The whole statement names the log and the line.
+        None => assert!(asked.text.contains(&format!("{rel}: chain broken at line 2")), "{}", asked.text),
+        // Too long for a native alert on this host: the bounded summary
+        // still names the line whole, and the App shows every limit.
+        Some(shown) => {
+            assert!(asked.text.contains("1 limit(s); each is named in full in the App under this confirmation."), "{}", asked.text);
+            assert!(shown.content["logIntegrity"]["limits"][0].as_str().unwrap().starts_with(&format!("{rel}: chain broken at line 2")));
+        }
+    }
+    // The summary is checked directly as well, whichever form this host shows.
+    let summary = crate::records_export::integrity_summary(plan.snapshot.log_integrity()).unwrap();
+    assert!(summary.contains("1 limit(s); each is named in full in the App under this confirmation."), "{summary}");
+    let result = apply(plan, &actor(), &observed()).unwrap();
+    assert_eq!(result["state"], "package imported; log integrity limited");
+    assert!(result["standing"].as_str().unwrap().contains("Log integrity: LIMITED."), "the standing sentence read alone is not a clean pass: {result}");
+    assert!(result["logIntegrity"]["limits"][0].as_str().unwrap().contains(&format!("{rel}: chain broken at line 2")), "{result}");
+    // Afterwards the imported log is the same bytes, and this store's own
+    // reader reports the chain broken at the same line.
+    let imported = crate::storage::project_log(&f.root, Some("run:fixture"), "app-writer:local").unwrap();
+    assert_eq!(std::fs::read(&imported).unwrap(), changed);
+    let heads = crate::records_index::chain_heads(&f.root);
+    assert!(heads["broken"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("chain broken at line 2")), "{heads}");
+    // A package with no chain recorded broken says so, and nothing more.
+    let whole = crate::records_export::verify(&f.bag).unwrap();
+    assert_eq!(whole["state"], "package bytes consistent; no chain recorded broken");
+    assert_eq!(whole["logIntegrity"], json!({"state":"no chain recorded broken"}));
+    assert!(!standing(&whole["logIntegrity"]).contains("Log integrity"));
+}
+
+#[test]
 fn package_import_interrupted_phases_fence_reads_and_resume_same_intent() {
     for at in [
         "payload",

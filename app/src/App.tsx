@@ -8,7 +8,6 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
@@ -31,6 +30,8 @@ import { ConversationContext, ProjectLibraryContext, conversationFromKey, workfl
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
+// Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
+import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
@@ -994,7 +995,7 @@ export function RecordsStorePanel({ store, act }: { store: Json; act: (command: 
   </section>;
 }
 
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
   const [thread,setThread]=useState("");
@@ -1030,7 +1031,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       : "Waiting for the workflow operation and its current view…");
     let request:Record<string,unknown>;
     try{request=workflowArguments(command,args,data,host,thread);}
-    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[]});pendingAction.current=false;setBusy(false);setProgress("");return undefined;}
+    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[],failed:true,settled:true});pendingAction.current=false;setBusy(false);setProgress("");return undefined;}
     const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
     setOutcome({relation,message:"",limits:[]});
     const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
@@ -1089,14 +1090,15 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     : !selected ? "Inspect bundled content or a development copy, or choose content for the Workflow chat."
     : !name.trim() ? "Enter a name for your new draft. The App will check the exact name and destination."
     : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
+  const guideOutcome = outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null;
   return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null} showConversation={showConversation}/>
+      outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
     </div>
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
-    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
     {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
     <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined}>
@@ -1226,13 +1228,14 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
       </>}
     </article>;})}
-    </div>
-    </details>
+    {/* The exact reply and request of the last press. The guides say the result in words. */}
     {outcome&&<div aria-label="Workflow action response">
       {outcome.message&&<ActionFeedback message={`${outcome.relation.command}: ${outcome.message}`} label="Workflow command result"/>}
-      {outcome.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
       <details><summary>Original workflow request</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(outcome.relation,null,2)}</pre></details>
     </div>}
+    </div>
+    </details>
+    {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
   </section>;
 }
 
@@ -1495,7 +1498,8 @@ export function App() {
       setRouteRead(s => routeReadTransition(s, {type: "failure", error: String(error)}));
     }
   };
-  const [host, setHost] = useState<Json>(null);
+  // Every status read is numbered when it starts and applied only if newer than the one shown (hostReads.ts).
+  const { host, hostReads, readHost, applyHost } = useOrderedHost();
   // Safe reply observations outlive a card's move between the selected chat
   // and other requests. They are transient App UI facts, never register rows.
   const [replyObservations, setReplyObservations] = useState<Record<string, RequestReplyObservation>>({});
@@ -1677,9 +1681,9 @@ export function App() {
         || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null)
         || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Unavailable endpoint offer");
-      const latest: Json = await invoke("host_status");
-      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
-      setHost(latest);
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
+      if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
+      applyHost(latestRead);
       updateEndpointEditor({ ...editor, offer: packet, message: "Review the exact endpoint change. Saving opens two separate native decisions." });
     } catch {
       if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
@@ -1703,7 +1707,7 @@ export function App() {
         "continued": "Endpoint write and current source continuation observed. Current choices and drafts stay unchanged.",
       };
       updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
-      const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot; if (current() && providerSource(latest) === editor.source) applyHost(latestRead);
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint change unavailable. No automatic retry; a write may already have occurred." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
@@ -1730,9 +1734,9 @@ export function App() {
       if (packet?.kind !== "add-provider" || typeof packet.token !== "string" || packet.providerId !== editor.id || packet.submittedName !== editor.name || packet.endpoint !== editor.endpoint
         || packet.wireApi !== "responses" || packet.requiresOpenaiAuth !== false || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null) || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Add offer unavailable");
-      const latest: Json = await invoke("host_status");
-      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
-      setHost(latest); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
+      if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
+      applyHost(latestRead); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
@@ -1756,7 +1760,7 @@ export function App() {
       // A refresh cannot revoke the factual save outcome already received.
       // Its failure also cannot attach an old outcome to a newer editor/source.
       try {
-        const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+        const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot; if (current() && providerSource(latest) === editor.source) applyHost(latestRead);
       } catch { /* Retain the known save outcome; private refresh diagnostics withheld. */ }
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; no automatic retry. Private diagnostics withheld." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
@@ -1791,12 +1795,18 @@ export function App() {
         && packet.rows.every((row: Json) => typeof row.id === "string" && /^[A-Za-z][A-Za-z0-9._-]{0,63}$/.test(row.id)
           && row.label === "Configured local provider" && typeof row.endpoint === "string" && row.wireApi === "responses");
       if (!valid) throw Error("unavailable projection");
-      const latest: Json = await invoke("host_status");
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
       if (!current() || providerSource(latest) !== source || latest?.state !== "ready" || latest?.generationClosed
         || latest?.configuredProviderReadRevision !== packet.scope.readRevision
         || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
           && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
-      setHost(latest);
+      applyHost(latestRead);
+      // A row chosen from an earlier read of this same source (home, Codex
+      // generation and project) stays chosen when this read still lists it;
+      // otherwise, and after a Codex restart, it stays retired.
+      const chosen = providerRowChoice.current, choice = choiceRef.current;
+      if (chosen && chosen.source === source && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
+        && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
     } catch {
       if (current()) setProviderObservationMessage("Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
@@ -1818,6 +1828,24 @@ export function App() {
   const fixedLocal = localRoute(localView, host);
   const entryCompatible = startEntries(host).some(entry => entry.value === entryId) && (homeClass === "account"
     || (homeClass === LOCAL_MODE && !!fixedLocal && model === fixedLocal.model && modelProvider === fixedLocal.providerId));
+  // Why the provider row chosen earlier no longer counts, and what restores it.
+  const rowChoiceNote = !rowChoiceStale ? "" : providerObservationCurrent
+    ? (providerObservation.packet.rows.some((row: Json) => row.id === modelProvider)
+      ? `Provider ${modelProvider} was chosen before Codex or the connection changed. Choose it again from the list.`
+      : `Provider ${modelProvider} is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`)
+    : providerReading ? "Reading configured local providers…"
+    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again; if the choice is not kept, choose it again from the list.`;
+  // The first thing that keeps Start unavailable, in the order a person meets it.
+  const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
+    : startPending ? "Starting the conversation…"
+    : homePending ? "Changing the connection…"
+    : providerReading ? "Reading configured local providers…"
+    : endpointBusy ? "A provider change is in progress."
+    : !modelProvider.trim() ? "Choose how this conversation connects (step 1)."
+    : !model.trim() ? "Choose a model (step 2)."
+    : !entryCompatible ? (homeClass === "account" ? "Choose an access entry under “Advanced: enter IDs yourself”." : "This choice does not belong to the connection in use. Choose again in step 1.")
+    : rowChoiceStale ? rowChoiceNote
+    : "";
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, updateThreadKey] = useState<string>("");
@@ -1905,11 +1933,11 @@ export function App() {
     try {
       // A current-pending navigation is just one observation. In particular it
       // never uses a prepare command's result or invokes a workflow operation.
-      const snapshot: Json = await invoke("host_status");
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       const limit = ticket.check() ?? (currentHost.current !== source ? "A newer host observation superseded this delayed read; open again from the current view." : null)
         ?? preparedMessageLimit(snapshot, item);
       if (limit) { refuse(limit); return; }
-      setHost(snapshot);
+      applyHost(snapshotRead);
       setThreadKey(conversationKey(findConversation(snapshot.threads, item.owner)));
       const revealRevision = threadChoiceRevision.current;
       const reveal: PreparedComposerReveal = { sequence, item,
@@ -1938,8 +1966,8 @@ export function App() {
 
 
   const refresh = useCallback(async () => {
-    const snapshot: Json = await invoke("host_status");
-    setHost(snapshot);
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+    applyHost(snapshotRead);
     try {
       setView(await invoke("decision_view"));
     } catch (e) {
@@ -1950,10 +1978,10 @@ export function App() {
 
   const refreshEffectiveAccessSettings = useCallback(async (isCurrent: () => boolean) => {
     const sourceAtRead = currentHost.current;
-    const snapshot: Json = await invoke("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     // This explicit settings refresh cannot replace a newer App observation.
     // Other refresh and polling behavior keeps its existing semantics.
-    if (isCurrent() && currentHost.current === sourceAtRead) setHost(snapshot);
+    if (isCurrent() && currentHost.current === sourceAtRead) applyHost(snapshotRead);
     return snapshot;
   }, []);
 
@@ -1969,11 +1997,11 @@ export function App() {
     await invoke("read_home_access", { generation, modeHomeClass });
     if (!current()) return;
     const viewAtRead = currentHost.current;
-    const snapshot: Json = await invoke("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     if (!current() || currentHost.current !== viewAtRead) return;
     // A current host_status may itself report a replacement source. It is a
     // new observation, never confirmation of the original account read.
-    setHost(snapshot);
+    applyHost(snapshotRead);
   }, []);
 
   const captureContinueNavigation = (generation: Json, historyCurrent: (history: Json) => boolean): ContinueNavigation => {
@@ -1993,8 +2021,8 @@ export function App() {
     return { isCurrent, observe: async () => {
       // The same two observer reads as refresh, bounded to this original
       // navigation's last-known source/intent. Shared refresh semantics stay put.
-      const snapshot: Json = await invoke("host_status");
-      if (isCurrent()) setHost(snapshot);
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+      if (isCurrent()) applyHost(snapshotRead);
       try {
         const decision: Json = await invoke("decision_view");
         if (isCurrent()) setView(decision);
@@ -2005,7 +2033,7 @@ export function App() {
 
   useEffect(() => {
     refresh();
-    const t = setInterval(() => invoke("host_status").then(setHost).catch(e => setMessage(String(e))), 1000);
+    const t = setInterval(() => readHost(invoke<Json>("host_status")).then(applyHost).catch(e => setMessage(String(e))), POLL_MS);
     // RECOVERY SQ-W W-4, W-5: when the window is shown again after it was
     // closed (hidden; DEF-1), the view replaces what it rendered with the
     // host's current snapshot at once. Nothing is sent to Codex.
@@ -2135,11 +2163,11 @@ export function App() {
   const observeOrdinaryView = async (request: OrdinaryTextRequest, isCurrent: () => boolean) => {
     const viewAtRead = currentHost.current;
     if (!isCurrent() || !sameActivityGeneration(viewAtRead?.generation, request.generation)) throw new Error("The original conversation/source was superseded; its view was not applied");
-    const snapshot = await invoke<Json>("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     if (!isCurrent() || currentHost.current !== viewAtRead || !sameActivityGeneration(currentHost.current?.generation, request.generation) || !sameActivityGeneration(snapshot?.generation, request.generation)) {
       throw new Error("A newer conversation/source observation superseded this original refresh; its view was not applied");
     }
-    setHost(snapshot);
+    applyHost(snapshotRead);
   };
   const conversationAction = async (command: "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>): Promise<boolean> => {
     // Capture before native dispatch, not after it. Epochs also invalidate an
@@ -2160,11 +2188,11 @@ export function App() {
     setConversationOutcome(outcome);
     try {
       if (!current() || currentHost.current !== sourceAtDispatch) throw new Error("Original view refresh superseded before reading; no old snapshot was applied");
-      const snapshot = await invoke<Json>("host_status");
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       if (!current() || currentHost.current !== sourceAtDispatch || !sameActivityGeneration(snapshot?.generation, args.generation)) {
         throw new Error("Original view refresh superseded while reading; no old snapshot was applied");
       }
-      setHost(snapshot);
+      applyHost(snapshotRead);
     } catch (e) { setConversationOutcome({ ...outcome, observationLimit: String(e) }); }
     // A refusal never clears text. A skipped/failed read never rewrites the
     // native result, and a superseded acknowledgment never clears a new owner.
@@ -2284,10 +2312,10 @@ export function App() {
     } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(`Fork outcome is not confirmed: ${String(error)}`); }
     finally {
       try {
-        const snapshot = await invoke("host_status");
+        const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
         // Ignore a response to an older intent/source; it cannot restore that
         // home over a newer choice or make a stale fork current.
-        if (forkContextCurrent(scope, currentHost.current)) setHost(snapshot);
+        if (forkContextCurrent(scope, currentHost.current)) applyHost(snapshotRead);
       } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(previous => `${previous}; original source view refresh unavailable: ${String(error)}`); }
       forkInFlight.current = false;
     }
@@ -2538,7 +2566,8 @@ export function App() {
               <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close endpoint editor</button>
               <p role="status">{endpointEditor.message}</p>
             </section>}
-            {(rowChoiceStale || (providerObservation && !providerObservationCurrent)) && <p role="status">Configured provider observation superseded or source unavailable. Read again, or explicitly enter a manual provider and access entry. Start always reads current configuration again.</p>}
+            {rowChoiceStale ? <p role="status">{rowChoiceNote} Start always reads the current configuration again.</p>
+              : providerObservation && !providerObservationCurrent && <p role="status">The provider list shown before is out of date: the configuration was read again or the connection changed. Read configured local providers to see it again.</p>}
           </div>
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
@@ -2549,11 +2578,11 @@ export function App() {
           <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({ entryId: e.target.value })}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
           </details>
           <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
-          <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
-          <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
+          <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
           <p>
-            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending || providerReading || endpointBusy || rowChoiceStale}>Start thread</button>
+            <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
+            {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}
           </p>
           <a href="#workspace-connection">Set up access or start Codex</a>
         </WorkspaceDisclosure>
@@ -2564,7 +2593,7 @@ export function App() {
               await invoke("collaboration_modes_read", { generation });
           }
           finally {
-              setHost(await invoke("host_status"));
+              applyHost(await readHost(invoke<Json>("host_status")));
           }
       }} steer={async (generation, threadId, expectedTurnId, text) => {
           return await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
@@ -2572,7 +2601,7 @@ export function App() {
           return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
       }} observeAttachmentView={async (request) => {
           const viewAtRead = currentHost.current;
-          const snapshot = await invoke<Json>("host_status");
+          const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
           // This read belongs to the original attachment request, not a Home or
           // generation selected while its native response/read was pending.
           if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
@@ -2581,7 +2610,7 @@ export function App() {
           if (currentHost.current !== viewAtRead) {
               throw new Error("A newer view arrived while this original request's refresh was pending; its snapshot was not applied");
           }
-          setHost(snapshot);
+          applyHost(snapshotRead);
       }} interrupt={async (generation, threadId, turnId) => {
           return await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }}/>
@@ -2599,7 +2628,7 @@ export function App() {
               await invoke(command, args);
           }
           finally {
-              setHost(await invoke("host_status"));
+              applyHost(await readHost(invoke<Json>("host_status")));
           }
       }}/>
             </WorkspaceDisclosure>
@@ -2608,7 +2637,7 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
@@ -2645,7 +2674,7 @@ export function App() {
           catch (e) {
               setMessage(String(e));
           }
-          setHost(await invoke("host_status"));
+          applyHost(await readHost(invoke<Json>("host_status")));
       }}/>
 
         <TraceReceivingPanel data={host?.traceReceiving} currentContext={{ hostState: host?.state, generation: host?.generation, nativeSupplier: host?.versionIdentity, supplierStanding: host?.supplierStanding, accessSelection: host?.accessSelection, accountObservation: host?.accountObservation, appExecutableIdentity: "not established by this selector" }} select={async (recordKind, evidenceKind) => {
@@ -2654,7 +2683,7 @@ export function App() {
               setMessage(`Supplied trace selection: ${received.selection?.state ?? "unknown"}`);
           }
           finally {
-              setHost(await invoke("host_status"));
+              applyHost(await readHost(invoke<Json>("host_status")));
           }
       }}/>
   <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl}/>

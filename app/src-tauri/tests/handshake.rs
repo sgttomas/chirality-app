@@ -117,6 +117,15 @@ fn hosts_codex_initialize_then_thread_start() {
     let probe = ScratchDirectory::new("cxp");
     let cwd = ScratchDirectory::new("cxw");
     std::fs::write(home.join("config.toml"), PERSON_CONFIG_STAND_IN).unwrap();
+    // The App's process lock file, private and empty, in the scratch home before the start. A
+    // start whose home folder already holds this file takes the lock, and the supplier inherits
+    // it across exec, so this start is the real supplier started under the lock.
+    let process_lock = home.join("chirality-codex-process.lock");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&process_lock).expect("process lock file made in the scratch home");
+    }
 
     let mut cfg = HostConfig::new(bin.into(), home.to_path_buf(), probe.to_path_buf(), cwd.to_path_buf());
     cfg.expected_sha256 = std::env::var("CHIRALITY_CODEX_EXPECTED_SHA256").ok();
@@ -129,6 +138,20 @@ fn hosts_codex_initialize_then_thread_start() {
     let t0 = Instant::now();
     let ready = host.start(&cfg, "app-startup").expect("start reaches ready");
     assert_eq!(ready["state"], "ready");
+    // The App closed its own copy of the lock as soon as the child was spawned, so while Codex is
+    // ready the only holder left is the started supplier (or what it started). The file is opened
+    // anew and an exclusive, non-waiting lock tried: refused because it is held is the pass. An
+    // attempt that cannot be made (the file missing or unopenable), that succeeds, or that fails
+    // for any other cause is a failure: an observation not made is not a pass.
+    #[cfg(unix)]
+    {
+        use std::os::fd::AsRawFd;
+        let attempt = std::fs::OpenOptions::new().read(true).write(true).open(&process_lock).expect("the process lock file opens for an independent attempt");
+        let refused = unsafe { libc::flock(attempt.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == -1;
+        let cause = std::io::Error::last_os_error();
+        assert!(refused, "the process lock was free while Codex was ready: the started supplier does not hold it");
+        assert_eq!(cause.raw_os_error(), Some(libc::EWOULDBLOCK), "the attempt failed for a cause other than the lock being held: {cause}");
+    }
     let generation = ready["generation"].clone();
     assert_eq!(generation["spawnCounter"], 1);
     assert!(generation["appSession"].as_str().unwrap().starts_with("app-session:"));

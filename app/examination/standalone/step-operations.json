@@ -78,8 +78,8 @@
     "Sign-in completes; account reported; no credential in App records"
   ],
   "M12-2": [
-    "**The person enters an API key**; the App uses home H-key (L-1)",
-    "Key held by Codex in H-key; two homes, one process each"
+    "**The person enters the local model server's key** in the App's native secure field; Codex holds it in the dedicated local home H-omlx, examined apart from account sign-in",
+    "Key held by Codex in H-omlx; it appears in no App-written file and does not reach the web view; the route reads configured, not verified, before first use; H-acct and H-omlx are separate homes"
   ],
   "M12-3": [
     "Configure an identified local model server",
@@ -91,10 +91,62 @@
   ],
   "M12-5": [
     "One conversation with each mode; switch between them",
-    "Each starts; the other two stay configured and selectable"
+    "Each starts; the other mode stays configured and selectable"
   ],
   "M12-6": [
     "Inspect records and logs",
     "No credential anywhere (custody scan)"
+  ],
+  "J1-1": [
+    "Set up a project through the App and reach a usable workspace",
+    "Each missing prerequisite names a concrete next action; no step needed anything outside the App"
+  ],
+  "J1-2": [
+    "Select an existing workflow, creating and registering nothing; where the workflow approval policy asks at selection to re-confirm the registered revision for use, that re-confirmation is made at the act control (an act that falls at run admission is recorded under J1-5)",
+    "The workflow's source and revision are shown before it starts"
+  ],
+  "J1-3": [
+    "Before the run, read which of the workflow's declared required tools are available and which are missing",
+    "The App states it before the run; a workflow whose requirements are not declared reads as undeclared, not as needing none"
+  ],
+  "J1-4": [
+    "Supply the workflow's inputs, one of them a file selected as an input and then changed between selection and sending (the change is preparation outside the App's controls; if it cannot be arranged, that part is blocked or not run with its reason)",
+    "Two parts, each with its own outcome: what the App shows as supplied, a file selected as an input sent as selected; and the changed file held and not sent"
+  ],
+  "J1-5": [
+    "Start the run deliberately and carry it to completion with real execution doing useful work, answering its questions and approvals; an act that falls at run admission (a re-confirmation for use) and a human checkpoint the workflow declares are made at the act control",
+    "Waiting, failed, interrupted and completed states are distinct, and a technical acknowledgment is not shown as completed work; the agent received the selected workflow byte for byte (independent observation outside the App's controls, two comparisons: the run-start turn the supplier's history returns against the composed run text, and that text's workflow body against the stored workflow file)"
+  ],
+  "J1-6": [
+    "Find the results",
+    "The App shows the results, where they are and any remaining action, without an engineering record being read"
+  ],
+  "J2-1": [
+    "Do useful work in a conversation, with real execution",
+    "The work is done and its state read through the App's own controls and words; waiting, failed, interrupted and completed states are distinct, and a technical acknowledgment is not shown as completed work"
+  ],
+  "J2-2": [
+    "Turn the work into a workflow draft",
+    "A draft with its content identity; it stays a draft, registered nowhere and not selectable for a run"
+  ],
+  "J2-3": [
+    "Trial the draft",
+    "The trial is not a run: no run record, and the draft is still not selectable for a run; the trial's state and result are shown in the App's words"
+  ],
+  "J2-4": [
+    "Review the draft",
+    "The draft's declared inputs, tools, checkpoints, outputs and evidence and its identified content are shown; reviewing registers nothing"
+  ],
+  "J2-5": [
+    "Register the reviewed draft, the registration act at the App's act control",
+    "The registration is bound to the reviewed content and names the slot's prior revision; the saved workflow has its source-qualified identity and revision; an agent's claim or a tool's success registers nothing"
+  ],
+  "J2-6": [
+    "With the work named before the run left unfinished, close the App, ending the first session, and reopen it",
+    "The unfinished work is found again; no draft is lost; read-only history is not presented as a continuing conversation; no completed action is replayed"
+  ],
+  "J2-7": [
+    "Select the saved workflow and run it with new inputs under each workflow approval policy in turn, \"Allow disk records\" and \"Require verified approval\"; each run, with its selection and any re-confirmation for use or lowering of the policy it needs at the act control, is a planned part with its own outcome; a part the candidate cannot carry out is blocked with its cause",
+    "For each part: the same source and revision as registered; the policy requested and the approval evidence applied, as the candidate's selection and run records state them; the agent received the saved workflow byte for byte (independent observation outside the App's controls, two comparisons: the run-start turn the supplier's history returns against the composed run text, and that text's workflow body against the stored workflow file)"
   ]
 }

@@ -1,5 +1,6 @@
 //! DEL-06-01 RF facts and DEL-06-02 FV views over one stable, once-read packet.
-//! No writer, dispatch, native identity join, or human-act admission.
+//! No writer, native identity join, or human-act admission. A dispatch is read
+//! only from the App's own recorded observation and its recorded association.
 use super::{Census, LogRead, Row, FOLDER, OBSERVED};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -287,6 +288,66 @@ fn sourced(row: &Row) -> Value {
     json!({"recordId":row.id(),"source":row.source,"recorder":row.record["recorder"]})
 }
 
+const DELEGATION: [&str; 3] = ["dispatch_observed", "child_observed", "observation_ended"];
+fn child_key(record: &Value) -> String {
+    let child = &record["body"]["child"];
+    json!([child["generation"]["home"], child["threadId"]]).to_string()
+}
+/// The App's own 0.2 delegation observations, in protected order. They carry
+/// no undertaking: only a dispatch's recorded association ties it to a brief.
+/// Each entry is the observation with its source and governing order.
+struct Delegation<'a> {
+    dispatches: Vec<&'a Value>,
+    /// The last status or end of observation recorded for each child.
+    last: BTreeMap<String, &'a Value>,
+    /// Children with a status or an end recorded and no dispatch.
+    orphaned: Vec<&'a str>,
+}
+fn observation_source(observation: &Value) -> Value {
+    json!({"recordId":observation["record"]["observationId"],"source":observation["source"],
+        "protectedOrder":observation["protectedOrder"],"recorder":observation["record"]["recorder"]})
+}
+impl<'a> Delegation<'a> {
+    fn read(observations: &'a [Value]) -> Self {
+        let rows: Vec<&Value> = observations.iter()
+            .filter(|o| o["record"]["formatVersion"] == "0.2" && DELEGATION.contains(&text(&o["record"]["kind"]))).collect();
+        let dispatches: Vec<&Value> = rows.iter().copied().filter(|o| o["record"]["kind"] == "dispatch_observed").collect();
+        let mut last = BTreeMap::new();
+        // An ended generation stays ended: a status of that generation written
+        // after its end (a delayed write) never supersedes the end. A status
+        // from a later generation does.
+        let mut ended_generations = BTreeSet::new();
+        for row in rows.iter().copied().filter(|o| o["record"]["kind"] != "dispatch_observed") {
+            let record = &row["record"];
+            let generation = json!([child_key(record), record["body"]["child"]["generation"]]).to_string();
+            if record["kind"] == "observation_ended" {
+                ended_generations.insert(generation);
+            } else if ended_generations.contains(&generation) {
+                continue;
+            }
+            last.insert(child_key(record), row);
+        }
+        let dispatched: BTreeSet<String> = dispatches.iter().map(|d| child_key(&d["record"])).collect();
+        let orphaned = last.iter().filter(|(key, _)| !dispatched.contains(*key)).map(|(_, o)| text(&o["record"]["body"]["child"]["threadId"])).collect();
+        Self { dispatches, last, orphaned }
+    }
+    /// An end of this child's observation is the last thing recorded of it.
+    fn ended(&self, record: &Value) -> bool {
+        self.last.get(&child_key(record)).is_some_and(|o| o["record"]["kind"] == "observation_ended")
+    }
+    /// What was last recorded of a dispatched child, in words that claim
+    /// nothing about the child now, and whether its observation ended.
+    fn observed(&self, dispatch: &'a Value) -> (String, bool, Option<&'a Value>) {
+        match self.last.get(&child_key(&dispatch["record"])).copied() {
+            Some(o) if o["record"]["kind"] == "observation_ended" => (format!("observation ended ({}) as recorded {}, last recorded status {}; outcome unknown",
+                text(&o["record"]["body"]["cause"]), text(&o["record"]["observedAt"]), o["record"]["body"]["lastObserved"].as_str().unwrap_or("none")), true, Some(o)),
+            Some(o) => (format!("child last observed {} as recorded {}; nothing has been recorded of it since",
+                text(&o["record"]["body"]["status"]), text(&o["record"]["observedAt"])), false, Some(o)),
+            None => (format!("no child status recorded since the dispatch was recorded {}", text(&dispatch["record"]["observedAt"])), false, None),
+        }
+    }
+}
+
 pub(super) fn derive(
     briefs: &[Row],
     graphs: &[Row],
@@ -302,6 +363,24 @@ pub(super) fn derive(
         .map(|r| text(&r.record["undertaking"]))
         .filter(|s| !s.is_empty())
         .collect();
+    let delegation = Delegation::read(observations);
+    // The tie is the one recorded with the dispatch: the work item and
+    // undertaking the referenced brief record named when the dispatch was
+    // recorded. Nothing in the project's files is consulted to tie anything.
+    fn tie(record: &Value) -> Option<(&str, &str)> {
+        let association = &record["body"]["association"];
+        Some((association["undertaking"].as_str()?, association["workItem"].as_str()?))
+    }
+    // Children still observed that the record ties to no work item.
+    let untied = delegation.dispatches.iter().filter(|d| tie(&d["record"]).is_none() && !delegation.ended(&d["record"])).count()
+        + delegation.last.iter().filter(|(key, o)| o["record"]["kind"] != "observation_ended"
+            && !delegation.dispatches.iter().any(|d| &child_key(&d["record"]) == *key)).count();
+    // A project line of an App-only kind is the App's observation only where
+    // the protected copy holds the identical line.
+    let delegation_claims: Vec<&Row> = log.rows.iter()
+        .filter(|r| r.record["formatVersion"] == "0.2" && DELEGATION.contains(&r.kind())).collect();
+    let unprotected_claims = delegation_claims.iter()
+        .any(|r| !observations.iter().any(|o| array(&o["projectCounterparts"]).contains(&r.source)));
     let views: Vec<_> = undertakings.into_iter().map(|undertaking| {
         let rows: Vec<_> = log.rows.iter().filter(|r| r.record["undertaking"] == undertaking).collect();
         let (mut active, mut notes) = active(&rows, duplicates);
@@ -343,16 +422,23 @@ pub(super) fn derive(
         let items = array(&graph.record["body"]["items"]);
         let ids: BTreeSet<_> = items.iter().map(|i| text(&i["itemId"])).collect();
         if ids.len() != items.len() { result["notes"] = json!(["selected graph repeats item identities; no item chosen"]); return result; }
+        // Workers still observed whose recorded item is not a selected item of this graph (removed or unselected).
+        let selected: BTreeSet<_> = items.iter().filter(|i| i["selected"] == true).map(|i| text(&i["itemId"])).collect();
+        let outside_selection: Vec<String> = delegation.dispatches.iter().filter(|d| !delegation.ended(&d["record"]))
+            .filter_map(|d| tie(&d["record"]).filter(|(u, item)| *u == undertaking && !selected.contains(item)).map(|(_, item)| item.to_owned())).collect();
         let incomplete = !log.complete || !duplicates.is_empty() || !notes.is_empty();
         let observed: Vec<_> = observations.iter().filter(|o|o["record"]["formatVersion"]=="0.1" && o["record"]["undertaking"]==undertaking).map(|o|&o["record"]).collect();
         let dispatched: BTreeSet<_> = observed.iter().filter(|o|o["kind"]=="dispatch_observed").map(|o|text(&o["body"]["childThread"])).collect();
         let orphaned: BTreeSet<_> = observed.iter().filter(|o|matches!(text(&o["kind"]),"child_observed"|"observation_ended") && !dispatched.contains(text(&o["body"]["childThread"]))).map(|o|text(&o["body"]["childThread"])).collect();
-        let unassociated = observed.iter().filter(|o|o["kind"]=="dispatch_observed" && o["body"]["association"]["brief"].is_null()).count() + orphaned.len();
-        let untrusted = rows.iter().any(|r|OBSERVED.contains(&r.kind())
+        let unassociated = observed.iter().filter(|o|o["kind"]=="dispatch_observed" && o["body"]["association"]["brief"].is_null()).count() + orphaned.len()
+            + untied + outside_selection.len();
+        let untrusted = unprotected_claims || rows.iter().any(|r|OBSERVED.contains(&r.kind())
             && !observations.iter().any(|o|array(&o["projectCounterparts"]).contains(&r.source)));
         if incomplete { notes.push("coordination log incomplete or conflicting; non-done states are unknown and the queue is not complete".into()); }
         if untrusted { notes.push("App-named project observations lack a healthy protected counterpart; native execution is not established".into()); }
         if !orphaned.is_empty() { notes.push(format!("orphaned child observations: {}",orphaned.iter().copied().collect::<Vec<_>>().join(", "))); }
+        if !outside_selection.is_empty() { notes.push(format!("a worker is still observed for work that is not selected in the current graph: {}", outside_selection.join(", "))); }
+        if !delegation.orphaned.is_empty() { notes.push(format!("child observations with no recorded dispatch: {}",delegation.orphaned.join(", "))); }
         let item_return = |id:&str| event(&active,"return_recorded",id);
         let integrated = |id:&str| item_return(id).and_then(|r|return_events(&active,"integration_recorded",id,r.id()));
         let external = |id:&str| event(&active,"external_result",id);
@@ -413,6 +499,7 @@ pub(super) fn derive(
                 if let Some(condition)=need["need"]["condition"].as_str(){causes.push(format!("recorded condition: {condition}"));}
             }
             let mut category;
+            let mut ready_cause = None;
             if let Some(done)=done {
                 category="done";
                 causes.insert(0,if done.kind()=="integration_recorded" {"integration recorded".into()} else {format!("external result recorded ({})",actor(&done.record["body"]["owner"]))});
@@ -420,15 +507,20 @@ pub(super) fn derive(
                 category="returned";causes.push(return_state(review).into());
             } else if needs.iter().any(|n|n["state"]=="unknown") {
                 category="unknown";
+            } else if !item["brief"].is_null() && brief.is_none() {
+                // Unknown takes precedence over waiting.
+                category="unknown";causes.push("named brief absent or ambiguous; assignment basis not established".into());
             } else if needs.iter().any(|n|n["state"]=="outstanding") {
                 category="waiting";
             } else if item["owner"]["kind"]=="external" {
                 category="waiting";causes.push(format!("waits for external owner {}; no result recorded",actor(&item["owner"])));
-            } else if !item["brief"].is_null() && brief.is_none() {
-                category="unknown";causes.push("named brief absent or ambiguous; assignment basis not established".into());
             } else {
-                category="ready";causes.push(if brief.is_some(){"inputs satisfied; brief prepared; no dispatch observed"}else{"inputs satisfied; no dispatch observed"}.into());
+                category="ready";ready_cause=Some(causes.len());
+                causes.push(if brief.is_some(){"inputs satisfied; brief prepared; no dispatch observed"}else{"inputs satisfied; no dispatch observed"}.into());
             }
+            // The recorded dispatches that hold this item, one entry for each
+            // worker, in a form a view can show without reading the cause text.
+            let mut workers: Vec<Value> = Vec::new();
             // Historical 0.1 facts remain source-recorded statements. They never
             // identify a current native conversation, role, home or active child.
             if done.is_none() && ret.is_none() {
@@ -440,6 +532,57 @@ pub(super) fn derive(
                 } else if rows.iter().any(|r|r.kind()=="dispatch_observed" && !item["brief"].is_null() && r.record["body"]["association"]["brief"]==item["brief"]) {
                     category="unknown";causes.push("project dispatch claim lacks protected App provenance".into());
                 }
+                // The App's own observation: the item is held by a worker until a
+                // return is recorded. Nothing about the work or its outcome follows.
+                // A dispatch holds this item where its record says so: the brief
+                // record its prompt referenced named this item and undertaking when
+                // the dispatch was recorded. The project's files now say only whether
+                // that brief still has the referenced content and is still current.
+                let for_item: Vec<&Value> = delegation.dispatches.iter().copied()
+                    .filter(|d| tie(&d["record"]) == Some((undertaking, id))).collect();
+                for dispatch in &for_item {
+                    let record = &dispatch["record"];
+                    let association = &record["body"]["association"];
+                    let (observed, ended, last) = delegation.observed(dispatch);
+                    // The brief record named at dispatch, if it is still among the project's brief files.
+                    let named: Vec<&Row> = briefs.iter().filter(|b| b.record["recordId"] == association["briefRecord"] && b.record["undertaking"] == undertaking).collect();
+                    let named = (named.len() == 1 && !duplicates.contains(named[0].id())).then(|| named[0]);
+                    let current = named.is_some() && brief.is_some_and(|b| Some(b.id()) == named.map(Row::id));
+                    let digest = if association["briefContent"].is_object() { &association["briefContent"]["value"] } else { &association["referencedContent"]["value"] };
+                    let matches_now = named.map(|b| *digest == crate::util::sha256_hex(&b.bytes));
+                    let matched_then = association["state"] == "brief referenced";
+                    let content = match (matched_then, matches_now) {
+                        (_, None) => "the brief record it named is not among the project's brief files now",
+                        (true, Some(true)) => "the brief file has the content the prompt referenced",
+                        (true, Some(false)) => "the brief file had the content the prompt referenced when the dispatch was recorded and does not have it now",
+                        (false, Some(false)) => "the brief file does not have the content the prompt referenced",
+                        (false, Some(true)) => "the brief file did not have the content the prompt referenced when the dispatch was recorded and has it now",
+                    };
+                    let earlier = if current { String::new() } else {
+                        format!("; dispatched under {}, not the item's current brief {}: preparing a new brief releases nothing",
+                            text(&association["brief"]), item["brief"].as_str().unwrap_or("(none named)"))
+                    };
+                    workers.push(json!({"child":record["body"]["child"]["threadId"],"parent":record["body"]["parent"]["threadId"],
+                        "association":association["state"],"briefNamed":association["brief"],"briefRecord":association["briefRecord"],"briefFile":association["briefFile"],
+                        "briefIsCurrent":current,"currentBrief":item["brief"],
+                        "briefContentMatches":matches_now,"briefContentMatchedWhenRecorded":matched_then,
+                        "recordedAt":record["observedAt"],"lastObserved":observed,"observationEnded":ended,
+                        "sources":{"dispatch":observation_source(dispatch),"lastObservation":last.map(observation_source),"brief":named.map(sourced)}}));
+                    causes.push(format!("App observed dispatch of child {} by {}; its spawn prompt named {} ({}){earlier}; {content}; {observed}",
+                        text(&record["body"]["child"]["threadId"]), text(&record["body"]["parent"]["threadId"]),
+                        text(&association["briefFile"]), text(&association["brief"])));
+                }
+                if !workers.is_empty() {
+                    // The sentence that no dispatch was observed is written only where none was.
+                    if let Some(index) = ready_cause { causes.remove(index); }
+                    if workers.iter().all(|w| w["observationEnded"] == true) {
+                        category = "unknown";
+                    } else if category != "unknown" {
+                        category = "dispatched";
+                    }
+                } else if delegation_claims.iter().any(|r| r.kind()=="dispatch_observed" && tie(&r.record) == Some((undertaking, id))) {
+                    category="unknown";causes.push("a dispatch line in the project's log lacks protected App provenance: the records store now attached holds no identical line. It is its recorder's claim, and nothing further can be recorded of that child here (the project's records identity may have changed)".into());
+                }
             }
             if done.is_none() {
                 for change in active.iter().filter(|r|r.kind()=="basis_changed" && array(&r.record["body"]["affectedItems"]).iter().any(|i|i==id)) {
@@ -450,19 +593,19 @@ pub(super) fn derive(
             let qualified=category=="ready" && (unassociated>0 || untrusted);
             if qualified { category="ready (qualified)";causes.insert(0,"child observations without a usable brief/dispatch association; a dispatch for this item may be unrecorded".into()); }
             waiting.push(json!({"item":id,"outcome":item["outcome"],"owner":actor(&item["owner"]),"category":category,
-                "readinessQualified":qualified,"causes":causes,"needs":needs,"next":item["next"],"writeScope":item["writeScope"],
+                "readinessQualified":qualified,"causes":causes,"dispatches":workers,"needs":needs,"next":item["next"],"writeScope":item["writeScope"],
                 "sources":{"graph":sourced(graph),"return":ret.map(sourced),"review":review.map(sourced),"done":done.map(sourced)}}));
         }
         result["graph"]=json!(graph.id());result["revision"]=graph.record["body"]["revision"].clone();
         result["selector"]=sourced(selector);result["graphSource"]=sourced(graph);
         result["currentGraphEstablished"]=json!(!incomplete);
-        result["queueComplete"]=json!(!incomplete && orphaned.is_empty() && !untrusted);
+        result["queueComplete"]=json!(!incomplete && orphaned.is_empty() && unassociated==0 && !untrusted);
         result["queue"]=json!(queue);result["waiting"]=json!(waiting);result["notes"]=json!(notes);result
     }).collect();
     json!({"standing":"Derived file-based coordination claims, not native execution, permission, human acceptance or authority. Rebuild writes nothing.",
         "graphIdentityMethod":crate::util::FILE_IDENTITY_METHOD,"undertakings":views,
         "limits":["Decision needs remain unknown until their current human-act standing is available; a recorded decision alone is insufficient.",
-            "Legacy 0.1 child observations do not establish a current native relationship. The native dispatch producer remains unavailable."]})
+            "A dispatch is shown only from the App's own recorded observation, tied to an item only by what its record says the brief its spawn prompt named was for, read when the dispatch was recorded; that shows which brief was named, not that the child received or read it. It establishes a child and its parent, never work done, a return, a review or an integration. Legacy 0.1 child observations do not establish a current native relationship."]})
 }
 
 #[cfg(test)]

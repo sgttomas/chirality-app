@@ -44,7 +44,7 @@ omissions. Bind source and artifact hashes and preserve the actual commands.
 | P0 Contents/MacOS | Current App debug executable | Production resource feature; development artifact |
 | P1 Contents/Resources/codex | Explicit approved cached vendor tree | Content comparison only; qualification pin not selected here |
 | P2 Contents/Resources/workflows | Full resources/production_workflows tree including MANIFEST.json | Candidate inventory; LS-5/LS-8 not runnable |
-| P3 Contents/Resources/instructions | Full instructions tree including roles.json and ROLE_SET_SOURCE_BINDING.json | Exact received candidate role content; no release default decision |
+| P3 Contents/Resources/instructions | Full instructions tree including roles.json and ROLE_SET_SOURCE_BINDING.json | Exact received candidate role content; HELP_HUMAN preselected for 4.0.0 (DEL-02-04 TBD-004) |
 | P4 Contents/Info.plist | Tauri generated metadata | Existing skeleton identifier/version; minimum macOS 15.0 remains proposed |
 
 The product label is Chirality App v4 (development candidate), version 0.0.0,
@@ -73,6 +73,13 @@ nonblocking App-data/profile/home inode leases. Invalid or competing sources
 return setup with no operational Root-data admission. The full explicit
 environment route remains exclusive, including incomplete/invalid inputs.
 This describes source behavior, not an actual Finder/install/launch witness.
+A launch writes the system web view's data and caches, and the App's own data
+unless redirected, under the home's `Library` in folders named for the build's
+bundle identifier, whatever `HOME` alone is set to. Setting `CFFIXED_USER_HOME`
+together with `HOME` to one throwaway folder redirects them;
+[`examination/standalone/launch.py`](../../examination/standalone/launch.py)
+does that for an identified development build. Agents do not remove those
+folders from the owner's Library.
 
 A physical P0–P4 candidate remains unsigned and unqualified. The ordinary route
 does not package the compiled attested S3 closure; the separate attested-reference
@@ -81,12 +88,43 @@ runtime witness remain absent. Do not insert a synthetic anchor. FP-1(b), FP-2/W
 M2/M3, quarantine/install/launch and account acts are not supplied by bundling.
 The cached 0.160.0 selection does not apply R23-22 qualification-pin selection.
 
+`app/examination/candidate_identity/build_candidate.py` performs this route
+for one named revision: it exports and verifies the revision, verifies a
+supplier release package against its committed canonical distribution record
+and extracts it for the overlay, builds with a fresh
+`dev.chirality.app-v4.candidate.<tag>` identifier, writes the build facts and
+prints the identification command to run next. It writes into a new directory
+it creates, disjoint by filesystem identity from its inputs; it accepts a build
+when the bundle output folder holds exactly the planned development bundle; a
+development bundle's identifier, names and file name are judged by one rule
+shared with identification, which refuses the release identity
+(`com.chirality.app`, `Chirality`, `Chirality.app`). It also refuses known
+reserved locations (listed, not exhaustive), sets every writable location of
+the build tools' environment inside the output root (the caller's prepared npm
+and cargo caches are copied in and the build uses the copies) and re-checks them between steps.
+It does not confine npm, cargo or the Tauri command, and system tools that
+ignore HOME and TMPDIR are not covered: it is not a filesystem snapshot or a
+hostile concurrent-writer isolation service. Run it in a location the caller
+controls.
+
 Identify this complete-content development bundle using DEL-09-01's
 candidate v3 profile (`app/examination/candidate_identity/candidate-identification.v3.schema.json`):
-the existing identification command takes both `--supplier-archive` and
-`--supplier-acquisition`, compares the cached archive with bundled P1 and
-retains its acquisition account. The complete bundle inventory includes P1.
-The supplier-absent v2 format remains available for its original route.
+the identification command takes both `--supplier-archive` and
+`--supplier-acquisition`, compares the archive with bundled P1 and retains
+the supplier account beside the record. For the npm platform tarball that
+account is its acquisition record. For the supplier release package it is the
+committed canonical distribution record (for example
+`app/src-tauri/resources/supplier/<pin>/CANONICAL_DISTRIBUTION.json`), whose
+inventory P1 must also equal; it records no acquirer or authorization, and the
+identification states both as not recorded. The complete bundle inventory
+includes P1. The supplier-absent v2 format remains available for its original route.
+
+Identify a candidate when nothing is rebuilding or replacing it, and keep it so
+through its intended use; take the identity recorded for a walk or for the
+owner's own use from the bundle in the place it will be opened from, after it
+is put there. An identity describes the bundle the tool actually examined, not
+whatever occupied that pathname when the tool was asked; the tool's docstring
+says which comparisons it makes and when.
 
 The default `tauri.conf.json` maps the same P2 and P3 trees (the governing
 PKG §4.1 P-2/P-3), so a bundle built without this overlay carries

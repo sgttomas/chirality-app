@@ -4,11 +4,11 @@
   "current": {
     "app/examination/distribution_receiving/inputs.json": "3b0e6652e5d69e7021027024c03531e43f3026f9e7054bf38f9f69a1a716f3bf",
     "app/examination/distribution_receiving/receive.py": "f930c45b09b878f8c6588acbe72c85d1e306a5275be38585a229b74566483d30",
-    "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "c74f90e07ba449a192e205ab409549c8c2457ba5ac5c75cf0db64ef90088c834",
+    "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "d0e1085a0adc23f945cebb7094dfff8547b5fc3495396a729cb6c3bf572ed84e",
     "app/examination/package_receiving/sources.package-v1.json": "b6f755986a7c248b4e7f242c9768107321405a7617c92e41571ebb597200f162",
-    "app/examination/sq_receiving/pins.packages-v1.json": "5edf9a0480b79ad8e99d001fff50a779e9f9ace9b7f6d2fe5901d2611e92493e",
-    "app/examination/sq_receiving/pins.terms-v1.json": "54934854051dc8a2e73d2732cd9fc05091efa946d42ebe120e6474cad56e734d",
-    "app/examination/standalone/pre_run_inputs.terms-v1.pins.json": "98016e641e49a57f7c5c61efdfbf5b63fb31c9b2bf3da3b5322e182505b31b74",
+    "app/examination/sq_receiving/pins.packages-v1.json": "ebbfe3faffbbd539515229715cdaa29899b667e68cc20af969bf209d0e4e7a72",
+    "app/examination/sq_receiving/pins.terms-v1.json": "09e0a707bc3f83898812a07b4f9698451cc891e3165dc5a2ca93b8573eabf1fb",
+    "app/examination/standalone/pre_run_inputs.terms-v1.pins.json": "41a27c56110bca60f883b94497aac0beed0318502fe74957431f1184ced7d55f",
     "app/examination/support_identity/canonical-pins.terms-v1.json": "8cd96d1d0af27f255fbacdce3501a3250b09d423f815cc8646bb8b57ad88494b"
   },
   "frozen": {
