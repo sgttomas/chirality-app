@@ -262,7 +262,15 @@ impl super::Host {
                 let inner = self.inner.0.lock().unwrap();
                 Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread), reading.as_ref())
             };
-            self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"persistence":"memory-only","limit":"original exact offered start or explicit project receipt unavailable; cold binding unknown, no older offering backfilled"}));
+            // With no receipt, what a binding rests on: this conversation was
+            // offered the capability at its own start in this generation, or
+            // admitted it as a fork of one that was.
+            let basis = {
+                let inner = self.inner.0.lock().unwrap();
+                let forked = inner.threads.iter().rev().any(|row| row["generation"] == *generation && row["threadId"] == thread && !row["forkedFrom"].is_null());
+                if forked { "fork of an offered conversation" } else { "offer" }
+            };
+            self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"basis":basis,"persistence":"memory-only","limit":"original exact offered start or explicit project receipt unavailable; cold binding unknown, no older offering backfilled"}));
             return;
         };
         receipt.home_class = home.unwrap_or_default().into();
@@ -293,7 +301,7 @@ impl super::Host {
             reading.as_ref(),
         );
         drop(inner);
-        self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"persistence":persistence["persistence"],"limit":if current{persistence.get("limit").cloned().unwrap_or(Value::Null)}else{serde_json::json!("current capability project differs from the original offering")},"standing":"unverified App operational metadata; cold use requires a healthy durable receipt observation"}));
+        self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"basis":"receipt","persistence":persistence["persistence"],"limit":if current{persistence.get("limit").cloned().unwrap_or(Value::Null)}else{serde_json::json!("current capability project differs from the original offering")},"standing":"unverified App operational metadata; cold use requires a healthy durable receipt observation"}));
     }
     fn validate_receipt(
         value: &str,
@@ -478,7 +486,7 @@ impl super::Host {
                 inner
                     .records_receipts
                     .push((generation.clone(), thread.into(), receipt));
-                serde_json::json!({"state":"bound in current generation","persistence":"durable App metadata","source":"one matching records receipt after genuine explicit resume","standing":"unverified operational metadata; no role, act or run authority restored"})
+                serde_json::json!({"state":"bound in current generation","basis":"receipt","persistence":"durable App metadata","source":"one matching records receipt after genuine explicit resume","standing":"unverified operational metadata; no role, act or run authority restored"})
             }
             Err(limit) => {
                 serde_json::json!({"state":"unknown/unsupported","limit":limit,"standing":"no original offering backfilled; other tools remain unsupported"})

@@ -875,3 +875,44 @@ fn records_notifications_and_mismatched_fork_inheritance_take_no_project_reading
         stop(&host);
     }
 }
+
+/// Every producer of a bound state says what the binding rests on, so the
+/// view gives only the meaning that basis supports.
+#[test]
+fn every_bound_state_states_its_basis() {
+    let binding = |host: &Host, thread: &str| host.snapshot()["threads"].as_array().unwrap().iter().rev()
+        .find(|row| row["threadId"] == thread && row["generation"] == host.snapshot()["generation"]).map(|row| row["recordsCapabilityBinding"].clone()).unwrap_or(Value::Null);
+    // A start with an explicit project context: a receipt.
+    {
+        let f = Fixture::new();
+        let host = f.host(true, None, "account");
+        f.start(&host, "fixture-model").unwrap();
+        let bound = binding(&host, "thread");
+        assert_eq!((bound["state"].as_str(), bound["basis"].as_str()), (Some("bound in current generation"), Some("receipt")), "{bound}");
+        stop(&host);
+        // A cold resume restored from that receipt: a receipt.
+        drop(host);
+        let cold = f.host(true, None, "account");
+        let row = f.resume(&cold, "thread").unwrap();
+        assert_eq!((row["recordsCapabilityBinding"]["state"].as_str(), row["recordsCapabilityBinding"]["basis"].as_str()), (Some("bound in current generation"), Some("receipt")), "{row}");
+        stop(&cold);
+    }
+    // A hot start with no explicit project context: offered at its start, no receipt.
+    {
+        let f = Fixture::new();
+        let host = f.host(true, None, "account");
+        host.configure_records_capability(host.records_capability().unwrap());
+        f.start(&host, "fixture-model").unwrap();
+        let bound = binding(&host, "thread");
+        assert_eq!((bound["state"].as_str(), bound["basis"].as_str()), (Some("bound in current generation"), Some("offer")), "{bound}");
+        // A fork of it, with no receipt to inherit: admitted as a fork of an offered conversation.
+        let generation = host.snapshot()["generation"].clone();
+        let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+        host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+        let row = host.thread_fork_finish(&request).unwrap();
+        let forked = row["threadId"].as_str().unwrap().to_owned();
+        let bound = binding(&host, &forked);
+        assert_eq!((bound["state"].as_str(), bound["basis"].as_str()), (Some("bound in current generation"), Some("fork of an offered conversation")), "{bound}");
+        stop(&host);
+    }
+}

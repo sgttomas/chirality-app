@@ -142,8 +142,13 @@ test('records capability binding reports cold unknown and publication limits for
   const host={generation,threads:[{generation,threadId:'cold',recordsCapabilityBinding:{state:'unknown/unsupported',limit:'original receipt absent'}},{generation,threadId:'hot',recordsCapabilityBinding:{state:'bound in current generation',persistence:'memory-only',limit:'folder flush unconfirmed'}},{generation:{...generation,appSession:'old'},threadId:'stale',recordsCapabilityBinding:{state:'bound in old generation'}}]};
   assert.deepEqual(buttons(RecordsCapabilityBindings({host})),[]);
   const text=h(RecordsCapabilityBindings,{host});assert.match(text,/unknown\/unsupported/);assert.match(text,/original receipt absent/);assert.match(text,/memory-only/);assert.match(text,/folder flush unconfirmed/);assert.doesNotMatch(text,/stale/);
-  assert.ok(text.includes('hot: bound in current generation (a receipt held for this conversation; whether the project at its path is still the one it names is checked again on every read).'),'a binding says it holds a receipt, never that the project now there is validated');
-  assert.ok(!text.includes('cold: unknown/unsupported (a receipt held'),'the meaning is given only for a binding');
+  assert.ok(text.includes('hot: bound in current generation.'),'a bound row whose basis is not stated is given no meaning it may not have');
+  assert.ok(!text.includes('cold: unknown/unsupported ('),'the meaning is given only for a binding');
+  const bound=(basis)=>h(RecordsCapabilityBindings,{host:{generation,threads:[{generation,threadId:'t',recordsCapabilityBinding:{state:'bound in current generation',basis}}]}});
+  assert.ok(bound('receipt').includes('t: bound in current generation (a receipt held for this conversation; whether the project at its path is still the one it names is checked again on every read).'));
+  assert.ok(bound('offer').includes('t: bound in current generation (offered to this conversation when it started in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read).'));
+  assert.ok(bound('fork of an offered conversation').includes('t: bound in current generation (admitted to this conversation as a fork of one offered it in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read).'));
+  for (const basis of ['receipt','offer','fork of an offered conversation']) assert.ok(!bound(basis).includes('validated'),'none says the project now there is validated');
 });
 
 test('the read log limit is shown whole with the records capability, with or without bound conversations (LIM-014)',()=>{
