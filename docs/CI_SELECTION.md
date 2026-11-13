@@ -224,20 +224,25 @@ The records store asks whether something is there through `records_inspect`, whi
 keeps "not there" apart from "not known" and does not follow a link at the final
 entry (a link among the ancestors can still be followed).
 `tools/ci/check_records_presence.py`, run by `repository-checks` through
-`tools/ci/test_check_records_presence.py`, reads every line of the records modules'
-files (`app/src-tauri/src/records*.rs`, leaving out only files named `*_tests.rs`)
-and finds each line that spells `.exists()`, `.is_dir()`, `.is_file()` or
-`.is_symlink()` outside comments and strings. Each such line must be on the reviewed
-list `tools/ci/records_presence_list.yaml`, keyed by its file and the line's own
-text, with its kind and reason: `metadata`, `path` (which also says what its caller
-concludes when it cannot tell), `test`, or `outside`. The check fails on a new such
-line, on a listed line no longer found, and on text it cannot read with certainty
-(a string or comment that does not close, or a string prefix it does not know). A
-form it does not know fails the check until someone changes the code or the check;
-that cost is intended.
+`tools/ci/test_check_records_presence.py`, reads the raw text of every line of the
+records modules' files (`app/src-tauri/src/records*.rs`, leaving out only files
+named `*_tests.rs`) and finds each line that spells `.exists()`, `.is_dir()`,
+`.is_file()` or `.is_symlink()`, with or without white space around the dot and the
+parentheses. It does not interpret the language: a spelling in code, a comment or a
+string is found alike. Each such line must be on the reviewed list
+`tools/ci/records_presence_list.yaml`, keyed by its file and the line's own text,
+with its kind and reason: `metadata`, `path` (which also says what its caller
+concludes when it cannot tell), `test`, `comment`, `string`, or `outside`. The check
+fails on a new such line and on a listed line no longer found. A kind only
+describes: every listed line takes part in the same accounting of exact text and
+number of copies, and no kind exempts a line or loosens the count.
 
-The check reads spelling, not meaning. A `test` entry's kind is the reviewer's
-statement: the check does not verify that the line is test-only. It does not see
+The check reads spelling, not meaning. It notices a new spelling, or one more copy
+of a listed one. It does not notice a change of meaning around a listed line whose
+text stays the same, such as a caller concluding something new from the same call:
+that is why each `path` entry carries its `cannot_tell`, and it is what a reviewer
+of a change near a listed line still has to read. The kinds `test`, `comment` and `string` are
+the reviewer's statement: the check does not verify them. It does not see
 `try_exists()`, a call through an alias, wrapper or macro, a spelling split across
 lines, or a module outside `records*.rs` that reads the store. Files named
 `*_tests.rs` are left out by name; each such records file is compiled only under a

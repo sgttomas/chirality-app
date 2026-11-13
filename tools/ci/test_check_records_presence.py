@@ -1,6 +1,8 @@
 """Regressions for check_records_presence.py, and the check on this repository."""
 from __future__ import annotations
 
+import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -66,7 +68,9 @@ def test_moving_a_line_does_not_fail_it(root):
     assert presence.check(root, listed(entry("records_a.rs", "if meta.is_dir() { go(); }"))) == []
 
 
-def test_comments_and_strings_are_left_out_and_test_code_is_read(root):
+def test_comments_strings_and_test_code_are_read_like_code(root):
+    # The scanner does not interpret the language: a spelling in a comment, a
+    # string or test code is found like a call, and is listed with its kind.
     write(root, "records_b.rs", "\n".join([
         "fn b() {",
         '    let s = "path.exists() in a string, with a { brace";',
@@ -82,9 +86,21 @@ def test_comments_and_strings_are_left_out_and_test_code_is_read(root):
         "fn after<'a>(meta: &'a Metadata) -> bool { meta.is_file() }",
     ]) + "\n")
     write(root, "records_b_tests.rs", "fn t() { assert!(path.exists()); }\n")
-    found, unreadable = presence.occurrences(root)
-    assert unreadable == []
-    assert [(name, number) for name, number, _ in found if name != "records_a.rs"] == [("records_b.rs", 10), ("records_b.rs", 12)]
+    found = presence.occurrences(root)
+    assert [(name, number) for name, number, _ in found if name != "records_a.rs"] == [("records_b.rs", n) for n in (2, 3, 4, 5, 10, 12)]
+
+
+def test_the_comment_and_string_kinds_are_accepted(root):
+    write(root, "records_a.rs", "fn a() {\n    // path.exists() is not asked here\n    let s = \"path.is_dir()\";\n}\n")
+    assert presence.check(root, listed(
+        entry("records_a.rs", "// path.exists() is not asked here", "comment", reason="a line comment"),
+        entry("records_a.rs", 'let s = "path.is_dir()";', "string", reason="a string literal"),
+    )) == []
+
+
+def test_white_space_around_the_dot_and_parentheses_is_seen(tmp_path):
+    write(tmp_path, "records_probe.rs", "fn a() {\n    path.exists ();\n    path . is_dir( );\n    path\t.is_file\t()\n}\n")
+    assert [number for _, number, _ in presence.occurrences(tmp_path)] == [2, 3, 4]
 
 
 def test_the_same_test_line_four_times_needs_four_entries_and_a_fifth_fails(root):
@@ -99,17 +115,23 @@ def test_the_same_test_line_four_times_needs_four_entries_and_a_fifth_fails(root
     assert len(problems) == 1 and "assert!(!path.exists());" in problems[0], problems
 
 
-@pytest.mark.parametrize("name, source, line", [
-    ("a string that does not close", 'fn a() {\n    let s = "open;\n    path.exists();\n}\n', 2),
-    ("a raw string that does not close", 'fn a() {\n    let s = r##"open"#;\n    path.exists();\n}\n', 2),
-    ("a block comment that does not close", "fn a() {\n    /* open\n    path.exists();\n}\n", 2),
-    ("a string prefix it does not know", 'fn a() {\n    let s = f"{x}";\n    path.exists();\n}\n', 2),
-])
-def test_what_it_cannot_read_fails_naming_the_line(tmp_path, name, source, line):
-    write(tmp_path, "records_probe.rs", source)
-    problems = presence.check(tmp_path, listed())
-    assert any(p.startswith(f"{presence.SOURCE / 'records_probe.rs'}:{line}:") and "cannot tell what follows" in p for p in problems), (name, problems)
-    assert presence.main(["--root", str(tmp_path), "--list", str(tmp_path / "missing.yaml")]) == 1
+@pytest.mark.parametrize("kind", ["metadata", "path", "test", "comment", "string"])
+def test_a_kind_describes_and_never_exempts_or_loosens_the_count(root, kind):
+    # The same text under any kind gives the same result: one entry covers one
+    # line, a second copy of the line fails, and a stale entry fails.
+    line = "if meta.is_dir() { go(); }"
+    one = listed(entry("records_a.rs", line, kind))
+    assert presence.check(root, one) == []
+    write(root, "records_a.rs", f"fn a() {{\n    {line}\n    {line}\n}}\n")
+    problems = presence.check(root, one)
+    assert len(problems) == 1 and problems[0].startswith(f"{presence.SOURCE / 'records_a.rs'}:3: {line}"), problems
+    stale = listed(entry("records_a.rs", line, kind), entry("records_a.rs", line, kind), entry("records_a.rs", line, kind))
+    assert [p for p in presence.check(root, stale) if "listed 3 time(s) but found 2" in p], presence.check(root, stale)
+
+
+def test_an_outside_entry_never_covers_a_scanned_line(root):
+    problems = presence.check(root, listed(entry("records_a.rs", "if meta.is_dir() { go(); }", "outside")))
+    assert any(p.startswith(f"{presence.SOURCE / 'records_a.rs'}:2:") for p in problems), problems
 
 
 def test_a_path_entry_must_say_what_its_caller_concludes(root):
@@ -138,8 +160,8 @@ def test_this_repository_lists_every_such_spelling():
 
 
 # The first reading's counterexamples (pull request 291, round 1). Test code is
-# read like the rest, and every raw or C string is masked to its true end, so
-# no spelling is hidden: each one here is seen.
+# read like the rest, and nothing is masked, so no spelling is hidden: each line
+# that spells one, in code or in a string, is seen.
 @pytest.mark.parametrize("name, source, expected", [
     ("a production call on the line of a test-only item",
      "#[cfg(test)] fn helper() {} fn production(path: &Path) -> bool { path.exists() }\n", [1]),
@@ -152,16 +174,100 @@ def test_this_repository_lists_every_such_spelling():
     ("a test-only static with an array type",
      "#[cfg(test)]\nstatic HELD: [u8; 2] = [0, 1]; fn production(path: &Path) -> bool { path.exists() }\n", [2]),
     ("a raw string with seven hashes",
-     "fn production(path: &Path) -> bool {\n    let _text = r#######\"a raw quote: \" .exists()\"#######;\n    path.is_file()\n}\n", [3]),
+     "fn production(path: &Path) -> bool {\n    let _text = r#######\"a raw quote: \" .exists()\"#######;\n    path.is_file()\n}\n", [2, 3]),
     ("a byte raw string with six hashes",
-     "fn production(path: &Path) -> bool {\n    let _text = br######\"a raw quote: \" .exists()\"######;\n    path.is_file()\n}\n", [3]),
+     "fn production(path: &Path) -> bool {\n    let _text = br######\"a raw quote: \" .exists()\"######;\n    path.is_file()\n}\n", [2, 3]),
     ("a raw C string",
-     "fn production(path: &Path) -> bool {\n    let _text = cr#\"a raw quote: \" .exists()\"#;\n    path.is_file()\n}\n", [3]),
+     "fn production(path: &Path) -> bool {\n    let _text = cr#\"a raw quote: \" .exists()\"#;\n    path.is_file()\n}\n", [2, 3]),
     ("a C string",
-     "fn production(path: &Path) -> bool {\n    let _text = c\"a quote: \\\" .exists()\";\n    path.is_file()\n}\n", [3]),
+     "fn production(path: &Path) -> bool {\n    let _text = c\"a quote: \\\" .exists()\";\n    path.is_file()\n}\n", [2, 3]),
 ])
 def test_no_production_spelling_is_hidden(tmp_path, name, source, expected):
     write(tmp_path, "records_probe.rs", source)
-    found, unreadable = presence.occurrences(tmp_path)
-    assert unreadable == [], (name, unreadable)
-    assert [number for _, number, _ in found] == expected, name
+    assert [number for _, number, _ in presence.occurrences(tmp_path)] == expected, name
+
+
+# The second reading's candidates (pull request 291, round 2), with the one it
+# found (a raw identifier taken for a raw string's opener, which hid the call on
+# the next line) and the combining-character one it named but did not run. Each
+# is added beside this repository's scanned files and checked against the
+# repository's unchanged list: each must fail, naming every line that spells a
+# call on the path.
+def function(body: str) -> str:
+    return "fn probe(path: &std::path::Path) -> bool {\n" + body + "\n}\n"
+
+
+DISCARD = "macro_rules! discard { ($($t:tt)*) => {}; }\n"
+CANDIDATES = [(f"plain_{s}", function(f"    path.{s}()")) for s in ("exists", "is_dir", "is_file", "is_symlink")] + [
+    ("lifetimes", "fn probe<'a, 'b>(path: &'a std::path::Path, _: &'b str, _: &'static str) -> bool { path.exists() }\n"),
+    ("labels", function("    'a: loop { 'static_label: loop { break 'a path.exists(); } }")),
+    ("ordinary_characters", function("    let _ = ('a', '\u00e9', '{', '\\'', '\\\\', b'x', b'\\'', b'\\\\', '\\u{301}');\n    path.exists()")),
+    ("character_quote", function("    let _ = '\\'';\n    path.exists()")),
+    ("character_backslash", function("    let _ = '\\\\';\n    path.exists()")),
+    ("escaped_string_quote", function(r'    let _ = "escaped \" quote /* .is_dir() */";' + "\n    path.exists()")),
+    ("even_backslashes_before_quote", function(r'    let _ = "ends in slash \\";' + "\n    path.exists()")),
+    ("odd_backslashes_before_quote", function(r'    let _ = "slash and quote \\\" here";' + "\n    path.exists()")),
+    ("byte_and_c_strings", function(r'    let _ = b"/* .is_file() */ \""; let _ = c"// .is_dir() \"";' + "\n    path.exists()")),
+] + [(f"identifier_suffix_{i}", function(f'    discard!({i}"text");\n    path.exists()')) for i in ("for", "bar", "abc", "abr")] + [
+    ("raw_identifier_plain", function("    let r#ident = 1; let r#r = 2; let r#c = 3;\n    path.exists()")),
+    ("attributes_next_to_raw", '#[doc = r###"attribute quote: \" /* */"###]\n' + function('    let _ = r#"value"#;\n    path.exists()')),
+    ("string_with_block_comment_opener", function('    let _ = "/*";\n    path.exists()')),
+    ("block_comment_with_string_opener", function('    /* " r####" nested /* comment */ */\n    path.exists()')),
+    ("doc_comments", '/// .is_dir() "\n//! .exists()\n/** .is_file() " /* nested */ */\n' + function("    path.exists()")),
+    ("unicode_non_ascii", function('    let caf\u00e9 = "\u65e5\u672c\u8a9e"; /* \u03bb */\n    path.exists()')),
+    ("crlf", function('    let _ = "\u00e9"; // comment\n    path.exists()').replace("\n", "\r\n")),
+    ("carriage_return", function('    let _ = "text";\r    path.exists()')),
+    ("raw_seven_hashes", function('    let _ = r#######"a raw quote: "nothing"#######;\n    path.exists()')),
+    ("raw_byte_six_hashes", function('    let _ = br######"a raw quote: "nothing"######;\n    path.exists()')),
+    ("raw_c_string", function('    let _ = cr#"a raw quote: "nothing"#;\n    path.exists()')),
+    ("raw_no_hashes", function('    let _ = r"value"; let _ = br"byte"; let _ = cr"C";\n    path.exists()')),
+    ("raw_255_hashes", function('    let _ = r' + "#" * 255 + '"quote: "middle"' + "#" * 255 + ";\n    path.exists()")),
+    ("cfg_same_line", "#[cfg(test)] fn helper() {} fn probe(path: &std::path::Path) -> bool { path.exists() }\n"),
+    ("cfg_array_parameter", "#[cfg(test)]\nfn helper(_: [u8; 1]) {} fn probe(path: &std::path::Path) -> bool { path.exists() }\n"),
+    ("cfg_attributed_else", function("#[cfg(test)]\n    if false {} else { path.exists(); }\n    path.is_file()")),
+    ("unclosed_string", function('    let _ = "open;\n    path.exists()')),
+    ("unclosed_raw_string", function('    let _ = r##"open"#;\n    path.exists()')),
+    ("unclosed_block_comment", function("    /* open\n    path.exists()")),
+    ("unknown_prefix", function('    let _ = f"unknown";\n    path.exists()')),
+    ("space_before_parenthesis", function("    path.exists ()")),
+    ("raw_identifier_hash_boundary", DISCARD + function('    discard!(r#r#"first");\n    let present = path.exists();\n    discard!("last"#);\n    present')),
+    ("unicode_combining_raw_boundary", DISCARD + function('    discard!(a\u0301r#"first");\n    let present = path.exists();\n    discard!("last"#);\n    present')),
+]
+CALL = re.compile(r"path\.\s*(?:exists|is_dir|is_file|is_symlink)\s*\(")
+
+
+@pytest.fixture(scope="module")
+def repository_copy(tmp_path_factory):
+    base = tmp_path_factory.mktemp("repository")
+    for path in presence.scanned(presence.ROOT):
+        write(base, path.name, path.read_text(encoding="utf-8"))
+    write(base, "storage.rs", (presence.ROOT / presence.SOURCE / "storage.rs").read_text(encoding="utf-8"))
+    return base
+
+
+def test_every_candidate_of_the_second_reading_is_here():
+    # Its forty run, the split one below among them, and the combining one it did not run.
+    assert len({name for name, _ in CANDIDATES}) + 1 == 41
+
+
+@pytest.mark.parametrize("name, source", CANDIDATES, ids=[name for name, _ in CANDIDATES])
+def test_each_candidate_fails_on_the_unchanged_list(repository_copy, tmp_path, capsys, name, source):
+    root = tmp_path / "root"
+    shutil.copytree(repository_copy, root)
+    (root / presence.SOURCE / "records_unreviewed.rs").write_bytes(source.encode("utf-8"))
+    calls = [n for n, line in enumerate(source.splitlines(), start=1) if CALL.search(line)]
+    assert calls, name
+    assert presence.main(["--root", str(root), "--list", str(presence.ROOT / presence.LIST)]) == 1, name
+    reported = capsys.readouterr().err
+    for number in calls:
+        assert f"{presence.SOURCE / 'records_unreviewed.rs'}:{number}:" in reported, (name, number, reported)
+
+
+def test_a_spelling_split_across_lines_is_a_stated_limit(repository_copy, tmp_path):
+    # The second reading's split_across_lines candidate: the check reads one line
+    # at a time, so this passes. Its docstring names the limit.
+    root = tmp_path / "root"
+    shutil.copytree(repository_copy, root)
+    (root / presence.SOURCE / "records_unreviewed.rs").write_text(function("    path.exists\n    ()"), encoding="utf-8")
+    assert presence.main(["--root", str(root), "--list", str(presence.ROOT / presence.LIST)]) == 0
+    assert "split across lines" in presence.__doc__

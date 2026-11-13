@@ -1,15 +1,18 @@
 # The reviewed list for tools/ci/check_records_presence.py.
 #
 # Every line of the records modules' files (app/src-tauri/src/records*.rs, except
-# files named *_tests.rs) that spells .exists(), .is_dir(), .is_file() or
-# .is_symlink() is listed here by its file and its own text, with its kind and
-# reason:
+# files named *_tests.rs) whose raw text spells .exists(), .is_dir(), .is_file() or
+# .is_symlink(), in code, a comment or a string alike, is listed here by its file
+# and its own text, with its kind and reason:
 #   metadata  called on metadata already examined; the reason names that examination.
 #   path      called on a path; cannot_tell says what the caller concludes when it
 #             cannot tell, and why that admits nothing.
 #   test      in test code inside a records module; the reason names the module or
 #             attribute it is under. The kind is the reviewer's statement: the check
 #             does not verify that the line is test-only.
+#   comment   inside a comment, not a call; the reason says which.
+#   string    inside a string, not a call; the reason says which. Like test, these
+#             two kinds are the reviewer's statement and are not verified.
 #   outside   a known site outside the records modules, recorded, not scanned.
 # A new such line fails the check until it is asked through records_inspect or listed
 # here with its reason; a listed line no longer found fails it too.
