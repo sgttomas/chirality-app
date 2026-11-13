@@ -232,7 +232,9 @@ fn from_environment() -> Result<Store, String> {
 /// A test build's default store, one per process. A process id alone is
 /// reused by later processes, which then opened an earlier process's store
 /// and met its records; a fresh nonce beside the id makes the store this
-/// process's own. The process removes it when it ends normally.
+/// process's own. The process registers best-effort removal of its default
+/// test store on normal exit. Kill or abort may leave it behind; the fresh
+/// nonce prevents a later process from reusing it.
 #[cfg(test)]
 static TEST_STORE_NAME: std::sync::OnceLock<String> = std::sync::OnceLock::new();
 #[cfg(test)]
