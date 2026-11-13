@@ -1856,8 +1856,11 @@ fn an_export_never_publishes_a_linked_member() {
         let f = Fixture::new();
         let moved = f.output.join("moved-data");
         let target = moved.clone();
+        let before = std::rc::Rc::new(std::cell::RefCell::new(std::collections::BTreeMap::new()));
+        let taken = before.clone();
         crate::records_export::BEFORE_EXPORT_SYNC.with(|h| *h.borrow_mut() = Some(Box::new(move |stage: &Path| {
             std::fs::rename(stage.join("data"), &target).unwrap();
+            *taken.borrow_mut() = files_with_bytes(&target);
             symlink(&target, stage.join("data")).unwrap();
             if !readable { std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o000)).unwrap(); }
         })));
@@ -1869,8 +1872,10 @@ fn an_export_never_publishes_a_linked_member() {
         assert!(!bag.exists(), "readable target {readable}: no published destination exists");
         // The refused export's cleanup removes its own staging, never what a
         // link in it pointed to: the target keeps every byte it had.
+        let before = before.borrow().clone();
+        assert!(before.keys().any(|rel| rel.ends_with(".jsonl")), "readable target {readable}: the target held records to protect: {:?}", before.keys().collect::<Vec<_>>());
         let kept = files_with_bytes(&moved);
-        assert!(!kept.is_empty(), "readable target {readable}: the link's target is preserved through cleanup");
-        assert!(kept.keys().any(|rel| rel.ends_with(".jsonl")), "readable target {readable}: its records are still there: {:?}", kept.keys().collect::<Vec<_>>());
+        assert_eq!(kept.keys().collect::<Vec<_>>(), before.keys().collect::<Vec<_>>(), "readable target {readable}: every file of the link's target is preserved through cleanup");
+        assert!(kept == before, "readable target {readable}: every byte of the link's target is preserved through cleanup");
     }
 }
