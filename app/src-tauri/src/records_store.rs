@@ -1183,6 +1183,173 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     Ok(out)
 }
 
+/// The decision a kept reader was opened with, made again before each read:
+/// the project's records home (`readable_home`), or the place of its
+/// connector accounts (`route_accounts_place`, with the store's own record of
+/// a disposal).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ReaderDecision {
+    Records,
+    Accounts,
+}
+/// A kept reader's binding: the records store, the project folder and the
+/// project's records folder in the store that the reader was opened for. It
+/// protects kept readers; a writer's binding is not this.
+///
+/// A folder's physical identity here is the device and inode of the folder
+/// itself, read without following a link. Each bound folder is held open for
+/// the binding's life, so its inode cannot be given to another folder while
+/// the binding lives.
+///
+/// `prove` runs before each read, and the read then goes by path: a change
+/// between the proof and the read is not seen by this binding.
+#[derive(Debug)]
+pub(crate) struct ReaderBinding {
+    decision: ReaderDecision,
+    root: PathBuf,
+    project: (u64, u64),
+    _project_open: std::fs::File,
+    /// The store's canonical root and identity, when the records are read
+    /// from the store.
+    store: Option<(PathBuf, String)>,
+    records: Option<BoundFolder>,
+    /// When the decision read the records in place: the folder it read them
+    /// from, and that folder relative to the project folder.
+    in_place: Option<InPlace>,
+}
+#[derive(Debug, Clone)]
+pub(crate) struct InPlace {
+    pub(crate) records: PathBuf,
+    pub(crate) relative: PathBuf,
+}
+#[derive(Debug)]
+struct BoundFolder {
+    path: PathBuf,
+    node: (u64, u64),
+    _open: std::fs::File,
+}
+/// `path` opened and held, with its device and inode: the folder examined
+/// without following a link, and the folder opened, must be one folder.
+fn hold_folder(path: &Path, what: &str) -> Result<((u64, u64), std::fs::File), String> {
+    use std::os::unix::fs::MetadataExt;
+    let not_known = |e: std::io::Error| format!("not known: {what} {} could not be examined ({e}); nothing read", path.display());
+    let at = node(path).map_err(not_known)?;
+    let file = std::fs::File::open(path).map_err(not_known)?;
+    let meta = file.metadata().map_err(not_known)?;
+    if !meta.file_type().is_dir() || (meta.dev(), meta.ino()) != at {
+        return Err(format!("{what} {} is not a folder a reader can bind (a link, or changed while it was opened); nothing read", path.display()));
+    }
+    Ok((at, file))
+}
+/// The decision made again: the project's folder in the store, or `None` for
+/// records read in place.
+fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, String> {
+    decided_home(root, decision).map(|(store, _)| store)
+}
+/// The decision, with the folder records are read from in place when it
+/// says in place (workflow records: `ReadHome::records`), so that a reader
+/// takes its in-place folder from the decision and spells no location.
+fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf>, Option<InPlace>), String> {
+    match decision {
+        ReaderDecision::Records => {
+            let home = readable_home(root)?;
+            Ok(match home.in_store() {
+                Some(dir) => (Some(dir.to_path_buf()), None),
+                None => {
+                    let records = home.records();
+                    let relative = records.strip_prefix(&home.attachment.root).map_err(|_| format!("the project's records in place ({}) are not within the project folder; nothing read", records.display()))?.to_path_buf();
+                    (None, Some(InPlace { records, relative }))
+                }
+            })
+        }
+        ReaderDecision::Accounts => decided_accounts(root).map(|store| (store, None)),
+    }
+}
+/// The connector accounts' place, with the store's own record of a disposal.
+fn decided_accounts(root: &Path) -> Result<Option<PathBuf>, String> {
+    let place = route_accounts_place(root, false)?;
+    if let Some(dir) = &place.store_dir {
+        if crate::records_retention::terminal(dir)? {
+            return Err("project records disposed or disposal incomplete; nothing read".into());
+        }
+    }
+    Ok(place.store_dir)
+}
+/// The binding of a reader opened now for the canonical project folder
+/// `root`, by the decision it reads by.
+pub(crate) fn bind_reader(root: &Path, decision: ReaderDecision) -> Result<ReaderBinding, String> {
+    let (project, project_open) = hold_folder(root, "the project folder")?;
+    let (place, in_place) = decided_home(root, decision)?;
+    let (store, records) = match place {
+        Some(dir) => {
+            let store = opened()?;
+            let (node, open) = hold_folder(&dir, "the project's records folder in the store")?;
+            (Some(store), Some(BoundFolder { path: dir, node, _open: open }))
+        }
+        None => (None, None),
+    };
+    Ok(ReaderBinding { decision, root: root.to_path_buf(), project, _project_open: project_open, store, records, in_place })
+}
+impl ReaderBinding {
+    /// Before each read: the store is still the one bound; the project
+    /// folder is still the one bound; the decision made again gives the same
+    /// place; and the records folder is still the one bound. What cannot be
+    /// examined refuses as not known, never as unchanged. A changed one
+    /// refuses with its reason; the binding is kept, never moved, so the
+    /// reader reads again once what changed is as it was.
+    pub(crate) fn prove(&self) -> Result<(), String> {
+        if let Some((root, id)) = &self.store {
+            let (now, now_id) = opened()?;
+            if &now != root || &now_id != id {
+                return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()));
+            }
+        }
+        // The project folder examined first, so that what cannot be examined
+        // is not known; compared only after the decision, so that the
+        // decision's own refusal (not attached, disposed) keeps its reason.
+        let project_now = node(&self.root)
+            .map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display()))?;
+        let now = decided_place(&self.root, self.decision)?;
+        if project_now != self.project {
+            return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()));
+        }
+        match (&self.records, now) {
+            (Some(bound), Some(dir)) if dir == bound.path => {}
+            (Some(_), _) => return Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into()),
+            (None, Some(_)) => return Err("the project's records have moved into the records store since this reader was opened in place; reopen; nothing read".into()),
+            (None, None) => {}
+        }
+        if let Some(bound) = &self.records {
+            match node(&bound.path) {
+                Ok(at) if at == bound.node => {}
+                Ok(_) => return Err(format!("the project's records folder {} is not the folder this reader was opened for; nothing read", bound.path.display())),
+                Err(e) => return Err(format!("not known: the project's records folder {} could not be examined ({e}); nothing read", bound.path.display())),
+            }
+        }
+        Ok(())
+    }
+    /// The project's records folder in the store this reader was opened for,
+    /// with its device and inode.
+    pub(crate) fn records_folder(&self) -> Option<(&Path, (u64, u64))> {
+        self.records.as_ref().map(|r| (r.path.as_path(), r.node))
+    }
+    /// A duplicate of the held records folder's descriptor, read-only: a
+    /// reader reads through the folder its proof held, never through a
+    /// second lookup of the path after the proof.
+    pub(crate) fn records_folder_handle(&self) -> Option<Result<std::fs::File, String>> {
+        self.records.as_ref().map(|r| r._open.try_clone().map_err(|e| format!("not known: the project's records folder {} could not be read through ({e}); nothing read", r.path.display())))
+    }
+    /// Where the decision read the records in place when this reader was
+    /// bound (workflow records), if it did.
+    pub(crate) fn in_place(&self) -> Option<&InPlace> {
+        self.in_place.as_ref()
+    }
+    /// The device and inode of the project folder this reader was opened for.
+    pub(crate) fn project_folder(&self) -> (u64, u64) {
+        self.project
+    }
+}
+
 /// For a handle bound earlier to the store folder `bound`: `root` must be
 /// attached now, cleanly, to that same folder. Whatever stands between the
 /// folder and its records refuses with the attachment's own text; a check
@@ -1414,9 +1581,20 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
         i if i.any => false,
         _ => {
             for name in ["runs", "acts", "workflow", "legacy", "connectors"] {
-                match std::fs::symlink_metadata(dir.join(name)) {
-                    Ok(_) => return Ok(true),
-                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                let folder = dir.join(name);
+                match crate::records_inspect::presence(&folder) {
+                    Ok(Some(meta)) if meta.is_dir() => {
+                        let entries = crate::records_inspect::listing(&folder)
+                            .map_err(|e| unknown(format!("{}: inventory incomplete: {e}", folder.display())))?;
+                        if let Some(entries) = entries {
+                            for entry in &entries {
+                                entry.metadata.as_ref().map_err(|e| unknown(format!("{}: inventory incomplete: {e}", entry.path.display())))?;
+                            }
+                            if !entries.is_empty() { return Ok(true); }
+                        }
+                    }
+                    Ok(Some(_)) => return Ok(true), // Caution for readers, never write authority.
+                    Ok(None) => {}
                     Err(e) => return Err(unknown(format!("{}: {e}", dir.join(name).display()))),
                 }
             }
@@ -1445,6 +1623,140 @@ fn captures_hold_records(dir: &Path) -> Result<bool, String> {
         }
     }
     Ok(false)
+}
+
+/// Cautious read routing is not authority to waive the import census. Only
+/// an import account, a completed package import or a recognised published
+/// record establishes that authority. Preparation has none; an unrecognised
+/// or unexaminable payload is unknown, unless another member establishes it.
+fn store_write_authority(dir: &Path) -> Result<bool, String> {
+    let unknown = |e: String| format!("whether the records store governs this project's records is unknown; nothing written: {e}");
+    let state = imports(dir).map_err(|e| unknown(format!("the project's import record is unreadable: {e}")))?;
+    if package::completed(dir).map_err(unknown)? || state.completed
+        || state.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) {
+        return Ok(true);
+    }
+    if state.any { return Ok(false); }
+    write_evidence([
+        ("runs", WriteFolder::Runs), ("acts", WriteFolder::Logs),
+        ("workflow", WriteFolder::Workflow), ("legacy", WriteFolder::Legacy),
+        ("connectors", WriteFolder::Connectors), ("captures", WriteFolder::Captures),
+    ].into_iter().map(|(name, kind)| written_records(&dir.join(name), kind))).map_err(unknown)
+}
+
+#[derive(Clone, Copy)]
+enum WriteFolder { Runs, Logs, Workflow, Legacy, Connectors, Accounts, Captures, Pending }
+fn record_key(name: &str) -> bool {
+    name.len() == 64 && name.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+fn record_uuid(name: &str) -> bool {
+    uuid::Uuid::parse_str(name).is_ok_and(|id| id.to_string() == name
+        && id.get_version_num() == 4 && id.get_variant() == uuid::Variant::RFC4122)
+}
+impl WriteFolder {
+    fn child(self, name: &str) -> Option<Self> {
+        match self {
+            Self::Runs if record_key(name) => Some(Self::Logs),
+            Self::Connectors if name == "route-accounts" => Some(Self::Accounts),
+            Self::Captures if name == "pending" => Some(Self::Pending),
+            _ => None,
+        }
+    }
+    fn record_name(self, name: &str) -> bool {
+        match self {
+            Self::Logs => name.strip_suffix(".jsonl").is_some_and(record_key),
+            Self::Legacy => name == "coordination.rs.jsonl",
+            Self::Workflow | Self::Accounts => name.strip_suffix(".json").is_some_and(record_uuid),
+            Self::Captures | Self::Pending => name.strip_suffix(".json").is_some_and(record_key),
+            _ => false,
+        }
+    }
+    fn preparation(self, name: &str) -> bool {
+        // These are the exact name grammars emitted by storage's JSON/copy
+        // publisher, WR's publisher and the connector publisher. They confer
+        // no authority and are neither removed nor omitted from inventories.
+        if matches!(self, Self::Captures) && name == ".capture.lock" { return true; }
+        if matches!(self, Self::Workflow) && name.strip_prefix(".pending-").is_some_and(record_uuid) { return true; }
+        if matches!(self, Self::Accounts) && name.strip_prefix(".route-").and_then(|n| n.strip_suffix(".tmp")).is_some_and(record_uuid) { return true; }
+        let Some((final_name, nonce)) = name.strip_prefix('.').and_then(|n| n.strip_suffix(".tmp")).and_then(|n| n.rsplit_once('.')) else { return false };
+        record_uuid(nonce) && (self.record_name(final_name)
+            || matches!(self, Self::Captures) && final_name == ".capture.lock")
+    }
+}
+/// A positive member suffices; an error never becomes an empty inventory.
+fn write_evidence(results: impl IntoIterator<Item = Result<bool, String>>) -> Result<bool, String> {
+    let mut unknown = None;
+    for result in results {
+        match result {
+            Ok(true) => return Ok(true),
+            Ok(false) => {},
+            Err(error) => { unknown.get_or_insert(error); },
+        }
+    }
+    match unknown { Some(error) => Err(error), None => Ok(false) }
+}
+fn written_records(folder: &Path, kind: WriteFolder) -> Result<bool, String> {
+    let entries = crate::records_inspect::listing(folder).map_err(|e| format!("{}: {e}", folder.display()))?.unwrap_or_default();
+    write_evidence(entries.into_iter().map(|entry| {
+        let name = entry.path.file_name().and_then(|n| n.to_str()).ok_or_else(|| format!("{}: unrecognised name", entry.path.display()))?;
+        let preparation = kind.preparation(name);
+        let meta = match entry.metadata {
+            Ok(meta) => meta,
+            // A concurrent publisher may already have unlinked its temporary.
+            Err(e) if preparation && e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(e) => return Err(format!("{}: {e}", entry.path.display())),
+        };
+        if let Some(child) = kind.child(name) { return written_records(&entry.path, child); }
+        if !meta.is_file() { return Err(format!("{}: not a plain record or preparation file", entry.path.display())); }
+        if preparation { return Ok(false); }
+        if !kind.record_name(name) { return Err(format!("{}: unrecognised record member", entry.path.display())); }
+        // Publication can briefly leave a final file and its temporary as
+        // two hard links. Inspect the regular file without following links or
+        // requiring the publisher to have unlinked its temporary already.
+        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+        let mut file = std::fs::OpenOptions::new().read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&entry.path).map_err(|e| format!("{}: {e}", entry.path.display()))?;
+        let opened = file.metadata().map_err(|e| e.to_string())?;
+        if (opened.dev(), opened.ino()) != (meta.dev(), meta.ino()) { return Err(format!("{}: member changed while opening", entry.path.display())); }
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).map_err(|e| format!("{}: {e}", entry.path.display()))?;
+        recognised_record(kind, name, &bytes).map_err(|e| format!("{}: {e}", entry.path.display()))
+    }))
+}
+fn recognised_record(kind: WriteFolder, name: &str, bytes: &[u8]) -> Result<bool, String> {
+    if matches!(kind, WriteFolder::Logs | WriteFolder::Legacy) {
+        if bytes.split_inclusive(|b| *b == b'\n').any(|line| line.strip_suffix(b"\n").is_some_and(crate::record_lines::is_valid_line)) { return Ok(true); }
+        // A first append creates an empty log before writing its first line.
+        // An unclosed first line is not yet a record and waives no census.
+        if !bytes.contains(&b'\n') { return Ok(false); }
+        return Err("no recognised RS record in the log".into());
+    }
+    let value: Value = serde_json::from_slice(bytes).map_err(|e| format!("unrecognised record: {e}"))?;
+    match kind {
+        WriteFolder::Workflow => {
+            crate::workflow_workspace::publication::validate(&value)?;
+            if value["record_id"].as_str() != Some(&format!("wr-record:v1:{}", name.strip_suffix(".json").unwrap())) { return Err("WR record identity differs from its name".into()); }
+        }
+        WriteFolder::Captures | WriteFolder::Pending => {
+            let capture = if matches!(kind, WriteFolder::Pending) { &value["capture"] } else { &value };
+            crate::schema_validation::validate_capture(capture)?;
+            if crate::storage::capture_belongs_to_library(capture) {
+                return Err("library capture is not project-store evidence".into());
+            }
+            if name != format!("{}.json", crate::storage::key(capture["captureId"].as_str().ok_or("capture identity absent")?)) { return Err("capture identity differs from its name".into()); }
+            if matches!(kind, WriteFolder::Pending) {
+                crate::records::recognise_capture_submission(&value, &crate::act_control::ActControl::capture_submission_log(capture))?;
+            }
+        }
+        WriteFolder::Accounts => {
+            if value["formatVersion"] == "0.5" {
+                crate::connector_answer_only::shape(&value)?;
+                if !crate::connector_answer_only::selected(&value) { return Err("unsupported connector account subset".into()); }
+            } else { crate::connector_route_store::validate_account(&value).map_err(|e| e.to_string())?; }
+        }
+        _ => return Err("unrecognised record location".into()),
+    }
+    Ok(true)
 }
 /// Whole retained payload export is distinct from ordinary RS source routing.
 /// A fleet-only or role-observation-only store can be exported without importing nonexistent RS history;
@@ -1661,9 +1973,14 @@ fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if let Some(started) = state.incomplete {
         return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
     }
-    if !store_holds(dir).map_err(|e| format!("{e}; nothing written"))? {
+    let authority = store_write_authority(dir);
+    if !matches!(authority, Ok(true)) {
+        // The authority question arises only when there is something to
+        // import. With no in-place history nothing is waived: the writers
+        // keep handling their own malformed or unfinished payloads as before.
         let legacy = legacy_census(root)?;
         if !legacy.is_empty() {
+            authority?;
             return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
         }
     }

@@ -23,6 +23,71 @@ fn selection() -> Value {
 fn pending(p: &ProjectRecords) -> PendingRecord {
     PendingRecord::new(p, selection(), vec![], vec![], "writer", "original").unwrap()
 }
+
+// The independent empty-child probe, using main's current reader binding.
+fn empty_folder_keeps_history_in_place(name: &str) {
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let original = pending(&kept);
+    let reference = original.reference().to_owned();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    let original_path = legacy.join(format!("{}.json", key(&reference).unwrap()));
+    std::fs::write(&original_path, &original.bytes).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), original.bytes);
+    assert!(kept.store.lock().unwrap().is_none());
+    assert!(f.store().publish(&pending(&kept)).unwrap_err().contains("import needed"));
+
+    std::fs::create_dir(home.join(name)).unwrap();
+    let fresh = f.store();
+    let listing = fresh.list_references();
+    let fresh_read = fresh.resolve(&reference).map(|r| r.bytes().to_vec());
+    let kept_read = kept.resolve(&reference).map(|r| r.bytes().to_vec());
+    let bound = fresh.store.lock().unwrap().is_some() || kept.store.lock().unwrap().is_some();
+    let new = pending(&fresh);
+    let publication = fresh.publish(&new).map(|r| r.reference().to_owned());
+    assert!(publication.as_ref().is_err_and(|e| e.contains("import needed"))
+        && listing.as_ref().is_ok_and(|v| v == &[reference])
+        && fresh_read.as_ref().is_ok_and(|b| b == &original.bytes)
+        && kept_read.as_ref().is_ok_and(|b| b == &original.bytes) && !bound,
+        "empty {name}: publication={publication:?}; listing={listing:?}; fresh={fresh_read:?}; kept={kept_read:?}; bound={bound}");
+    assert_eq!(std::fs::read(original_path).unwrap(), original.bytes);
+    assert!(!home.join("imports.jsonl").exists());
+    assert!(!home.join("workflow").join(format!("{}.json", key(new.reference()).unwrap())).exists());
+}
+
+#[test]
+fn records_store_empty_folder_runs_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("runs");
+}
+#[test]
+fn records_store_empty_folder_acts_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("acts");
+}
+#[test]
+fn records_store_empty_folder_workflow_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("workflow");
+}
+#[test]
+fn records_store_empty_folder_legacy_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("legacy");
+}
+#[test]
+fn records_store_empty_folder_connectors_keeps_import_gate_and_in_place_readers() {
+    empty_folder_keeps_history_in_place("connectors");
+}
+
+#[test]
+fn records_store_import_gate_recognised_wr_record_waives_census() {
+    let f = Fixture::new();
+    let p = f.store();
+    let record = p.publish(&pending(&p)).unwrap();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join(format!("{}.json", key(record.reference()).unwrap())), record.bytes()).unwrap();
+    assert!(f.store().publish(&pending(&p)).is_ok());
+}
 #[test]
 fn immutable_reopen_retry_collision_and_wrong_project() {
     let f = Fixture::new();
@@ -719,4 +784,310 @@ fn a_kept_handle_refuses_while_the_link_disagrees_and_reads_again_once_restored(
     assert!(listed.is_err(), "moved: {listed:?}");
     assert!(write.is_err(), "moved: {:?}", write.map(|r| r.reference().to_owned()));
     assert_eq!(p.list_references().unwrap(), vec![reference.clone()], "moved: nothing was written while refused");
+}
+
+// ---- Slice 1: a kept reader of the project's workflow records reads only
+// the store, project and records folder it bound. These protect KEPT READERS;
+// writers are slice 2's. ----
+
+/// A test's own records store on this thread, removed with its folder.
+struct KeptReaderStore(PathBuf);
+impl KeptReaderStore {
+    fn new() -> Self {
+        let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("kept-reader-store-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: root.clone(), placement: crate::records_store::Placement::Override, limits: vec![] })));
+        Self(root)
+    }
+}
+impl Drop for KeptReaderStore {
+    fn drop(&mut self) {
+        crate::records_store::use_store_for_test(None);
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+fn unreadable_text(read: Result<Vec<u8>, ResolutionError>) -> String {
+    match read {
+        Err(ResolutionError::Unreadable(e)) => e,
+        Ok(bytes) => panic!("read through the kept reader: {} bytes", bytes.len()),
+        Err(other) => panic!("refused, but not as unreadable: {other:?}"),
+    }
+}
+
+/// 240 R2-2: the project's folder replaced by another at the same path,
+/// carrying a copy of its link. The kept reader refuses, and reads again once
+/// the folder it bound is back.
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_a_replacement_folder_carrying_a_copied_link() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let p = f.store();
+    let a = pending(&p);
+    let reference = a.reference().to_owned();
+    let first = p.publish(&a).unwrap();
+    assert_eq!(p.resolve(&reference).unwrap().bytes(), first.bytes());
+    let aside = f.0.with_file_name(format!("{}-aside", f.0.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&f.0, &aside).unwrap();
+    let link = std::path::Path::new(crate::records_store::PROJECT_LINK);
+    std::fs::create_dir_all(f.0.join(link.parent().unwrap())).unwrap();
+    std::fs::copy(aside.join(link), f.0.join(link)).unwrap();
+    let read = p.resolve(&reference).map(|r| r.bytes().to_vec());
+    let listed = p.list_references();
+    std::fs::remove_dir_all(&f.0).unwrap();
+    std::fs::rename(&aside, &f.0).unwrap();
+    let refused = unreadable_text(read);
+    assert!(refused.contains("not the folder"), "{refused}");
+    assert!(listed.is_err(), "{listed:?}");
+    assert_eq!(p.resolve(&reference).unwrap().bytes(), first.bytes(), "the same reader reads again once its folder is back");
+}
+
+/// 246 round 2, finding 2: the store's identity file replaced by a copy of
+/// itself (restored from a backup), and the project's import account damaged.
+/// The kept reader refuses each.
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_a_replaced_identity_file_and_a_damaged_import_account() {
+    let store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let p = f.store();
+    let a = pending(&p);
+    let reference = a.reference().to_owned();
+    p.publish(&a).unwrap();
+    let dir = crate::records_store::attach(&f.0, false).unwrap().dir.unwrap();
+    // The import account damaged: a line no reader can read.
+    let account = dir.join("imports.jsonl");
+    let account_before = std::fs::read(&account).ok();
+    let mut damaged = account_before.clone().unwrap_or_default();
+    damaged.extend_from_slice(b"not an import line\n");
+    std::fs::write(&account, &damaged).unwrap();
+    let read = p.resolve(&reference).map(|r| r.bytes().to_vec());
+    match &account_before { Some(bytes) => std::fs::write(&account, bytes).unwrap(), None => std::fs::remove_file(&account).unwrap() }
+    let refused = unreadable_text(read);
+    assert!(refused.contains("import"), "a damaged import account: {refused}");
+    assert!(p.resolve(&reference).is_ok(), "reads again once the account is as it was");
+    // The identity file replaced by another holding the same bytes.
+    let identity = store.0.join("store.json");
+    let bytes = std::fs::read(&identity).unwrap();
+    std::fs::remove_file(&identity).unwrap();
+    std::fs::write(&identity, bytes).unwrap();
+    let refused = unreadable_text(p.resolve(&reference).map(|r| r.bytes().to_vec()));
+    assert!(refused.contains("replaced"), "a replaced identity file: {refused}");
+}
+
+/// Round 1 of pull request 294, finding 2: a reader that read in place, kept
+/// across an import, refuses ("reopen") instead of reading the store's copy.
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_an_imported_copy_after_reading_in_place() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let kept = f.store();
+    let record = pending(&kept);
+    let reference = record.reference().to_owned();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join(format!("{}.json", key(&reference).unwrap())), &record.bytes).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), record.bytes);
+    assert!(kept.reader.lock().unwrap().as_ref().is_some_and(|b| b.records_folder().is_none()), "records in place hold records: bound in place");
+    let imported = crate::records_store::import(&f.0).unwrap();
+    assert_eq!(imported["state"], "imported", "{imported}");
+    std::fs::remove_dir_all(&legacy).unwrap();
+    let refused = unreadable_text(kept.resolve(&reference).map(|r| r.bytes().to_vec()));
+    assert!(refused.contains("reopen"), "{refused}");
+    assert!(kept.list_references().unwrap_err().contains("reopen"));
+    assert_eq!(f.store().resolve(&reference).unwrap().bytes(), record.bytes, "a reader opened now reads the store");
+}
+
+/// Round 1 of pull request 294, finding 3: the first read binds before it
+/// reads, so the records folder is held from the first read on.
+#[test]
+fn records_store_kept_reader_of_workflow_records_holds_its_folder_from_the_first_read() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let writer = f.store();
+    let record = pending(&writer);
+    let reference = record.reference().to_owned();
+    writer.publish(&record).unwrap();
+    drop(writer);
+    let kept = f.store();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), record.bytes);
+    let held = kept.reader.lock().unwrap().as_ref().and_then(|b| b.records_folder().map(|(path, node)| (path.to_path_buf(), node)));
+    let cached = kept.store.lock().unwrap().as_ref().map(|h| (h.path.clone(), h.identity));
+    assert!(held.is_some(), "the first read returned without holding the records folder");
+    assert_eq!(held, cached, "the cache is the bound folder");
+}
+
+/// A handle that read on a fresh project, with records nowhere yet, and then
+/// publishes: nothing bound it in place, so its reads find its record in the
+/// store folder its write made.
+#[test]
+fn records_store_kept_reader_of_workflow_records_follows_its_own_first_write_on_a_fresh_project() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let p = f.store();
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new());
+    assert!(p.reader.lock().unwrap().is_none(), "records nowhere yet: no place bound before the write");
+    let record = pending(&p);
+    let reference = record.reference().to_owned();
+    assert_eq!(p.publish(&record).unwrap().bytes(), record.bytes);
+    assert_eq!(p.resolve(&reference).unwrap().bytes(), record.bytes);
+    assert_eq!(p.list_references().unwrap(), vec![reference]);
+}
+
+/// A handle that read in place, after someone else imported its records: its
+/// own later write does not make it read the store; it goes on refusing
+/// ("reopen"). What that write does is the writers' slice; nothing here
+/// asserts it.
+#[test]
+fn records_store_kept_reader_of_workflow_records_keeps_refusing_after_writing_into_a_home_someone_else_made() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let kept = f.store();
+    let first = pending(&kept);
+    let reference = first.reference().to_owned();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join(format!("{}.json", key(&reference).unwrap())), &first.bytes).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), first.bytes);
+    let imported = crate::records_store::import(&f.0).unwrap();
+    assert_eq!(imported["state"], "imported", "{imported}");
+    let _ = kept.publish(&pending(&kept));
+    let refused = unreadable_text(kept.resolve(&reference).map(|r| r.bytes().to_vec()));
+    assert!(refused.contains("reopen"), "{refused}");
+    assert!(kept.list_references().unwrap_err().contains("reopen"));
+}
+
+/// The census that decides whether a reader with no store folder binds in
+/// place: a census that cannot be read is an error through the reader's own
+/// operation, never "records nowhere" (an empty listing).
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_when_its_census_cannot_be_read() {
+    use std::os::unix::fs::PermissionsExt;
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let records = f.0.join(".chirality/records");
+    std::fs::create_dir_all(&records).unwrap();
+    let p = f.store();
+    std::fs::set_permissions(&records, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let listed = p.list_references();
+    std::fs::set_permissions(&records, std::fs::Permissions::from_mode(0o755)).unwrap();
+    assert!(listed.is_err(), "a census that cannot be read is never records nowhere: {listed:?}");
+    assert!(p.reader.lock().unwrap().is_none(), "nothing bound on an unread census");
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new(), "reads once the census can be read");
+}
+
+/// The binding rule's three cases, through the reader's own operation.
+/// Proven absence: no store folder for the project and no records in place.
+/// The reader reads nothing and binds nothing.
+#[test]
+fn records_store_kept_reader_of_workflow_records_binds_nothing_where_records_are_proven_absent() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let p = f.store();
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new());
+    assert!(crate::records_store::attach(&f.0, false).unwrap().dir.is_none(), "no store folder for the project");
+    assert!(p.reader.lock().unwrap().is_none(), "proven absence: nothing bound");
+}
+
+/// An existing home that is empty: the project has a store folder holding no
+/// records. The decision reads that as records nowhere (the store's own
+/// `store_holds`), so the reader reads nothing and binds nothing; it binds at
+/// its first read after a record is there, to that folder.
+#[test]
+fn records_store_kept_reader_of_workflow_records_binds_an_empty_home_only_once_it_holds_a_record() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    assert!(home.is_dir(), "the project's store folder exists");
+    let kept = f.store();
+    assert_eq!(kept.list_references().unwrap(), Vec::<String>::new());
+    assert!(kept.reader.lock().unwrap().is_none(), "an empty home holds no records: nothing bound");
+    let writer = f.store();
+    let record = pending(&writer);
+    let reference = record.reference().to_owned();
+    writer.publish(&record).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), record.bytes);
+    let bound = kept.reader.lock().unwrap().as_ref().and_then(|b| b.records_folder().map(|(path, _)| path.to_path_buf()));
+    assert_eq!(bound, Some(home), "bound to the home once it holds a record");
+}
+
+/// A place that cannot be examined: whether the project's store folder holds
+/// records is not known. The reader refuses; it never reads that as absent or
+/// empty, and binds nothing.
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_a_home_it_cannot_examine() {
+    use std::os::unix::fs::PermissionsExt;
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    let p = f.store();
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let listed = p.list_references();
+    std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o755)).unwrap();
+    // The refusal is the decision's own (its disposal check could not read the
+    // retention state), and it carries its cause.
+    let refused = listed.expect_err("never read as absent or empty");
+    assert!(refused.contains("Permission denied"), "{refused}");
+    assert!(p.reader.lock().unwrap().is_none(), "nothing bound on a place not examined");
+    assert_eq!(p.list_references().unwrap(), Vec::<String>::new(), "reads once it can be examined");
+}
+
+/// Counts the store's opens (each decision of the place opens the store)
+/// while `f` runs, through the store's test seam.
+fn store_opens_during<T>(f: impl FnOnce() -> T) -> (T, usize) {
+    use std::{cell::Cell, rc::Rc};
+    fn count(c: Rc<Cell<usize>>) {
+        crate::records_store::after_open_for_test(Some(Box::new(move || { c.set(c.get() + 1); count(c); })));
+    }
+    let opens = Rc::new(Cell::new(0));
+    count(opens.clone());
+    let out = f();
+    crate::records_store::after_open_for_test(None);
+    (out, opens.get())
+}
+
+/// Round 2 of pull request 294, finding 2: after its admission proved the
+/// place, source_binding decides nothing again. It returns the place the
+/// admission proved (here in place), with no store open beyond the
+/// admission's own, so a record appearing in the store in between cannot
+/// become its source.
+#[test]
+fn records_store_kept_reader_of_workflow_records_source_binding_decides_nothing_after_its_proof() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let original = pending(&kept);
+    let reference = original.reference().to_owned();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join(format!("{}.json", key(&reference).unwrap())), &original.bytes).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), original.bytes);
+    let (_, admission) = store_opens_during(|| kept.read_admission().map(|_| ()).unwrap());
+    let (source, operation) = store_opens_during(|| kept.source_binding().map(|b| b.records_root().to_path_buf()));
+    assert_eq!(operation, admission, "no store open, and so no decision of the place, beyond the admission's own");
+    assert_eq!(source.unwrap(), f.0.join(crate::storage::LEGACY_RECORDS), "the source is the place the admission proved");
+    assert_ne!(f.0.join(crate::storage::LEGACY_RECORDS), home);
+}
+
+/// Round 2 of pull request 294, finding 2: a read whose admission found
+/// records nowhere reads them as absent and decides nothing again; it binds at
+/// its next operation, once records are there, and so never returns bytes
+/// from a folder it does not hold.
+#[test]
+fn records_store_kept_reader_of_workflow_records_reads_absent_where_its_admission_found_records_nowhere() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let record = pending(&kept);
+    let reference = record.reference().to_owned();
+    let (_, admission) = store_opens_during(|| kept.read_admission().map(|_| ()).unwrap());
+    assert!(kept.reader.lock().unwrap().is_none(), "records nowhere: nothing bound");
+    let (listed, operation) = store_opens_during(|| kept.list_references());
+    assert_eq!(listed.unwrap(), Vec::<String>::new());
+    assert_eq!(operation, admission, "no decision of the place beyond the admission's own");
+    // The first record arrives; the next operation binds to it and reads it
+    // through the folder it holds.
+    f.store().publish(&record).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), record.bytes);
+    assert!(kept.reader.lock().unwrap().as_ref().is_some_and(|b| b.records_folder().is_some()), "the read that returned bytes holds the folder it read");
 }
