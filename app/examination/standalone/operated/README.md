@@ -21,8 +21,8 @@ times, on 13 November 2026), observed by App Agent 0, or not examined:
 
 - **A Codex app-server.** `codex app-server --listen stdio://`, run from inside
   ChatGPT.app (`/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex`),
-  a child of the operator's node runtime, which is itself a binary inside
-  ChatGPT.app (observed, twice). It starts within the same second as the walk's
+  a child of the operator's node runtime (observed, twice), which is itself a
+  binary inside ChatGPT.app (observed by App Agent 0). It starts within the same second as the walk's
   first call; whether the import in step 4 or the first call starts it is not
   known, since both are made in one block (observed; the cause not
   established). It outlives the walk and its operator (observed, twice). It runs
@@ -31,12 +31,13 @@ times, on 13 November 2026), observed by App Agent 0, or not examined:
 - **The window service.** `SkyComputerUseService`, from
   `~/.codex/computer-use/Codex Computer Use.app`, started by launchd within the
   same second as the first call when it is not already running (observed,
-  twice). It has also been seen to end on its own between walks (observed,
-  once; when, not known).
+  twice). Each of the two so started was later found no longer running,
+  without the lane or App Agent 0 having signalled it (observed: absent at a
+  later check; when it ended, and why, not known).
 - **Not examined:** which files the app-server reads, whether it uses a
   credential (such as a sign-in held under `~/.codex`), and what it or the
   service sends. The supplier's documentation for the service says nothing
-  about either process (read).
+  about a Codex app-server, a Codex home or a native pipe (read).
 - **The start-up failure.** Twice a walk's first call failed with "Sky Computer
   Use native pipe startup failed" within about five seconds, each time with a
   freshly started service and app-server (observed). Why is not established.
@@ -305,25 +306,37 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     the watch and the App, that `ps -p <number>` shows no process, and that
     the App's process group is gone (`pgrep -g <the App's process number>`
     prints nothing).
-    Then the route's processes. The operator finds each, records its number,
-    start time and parent, and ends those that started at or after App Agent
-    0's go for the walk, each by an ordinary termination and nothing else:
+    Then the route's processes. Each is identified before it is signalled,
+    and each is recorded with its number, start time (in UTC), parent and
+    command:
 
     ```sh
-    pgrep -f 'CodexCLI.app/Contents/MacOS/codex app-server --listen stdio://'   # the helper's app-servers
-    pgrep -x SkyComputerUseService                                              # the window service
-    ps -o lstart=,ppid=,command= -p <number>                                    # start time, parent, command
-    kill <number>                                                               # an ordinary termination
-    ps -o stat= -p <number>                                                     # nothing, or Z: it has ended
+    ps -axo pid=,ppid=,lstart=,command=      # every process: number, parent, start time (local), command
+    ps -o comm= -p <parent number>           # the parent's executable
+    date -u -r "$(date -j -f '%a %b %e %T %Y' '<lstart as ps printed it>' +%s)" +%FT%TZ   # that start time in UTC
+    kill <number>                            # an ordinary termination
+    ps -o stat= -p <number>                  # nothing, or a state beginning with Z: it has ended
     ```
 
-    `ps` prints the start time in this host's local time; the go is given in
-    UTC. An app-server's parent is a `node_repl`. An ended app-server may stay
-    listed as exited (`Z`) until its parent collects it; that is ended. A
-    process that started before the go is not the walk's: it is recorded and
-    left. The operator signals nothing else: not the node runtime, not the
-    provider's Codex, not a process group. None of these commands opens
-    anything under `~/.codex`.
+    - **The walk's app-server** is a process whose command is exactly
+      `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex app-server --listen stdio://`
+      (the whole command, compared as text, not a part of it), whose parent's
+      executable is `node_repl`, and whose start, in UTC, is no earlier than one
+      second before the walk's first call and no later than the walk's end.
+      The walk's first call is the first entry of `calls` in the result file;
+      where there is no result file, the go stands in for it. Every process
+      that meets all three is ended. A process that meets the first two and
+      not the third is not the walk's: it is recorded, left, and reported to
+      App Agent 0 at once.
+    - **The window service** is the process named `SkyComputerUseService`.
+      Whatever its start time, the one running when the walk has ended is
+      ended: a walk uses the service that is running, one already running
+      before the go included, and one operator at a time means no other walk
+      uses it.
+    - An ended process may stay listed with a state beginning with `Z` until
+      its parent collects it; that is ended. The operator signals nothing
+      else: not the node runtime, not the provider's Codex, not a process
+      group. None of these commands opens anything under `~/.codex`.
     The lane's agent, not the operator, then confirms the same from its own
     shell after every run: the launcher's and the watch's process numbers are
     in the evidence folder's `*.started.json` files, and the App's is `pid` in
@@ -366,11 +379,12 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
        start the launcher did not make look the same to it, and it does not
        tell the home or environment either was started with. Only step 10's
        records, where they exist, can say more.
-    4. The route's processes, as step 10 finds them: any helper app-server or
-       window service that started at or after the go and is still running
-       is ended the same way and confirmed ended; each is recorded with its
-       number, start time and parent, and whether the operator or the lane
-       ended it.
+    4. The route's processes, identified as step 10 says: the walk's
+       app-servers and the window service still running are ended the same
+       way and confirmed ended; each is recorded with its number, start time,
+       parent and command, and whether the operator or the lane ended it. A
+       matching app-server that is not the walk's is recorded, left and
+       reported to App Agent 0.
     5. The launch record's Library comparison (`real_library` in
        `record/launch-record.json` in the launch folder) is read. The
        launcher lists the real Library's places named for the build before
@@ -464,8 +478,8 @@ service act outside it on every call (see "What the route starts").
   (step 1, `session_env.py`), or the walk is refused. After every run, by
   whatever path it ended, the lane ends what the started files show,
   searches for remaining candidate processes by the executable's file, ends
-  what it finds, finds and ends the route's own app-server and window service
-  started for the walk, reads the launch record's Library comparison (or
+  what it finds, ends the walk's app-servers and the window service as step
+  10 identifies them, reads the launch record's Library comparison (or
   records that the launcher wrote none), and reports the same hour (step 11). A run
   after which any of that was not done is a breach, reported to App Agent 0
   as one; it is not an inconclusive run. Throughout, the lane keeps the
@@ -525,15 +539,17 @@ service act outside it on every call (see "What the route starts").
     exception". The rule that a fact found wrong means no walk until the
     owner is asked again also stands.
   - What ends the exception without a further word from anyone: evidence
-    that the App, in this scenario, reaches the owner's credentials, the
-    installed v3, the keychain or `~/.codex`, or sends application or user
-    content; or that an agent opened or read anything under `~/.codex` or
-    `~/.codex-hub`, signed in, saw a credential's value or answered a macOS
-    prompt. Then the walk stops, nothing is retried, and the lane tells App
-    Agent 0. The helper's Codex running on `~/.codex` is what the owner has
-    accepted (see "What the route starts") and is not by itself such evidence; anything
-    more learned about what it reads, uses or sends goes to App Agent 0 at
-    once, and no walk follows until App Agent 0 has said.
+    that this guarded scenario (the App, and anything a walk of it starts,
+    the route's helper and window service included) reaches the owner's
+    credentials, the installed v3, the keychain or `~/.codex`, or sends
+    application or user content; or that an agent opened or read anything
+    under `~/.codex` or `~/.codex-hub`, signed in, saw a credential's value
+    or answered a macOS prompt. Then the walk stops, nothing is retried, and
+    the lane tells App Agent 0. The helper's Codex running on `~/.codex` is
+    what the owner has accepted (see "What the route starts") and is not by
+    itself such evidence. Anything more learned about what it reads, uses or
+    sends is told to App Agent 0 at once: a walk under way stops, and no walk
+    follows until App Agent 0 has said.
 
 ## Running a scenario
 
@@ -652,8 +668,10 @@ nodeRepl.write(walk.summary(report));
   there. That view, and the window rebuilt from it, are kept in the result for
   reading; no check is credited from a rebuilt view and no click is made from
   one, because how differences place what they add has not been established.
-- This scenario starts no process. If the watch file shows the App with a
-  child process, the script stops and the result is a failure.
+- The App starts no process in this scenario. If the watch file shows the App
+  with a child process, the script stops and the result is a failure. (The
+  route's own processes are not the App's children; see "What the route
+  starts".)
 - A watch file that is missing, cannot be read, is for another process, says
   the process has gone, names an executable outside the bundle, or was last
   written more than three seconds ago is read as the build not running: the
