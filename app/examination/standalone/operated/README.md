@@ -510,7 +510,9 @@ What it shows when it passes:
   the App's data folder under the throwaway home.
 
 It is agent-operated development evidence on a development build. It is neither
-setup completed nor a person's observation.
+setup completed nor a person's observation. A pass records the checks on views
+returned by the supplier's client; that client is part of the trusted
+examination tooling (its limit is stated beside `failure` in `walk.mjs`).
 
 **Before a window: the same walk on recorded views.** No application and no
 screen are involved.
@@ -543,7 +545,14 @@ written there. The output goes in the walk's evidence folder:
 F="$HOME/Library/Group Containers/2DC432GLL2.com.openai.sky.CUAService/IPC"
 end=; stop=$(( $(date +%s) + 1800 ))
 while [ "$(date +%s)" -lt "$stop" ]; do
-  date -u +%FT%TZ; ls -laT "$F" | tail -n +2
+  now=$(date -u +%FT%TZ)
+  if out=$(ls -laT "$F" 2>&1); then
+    if printf '%s\n' "$out" | grep -q ' computeruse\.sock$'; then seen='LISTED: computeruse.sock present'
+    else seen='LISTED: no computeruse.sock among the names'; fi
+    printf '%s %s\n%s\n' "$now" "$seen" "$out"
+  else
+    printf '%s NOT EXAMINED: ls exited %s: %s\n' "$now" "$?" "$out"
+  fi
   [ -z "$end" ] && [ -e "<evidence folder>/scenario-result.json" ] && end=$(( $(date +%s) + 15 ))
   [ -n "$end" ] && [ "$(date +%s)" -ge "$end" ] && break
   sleep 1
@@ -556,8 +565,12 @@ tries the service's socket in that folder for a fraction of a second; if
 nothing answers, it asks for the service to be started, then tries the socket
 again for up to five seconds, connecting and asking for a reply. "Sky Computer
 Use native pipe startup failed" is what it reports when those five seconds pass
-without an answer. The sample shows whether the socket was present at each
-sampling moment, about a second apart, against the walk's first call. What
+without an answer. Each sample says one of two things: the folder was listed,
+and whether a name `computeruse.sock` was among its entries; or it was NOT
+EXAMINED, with the listing's exit status and message. A sample not examined
+is not a sample that saw no socket. The sample shows whether the socket was
+present at each moment the folder was listed, about a second apart, against
+the walk's first call. What
 happens between two samples (a socket present for less than a second, for
 instance) is not seen, and it cannot show why anything happened.
 
@@ -640,7 +653,9 @@ nodeRepl.write(walk.summary(report));
   When a view fails, it also holds the failure as messages only, in
   `view_error`: where it failed, the error's own message, and each cause the
   error carries, in order and whole (at most eight); the summary prints the
-  causes under the line that says where the walk stopped. Nothing else of the
+  causes under the line that says where the walk stopped. The causes are
+  diagnostic evidence supplied by the supplier's client, not causes
+  established independently. Nothing else of the
   error is kept: a message is kept only when it is text, anything else is
   named for what it is, and a part that cannot be read is said to be so.
   What it cannot do: reading an error's message and cause can run code the
