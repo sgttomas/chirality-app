@@ -80,6 +80,7 @@ checks:
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_launch_home_test.py
 - app/tests/group_b_operated_scenario_test.py
+- app/tests/group_b_operated_macos_test.py
 - app/tests/group_b_pre_run_inputs_test.py
 - app/tests/group_b_native_forms_test.py
 - app/tests/group_b_sq_receiving_test.py

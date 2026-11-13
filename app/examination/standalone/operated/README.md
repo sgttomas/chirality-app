@@ -202,18 +202,16 @@ All of these hold, every time:
     2. The search:
 
        ```sh
-       python3 -B app/examination/standalone/operated/stray.py "<the bundle>" <bundle identifier>
+       python3 -B app/examination/standalone/operated/stray.py "<the bundle>"
        ```
 
        It ends nothing and opens nothing, and runs on macOS only (elsewhere it
        looks for nothing and exits 2). It prints the remaining candidate
        processes: every process of this user running the bundle's executable,
-       decided by the file's identity however its path is spelled; and, by
-       name only, every entry the launcher's own comparison watches for this
-       build in the real Library's places. It exits 0 only when it could look
-       everywhere and found neither, 1 when it found either, and 2 when it
-       could not look; 2 is not "found neither", and the run is reported as
-       one whose check could not be completed.
+       decided by the file's identity however its path is spelled. It exits 0
+       when it found none, 1 when it found one or more, and 2 when it could
+       not look; 2 is not "found none", and the run is reported as one whose
+       check could not be completed.
     3. Each remaining candidate process is ended (`kill <number>`), confirmed
        gone, and recorded with its number and start time. Where it came from
        is not known from the search: the launcher's App not yet ended and a
@@ -223,11 +221,14 @@ All of these hold, every time:
 
     The search finds the bundle's one executable and says nothing about Codex.
     That a stray start starts no Codex rests on the conditions stated in the
-    next section, which step 1 checks; the search does not establish it. Entries
-    found stay where they are: nothing under the real Library is removed by
-    any agent, and once reported they are found again by every later search
-    for the same candidate. Whatever it found is reported by the lane to App
-    Agent 0 within the hour. This step is not optional: it and that report
+    next section, which step 1 checks; the search does not establish it. It
+    looks at nothing in the real Library: what changed there in places named
+    for the build while the launcher ran is in the launch record's
+    comparison, which the lane reads and reports with it. A stray start that
+    began after the launcher's last listing and ended by itself before the
+    search is seen by neither. Nothing under the real Library is removed by
+    any agent. Whatever was found is reported by the lane to App Agent 0
+    within the hour. This step is not optional: it and that report
     are the conditions on which the owner accepted the exposure described in
     the next section, and a run after which it was not made is reported as a
     breach.
@@ -282,9 +283,13 @@ not closed.
     data folder are not given one while setup is required; the page's script
     stores nothing at a first start). What appears is what the system's web
     view makes for any application that opens one: folders named for the
-    identifier under `WebKit` and `Caches`, and entries in the per-user cache
-    folder (seen on an earlier build launched under the real home on 12
-    November, where no Application Support folder existed afterwards). What
+    build's executable under `WebKit` and `Caches`. Every development build
+    has the same executable name, so these are shared with earlier builds:
+    on this host `WebKit/chirality-app-v4` and `Caches/chirality-app-v4`
+    exist from 20 October and were last changed on 12 November, by an earlier
+    build launched under the real home, after which no Application Support
+    folder for it existed (seen by names and times only). A stray start
+    would change those folders rather than make new ones. What
     else the system records for a newly seen application has not been read.
   - It reads the owner's real home as any application the owner starts
     would. It makes no sign-in, no model request and no conversation: none

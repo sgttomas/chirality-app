@@ -508,47 +508,31 @@ class StrayStart(unittest.TestCase):
         again, _ = self.stray.processes(paths[504], lines, path_of=paths.get)
         self.assertEqual([entry['pid'] for entry in again], expected)
 
-    def test_entries_are_those_the_launchers_comparison_watches_and_nothing_is_opened(self):
-        identifier = 'dev.chirality.app-v4.candidate.invented'
-        library = self.tmp / 'Library'
-        for path in (f'Application Support/{identifier}/state', f'Caches/{identifier}/x', f'Preferences/{identifier}.plist',
-                     f'Logs/{identifier.upper()}', f'WebKit/com.apple.WebKit.Networking+{identifier}/x',
-                     f'WebKit/{identifier}-other/x', 'Caches/com.example.other/x', f'Mail/{identifier}/x'):
-            (library / path).parent.mkdir(parents=True, exist_ok=True)
-            (library / path).write_text('invented')
-        with mock.patch('builtins.open', side_effect=AssertionError('a file was opened')):
-            found, not_listed = self.stray.library_entries(identifier, 'chirality-app-v4', library)
-        self.assertEqual(sorted(found), sorted(str(library / p) for p in (
-            f'Application Support/{identifier}', f'Caches/{identifier}', f'Logs/{identifier.upper()}',
-            f'Preferences/{identifier}.plist', f'WebKit/com.apple.WebKit.Networking+{identifier}')))
-        self.assertEqual(not_listed, [])
-
-    def test_its_exit_status_says_whether_it_looked_everywhere_and_what_it_found(self):
-        identifier = 'dev.chirality.app-v4.candidate.invented'
-        library = self.tmp / 'Library'
-        (library / 'Logs').mkdir(parents=True)
-        argv = ['stray.py', str(self.bundle), identifier]
-        with mock.patch.object(self.stray, 'real_library', return_value=library), mock.patch.object(self.stray, 'on_macos', return_value=True), \
-                mock.patch.object(self.stray, 'listing', return_value=[]), contextlib.redirect_stdout(io.StringIO()):
+    def test_its_exit_status_says_whether_it_looked_and_what_it_found(self):
+        argv = ['stray.py', str(self.bundle)]
+        executable = str(self.bundle / 'Contents/MacOS/chirality-app-v4')
+        with mock.patch.object(self.stray, 'on_macos', return_value=True), mock.patch.object(self.stray, 'listing', return_value=[]), \
+                contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(self.stray.main(argv), 0)
-            (library / 'Logs').chmod(0o000)
-            self.addCleanup((library / 'Logs').chmod, 0o700)
-            out = io.StringIO()
-            with contextlib.redirect_stdout(out):
-                self.assertEqual(self.stray.main(argv), 2)  # a place that could not be listed is not "found neither"
-            self.assertEqual(json.loads(out.getvalue())['places_that_could_not_be_listed'], [f"{library / 'Logs'} (PermissionError)"])
-            (library / 'Caches').mkdir()
-            (library / 'Caches' / identifier).mkdir()
-            self.assertEqual(self.stray.main(argv), 1)  # something found is said, whatever else could not be listed
+        out = io.StringIO()
+        with mock.patch.object(self.stray, 'on_macos', return_value=True), contextlib.redirect_stdout(out), \
+                mock.patch.object(self.stray, 'listing', return_value=['  601     1 Thu Nov 12 22:07:34 2026']), \
+                mock.patch.object(self.stray, 'executable_of', return_value=executable):
+            self.assertEqual(self.stray.main(argv), 1)
+        self.assertEqual([p['pid'] for p in json.loads(out.getvalue())['remaining_candidate_processes']], [601])
+        with mock.patch.object(self.stray, 'on_macos', return_value=True), contextlib.redirect_stderr(io.StringIO()), \
+                mock.patch.object(self.stray, 'listing', return_value=['  602     1 Thu Nov 12 22:07:34 2026']), \
+                mock.patch.object(self.stray, 'executable_of', side_effect=OSError(13, 'invented')):
+            self.assertEqual(self.stray.main(argv), 2)  # a process that could not be asked is not "found none"
         with contextlib.redirect_stderr(io.StringIO()), mock.patch.object(self.stray, 'on_macos', return_value=True):
-            self.assertEqual(self.stray.main(['stray.py', str(self.tmp / 'no-such.app'), identifier]), 2)  # no bundle to look for
+            self.assertEqual(self.stray.main(['stray.py', str(self.tmp / 'no-such.app')]), 2)  # no bundle to look for
         said = io.StringIO()
         with contextlib.redirect_stderr(said), mock.patch.object(self.stray, 'on_macos', return_value=False), \
                 mock.patch.object(self.stray, 'listing', side_effect=AssertionError('looked although not on macOS')):
             self.assertEqual(self.stray.main(argv), 2)  # elsewhere it looks for nothing and says so
         self.assertIn('macOS only; nothing was looked for', said.getvalue())
         tool = [sys.executable, '-B', str(OPERATED / 'stray.py')]
-        for arguments in ([], ['relative.app', 'x'], ['/invented/folder', 'x'], ['/invented/x.app', 'id', '4242']):
+        for arguments in ([], ['relative.app'], ['/invented/folder'], ['/invented/x.app', 'more']):
             with self.subTest(arguments=arguments):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
 
