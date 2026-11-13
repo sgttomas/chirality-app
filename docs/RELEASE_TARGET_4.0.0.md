@@ -110,27 +110,69 @@ earlier candidate is joined as the exit criteria below state.
 
 Credential acts stay the owner's: sign-in and key entry are performed by the
 owner and never by an agent, and a run that needs a signed-in App or the local
-model server follows the owner's sign-in. The first human evaluation of the
-product is the owner's own use of the candidate, which begins once Agent 0 has
-recommended that it is ready (criterion 13). The two are different things:
-agents' testing verifies behaviour, and only the owner's own use judges
-whether the product is fit for real work (DEL-09-12). A control operated by an
-agent establishes no act of the owner.
+model server follows the owner's sign-in. The criteria not named above keep
+the actors their own texts state. Criterion 8's witness on the installed,
+signed candidate needs the person's protection act and the person's
+confirmation of a lowered policy (DEL-01-04 AC-009), which the owner performs
+as bounded acts, like sign-in, apart from and before the evaluation of
+criterion 13. The first human evaluation of the product is the owner's own use
+of the candidate, which begins once Agent 0 has recommended that it is ready
+(criterion 13); the owner's bounded acts before it (sign-in, key entry and the
+keychain acts) are not that evaluation. Agents' testing and the owner's own use
+are different things: agents' testing verifies behaviour, and only the owner's
+own use judges whether the product is fit for real work (DEL-09-12). A control
+operated by an agent establishes no act of the owner.
 
 The product's rule is unchanged: the App never performs for a person an act it
 reserves to a person, and only the person's own confirmation captures an act;
 an attempt by an agent tool, an MCP operation or an App rule captures nothing
-(DEL-01-04 AC-008, DEL-04-01). Apart from that rule, and as a bounded
-development-test exception, the examining agent operates the App's own
-confirmation controls (review, registration, answers to requests, quit
-confirmation) on disposable invented fixtures in a scratch library and a
-scratch records store. What those controls then capture is a synthetic
-examination artifact: it establishes no person's decision, is kept apart from
-any evidence of an actual human act, and is never reused as anyone's act.
-In such an examination what the product recorded at the control (actor,
-content, scope and purpose) is inspected directly, and a product record that
-attributes such an act to an identified person is a finding (DEL-09-02
-REQ-009).
+(DEL-01-04 AC-008, DEL-04-01). Apart from that rule, and solely for synthetic
+development examination on examination material, the examining agent operates
+every shipped control the named examinations need, including those at which
+the candidate captures an act: registration and re-confirmation, checking,
+approval, reliance and decision confirmations, answers to requests, lifecycle
+confirmations, project-link resolution, records export and import, project
+closure and reopening, legal-hold setting and release, and disposal. These
+operations establish no actual person's decision and no legal or professional
+standing. Sign-in and key entry, and criterion 8's protection act and
+policy-lowering confirmation, are the owner's. The exception reaches
+examination material only; an invented input does not license an effect on the
+owner's real libraries, stores, accounts or files.
+
+What such a control captures is a synthetic capture. The candidate records the
+accounts it runs under: at an act control it builds the actor from the App's
+name setting, the macOS account it runs under and the Codex account when one
+is reported, and marks the identity not verified, as it marks every capture,
+so that mark does not show that a capture is synthetic. In an examination run
+under the owner's account, the account identifiers a synthetic capture records
+remain the owner's although an agent operated the control. Before every
+synthetic capture, and again after every restart of the candidate before
+another capture, the examining agent sets the App's name to an examination
+name and verifies that it is set. The name marks the capture as examination
+material in the candidate's own record. It does not identify who operated the
+control; the step's record, from the operator's observation, says that an
+agent did. Examination material is an identified set: the scratch libraries,
+the scratch records stores, the export packages made from them, the import
+destinations used, and the retained examination evidence. Synthetic captures
+and whatever carries them stay within that set, which is disposed of once the
+examination and review it is needed for are finished. Each of these is a
+finding (DEL-09-02 REQ-009): a synthetic capture, or anything carrying one,
+found outside the identified examination material; a synthetic capture
+presented as an actual person's act; a candidate record that marks the
+identity verified, or that carries an actor value other than what the
+candidate observed by its own rule. A step whose conditions cannot be
+established is blocked.
+
+A synthetic confirmation supplies control-and-record examination evidence
+only; it does not meet a positive case that requires evidence of an act an
+actual person performed, and that case reads as not examined until its stated
+evidence is supplied. Four such cases stand: the positive cases of DEL-06-02
+AC-004, DEL-04-01 AC-002 and DEL-04-03 AC-003, and DEL-09-01's faithful
+recording of an actually performed act (AC-004). Agent 0 may recommend the
+candidate for the owner's evaluation with these human-positive cases
+explicitly not examined. Each passes only when its required act and comparison
+are observed on the identified candidate. A case the owner's chosen use does
+not exercise remains unmet; the owner's verdict supplies no missing evidence.
 
 ## Exit criteria
 
@@ -321,7 +363,8 @@ the owner decide on what was actually observed.
     What the owner uses it for, and for how long, is the owner's to choose at
     the time. With the recommendation, Agent 0 tells the owner which criteria
     were examined by agents and that no person has yet carried out the
-    journeys. Agent 0 gives every observation the owner makes a disposition;
+    journeys or performed the acts the four human-positive cases named under
+    Testing need, which read as not examined. Agent 0 gives every observation the owner makes a disposition;
     that is Agent 0's responsibility and not a question returned to the owner.
     The criterion is met on yes. A yes meets this criterion only: any other
     criterion that is unmet stays unmet.

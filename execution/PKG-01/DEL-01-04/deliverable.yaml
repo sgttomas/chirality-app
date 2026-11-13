@@ -64,10 +64,11 @@ needs:
   gating: true
   when: Keychain protection on an installed build
 - from: external:person or examining agent operating the act control
-  condition: A person, or in an agent-operated journey examination as the release target defines
-    it the examining agent, confirms each act in the native confirmation while an examiner observes;
-    the examining agent's capture is then a synthetic examination artifact that establishes no
-    person's decision.
+  condition: A person confirms each act in the native confirmation while an examiner observes. In
+    an agent-operated journey examination as the release target defines it, the examining agent
+    confirms instead the acts of VER-005 and VER-008, on examination material only; its capture is
+    then a synthetic examination artifact that establishes no person's decision. The protection act
+    and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
