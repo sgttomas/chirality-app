@@ -1167,9 +1167,9 @@ impl Host {
     /// is not set and the save is refused with `native_local_provider::WRITE_IN_PROGRESS`. That
     /// bounds this step only. The save's own sign-out and account requests come before it and wait
     /// for the frame writer on the ordinary request route, which has no deadline, so a Codex that
-    /// has stopped reading its input stalls the save there until Codex for this home is stopped
-    /// or the App is quit. Once set, the mark is final, and asking again returns at once without
-    /// waiting.
+    /// has stopped reading its input stalls the save there for as long as that write is blocked.
+    /// Nothing here establishes that Stop ends such a stall. Once set, the mark is final, and
+    /// asking again returns at once without waiting.
     pub(crate) fn supersede_local(&self, wait: Duration) -> Result<(), String> {
         {
             let i = self.inner.0.lock().map_err(|_| unavailable())?;

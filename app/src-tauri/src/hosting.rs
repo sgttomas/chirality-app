@@ -879,8 +879,10 @@ pub struct Host {
     /// Lock order, on every path: frame_write -> (attachment custody sources) -> attachment_gate ->
     /// Inner. Nothing takes frame_write while holding the attachment gate or Inner. A holder of
     /// frame_write waits for the locks after it and for its own write, and neither has a deadline:
-    /// a write to a Codex that has stopped reading its input blocks, and so does the attachment
-    /// custody's source lock, until the input is closed (Stop, or the App's quit).
+    /// a write to a Codex that has stopped reading its input blocks until that Codex reads again or
+    /// its input is closed, and the attachment custody's source lock is waited for without limit.
+    /// Whether Stop or quit reaches the step that closes the input while the writer is blocked is
+    /// not established here: Stop's interrupts use this same writer.
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
     /// One stop request at a time for this Host (SR-11): its guard, SR-01 and
