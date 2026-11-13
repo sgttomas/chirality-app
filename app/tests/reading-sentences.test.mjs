@@ -127,12 +127,66 @@ test('a failed status poll shows the fixed line alone and withholds the raw diag
     assert.doesNotMatch(c.textContent, new RegExp(statusCanary));
   });
 });
+// The configured-provider read this test pressed is gone from option A's UI (98558c40). The same
+// protection is held on a writer of option A's account view: the account status check, whose
+// status read follows it.
+const statusLine = (c, label) => nodes(region(c, label), 'p').find(node => node.getAttribute('role') === 'status').textContent;
+const accountRead = {homeAccess:{modeHomeClass:'account', observations:[{source:{attemptedFrame:{method:'account/read'}, generation:g, home:'account', sourceCurrent:true, outcome:'response-observed-result', authResponseShapeValid:true},
+  accountObservation:{state:'native account type observed', account:{type:'chatgpt'}}}]},
+  accountObservation:{generation:g, home:'account', state:'observed', nativeAccount:{type:'chatgpt', planType:'plus'}, codexAccount:'invented@example.invalid'}};
 test('an action that succeeds with a successful refresh shows no refresh line', async () => {
-  await mounted({read_configured_providers:listed}, async c => {
-    await press(c, 'Read configured local providers');
-    assert.ok(button(c, 'Edit endpoint fixture.dot'), 'the providers are listed as before');
+  await mounted({read_home_access:() => ({value:{state:'read'}, host:accountRead})}, async (c, calls) => {
+    await press(c, 'Check account status');
+    assert.equal(statusLine(c, 'Account status'), 'Codex reports a ChatGPT account for this connection: invented@example.invalid · plan plus.', 'the status is shown as read');
+    assert.ok(calls.lastIndexOf('host_status') > calls.indexOf('read_home_access'), 'the status was read after the command');
     assert.doesNotMatch(c.textContent, new RegExp(REFRESH_FAILED.replace(/[.?]/g, '\\$&')));
   });
+});
+
+// Option A's account view, mounted: the status check refused at a reading shows the sentence alone.
+test('the account view: a status check refused at its reading shows the sentence alone and withholds any other error text', async () => {
+  for (const error of [...sentences, canary]) await mounted({read_home_access:() => ({error})}, async c => {
+    await press(c, 'Check account status');
+    const status = statusLine(c, 'Account status');
+    if (error === canary) { assert.equal(status, 'Account status could not be confirmed. Try checking again; this does not mean you are signed out.'); assert.doesNotMatch(c.textContent, new RegExp(canary)); }
+    else assert.equal(status, error, 'the sentence alone');
+  });
+});
+
+// Option A's oMLX connection view: a preparation or key entry refused at a reading shows its own
+// attribution and then the sentence as it is, and nothing after it (the key entry's form is the one
+// model-choice.test.mjs pins with a failed refresh). No key is entered or seen.
+const lg = {home:'local-home', appSession:'s1', spawnCounter:1};
+const withLocal = {homeRouting:{activeModeHomeClass:'account', entries:[{modeHomeClass:'account', generation:g, state:'ready'}, {modeHomeClass:'local-provider', generation:lg, state:'ready'}]}};
+const localView = credentialState => ({modeHomeClass:'local-provider', entryId:'local-provider-keyed', providerId:'chirality-omlx', endpoint:'http://127.0.0.1:8000/v1', model:'invented-local-model', generation:lg, credentialState});
+const localAlerts = c => nodes(region(c, 'Keyed oMLX connection'), 'p').filter(node => node.getAttribute('role') === 'alert').map(node => node.textContent);
+test('the oMLX connection: a preparation or key entry refused at its reading shows its attribution, then the sentence as it is', async () => {
+  for (const sentence of sentences) {
+    await mounted({prepare_local_provider:() => ({error:sentence, host:withLocal})}, async c => {
+      await press(c, 'Prepare the oMLX connection');
+      assert.deepEqual(localAlerts(c), [`oMLX preparation did not complete: ${sentence}`]);
+    });
+    await mounted({prepare_local_provider:() => ({value:localView('entry-required'), host:withLocal}), submit_local_provider_key:() => ({error:sentence})}, async (c, calls) => {
+      await press(c, 'Prepare the oMLX connection'); await press(c, 'Enter oMLX key in a secure field…');
+      assert.deepEqual(localAlerts(c), [`oMLX key entry did not complete: ${sentence}`]);
+      assert.equal(calls.filter(command => command === 'submit_local_provider_key').length, 1, 'sent once');
+    });
+  }
+});
+
+// Option A's model step: the model list's provider note ending with either sentence
+// (model_catalog.rs `providerLimit`) shows the sentence as it is, with no second full stop.
+test('the model step: a provider note ending with either sentence shows it as it is', async () => {
+  for (const sentence of sentences) {
+    const note = `provider not established: ${sentence}`;
+    const list = {state:'observed', generation:g, modeHomeClass:'account', serverProvider:null, serverProviderState:'not-established', providerLimit:note, models:[], complete:true, limits:[]};
+    await mounted({read_available_models:() => ({value:list})}, async c => {
+      await press(c, 'Use my ChatGPT account (built-in OpenAI)'); await press(c, 'Read available models');
+      const shown = region(c, 'Available models').textContent;
+      assert.ok(shown.includes(note), shown);
+      assert.ok(!shown.includes(`${sentence}.`), 'no second full stop after the sentence');
+    });
+  }
 });
 
 // Round 4: the four Conversation-view refresh writers. A Start refused at its reading puts the
