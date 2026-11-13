@@ -9,7 +9,8 @@ impl Fixture {
         let project = root.join("project");
         std::fs::create_dir_all(&project).unwrap();
         let store = records_store::Store {root:root.join("store"),placement:records_store::Placement::Test,limits:vec![]};
-        records_store::use_store_for_test(Some(Ok(store.clone())));
+        // Not started: these tests are of a reader that must never start it.
+        records_store::use_store_not_started_for_test(Some(Ok(store.clone())));
         Self {root,project,store}
     }
     fn attached(&self) -> PathBuf { records_store::attach(&self.project,true).unwrap().dir.unwrap() }

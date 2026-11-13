@@ -2823,6 +2823,12 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
         let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
 
         records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        // The store is created here, once, when the App starts: no reader
+        // creates it (a read writes nothing). A failure is shown by the
+        // store's status and refuses recording; there is no fallback.
+        if allow_operational && records_store::current().is_ok() {
+            if let Err(e) = records_store::create_at_startup() { eprintln!("chirality: the records store was not opened at startup: {e}"); }
+        }
         if let Some(ws) = workspace.as_ref() {
             if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
         }

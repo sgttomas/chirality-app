@@ -1542,7 +1542,78 @@ the originals left unchanged and no longer read. A copy carries only the
 trust of the folder it came from. A library's own act log in the project is
 library evidence, never part of the project's record set. The override
 `CHIRALITY_RECORDS_STORE` is read only by development and test builds, and a
-store inside the project or a Codex home is refused. The host status (`recordsStore`)
+store inside the project or a Codex home is refused.
+
+The store is created (its folder and `store.json`) when the App starts, and
+otherwise only by the acts that write for the person: attaching a project with
+a newly minted identity, the imports and the identity acts. A read creates
+no store, no folder, no lock file and no control, and repairs nothing (a
+reader does take a shared lock on a control that already exists, which is
+what keeps a disposal out while it reads): with no store, or a folder at the store's path that
+holds no identity, every reader says the store is not created yet and nothing
+is written there, elsewhere or in a temporary folder. Once opened, a process
+stays bound to the store's physical folder and identity file (their device and
+inode): a redirected alias is not followed, and a folder put at the store's
+path in its place, even holding a copy of `store.json`, is refused by readers
+and writers alike. So is a `store.json` replaced while the App runs, even with
+the same bytes (a restore from a backup, for example): nothing is read or
+written through it until the App is reopened, which opens the store afresh. Readers take only an admission control that already exists;
+records with no control beside them read as unavailable with that reason
+(development note: a store written by a development build from before
+admission controls existed holds records with no control beside them, so its
+role and workflow history reads as unavailable until the App next writes to
+that project, which makes the control; no release wrote such a store). The
+records capability's own read-log write is admitted through the control that
+exists and is refused, with the read, when it is missing. A control that is
+not a regular, singly linked file is refused without waiting. A store whose
+state cannot be read reads as unavailable, never as empty or as "no records
+yet": a project's import account is read whole, and nothing is concluded
+from one that is not. An account that exists and is empty, an unclosed last
+line, a blank line, bytes outside a line's one JSON object, bytes that are
+not UTF-8, a key given twice, a line that is not an object of the import
+format and version with an import identity, an unknown event, a member no
+form of import line has, a member the reader takes in a form it is not taken
+as, or a census, files or conflicts list with an entry lacking what the
+reader takes from it, each make the account unknown, and unknown is an error
+in every reader that takes the account through the store's own reading (where
+records are read from, write admission, import, coverage, notes, status and
+export admission), never "no import" and never "the store holds records"; the
+fleet view does not consult the account, and a workflow record handle kept
+from an earlier read does not ask again. Only an account that is not there is
+"no import". The reader checks every member of a line that it takes, for the
+form it takes it as (the format, the version, the import identity, the event,
+`storeHeld`, a started line's `at`, and the three lists), and checks no
+member of a line that it does not take (`root`, `method`, `resumes`,
+`censusChanged`, and `at` on a completed line), accepting a line that lacks
+them. An entry of a census, files or conflicts list is held to its entry form
+whole (`original`, `copy`, `sha256` and `bytes`; a conflict's `original` and
+`reason`), although nothing after the reader reads a census entry's `copy` or
+`bytes` or a file entry's `bytes`. This does not establish that a line is one
+the App wrote: the store's files are unsigned, so a well-formed line added to
+the account from outside the App reads as the App's own, a completed line
+after an interrupted import included, and an export of such a project
+verifies. Nor does it establish that lines once there are still there: an
+account cut back at the end of a line reads as the shorter account, so a
+later interrupted import whose started line is cut away reads as no
+unfinished import, and an export verifies. Like an added line, that is a
+change made to an unsigned file from outside the App; the App's own
+interrupted append leaves a partial line or none and never removes one.
+Signing does not by itself close it: a signed export of a cut account
+authenticates the cut, and signed lines still allow a suffix to be removed.
+Closing it needs trusted, retained evidence of the expected history, covering
+the started line and checked before export, which the signing work has to
+establish. An export of such an account that verifies says that the package's
+present bytes agree with its manifests and heads, not that a preceding import
+completed or that no history was removed.
+Verification of a package says its bytes agree with its manifests and chain
+heads, not that the import behind them completed. (The store's appender
+creates the file and then writes, so a stop between the two leaves an empty
+account, which is then an error for that project until the safe-append
+change, which makes a new file whole or not at all, has landed.) The capability's read-log write makes only its own folder beneath
+parents that exist. A read writes
+only two things below an existing store: the records read log that the
+agents' records capability writes for each call (`reads/records-reads.jsonl`),
+and the derived query cache described below. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
 The records-store panel offers **Export project records**, choosing a parent
@@ -1758,8 +1829,14 @@ The derived records index keeps identities, positions and membership counts in
 process-owned SQLite files under the store's `indexes/`; record bodies stay in
 their logs. Cold use rebuilds from authoritative sources, and returned entries
 are reread and revalidated, including their exact line hash. Changed or unusable
-caches rebuild or use source scans. A private temporary cache can serve a process
-when the store cannot host derived metadata; records themselves have no fallback.
+caches rebuild or use source scans. The cache is the one stated exception to a
+read writing nothing: a read may write it under `indexes/` of a store that
+already exists and that the process has bound, never into a folder put in the
+store's place, and never in a temporary folder (SQLite's own temporary
+structures stay in memory). The decision view does not use it. Where the cache
+cannot be written the sources are read directly and the chain report says so.
+The cache is dispensable: deleting `indexes/` at any time changes no answer,
+only how fast it comes.
 Index metadata for ordinary valid entries is per log and directory; diagnostics
 grow with reported limits. Full act projections retain their
 separate result-sized memory cost (RS §13.8, §14.3).

@@ -6,6 +6,7 @@ use super::*;
 use crate::records::{self, APP_WRITER};
 use crate::storage;
 use serde_json::json;
+use std::collections::BTreeMap;
 
 mod publication { include!("records_store_publication_tests.rs"); }
 
@@ -669,7 +670,7 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
         ("file_act_arrival.rs", "2b3c14e9a624fea5", "the arrival preview pins the store's own root (its identity and an opened handle) beside the records folder its binding gave it; it takes no project's folder from the store's root"),
         ("file_act_lapse.rs", "bac1affed8c258c9", "the lapse observer pins the identity of the store's root it began with, beside the home it takes from the decision"),
         ("records_export.rs", "55d23a7524f88b16", "export refuses a destination inside the store's root; the project's folder it exports comes from the decision"),
-        ("records_retention.rs", "a5f2ff04909a3c95", "administration and admission: for a path already in hand, the project store folder it lies in, to take that project's admission (no folder is read through it); and the activity lease and the retention acts take the attachment and themselves refuse a refused one, an identity limit and an unread registry"),
+        ("records_retention.rs", "61c7d3cfd6140ced", "administration and admission: for a path already in hand, the project store folder it lies in, to take that project's admission (no folder is read through it); and the activity lease and the retention acts take the attachment and themselves refuse a refused one, an identity limit and an unread registry"),
         ("storage.rs", "48623ca56512f990", "all of a path already in hand: its label for presentation, its sync boundary, its records root, and the project root its store folder was opened from for a writer; none gives a reader a place for a project"),
         ("file_act_view.rs", "e74763194a74bba7", "the folder a log path already in hand lies in, as the base for reading that log"),
         ("records.rs", "85c289c7b5d8b971", "the appender takes the writer lock of the store folder a log path already in hand lies in"),
@@ -725,6 +726,105 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
     assert_eq!(read.registered_log(), fresh.join("records/coordination.rs.jsonl"));
     assert_eq!(read.in_place_parts("workflow"), Some(vec![".chirality", "records", "workflow"]));
     let _ = (std::fs::remove_dir_all(&root), std::fs::remove_dir_all(&fresh));
+}
+
+/// Pull requests 240 and 246 together, for the merge of the two: a refused
+/// attachment (240) and an import account that cannot be read (246) each
+/// refuse on the merged path, and so do both at once. The attachment's
+/// refusal is said first; nothing either made an error becomes a reading;
+/// and no write, import or export is admitted in any of the three states.
+#[test]
+fn a_refused_attachment_and_an_unknown_import_account_each_refuse_and_so_do_both() {
+    let _own = OwnStore::new();
+    let unknown = |e: &str| e.contains("exists and is empty") && e.contains("whether an import was begun is not known");
+    let refused = |e: &str| e.contains("link missing; not attached");
+    let root = legacy_project();
+    import(&root).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let link = std::fs::read(root.join(PROJECT_LINK)).unwrap();
+    let account = std::fs::read(dir.join("imports.jsonl")).unwrap();
+    let run_log = |root: &Path| crate::records::supply::run_log_for_read(root, "run:legacy");
+    let export_to = |root: &Path| {
+        let destination = folder("both-refusals-export-").join("bag");
+        let result = crate::records_export::export(root, &destination);
+        (result, destination)
+    };
+    let store_before = |dir: &Path| (std::fs::read(dir.join("imports.jsonl")).unwrap(), std::fs::read_dir(dir).unwrap().count());
+    // Neither: read from the store.
+    assert!(readable_home(&root).unwrap().in_store().is_some());
+    assert!(route_accounts_place(&root, false).unwrap().store_dir.is_some());
+    assert!(run_log(&root).is_ok());
+    assert_eq!(status(Some(&root))["project"]["reading"], "records store");
+    assert_eq!(storage::read_all(&root).0.len(), 3);
+
+    // 1. The account unknown, the attachment whole (246's refusal alone).
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    let before = store_before(&dir);
+    for said in [
+        readable_home(&root).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, false).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, true).map(|_| ()).unwrap_err(),
+        run_log(&root).map(|_| ()).unwrap_err(),
+        write_dir(&root).map(|_| ()).unwrap_err(),
+        import(&root).map(|_| ()).unwrap_err(),
+    ] {
+        assert!(unknown(&said), "{said}");
+    }
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["state"], "unavailable", "{shown}");
+    assert!(shown["project"]["reading"].as_str().is_none_or(|r| r != "records store" && r != "no records yet" && !r.contains("in place")), "{shown}");
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty() && limits.iter().any(|l| unknown(l)), "{entries:?} {limits:?}");
+    let (exported, destination) = export_to(&root);
+    assert!(exported.is_err() && !destination.exists(), "{exported:?}");
+    assert!(records::append_project(&root, None, "writer:both", "evidence_limit", &APP_WRITER, body("refused")).is_err());
+    assert_eq!(store_before(&dir), before, "nothing written in the project's store folder");
+
+    // 2. Both: the link removed as well. The attachment's refusal is the one
+    // said, and nothing is read in place of the store's records.
+    std::fs::remove_file(root.join(PROJECT_LINK)).unwrap();
+    for said in [
+        readable_home(&root).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, false).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, true).map(|_| ()).unwrap_err(),
+        run_log(&root).map(|_| ()).unwrap_err(),
+        write_dir(&root).map(|_| ()).unwrap_err(),
+    ] {
+        assert!(refused(&said), "{said}");
+    }
+    assert!(import(&root).is_err());
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["reading"], "nothing from the records store (the project is not attached)", "{shown}");
+    assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty() && limits.iter().any(|l| refused(l)), "{entries:?} {limits:?}");
+    let (exported, destination) = export_to(&root);
+    assert!(exported.is_err() && !destination.exists(), "{exported:?}");
+    assert!(records::append_project(&root, None, "writer:both", "evidence_limit", &APP_WRITER, body("refused")).is_err());
+    assert!(!root.join(PROJECT_LINK).exists(), "no identity minted for it");
+    assert_eq!(store_before(&dir), before, "nothing written in the project's store folder");
+
+    // 3. The attachment refused, the account whole (240's refusal alone).
+    std::fs::write(dir.join("imports.jsonl"), &account).unwrap();
+    for said in [
+        readable_home(&root).map(|_| ()).unwrap_err(),
+        route_accounts_place(&root, false).map(|_| ()).unwrap_err(),
+        run_log(&root).map(|_| ()).unwrap_err(),
+        write_dir(&root).map(|_| ()).unwrap_err(),
+    ] {
+        assert!(refused(&said), "{said}");
+    }
+    let (entries, _) = storage::read_all(&root);
+    assert!(entries.is_empty(), "{entries:?}");
+    let (exported, destination) = export_to(&root);
+    assert!(exported.is_err() && !destination.exists(), "{exported:?}");
+
+    // The link put back with the account whole: it reads as at the start.
+    std::fs::write(root.join(PROJECT_LINK), &link).unwrap();
+    assert!(readable_home(&root).unwrap().in_store().is_some());
+    assert_eq!(storage::read_all(&root).0.len(), 3);
+    assert_eq!(status(Some(&root))["project"]["reading"], "records store");
+    let _ = std::fs::remove_dir_all(&root);
 }
 
 /// Review round 3, finding 3: with the registry's last line incomplete and
@@ -880,6 +980,704 @@ fn a_project_kept_in_another_store_and_an_unreadable_link_attach_nothing() {
     assert_eq!(std::fs::read(broken.join(PROJECT_LINK)).unwrap(), b"not json");
     assert!(listed(&roots(&opened().unwrap().0).unwrap(), broken.to_str().unwrap()).is_empty());
     let _ = (std::fs::remove_dir_all(&root), std::fs::remove_dir_all(&broken));
+}
+
+// ---- A read writes nothing ----
+
+/// One call of the agents' records capability, as the App offers it.
+fn capability_read(root: &Path) -> Result<(), String> {
+    let cap = crate::records_access::RecordsCapability::new(root)?;
+    let call = crate::records_access::Call { app_session: "app-session:fixture".into(), generation: "g:fixture".into(), request: json!(1), thread: "thread".into(), turn: "turn".into(),
+        call: crate::util::opaque_id("call-")?, arguments: json!({"operation":"list_runs"}) };
+    let answer = cap.answer(&call, Some(root.to_str().unwrap()));
+    if answer["success"] != true { return Err(answer.to_string()); }
+    // An answer that says the records are unavailable is a refusal here.
+    let page: Value = serde_json::from_str(answer["contentItems"][0]["text"].as_str().unwrap_or("{}")).unwrap_or_default();
+    match page["limits"].as_array() {
+        Some(limits) if limits.iter().any(|l| l.as_str().is_some_and(|l| l.contains("unavailable"))) => Err(page["limits"].to_string()),
+        _ => Ok(()),
+    }
+}
+/// Readers outside the store's own module that a test only inventories (the
+/// fleet view belongs to DEL-06-01): their answers are not judged here.
+fn read_beside(root: &Path) {
+    let _ = crate::fleet_records::read_for_workspace(Some(root));
+    let _ = status(Some(root));
+    let _ = storage::read_all(root);
+}
+/// The entries below `dir`, relative to it, with a derived query cache named by
+/// its pattern (`indexes/query-<key of the project root>-*.sqlite`).
+fn names(dir: &Path, project: &Path) -> std::collections::BTreeSet<String> {
+    let key = format!("query-{}-", crate::util::sha256_hex(project.as_os_str().as_encoded_bytes()));
+    tree(dir).keys().map(|p| {
+        let rel = p.strip_prefix(dir).unwrap().to_string_lossy().into_owned();
+        match rel.strip_prefix("indexes/") {
+            Some(file) if file.starts_with(&key) && file.ends_with(".sqlite") => "indexes/query-<project>-*.sqlite".to_owned(),
+            _ => rel,
+        }
+    }).collect()
+}
+/// Derived query caches for `project` left in the temporary folder.
+fn temporary_caches(project: &Path) -> Vec<PathBuf> {
+    let key = format!("query-{}-", crate::util::sha256_hex(project.as_os_str().as_encoded_bytes()));
+    let mut out = Vec::new();
+    for dir in [std::env::temp_dir(), PathBuf::from("/tmp"), PathBuf::from("/var/tmp")] {
+        for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+            if entry.file_name().to_string_lossy().starts_with(&key) { out.push(entry.path()); }
+        }
+    }
+    out
+}
+/// As a new App process: nothing opened, no index held.
+fn new_process() {
+    crate::records_index::close_all();
+    *OPENED.lock().unwrap() = None;
+    *ROOTS.lock().unwrap() = None;
+    DIRS.lock().unwrap().clear();
+}
+
+/// Every entry below `dir`, with each file's bytes (a folder: None).
+fn tree(dir: &Path) -> BTreeMap<PathBuf, Option<Vec<u8>>> {
+    let mut out = BTreeMap::new();
+    let mut todo = vec![dir.to_path_buf()];
+    while let Some(at) = todo.pop() {
+        for entry in std::fs::read_dir(&at).unwrap() {
+            let path = entry.unwrap().path();
+            if std::fs::symlink_metadata(&path).unwrap().is_dir() { out.insert(path.clone(), None); todo.push(path); }
+            else { out.insert(path.clone(), Some(std::fs::read(&path).unwrap())); }
+        }
+    }
+    out
+}
+/// Every reader the App's views and commands reach: the store's own, the
+/// records index and its chain report, the decision view, role and workflow
+/// reads, and the agents' records capability. `Err` carries what the reader
+/// said when it could not read; an answer that hides a failure is an `Err`
+/// here too.
+fn read_everything(root: &Path) -> Vec<Result<(), String>> {
+    let failed = |limits: &Value| match limits.as_array() { Some(l) if !l.is_empty() => Err(Value::Array(l.clone()).to_string()), _ => Ok(()) };
+    vec![
+        crate::records_index::with_index(root, |ix| if ix.limits().is_empty() { Ok(()) } else { Err(ix.limits().join("; ")) }),
+        { let heads = crate::records_index::chain_heads(root); if heads["discoveryLimit"].is_null() { Ok(()) } else { Err(heads["discoveryLimit"].to_string()) } },
+        failed(&crate::decision_view::derive(root, &[])["limits"]),
+        crate::role_observations::project_chain_head(root).map(|_| ()),
+        crate::workflow_workspace::publication::ProjectRecords::open(root).and_then(|p| p.source_binding().map(|_| ())),
+        capability_read(root),
+        opened().map(|_| ()),
+        opened_existing().map(|_| ()),
+        attach(root, false).map(|_| ()),
+        home(root).map(|_| ()),
+        // Connector accounts of a folder with no link are read in place when
+        // there is no store: that is an answer only if it says so and names
+        // no store folder.
+        route_accounts_place(root, false).and_then(|place| if place.store_dir.is_some() { Ok(()) } else { Err(format!("no store root: {}", place.location)) }),
+        read_log_path(root).map(|_| ()),
+        store_root().map(|_| ()).ok_or_else(|| "no store root".to_string()),
+        (status(Some(root))["state"] == "available").then_some(()).ok_or_else(|| status(Some(root))["error"].to_string()),
+        storage::discover(root).map(|_| ()),
+    ]
+}
+
+#[test]
+fn a_read_of_a_store_that_does_not_exist_creates_nothing_and_says_so() {
+    let base = folder("unborn-base-");
+    let root = folder("unborn-project-");
+    let absent = base.join("store");
+    use_store_not_started_for_test(Some(Ok(Store { root: absent.clone(), placement: Placement::Override, limits: vec![] })));
+    for (index, outcome) in read_everything(&root).into_iter().enumerate() {
+        let refused = outcome.err().unwrap_or_else(|| panic!("reader {index} answered for a store that does not exist"));
+        assert!(refused.contains("not created yet") || refused.contains("no store root") || refused.contains("records store unavailable"), "{refused}");
+    }
+    assert!(!absent.exists(), "no reader created the store folder");
+    assert_eq!(status(None)["state"], "unavailable", "a store that could not be opened is never shown as available");
+    // An existing but empty folder: no identity and no bootstrap lock appear.
+    std::fs::create_dir(&absent).unwrap();
+    for outcome in read_everything(&root) { assert!(outcome.is_err()); }
+    read_beside(&root);
+    assert!(tree(&absent).is_empty(), "{:?}", tree(&absent).keys());
+    assert!(tree(&root).is_empty(), "nothing written in the project either");
+    // Not "empty": the read says the store is not there.
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty() && limits.iter().any(|l| l.contains("not created yet")), "{limits:?}");
+    read_beside(&root);
+    assert!(tree(&absent).is_empty(), "{:?}", tree(&absent).keys());
+    assert!(temporary_caches(&root).is_empty(), "no cache in the temporary folder: {:?}", temporary_caches(&root));
+    // The App's start, or a writer, creates it; then the same readers read it.
+    create_at_startup().unwrap();
+    assert!(absent.join("store.json").is_file());
+    assert!(opened().is_ok() && attach(&root, false).unwrap().how == "none");
+    use_store_for_test(None);
+    for p in [base, root] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn a_read_through_a_store_alias_redirected_mid_way_writes_nothing_and_never_follows_it() {
+    use std::os::unix::fs::symlink;
+    let base = folder("alias-base-");
+    let root = folder("alias-project-");
+    let (real, empty, alias) = (base.join("real"), base.join("empty"), base.join("alias"));
+    std::fs::create_dir(&real).unwrap();
+    std::fs::create_dir(&empty).unwrap();
+    symlink(&real, &alias).unwrap();
+    use_store_for_test(Some(Ok(Store { root: alias.clone(), placement: Placement::Override, limits: vec![] })));
+    records::append_project(&root, None, "writer:alias", "evidence_limit", &APP_WRITER, body("in the real store")).unwrap();
+    let (opened_root, store_id) = opened().unwrap();
+    assert_eq!(opened_root, real);
+    assert_eq!(storage::read_all(&root).0.len(), 1);
+    let project_folder = attach(&root, false).unwrap().dir.unwrap();
+    let before = tree(&real);
+    // Warm: this process opened the store. The alias now names an empty folder.
+    std::fs::remove_file(&alias).unwrap();
+    symlink(&empty, &alias).unwrap();
+    for outcome in read_everything(&root) { outcome.unwrap(); }
+    assert_eq!(opened().unwrap(), (real.clone(), store_id.clone()), "still bound to the physical store it opened");
+    assert_eq!(storage::read_all(&root).0.len(), 1, "and reads its records there");
+    assert!(tree(&empty).is_empty(), "nothing written through the redirected alias: {:?}", tree(&empty).keys());
+    // Cold: another process (no opened store) reads through the redirected
+    // alias. It finds no store there, refuses, and creates nothing.
+    use_store_not_started_for_test(Some(Ok(Store { root: alias.clone(), placement: Placement::Override, limits: vec![] })));
+    *OPENED.lock().unwrap() = None;
+    *ROOTS.lock().unwrap() = None;
+    for outcome in read_everything(&root) {
+        let refused = outcome.unwrap_err();
+        assert!(refused.contains("not created yet") || refused.contains("no store root"), "{refused}");
+    }
+    assert!(tree(&empty).is_empty(), "no identity, lock or folder created by a read: {:?}", tree(&empty).keys());
+    assert_eq!(status(Some(&root))["state"], "unavailable", "never shown as an empty, healthy store");
+    // The redirect is not healed by reading; nothing in the real store changed
+    // apart from what its own readers keep (compared file by file).
+    let after = tree(&real);
+    // Only what a read is permitted to leave (the pinned list): the derived
+    // query cache and the records read log of the capability's calls.
+    let permitted = |p: &Path| p.starts_with(real.join("indexes")) || p.starts_with(project_folder.join("reads"));
+    for (path, bytes) in before.iter().filter(|(p, _)| !permitted(p)) { assert_eq!(after.get(path), Some(bytes), "{}", path.display()); }
+    let added: Vec<_> = after.keys().filter(|p| !before.contains_key(*p) && !permitted(p)).collect();
+    assert!(added.is_empty(), "files created in the store by reads: {added:?}");
+    use_store_for_test(None);
+    *OPENED.lock().unwrap() = None;
+    for p in [base, root] { let _ = std::fs::remove_dir_all(p); }
+}
+
+/// The readers a view or command reaches, by name.
+const READERS: [&str; 8] = ["read_all", "index", "chain_heads", "decision_view", "role", "workflow", "status", "capability"];
+/// One reader's answer, as a value to compare.
+fn answer(root: &Path, name: &str) -> Value {
+    let ok = |r: Result<Value, String>| r.unwrap_or_else(|e| json!({"refused": e}));
+    match name {
+        "read_all" => { let (entries, limits) = storage::read_all(root); json!({"entries": entries, "limits": limits}) }
+        "index" => crate::records_index::with_index(root, |ix| json!({"paths": ix.paths(), "limits": ix.limits(), "partials": ix.partials(), "chains": ix.chains(),
+            "acts": ix.act_claims().unwrap_or_else(|e| vec![json!({"refused": e})]), "entries": ix.entries_with("rec:app:store-0").unwrap_or_default(),
+            "holds": ix.holds("rec:app:store-0"), "holdsNot": ix.holds("rec:app:nothing")})),
+        "chain_heads" => crate::records_index::chain_heads(root),
+        "decision_view" => crate::decision_view::derive(root, &[]),
+        "role" => ok(crate::role_observations::project_chain_head(root).map(|h| json!(h))),
+        "workflow" => ok(crate::workflow_workspace::publication::ProjectRecords::open(root).and_then(|p| p.source_binding().map(|_| Value::Null))),
+        "status" => status(Some(root)),
+        "capability" => ok(capability_read(root).map(|_| Value::Null)),
+        _ => unreachable!(),
+    }
+}
+fn answers(root: &Path) -> BTreeMap<&'static str, Value> {
+    READERS.iter().map(|name| (*name, answer(root, name))).collect()
+}
+/// A project with a few records in two run logs, written by the App's writer.
+fn written_project(prefix: &str) -> PathBuf {
+    let root = folder(prefix);
+    for n in 0..3 {
+        records::append_project_reserved(&root, if n == 2 { "run:a" } else { "run:b" }, "writer:store", "evidence_limit", &APP_WRITER,
+            body(&format!("entry {n}")), &format!("rec:app:store-{n}"), "2026-11-12T00:00:00.000Z").unwrap();
+    }
+    root
+}
+
+#[test]
+fn a_read_whose_store_alias_is_redirected_between_two_of_its_steps_writes_nothing_there() {
+    use std::os::unix::fs::symlink;
+    use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+    let base = folder("mid-read-alias-");
+    let (real, replacement, alias) = (base.join("real"), base.join("replacement"), base.join("alias"));
+    std::fs::create_dir(&real).unwrap();
+    symlink(&real, &alias).unwrap();
+    use_store_for_test(Some(Ok(Store { root: alias.clone(), placement: Placement::Override, limits: vec![] })));
+    let root = written_project("mid-read-project-");
+    // The worst replacement: a folder holding a copy of the store's identity.
+    std::fs::create_dir(&replacement).unwrap();
+    std::fs::copy(real.join("store.json"), replacement.join("store.json")).unwrap();
+    let only_identity = tree(&replacement);
+    let point = |to: &Path| { std::fs::remove_file(&alias).unwrap(); symlink(to, &alias).unwrap(); };
+    // Each reader's answer in a new process with no redirect...
+    new_process();
+    let expected = answers(&root);
+    for (name, answer) in &expected { assert!(answer.get("refused").is_none(), "{name} answered: {answer}"); }
+    assert_eq!(expected["read_all"]["entries"].as_array().unwrap().len(), 3);
+    // ...then again, the alias redirected to the replacement right after the
+    // read's first step bound the store, before its next steps.
+    for name in READERS {
+        point(&real);
+        new_process();
+        let fired = Arc::new(AtomicBool::new(false));
+        let (flag, to, at) = (fired.clone(), replacement.clone(), alias.clone());
+        after_open_for_test(Some(Box::new(move || {
+            std::fs::remove_file(&at).unwrap();
+            symlink(&to, &at).unwrap();
+            flag.store(true, Ordering::SeqCst);
+        })));
+        let got = answer(&root, name);
+        after_open_for_test(None);
+        assert!(fired.load(Ordering::SeqCst), "{name}: the redirect happened inside the read");
+        assert_eq!(std::fs::read_link(&alias).unwrap(), replacement, "{name}");
+        // The read stayed with the store it bound: the same answer, and
+        // nothing created, locked or repaired in the folder now named.
+        if name != "status" { assert_eq!(got, expected[name], "{name}"); }
+        else { assert_eq!((got["state"].as_str(), &got["root"], &got["storeId"]), (Some("available"), &expected[name]["root"], &expected[name]["storeId"]), "{got}"); }
+        assert_eq!(tree(&replacement), only_identity, "{name} wrote into the redirected alias: {:?}", tree(&replacement).keys());
+        assert!(temporary_caches(&root).is_empty(), "{name} put a cache in the temporary folder: {:?}", temporary_caches(&root));
+    }
+    after_open_for_test(None);
+    use_store_for_test(None);
+    new_process();
+    for p in [base, root] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn a_cold_first_read_creates_only_the_pinned_files_below_an_existing_store_and_nothing_for_an_absent_one() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    // A store the App created at its start, with a project the App's writer
+    // opened and wrote, and a folder the store has never seen.
+    let written = written_project("cold-written-");
+    let unseen = folder("cold-unseen-");
+    for (root, expected) in [
+        (&written, vec!["indexes", "indexes/query-<project>-*.sqlite", "projects/<project>/reads", "projects/<project>/reads/records-reads.jsonl"]),
+        (&unseen, vec!["indexes", "indexes/query-<project>-*.sqlite"]),
+    ] {
+        new_process();
+        if let Ok(dir) = std::fs::read_dir(store.join("indexes")) { for e in dir.flatten() { let _ = std::fs::remove_file(e.path()); } }
+        let _ = std::fs::remove_dir(store.join("indexes"));
+        let (store_before, project_before) = (names(&store, root), tree(root));
+        let temporary_before = temporary_caches(root);
+        for _ in read_everything(root) {}
+        read_beside(root);
+        let key = attach(root, false).unwrap().dir.map(|d| d.file_name().unwrap().to_string_lossy().into_owned());
+        let created: Vec<String> = names(&store, root).difference(&store_before)
+            .map(|n| key.as_ref().map_or(n.clone(), |k| n.replace(k.as_str(), "<project>"))).collect();
+        // The pinned list: the derived query cache (and its folder), and for
+        // a project with an identity, the records read log the capability's
+        // read writes (DEL-04-03 REQ-011, AC-012). Nothing else.
+        assert_eq!(created, expected, "{}", root.display());
+        assert_eq!(tree(root), project_before, "nothing written in the project");
+        assert_eq!(temporary_caches(root), temporary_before, "no cache in the temporary folder");
+        // The cache is the process's own: it goes when the index is released.
+        crate::records_index::close_all();
+        assert!(!names(&store, root).iter().any(|n| n.ends_with(".sqlite")), "{:?}", names(&store, root));
+    }
+    // An absent store: nothing at all, here or in the temporary folder.
+    let base = folder("cold-absent-base-");
+    let absent = base.join("store");
+    use_store_not_started_for_test(Some(Ok(Store { root: absent.clone(), placement: Placement::Override, limits: vec![] })));
+    new_process();
+    for root in [&written, &unseen] {
+        for outcome in read_everything(root) { assert!(outcome.is_err()); }
+        read_beside(root);
+    }
+    assert!(tree(&base).is_empty(), "{:?}", tree(&base).keys());
+    assert!(temporary_caches(&written).is_empty() && temporary_caches(&unseen).is_empty());
+    drop(own);
+    new_process();
+    for p in [base, written, unseen] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn a_store_folder_replaced_at_its_path_is_refused_by_the_reading_and_the_creating_opening() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("replaced-store-project-");
+    let (_, id) = opened().unwrap();
+    let moved = store.with_extension("moved");
+    std::fs::rename(&store, &moved).unwrap();
+    std::fs::create_dir(&store).unwrap();
+    std::fs::copy(moved.join("store.json"), store.join("store.json")).unwrap();
+    let only_identity = tree(&store);
+    for refused in [opened().unwrap_err(), opened_existing().unwrap_err(), created().unwrap_err(), create_at_startup().unwrap_err()] {
+        assert!(refused.contains("replaced by another folder"), "{refused}");
+    }
+    let writes = [
+        records::append_project(&root, None, "writer:store", "evidence_limit", &APP_WRITER, body("after the replacement")).map(|_| ()),
+        attach(&root, true).map(|_| ()),
+        storage::project_log(&root, None, "w").map(|_| ()),
+        import(&root).map(|_| ()),
+    ];
+    for write in writes { assert!(write.unwrap_err().contains("replaced by another folder")); }
+    // Each reader says why (store_root's helper here has only "no store root").
+    for read in read_everything(&root) { let e = read.unwrap_err(); assert!(e.contains("replaced") || e == "no store root", "{e}"); }
+    assert_eq!(status(Some(&root))["state"], "unavailable");
+    assert_eq!(tree(&store), only_identity, "nothing read into, written in or minted in the replacement: {:?}", tree(&store).keys());
+    // The store itself, put back, is the store again.
+    std::fs::remove_dir_all(&store).unwrap();
+    std::fs::rename(&moved, &store).unwrap();
+    assert_eq!(opened().unwrap().1, id);
+    drop(own);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn a_replaced_identity_file_is_refused_until_the_app_opens_the_store_afresh() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("replaced-identity-project-");
+    let (_, id) = opened().unwrap();
+    // The same identity, put back as a new file (as a restore from a backup does).
+    let bytes = std::fs::read(store.join("store.json")).unwrap();
+    std::fs::remove_file(store.join("store.json")).unwrap();
+    std::fs::write(store.join("store.json"), &bytes).unwrap();
+    for refused in [opened().unwrap_err(), created().unwrap_err(), records::append_project(&root, None, "writer:store", "evidence_limit", &APP_WRITER, body("refused")).unwrap_err()] {
+        assert!(refused.contains("identity file") && refused.contains("was replaced since this App opened the store")
+            && refused.contains("nothing is read or written through it") && refused.contains("reopening the App opens the store afresh"), "{refused}");
+    }
+    // A new process opens the same folder with the same valid identity afresh.
+    new_process();
+    assert_eq!(opened().unwrap(), (store.clone(), id));
+    assert_eq!(storage::read_all(&root).0.len(), 3);
+    records::append_project(&root, None, "writer:store", "evidence_limit", &APP_WRITER, body("after reopening")).unwrap();
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn an_index_read_writes_nothing_into_a_folder_put_in_place_of_its_store() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("replaced-index-project-");
+    assert!(crate::records_index::chain_heads(&root)["discoveryLimit"].is_null());
+    let moved = store.with_extension("moved");
+    std::fs::rename(&store, &moved).unwrap();
+    std::fs::create_dir(&store).unwrap();
+    std::fs::copy(moved.join("store.json"), store.join("store.json")).unwrap();
+    let only_identity = tree(&store);
+    // A new index for this process: its cache would be opened now.
+    crate::records_index::close_all();
+    let heads = crate::records_index::chain_heads(&root);
+    assert!(heads["discoveryLimit"].as_str().is_some_and(|l| l.contains("replaced")), "{heads}");
+    assert!(heads["notes"].as_array().unwrap().iter().any(|n| n.as_str().is_some_and(|n| n.contains("query cache not written"))), "{heads}");
+    let limits = crate::records_index::with_index(&root, |ix| ix.limits());
+    assert!(limits.iter().any(|l| l.contains("replaced")), "{limits:?}");
+    assert_eq!(tree(&store), only_identity, "no indexes/ or cache in the replacement: {:?}", tree(&store).keys());
+    assert!(temporary_caches(&root).is_empty());
+    std::fs::remove_dir_all(&store).unwrap();
+    std::fs::rename(&moved, &store).unwrap();
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn deleting_the_index_cache_changes_no_answer_only_its_speed() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("dispensable-cache-");
+    let first = answers(&root);
+    assert!(store.join("indexes").is_dir());
+    // Removed while the process holds its index: the same answers.
+    std::fs::remove_dir_all(store.join("indexes")).unwrap();
+    assert_eq!(answers(&root), first);
+    // Removed in a new process: the same answers.
+    new_process();
+    std::fs::remove_dir_all(store.join("indexes")).unwrap();
+    assert_eq!(answers(&root), first);
+    // A cache that cannot be written at all: the sources are read directly,
+    // with the same answers, and the chain report says so in its notes.
+    new_process();
+    std::fs::remove_dir_all(store.join("indexes")).unwrap();
+    std::fs::write(store.join("indexes"), b"not a folder").unwrap();
+    let without = answers(&root);
+    let notes = |a: &BTreeMap<&str, Value>| a["chain_heads"]["notes"].clone();
+    assert!(notes(&without).as_array().unwrap().iter().any(|n| n.as_str().is_some_and(|n| n.contains("query cache not written") && n.contains("read directly"))), "{}", notes(&without));
+    let strip = |mut a: BTreeMap<&'static str, Value>| { a.get_mut("chain_heads").unwrap()["notes"] = json!(null); a };
+    assert_eq!(strip(without), strip(first.clone()));
+    assert_eq!(std::fs::read(store.join("indexes")).unwrap(), b"not a folder");
+    std::fs::remove_file(store.join("indexes")).unwrap();
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn a_reader_creates_no_admission_control_and_records_without_one_are_unavailable() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("admission-project-");
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let control = store.join("administration").join(dir.file_name().unwrap()).join(".admission.lock");
+    assert!(control.is_file(), "the writer made the project's admission control");
+    std::fs::remove_file(&control).unwrap();
+    let before = tree(&store);
+    // The role and workflow reads take a reader's admission: with no control
+    // beside the records they say so, and make none.
+    for refused in [crate::role_observations::project_chain_head(&root).map(|_| ()), crate::workflow_workspace::publication::ProjectRecords::open(&root).unwrap().source_binding().map(|_| ())] {
+        let refused = refused.unwrap_err();
+        assert!(refused.contains("admission control") && refused.contains("missing"), "{refused}");
+    }
+    assert!(!control.exists());
+    let after = tree(&store);
+    let added: Vec<_> = after.keys().filter(|p| !before.contains_key(*p) && !p.starts_with(store.join("indexes"))).collect();
+    assert!(added.is_empty(), "{added:?}");
+    // A capability read must be recorded, and its read-log write is admitted
+    // only through a control that exists: with the whole administration
+    // folder gone it is refused, and nothing is made in its place.
+    std::fs::remove_dir_all(store.join("administration")).unwrap();
+    let before = tree(&store);
+    let refused = capability_read(&root).unwrap_err();
+    assert!(refused.contains("admission control"), "{refused}");
+    assert!(!store.join("administration").exists(), "a read re-creates no control");
+    let added: Vec<_> = tree(&store).keys().filter(|p| !before.contains_key(*p) && !p.starts_with(store.join("indexes"))).cloned().collect();
+    assert!(added.is_empty(), "{added:?}");
+    // A project with nothing in the store has nothing to read and nothing to hold.
+    let nothing = project_dir(&store, "chirality-project:nothing-here");
+    assert!(crate::records_retention::read_path(&nothing).unwrap().is_none());
+    assert!(!store.join("administration").join(nothing.file_name().unwrap()).exists());
+    // The writer, writing again, makes the control; the readers read.
+    records::append_project(&root, None, "writer:store", "evidence_limit", &APP_WRITER, body("again")).unwrap();
+    assert!(control.is_file());
+    crate::role_observations::project_chain_head(&root).unwrap();
+    crate::workflow_workspace::publication::ProjectRecords::open(&root).unwrap().source_binding().unwrap();
+    drop(own);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn an_unreadable_import_record_is_an_error_never_an_empty_history_or_the_kept_originals() {
+    let own = OwnStore::new();
+    // A project whose §13.7 originals were imported, and one with nothing in
+    // place: each import record then becomes unreadable (a line that is not JSON).
+    let imported = legacy_project();
+    import(&imported).unwrap();
+    let empty = folder("unknown-import-empty-");
+    attach(&empty, true).unwrap();
+    // "Cannot be read" is a rule, not a list: the account is read whole, and
+    // nothing is concluded from one that is not. A line that is not JSON, a
+    // value that is not an object, an empty object, an import line of
+    // another version or event, a line without its identity or its files, a
+    // file entry that is not one, a blank line, and a last line that is not
+    // closed each make the account unknown.
+    let listed: [&[u8]; 13] = [b"not json\n", b"{}\n", b"null\n", b"[]\n", b"null", b"{\"format\":", b"\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"completed\",\"importId\":\"import:review\",\"files\":[null]}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"importId\":\"import:review\",\"files\":[],\"conflicts\":[7]}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"99.0\",\"event\":\"future\"}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"future\",\"importId\":\"import:x\"}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"completed\",\"importId\":\"import:x\"}\n",
+        b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"started\",\"census\":[]}\n"];
+    // Review round 4, and the neighbouring contents asked of it: an account
+    // that exists and is empty; contents in which nothing is parsed (a
+    // byte-order mark, carriage returns, a NUL, spaces, with and without a
+    // newline); and a line that IS a valid import line with something more
+    // (a byte-order mark before it, a carriage return or a space after it, a
+    // space before it, a key given twice, a byte that is not UTF-8).
+    let valid = b"{\"format\":\"chirality.records-store.import\",\"formatVersion\":\"0.1\",\"event\":\"started\",\"importId\":\"import:edge\",\"census\":[]}".to_vec();
+    assert_eq!(import_line(&serde_json::from_slice(&valid).unwrap()), Some("started"), "the line the edge contents are built on is a valid one");
+    let around = |before: &[u8], after: &[u8]| [before, valid.as_slice(), after, b"\n"].concat();
+    let twice = [&valid[..valid.len() - 1], b",\"event\":\"completed\",\"files\":[],\"conflicts\":[]}\n".as_slice()].concat();
+    let not_utf8 = [&valid[..valid.len() - 2], b"\xff\"}\n".as_slice()].concat();
+    let mut unknown: Vec<Vec<u8>> = listed.iter().map(|content| content.to_vec()).collect();
+    unknown.extend([b"".to_vec(), b"\xef\xbb\xbf".to_vec(), b"\xef\xbb\xbf\n".to_vec(), b"\r".to_vec(), b"\r\n".to_vec(), b"\0".to_vec(), b"\0\n".to_vec(),
+        b" ".to_vec(), b" \n".to_vec(), b"\n\n".to_vec(),
+        around(b"\xef\xbb\xbf", b""), around(b"", b"\r"), around(b"", b" "), around(b" ", b""), around(b"\t", b"\t"), twice, not_utf8,
+        [valid.as_slice(), b"\n\n"].concat(),
+        // A valid line with a member no form of import line has.
+        [&valid[..valid.len() - 1], b",\"added\":true}\n".as_slice()].concat()]);
+    for (root, content) in [&imported, &empty].into_iter().flat_map(|root| unknown.iter().map(move |content| (root, content.as_slice()))) {
+        let dir = attach(root, false).unwrap().dir.unwrap();
+        std::fs::write(dir.join("imports.jsonl"), content).unwrap();
+        let known = |e: &str| e.contains("unknown") && e.contains("import record is unreadable");
+        let failed = home(root).unwrap_err();
+        assert!(known(&failed), "{failed}");
+        for (what, e) in [("discover", storage::discover(root).map(|_| ())), ("sources", storage::sources(root).map(|_| ())), ("capture_dir", storage::capture_dir(root).map(|_| ())),
+            ("registered_legacy_log", storage::registered_legacy_log(root).map(|_| ())), ("route_accounts_place", route_accounts_place(root, false).map(|_| ())),
+            ("write_dir", write_dir(root).map(|_| ())), ("export_permitted", export_permitted(&dir, root)),
+            ("role", crate::role_observations::project_chain_head(root).map(|_| ())),
+            ("workflow", crate::workflow_workspace::publication::ProjectRecords::open(root).and_then(|p| p.source_binding().map(|_| ())))] {
+            let e = e.unwrap_err();
+            // (The export's own refusal of an unclosed last line keeps its existing words.)
+            assert!(known(&e) || e.contains("import state is unknown") || e.contains("import state has an unclosed final line"), "{what}: {e}");
+        }
+        // Never an empty or in-place history: the read and the views say why.
+        let (entries, limits) = storage::read_all(root);
+        assert!(entries.is_empty() && limits.iter().any(|l| known(l)), "{limits:?}");
+        let decisions = crate::decision_view::derive(root, &[]);
+        assert!(decisions["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(known)), "{decisions}");
+        let heads = crate::records_index::chain_heads(root);
+        assert!(heads["discoveryLimit"].as_str().is_some_and(known), "{heads}");
+        let shown = status(Some(root));
+        assert_eq!(shown["project"]["state"], "unavailable", "{shown}");
+        assert_ne!(shown["project"]["reading"], "no records yet");
+        assert!(notes(root).iter().any(|n| known(n)), "{:?}", notes(root));
+        assert!(capability_read(root).is_err(), "{:?}", capability_read(root));
+    }
+    // The valid line alone is read (an import begun and not completed), so
+    // the refusals above are of what was added to it and of nothing else.
+    for root in [&imported, &empty] {
+        let dir = attach(root, false).unwrap().dir.unwrap();
+        std::fs::write(dir.join("imports.jsonl"), around(b"", b"")).unwrap();
+        assert!(home(root).is_ok(), "{:?}", home(root).err());
+    }
+    drop(own);
+    for p in [imported, empty] { let _ = std::fs::remove_dir_all(p); }
+}
+
+/// Review round 5, as App Agent 0 decided it: the rule, held as a rule. Every
+/// member the reader takes from an import line is checked for the form it is
+/// taken as, and a wrong-typed value in any of them makes the account
+/// unknown; the members it does not take are not checked, and a line lacking
+/// them is accepted. The reviewer's state is the first: a `storeHeld` that is
+/// neither true nor false was read as false, and a project whose records the
+/// store held read its kept originals in place with no limit.
+#[test]
+fn every_member_the_reader_takes_from_an_import_line_is_checked_for_its_form_and_no_other_member_is() {
+    let own = OwnStore::new();
+    let root = folder("import-line-members-");
+    let dir = attach(&root, true).unwrap().dir.unwrap();
+    let account = dir.join("imports.jsonl");
+    let put = |lines: &[&Value]| std::fs::write(&account, lines.iter().map(|l| format!("{l}\n")).collect::<String>()).unwrap();
+    let entry = json!({"original":".chirality/records/acts.jsonl","copy":"acts/a.jsonl","sha256":"00","bytes":1,"stamp":{"size":1}});
+    let started = json!({"format":"chirality.records-store.import","formatVersion":"0.1","event":"started","importId":"import:members","at":"2026-11-12T00:00:00.000Z",
+        "root":"/invented","method":"sha-256 of the exact bytes","census":[entry.clone()],"storeHeld":true,"resumes":null});
+    let completed = json!({"format":"chirality.records-store.import","formatVersion":"0.1","event":"completed","importId":"import:members","at":"2026-11-12T00:00:01.000Z",
+        "files":[entry.clone()],"conflicts":[{"original":"records/coordination.rs.jsonl","reason":"invented"}],"censusChanged":[]});
+    let mut earlier = completed.clone();
+    for member in ["event", "censusChanged"] { earlier.as_object_mut().unwrap().remove(member); }
+    earlier["root"] = json!("/invented");
+    earlier["method"] = json!("sha-256 of the exact bytes");
+    // The three forms as their writers give them are read.
+    for (form, lines) in [("started", vec![&started]), ("started and completed", vec![&started, &completed]), ("no event", vec![&earlier])] {
+        put(&lines);
+        assert!(imports(&dir).is_ok(), "{form}: {:?}", imports(&dir).err());
+    }
+    // storeHeld is taken, and acted on: true means the store held the records.
+    put(&[&started]);
+    assert!(store_holds(&dir).unwrap(), "an unfinished import that began with the records in the store: read from the store");
+    // Every taken member, in a form it is not taken as: the account is unknown.
+    let with = |line: &Value, path: &[&str], value: Value| {
+        let mut changed = line.clone();
+        let mut at = &mut changed;
+        for step in &path[..path.len() - 1] {
+            at = match step.parse::<usize>() { Ok(index) => &mut at[index], Err(_) => &mut at[*step] };
+        }
+        at[path[path.len() - 1]] = value;
+        changed
+    };
+    let wrong: Vec<(&str, Value)> = vec![
+        ("the reviewer's state: storeHeld an object", with(&started, &["storeHeld"], json!({"not":"a boolean"}))),
+        ("storeHeld a string", with(&started, &["storeHeld"], json!("true"))),
+        ("storeHeld a number", with(&started, &["storeHeld"], json!(1))),
+        ("storeHeld null", with(&started, &["storeHeld"], Value::Null)),
+        ("a started line's at an object", with(&started, &["at"], json!({"unwritten":"object"}))),
+        ("format a number", with(&started, &["format"], json!(1))),
+        ("formatVersion a number", with(&started, &["formatVersion"], json!(0.1))),
+        ("importId a number", with(&started, &["importId"], json!(7))),
+        ("importId empty", with(&started, &["importId"], json!(""))),
+        ("event a number", with(&started, &["event"], json!(7))),
+        ("census an object", with(&started, &["census"], json!({}))),
+        ("a census entry's original a number", with(&started, &["census", "0", "original"], json!(7))),
+        ("a census entry's copy a number", with(&started, &["census", "0", "copy"], json!(7))),
+        ("a census entry's sha256 a number", with(&started, &["census", "0", "sha256"], json!(7))),
+        ("a census entry's bytes a string", with(&started, &["census", "0", "bytes"], json!("1"))),
+        ("files an object", with(&completed, &["files"], json!({}))),
+        ("a file entry's original a number", with(&completed, &["files", "0", "original"], json!(7))),
+        ("a file entry's copy a number", with(&completed, &["files", "0", "copy"], json!(7))),
+        ("a file entry's sha256 a number", with(&completed, &["files", "0", "sha256"], json!(7))),
+        ("a file entry's bytes a fraction", with(&completed, &["files", "0", "bytes"], json!(1.5))),
+        ("conflicts an object", with(&completed, &["conflicts"], json!({}))),
+        ("a conflict's original a number", with(&completed, &["conflicts", "0", "original"], json!(7))),
+        ("a conflict's reason a number", with(&completed, &["conflicts", "0", "reason"], json!(7))),
+        ("the form with no event: a file entry's bytes a string", with(&earlier, &["files", "0", "bytes"], json!("1"))),
+    ];
+    for (what, line) in &wrong {
+        put(&[line]);
+        let refused = imports(&dir).err().unwrap_or_else(|| panic!("{what}: read as known"));
+        assert!(refused.contains("is not an import line"), "{what}: {refused}");
+        assert!(store_holds(&dir).is_err() && home(&root).is_err(), "{what}: never \"holds records\" and never \"no import\"");
+    }
+    // The members the reader does not take are not checked, and a line
+    // lacking them is accepted: this is the boundary, stated, not a promise
+    // that a line is one the App wrote.
+    let mut bare = started.clone();
+    for member in ["at", "root", "method", "storeHeld", "resumes"] { bare.as_object_mut().unwrap().remove(member); }
+    let mut untaken = with(&with(&completed, &["at"], json!({"unwritten":"object"})), &["censusChanged"], json!(false));
+    for (what, lines) in [("a started line lacking the members not taken, and storeHeld", vec![&bare]),
+        ("root, method and resumes in other forms", vec![&with(&with(&with(&started, &["root"], json!(7)), &["method"], json!(7)), &["resumes"], json!(7))]),
+        ("a completed line's at and censusChanged in other forms", vec![&started, &untaken]),
+        ("a file entry's stamp in another form (compared as it stands)", vec![&started, &with(&completed, &["files", "0", "stamp"], json!("not a stamp"))])] {
+        put(&lines);
+        assert!(imports(&dir).is_ok(), "{what}: {:?}", imports(&dir).err());
+    }
+    untaken.as_object_mut().unwrap().remove("at");
+    put(&[&started, &untaken]);
+    assert!(imports(&dir).is_ok());
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+/// Review round 4: only an import account that is NOT THERE is "no import".
+/// One that exists and is empty is unknown, as every other unreadable
+/// account is: it cannot be told from an account emptied after an import.
+/// The reviewer's three states: a newly attached project; an imported
+/// project whose account is emptied; and an import begun, not completed,
+/// whose account is then emptied, which must not give a verified export.
+#[test]
+fn an_import_account_that_exists_and_is_empty_is_unknown_and_only_a_missing_one_is_no_import() {
+    let own = OwnStore::new();
+    let known = |e: &str| e.contains("exists and is empty") && e.contains("whether an import was begun is not known");
+    let export_to = |root: &Path| {
+        let destination = folder("empty-account-export-").join("bag");
+        let result = crate::records_export::export(root, &destination);
+        (result, destination)
+    };
+    // A newly attached project with no account: no import, as before.
+    let fresh = folder("empty-account-fresh-");
+    let dir = attach(&fresh, true).unwrap().dir.unwrap();
+    assert!(!dir.join("imports.jsonl").exists());
+    assert_eq!(status(Some(&fresh))["project"]["reading"], "no records yet");
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    assert!(known(&home(&fresh).unwrap_err()));
+    let shown = status(Some(&fresh));
+    assert_eq!(shown["project"]["state"], "unavailable", "{shown}");
+    assert_ne!(shown["project"]["reading"], "no records yet");
+    let (entries, limits) = storage::read_all(&fresh);
+    assert!(entries.is_empty() && limits.iter().any(|l| known(l)), "{limits:?}");
+    assert!(write_dir(&fresh).is_err(), "nothing is written for it either");
+    std::fs::remove_file(dir.join("imports.jsonl")).unwrap();
+    assert_eq!(status(Some(&fresh))["project"]["reading"], "no records yet", "an account that is not there is no import");
+    // An imported project: its account emptied.
+    let imported = legacy_project();
+    import(&imported).unwrap();
+    let dir = attach(&imported, false).unwrap().dir.unwrap();
+    assert_eq!(storage::read_all(&imported).0.len(), 3);
+    let account = std::fs::read(dir.join("imports.jsonl")).unwrap();
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    let (entries, limits) = storage::read_all(&imported);
+    assert!(entries.is_empty() && limits.iter().any(|l| known(l)), "the three entries are not read with no limit: {entries:?} {limits:?}");
+    assert!(export_permitted(&dir, &imported).unwrap_err().contains("import state is unknown"));
+    let (exported, destination) = export_to(&imported);
+    assert!(exported.is_err() && !destination.exists(), "no export: {exported:?}");
+    std::fs::write(dir.join("imports.jsonl"), &account).unwrap();
+    assert_eq!(storage::read_all(&imported).0.len(), 3, "with its account back, it reads as before");
+    // An import begun and not completed, then its account emptied: the
+    // reviewer's "verified export created".
+    let begun = legacy_project();
+    interrupt_import_for_test(Some(1), false);
+    let stopped = import(&begun);
+    interrupt_import_for_test(None, false);
+    assert!(stopped.unwrap_err().contains("interrupted"));
+    let dir = attach(&begun, false).unwrap().dir.unwrap();
+    assert!(std::fs::read(dir.join("imports.jsonl")).is_ok_and(|b| !b.is_empty()), "its started line is in the account");
+    std::fs::write(dir.join("imports.jsonl"), b"").unwrap();
+    assert!(known(&home(&begun).unwrap_err()));
+    let (exported, destination) = export_to(&begun);
+    assert!(exported.is_err() && !destination.exists(), "never a verified export: {exported:?}");
+    drop(own);
+    new_process();
+    for p in [fresh, imported, begun] { let _ = std::fs::remove_dir_all(p); }
 }
 
 // ---- Existing records: explicit import ----
@@ -1366,4 +2164,126 @@ fn an_original_whose_name_is_not_utf8_is_not_copied() {
 fn records_store_lines_refuse_fifo_and_final_link_without_changing_torn_tail_parsing(){
  use std::os::unix::fs::symlink;
  let own=OwnStore::new();let path=own.0.join("invented-read-lines.jsonl");let regular=b"{\"invented\":\"complete\"}\n{\"torn\":";std::fs::write(&path,regular).unwrap();assert_eq!(read_lines(&path).unwrap(),vec![json!({"invented":"complete"})],"compatibility torn-tail parsing remains unchanged");std::fs::remove_file(&path).unwrap();let c=std::ffi::CString::new(path.as_os_str().as_encoded_bytes()).unwrap();assert_eq!(unsafe{libc::mkfifo(c.as_ptr(),0o600)},0);let before=std::time::Instant::now();assert!(read_lines(&path).is_err());assert!(before.elapsed()<std::time::Duration::from_secs(1));std::fs::remove_file(&path).unwrap();let other=own.0.join("other-owned.jsonl");std::fs::write(&other,b"{\"other\":\"not returned\"}\n").unwrap();symlink(&other,&path).unwrap();assert!(read_lines(&path).is_err());assert_eq!(std::fs::read(&other).unwrap(),b"{\"other\":\"not returned\"}\n");
+}
+
+#[test]
+fn a_kept_index_cache_is_neither_changed_nor_cleaned_out_through_a_store_that_was_replaced() {
+    for replace_folder in [false, true] {
+        let own = OwnStore::new();
+        let store = own.0.clone();
+        let root = written_project("kept-cache-project-");
+        // Warm: this process's index holds its cache file in the store.
+        assert!(crate::records_index::chain_heads(&root)["discoveryLimit"].is_null());
+        let cache_of = |at: &Path| tree(&at.join("indexes"));
+        assert!(!cache_of(&store).is_empty());
+        let moved = store.with_extension("moved");
+        if replace_folder {
+            // The store folder replaced, with the kept cache's folder moved into the replacement.
+            std::fs::rename(&store, &moved).unwrap();
+            std::fs::create_dir(&store).unwrap();
+            std::fs::copy(moved.join("store.json"), store.join("store.json")).unwrap();
+            std::fs::rename(moved.join("indexes"), store.join("indexes")).unwrap();
+        } else {
+            // The identity file replaced by another holding the same bytes.
+            let bytes = std::fs::read(store.join("store.json")).unwrap();
+            std::fs::remove_file(store.join("store.json")).unwrap();
+            std::fs::write(store.join("store.json"), bytes).unwrap();
+        }
+        let before = cache_of(&store);
+        // The same process reads again through its kept index. The opening refuses,
+        let heads = crate::records_index::chain_heads(&root);
+        assert!(heads["discoveryLimit"].as_str().is_some_and(|l| l.contains("replaced")), "{replace_folder}: {heads}");
+        let _ = crate::records_index::with_index(&root, |ix| ix.limits());
+        // and the kept cache is left exactly as it was: no row removed from it,
+        assert_eq!(cache_of(&store), before, "{replace_folder}");
+        // and it is not cleaned out through the refused binding when the index is released.
+        crate::records_index::close_all();
+        assert_eq!(cache_of(&store), before, "{replace_folder}");
+        if replace_folder {
+            std::fs::remove_dir_all(&store).unwrap();
+            std::fs::rename(&moved, &store).unwrap();
+        }
+        drop(own);
+        new_process();
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[test]
+fn a_control_that_is_not_a_regular_singly_linked_file_is_refused_without_waiting() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("special-control-");
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let control = store.join("administration").join(dir.file_name().unwrap()).join(".admission.lock");
+    // A FIFO where the control stood: opening it for reading would wait for a writer for ever.
+    std::fs::remove_file(&control).unwrap();
+    let name = std::ffi::CString::new(control.as_os_str().as_encoded_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+    let (send, receive) = std::sync::mpsc::channel();
+    let path = control.clone();
+    std::thread::spawn(move || { let _ = send.send(storage::lock_shared_existing(&path).map(|guard| guard.is_some())); });
+    let refused = receive.recv_timeout(std::time::Duration::from_secs(10)).expect("opening the control must not wait").unwrap_err();
+    assert!(refused.contains("not a regular, singly linked file"), "{refused}");
+    let refused = crate::role_observations::project_chain_head(&root).unwrap_err();
+    assert!(refused.contains("not a regular, singly linked file"), "{refused}");
+    // A regular control with a second link is refused too; alone, it is the control.
+    std::fs::remove_file(&control).unwrap();
+    std::fs::write(&control, b"").unwrap();
+    std::fs::hard_link(&control, control.with_extension("other")).unwrap();
+    assert!(storage::lock_shared_existing(&control).map(|guard| guard.is_some()).unwrap_err().contains("not a regular, singly linked file"));
+    std::fs::remove_file(control.with_extension("other")).unwrap();
+    assert!(storage::lock_shared_existing(&control).unwrap().is_some());
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn the_single_line_form_the_first_store_builds_wrote_for_an_import_is_read_as_completed() {
+    // Before imports had a "started" line, a completed import was one line
+    // with no event (main at 0237b6b3). It is one of the three forms the
+    // reader takes: read, not rewritten, and the store's copies govern as after any completed import.
+    let own = OwnStore::new();
+    let root = legacy_project();
+    import(&root).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let lines = read_lines(&dir.join("imports.jsonl")).unwrap();
+    let started = lines.iter().find(|l| l["event"] == "started").unwrap();
+    let mut earlier = lines.iter().find(|l| l["event"] == "completed").unwrap().clone();
+    for member in ["event", "censusChanged"] { earlier.as_object_mut().unwrap().remove(member); }
+    earlier["root"] = started["root"].clone();
+    earlier["method"] = started["method"].clone();
+    let mut bytes = serde_json::to_vec(&earlier).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(dir.join("imports.jsonl"), &bytes).unwrap();
+    assert!(home(&root).unwrap().store_mode);
+    assert!(storage::read_all(&root).1.is_empty(), "{:?}", storage::read_all(&root).1);
+    assert_eq!(std::fs::read(dir.join("imports.jsonl")).unwrap(), bytes, "not rewritten");
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn a_capability_read_makes_only_its_read_logs_own_folder_and_nothing_above_it() {
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("read-log-leaf-");
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    // The read's own folder is the one thing made, beneath a subtree that exists.
+    capability_read(&root).unwrap();
+    assert!(dir.join("reads/records-reads.jsonl").is_file());
+    // The project's subtree gone while its admission control still stands:
+    // the read is refused, and the subtree is not made again to hold its log.
+    let moved = dir.with_extension("moved");
+    std::fs::rename(&dir, &moved).unwrap();
+    let before = tree(&store);
+    assert!(capability_read(&root).is_err());
+    let added: Vec<_> = tree(&store).keys().filter(|p| !before.contains_key(*p) && !p.starts_with(store.join("indexes"))).cloned().collect();
+    assert!(added.is_empty(), "{added:?}");
+    std::fs::rename(&moved, &dir).unwrap();
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
 }
