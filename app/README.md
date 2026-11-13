@@ -1440,16 +1440,29 @@ format and version with an import identity, an unknown event, a member no
 form of import line has, a member the reader takes in a form it is not taken
 as, or a census, files or conflicts list with an entry lacking what the
 reader takes from it, each make the account unknown, and unknown is an error
-everywhere, never "no import" and never "the store holds records"; only an
-account that is not there is "no import". The reader checks every member it
-takes, for the form it takes it as (the format, the version, the import
-identity, the event, `storeHeld`, a started line's `at`, and the entries of
-the three lists), and checks no member it does not take (`root`, `method`,
-`resumes`, `censusChanged`, and `at` on a completed line), accepting a line
-that lacks them. This does not establish that a line is one the App wrote:
-the store's files are unsigned, so a well-formed line added to the account
-from outside the App reads as the App's own, a completed line after an
-interrupted import included, and an export of such a project verifies.
+in every reader that takes the account through the store's own reading (where
+records are read from, write admission, import, coverage, notes, status and
+export admission), never "no import" and never "the store holds records"; the
+fleet view does not consult the account, and a workflow record handle kept
+from an earlier read does not ask again. Only an account that is not there is
+"no import". The reader checks every member of a line that it takes, for the
+form it takes it as (the format, the version, the import identity, the event,
+`storeHeld`, a started line's `at`, and the three lists), and checks no
+member of a line that it does not take (`root`, `method`, `resumes`,
+`censusChanged`, and `at` on a completed line), accepting a line that lacks
+them. An entry of a census, files or conflicts list is held to its entry form
+whole (`original`, `copy`, `sha256` and `bytes`; a conflict's `original` and
+`reason`), although nothing after the reader reads a census entry's `copy` or
+`bytes` or a file entry's `bytes`. This does not establish that a line is one
+the App wrote: the store's files are unsigned, so a well-formed line added to
+the account from outside the App reads as the App's own, a completed line
+after an interrupted import included, and an export of such a project
+verifies. Nor does it establish that lines once there are still there: an
+account cut back at the end of a line reads as the shorter account, so a
+later interrupted import whose started line is cut away reads as no
+unfinished import, and an export verifies. Like an added line, that is a
+change made to an unsigned file from outside the App; the App's own
+interrupted append leaves a partial line or none and never removes one.
 Verification of a package says its bytes agree with its manifests and chain
 heads, not that the import behind them completed. (The store's appender
 creates the file and then writes, so a stop between the two leaves an empty

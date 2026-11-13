@@ -822,23 +822,32 @@ struct Imports {
 /// event that the first store builds wrote for a completed import. `None`
 /// for anything else.
 ///
-/// **The boundary of what is checked** (decided by App Agent 0). Every member
-/// the reader takes from a line is checked for the form it is taken as: the
-/// format, the version, the import identity (a string that is not empty),
-/// the event, `storeHeld` (true or false, where present), a started line's
-/// `at` (a string, where present; it is shown in one refusal), and each
-/// entry of the census, files and conflicts lists (`original`, `copy` and
-/// `sha256` strings that are not empty, `bytes` a whole number; a conflict's
-/// `original` and its `reason`). A file entry's `stamp` is compared for
-/// equality as it stands and needs no form. The members the reader does not
-/// take are not checked, and a line lacking them is accepted: `root`,
-/// `method`, `resumes`, `censusChanged`, and `at` on a completed line. And no
-/// line carries a member that no form of import line has.
+/// **The boundary of what is checked** (decided by App Agent 0). The reader
+/// checks every member of a line that it takes, for the form it takes it as,
+/// and checks no member of a line that it does not take. Taken: the format,
+/// the version, the import identity (a string that is not empty), the event,
+/// `storeHeld` (true or false, where present), a started line's `at` (a
+/// string, where present; it is shown in one refusal), and the census, files
+/// and conflicts lists. Not taken, not checked, and accepted when absent:
+/// `root`, `method`, `resumes`, `censusChanged`, and `at` on a completed
+/// line. An entry of a census, files or conflicts list is held to its entry
+/// form whole (`original`, `copy` and `sha256` strings that are not empty,
+/// `bytes` a whole number; a conflict's `original` and its `reason`),
+/// although nothing after the reader reads a census entry's `copy` or
+/// `bytes` or a file entry's `bytes`. A file entry's `stamp` is compared for
+/// equality as it stands and needs no form. And no line carries a member
+/// that no form of import line has.
 ///
-/// This establishes that an account damaged or cut is never read as whole.
-/// It does not establish that a line is one the App wrote: the store's files
-/// are unsigned, and a well-formed line added from outside reads as the
-/// App's own.
+/// This establishes that an account whose bytes, as they stand, are not
+/// whole lines in a form the reader accepts is never read as whole. It does
+/// not establish that a line is one the App wrote: the store's files are
+/// unsigned, and a well-formed line added from outside reads as the App's
+/// own. Nor does it establish that lines once there are still there: an
+/// account cut back at the end of a line reads as the shorter account, so a
+/// later interrupted import whose started line is cut away reads as no
+/// unfinished import, and an export verifies. Like an added line, that is a
+/// change made to an unsigned file from outside the App; the App's own
+/// interrupted append leaves a partial line or none and never removes one.
 fn import_line(line: &Value) -> Option<&'static str> {
     let text = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty());
     let file = |f: &Value| f.is_object() && text(&f["original"]) && text(&f["copy"]) && text(&f["sha256"]) && f["bytes"].as_u64().is_some();
@@ -902,7 +911,7 @@ fn imports(dir: &Path) -> Result<Imports, String> {
             }
             let text = std::str::from_utf8(raw).map_err(|_| unknown(format!("its line {number} is not UTF-8")))?;
             let line = crate::workflow_declaration::parse_unique(text).map_err(|e| unknown(format!("its line {number} is not JSON, or gives a key twice ({e})")))?;
-            let Some(event) = import_line(&line) else { return Err(unknown(format!("its line {number} is not an import line of a form this App has written"))) };
+            let Some(event) = import_line(&line) else { return Err(unknown(format!("its line {number} is not an import line in a form this App reads"))) };
             lines.push((line, event));
         }
     }
