@@ -775,3 +775,60 @@ fn records_receipt_binding_reads_the_project_again_after_its_lookup() {
     assert!(row["recordsCapabilityBinding"]["limit"].as_str().unwrap_or_default().contains("physical project changed"), "{row}");
     stop(&cold);
 }
+
+/// A call that could not be an offered records call (a stale generation, a
+/// conversation never offered it) and a receipt lookup that already failed
+/// take no project reading at all: they never wait on the project's filesystem.
+#[test]
+fn records_ineligible_calls_and_failed_lookups_take_no_project_reading() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let f = Fixture::new();
+    let host = Host::new();
+    host.configure_records_capability_with_context(Arc::new(crate::records_access::RecordsCapability::at(&f.0.join("project"), f.0.join("app/reads.jsonl")).unwrap()), f.context());
+    let readings = Arc::new(AtomicUsize::new(0));
+    let count = |host: &Host, readings: &Arc<AtomicUsize>| {
+        let counter = Arc::clone(readings);
+        *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || { counter.fetch_add(1, Ordering::SeqCst); }));
+    };
+    let stale = json!({"appSession":"stale", "home":"app-home:stale", "spawnCounter":1});
+    count(&host, &readings);
+    host.on_line(&serde_json::to_vec(&json!({"id":"unoffered", "method":"item/tool/call", "params":{"tool":crate::records_access::TOOL, "threadId":"unoffered", "namespace":null}})).unwrap(), &stale);
+    assert_eq!(readings.load(Ordering::SeqCst), 0, "a call no offer admits reads nothing of the project");
+    count(&host, &readings);
+    host.restore_records_receipt(&stale, "unadmitted");
+    assert_eq!(readings.load(Ordering::SeqCst), 0, "a lookup that failed takes no binding reading");
+    count(&host, &readings);
+    host.persist_records_receipt(&stale, "unoffered", Some("H-acct"));
+    assert_eq!(readings.load(Ordering::SeqCst), 0, "a conversation never offered the capability takes no reading");
+    assert!(f.reads().is_empty());
+}
+
+/// A recovery ledger replaced by a second configuration closes its database
+/// after the Host's state is released, not under it.
+#[test]
+fn a_replaced_recovery_ledger_closes_after_the_host_state_is_released() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    struct Probe { host: Arc<Host>, closed: AtomicBool, held: AtomicBool }
+    unsafe extern "C" fn close_trace(kind: u32, context: *mut std::ffi::c_void, _: *mut std::ffi::c_void, _: *mut std::ffi::c_void) -> i32 {
+        if kind == rusqlite::ffi::SQLITE_TRACE_CLOSE as u32 {
+            let probe = unsafe { &*(context as *const Probe) };
+            probe.closed.store(true, Ordering::SeqCst);
+            probe.held.store(probe.host.inner.0.try_lock().is_err(), Ordering::SeqCst);
+        }
+        0
+    }
+    let f = Fixture::new();
+    let host = Arc::new(Host::new());
+    host.configure_recovery(f.0.join("app/first-ledger.jsonl")).unwrap();
+    let probe = Box::new(Probe { host: Arc::clone(&host), closed: AtomicBool::new(false), held: AtomicBool::new(false) });
+    {
+        let ledger = host.inner.0.lock().unwrap().recovery.clone().unwrap();
+        let ledger = ledger.lock().unwrap();
+        let connection = ledger.store().unwrap().connection();
+        let result = unsafe { rusqlite::ffi::sqlite3_trace_v2(connection.handle(), rusqlite::ffi::SQLITE_TRACE_CLOSE as u32, Some(close_trace), (&*probe as *const Probe).cast_mut().cast()) };
+        assert_eq!(result, rusqlite::ffi::SQLITE_OK);
+    }
+    host.configure_recovery(f.0.join("app/second-ledger.jsonl")).unwrap();
+    assert!(probe.closed.load(Ordering::SeqCst), "the replaced ledger's database was closed");
+    assert!(!probe.held.load(Ordering::SeqCst), "and not while the Host's state was held");
+}

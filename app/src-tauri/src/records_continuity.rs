@@ -180,6 +180,13 @@ impl super::Host {
         let capability = self.inner.0.lock().unwrap().records_capability.clone()?;
         Some(self.records_reading(capability))
     }
+    /// A reading for whether `thread`'s offer is current: taken only when the
+    /// thread was offered the capability in `generation` (checked again under
+    /// the state); None otherwise, which is never current.
+    fn offered_reading(&self, generation: &Value, thread: &str) -> Option<IdentityReading> {
+        let offered = self.inner.0.lock().unwrap().records_offers.iter().any(|(g, t)| g == generation && t.as_str() == Some(thread));
+        if offered { self.read_records_identity() } else { None }
+    }
     /// A reading through `capability`, taken now with no Host state held.
     pub(super) fn records_reading(
         &self,
@@ -250,7 +257,7 @@ impl super::Host {
                 .map(|(_, _, receipt)| receipt.clone())
         };
         let Some(mut receipt) = receipt else {
-            let reading = self.read_records_identity();
+            let reading = self.offered_reading(generation, thread);
             let current = {
                 let inner = self.inner.0.lock().unwrap();
                 Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread), reading.as_ref())
@@ -267,7 +274,7 @@ impl super::Host {
             Ok(value) => self.tag_conversation(generation, thread, home, OWNER, &value),
             Err(limit) => serde_json::json!({"persistence":"memory-only","limit":limit}),
         };
-        let reading = self.read_records_identity();
+        let reading = self.offered_reading(generation, thread);
         let mut inner = self.inner.0.lock().unwrap();
         if Self::context_scope(&inner, generation, thread, home).is_err() {
             return;
@@ -402,8 +409,8 @@ impl super::Host {
             hook();
         }
         // The binding compares a reading of its own, taken after the lookup's
-        // and before any state is held.
-        let binding_reading = self.read_records_identity();
+        // and before any state is held; none when the lookup already failed.
+        let binding_reading = if restored.is_ok() { self.read_records_identity() } else { None };
         // Reacquire the shared REC writer after staging/hook and compare only
         // this receiver's source basis. Read-only observation changes do not
         // invalidate it; a newly conflicting tag does. Hold through binding.

@@ -1440,7 +1440,9 @@ impl Host {
         // while this Host and the App custody it shares live.
         let opened=(||{let liveness=crate::session_liveness::directory(&path);if let Some(binding)=&namespaces{binding.guard_domains(&[liveness])?;}
             let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path.clone(),binding)?,None=>RecoveryLedger::open(path.clone())?};
-            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session_held(&session,"chirality-app-v4-unqualified",&hold)?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
+            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session_held(&session,"chirality-app-v4-unqualified",&hold)?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}let retired=i.recovery.replace(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);
+        // A ledger this replaces closes its database (file work) only after the state is released.
+        drop(retired);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
     }
     /// Test model of this App session's process having ended, for a test that
     /// still reads through this Host afterwards: only its liveness lock is
@@ -3365,8 +3367,10 @@ impl Host {
         let source=&request.frame["params"]["threadId"];let t=&response["result"]["thread"];
         if t["id"]==*source||t["forkedFromId"]!=*source {return Err("thread/fork did not report a new thread forked from the source; nothing admitted".into());}
         let generation=request.generation();
-        // Read before the state is held: the reading touches the filesystem.
-        let records_reading=self.read_records_identity();
+        // Read before the state is held (the reading touches the filesystem),
+        // and only where the source has a receipt to inherit.
+        let inherits=self.inner.0.lock().unwrap().records_receipts.iter().any(|(g,thread,_)|g==generation&&Some(thread.as_str())==source.as_str());
+        let records_reading=if inherits {self.read_records_identity()} else {None};
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
         if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
@@ -4963,9 +4967,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // The one reply prepared here by the App's own rule (current time): the local home's files
         // are checked before Inner is taken, and a refusal leaves the request waiting.
         let local_reply_refused=parsed.as_ref().filter(|f|f["method"]=="currentTime/read"&&f.get("id").is_some()).and_then(|_|self.check_local_reply().err());
-        // A records tool call's project reading, taken before the state is held:
-        // it touches the filesystem.
-        let records_reading=parsed.as_ref().filter(|f|f["method"]=="item/tool/call"&&f["params"]["tool"]==crate::records_access::TOOL).and_then(|_|self.read_records_identity());
+        // A records tool call's project reading, taken before the state is held
+        // (it touches the filesystem), and only for a call that could be one:
+        // the records tool with no namespace, in the current generation, on a
+        // conversation offered it. All of it is checked again under the state.
+        let records_reading=parsed.as_ref().filter(|f|f["method"]=="item/tool/call"&&f["params"]["tool"]==crate::records_access::TOOL&&f["params"]["namespace"].is_null())
+            .filter(|f|{let i=self.inner.0.lock().unwrap();i.generation==*generation&&i.records_offers.iter().any(|(g,t)|g==generation&&*t==f["params"]["threadId"])})
+            .and_then(|_|self.read_records_identity());
         let mut i = self.inner.0.lock().unwrap();
         let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
         // The reply can beat public client-record publication. Its registered
