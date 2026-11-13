@@ -382,13 +382,16 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       the operator uses its `js` tool for four things and nothing else: this
       marker call; the import of the service, a call of its own; the walk's
       call; and the marker's close. A walk refused before the import uses two
-      (the marker call and its close). App Agent 0 held that tool, and narrows
+      (the marker call and its close), and one refused after the import and
+      before the walk's call uses three (the marker call, the import and the
+      close). App Agent 0 held that tool, and narrows
       its hold for the marker call alone, not for any other agent or use.
       The marker file is in the operator's evidence folder, never under
       either Codex home. When the walk ends, and whenever a walk is refused
       after the marker was opened while its runtime is still available (the
       runtime or its host is not the one expected, the identities differ at
-      the look, the look finds a process, or the two looks disagree), the
+      the look or at the recheck before the walk's call, the import throws,
+      the look finds a process, or the two looks disagree), the
       operator closes it (`await runtimeMarker.close()`) and it is kept, not
       removed. The identification worked on its first trial (A2's fourth
       attempt, below); if it fails, that is "no walk", recorded as a finding
@@ -807,23 +810,37 @@ var sky = (await import('@oai/sky')).sky;
 nodeRepl.write(new Date().toISOString());
 ```
 
-If it throws, the error is kept whole and no walk is made. Then, from the
-operator's shell, what is running after the import and before any view, into
-the evidence folder:
+If it throws, the error is kept whole, no walk is made, and the operator ends
+what it started (steps 8 and 10), closes the marker and returns. Then the
+operator waits until at least ten seconds have passed since the time the
+import printed. Then, from the operator's shell, as the last thing before the
+walk's call, the record after the import, into the evidence folder:
 
 ```sh
 { date -u +%FT%TZ
   lsof -t "<evidence folder>/runtime.marker"
+  ps -o pid=,ppid=,lstart=,command= -p <the runtime's number>,<the host's number>
   ps -axo pid=,ppid=,lstart=,command= | grep -F 'CodexCLI.app/Contents/MacOS/codex app-server' | grep -v grep || echo 'no app-server'
   ps -axo pid=,ppid=,lstart=,command= | grep -F 'SkyComputerUseService' | grep -v grep || echo 'no window service'
 } > "<evidence folder>/after-import.txt"
 ```
 
-This is a record, not a refusal: a helper or a service started by the import
-is what it records. The walk's call is made no sooner than ten seconds after
-the time the import printed (`date -u` from the shell before it), and the
-operator records both times. Then, in the operator's `js` tool, with the
-values filled in:
+It holds two things, read differently:
+
+- **The recheck of the operator's identities, which can stop the walk.** As at
+  the look: `lsof` names the same one process, and the runtime and the host
+  show the same numbers, start times and executables as recorded, with the
+  runtime's parent still the host. A change, or an identity that cannot be
+  examined (`lsof` naming none or more than one, a process not listed), is no
+  walk: the operator ends what it started (steps 8 and 10), closes the marker
+  and returns, and it comes to App Agent 0.
+- **Whether a helper app-server or a window service exists after the import,
+  which is a record and not a refusal.** A helper or a service started by the
+  import is what it records; neither stops the walk here.
+
+Its first line is a time at least ten seconds after the time the import
+printed, and the operator records both. If the recheck holds, the walk's call
+follows at once, in the operator's `js` tool, with the values filled in:
 
 ```js
 var fs = await import('node:fs');

@@ -264,7 +264,7 @@ class TheWalkItself(unittest.TestCase):
                          'r.outcomes, typeof r.steps.at(-1).rebuilt_for_reading, r.steps.at(-1).returned.slice(0, 30)];')
         verdict, stopped, calls, steps, outcomes, rebuilt, returned = result['out']
         self.assertEqual(verdict, 'inconclusive', stopped)
-        self.assertIn('stopped at S2: the view came back as differences', stopped)
+        self.assertIn('stopped at S2: the view came back as differences although the whole window was asked for;', stopped)
         self.assertEqual(calls, 'get_app_state get_app_state get_app_state click get_app_state')  # and none after it
         self.assertEqual(steps[-1], ['S2', 0])
         self.assertEqual(outcomes['STARTING STATE: SETUP REQUIRED, APP DATA UNDER THE THROWAWAY HOME'], 'not shown')
@@ -279,6 +279,9 @@ class TheWalkItself(unittest.TestCase):
                 verdict, stopped, calls, steps = result['out']
                 self.assertEqual((verdict, calls, steps), ('inconclusive', ' '.join(['get_app_state'] * made), 0), stopped)
                 self.assertIn(f'stopped at {name} view before any click: the view came back as differences', stopped)
+                asked = ('it was the first view of this build in the walk, asked with the application alone' if name == 'the first'
+                         else 'the whole window was asked for')
+                self.assertIn(f'although {asked};', stopped)  # what was asked, said truly for each view
 
     def test_the_first_view_asks_with_the_application_alone_and_every_later_view_for_the_whole_window(self):
         result = harness('''const asked = [];

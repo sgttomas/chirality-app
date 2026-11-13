@@ -310,7 +310,11 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     elements = parseView(text);
     return { whole: true, text };
   };
-  const asDifferences = id => `stopped at ${id}: the view came back as differences although the whole window was asked for; nothing is checked or clicked from a rebuilt view`;
+  // What was asked, said truly for each view: the first is a plain view of an identifier not viewed before in this
+  // walk; every later view asked for the whole window.
+  const asDifferences = (id, plain = false) => `stopped at ${id}: the view came back as differences although ${plain
+    ? 'it was the first view of this build in the walk, asked with the application alone'
+    : 'the whole window was asked for'}; nothing is checked or clicked from a rebuilt view`;
   // Before any click: two whole views, one after the other. The first asks with the application alone; the first view
   // of an application was seen to be whole without asking, and it counts only if it came back whole. The second asks
   // for the whole window, and only it shows that asking is honoured. Either coming back as differences stops the walk.
@@ -326,7 +330,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       return finish('inconclusive', `stopped at the ${ordinal} view before any click: the view failed (${report.view_error.message})`);
     }
     report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
-    if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`));
+    if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`, ordinal === 'first'));
     const stray = notThePage(elements, scenario);
     if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
     const afterView = gate(`after the ${ordinal} view before any click`);
