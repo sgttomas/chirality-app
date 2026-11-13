@@ -155,6 +155,10 @@ pub struct AppState {
     native_namespaces: Mutex<Result<Arc<hosting::attachment_custody::NativeNamespaceBindings>,String>>,
     key_namespace_admission: Mutex<Value>,
     key_setup: Mutex<()>,
+    /// What a key operation holding `key_setup` has published about what it
+    /// waits on, for Quit to read beside it (SQ-Q). Set and cleared by that
+    /// operation while it holds `key_setup`.
+    key_hold: Mutex<Option<app_quit::KeyHold>>,
     local_credentials: native_local_provider::CredentialEntry,
     root_home_inputs: Value,
     /// One Stop/Restart Codex question at a time.
@@ -1577,14 +1581,32 @@ fn request_quit(app: tauri::AppHandle) {
         // Keep the set of homes stable through settlement. Key setup is the
         // only runtime path adding a home; never let it race the quit snapshot.
         // The same gate also keeps explicit capture sealing out of Quit settlement.
-        let _key_setup = match state.key_setup.try_lock() {
-            Ok(held) => held,
-            Err(_) => {
+        // A key operation holding it is read from what it published: one waiting
+        // on a home's Codex is offered as part of quitting; any other refuses.
+        let offer_window = question_window.clone();
+        let offer = move |text: &str| -> Result<bool, String> {
+            let window = offer_window.as_ref().ok_or("Original App window unavailable; quit offer refused")?;
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+            let statement = act_control::native_statement::bounded("Quit offer", text.to_owned()).map(|text| act_control::native_statement::NativeStatement { text, in_app: None });
+            native_lifecycle_confirmation::confirm(window, "Quit Chirality", statement, act_control::native_statement::KEEP_RUNNING, app_quit::QUIT_ANYWAY)
+        };
+        let homes = state.homes.lock().unwrap().entries();
+        let _key_setup = match app_quit::admit_key_setup(&state.key_setup, &state.key_hold, &homes, offer, app_quit::KEY_RELEASE_WAIT_LIMIT) {
+            app_quit::KeyAdmission::Admitted(held) => held,
+            app_quit::KeyAdmission::KeptRunning => return,
+            app_quit::KeyAdmission::NotAsked(reason) => {
+                eprintln!("chirality: the quit offer could not be shown ({reason}); the App keeps running");
+                return;
+            }
+            app_quit::KeyAdmission::Refused(reason) => {
                 show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.".into());
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
                 return;
             }
         };
+        // Read again now that the key setup is held: no home is added meanwhile.
         let homes = state.homes.lock().unwrap().entries();
         let active = state.homes.lock().unwrap().active();
         let person = stop_person(&state, &active);
@@ -1601,8 +1623,21 @@ fn request_quit(app: tauri::AppHandle) {
         if let app_quit::Decision::NotAsked(outcome) = &decision {
             eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
         }
-        match state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec()))) {
-            Ok(true) => app.exit(0),
+        let mut ended = None;
+        match state.app_quit.allow(&decision, |ids| {
+            let observation = app_quit::finish_exit(&homes, Some(ids.to_vec()))?;
+            ended = Some(observation.clone());
+            Ok(observation)
+        }) {
+            Ok(true) => {
+                // The session end was not confirmed within its bound: say so
+                // before the exit, with OK only; nothing more is asked.
+                if let Some(notice) = ended.as_ref().and_then(app_quit::recording_notice) {
+                    show_main_window(&app);
+                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", notice.to_owned());
+                }
+                app.exit(0)
+            }
             Ok(false) => {},
             Err(error) => {
                 app_quit::QuitOps::reopen_to_new_turns(&mut ops);
@@ -3011,7 +3046,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         home_bootstrap: Mutex::new(bootstrap.ok_or_else(||"Explicit Root home descriptors not initialized".into())),
         native_namespaces: Mutex::new(namespaces.unwrap_or_else(||Err("Root native namespace bindings not initialized".into()))),
         key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
-        key_setup: Mutex::new(()), local_credentials: native_local_provider::CredentialEntry::default(),
+        key_setup: Mutex::new(()), key_hold: Mutex::new(None), local_credentials: native_local_provider::CredentialEntry::default(),
         root_home_inputs: json!({"source":source,"keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
         codex_stop_gate: Mutex::new(()),
         codex_stops: Mutex::new(Vec::new()),
@@ -3349,7 +3384,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),key_hold:Mutex::new(None),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

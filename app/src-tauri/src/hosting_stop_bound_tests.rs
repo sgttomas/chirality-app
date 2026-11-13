@@ -789,3 +789,451 @@ fn a_request_with_both_a_reading_deadline_and_an_interrupt_bound_is_refused() {
     assert_eq!(f.attempted_interrupts("turn-1"), 0);
     f.assert_nothing_held();
 }
+
+// ---- The App quit with the recovery writer held: nothing waits without a bound.
+
+/// The quit wait limit, HOSTING §4.5's waits for one home's process, and the
+/// recording wait, as the assignment states them.
+const PER_HOME_ENDING: Duration = Duration::from_millis(6200);
+const SLACK: Duration = Duration::from_secs(2);
+
+impl Fixture {
+    /// An approval request from Codex, outstanding in this home.
+    fn outstanding_approval(&self, id: u64, thread: &str, turn: &str) {
+        let frame = json!({"id":id,"method":"item/commandExecution/requestApproval","params":{"threadId":thread,"turnId":turn,"itemId":"item"}});
+        self.host().on_line(&serde_json::to_vec(&frame).unwrap(), &self.generation);
+        let outstanding = self.host().snapshot()["serverRequests"].as_array().unwrap().iter().any(|r| r["requestIdentity"] == id && r["state"] == "outstanding");
+        assert!(outstanding, "{}", self.host().snapshot()["serverRequests"]);
+    }
+    /// A test thread takes the App's recovery writer now and holds it until
+    /// the returned sender is used or dropped.
+    fn hold_recovery_writer(&mut self) -> Sender<()> {
+        let writer = Arc::clone(&self.host().recovery_writer);
+        let (held_tx, held_rx) = channel();
+        let (release_tx, release_rx) = channel::<()>();
+        self.held.push(std::thread::spawn(move || {
+            let _held = writer.lock().unwrap();
+            held_tx.send(()).unwrap();
+            let _ = release_rx.recv();
+        }));
+        held_rx.recv().unwrap();
+        release_tx
+    }
+    /// Takes the recovery writer from the settlement of the quit (after the
+    /// quit's question and answer were recorded) and holds it until the
+    /// returned sender is used or dropped.
+    fn hold_recovery_writer_from_settlement(&self) -> Sender<()> {
+        let writer = Arc::clone(&self.host().recovery_writer);
+        let (release_tx, release_rx) = channel::<()>();
+        *self.host().before_quit_stop.lock().unwrap() = Some(Box::new(move || {
+            let (held_tx, held_rx) = channel();
+            std::thread::spawn(move || {
+                let _held = writer.lock().unwrap();
+                held_tx.send(()).unwrap();
+                let _ = release_rx.recv();
+            });
+            held_rx.recv().unwrap();
+        }));
+        release_tx
+    }
+    /// After the writer is released, the session end the quit's recording
+    /// thread was still waiting to write is observed written (or refused), so
+    /// that nothing of this App session is still writing when the fixture is
+    /// removed.
+    fn await_late_session_end(&self) {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        loop {
+            let observed = self.host().runtime_custody.lock().unwrap().as_ref().map(|c| c.snapshot()["sessionEndObservation"].clone()).unwrap_or(Value::Null);
+            if !observed.is_null() {
+                return;
+            }
+            assert!(Instant::now() < deadline, "the late session end was not observed");
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+    /// The next start on this ledger while this App session's process is
+    /// modelled ended (its liveness lock released, as the kernel releases it)
+    /// without taking anything this session still holds: the new session's
+    /// start entry and the custody view it reads.
+    fn next_start(&self) -> (Value, Value, Vec<Value>) {
+        self.host().release_session_lock_for_test();
+        let mut ledger = crate::recovery::RecoveryLedger::open(self.ledger()).unwrap();
+        ledger.start_session("next-start", "candidate").unwrap();
+        let entries = ledger.recorded_entries().as_array().unwrap().clone();
+        let start = entries.iter().rev().find(|e| e["kind"] == "session_started").unwrap().clone();
+        let view = crate::recovery::RecoveryCustodyView::from_owner("next-start", Some(ledger.current_entries()), json!({}), 0, None).snapshot();
+        (start, view, entries)
+    }
+}
+
+/// Runs the person's quit (the question answered Quit) and its exit
+/// settlement on another thread, and waits for it no longer than `bound`.
+fn person_quit_within(f: &Fixture, wait_limit: Duration, bound: Duration) -> (crate::app_quit::Decision, Result<Value, String>, Duration) {
+    let home = Arc::clone(&f.home);
+    let (tx, rx) = channel();
+    std::thread::spawn(move || {
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let begin = Instant::now();
+        let mut ops = crate::app_quit::HostQuit::new(vec![Arc::clone(&home)], &workflows, "fixture person", |_: &Value| -> Result<bool, String> { Ok(true) });
+        let decision = crate::app_quit::quit_sequence(&mut ops, wait_limit);
+        drop(ops);
+        let app = crate::app_quit::AppQuit::default();
+        let mut observed = Err("not settled".to_owned());
+        let _ = app.allow(&decision, |ids| {
+            observed = crate::app_quit::finish_exit(&[Arc::clone(&home)], Some(ids.to_vec()));
+            observed.clone()
+        });
+        let _ = tx.send((decision, observed, begin.elapsed()));
+    });
+    rx.recv_timeout(bound).unwrap_or_else(|_| panic!("the quit did not complete within {bound:?}"))
+}
+
+/// The ledger kinds of the quit, in ledger order.
+fn quit_kinds(rows: &[Value]) -> Vec<String> {
+    rows.iter().filter_map(|e| match e["kind"].as_str().unwrap() {
+        "quit_requested" => Some("quit_requested".to_owned()),
+        "quit_answered" => Some(format!("quit_answered {}", e["answer"].as_str().unwrap())),
+        "stop_request" => Some(format!("stop_request {} {}", e["record"]["transition"].as_str().unwrap(), e["record"]["cause"].as_str().unwrap())),
+        "session_ended" => Some(format!("session_ended {}", e["how"].as_str().unwrap())),
+        _ => None,
+    }).collect()
+}
+
+/// (3) An outstanding approval does not refuse the quit: it is listed in the
+/// question, nothing answers it, and it ends unanswered with the process.
+#[test]
+fn an_outstanding_approval_does_not_refuse_the_quit_and_ends_unanswered() {
+    let f = Fixture::new();
+    f.outstanding_approval(41, "thread", "turn-1");
+    let group = f.group();
+    let home = Arc::clone(&f.home);
+    let workflows = Mutex::new(WorkflowRootSession::default());
+    let mut shown = Vec::new();
+    let mut ops = crate::app_quit::HostQuit::new(vec![Arc::clone(&home)], &workflows, "fixture person", |view: &Value| -> Result<bool, String> { shown.push(view.clone()); Ok(true) });
+    let decision = crate::app_quit::quit_sequence(&mut ops, LIMIT);
+    drop(ops);
+    assert_eq!(shown.len(), 1, "asked once");
+    assert_eq!(shown[0]["observedOutstandingRequests"][0]["requestIdentity"], 41, "{}", shown[0]);
+    let crate::app_quit::Decision::Quit(out) = &decision else { panic!("{decision:?}") };
+    assert_eq!(out["outstandingRequests"], "Not answered by the App; they end unanswered with the Codex processes (U-10).");
+    let app = crate::app_quit::AppQuit::default();
+    assert!(app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&home)], Some(ids.to_vec()))).unwrap());
+    assert!(f.group_ended(group));
+    let wire = std::fs::read_to_string(f.root.join("wire.jsonl")).unwrap_or_default();
+    assert!(wire.lines().all(|l| l != r#"{"method": null}"#), "nothing was written in answer: {wire}");
+    let request = f.host().snapshot()["serverRequests"].as_array().unwrap().iter().find(|r| r["requestIdentity"] == 41).cloned().unwrap();
+    assert_ne!(request["state"], "outstanding", "{request}");
+    assert_eq!(request["replyWriteResult"], "not-attempted", "{request}");
+    let ended: Vec<Value> = crate::recovery::stored_entries(&f.ledger()).into_iter().filter(|e| e["kind"] == "register_entry_summary" && e["requestIdentity"] == "41" && e["state"] == "closed").collect();
+    assert_eq!(ended.len(), 1, "{ended:?}");
+    assert_eq!(ended[0]["endedAs"], "ended-unanswered(process-exit)", "{}", ended[0]);
+}
+
+/// (4) The recovery writer held by a test thread for the whole quit: the
+/// question and answer are queued, not waited for; the interrupts wait their
+/// limit; every home's processes are settled; the recording waits its bound
+/// and the quit proceeds, reporting the session end as not confirmed.
+#[test]
+fn a_quit_with_the_recovery_writer_held_throughout_settles_and_proceeds_within_its_bounds() {
+    let mut f = Fixture::new();
+    f.live_turn("thread", "turn-1");
+    let group = f.group();
+    let release = f.hold_recovery_writer();
+    let bound = crate::app_quit::QUIT_WAIT_LIMIT + PER_HOME_ENDING + Duration::from_secs(10) + SLACK;
+    let (decision, observed, took) = person_quit_within(&f, crate::app_quit::QUIT_WAIT_LIMIT, bound);
+    eprintln!("stop-bound: quit with the writer held returned after {took:?}");
+    let crate::app_quit::Decision::Quit(out) = decision else { panic!("{decision:?}") };
+    assert_eq!(out["records"][0]["state"], "not yet recorded", "{out}");
+    assert_eq!(out["turns"][0]["interruptRequest"]["state"], "not sent", "{out}");
+    assert!(f.group_ended(group), "every home's processes are settled");
+    let observed = observed.expect("the quit proceeds");
+    assert_eq!(observed["write"], "not-confirmed", "{observed}");
+    assert!(!observed.to_string().contains("not recorded") && !observed.to_string().contains("not written"), "{observed}");
+    // The person's quit shows this notice, with OK only, before it exits.
+    assert_eq!(crate::app_quit::RECORDING_WAIT_LIMIT, Duration::from_secs(10));
+    assert_eq!(crate::app_quit::RECORDING_NOT_CONFIRMED, "Chirality is quitting. Codex was stopped for every home and its processes are settled. Recording the end of this session was not confirmed within 10 seconds, so the record may or may not have been written; the next start reads it as it finds it.");
+    assert_eq!(crate::app_quit::recording_notice(&observed), Some(crate::app_quit::RECORDING_NOT_CONFIRMED));
+    assert!(!crate::recovery::stored_entries(&f.ledger()).iter().any(|e| e["kind"] == "session_ended"));
+    let _ = release.send(());
+    f.await_late_session_end();
+}
+
+/// (6) The session end not committed: the next start applies Decision A to
+/// the earlier session, its open request takes open-at-App-session-end, and
+/// the next-start notice says the quit was confirmed and no end was found.
+#[test]
+fn a_confirmed_quit_whose_end_was_not_written_is_read_by_decision_a_with_the_notice() {
+    let f = Fixture::new();
+    f.outstanding_approval(42, "thread", "turn-1");
+    let release = f.hold_recovery_writer_from_settlement();
+    let bound = LIMIT + PER_HOME_ENDING + Duration::from_secs(10) + SLACK;
+    let (_, observed, _) = person_quit_within(&f, LIMIT, bound);
+    assert_eq!(observed.unwrap()["write"], "not-confirmed");
+    let (start, view, entries) = f.next_start();
+    assert!(entries.iter().any(|e| e["kind"] == "quit_answered" && e["answer"] == "confirmed"), "the confirmed quit is in the ledger");
+    assert!(!entries.iter().any(|e| e["kind"] == "session_ended"));
+    assert_eq!(start["previousSessionEnd"], "ended-without-record", "{start}");
+    let endings: Vec<&Value> = entries.iter().filter(|e| e["kind"] == "register_entry_summary" && e["requestIdentity"] == "42" && e["state"] == "closed").collect();
+    assert_eq!(endings.len(), 1, "{endings:?}");
+    assert_eq!((endings[0]["endedAs"].as_str(), endings[0]["transition"].as_str()), (Some(crate::recovery::OPEN_AT_APP_SESSION_END), Some("RQ-06")));
+    assert_eq!(view["requestEndEvents"][0]["kind"], "request_open_at_app_session_end", "{view}");
+    assert_eq!(view["priorSessionNotice"], "The previous session's quit was confirmed, but no record of that session's end was found. Requests it left open are shown as open at that session's end; whether they were answered is not known.");
+    assert!(!view.to_string().to_lowercase().contains("crash"), "{view}");
+    let _ = release.send(());
+    f.await_late_session_end();
+}
+
+/// (6) No quit entry at all for the earlier session (none was drained): the
+/// existing reading for a session whose end is not established, and no
+/// next-start notice.
+#[test]
+fn an_earlier_session_with_no_quit_entry_keeps_the_not_established_reading_and_no_notice() {
+    let mut f = Fixture::new();
+    f.outstanding_approval(43, "thread", "turn-1");
+    let release = f.hold_recovery_writer();
+    let bound = LIMIT + PER_HOME_ENDING + Duration::from_secs(10) + SLACK;
+    let (_, observed, _) = person_quit_within(&f, LIMIT, bound);
+    assert_eq!(observed.unwrap()["write"], "not-confirmed");
+    let (start, view, entries) = f.next_start();
+    assert!(!entries.iter().any(|e| e["kind"] == "quit_requested" || e["kind"] == "quit_answered"), "no quit entry was written");
+    assert_eq!(start["previousSessionEnd"], "ended-without-record", "{start}");
+    assert!(view["priorSessionNotice"].is_null(), "{view}");
+    assert!(!view.to_string().to_lowercase().contains("crash"), "{view}");
+    let _ = release.send(());
+    f.await_late_session_end();
+}
+
+/// (7) With the writer free the ledger order of the quit is as before: the
+/// question, the answer, the stop rows, then the session end.
+#[test]
+fn with_the_writer_free_the_quits_ledger_order_is_unchanged() {
+    let f = Fixture::new();
+    f.live_turn("thread", "turn-1");
+    let (_, observed, _) = person_quit_within(&f, LIMIT, LIMIT + PER_HOME_ENDING + SLACK);
+    assert_eq!(observed.unwrap()["write"], "confirmed");
+    let kinds = quit_kinds(&crate::recovery::stored_entries(&f.ledger()));
+    assert_eq!(kinds, ["quit_requested", "quit_answered confirmed", "stop_request SR-01 quit", "stop_request SR-02 quit", "stop_request SR-04 quit", "stop_request SR-06 quit", "session_ended quit"], "{kinds:?}");
+}
+
+/// (8) Custody not yet cached and the writer held: the exit settlement fences
+/// and settles at once, before any wait on the writer.
+#[test]
+fn uncached_custody_with_the_writer_held_does_not_delay_fencing_or_settlement() {
+    let mut f = Fixture::new();
+    assert!(f.host().runtime_custody.lock().unwrap().is_none(), "custody not cached");
+    let group = f.group();
+    let (settling_tx, settling_rx) = channel();
+    *f.host().before_quit_stop.lock().unwrap() = Some(Box::new(move || { let _ = settling_tx.send(Instant::now()); }));
+    let release = f.hold_recovery_writer();
+    let home = Arc::clone(&f.home);
+    let (tx, rx) = channel();
+    let begin = Instant::now();
+    std::thread::spawn(move || { let _ = tx.send(crate::app_quit::finish_exit(&[home], Some(vec![]))); });
+    let settling = settling_rx.recv_timeout(Duration::from_secs(1)).expect("settlement began without waiting on the writer");
+    assert!(settling - begin < Duration::from_secs(1));
+    let observed = rx.recv_timeout(PER_HOME_ENDING + Duration::from_secs(10) + SLACK).expect("bounded").unwrap();
+    assert!(f.group_ended(group));
+    assert_eq!(observed["write"], "not-confirmed", "{observed}");
+    let _ = release.send(());
+    f.await_late_session_end();
+}
+
+/// (9) The system's exit (no person asked to quit) with the writer held: its
+/// early session-end write waits only its bound, then every home is fenced and
+/// settled; no notice is shown; the next start carries it.
+#[test]
+fn the_system_exit_with_the_writer_held_completes_within_its_bound_without_a_notice() {
+    let mut f = Fixture::new();
+    f.live_turn("thread", "turn-1");
+    let group = f.group();
+    let release = f.hold_recovery_writer();
+    let home = Arc::clone(&f.home);
+    let (tx, rx) = channel();
+    let begin = Instant::now();
+    std::thread::spawn(move || { let _ = tx.send(crate::app_quit::finish_exit(&[home], None)); });
+    let observed = rx.recv_timeout(Duration::from_secs(10) + PER_HOME_ENDING + SLACK).expect("the system exit completed within its bound");
+    eprintln!("stop-bound: system exit with the writer held returned after {:?}", begin.elapsed());
+    let observed = observed.unwrap();
+    assert_eq!(observed["write"], "not-confirmed", "{observed}");
+    assert!(observed["notice"].is_null(), "no waiting notice on the system path: {observed}");
+    assert!(f.group_ended(group));
+    let (start, view, _) = f.next_start();
+    assert_eq!(start["previousSessionEnd"], "ended-without-record");
+    assert!(view["priorSessionNotice"].is_null());
+    let _ = release.send(());
+    f.await_late_session_end();
+}
+
+/// (5) The session end committed but its report not observed within the
+/// bound: the quit says it was not confirmed; the next start reads the ledger,
+/// finds the end and honours it, with no unrecorded-session ending and no
+/// next-start notice.
+#[test]
+fn a_session_end_committed_but_not_observed_in_time_is_found_and_honoured_at_the_next_start() {
+    let f = Fixture::new();
+    f.outstanding_approval(44, "thread", "turn-1");
+    let (written_tx, written_rx) = channel::<()>();
+    let (report_tx, report_rx) = channel::<()>();
+    *f.host().after_quit_recording.lock().unwrap() = Some(Box::new(move || {
+        let _ = written_tx.send(());
+        let _ = report_rx.recv();
+    }));
+    let bound = LIMIT + PER_HOME_ENDING + crate::app_quit::RECORDING_WAIT_LIMIT + SLACK;
+    let (_, observed, took) = person_quit_within(&f, LIMIT, bound);
+    let observed = observed.expect("the quit proceeds");
+    assert!(took >= crate::app_quit::RECORDING_WAIT_LIMIT, "{took:?}");
+    assert_eq!(observed["write"], "not-confirmed", "{observed}");
+    assert_eq!(crate::app_quit::recording_notice(&observed), Some(crate::app_quit::RECORDING_NOT_CONFIRMED));
+    written_rx.recv_timeout(Duration::from_secs(1)).expect("the write returned before the report was held");
+    let (start, view, entries) = f.next_start();
+    assert_eq!(entries.iter().filter(|e| e["kind"] == "session_ended" && e["how"] == "quit").count(), 1, "the committed end is in the ledger");
+    assert_eq!(start["previousSessionEnd"], "quit-with-live-work", "the end is honoured: {start}");
+    assert!(!entries.iter().any(|e| e["kind"] == "register_entry_summary" && e["transition"] == "RQ-06"), "no unrecorded-session ending");
+    assert_eq!(view["requestEndEvents"], json!([]), "{view}");
+    assert!(view["priorSessionNotice"].is_null(), "{view}");
+    let _ = report_tx.send(());
+}
+
+// ---- Quit and a key operation holding the App's key setup.
+
+/// Quit's admission past the key setup, against this fixture's home, with
+/// the offer answered `answer`; returns the admission, whether the offer was
+/// shown (and with what words), and how long the admission took.
+fn admit_key(f: &Fixture, key: &Mutex<()>, hold: &Mutex<Option<crate::app_quit::KeyHold>>, answer: Result<bool, String>) -> (String, Option<String>, Duration) {
+    let mut shown = None;
+    let begin = Instant::now();
+    let admission = crate::app_quit::admit_key_setup(key, hold, &[Arc::clone(&f.home)], |text| { shown = Some(text.to_owned()); answer }, crate::app_quit::KEY_RELEASE_WAIT_LIMIT);
+    let took = begin.elapsed();
+    let outcome = match admission {
+        crate::app_quit::KeyAdmission::Admitted(_) => "admitted".to_owned(),
+        crate::app_quit::KeyAdmission::Refused(reason) => format!("refused: {reason}"),
+        crate::app_quit::KeyAdmission::KeptRunning => "kept running".to_owned(),
+        crate::app_quit::KeyAdmission::NotAsked(reason) => format!("not asked: {reason}"),
+    };
+    (outcome, shown, took)
+}
+/// A key operation on another thread: it holds the key setup, publishes
+/// `published`, and lets go only once this fixture's Codex is observed
+/// stopped (the Codex it waits on has ended), or never when `lets_go` is
+/// false (until the returned sender is used or dropped).
+fn key_operation(f: &Fixture, key: &Arc<Mutex<()>>, hold: &Arc<Mutex<Option<crate::app_quit::KeyHold>>>, published: Option<crate::app_quit::KeyHold>, lets_go: bool) -> (Sender<()>, std::thread::JoinHandle<bool>) {
+    let (key, hold, host) = (Arc::clone(key), Arc::clone(hold), Arc::clone(f.host()));
+    let (held_tx, held_rx) = channel();
+    let (end_tx, end_rx) = channel::<()>();
+    let operation = std::thread::spawn(move || {
+        let _setup = key.lock().unwrap();
+        *hold.lock().unwrap() = published;
+        held_tx.send(()).unwrap();
+        loop {
+            if lets_go && host.snapshot()["state"] == "stopped" {
+                *hold.lock().unwrap() = None;
+                return true;
+            }
+            match end_rx.recv_timeout(Duration::from_millis(5)) {
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                _ => { *hold.lock().unwrap() = None; return false; }
+            }
+        }
+    });
+    held_rx.recv().unwrap();
+    (end_tx, operation)
+}
+fn quit_entries(f: &Fixture) -> usize {
+    crate::recovery::stored_entries(&f.ledger()).iter().filter(|e| matches!(e["kind"].as_str(), Some("quit_requested" | "quit_answered" | "session_ended"))).count()
+}
+
+/// (1) A key operation holds the key setup and has published nothing, or that
+/// it is asking the person: Quit is refused with today's words at once;
+/// nothing is asked, recorded or stopped.
+#[test]
+fn a_held_key_setup_that_published_nothing_or_asks_the_person_refuses_with_todays_words() {
+    let f = Fixture::new();
+    let (key, hold) = (Arc::new(Mutex::new(())), Arc::new(Mutex::new(None)));
+    for published in [None, Some(crate::app_quit::KeyHold::Asking)] {
+        let (end, operation) = key_operation(&f, &key, &hold, published, false);
+        let (outcome, shown, took) = admit_key(&f, &key, &hold, Ok(true));
+        assert_eq!(outcome, "refused: An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.");
+        assert_eq!(crate::app_quit::KEY_OPERATION_UNDER_WAY, "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.");
+        assert!(shown.is_none(), "nothing asked");
+        assert!(took < Duration::from_millis(500), "{took:?}");
+        assert_eq!(f.host().snapshot()["state"], "ready", "nothing stopped");
+        assert_eq!(quit_entries(&f), 0, "nothing recorded");
+        end.send(()).unwrap();
+        assert!(!operation.join().unwrap());
+    }
+    // Free: the quit takes it.
+    let (outcome, shown, _) = admit_key(&f, &key, &hold, Ok(true));
+    assert_eq!((outcome.as_str(), shown), ("admitted", None));
+}
+
+/// (2) A key operation waiting on a home's Codex: the offer names it. Keep
+/// running changes nothing. Quit anyway stops that home's Codex first; the
+/// operation lets go within the bound and the quit settles.
+#[test]
+fn a_key_operation_waiting_on_a_homes_codex_is_offered_and_ended_as_part_of_quitting() {
+    use crate::app_quit::KeyHold;
+    use crate::home_resources::HomeClass;
+    assert_eq!(crate::app_quit::key_wait_offer(HomeClass::LocalProvider), "A local model settings change is waiting for Codex for the local model home. Quit anyway: Codex for that home is stopped first, and the settings are not changed.");
+    assert_eq!(crate::app_quit::key_still_held(HomeClass::LocalProvider), "A key operation for the local model home still holds the App's key setup 10 seconds after Codex for that home was stopped. The App is still running.");
+    let f = Fixture::new();
+    let group = f.group();
+    let (key, hold) = (Arc::new(Mutex::new(())), Arc::new(Mutex::new(None)));
+    let (end, operation) = key_operation(&f, &key, &hold, Some(KeyHold::WaitingOnCodex(HomeClass::Account)), true);
+    // Declined: nothing.
+    let (outcome, shown, _) = admit_key(&f, &key, &hold, Ok(false));
+    assert_eq!(outcome, "kept running");
+    assert_eq!(shown.as_deref(), Some("An account settings change is waiting for Codex for the account home. Quit anyway: Codex for that home is stopped first, and the settings are not changed."));
+    assert_eq!(f.host().snapshot()["state"], "ready", "nothing stopped");
+    assert!(key.try_lock().is_err(), "the operation still holds the key setup");
+    assert_eq!(quit_entries(&f), 0, "nothing recorded");
+    // Accepted: that home's Codex is stopped first, then the operation lets go.
+    let (tx, rx) = channel();
+    {
+        let (key, hold, home) = (Arc::clone(&key), Arc::clone(&hold), Arc::clone(&f.home));
+        std::thread::spawn(move || {
+            let begin = Instant::now();
+            let admission = crate::app_quit::admit_key_setup(&key, &hold, &[Arc::clone(&home)], |_| Ok(true), crate::app_quit::KEY_RELEASE_WAIT_LIMIT);
+            let admitted = matches!(admission, crate::app_quit::KeyAdmission::Admitted(_));
+            let took = begin.elapsed();
+            // The quit continues holding the key setup, and settles.
+            let workflows = Mutex::new(WorkflowRootSession::default());
+            let mut ops = crate::app_quit::HostQuit::new(vec![Arc::clone(&home)], &workflows, "fixture person", |_: &Value| -> Result<bool, String> { Ok(true) });
+            let decision = crate::app_quit::quit_sequence(&mut ops, LIMIT);
+            drop(ops);
+            let allowed = crate::app_quit::AppQuit::default().allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&home)], Some(ids.to_vec())));
+            drop(admission);
+            let _ = tx.send((admitted, took, allowed));
+        });
+    }
+    let (admitted, took, allowed) = rx.recv_timeout(PER_HOME_ENDING + crate::app_quit::KEY_RELEASE_WAIT_LIMIT + PER_HOME_ENDING + crate::app_quit::RECORDING_WAIT_LIMIT + SLACK).expect("bounded");
+    assert!(operation.join().unwrap(), "the operation let go after it observed its Codex stopped");
+    drop(end);
+    assert!(admitted, "the key setup was released within the bound");
+    assert!(took < PER_HOME_ENDING + SLACK, "{took:?}");
+    assert!(f.group_ended(group));
+    let stop = f.host().lifecycle_events().into_iter().find(|e| e["transitionId"] == "LT-17").expect("Codex for that home was stopped");
+    assert_eq!((stop["actor"].as_str(), stop["stopRecord"]["reason"].as_str()), (Some("the person"), Some(crate::app_quit::QUIT_STOP_REASON)));
+    assert!(allowed.unwrap(), "the quit settles");
+    assert_eq!(quit_entries(&f), 2, "the quit's own records only: its request and the session end");
+}
+
+/// (2) The same, and the operation does not let go: Quit anyway stops that
+/// home's Codex, waits the bound, then refuses, naming it.
+#[test]
+fn a_key_operation_that_does_not_let_go_after_its_codex_is_stopped_refuses_the_quit_at_the_bound() {
+    use crate::app_quit::KeyHold;
+    use crate::home_resources::HomeClass;
+    let f = Fixture::new();
+    let group = f.group();
+    let (key, hold) = (Arc::new(Mutex::new(())), Arc::new(Mutex::new(None)));
+    let (end, operation) = key_operation(&f, &key, &hold, Some(KeyHold::WaitingOnCodex(HomeClass::Account)), false);
+    let (outcome, shown, took) = admit_key(&f, &key, &hold, Ok(true));
+    assert!(shown.is_some());
+    assert_eq!(outcome, "refused: A key operation for the account home still holds the App's key setup 10 seconds after Codex for that home was stopped. The App is still running.");
+    assert!(!outcome.contains("retry") && !outcome.contains("again"), "no claim about retrying");
+    assert!(took >= crate::app_quit::KEY_RELEASE_WAIT_LIMIT && took < crate::app_quit::KEY_RELEASE_WAIT_LIMIT + PER_HOME_ENDING + SLACK, "{took:?}");
+    assert!(f.group_ended(group), "Codex for that home was stopped first");
+    assert_eq!(quit_entries(&f), 0, "nothing recorded");
+    end.send(()).unwrap();
+    assert!(!operation.join().unwrap());
+}

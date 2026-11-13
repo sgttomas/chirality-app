@@ -1449,6 +1449,10 @@ fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<S
     (pending, limits.into_iter().collect())
 }
 
+/// The next-start notice when the earlier App session's quit was confirmed
+/// (its `quit_answered` *confirmed* is in the ledger) and no record of that
+/// session's end is in the ledger.
+pub(crate) const PRIOR_QUIT_END_NOT_FOUND: &str = "The previous session's quit was confirmed, but no record of that session's end was found. Requests it left open are shown as open at that session's end; whether they were answered is not known.";
 /// The startup ending of a request an earlier App session left recorded open.
 pub(crate) const OPEN_AT_APP_SESSION_END: &str = "open-at-app-session-end";
 /// The custody events of the recorded startup endings (RQ-06). A row written
@@ -1521,6 +1525,10 @@ impl RecoveryCustodyView {
         let current=starts.iter().rev().find(|(_,r)|r["session"]==session).map(|(_,r)|*r);
         let prior=current.and_then(|r|r["previousSession"].as_str());
         let end=prior.and_then(|s|rows.iter().rev().find(|r|r["kind"]=="session_ended"&&r["session"]==s));
+        // The earlier session's confirmed quit is in the ledger and its end is
+        // not: said once, from what the ledger holds. Without a quit entry the
+        // reading for a session whose end is not established applies alone.
+        let prior_notice=prior.filter(|s|end.is_none()&&rows.iter().any(|r|r["kind"]=="quit_answered"&&r["session"]==*s&&r["answer"]=="confirmed")).map(|_|PRIOR_QUIT_END_NOT_FOUND);
         // Delayed old source appends cannot eclipse a later App session or a
         // later generation of the same physical home. Equal-thread references
         // in different home namespaces are never merged.
@@ -1579,6 +1587,6 @@ impl RecoveryCustodyView {
             }).collect::<Vec<_>>();
             historical.push(json!({"index":row,"metadataIndex":metadata.get(&key).map(|(_,_,r)|r),"executionGeneration":source,"standing":"Last persisted App execution pointer observation; metadataIndex preserves latest append provenance separately; neither is current Codex state or live authority","openItemAssociations":associations,"openItemCorrelation":"Per-item known/unknown from persisted turnId only; never backfilled from liveTurn, selection, tags or native history.","nativeHistory":"read separately from Codex; not supplied by this projection"}));
         }
-        Self{document:json!({"live":live,"restartEvents":events,"requestEndEvents":request_end_events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
+        Self{document:json!({"live":live,"priorSessionNotice":prior_notice,"restartEvents":events,"requestEndEvents":request_end_events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
     }
 }

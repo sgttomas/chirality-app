@@ -23,6 +23,8 @@ export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (t
     <p>Read at {data.readAt}. Source home: {data.source.modeHomeClass}; App session: {text(data.source.appSession)}; generation: {text(data.source.generation)}.</p>
     <p>{data.readStanding}</p><p>{custody.standing}</p>
     <p>Automatic resume: {custody.automaticResume === false ? "off; no resume was requested" : "not established"}.</p>
+    {/* The host's next-start notice about the earlier App session, shown as it gives it. */}
+    {custody.priorSessionNotice && <p role="status">{custody.priorSessionNotice}</p>}
     <h3>Pending persistence</h3>
     <p>Unpersisted pointer facts in this Host's queue: {text(custody.pendingPointerFacts)}. Live observations are not proof of durable recording.</p>
     {(custody.limits ?? []).map((limit: string, i: number) => <p role="status" key={i}>{limit}</p>)}

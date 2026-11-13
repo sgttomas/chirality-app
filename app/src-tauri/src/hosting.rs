@@ -1004,6 +1004,10 @@ pub struct Host {
     home_starting: Arc<std::sync::atomic::AtomicUsize>,
     #[cfg(test)]
     before_quit_stop: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// The exit's session-end thread, after its write has returned and before
+    /// it reports the result to the waiting exit.
+    #[cfg(test)]
+    pub(crate) after_quit_recording: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
     #[cfg(test)]
     aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
@@ -1183,6 +1187,8 @@ impl Host {
             home_starting: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             #[cfg(test)]
             before_quit_stop: Mutex::new(None),
+            #[cfg(test)]
+            after_quit_recording: Mutex::new(None),
             records_activity: Mutex::new(None),
             #[cfg(test)]
             aa_before_write: Mutex::new(None),
@@ -1456,6 +1462,12 @@ impl Host {
         }
         if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
         self.home_holds.lock().unwrap().clear();
+    }
+    /// Runs the test hook of the exit's session-end thread, if one is set.
+    #[cfg(test)]
+    pub(crate) fn after_quit_recording(&self) {
+        let hook = self.after_quit_recording.lock().unwrap().take();
+        if let Some(hook) = hook { hook(); }
     }
     /// Whether this Host holds a process whose settlement can never be established: its
     /// reservation is released and its group is not known empty (lost at creation or at a later
@@ -4265,24 +4277,28 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// whether it is in the ledger; a ledger that does not accept it keeps it
     /// queued in this process.
     pub fn record_codex_stop(&self, actor: &Value, home: &str, restart: bool, material: &Value) -> Value {
-        self.record_app_entry("Stop Codex", "Recorded in the App ledger before any interrupt was sent", |session| crate::stop_records::codex_stop_entry(session, actor, home, restart, material))
+        self.record_app_entry("Stop Codex", "Recorded in the App ledger before any interrupt was sent", true, |session| crate::stop_records::codex_stop_entry(session, actor, home, restart, material))
     }
     /// K-4: the ledger `quit_requested` entry with the lists shown (§3.1 AS-03,
     /// AS-04, AS-07). A ledger that does not accept it never blocks the quit
-    /// question (SQ-Q Q-1).
+    /// question (SQ-Q Q-1), and neither does a busy recovery writer: the entry
+    /// is then queued in order and not waited for.
     pub fn record_quit_requested(&self, actor: &Value, material: &Value) -> Value {
-        self.record_app_entry("quit request", "Recorded in the App ledger", |session| crate::stop_records::quit_requested_entry(session, actor, material))
+        self.record_app_entry("quit request", "Recorded in the App ledger", false, |session| crate::stop_records::quit_requested_entry(session, actor, material))
     }
-    /// K-4: the ledger `quit_answered` entry (§3.1 AS-05, AS-06), written
-    /// before any quit interrupt is sent.
+    /// K-4: the ledger `quit_answered` entry (§3.1 AS-05, AS-06), queued
+    /// before any quit interrupt is sent; written then when the recovery
+    /// writer is free, and never waited for.
     pub fn record_quit_answered(&self, actor: &Value, confirmed: bool) -> Value {
-        self.record_app_entry("quit answer", "Recorded in the App ledger before anything was sent", |session| crate::stop_records::quit_answered_entry(session, actor, confirmed))
+        self.record_app_entry("quit answer", "Recorded in the App ledger before anything was sent", false, |session| crate::stop_records::quit_answered_entry(session, actor, confirmed))
     }
     /// One App ledger entry formed for this App session, queued and drained in
     /// order with the stop-request records. Returns whether it is in the
     /// ledger; one the ledger does not accept stays queued in this process.
-    fn record_app_entry(&self, what: &str, recorded: &str, form: impl FnOnce(&str) -> Result<Value, String>) -> Value {
-        let _writer = self.recovery_writer.lock().unwrap();
+    /// `wait`: take the recovery writer, waiting for it; otherwise drain only
+    /// if it is free at this instant, leaving the entry queued in order if not.
+    fn record_app_entry(&self, what: &str, recorded: &str, wait: bool, form: impl FnOnce(&str) -> Result<Value, String>) -> Value {
+        let writer = if wait { Some(self.recovery_writer.lock().unwrap()) } else { self.recovery_writer.try_lock().ok() };
         let entry = {
             let i = self.inner.0.lock().unwrap();
             if i.recovery.is_none() {
@@ -4293,6 +4309,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 Err(error) => return json!({"state":"not recorded","reading":format!("The {what} record could not be formed: {error}")}),
             }
         };
+        if writer.is_none() {
+            return json!({"state":"not yet recorded","reading":format!("The App's recovery writer was busy, so the {what} record was queued in this App process, in order with the App's other records, and has not yet been written to the App ledger"),"entry":entry});
+        }
         self.drain_recovery_owned();
         let i = self.inner.0.lock().unwrap();
         if i.pending_recovery.facts.lock().unwrap().contains(&entry) {
