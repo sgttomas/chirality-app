@@ -865,6 +865,10 @@ export function RegisteredRevisions({ library, rows, busy, act, chatAvailable = 
     {row.reconfirm===true&&<small> To use it again in this App session: Refine makes a draft with its bytes; review that draft and confirm in the App's dialog (re-confirmation).</small>}</li>)}</ul>;
 }
 
+/** What "bound in current generation" says, and only that: a receipt is held
+ * for this conversation in this generation. It does not say the project now at
+ * the receipt's path is the one it names; each read checks that again. */
+export const BOUND_MEANING=" (a receipt held for this conversation; whether the project at its path is still the one it names is checked again on every read)";
 export function RecordsCapabilityBindings({ host }:{ host: Json }) {
   const rows=(host?.threads??[]).filter((row:Json)=>JSON.stringify(row.generation)===JSON.stringify(host?.generation)&&row.recordsCapabilityBinding);
   // Why the last read could not be recorded (LIM-014 among them): shown whole,
@@ -873,7 +877,7 @@ export function RecordsCapabilityBindings({ host }:{ host: Json }) {
   if (!rows.length && !readLogLimit) return null;
   return <section aria-label="Conversation records capability"><h3>Conversation records capability</h3>
     {readLogLimit&&<p role="alert">Records capability: {readLogLimit}</p>}
-    {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
+    {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}{row.recordsCapabilityBinding.state==="bound in current generation"?BOUND_MEANING:""}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
   </section>;
 }
 

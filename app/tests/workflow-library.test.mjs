@@ -142,6 +142,8 @@ test('records capability binding reports cold unknown and publication limits for
   const host={generation,threads:[{generation,threadId:'cold',recordsCapabilityBinding:{state:'unknown/unsupported',limit:'original receipt absent'}},{generation,threadId:'hot',recordsCapabilityBinding:{state:'bound in current generation',persistence:'memory-only',limit:'folder flush unconfirmed'}},{generation:{...generation,appSession:'old'},threadId:'stale',recordsCapabilityBinding:{state:'bound in old generation'}}]};
   assert.deepEqual(buttons(RecordsCapabilityBindings({host})),[]);
   const text=h(RecordsCapabilityBindings,{host});assert.match(text,/unknown\/unsupported/);assert.match(text,/original receipt absent/);assert.match(text,/memory-only/);assert.match(text,/folder flush unconfirmed/);assert.doesNotMatch(text,/stale/);
+  assert.ok(text.includes('hot: bound in current generation (a receipt held for this conversation; whether the project at its path is still the one it names is checked again on every read).'),'a binding says it holds a receipt, never that the project now there is validated');
+  assert.ok(!text.includes('cold: unknown/unsupported (a receipt held'),'the meaning is given only for a binding');
 });
 
 test('the read log limit is shown whole with the records capability, with or without bound conversations (LIM-014)',()=>{
