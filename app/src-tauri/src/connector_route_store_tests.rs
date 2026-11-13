@@ -1622,3 +1622,29 @@ fn records_store_kept_reader_of_accounts_refuses_as_not_known_what_it_cannot_exa
     assert!(read.is_err(), "never read as unchanged");
     assert_eq!(store.resolve(&reference).unwrap().account, data, "reads again");
 }
+
+/// Round 1 of pull request 294, finding 1: a reference to another project's
+/// account, written by the store for that project, is refused by a reader of
+/// this project, whether the reader was kept or opened just now. In the store
+/// a walk is confined to this project's own folder.
+#[test]
+fn records_store_kept_reader_of_accounts_refuses_another_projects_reference() {
+    let _own = KeptReaderStore::new();
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let q = scratch.0.join("other-project");
+    fs::create_dir(&q).unwrap();
+    let kept = ProjectRouteStore::open_for_write(&p).unwrap();
+    let own_data = account("ra:own-project");
+    let own_reference = kept.write(&own_data).unwrap();
+    assert_eq!(kept.resolve(&own_reference).unwrap().account, own_data);
+    let other = ProjectRouteStore::open_for_write(&q).unwrap();
+    let foreign_reference = other.write(&account("ra:other-project")).unwrap();
+    assert_ne!(kept.accounts_directory(), other.accounts_directory());
+    for (which, reader) in [("kept", kept), ("opened now", ProjectRouteStore::open_for_write(&p).unwrap())] {
+        let read = reader.resolve(&foreign_reference).map(|r| r.account["account_id"].clone());
+        let refused = read.expect_err(which).to_string();
+        assert!(refused.contains("outside this project's records"), "{which}: {refused}");
+        assert_eq!(reader.resolve(&own_reference).unwrap().account, own_data, "{which}: its own account still reads");
+    }
+}

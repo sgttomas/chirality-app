@@ -229,25 +229,48 @@ impl ProjectRecords {
         // cleanly to the same records folder, and that same folder (RS §13.8:
         // a changed, missing or moved link attaches nothing until the person
         // resolves it); the binding is kept, so it reads again once they do.
-        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){
-            let mut reader=self.reader.lock().unwrap_or_else(|p|p.into_inner());
-            if reader.is_none(){
-                // Bound at the first read, to what this handle resolved: the
-                // folders it recorded then, and no others.
-                let binding=crate::records_store::bind_reader(&self.root,crate::records_store::ReaderDecision::Records)?;
-                if binding.project_folder()!=self.identity{
-                    return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read",self.root.display()));
-                }
-                if binding.records_folder()!=Some((dir.path.as_path(),dir.identity)){
-                    return Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into());
-                }
+        let mut reader=self.reader.lock().unwrap_or_else(|p|p.into_inner());
+        if reader.is_none(){
+            // Bound at the first read that finds a place holding records,
+            // before anything is read: the store folder, or records in place.
+            // The records folder is held from then, and the handle's cache is
+            // that folder. A project with records nowhere yet (no store folder
+            // holding them, and none in place) has no place to bind: its
+            // first records are written into the store by whichever writer
+            // comes first, and this reader binds there at its next read. With
+            // records in place, writes are refused until an import, so the
+            // place changes only by an import, which a bound reader refuses.
+            let binding=crate::records_store::bind_reader(&self.root,crate::records_store::ReaderDecision::Records)?;
+            if binding.project_folder()!=self.identity{
+                return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read",self.root.display()));
+            }
+            if binding.records_folder().is_some() || !crate::records_store::legacy_census(&self.root)?.is_empty(){
+                self.keep_bound_home(&binding)?;
                 *reader=Some(binding);
             }
-            reader.as_ref().expect("bound above").prove()?;
-            return crate::records_retention::read_path(&dir.path);
         }
+        if let Some(binding)=reader.as_ref(){
+            binding.prove()?;
+            if let Some((dir,_))=binding.records_folder(){
+                return crate::records_retention::read_path(dir);
+            }
+        }
+        // Read in place: the admission of the project's store folder, when
+        // it has one, is held as before.
         let attachment=crate::records_store::attach(&self.root,false)?;
         match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir),None if attachment.refusal.is_some()=>Err(attachment.refusal.unwrap()),None=>Ok(None)}
+    }
+    /// The handle's cached records home made, or found to be, the bound
+    /// records folder: a home this handle resolved before must be that
+    /// folder.
+    fn keep_bound_home(&self,binding:&crate::records_store::ReaderBinding)->Result<(),String>{
+        let mut cache=self.store.lock().unwrap_or_else(|p|p.into_inner());
+        match (cache.as_ref(),binding.records_folder()){
+            (Some(held),Some((path,node))) if held.path==path && held.identity==node=>Ok(()),
+            (Some(_),_)=>Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into()),
+            (None,Some((path,node)))=>{*cache=Some(RecordsHome{path:path.to_path_buf(),identity:node});Ok(())}
+            (None,None)=>Ok(()),
+        }
     }
     /// The explicit opened-project path this handle was opened from.
     pub fn root(&self) -> &Path {

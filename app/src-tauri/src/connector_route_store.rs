@@ -731,6 +731,16 @@ mod platform {
             Ok(())
         }
         fn chain(&self, parts: &[&str], create: bool) -> Result<Chain> {
+            // In the store the anchor is the whole store: a walk is confined to
+            // this project's own folder there (`projects/<key>`), so that no
+            // reference, whoever supplied it, reaches another project's
+            // records. In the project the anchor is the project folder itself.
+            if self.store_dir.is_some() {
+                let own = self.parts.get(..2).ok_or_else(|| StoreError::new(ErrorKind::LocationMismatch, "the accounts' place in the store names no project folder; nothing read"))?;
+                if parts.len() < 2 || parts[0] != own[0] || parts[1] != own[1] {
+                    return Err(StoreError::new(ErrorKind::LocationMismatch, format!("this reference names a folder outside this project's records in the store ({}); nothing read", parts.join("/"))));
+                }
+            }
             let mut handles = vec![self
                 .directory
                 .try_clone()
