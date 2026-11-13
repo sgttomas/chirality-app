@@ -128,7 +128,7 @@ jobs:
           native_projection_delivery observer_rebuild
           native_history_error_content_is_not_durable workflow_reselection
           trial_authoring_source_tests records_access record_lines records_store
-          records_export records_retention installation::tests connector_route_store
+          records_export records_retention records_inspect installation::tests connector_route_store
           recovery::tests records_continuity fleet_ reply_close native_requests::tests
           call_custody after_run_end chat_workflow native_links startup_refusal
           recovery_root_cold_ waiting_requests_tests::
