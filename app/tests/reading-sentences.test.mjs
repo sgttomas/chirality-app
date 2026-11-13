@@ -270,7 +270,8 @@ async function conversationWriter(operation, commandFails, check) {
     await React.act(async () => root.render(React.createElement(App)));
     const panel = () => c.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
     await change(nodes(panel(), 'select')[0], JSON.stringify([g, 'thread-a']));
-    await change(labelled(c, 'input', 'Model '), 'r4-model'); await change(labelled(c, 'input', 'Configured Codex provider '), 'openai'); await change(labelled(c, 'select', 'Access entry '), 'chatgpt-account');
+    // The account start's one route (the built-in provider with the ChatGPT account entry), then its model.
+    await tap('Use my ChatGPT account (built-in OpenAI)'); await change(labelled(c, 'input', 'Model '), 'r4-model');
     await tap('Start thread');
     assert.ok(c.textContent.includes(`thread_start: ${READING_GATE}`), 'the reading sentence is on this view');
     if (operation !== 'plan' && operation !== 'interrupt') await change(nodes(panel(), 'textarea')[0], 'invented r4 text');
