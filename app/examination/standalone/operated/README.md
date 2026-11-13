@@ -331,18 +331,24 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     ```
 
     - **The operator's node runtime**, identified before the look and before
-      the walk's import: the operator makes one harmless call in its `js`
+      the walk's import: the operator makes one call in its `js`
       tool that opens a marker file in the evidence folder and keeps it open,
       `globalThis.runtimeMarker = await (await import('node:fs')).promises.open('<evidence folder>/runtime.marker', 'w');`,
       and then asks which process holds it (`lsof -t`, above). That one
       process is its runtime, recorded by number and start time. If `lsof`
       names none or more than one, the runtime is not identified and no walk
-      is made. That call imports nothing but the standard library and makes
-      no computer-use call, so it is not the call that starts the helper; the
-      look comes after it and before the permitted import. The marker file is
-      in the operator's evidence folder, never under either Codex home; when
-      the walk ends the operator closes it (`await runtimeMarker.close()`) and
-      it is kept, not removed. The first walk is also the first trial of this
+      is made. That call imports only the standard library and invokes no
+      computer-use method; whether it starts anything has not been tried. The
+      look comes after it and before the permitted import, and an unexpected
+      helper the look finds means no walk. This one call, by the operator, at
+      a walk, is the only use of the node runtime's `js` tool before the
+      walk's own block: App Agent 0 held that tool, and narrows its hold for
+      this call alone, not for any other agent or use. The marker file is in
+      the operator's evidence folder, never under either Codex home. When the
+      walk ends, and whenever a walk is refused after the marker was opened
+      while its runtime is still available (the look finds a process, `lsof`
+      names none or more than one, or the two looks disagree), the operator
+      closes it (`await runtimeMarker.close()`) and it is kept, not removed. The first walk is also the first trial of this
       identification: if it fails, that is "no walk", recorded as a finding
       about this method.
     - **The look, before the import and before the first call.** Then, as the
@@ -383,7 +389,10 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
       service between the look and the walk's first call. It would lie inside
       the interval, be taken for the walk's and be ended. The look cannot rule
       that out; one operator at a time across this project and the others on
-      this machine is what makes it unlikely.
+      this machine is what makes it unlikely. This is a limit of attribution:
+      it gives no permission to disregard contrary evidence or known desktop
+      activity. If anything says a service is not the walk's, it is
+      unresolved, whatever its start time.
     - An ended process may stay listed with a state beginning with `Z` until
       its parent collects it; that is ended. No process that predates the
       walk is ever signalled. The operator signals nothing else: not the node
