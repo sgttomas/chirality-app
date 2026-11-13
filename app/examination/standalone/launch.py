@@ -141,16 +141,16 @@ What it also does, each with its limit:
   (found at its first real run). What it no longer observes: an entry named
   for the build appearing in either folder. A before-listing that cannot be
   made still refuses the launch, and the record names the place.
-- When the launcher received a signal before the outcome was fixed and
-  attempted to pass a termination to the App, `ended` says so in the launcher's
-  own words, beside how the App's process ended and what its process group was
-  after the settle time. It names the signals and does not say when each
-  arrived (their times are in `signals_received`) or whether the termination
-  is what ended the App. Such a run is not clean, and the record does not say
-  it was; it says why. What a caller may not rely on: a signal received after
+- When the launcher attempted to pass a termination to the App, `ended` says
+  so in the launcher's own words, beside how the App's process ended. It says
+  that and nothing else: which signals the launcher received, and when, are in
+  `signals_received`; what the process group was after the settle time is in
+  `process_group_after_settle`; `ended` repeats neither. It does not say that
+  the termination arrived or that it is what ended the App. Such a run is not
+  clean, and the record does not say it was; it says why. What a caller may not rely on: a signal received after
   the last check and before the start does not prevent the App's process
-  being created; it is terminated after creation, and may have begun starting
-  up.
+  being created; termination is attempted after creation, and the App may
+  have begun starting up.
 - The folder Codex works in, when the App starts one, is the App's choice: the
   project chosen in the App, the App's data folder under the home, or the
   temporary folder in the home. Each is the project folder, or lies under the
@@ -844,11 +844,8 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         record['ended_at'] = now()
         time.sleep(SETTLE_SECONDS)
         facts['process_group'] = record['process_group_after_settle'] = group_state(proc.pid)
-        if facts.get('passed_on'):  # in the launcher's own words; when each signal arrived is not said here
-            received = ', '.join(entry['signal'] for entry in facts['signals'])
-            facts['ended'] += (f'; before the outcome was fixed the launcher received {received} and attempted to pass '
-                               f"a termination to the App; its process group was {facts['process_group']} after the "
-                               f'settle time')
+        if facts.get('passed_on'):  # the one thing no other field says; it cannot change once the wait has returned
+            facts['ended'] += '; the launcher attempted to pass a termination to the App'
         after = again = None
         try:
             after = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)

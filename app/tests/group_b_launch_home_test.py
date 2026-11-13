@@ -364,10 +364,10 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                     thread.join()
                 self.assertEqual(sent, [1])
                 self.assertEqual((code, record['outcome'], len(record['signals_received'])), (1, 'failed', 1), out)
-                said = ('before the outcome was fixed the launcher received SIGTERM and attempted to pass a termination '
-                        'to the App; its process group was gone after the settle time')
                 if step == 'while the App runs':  # the record says so in the launcher's words
-                    self.assertTrue(record['ended'].endswith('; ' + said), record['ended'])
+                    self.assertRegex(record['ended'], r'^(exited with status 0|ended by signal 15 \(SIGTERM\)); '
+                                     r'the launcher attempted to pass a termination to the App$')
+                    self.assertEqual(record['process_group_after_settle'], 'gone')
                 else:  # the App had already ended by itself: nothing was passed to it
                     self.assertEqual(record['ended'], 'exited with status 0')
 
@@ -384,9 +384,8 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
         self.assertEqual((code, record['outcome'], [s['signal'] for s in record['signals_received']]), (1, 'failed', ['SIGTERM']), out)
         self.assertEqual(record['app_started'], 'started')  # the process was created, and then signalled
         self.assertIsInstance(record['pid'], int)
-        self.assertRegex(record['ended'], r'^(exited with status 0|ended by signal 15 \(SIGTERM\)); before the outcome was fixed '
-                         r'the launcher received SIGTERM and attempted to pass a termination to the App; its process group was '
-                         r'gone after the settle time$')
+        self.assertRegex(record['ended'], r'^(exited with status 0|ended by signal 15 \(SIGTERM\)); '
+                         r'the launcher attempted to pass a termination to the App$')
         self.assertNotIn('while the App ran', record['ended'])
         # One signal while the App runs, and another during the settle time, after the App has exited.
         sent = []
@@ -414,8 +413,39 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
         self.assertEqual(sent, ['running', 'settle'], out)
         self.assertEqual((code, record['outcome'], [s['signal'] for s in record['signals_received']]),
                          (1, 'failed', ['SIGTERM', 'SIGINT']), out)
-        self.assertEqual(record['ended'], 'exited with status 0; before the outcome was fixed the launcher received SIGTERM, '
-                         'SIGINT and attempted to pass a termination to the App; its process group was gone after the settle time')
+        self.assertEqual(record['ended'], 'exited with status 0; the launcher attempted to pass a termination to the App')
+        self.assertEqual(record['process_group_after_settle'], 'gone')
+
+    def test_ended_repeats_no_signal_so_one_received_during_the_after_listings_cannot_be_missing_from_it(self):
+        real_listing, real_sleep = launch.listing, launch.time.sleep
+        sent = []
+
+        def listing(*args, **kwargs):  # the before-listing is the first call; the after-listings follow the App's exit
+            if sent == ['running']:
+                sent.append('after-listing')
+                os.kill(os.getpid(), signal.SIGHUP)
+                real_sleep(0.05)
+            return real_listing(*args, **kwargs)
+
+        def later():
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline and not list(self.root.glob('launch-*/home/started-here')):
+                real_sleep(0.05)
+            if launch._forwarding.is_set():
+                sent.append('running')
+                os.kill(os.getpid(), signal.SIGTERM)
+        script = 'touch "$HOME/started-here"\ntrap \'exit 0\' TERM\nwhile :; do sleep 0.1; done\n'
+        thread = threading.Thread(target=later)
+        thread.start()
+        with mock.patch.object(launch, 'listing', listing):
+            code, record, out, _ = self.run_helper(self.candidate(script, where='signal-during-after-listing'))
+        thread.join()
+        self.assertEqual(sent, ['running', 'after-listing'], out)
+        self.assertEqual((code, record['outcome']), (1, 'failed'), out)
+        self.assertEqual([s['signal'] for s in record['signals_received']], ['SIGTERM', 'SIGHUP'])  # every signal is here
+        self.assertEqual(record['ended'], 'exited with status 0; the launcher attempted to pass a termination to the App')
+        for name in ('SIGTERM', 'SIGHUP', 'SIGINT', 'process group', 'settle'):
+            self.assertNotIn(name, record['ended'].split('; ', 1)[1])
 
 
 KILLED_RUNNER = '''
