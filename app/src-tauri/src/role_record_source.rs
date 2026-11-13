@@ -753,17 +753,7 @@ pub(crate) fn read_r3_with_relations(project: &Path, entry: &Value, relations: &
         let run = entry["runId"]
             .as_str()
             .ok_or("role R3 run identity absent")?;
-        let home = records_store::home(project)?;
-        if let Some(refusal) = home.attachment.refusal {
-            return Err(refusal);
-        }
-        let directory = if home.store_mode {
-            home.attachment
-                .dir
-                .ok_or("owning role run store unavailable")?
-        } else {
-            project.join(storage::LEGACY_RECORDS)
-        };
+        let directory = records_store::readable_home(project)?.records();
         let log = directory.join(storage::log_rel(
             Some(run),
             crate::records::supply::LIVE_WRITER,
@@ -1035,10 +1025,7 @@ impl<'a> BoundedRoleReading<'a> {
         if let Some(entries) = self.runs.get(run) {
             return Ok(entries.clone());
         }
-        let home = records_store::home(self.project).map_err(|_| META_UNAVAILABLE)?;
-        if home.attachment.refusal.is_some() {
-            return Err(META_UNAVAILABLE);
-        }
+        let home = records_store::readable_home(self.project).map_err(|_| META_UNAVAILABLE)?;
         let directory = home.attachment.dir.ok_or(META_UNAVAILABLE)?;
         let path = directory.join(storage::log_rel(
             Some(run),

@@ -9,6 +9,7 @@ touched; nothing here launches a real build.
 """
 import builtins
 import contextlib
+import errno
 import hashlib
 import importlib.util
 import io
@@ -19,6 +20,7 @@ import plistlib
 import pwd
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tempfile
@@ -35,6 +37,7 @@ launch = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(launch)
 identify = launch.identify
 REAL_HOMES_ROOT = launch.homes_root  # the function itself, before any test replaces it
+REAL_TOP_OF_SEARCH = launch.top_of_search  # likewise
 
 MAC = sys.platform == 'darwin'
 IDENTIFIER = 'dev.chirality.app-v4.candidate.invented'
@@ -52,7 +55,7 @@ echo invented > "$HOME/Library/WebKit/{id}/WebsiteData/store"
 SHELL_OWN = {'PWD', 'SHLVL', '_', 'OLDPWD', '__CF_USER_TEXT_ENCODING'}  # set by /bin/sh or the macOS runtime itself
 OVERRIDES = {**{n: v for n, (v, _) in launch.PROXY_OVERRIDES.items()}, launch.MODEL_ADDRESS: 'http://127.0.0.1:9/v1'}
 CLEAN_RECORD_FIELDS = {'note', 'made_by', 'made_at', 'candidate_key', 'identifier', 'candidate_folder', 'bundle',
-                       'launch_folder', 'home', 'codex', 'address_override', 'environment_constructed_for_the_app',
+                       'launch_folder', 'home', 'project', 'git_marker_above', 'codex', 'address_override', 'environment_constructed_for_the_app',
                        'output', 'started_at', 'pid', 'ended_at', 'process_group_after_settle', 'disclosed',
                        'app_started', 'ended', 'real_library', 'signals_received', 'failures', 'outcome'}
 
@@ -113,6 +116,7 @@ class Fixture(unittest.TestCase):
         self.root.mkdir()
         patches = [mock.patch.object(launch, 'real_home', return_value=self.real),
                    mock.patch.object(launch, 'homes_root', return_value=self.root),
+                   mock.patch.object(launch, 'top_of_search', return_value=self.tmp),  # not what lies above the fixture
                    mock.patch.object(launch, 'user_cache_dir', return_value=self.cache),
                    mock.patch.object(launch, 'SETTLE_SECONDS', 0.0)]
         if self.identification is not None:
@@ -246,7 +250,7 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
         self.assertEqual((record['real_library']['result'], record['signals_received'], record['app_started']),
                          ('unchanged', [], 'started'))
         self.assertEqual(record['codex'], launch.CODEX_NOTE)
-        self.assertEqual(sorted(os.listdir(folder)), [launch.HOME, launch.RECORD_FOLDER])
+        self.assertEqual(sorted(os.listdir(folder)), [launch.HOME, launch.PROJECT, launch.RECORD_FOLDER])
         self.assertEqual(os.listdir(folder / launch.RECORD_FOLDER), [launch.RECORD])
 
     def test_links_at_or_beneath_a_watched_place_make_the_comparison_incomplete(self):
@@ -293,6 +297,23 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                 finally:
                     undo()
                 self.assertEqual((code, record['real_library']['result']), (1, 'not made'), out)
+
+    def test_a_before_listing_that_cannot_be_made_refuses_and_names_the_place(self):
+        (self.real / 'Library/Logs').mkdir()
+        (self.real / 'Library/Logs').chmod(0o000)
+        self.addCleanup((self.real / 'Library/Logs').chmod, 0o700)
+        code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+        self.assertEqual(record['ended'], 'not launched: the before-listing could not be made (PermissionError at Logs)')
+
+    def test_the_two_protected_folders_are_not_watched_so_a_refused_listing_of_them_does_not_stop_a_launch(self):
+        for name in ('Cookies', 'Autosave Information'):
+            self.assertNotIn(name, launch.WATCHED)
+            (self.real / 'Library' / name).mkdir()
+            (self.real / 'Library' / name).chmod(0o000)
+            self.addCleanup((self.real / 'Library' / name).chmod, 0o700)
+        code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome'], record['real_library']['result']), (0, 'clean', 'unchanged'), out)
 
     def test_an_interrupted_record_write_leaves_no_record_and_an_empty_record_folder(self):
         with mock.patch.object(launch.os, 'link', side_effect=OSError(28, 'No space left on device')):
@@ -343,6 +364,88 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
                     thread.join()
                 self.assertEqual(sent, [1])
                 self.assertEqual((code, record['outcome'], len(record['signals_received'])), (1, 'failed', 1), out)
+                if step == 'while the App runs':  # the record says so in the launcher's words
+                    self.assertRegex(record['ended'], r'^(exited with status 0|ended by signal 15 \(SIGTERM\)); '
+                                     r'the launcher attempted to pass a termination to the App$')
+                    self.assertEqual(record['process_group_after_settle'], 'gone')
+                else:  # the App had already ended by itself: nothing was passed to it
+                    self.assertEqual(record['ended'], 'exited with status 0')
+
+    def test_the_record_does_not_say_when_a_signal_arrived(self):
+        real_popen, real_sleep = subprocess.Popen, launch.time.sleep
+        # A signal that arrives after the last check before the start, and before the process exists.
+        def popen(*args, **kwargs):
+            os.kill(os.getpid(), signal.SIGTERM)
+            real_sleep(0.05)
+            return real_popen(*args, **kwargs)
+        script = "trap 'exit 0' TERM\nwhile :; do sleep 0.1; done\n"
+        with mock.patch.object(launch.subprocess, 'Popen', popen):
+            code, record, out, _ = self.run_helper(self.candidate(script, where='before-the-process'))
+        self.assertEqual((code, record['outcome'], [s['signal'] for s in record['signals_received']]), (1, 'failed', ['SIGTERM']), out)
+        self.assertEqual(record['app_started'], 'started')  # the process was created, and then signalled
+        self.assertIsInstance(record['pid'], int)
+        self.assertRegex(record['ended'], r'^(exited with status 0|ended by signal 15 \(SIGTERM\)); '
+                         r'the launcher attempted to pass a termination to the App$')
+        self.assertNotIn('while the App ran', record['ended'])
+        # One signal while the App runs, and another during the settle time, after the App has exited.
+        sent = []
+
+        def sleep(seconds):
+            if sent == ['running']:
+                sent.append('settle')
+                os.kill(os.getpid(), signal.SIGINT)
+                real_sleep(0.05)
+            return real_sleep(seconds)
+
+        def later():
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline and not list(self.root.glob('launch-*/home/started-twice')):
+                real_sleep(0.05)
+            if launch._forwarding.is_set():
+                sent.append('running')
+                os.kill(os.getpid(), signal.SIGTERM)
+        script = 'touch "$HOME/started-twice"\n' + script
+        thread = threading.Thread(target=later)
+        thread.start()
+        with mock.patch.object(launch.time, 'sleep', sleep):
+            code, record, out, _ = self.run_helper(self.candidate(script, where='two-signals'))
+        thread.join()
+        self.assertEqual(sent, ['running', 'settle'], out)
+        self.assertEqual((code, record['outcome'], [s['signal'] for s in record['signals_received']]),
+                         (1, 'failed', ['SIGTERM', 'SIGINT']), out)
+        self.assertEqual(record['ended'], 'exited with status 0; the launcher attempted to pass a termination to the App')
+        self.assertEqual(record['process_group_after_settle'], 'gone')
+
+    def test_ended_repeats_no_signal_so_one_received_during_the_after_listings_cannot_be_missing_from_it(self):
+        real_listing, real_sleep = launch.listing, launch.time.sleep
+        sent = []
+
+        def listing(*args, **kwargs):  # the before-listing is the first call; the after-listings follow the App's exit
+            if sent == ['running']:
+                sent.append('after-listing')
+                os.kill(os.getpid(), signal.SIGHUP)
+                real_sleep(0.05)
+            return real_listing(*args, **kwargs)
+
+        def later():
+            deadline = time.monotonic() + 10
+            while time.monotonic() < deadline and not list(self.root.glob('launch-*/home/started-here')):
+                real_sleep(0.05)
+            if launch._forwarding.is_set():
+                sent.append('running')
+                os.kill(os.getpid(), signal.SIGTERM)
+        script = 'touch "$HOME/started-here"\ntrap \'exit 0\' TERM\nwhile :; do sleep 0.1; done\n'
+        thread = threading.Thread(target=later)
+        thread.start()
+        with mock.patch.object(launch, 'listing', listing):
+            code, record, out, _ = self.run_helper(self.candidate(script, where='signal-during-after-listing'))
+        thread.join()
+        self.assertEqual(sent, ['running', 'after-listing'], out)
+        self.assertEqual((code, record['outcome']), (1, 'failed'), out)
+        self.assertEqual([s['signal'] for s in record['signals_received']], ['SIGTERM', 'SIGHUP'])  # every signal is here
+        self.assertEqual(record['ended'], 'exited with status 0; the launcher attempted to pass a termination to the App')
+        for name in ('SIGTERM', 'SIGHUP', 'SIGINT', 'process group', 'settle'):
+            self.assertNotIn(name, record['ended'].split('; ', 1)[1])
 
 
 KILLED_RUNNER = '''
@@ -386,14 +489,17 @@ class KilledLauncher(Fixture):  # STATEMENT 2: a killed launcher leaves no recor
                                            str(self.cache), str(self.root), str(sentinel),
                                            'launch', '--candidate', str(candidate)],
                                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                deadline = time.monotonic() + 20
-                while not (sentinel.exists() and sentinel.read_text().strip()) and time.monotonic() < deadline:
-                    time.sleep(0.05)
-                self.assertTrue(sentinel.exists())
-                helper.kill()
-                helper.wait()
-                if stage == 'running':
-                    self.groups.append(int(sentinel.read_text().strip()))
+                try:  # an interrupted test skips unittest's cleanups, so the helper is ended here whatever happens
+                    deadline = time.monotonic() + 20
+                    while not (sentinel.exists() and sentinel.read_text().strip()) and time.monotonic() < deadline:
+                        time.sleep(0.05)
+                    self.assertTrue(sentinel.exists())
+                finally:
+                    helper.kill()
+                    helper.wait()
+                    if stage == 'running':
+                        with contextlib.suppress(OSError, ValueError, ProcessLookupError, PermissionError):
+                            os.killpg(int(sentinel.read_text().strip()), signal.SIGKILL)
                 [folder] = sorted(self.folders() - before)
                 for name in os.listdir(folder / launch.RECORD_FOLDER):
                     self.assertTrue(name.startswith('.' + launch.RECORD + '.partial-'), name)
@@ -402,24 +508,28 @@ class KilledLauncher(Fixture):  # STATEMENT 2: a killed launcher leaves no recor
 @contextlib.contextmanager
 def touches(names=(), dirs=()):
     """Instrumentation, lexical and resolved: every open, listing or stat whose path or last component is one of
-    `names`, or that lies under one of `dirs` (exclusive write-only creation is not counted)."""
+    `names`, or that is one of `dirs` or lies under one (exclusive write-only creation is not counted)."""
     dirs = [os.path.realpath(d) for d in dirs]
     touched = []
 
     def hit(text, raw):
         if text is None:
             return False
-        return os.path.basename(raw) in names or raw in names or any(text.startswith(d + os.sep) for d in dirs)
+        return (os.path.basename(raw) in names or raw in names
+                or any(text == d or text.startswith(d + os.sep) for d in dirs))
 
     def resolve(path, dir_fd):
         if isinstance(path, int):
-            return fd_path(path), ''
+            try:
+                return fd_path(path), ''
+            except OSError:  # a descriptor with no path (a pipe): not a touch of any watched place
+                return None, ''
         raw = os.fsdecode(path)
         if dir_fd is not None and not os.path.isabs(raw):
             return os.path.normpath(os.path.join(fd_path(dir_fd), raw)), raw
         return os.path.abspath(raw), raw
 
-    real = {name: getattr(os, name) for name in ('listdir', 'scandir', 'stat', 'lstat', 'open')}
+    real = {name: getattr(os, name) for name in ('listdir', 'scandir', 'stat', 'lstat', 'fstat', 'readlink', 'open')}
 
     def wrap(name):
         def spied(*args, **kwargs):
@@ -495,6 +605,191 @@ class NewHomeOnly(Fixture):  # the home is new: exclusive creates under the root
                 self.assertEqual(identities(self.root), before)
                 self.assertFalse((self.root / spelling / launch.HOME / 'received-env.txt').exists())
                 shutil.rmtree(self.root / spelling)
+
+
+    def test_each_create_inside_the_launch_folder_is_exclusive_and_its_failure_launches_nothing(self):
+        real_mkdir = os.mkdir
+        for child in (launch.HOME, launch.RECORD_FOLDER, launch.PROJECT):
+            for name, failure in (('something already there', None), ('no space', OSError(errno.ENOSPC, 'invented'))):
+                with self.subTest(child=child, case=name):
+                    def mkdir(path, mode=0o777, *, dir_fd=None):
+                        if path == child and dir_fd is not None:
+                            if failure is not None:
+                                raise failure
+                            real_mkdir(path, 0o700, dir_fd=dir_fd)  # something else made it first
+                        return real_mkdir(path, mode, dir_fd=dir_fd)
+                    before = self.folders()
+                    candidate = self.candidate(where=f'create-{child}-{failure is None}')
+                    with mock.patch.object(os, 'mkdir', mkdir):
+                        code, out = self.call('launch', '--candidate', str(candidate))
+                    self.assertEqual(code, 2, out)
+                    if failure is None:
+                        self.assert_refused(code, out, f'{child}/ could not be created: something already exists there')
+                    [folder] = sorted(self.folders() - before)
+                    self.assertFalse((folder / launch.HOME / 'received-env.txt').exists())  # the App never ran
+                    self.assertFalse((folder / launch.RECORD_FOLDER / launch.RECORD).exists())  # and no record says it did
+
+
+class NothingAbove(Fixture):  # the project folder, no .git entry above, and what the home holds at the start
+    def test_the_project_folder_is_new_empty_beside_the_home_and_named_in_the_record(self):
+        code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
+        self.assertEqual(record['project'], str(folder / launch.PROJECT))
+        self.assertEqual(Path(record['project']).parent, Path(record['home']).parent)
+        self.assertEqual(os.listdir(record['project']), [])
+        self.assertEqual(stat.S_IMODE(os.stat(record['project']).st_mode), 0o700)
+        self.assertIn('none: ', record['git_marker_above'])
+
+    def test_a_git_entry_in_any_folder_above_refuses_and_the_refusal_names_the_folder(self):
+        real_mkdir = os.mkdir
+        for place in ('the launch folder', 'the homes root', 'above the homes root'):
+            for kind in ('a folder', 'a file', 'a link to nothing'):
+                with self.subTest(place=place, kind=kind):
+                    def put(folder):
+                        marker = Path(folder) / '.git'
+                        if kind == 'a folder':
+                            marker.mkdir()
+                        elif kind == 'a file':
+                            marker.write_text('gitdir: /invented/elsewhere')
+                        else:
+                            marker.symlink_to('/invented/nowhere')
+                        return marker
+
+                    def take_away(marker):
+                        if marker is not None and os.path.lexists(marker):
+                            marker.rmdir() if marker.is_dir() and not marker.is_symlink() else marker.unlink()
+
+                    def mkdir(path, mode=0o777, *, dir_fd=None):  # the entry appears in the new launch folder
+                        result = real_mkdir(path, mode, dir_fd=dir_fd)
+                        if path == launch.PROJECT and dir_fd is not None:
+                            put(fd_path(dir_fd))
+                        return result
+                    marker = None if place == 'the launch folder' else put(self.root if place == 'the homes root' else self.tmp)
+                    candidate = self.candidate(where=f'above-{place}-{kind}'.replace(' ', '-'))
+                    try:
+                        with mock.patch.object(os, 'mkdir', mkdir if place == 'the launch folder' else real_mkdir):
+                            code, record, out, folder = self.run_helper(candidate)
+                    finally:
+                        take_away(marker)
+                    holder = str(folder if place == 'the launch folder' else marker.parent)
+                    self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+                    self.assertIn(f'{holder} holds a .git entry', record['ended'])
+                    self.assertNotIn('git_marker_above', record)
+                    self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+                    self.assertEqual(os.listdir(record['project']), [])
+
+    def test_the_search_asks_by_lstat_alone_goes_to_the_top_and_stops_there(self):
+        self.assertEqual(REAL_TOP_OF_SEARCH(), Path('/'))
+        (self.tmp.parent / '.git').mkdir()  # above the fixture's top: never asked
+        self.addCleanup((self.tmp.parent / '.git').rmdir)
+        with touches(names=('.git',)) as touched:
+            code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
+        asked = [Path(path).parent for name, path in touched]
+        self.assertEqual({name for name, path in touched}, {'lstat'})
+        self.assertEqual(asked, [folder, self.root, self.tmp])  # the launch folder, the root, the top; each once
+        self.assertEqual(record['git_marker_above'], 'none: 3 folders above the home and the project folder asked by presence')
+
+    def test_a_folder_that_cannot_be_asked_refuses_and_is_named(self):
+        real_lstat = os.lstat
+
+        def lstat(path, *args, **kwargs):
+            if os.fspath(path) == str(self.root / '.git'):
+                raise PermissionError(errno.EACCES, 'invented')
+            return real_lstat(path, *args, **kwargs)
+        with mock.patch.object(os, 'lstat', lstat):
+            code, record, out, folder = self.run_helper(self.candidate())
+        self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+        self.assertIn(f'{self.root} could not be checked for a .git entry (PermissionError)', record['ended'])
+        self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+
+    def test_home_names_the_home_allocated_for_this_launch_and_nothing_else(self):
+        home, other = self.tmp / 'invented-home', self.tmp / 'another-home'
+        other.mkdir()
+        (other / 'kept').write_text('something already here')
+        good = launch.child_environment(home, 'tmp', launch.DEFAULT_MODEL_ADDRESS)
+        launch.check_environment(dict(good), home, 'tmp')
+        for name in ('HOME', 'CFFIXED_USER_HOME'):
+            for case, change, said in (
+                    ('unset', lambda env: env.pop(name), f'^{name} is unset or empty'),
+                    ('empty', lambda env: env.update({name: ''}), f'^{name} is unset or empty'),
+                    ('another folder', lambda env: env.update({name: str(other)}), f'^{name} does not name the home'),
+                    ('the account home', lambda env: env.update({name: str(self.real)}), f'^{name} does not name the home')):
+                with self.subTest(name=name, case=case):
+                    env = dict(good)
+                    change(env)
+                    with self.assertRaisesRegex(launch.Refusal, said):
+                        launch.check_environment(env, home, 'tmp')
+        both = {**good, 'HOME': str(other), 'CFFIXED_USER_HOME': str(other), 'TMPDIR': str(other / 'tmp')}
+        with self.assertRaisesRegex(launch.Refusal, '^HOME does not name the home'):
+            launch.check_environment(both, home, 'tmp')  # the two agree with each other and are still refused
+        real = launch.child_environment
+        for case, change in (('empty', {'HOME': ''}),
+                             ('another folder', {'HOME': str(other), 'CFFIXED_USER_HOME': str(other)}),
+                             ('the frameworks home alone another folder', {'CFFIXED_USER_HOME': str(other)})):
+            with self.subTest(run=case), mock.patch.object(launch, 'child_environment', lambda *a: {**real(*a), **change}):
+                code, record, out, folder = self.run_helper(self.candidate(where='home-' + case.replace(' ', '-')))
+                self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+                self.assertIn('HOME ', record['ended'])
+                self.assertFalse((Path(record['home']) / 'received-env.txt').exists())
+                self.assertEqual(os.listdir(other), ['kept'])
+
+    def test_the_folder_home_names_is_the_directory_the_launcher_holds(self):
+        real_listing = launch.listing
+        moved = {}
+
+        def swap(case):
+            def listing(*args, **kwargs):  # after the allocation, before the start
+                [folder] = self.folders()
+                home = folder / launch.HOME
+                if not moved.get(case):
+                    moved[case] = True
+                    home.rename(folder / 'home-moved-aside')
+                    if case == 'another folder at the same name':
+                        home.mkdir()
+                    elif case == 'a link to the allocated one':
+                        home.symlink_to(folder / 'home-moved-aside')
+                return real_listing(*args, **kwargs)
+            return listing
+        for case, said in (('another folder at the same name', 'is not the directory allocated for this launch'),
+                           ('a link to the allocated one', 'is not the directory allocated for this launch'),
+                           ('nothing at the name', 'could not be checked (FileNotFoundError)')):
+            with self.subTest(case), mock.patch.object(launch, 'listing', swap(case)):
+                code, record, out, folder = self.run_helper(self.candidate(where='swap-' + case.replace(' ', '-')))
+                self.assertEqual((code, record['outcome'], record['app_started']), (2, 'not launched', 'not started'), out)
+                self.assertIn('the folder HOME names ' + said, record['ended'])
+                self.assertFalse(any(folder.rglob('received-env.txt')))
+                shutil.rmtree(folder)
+
+    def test_home_is_an_absolute_path(self):
+        with self.assertRaisesRegex(launch.Refusal, 'not an absolute path'), mock.patch.object(
+                launch.os, 'stat', lambda *a, **k: os.fstat(os.open(self.tmp, os.O_RDONLY))), \
+                mock.patch.object(launch, '_ident', lambda fd: (os.stat(self.tmp).st_dev, os.stat(self.tmp).st_ino)):
+            launch.check_home({'HOME': 'relative/home'}, None)
+        self.assertTrue(os.path.isabs(str(REAL_HOMES_ROOT())))
+
+    def test_the_mapping_carries_no_codex_home_variable(self):
+        home = self.tmp / 'invented-home'
+        good = launch.child_environment(home, 'tmp', launch.DEFAULT_MODEL_ADDRESS)
+        for name in ('CODEX_HOME', 'CHIRALITY_CODEX_HOME', 'CODEX_SQLITE_HOME', 'CHIRALITY_WORKSPACE'):
+            with self.subTest(name):
+                self.assertNotIn(name, launch.ALLOWED)
+                self.assertNotIn(name, good)
+                for value in (str(home / 'codex-home'), '/invented/elsewhere'):
+                    with self.assertRaisesRegex(launch.Refusal, 'outside the allowlist'):
+                        launch.check_environment({**good, name: value}, home, 'tmp')
+
+    def test_at_the_start_the_home_holds_only_the_launchers_two_entries_and_is_the_working_folder(self):
+        seen = self.tmp / 'seen-at-start.txt'
+        script = f'pwd > "{seen}"\nls -A "$HOME" >> "{seen}"\n'
+        code, record, out, folder = self.run_helper(self.candidate(script, plays=False))
+        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
+        working, *names = seen.read_text().splitlines()
+        self.assertEqual(os.path.realpath(working), os.path.realpath(record['home']))
+        self.assertEqual(len(names), 2, names)
+        self.assertEqual(sorted(name.rsplit('-', 1)[0] for name in names),
+                         ['.chirality-launch-output', '.chirality-launch-tmp'])
+        self.assertEqual(set(names) & {'.codex', '.agents', 'AGENTS.md', 'AGENTS.override.md', '.git'}, set())
 
 
 class CandidateAdmission(Fixture):  # the only caller path

@@ -67,6 +67,9 @@ needs:
     content identity, scope and purpose; a library's registration acts are kept with that library;
     a record can be validated; and entries for a run's text and its supply check are carried in
     the run's log.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
   gating: false
 - from: external:sgttomas/chirality-library release
   condition: The selected Library release publishes its source archive with a digest, and its
@@ -75,7 +78,9 @@ needs:
   when: When the bundled workflows are generated or compared with the release.
 - from: external:person using the App
   condition: A person reviews and registers workflows, sends the messages the App prepares, and
-    starts and ends runs.
+    starts and ends runs. In an agent-operated journey examination as the release target defines
+    it, the examining agent performs these steps on examination material for control-and-record
+    evidence only; the positive case with the person as actor (AC-006) needs the person.
 - from: external:SWBPIPE implementation owner
   condition: A host lists its workflow library to the App and delivers a host workflow's package
     with its origin and revision.
@@ -101,6 +106,8 @@ code_paths:
 - app/src-tauri/src/trial_flows.rs
 - app/src-tauri/src/historical_run_learning.rs
 - app/src-tauri/src/workflow_learning_pointers.rs
+# The read of a workflow's own text for the person, before choosing it or before a run starts.
+- app/src-tauri/src/workflow_text_read.rs
 - app/src-tauri/resources/workflow_role/workspace-registration.schema.json
 - app/src-tauri/resources/workflow_role/workflow-record-envelope.schema.json
 - app/src-tauri/resources/production_workflows/**
@@ -123,6 +130,7 @@ code_paths:
 # mark that withholds the Run and Make guides until a read follows the last command.
 - app/src/hostReads.ts
 - app/src/IncludedWorkflows.tsx
+- app/src/WorkflowText.tsx
 - app/src/MakeJourney.tsx
 - app/src/LibraryEntries.tsx
 - app/src/WorkflowRegistrationReview.tsx
@@ -166,6 +174,7 @@ checks:
 - app/src-tauri/src/historical_trial_flows_tests.rs
 - app/src-tauri/src/records_portable_reconstruction_tests.rs
 - app/src-tauri/src/workflow_real_backend_fixture_tests.rs
+- app/src-tauri/src/workflow_text_read_tests.rs
 # workflow_role_tests.rs is shared with DEL-02-01, DEL-02-03 and DEL-02-04. Here: the cases on
 # registered bytes, run text and the supply check.
 - app/src-tauri/src/workflow_role_tests.rs
@@ -177,6 +186,7 @@ checks:
 - app/tests/run-journey.test.mjs
 - app/tests/host-reads.test.mjs
 - app/tests/included-workflows.test.mjs
+- app/tests/workflow-text.test.mjs
 - app/tests/make-journey.test.mjs
 - app/tests/journey-navigation.test.mjs
 - app/tests/workflow-library.test.mjs

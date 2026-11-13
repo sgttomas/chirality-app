@@ -60,11 +60,47 @@ What it also does, each with its limit:
   an existing directory of this user, reached from / without following any
   link. It never creates the root and deletes nothing.
 - Under the root it creates a launch folder (launch-<UTC time>-<random>) by an
-  exclusive create through the root's held handle, and within it home/ and
-  record/ the same way (make_folder). An exclusive create fails if anything
-  already exists there under any spelling the volume treats as the same, so the
-  App is never launched into a home that existed before the run. Limit: HOME is
-  passed to the App as a pathname, and the launcher does not re-check it.
+  exclusive create through the root's held handle, and within it home/,
+  record/ and project/ the same way (make_folder). An exclusive create fails
+  if anything already exists there under any spelling the volume treats as the
+  same. The launcher does not reuse an existing entry when allocating these
+  directories.
+  Limit: HOME is passed to the App as a pathname. The launcher checks once,
+  immediately before the start, that the pathname is the directory it holds
+  (check_home); it does not hold the pathname from that check to the start.
+- project/ is the project folder for an operated run: the folder to choose in
+  the App, and no other. It is created empty and the launcher puts nothing in
+  it; its path is in the record.
+- Immediately before the start it refuses when any folder above the home or
+  above the project folder holds a .git entry (git_marker_above): the launch
+  folder, the homes root and every folder above them to the top, each asked
+  by lstat alone, a file or a folder, without asking what is in it. A folder
+  that cannot be asked refuses, and the refusal names the folder. The reason:
+  as read in the supplier's source at the pin, Codex searches upward from its
+  working folder for a .git entry, and when it finds one it runs git there and
+  reads instruction files, skills and .codex configuration from every folder
+  up to it; with none above, it looks only at the working folder itself. What
+  this does not do: it says nothing about a folder the operator picks in the
+  App's window, which the launcher never learns; it is presence at one moment;
+  it says nothing of the system folder or of managed preferences; and it
+  encodes a reading of the supplier at the pin, not an observation of it.
+- The launcher itself puts two entries in the new home before the start: the
+  temporary folder and the output file, each named .chirality-launch-...
+  Neither is a .codex, .agents, AGENTS.md or AGENTS.override.md entry. It does
+  not list the home, so an entry something else put there between the home's
+  creation and the start is not seen. What the App then makes in its home is
+  the App's.
+- HOME and CFFIXED_USER_HOME in the mapping handed to the start name the home
+  allocated for this launch, and nothing else: each is that home's path as
+  text (check_environment), the path is absolute, and, not followed if it is
+  a link, it is the directory the launcher holds, by device and inode
+  (check_home). Unset,
+  empty or any other folder refuses. This is stated as a guard of its own
+  because the supplier resolves its home-relative places from HOME and falls
+  back to the account's real home when HOME is unset or empty. The mapping
+  carries no Codex home variable: the allowlist has none, so one in the
+  mapping is refused, and where the App puts its Codex home inside that home
+  is the App's.
 - The record is published in record/, whole or absent. A launch folder whose
   record/ is empty is one whose run did not complete; nothing more is known of
   it from the folder.
@@ -96,6 +132,32 @@ What it also does, each with its limit:
   lane's change, not yet on main; of a candidate built before it, nothing is
   said). Neither override establishes where a launch's requests went. The
   launcher reads no system managed configuration.
+
+- The watched places of the real Library are its own first level and nine
+  folders in it (WATCHED). Two more that were watched are not: Cookies and
+  Autosave Information. On a Mac with the system's privacy protection in force
+  a listing of either is refused, the launcher does not launch when a watched
+  place cannot be listed, and so on such a host it could not launch at all
+  (found at its first real run). What it no longer observes: an entry named
+  for the build appearing in either folder. A before-listing that cannot be
+  made still refuses the launch, and the record names the place.
+- When the launcher attempted to pass a termination to the App, `ended` says
+  so in the launcher's own words, beside how the App's process ended. It says
+  that and nothing else: which signals the launcher received, and when, are in
+  `signals_received`; what the process group was after the settle time is in
+  `process_group_after_settle`; `ended` repeats neither. It does not say that
+  the termination arrived or that it is what ended the App. Such a run is not
+  clean, and the record does not say it was; it says why. What a caller may not rely on: a signal received after
+  the last check and before the start does not prevent the App's process
+  being created; termination is attempted after creation, and the App may
+  have begun starting up.
+- The folder Codex works in, when the App starts one, is the App's choice: the
+  project chosen in the App, the App's data folder under the home, or the
+  temporary folder in the home. Each is the project folder, or lies under the
+  home. The folders the launcher asks are those above the home and above the
+  project folder, and no others: it does not ask a folder the App resolves by
+  itself, nor any folder the App makes between the home and the one it works
+  in.
 
 Limits: the comparison sees names, kinds, sizes and modification times, not
 content; the App's working directory is given by pathname; the launcher sends
@@ -134,7 +196,8 @@ NOTE = ('Evidence for a journey step record, written by ' + TOOL + '; not an exa
         'and nothing validates it.')
 CODEX_NOTE = 'this launcher starts no Codex itself; whether the App started one is not known to it'
 HOMES_ROOT = ('dev', 'chirality-t3', 'scratch', 'app', 'homes', 'examination')  # under the account's home
-HOME, RECORD_FOLDER = 'home', 'record'  # the two children of a launch folder
+HOME, RECORD_FOLDER, PROJECT = 'home', 'record', 'project'  # the three children of a launch folder
+MARKER = '.git'  # the entry the supplier's upward search stops at
 RECORD = 'launch-record.json'  # in record/
 BUNDLE_FOLDER = ('target', 'debug', 'bundle', 'macos')  # in a candidate folder (build_candidate.py)
 IDENTIFICATION = ('identification', 'candidate-identification.json')  # in a candidate folder (identify.py record)
@@ -173,8 +236,10 @@ ALLOWED = {
 
 # STATEMENT 3: the Library folders searched, beside the Library's own first level. Protected folders (Containers,
 # Group Containers, Mail, Safari and the like) are not listed: reading them can be refused or raise a privacy prompt.
+# Cookies and Autosave Information were listed and are protected in the same way: with them the launcher could not
+# launch on a host that refuses their listing.
 WATCHED = ('Application Support', 'Caches', 'WebKit', 'HTTPStorages', 'Preferences', 'Saved Application State',
-           'Logs', 'Cookies', 'Application Scripts', 'Autosave Information', 'LaunchAgents')
+           'Logs', 'Application Scripts', 'LaunchAgents')
 EXECUTABLE_RULE = re.compile(r'chirality-[a-z0-9][a-z0-9_-]{2,}')  # e.g. chirality-app-v4
 
 _forwarding = threading.Event()  # set while the launcher latches signals (tests wait on it before signalling)
@@ -190,8 +255,14 @@ def real_home():
 
 
 def homes_root():
-    """The one homes root; the one thing tests replace with a stand-in."""
+    """The one homes root; tests replace it with a stand-in."""
     return real_home().joinpath(*HOMES_ROOT)
+
+
+def top_of_search():
+    """Where the upward search for a .git entry ends: the top of the filesystem. Tests replace it with the top of
+    their own fixture, so that they do not depend on what lies above the account's home."""
+    return Path('/')
 
 
 def user_cache_dir():
@@ -217,11 +288,11 @@ def sha256_file(path):
     return digest.hexdigest()
 
 
-def kind_of(path, dir_fd=None):
+def kind_of(path):
     """'absent', 'dir', 'link' or 'other'. Anything else that stops the path being examined is raised, never taken
     for absence."""
     try:
-        info = os.stat(path, dir_fd=dir_fd, follow_symlinks=False)
+        info = os.stat(path, follow_symlinks=False)
     except FileNotFoundError:
         return 'absent'
     return 'link' if stat.S_ISLNK(info.st_mode) else 'dir' if stat.S_ISDIR(info.st_mode) else 'other'
@@ -280,9 +351,10 @@ def new_folder_name():
 
 
 def make_folder(root, root_fd):
-    """A new launch folder under the root and home/ and record/ within it, each by an exclusive create through a held
-    handle: a create fails if anything already exists there under any spelling the volume treats as the same.
-    Returns the folder's path and held handles on home/ and record/. Nothing in the home is read."""
+    """A new launch folder under the root and home/, record/ and project/ within it, each by an exclusive create
+    through a held handle: a create fails if anything already exists there under any spelling the volume treats as
+    the same. Returns the folder's path and held handles on home/ and record/. Nothing in the home is read, and
+    nothing is put in project/."""
     name = new_folder_name()
     try:
         os.mkdir(name, 0o700, dir_fd=root_fd)
@@ -291,15 +363,41 @@ def make_folder(root, root_fd):
     folder_fd = os.open(name, DIRECTORY, dir_fd=root_fd)
     try:
         handles = []
-        for child in (HOME, RECORD_FOLDER):
+        for child in (HOME, RECORD_FOLDER, PROJECT):
             try:
                 os.mkdir(child, 0o700, dir_fd=folder_fd)
             except FileExistsError:
                 raise Refusal(f'{child}/ could not be created: something already exists there ({root / name})') from None
-            handles.append(os.open(child, DIRECTORY, dir_fd=folder_fd))
+            if child != PROJECT:
+                handles.append(os.open(child, DIRECTORY, dir_fd=folder_fd))
     finally:
         os.close(folder_fd)
     return root / name, handles[0], handles[1]
+
+
+def git_marker_above(*folders):
+    """Refuse when a folder above any of `folders` holds a .git entry; return how many folders were asked. Each is
+    asked by lstat alone, to the top of the search; one that cannot be asked refuses. Nothing is opened or listed."""
+    top, asked = top_of_search(), []
+    for start in folders:
+        folder = Path(start).parent
+        while True:
+            if folder not in asked:
+                asked.append(folder)
+                try:
+                    os.lstat(folder / MARKER)
+                except FileNotFoundError:
+                    pass
+                except OSError as error:
+                    raise Refusal(f'{folder} could not be checked for a {MARKER} entry ({type(error).__name__}); '
+                                  f'refusing to launch') from None
+                else:
+                    raise Refusal(f'{folder} holds a {MARKER} entry, above the home or the project folder; '
+                                  f'refusing to launch')
+            if folder == top or folder.parent == folder:
+                break
+            folder = folder.parent
+    return len(asked)
 
 
 # ---- the candidate ------------------------------------------------------------------------------------
@@ -603,11 +701,14 @@ def check_environment(env, home, tmp):
     """STATEMENT 1, immediately before the App starts: exactly the allowlist, with these values."""
     if not isinstance(env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in env.items()):
         raise Refusal('the App environment is not a mapping of names to text')
+    for name in ('HOME', 'CFFIXED_USER_HOME'):  # a guard of its own: each names the home allocated for this launch
+        if not env.get(name):
+            raise Refusal(f'{name} is unset or empty in the App environment; refusing to launch')
+        if env[name] != str(home):
+            raise Refusal(f'{name} does not name the home allocated for this launch; refusing to launch')
     if set(env) != set(ALLOWED):
         raise Refusal(f'App environment outside the allowlist: extra {sorted(set(env) - set(ALLOWED))}, '
                       f'missing {sorted(set(ALLOWED) - set(env))}')
-    if env['HOME'] != str(home) or env['CFFIXED_USER_HOME'] != str(home):
-        raise Refusal('HOME and CFFIXED_USER_HOME must both be the new home; refusing to launch')
     if env['TMPDIR'] != str(Path(home, tmp)):
         raise Refusal("TMPDIR is not this launch's folder in the new home; refusing to launch")
     if env['PATH'] != SYSTEM_PATH or env['LANG'] != LANG:
@@ -616,6 +717,19 @@ def check_environment(env, home, tmp):
         raise Refusal('a proxy override differs from its fixed value; refusing to launch')
     check_model_address(env[MODEL_ADDRESS])
     return env
+
+
+def check_home(env, home_fd):
+    """The folder HOME names is the directory the launcher allocated and holds, by device and inode, asked without
+    following a link at its end. A folder that cannot be asked refuses."""
+    try:
+        named = os.stat(env['HOME'], follow_symlinks=False)
+    except (OSError, KeyError, TypeError) as error:
+        raise Refusal(f'the folder HOME names could not be checked ({type(error).__name__}); refusing to launch') from None
+    if not os.path.isabs(env['HOME']):
+        raise Refusal('HOME is not an absolute path; refusing to launch')
+    if not stat.S_ISDIR(named.st_mode) or (named.st_dev, named.st_ino) != _ident(home_fd):
+        raise Refusal('the folder HOME names is not the directory allocated for this launch; refusing to launch')
 
 
 # ---- the run ------------------------------------------------------------------------------------------
@@ -665,7 +779,8 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
     tmp = f'.chirality-launch-tmp-{secrets.token_hex(4)}'
     record = {'note': NOTE, 'made_by': {'path': TOOL, 'sha256': sha256_file(__file__)}, 'made_at': now(),
               'candidate_key': record_data['candidate_key'], 'identifier': identifier, 'candidate_folder': args.candidate,
-              'bundle': str(app), 'launch_folder': str(folder), 'home': str(home), 'codex': CODEX_NOTE,
+              'bundle': str(app), 'launch_folder': str(folder), 'home': str(home),
+              'project': str(folder / PROJECT), 'codex': CODEX_NOTE,
               'address_override': 'the default (nothing listens there)' if args.model_address is None
               else 'given by the caller'}
     facts = {'started': False, 'signals': [], 'open': True, 'record': str(folder / RECORD_FOLDER / RECORD)}
@@ -678,6 +793,7 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
             return
         facts['signals'].append({'signal': signal.Signals(signum).name, 'at': now()})
         if proc is not None and proc.poll() is None:
+            facts['passed_on'] = True  # an attempt to pass a termination, whether or not it arrived
             try:
                 proc.send_signal(signal.SIGTERM)
             except ProcessLookupError:
@@ -692,15 +808,19 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         try:
             before = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)
         except OSError as error:
-            facts['ended'] = f'not launched: the before-listing could not be made ({type(error).__name__})'
+            place = Path(error.filename).name if isinstance(error.filename, (str, os.PathLike)) else 'a watched place'
+            facts['ended'] = f'not launched: the before-listing could not be made ({type(error).__name__} at {place})'
             return _finish(record_fd, record, facts, code=2, label='not launched')
         prefs_before = preferences_observation()
         cache_before = observe(cache, ('',), identifier, executable, 'per-user cache folder')
-        try:  # immediately before the start: the exact mapping (STATEMENT 1)
+        try:  # immediately before the start: the exact mapping (STATEMENT 1), its home, and no .git entry above
             check_environment(env, home, tmp)
+            check_home(env, home_fd)
+            asked = git_marker_above(home, folder / PROJECT)
         except Refusal as error:
             facts['ended'] = f'not launched: {error}'
             return _finish(record_fd, record, facts, code=2, label='not launched')
+        record['git_marker_above'] = f'none: {asked} folders above the home and the project folder asked by presence'
         if facts['signals']:
             facts['ended'] = 'not launched: the launcher received a signal before the App started'
             return _finish(record_fd, record, facts, code=2, label='not launched')
@@ -717,12 +837,15 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         facts['started'] = True
         record['pid'] = proc.pid
         if facts['signals']:
+            facts['passed_on'] = True
             proc.send_signal(signal.SIGTERM)
         facts['returncode'] = proc.wait()
         facts['ended'] = how_it_ended(facts['returncode'])
         record['ended_at'] = now()
         time.sleep(SETTLE_SECONDS)
         facts['process_group'] = record['process_group_after_settle'] = group_state(proc.pid)
+        if facts.get('passed_on'):  # the one thing no other field says; it cannot change once the wait has returned
+            facts['ended'] += '; the launcher attempted to pass a termination to the App'
         after = again = None
         try:
             after = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)
@@ -783,7 +906,8 @@ def main(argv=None):
         description=__doc__.splitlines()[0] + ' Not a boundary around the App or what it starts.',
         epilog='Each run creates a new launch folder (launch-<time>-<random>) under the homes root '
                '(dev/chirality-t3/scratch/app/homes/examination under the account\'s home, which must exist), with '
-               'home/ and record/ in it, launches the App once and publishes the record in record/. The caller does '
+               'home/, record/ and project/ in it, launches the App once and publishes the record in record/. '
+               'project/ is the project folder to choose in the App for an operated run. The caller does '
                'not choose where they go. What the launcher states, what it also does and its limits are in the '
                'module docstring.')
     parser.add_argument('command', choices=['launch'])

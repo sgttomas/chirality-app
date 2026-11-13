@@ -406,3 +406,5 @@ test('the panel shows its guides only when the App says the view follows the las
 // suite's script and both hosted presentation steps already list. The script
 // itself is not changed: app/package.json's bytes are pinned by the notices basis.
 await import('./included-workflows.test.mjs');
+// Reading a workflow's own text in Run a workflow, run here for the same reason.
+await import('./workflow-text.test.mjs');

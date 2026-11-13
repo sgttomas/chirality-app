@@ -35,7 +35,8 @@ needs:
 - from: DEL-02-02
   condition: Through the App alone a person can create, trial, review, register, reuse and refine
     a workflow, can carry out J1 with real execution, and can carry out J2 as one sequence across
-    two sessions, no step requiring an agent to operate or explain an App control; changed material
+    two sessions, no step requiring a control to be operated or explained by any means other than
+    the App's shipped controls and words; changed material
     stays a draft until reviewed registration, a same-name entry from another origin neither overwrites
     nor rebinds a selection, and a saved workflow runs in a later session on new inputs under the
     person's workflow approval policy with the same source and revision, its selection and run records
@@ -59,9 +60,13 @@ needs:
     formats and checks that refuse a record with a missing input or a mislabelled route, and a part
     that needs native evidence passes only on a native route.
   gating: true
-- from: external:person operating the candidate
-  condition: A person operates the candidate and performs the reviews, registrations, request
-    answers, quit confirmation and sign-in that the journeys contain.
+- from: external:computer-use ability of the examining agent's harness
+  condition: The examining agent can operate the built candidate's shipped controls as a user would,
+    through the computer-use ability native to its harness, and read what the candidate shows.
+- from: external:owner's sign-in
+  condition: The owner signs in and enters the local server's key on the candidate; no agent performs
+    either.
+  when: Before a run that needs a signed-in App or the local model server.
 - from: external:OI-011
   condition: Signing, notarisation and supplier entitlements of the packaged candidate are decided
     by the App implementation owner with the SWBPIPE owner.
@@ -79,6 +84,8 @@ checks:
 - app/examination/native_support/test_*.py
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_launch_home_test.py
+- app/tests/group_b_operated_scenario_test.py
+- app/tests/group_b_operated_macos_test.py
 - app/tests/group_b_pre_run_inputs_test.py
 - app/tests/group_b_native_forms_test.py
 - app/tests/group_b_sq_receiving_test.py
