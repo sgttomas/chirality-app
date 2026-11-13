@@ -146,7 +146,7 @@ test('records capability binding reports cold unknown and publication limits for
 
 test('the read log limit is shown whole with the records capability, with or without bound conversations (LIM-014)',()=>{
   const {RecordsCapabilityBindings}=loadSrc('App');const generation={appSession:'current',home:'home',spawnCounter:1};
-  const sentence="agents cannot read this project's records until its read log is set aside: rename /a/very/long/store/path/projects/key/reads/records-reads.jsonl, in the same folder, to exactly records-reads.jsonl.torn-2026-11-13T19-17-38.143Z. That file ends in a read that was not recorded completely, so no further read can be recorded or answered; nothing already recorded is lost.";
+  const sentence="This project's records capability cannot answer reads until its read log is set aside: rename /a/very/long/store/path/projects/key/reads/records-reads.jsonl, in the same folder, to exactly records-reads.jsonl.torn-2026-11-13T19-17-38.143Z. That file ends in a read that was not recorded completely, so this capability cannot record or answer another read; nothing already recorded is lost.";
   const alone=h(RecordsCapabilityBindings,{host:{generation,threads:[],recordsCapability:{readLogLimit:sentence}}});
   assert.ok(alone.includes(sentence.replace(/'/g,'&#x27;')),alone);
   assert.match(alone,/role="alert"/);

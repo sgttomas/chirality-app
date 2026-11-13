@@ -872,7 +872,7 @@ export function RecordsCapabilityBindings({ host }:{ host: Json }) {
   const readLogLimit=host?.recordsCapability?.readLogLimit;
   if (!rows.length && !readLogLimit) return null;
   return <section aria-label="Conversation records capability"><h3>Conversation records capability</h3>
-    {readLogLimit&&<p role="alert">Agents' reads of this project's records: {readLogLimit}</p>}
+    {readLogLimit&&<p role="alert">Records capability: {readLogLimit}</p>}
     {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
   </section>;
 }

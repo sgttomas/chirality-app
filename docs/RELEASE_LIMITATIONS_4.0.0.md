@@ -243,22 +243,23 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Basis:** DEL-01-05 (REQ-003, REQ-010, AC-003, AC-005, AC-008, AC-011);
   PRD V4-APP-02.
 
-### LIM-014: An interrupted read log stops agents reading records until the person renames it
+### LIM-014: An interrupted read log stops the records capability answering reads until the person renames it
 
 - **Id:** LIM-014
 - **Exit criteria:** 15
-- **What is unavailable:** agents reading a project's records, once an
-  interruption has left the project's read log ending in a read that was not
-  recorded completely (the App was stopped, or the Mac lost power, while it
-  was recording a read). Until the person acts, every read an agent asks for
-  is refused, and the refusal, shown in full with the conversation records
-  capability, says why.
-  Nothing already recorded is lost: the cut-short read was never answered, and
-  every read that was answered stays in the read log.
-- **Why:** every read an agent makes is recorded before it is answered, and
-  the App does not cut, close or rewrite a line of the read log, so it cannot
-  record another read after an unfinished one. In 4.0.0 the App does not set
-  the file aside by itself.
+- **What is unavailable:** reads through a project's records capability, once
+  an interruption has left the project's read log ending in a read that was
+  not recorded completely (the App was stopped, or the Mac lost power, while
+  it was recording a read). Until the person acts, every read asked for
+  through that capability is refused, and the refusal, shown in full with the
+  conversation records capability, says why. This does not prevent agents
+  reading files directly. Nothing already recorded is lost: the cut-short
+  read was never answered, and every read that was answered stays in the read
+  log.
+- **Why:** every read asked for through the records capability is recorded
+  before it is answered, and the App does not cut, close or rewrite a line of
+  the read log, so it cannot record another read after an unfinished one. In
+  4.0.0 the App does not set the file aside by itself.
 - **What the person does instead:** rename the read log, in the same folder,
   to exactly the name the refusal gives (it begins `records-reads.jsonl.torn-`);
   the refusal names the file with its full path. The App then starts a new

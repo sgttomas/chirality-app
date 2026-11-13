@@ -251,6 +251,7 @@ fn records_access_a_torn_read_log_names_its_file_and_recovery_and_reads_again_af
     let said = cap.snapshot()["readLogLimit"].as_str().unwrap().to_owned();
     let path = f.read_log().display().to_string();
     assert!(said.contains(&format!("rename {path}, in the same folder, to exactly ")), "the act, the file and where it is: {said}");
+    assert!(said.starts_with("This project's records capability cannot answer reads"), "the capability, not every way of reading files: {said}");
     assert!(said.contains("ends in a read that was not recorded completely") && said.contains("nothing already recorded is lost"), "{said}");
     let start = said.find("to exactly ").expect("the new name") + "to exactly ".len();
     let name = said[start..].split(". ").next().unwrap().to_owned();

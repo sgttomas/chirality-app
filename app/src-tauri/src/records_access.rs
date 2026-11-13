@@ -533,7 +533,7 @@ fn torn_read_log(path: &Path) -> String {
     let name = path.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "records-reads.jsonl".into());
     let renamed = format!("{name}.torn-{stamp}");
     format!(
-        "agents cannot read this project's records until its read log is set aside: rename {}, in the same folder, to exactly {renamed}. That file ends in a read that was not recorded completely, so no further read can be recorded or answered; nothing already recorded is lost. The App then starts a new read log at the next read, and keeps the renamed file in the records store without using it to answer records reads",
+        "This project's records capability cannot answer reads until its read log is set aside: rename {}, in the same folder, to exactly {renamed}. That file ends in a read that was not recorded completely, so this capability cannot record or answer another read; nothing already recorded is lost. The App then starts a new read log at the next read, and keeps the renamed file in the records store without using it to answer records reads",
         path.display()
     )
 }
