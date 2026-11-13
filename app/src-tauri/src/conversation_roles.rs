@@ -376,9 +376,13 @@ pub(crate) fn fork_conversation_tracked(home: &crate::runtime_session::HomeSessi
 }
 
 /// Whether a fork's refusal is known to come before its send: the Host's "refused-not-sent:"
-/// refusals, and a refusal at its configuration reading (exactly a reading sentence).
+/// refusals, a refusal at its configuration reading (exactly a reading sentence), and an account
+/// or key-home fork whose Codex does not report the built-in provider (returned by its admission
+/// before anything of the fork is registered).
 pub(crate) fn fork_refused_before_send(reason: &str) -> bool {
-    reason.starts_with("refused-not-sent:") || crate::hosting::reading_gate::carries_reading_sentence(reason)
+    reason.starts_with("refused-not-sent:")
+        || crate::hosting::reading_gate::carries_reading_sentence(reason)
+        || reason == crate::hosting::BUILT_IN_PROVIDER_UNREPORTED_FORK
 }
 /// The `conversation_fork` command body: route to the home that owns the
 /// generation, then fork there.

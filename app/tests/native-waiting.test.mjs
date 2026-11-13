@@ -12,6 +12,8 @@ const React=(await import('react')).default;
 const {createRoot}=await import('react-dom/client');
 const {App}=loadSrc('App');
 const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
+// The model field and this route exist only in the account home.
+const ROUTE='Use my ChatGPT account (built-in OpenAI)';
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 let cached;
 function producer(){
@@ -32,7 +34,7 @@ function producer(){
   return cached={dto,special:read('WAITING_NATIVE_SPECIAL_DTO:'),refusals:read('WAITING_NATIVE_REFUSALS_DTO:')};
 }
 
-async function mounted(check,{initial='api-key',pending,claimWait,navigationWait,listenerWait,listenerFailure=false,special=false,loseClaimResponses=0,abandonFailures=0,initialStatusWait}={}){
+async function mounted(check,{render=()=>React.createElement(App),initial='api-key',pending,claimWait,navigationWait,listenerWait,listenerFailure=false,special=false,loseClaimResponses=0,abandonFailures=0,initialStatusWait}={}){
   const evidence=producer(),dto=special?evidence.special:evidence.dto;
   const container=document.createElement('div');document.body.appendChild(container);let root=createRoot(container);
   const previous=window.__TAURI_INTERNALS__,priorEvents=window.__TAURI_EVENT_PLUGIN_INTERNALS__,priorGet=document.getElementById;
@@ -87,10 +89,10 @@ async function mounted(check,{initial='api-key',pending,claimWait,navigationWait
   const wake=async claim=>{queue(claim);await React.act(async()=>{for(const [id,handler] of handlers)handler({id,event:'chirality-native-waiting',payload:null});});};
   const press=async text=>{const button=find('button',text);assert.ok(button,text);assert.equal(!!props(button).disabled,false);await React.act(async()=>{props(button).onClick();});};
   try{
-    await React.act(async()=>root.render(React.createElement(App)));
-    await check({evidence,dto,container,calls,scrolls,select,draft,field,change,press,wake,settle,queue,pending:()=>!!owned||!!nextClaim,
+    await React.act(async()=>root.render(render()));
+    await check({evidence,dto,container,calls,scrolls,select,draft,field,find,change,press,wake,settle,queue,pending:()=>!!owned||!!nextClaim,
       poll:async()=>React.act(async()=>{await new Promise(resolve=>setTimeout(resolve,1050));}),
-      remount:async claim=>{await React.act(()=>root.unmount());owned=null;nextClaim=claim;root=createRoot(container);await React.act(async()=>root.render(React.createElement(App)));},
+      remount:async claim=>{await React.act(()=>root.unmount());owned=null;nextClaim=claim;root=createRoot(container);await React.act(async()=>root.render(render()));},
       unmount:async()=>{await React.act(()=>root.unmount());},
     });
     const allowed=['host_status','decision_view','native_confirmation_content','host_observe','plugin:event|listen','plugin:event|unlisten','claim_native_waiting_intent','finish_native_waiting_intent','checkpoint_native_waiting_ui','open_waiting_requests'];
@@ -112,18 +114,18 @@ test('a native waiting selection queued before the listener opens its original c
 
 test('native wake-up after startup preserves same-home chooser and unsent draft and consumes the claim once',async()=>{
   await mounted(async ui=>{
+    await ui.press(ROUTE);
     await ui.change(ui.field('input','Model '),'separate-unsent-model');
-    await ui.change(ui.field('input','Configured Codex provider '),'openai');
-    await ui.change(ui.field('select','Access entry '),'api-key');
     await ui.change(ui.draft(),'Unsent / 家 & literal');
-    await ui.wake(ui.dto.native.intents['api-key']);
+    await ui.wake(ui.dto.native.intents.account);
     await ui.wake(null);
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto['api-key'].generation,'shared-thread']));
+    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
     assert.equal(props(ui.field('input','Model ')).value,'separate-unsent-model');
+    assert.equal(props(ui.find('button',ROUTE))['aria-pressed'],true);
     assert.equal(props(ui.draft()).value,'Unsent / 家 & literal');
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
     assert.deepEqual(ui.scrolls,['conversation']);
-  });
+  },{initial:'account'});
 });
 
 test('native unnamed selection shows only the original home request section',async()=>{
@@ -174,13 +176,13 @@ for(const kind of ['conversation','chooser'])test(`a newer ${kind} choice during
     assert.match(ui.container.textContent,/older or uncertain UI checkpoint/);
     assert.deepEqual(ui.scrolls,[]);
     if(kind==='chooser')assert.equal(props(ui.field('input','Model ')).value,'newer-unsent-model');
-  },{claimWait:wait});
+  },{claimWait:wait,initial:kind==='chooser'?'account':'api-key'});
 });
 
 test('newer UI edits during admitted native navigation survive the delayed open result',async()=>{
   const wait=deferred();
   await mounted(async ui=>{
-    await ui.wake(ui.dto.native.intents['api-key']);
+    await ui.wake(ui.dto.native.intents.account);
     await ui.change(ui.select(),'');
     await ui.change(ui.field('input','Model '),'newer-chooser');
     await ui.change(ui.draft(),'Newer unsent draft');
@@ -189,7 +191,7 @@ test('newer UI edits during admitted native navigation survive the delayed open 
     assert.equal(props(ui.field('input','Model ')).value,'newer-chooser');
     assert.equal(props(ui.draft()).value,'Newer unsent draft');
     assert.match(ui.container.textContent,/navigation superseded/);
-  },{navigationWait:wait});
+  },{navigationWait:wait,initial:'account'});
 });
 
 for(const kind of ['reload','closure'])test(`actual host ${kind} refusal is displayed without any navigation fallback`,async()=>{
@@ -237,7 +239,7 @@ test('a newer chooser edit during initial listener installation supersedes the q
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,0);
     assert.match(ui.container.textContent,/older or uncertain UI checkpoint/);
     assert.equal(props(ui.field('input','Model ')).value,'newer-during-listen');
-  },{pending:dto.native.intents.account,listenerWait:wait});
+  },{pending:dto.native.intents.account,listenerWait:wait,initial:'account'});
 });
 
 
@@ -288,21 +290,30 @@ test('lost claim response and failed abandon retry cleanup before admitting anot
 });
 
 
+// The App renders no new-conversation chooser before its first host snapshot
+// (the model field and the route exist only in the account home), so an edit
+// made before the first attachment is exercised on the bridge itself: its first
+// checkpoint is then not pristine, and an older unbound startup selection is refused.
+const {NativeWaitingBridge}=loadSrc('NativeWaitingBridge');
+function EditedBeforeAttachment(){
+  const [message,setMessage]=React.useState('');
+  return React.createElement('div',null,React.createElement(NativeWaitingBridge,{ready:true,report:setMessage,
+    checkpoint:()=>({signature:'edited-before-first-attachment',pristine:false}),
+    capture:()=>async target=>{await window.__TAURI_INTERNALS__.invoke('open_waiting_requests',{modeHomeClass:target.modeHomeClass,generation:target.generation,threadId:target.threadId});}}),
+    React.createElement('p',null,message));
+}
 test('a chooser edit before the first host snapshot refuses an older unbound startup selection',async()=>{
-  const wait=deferred();const {dto}=producer();
+  const {dto}=producer();
   await mounted(async ui=>{
-    await ui.change(ui.field('input','Model '),'newer-before-first-attachment');
-    wait.resolve();await ui.settle();
+    await ui.settle();
+    assert.equal(ui.calls.filter(c=>c.command==='checkpoint_native_waiting_ui')[0].args.revision,1,'an edited UI never attaches at the pristine revision');
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,0,
       'first attachment cannot label a prior native selection as newer than an already edited UI');
-    // The first host snapshot independently binds the chooser to its actual
-    // home. Native waiting must preserve that source guard and refuse this
-    // older selection, rather than assigning it the edited UI's checkpoint.
     assert.match(ui.container.textContent,/older or uncertain UI checkpoint/);
     await ui.wake(ui.dto.native.intents.account);
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1,
       'a fresh click after the first acknowledgment remains usable');
-  },{pending:dto.native.intents.account,initialStatusWait:wait});
+  },{pending:dto.native.intents.account,render:()=>React.createElement(EditedBeforeAttachment)});
 });
 
 
@@ -323,5 +334,5 @@ test('first native click after an acknowledged chooser edit succeeds while liste
     assert.doesNotMatch(ui.container.textContent,/navigation superseded|older or uncertain UI checkpoint/);
     await ui.wake(null);
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1,'the consumed selection never replays');
-  },{listenerWait:wait});
+  },{listenerWait:wait,initial:'account'});
 });

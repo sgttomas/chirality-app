@@ -40,6 +40,10 @@ for line in sys.stdin:
  with open('wire.jsonl','a') as log: log.write(json.dumps(f)+'\n')
  m=f.get('method')
  if m=='initialize': emit({'id':f['id'],'result':{'userAgent':'unqualified-roles-fixture'}});continue
+ if m=='config/read':
+  # The account home's Codex reports its session setting's provider unless a fixture file names another.
+  provider=open('reported-provider').read().strip() if os.path.exists('reported-provider') else 'openai'
+  emit({'id':f['id'],'result':{'config':{'model_provider':provider,'model_providers':{}},'origins':{}}});continue
  if m=='thread/start':
   n['start']+=1;result(f,settled(thread('thread' if n['start']==1 else 'thread-%d'%n['start'])),'start');continue
  if m=='thread/fork':
@@ -552,7 +556,7 @@ fn native_links_actual_closed_unknown_releases_custody_without_fabricating_relat
 }
 #[test]
 fn native_links_actual_error_and_failed_write_release_original_custody(){
- for failed_write in [false,true] {let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);let prior=if failed_write{crate::hosting::install_broken_test_input(&f.home.host)}else{std::fs::write(f.root.join("fork-mode"),"error").unwrap();None};let native=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_millis(50),|r|{links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();});assert!(native.is_err());links.retry(Some(&f.root));assert!(!links.has_pending());assert!(links.snapshot()["observations"].as_array().unwrap().is_empty());assert!(links.snapshot()["nativeAttempts"][0]["limit"].is_string());assert!(!l.log().exists());drop(prior);}
+ for failed_write in [false,true] {let l=LinksFixture::new();let f=&l.native;let source=f.start(None,None);let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);let prior=if failed_write{Some(crate::hosting::break_input_after_the_reading(&f.home.host,None))}else{std::fs::write(f.root.join("fork-mode"),"error").unwrap();None};let native=fork_conversation_tracked(&f.home,&f.generation,&source,Duration::from_millis(50),|r|{links.track_fork(context,Arc::clone(&f.home.host),r.clone()).unwrap();});assert!(native.is_err());links.retry(Some(&f.root));assert!(!links.has_pending());assert!(links.snapshot()["observations"].as_array().unwrap().is_empty());assert!(links.snapshot()["nativeAttempts"][0]["limit"].is_string());assert!(!l.log().exists());drop(prior);}
 }
 
 #[test]
