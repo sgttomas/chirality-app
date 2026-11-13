@@ -282,7 +282,10 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
    `<defunct>`) is recorded with its number, parent and state and is not a
    bar: it has exited and can do nothing.
 4. **The sample of the service's socket folder** ("Running a scenario"),
-   started in the background.
+   started so that it outlives the shell call that starts it: through
+   `detached.py` with the name `lane-socket`, running the loop with
+   `/bin/sh -c '<the loop>'`. It ends by itself at its stated stop; step 11
+   leaves it alone.
 
 Then the lane delegates the operator.
 
@@ -481,8 +484,11 @@ Its last line is the verdict, or "no walk", and the evidence folder.
    ```
 
    Wait until `<evidence folder>/launcher.out` holds the outcome (about fifteen
-   seconds), then confirm that neither process remains (`ps -p` on each
-   number prints no process). The launch record then says the launcher
+   seconds; wait at most sixty), then confirm that neither process remains
+   (`ps -p` on each number prints no process). If no outcome comes within
+   sixty seconds, or a process remains, the recovery is incomplete: the
+   operator records it, tells the lane in its return, and goes on with the
+   other checks of step 10. This method authorises no stronger signal. The launch record then says the launcher
    received the signal and attempted to pass a termination to the App, and
    the outcome is "failed": that is the truthful record of a launch ended
    from outside, not a defect. The launch record's outcome describes how the
@@ -581,7 +587,8 @@ Its last line is the verdict, or "no walk", and the evidence folder.
       otherwise leave the identification stale. The look: the first `ps`
       command above, for a window service (by its command, below) and for
       any process whose command is the app-server's, whatever its parent.
-      Both are kept whole in `look.txt` in the evidence folder. An exited
+      Both are kept whole in `look.txt` in the evidence folder, whose first
+      line is the time of the look in UTC (`date -u +%FT%TZ`). An exited
       entry (state `Z`, `<defunct>`) is not a running process and is not a
       bar; it is recorded as it is found.
       Any difference in the check, or any such process running, means no walk
@@ -600,7 +607,11 @@ Its last line is the verdict, or "no walk", and the evidence folder.
       is one of the two recorded identities, the operator's runtime or its
       host (the parent's number and start time those recorded); and whose
       start, in UTC, is no earlier than the look and no later than the walk's
-      end. A process meeting all three is ended. In A2's fifth attempt the
+      end. A process meeting all three is ended. The look's time is the first
+      line of `look.txt`; the walk's end is the result file's `finished`, or,
+      where there is no result file, the time the operator records when the
+      walk stopped, on every path that stops it. Where either is missing, no
+      endpoint is inferred: the route's processes are unresolved. In A2's fifth attempt the
       helper's parent was the host (observed, once); the earlier record saw
       `node_repl` as its parent too, before anyone looked for the kernel below
       it. The rule accepts either, since once is not always. Whether the
@@ -653,7 +664,8 @@ Its last line is the verdict, or "no walk", and the evidence folder.
     was lost before it returned. It does not wait for step 10's observations,
     which on some of those paths were never made. In order:
 
-    1. For each `*.started.json` in the evidence folder: if `ps -o command= -p
+    1. For each `*.started.json` in the evidence folder other than the lane's
+       own (`lane-*.started.json`, which end by themselves): if `ps -o command= -p
        <its pid>` still shows the recorded command, end it as step 10 does
        (the launcher by a termination, the watch by its number) and confirm
        it is gone.
@@ -1087,8 +1099,14 @@ failure, the same scenario and acts.
   processes as not known.
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
-- The result file holds every call made and every view's returned text whole.
-  When a view fails, it also holds the failure as messages only, in
+- The result file holds every call made and every view's returned text whole,
+  with two exceptions. A view whose reply names another bundle is kept only as
+  an error naming that bundle; its returned text is not kept. And a click that
+  throws is not caught: `walk.run` rejects, the block above writes no result
+  file and prints no summary, and the calls and views made before it are not
+  saved. The operator then keeps the tool's error whole, records that nothing
+  was saved and the time the walk stopped, makes no other call, and goes to
+  steps 8 and 10. When a view fails, it also holds the failure as messages only, in
   `view_error`: where it failed, the error's own message, and each cause the
   error carries, in order and whole (at most eight); the summary prints the
   causes under the line that says where the walk stopped. The causes are
