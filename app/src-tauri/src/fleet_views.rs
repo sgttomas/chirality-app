@@ -300,7 +300,9 @@ struct Delegation<'a> {
     dispatches: Vec<&'a Value>,
     /// Each child's observation in each generation it was observed in: the
     /// status or end last recorded in that generation, in the store's order of
-    /// those rows. Generations are not ordered against each other.
+    /// those rows, or its dispatch where nothing of the child has been
+    /// recorded in that generation since. Generations are not ordered against
+    /// each other.
     observations: BTreeMap<String, Vec<(String, &'a Value)>>,
     /// Children with a status or an end recorded and no dispatch.
     orphaned: Vec<&'a str>,
@@ -320,13 +322,16 @@ impl<'a> Delegation<'a> {
         // own generation's observation. Generation identities are compared for
         // identity only (their parsed JSON serialization); no order is
         // established between them, so no generation's observation supersedes
-        // another's.
+        // another's. A dispatch opens its generation's observation of the
+        // child: with no status or end recorded after it, that observation is
+        // open, so another generation's end never makes it read as ended.
         let mut ended_generations = BTreeSet::new();
         let mut observations: BTreeMap<String, Vec<(String, &'a Value)>> = BTreeMap::new();
-        for row in rows.iter().copied().filter(|o| o["record"]["kind"] != "dispatch_observed") {
+        for row in rows.iter().copied() {
             let record = &row["record"];
             let generation = record["body"]["child"]["generation"].to_string();
             let ended_key = json!([child_key(record), generation]).to_string();
+            let dispatch = record["kind"] == "dispatch_observed";
             if record["kind"] == "observation_ended" {
                 ended_generations.insert(ended_key);
             } else if ended_generations.contains(&ended_key) {
@@ -334,6 +339,7 @@ impl<'a> Delegation<'a> {
             }
             let seen = observations.entry(child_key(record)).or_default();
             match seen.iter_mut().find(|(g, _)| *g == generation) {
+                Some(_) if dispatch => {}
                 Some(slot) => slot.1 = row,
                 None => seen.push((generation, row)),
             }
@@ -358,7 +364,9 @@ impl<'a> Delegation<'a> {
         let Some(seen) = self.observations.get(&child_key(&dispatch["record"])).filter(|seen| !seen.is_empty()) else {
             return (format!("no child status recorded since the dispatch was recorded {}", text(&dispatch["record"]["observedAt"])), false, None, vec![]);
         };
-        let words = |o: &Value| if o["record"]["kind"] == "observation_ended" {
+        let words = |o: &Value| if o["record"]["kind"] == "dispatch_observed" {
+            format!("no child status recorded in that generation since the dispatch was recorded {}", text(&o["record"]["observedAt"]))
+        } else if o["record"]["kind"] == "observation_ended" {
             format!("observation ended ({}) as recorded {}, last recorded status {}; outcome unknown",
                 text(&o["record"]["body"]["cause"]), text(&o["record"]["observedAt"]), o["record"]["body"]["lastObserved"].as_str().unwrap_or("none"))
         } else {
@@ -368,14 +376,16 @@ impl<'a> Delegation<'a> {
         let generation = |o: &Value| crate::recovery::generation_ref(&o["record"]["body"]["child"]["generation"]).unwrap_or_else(|_| "not identified".into());
         let each: Vec<Value> = seen.iter().map(|(_, o)| json!({"generation":generation(o),"observed":words(o),
             "observationEnded":o["record"]["kind"] == "observation_ended","source":observation_source(o)})).collect();
-        let text = if seen.len() == 1 {
+        let text = if seen.len() == 1 && seen[0].1["record"]["kind"] == "dispatch_observed" {
+            format!("no child status recorded since the dispatch was recorded {}", text(&seen[0].1["record"]["observedAt"]))
+        } else if seen.len() == 1 {
             words(seen[0].1)
         } else {
             format!("observed in {} generations, none superseding another: {}", seen.len(),
                 seen.iter().map(|(_, o)| format!("in generation {}, {}", generation(o), words(o))).collect::<Vec<_>>().join("; "))
         };
         let ended = seen.iter().all(|(_, o)| o["record"]["kind"] == "observation_ended");
-        (text, ended, (seen.len() == 1).then(|| seen[0].1), each)
+        (text, ended, (seen.len() == 1 && seen[0].1["record"]["kind"] != "dispatch_observed").then(|| seen[0].1), each)
     }
 }
 

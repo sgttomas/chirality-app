@@ -277,6 +277,10 @@ impl Session {
             let Some(pending) = self.facts.get_mut(&key) else { continue };
             if !blocked.contains(&of) {
                 settle(pending);
+                // An end found already recorded is not owed and holds nothing back.
+                if pending.permanent.as_deref() == Some(super::ALREADY_ENDED) {
+                    continue;
+                }
                 if !pending.store_done {
                     blocked.insert(of.clone());
                 }
@@ -514,7 +518,8 @@ impl Session {
         match (&self.delegation.reconciled, &self.delegation.unreconciled) {
             (Some((done, taken)), _) => {
                 let mut status = done.clone();
-                let unwritten = taken.iter().filter_map(|end| self.facts.get(end)).find(|p| !(p.store_done && p.project_done));
+                let unwritten = taken.iter().filter_map(|end| self.facts.get(end))
+                    .find(|p| !(p.store_done && p.project_done) && p.permanent.as_deref() != Some(super::ALREADY_ENDED));
                 match unwritten {
                     Some(pending) if done["state"] == "ran" => {
                         status["state"] = json!("unavailable");
@@ -524,7 +529,9 @@ impl Session {
                     _ if done["state"] == "ran" => status["state"] = json!("recorded"),
                     _ => {}
                 }
-                status["endsRecorded"] = json!(taken.len());
+                let found = taken.iter().filter(|end| self.facts.get(*end).is_some_and(|p| p.permanent.as_deref() == Some(super::ALREADY_ENDED))).count();
+                status["endsRecorded"] = json!(taken.len() - found);
+                if found > 0 { status["endsFoundAlreadyRecorded"] = json!(found); }
                 status
             }
             (None, Some(reason)) => json!({"state":"unavailable","limit":format!("The end of an earlier App session's observations of delegated children could not be recorded ({reason}); retried at the next record tick")}),

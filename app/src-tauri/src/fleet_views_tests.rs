@@ -1008,3 +1008,29 @@ fn two_open_generations_are_each_shown_and_neither_supersedes_the_other() {
     assert_eq!(worker["generations"].as_array().unwrap().len(), 2, "{worker}");
     assert!(worker["sources"]["lastObservation"].is_null(), "no one observation is the child's last: {worker}");
 }
+
+/// A generation in which a child was dispatched and nothing of it has been
+/// recorded since is an open observation: another generation's end does not
+/// make the item unknown (round 2 of the review).
+#[test]
+fn a_generation_observed_only_by_its_dispatch_stays_open_beside_another_generations_end() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut later_status = f.status("worker", "running");
+    later_status["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let mut later_end = f.ended("worker", "running");
+    later_end["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let dispatch = f.dispatch("worker", association);
+    let dispatched_at = dispatch["observedAt"].as_str().unwrap().to_owned();
+    f.observed(&[dispatch, later_status, later_end]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "dispatched", "the dispatch generation has no recorded end: {item}");
+    let worker = &item["dispatches"][0];
+    assert_eq!(worker["observationEnded"], false, "{worker}");
+    assert_eq!(worker["generations"].as_array().unwrap().len(), 2, "{worker}");
+    let words = worker["lastObserved"].as_str().unwrap();
+    assert!(words.starts_with("observed in 2 generations, none superseding another: "), "{words}");
+    assert!(words.contains(&format!("no child status recorded in that generation since the dispatch was recorded {dispatched_at}")), "{words}");
+    assert!(words.contains("observation ended (App quit)"), "{words}");
+}

@@ -584,3 +584,73 @@ fn a_log_left_with_an_unclosed_line_is_reported_unavailable_and_nothing_is_ended
     assert_eq!(status["state"], "unavailable", "{status}");
     assert!(status["limit"].as_str().unwrap().contains("unclosed final line"), "{status}");
 }
+
+/// An end another writer records after this session's read and before its
+/// apply is found under the store's writer lock: no second end is written,
+/// and the reconciliation says the end was found already recorded (round 2 of
+/// the review, within the older-build exception of session liveness).
+#[test]
+fn an_end_recorded_after_the_read_is_found_and_not_written_twice() {
+    let f = Fixture::new();
+    let first = generation("first");
+    let s = spawn(&first, None);
+    let mut earlier = Session::default();
+    f.observe(&mut earlier, &[handed(&s, &first, &f.project)], None);
+    let read = read_earlier(Some(&f.project), &established("second", &["first"]));
+    earlier.end_own_delegation(&|_| Some("App quit"));
+    assert_eq!(f.of("observation_ended").len(), 1);
+    let mut second = Session::default();
+    second.apply_earlier(read);
+    let ended = f.of("observation_ended");
+    assert_eq!(ended.len(), 1, "the governing log already holds this generation's end: {ended:?}");
+    assert_eq!(ended[0]["body"]["cause"], "App quit");
+    let status = second.reconciliation_status();
+    assert_eq!((status["state"].as_str(), status["endsRecorded"].as_u64(), status["endsFoundAlreadyRecorded"].as_u64()), (Some("recorded"), Some(0), Some(1)), "{status}");
+    second.retry(Some(&f.project));
+    assert_eq!(f.of("observation_ended").len(), 1);
+}
+
+/// Two reads applied in turn, a failed write retried, a later session, a
+/// duplicated line and a torn line: one end at most, and nothing written over
+/// a log that is not whole.
+#[test]
+fn overlapping_reads_retries_and_damaged_logs_take_one_end_at_most() {
+    {
+        let f = Fixture::new();
+        left_open(&f);
+        let a = read_earlier(Some(&f.project), &established("second", &["first"]));
+        let b = read_earlier(Some(&f.project), &established("second", &["first"]));
+        let mut second = Session::default();
+        super::super::FAIL_AFTER_WRITE.with(|flag| flag.set(Some(0)));
+        second.apply_earlier(a);
+        super::super::FAIL_AFTER_WRITE.with(|flag| flag.set(None));
+        assert_eq!(second.reconciliation_status()["state"], "unavailable");
+        second.apply_earlier(b);
+        second.retry(Some(&f.project));
+        assert_eq!(second.reconciliation_status()["state"], "recorded");
+        assert_eq!(f.of("observation_ended").len(), 1);
+        let mut third = Session::default();
+        third.end_earlier_observations(Some(&f.project), &established("third", &["first", "second"]));
+        assert_eq!(f.of("observation_ended").len(), 1);
+    }
+    for torn in [false, true] {
+        use std::io::Write;
+        let f = Fixture::new();
+        left_open(&f);
+        let path = published_at(&f.scope, 0);
+        let extra = if torn { b"{\"format\":\"chirality.fleet.rec".to_vec() } else {
+            let bytes = std::fs::read(&path).unwrap();
+            bytes.split_inclusive(|b| *b == b'\n').next().unwrap().to_vec()
+        };
+        std::fs::OpenOptions::new().append(true).open(&path).unwrap().write_all(&extra).unwrap();
+        let before = std::fs::read(&path).unwrap();
+        let mut second = Session::default();
+        for _ in 0..2 {
+            second.end_earlier_observations(Some(&f.project), &established("second", &["first"]));
+        }
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        assert_eq!(second.reconciliation_status()["state"], "unavailable");
+        let words = second.reconciliation_status()["limit"].as_str().unwrap().to_owned();
+        assert!(words.contains(if torn { "unclosed final line" } else { "duplicate/conflicting" }), "{words}");
+    }
+}

@@ -21,6 +21,10 @@ fn is_fact(record: &Value) -> bool {
     !MECHANICAL.contains(&record["kind"].as_str().unwrap_or(""))
 }
 const ID: &str = "urn:chirality:app-v4:del-06-01:fleet-native-links:0.2";
+/// An observation has one end. Checked against the governing store under its
+/// writer lock, so an end taken from an earlier read is not written beside an
+/// end another writer recorded after that read.
+const ALREADY_ENDED: &str = "an end of this observation is already recorded in the governing store; no second end is written";
 pub(crate) fn validate_record(record: &Value) -> Result<(), String> {
     static SCHEMA: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
     SCHEMA
@@ -919,6 +923,12 @@ fn settle(p: &mut Pending) {
                     match mechanical(p,phase,"recording_recovered","The exact original line is now proved present and synced; the earlier failed/unconfirmed callback is not changed to success.".into()){Ok(e)=>p.events.push(e),Err(reason)=>p.first_failure[phase]=Some(reason)}
                 }
             }
+            Err(reason) if phase == 0 && reason == ALREADY_ENDED => {
+                // Nothing to write: the observation's end is already recorded.
+                p.permanent = Some(reason);
+                p.context.activity.take();
+                return;
+            }
             Err(reason) => {
                 if p.first_failure[phase].is_none() {
                     p.first_failure[phase] = Some(reason.clone());
@@ -1268,6 +1278,17 @@ fn publish_bound(
     let duplicate = prior.iter().find(|(row, _)| row["observationId"] == *id);
     if duplicate.is_some_and(|(_, line)| line.as_slice() != bytes) {
         return Err("original observation identity conflicts with stored bytes".into());
+    }
+    if phase == 0
+        && record["kind"] == "observation_ended"
+        && prior.iter().any(|(row, line)| {
+            row["formatVersion"] == "0.2"
+                && row["kind"] == "observation_ended"
+                && row["body"]["child"] == record["body"]["child"]
+                && line.as_slice() != bytes
+        })
+    {
+        return Err(ALREADY_ENDED.into());
     }
     if record["kind"] == "related_conversation"
         && prior.iter().any(|(row, line)| {
