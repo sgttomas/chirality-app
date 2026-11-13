@@ -1,0 +1,11 @@
+# Web test files under app/tests (*.test.mjs) that no pull-request job of
+# .github/workflows/app-v4.yml runs, each with the reason it cannot run there
+# and where it does run (the full route's npm test, or nowhere).
+# tools/ci/check_web_test_listing.py fails on a file that is in neither a
+# pull-request job's node --test line nor this list, on a listed file that does
+# not exist, and on a file that is in both.
+#
+# One entry per line, the path relative to app/tests, a colon, then the reason:
+#   example.test.mjs: needs the supplier's Codex; runs in the full route's npm test
+#
+# No file is excluded today: every web test file runs in a pull-request job.
