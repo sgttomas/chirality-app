@@ -1573,8 +1573,13 @@ fn recognised_record(kind: WriteFolder, name: &str, bytes: &[u8]) -> Result<bool
         WriteFolder::Captures | WriteFolder::Pending => {
             let capture = if matches!(kind, WriteFolder::Pending) { &value["capture"] } else { &value };
             crate::schema_validation::validate_capture(capture)?;
+            if crate::storage::capture_belongs_to_library(capture) {
+                return Err("library capture is not project-store evidence".into());
+            }
             if name != format!("{}.json", crate::storage::key(capture["captureId"].as_str().ok_or("capture identity absent")?)) { return Err("capture identity differs from its name".into()); }
-            if matches!(kind, WriteFolder::Pending) && (!value["recordId"].is_string() || !value["log"].is_string() || !value["observedAt"].is_string()) { return Err("pending capture submission is not recognised".into()); }
+            if matches!(kind, WriteFolder::Pending) {
+                crate::records::recognise_capture_submission(&value, &crate::act_control::ActControl::capture_submission_log(capture))?;
+            }
         }
         WriteFolder::Accounts => {
             if value["formatVersion"] == "0.5" {
