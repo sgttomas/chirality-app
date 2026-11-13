@@ -367,7 +367,9 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
     if remaining && prior.is_none(){return Err("original disposal context absent".into());}
     if admin!=crate::records_retention::export_snapshot(source,project_id,prior)? {return Err("export administrative history is stale or unrelated; create a current export".into());}
     let exported=files(&folder.join("data"),false)?;
-    let before=if source.exists(){files(source,true)?}else if remaining{BTreeMap::new()}else{return Err("current project payload unavailable".into());};
+    // Only a payload that is not there is an empty remainder; one that cannot
+    // be examined is never verified as empty (`present`).
+    let before=if present(source)?{files(source,true)?}else if remaining{BTreeMap::new()}else{return Err("current project payload unavailable".into());};
     if (!remaining && before.keys().collect::<Vec<_>>()!=exported.keys().collect::<Vec<_>>()) || before.keys().any(|k|!exported.contains_key(k)) {return Err("verified export does not cover the current complete project payload".into());}
     let mut payload=BTreeMap::new();
     for (rel,stamp) in &before {
@@ -377,7 +379,7 @@ pub(crate) fn matches_current(source:&Path,folder:&Path,remaining:bool)->Result<
         if crate::records_index::Stamp::of(&std::fs::metadata(&input).map_err(io)?)!=*stamp {return Err("payload changed during verification".into());}
         payload.insert(rel.clone(),json!({"sha256":hash,"bytes":std::fs::metadata(input).map_err(io)?.len()}));
     }
-    if source.exists() && files(source,true)?!=before {return Err("payload inventory changed during verification".into());}
+    if present(source)? && files(source,true)?!=before {return Err("payload inventory changed during verification".into());}
     // tagmanifest hashes the payload manifest, chain-head tag and other tags.
     let identity=digest(&folder.join("tagmanifest-sha256.txt"))?;
     verify(&folder)?;

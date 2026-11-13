@@ -836,7 +836,13 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         // The resumed check's own finding about the export is returned here
         // too; the original act is not rewritten.
         let relied = crate::records_export::stored_log_integrity(&current["export"]);
-        let mut out = json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view(),
+        // The completion is recorded and now synced: a state that cannot be
+        // read again for this reply is shown as such, never hiding it.
+        let administration = match state(&plan.dir) {
+            Ok(s) => s.view(),
+            Err(read) => json!({"disposition":"unavailable","limit":format!("the completion is recorded and synced; the retention state could not be read again for this reply: {read}")}),
+        };
+        let mut out = json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":administration,
             "export":current["export"],"exportLogIntegrity":relied});
         if let Some(limit) = crate::records_export::integrity_statement(&relied) {
             out["standing"] = json!(format!("The export's bytes were verified against what remained of the store. {limit}"));
@@ -854,6 +860,11 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     }
     // The durable original act, including the original complete export identity,
     // precedes deletion. Failure leaves a terminal admission fence for safe retry.
+    // Set immediately before the completion's publication is attempted.
+    // Under the retention gate this call holds, the state read above showed
+    // no completion, and only this closure publishes one: so while the flag
+    // is unset, no completion exists, whatever else can be read.
+    let completion_attempted = std::cell::Cell::new(false);
     let result: Result<(), String> = (|| {
         #[cfg(test)]
         if FAIL_REMOVE.with(|v| v.get()) {
@@ -889,6 +900,7 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
                 .as_str()
                 .ok_or("original export identity absent")?,
         )?;
+        completion_attempted.set(true);
         event(&plan.dir, &s, "disposal-completed", None, &current)?;
         Ok(())
     })();
@@ -922,6 +934,8 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
                     Err(format!("records removed; completion publication durability uncertain; original disposal act retained and recording blocked; use Finish disposal to sync the existing completion evidence: {e}"))
                 }
                 Ok(_) => Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes: {e}")),
+                // No completion was attempted, so none exists (see the flag).
+                Err(read) if !completion_attempted.get() => Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes (the retention state could not be read again: {read}): {e}")),
                 Err(read) => {
                     // Marked as a completion that may be uncertain: it counts
                     // only if a completion is in fact recorded, and then

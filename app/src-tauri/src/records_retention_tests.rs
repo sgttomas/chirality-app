@@ -1456,7 +1456,11 @@ fn a_disposal_whose_payload_folder_cannot_be_examined_at_removal_removes_and_rec
     assert!(!s.completed, "no completion is recorded: {disposed:?}");
     assert!(s.disposition.is_some(), "the original disposal act survives");
     assert_eq!(files_with_bytes(&dir), before, "nothing was removed");
-    assert!(disposed.as_ref().is_err_and(|e| e.contains("disposal incomplete")), "{disposed:?}");
+    // The state could not be read again for the report, and no completion
+    // was attempted, so the report knows there is none: "disposal
+    // incomplete", never "not known".
+    assert!(disposed.as_ref().is_err_and(|e| e.contains("disposal incomplete") && e.contains("could not be read again") && !e.contains("whether its completion was recorded is not known")), "{disposed:?}");
+    assert_eq!(view(&dir)["disposition"], "disposal incomplete");
     assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
 }
 
@@ -1578,4 +1582,117 @@ fn a_true_completion_is_reported_as_one_when_the_state_cannot_be_read_again() {
             assert_eq!(view(&dir)["disposition"], "disposed");
         }
     }
+}
+
+/// Finish disposal never offers a verification of a remaining payload it
+/// could not examine. After an incomplete disposal, the payload is made
+/// unexaminable while export verification reads the administrative history
+/// (the payload's parent made unsearchable then): the offer is refused,
+/// never a verified empty remainder.
+#[test]
+fn finishing_a_disposal_never_offers_a_verification_of_a_payload_it_could_not_examine() {
+    use std::os::unix::fs::PermissionsExt;
+    use std::cell::Cell;
+    use std::rc::Rc;
+    fn count_reads(name: &'static str, n: Rc<Cell<usize>>) {
+        AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = Some(Box::new(move |path: &Path| {
+            if path.file_name().and_then(|f| f.to_str()) == Some(name) { n.set(n.get() + 1); }
+            count_reads(name, n);
+        })));
+    }
+    fn block_at(name: &'static str, left: usize, blocked: PathBuf) {
+        AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = Some(Box::new(move |path: &Path| {
+            let named = path.file_name().and_then(|f| f.to_str()) == Some(name);
+            if named && left == 1 { std::fs::set_permissions(&blocked, std::fs::Permissions::from_mode(0o400)).unwrap(); }
+            else { block_at(name, if named { left - 1 } else { left }, blocked); }
+        })));
+    }
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    fail_remove_for_test(true);
+    assert!(f.act("dispose", Some(&bag)).is_err());
+    fail_remove_for_test(false);
+    let before = files_with_bytes(&dir);
+    assert!(!before.is_empty());
+    // The last read of the disposal act's event during a readable offer.
+    let reads = Rc::new(Cell::new(0));
+    count_reads("00000000000000000002.json", reads.clone());
+    let readable = prepare(&f.project, "resume-disposal", None, &f.actor, &f.observed);
+    AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = None);
+    assert!(readable.is_ok(), "control: {:?}", readable.err());
+    let projects = dir.parent().unwrap().to_path_buf();
+    block_at("00000000000000000002.json", reads.get(), projects.clone());
+    let offered = prepare(&f.project, "resume-disposal", None, &f.actor, &f.observed);
+    let denied = std::fs::symlink_metadata(&dir).map(|_| ()).map_err(|e| e.kind());
+    std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o700)).unwrap();
+    AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = None);
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    let offered = offered.map(|p| p.context["export"].clone());
+    assert!(offered.is_err(), "never a verified remainder of a payload not examined: {offered:?}");
+    assert_eq!(files_with_bytes(&dir), before, "nothing removed");
+    assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
+}
+
+/// The completion's choice of path, reached (a construction the second
+/// reading found). Finish disposal after a completion whose publication was
+/// uncertain reconciles only over a payload known to be gone: when the
+/// payload's parent becomes unsearchable at the last read of the completion
+/// before that check, the check is reached and refuses, and the resync path
+/// is kept. (Were the payload to reappear instead, apply's recheck of the
+/// prepared context refuses before this check.)
+#[test]
+fn reconciling_a_completed_disposal_refuses_when_the_payload_cannot_be_examined() {
+    use std::os::unix::fs::PermissionsExt;
+    use std::cell::Cell;
+    use std::rc::Rc;
+    const COMPLETION: &str = "00000000000000000003.json";
+    fn count_reads(n: Rc<Cell<usize>>) {
+        AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = Some(Box::new(move |path: &Path| {
+            if path.file_name().and_then(|f| f.to_str()) == Some(COMPLETION) { n.set(n.get() + 1); }
+            count_reads(n);
+        })));
+    }
+    fn block_at(left: usize, blocked: PathBuf) {
+        AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = Some(Box::new(move |path: &Path| {
+            let named = path.file_name().and_then(|f| f.to_str()) == Some(COMPLETION);
+            if named && left == 1 { std::fs::set_permissions(&blocked, std::fs::Permissions::from_mode(0o400)).unwrap(); }
+            else { block_at(if named { left - 1 } else { left }, blocked); }
+        })));
+    }
+    let uncertain = || {
+        let f = Fixture::new();
+        f.act("close", None).unwrap();
+        let bag = f.export("bag");
+        let dir = f.dir();
+        FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(true));
+        assert!(f.act("dispose", Some(&bag)).unwrap_err().contains("completion publication durability uncertain"));
+        FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(false));
+        storage::fail_directory_for_test(None);
+        let plan = prepare(&f.project, "resume-disposal", None, &f.actor, &f.observed).unwrap();
+        (f, dir, plan)
+    };
+    // Control: how many times a readable reconciliation reads the completion.
+    let total = {
+        let (f, _dir, plan) = uncertain();
+        let reads = Rc::new(Cell::new(0));
+        count_reads(reads.clone());
+        let result = apply(plan, &f.actor, &f.observed);
+        AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = None);
+        assert!(result.is_ok(), "readable reconciliation: {result:?}");
+        reads.get()
+    };
+    assert!(total >= 2, "the last state read, then the reply's");
+    let (f, dir, plan) = uncertain();
+    let projects = dir.parent().unwrap().to_path_buf();
+    block_at(total - 1, projects.clone());
+    let result = apply(plan, &f.actor, &f.observed);
+    let denied = std::fs::symlink_metadata(&dir).map(|_| ()).map_err(|e| e.kind());
+    std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o700)).unwrap();
+    AFTER_ADMIN_METADATA.with(|h| *h.borrow_mut() = None);
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(result.as_ref().is_err_and(|e| e.contains("could not be examined")), "the check is reached and refuses: {result:?}");
+    assert_eq!(view(&dir)["disposition"], "completion durability uncertain", "the resync path is kept");
+    assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
 }
