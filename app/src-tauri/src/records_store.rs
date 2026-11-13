@@ -865,7 +865,7 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
                 // confirms it; never read as a project with no records, and
                 // never registered here on the link alone.
                 let released = lines.iter().any(|l| l["projectId"] == project.as_str());
-                let known = released || project_dir(&store, project).join("project.json").is_file();
+                let known = released || identity_held(&project_dir(&store, project))?;
                 if mint && !released {
                     // A link the store does not know yet, or an identity whose
                     // minting stopped before its first roots line.
@@ -1412,6 +1412,19 @@ pub(crate) struct LegacyFile {
     /// still this one.
     pub stamp: Value,
 }
+/// Whether the store holds `dir`'s identity record (`project.json`): a
+/// regular file there, yes; nothing there, no; anything else, or a record
+/// that cannot be examined, is an error, never "not held" (the census's
+/// premise: what could not be inspected is not absent).
+fn identity_held(dir: &Path) -> Result<bool, String> {
+    let record = dir.join("project.json");
+    match std::fs::symlink_metadata(&record) {
+        Ok(meta) if meta.is_file() => Ok(true),
+        Ok(_) => Err(format!("records store unreadable: {} is not a regular file, so whether the store holds this project is not known", record.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(e) => Err(format!("records store unreadable: {}: {e}; whether the store holds this project is not known", record.display())),
+    }
+}
 /// The §13.7 project records in the project: run and act logs, WR WP-1
 /// records, and capture evidence (with pending submissions) other than A15
 /// captures, which stay with their library (U-STORE-2). The library's own act
@@ -1422,9 +1435,15 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     let captures = root.join(".chirality/captures");
     fn list(dir: &Path) -> Result<Vec<(PathBuf, bool)>, String> {
         crate::storage::check_path(dir)?;
+        // Only a folder that is not there holds nothing. One that cannot be
+        // listed, or something else in its place (inside the App's own
+        // `.chirality` folder, where earlier builds wrote only folders), is
+        // an error: a census that could not inspect the records never says
+        // there are none.
         let rd = match std::fs::read_dir(dir) {
             Ok(rd) => rd,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::NotADirectory => return Ok(vec![]),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+            Err(e) if e.kind() == std::io::ErrorKind::NotADirectory => return Err(format!("§13.7 records could not all be listed: {} (or a folder above it) is not a folder, so what it holds is not known", dir.display())),
             Err(e) => return Err(format!("§13.7 records could not all be listed: {}: {e}", dir.display())),
         };
         let mut v = Vec::new();
@@ -1477,10 +1496,17 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
         }
     }
     // The explicitly registered legacy log (§13.7) is project history too.
+    // Present, absent, or not known: a log that cannot be examined is an
+    // error, never absent. Its folder (`records` at the project's root) is
+    // the project's own: a file of that name there means the log cannot
+    // exist, which is absence.
     let registered = root.join(crate::storage::LEGACY_LOG);
     crate::storage::check_path(&registered)?;
-    if registered.is_file() {
-        out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered, refusal: None, stamp: Value::Null });
+    match std::fs::symlink_metadata(&registered) {
+        Ok(meta) if meta.is_file() => out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(), original: registered, refusal: None, stamp: Value::Null }),
+        Ok(_) => return Err(format!("§13.7 records could not all be listed: {} is not a regular file, so what it holds is not known", registered.display())),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::NotADirectory => {}
+        Err(e) => return Err(format!("§13.7 records could not all be listed: {}: {e}", registered.display())),
     }
     out.extend(connector_census(root)?);
     for file in &mut out {
@@ -1505,9 +1531,11 @@ fn connector_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     use std::os::unix::fs::MetadataExt;
     let dir = root.join(crate::connector_route_store::LEGACY_DIRECTORY);
     crate::storage::check_path(&dir)?;
+    // As the census: only a folder that is not there holds nothing.
     let rd = match std::fs::read_dir(&dir) {
         Ok(rd) => rd,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound || e.kind() == std::io::ErrorKind::NotADirectory => return Ok(vec![]),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(vec![]),
+        Err(e) if e.kind() == std::io::ErrorKind::NotADirectory => return Err(format!("connector route accounts could not all be listed: {} (or a folder above it) is not a folder, so what it holds is not known", dir.display())),
         Err(e) => return Err(format!("connector route accounts could not all be listed: {}: {e}", dir.display())),
     };
     let mut out = Vec::new();
@@ -1879,8 +1907,9 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     // the store holds it: one adopted from another store has none yet, and
     // registering it publishes under that admission.
     let adopted = project_dir(&store, &project);
+    let held = identity_held(&adopted)?;
     let mut _admissions = Vec::new();
-    if adopted.join("project.json").is_file() {
+    if held {
         _admissions.push(crate::records_retention::quiet_for_reassociation(&adopted, &project)?);
     } else {
         _admissions.push(crate::records_retention::read_path(&adopted)?);
@@ -1888,7 +1917,7 @@ pub fn adopt(root: &Path) -> Result<Value, String> {
     for other in here.iter().filter(|p| **p != project) { _admissions.push(crate::records_retention::quiet_for_reassociation(&project_dir(&store,other), other)?); }
     let mut _idle = Vec::new();
     for other in here.iter() { _idle.push(crate::records_retention::idle_for_reassociation(&project_dir(&store,other), other)?); }
-    if !here.contains(&project) && adopted.join("project.json").is_file() {
+    if !here.contains(&project) && held {
         _idle.push(crate::records_retention::idle_for_reassociation(&adopted, &project)?);
     }
     if roots_of(&lines, &project).iter().any(|r| *r != at && matches!(read_link(Path::new(r)), Link::Present { project: ref p, .. } if *p == project)) {

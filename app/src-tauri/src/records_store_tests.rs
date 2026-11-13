@@ -2287,3 +2287,97 @@ fn a_capability_read_makes_only_its_read_logs_own_folder_and_nothing_above_it() 
     new_process();
     let _ = std::fs::remove_dir_all(root);
 }
+
+/// The census's premise (App Agent 0, from the INTERLOCUTOR's reading of
+/// main): a census that could not inspect a project's records never says
+/// there are none. Reproduced on main before the repair: in each state below
+/// the census was empty, status read "no records yet" and write admission was
+/// given. (1) The project's only record is its registered legacy log, and its
+/// folder cannot be searched (a real permission failure). (2) Something other
+/// than a folder where a census folder is expected, inside the App's own
+/// `.chirality` folder. Genuine absence stays allowed: no records reads "no
+/// records yet" and may be written, and so does a project with a file named
+/// `records` at its root (the registered log cannot exist under it).
+#[test]
+fn a_census_that_cannot_inspect_the_records_never_says_there_are_none() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let refused = |root: &Path, label: &str| {
+        assert!(legacy_census(root).is_err(), "{label}: census");
+        let shown = status(Some(root));
+        assert_ne!(shown["project"]["reading"], "no records yet", "{label}: {shown}");
+        assert_eq!(shown["project"]["state"], "unavailable", "{label}: {shown}");
+        assert!(write_dir(root).is_err(), "{label}: write admission");
+    };
+    let allowed = |root: &Path, label: &str| {
+        assert!(legacy_census(root).unwrap().is_empty(), "{label}: census");
+        assert_eq!(status(Some(root))["project"]["reading"], "no records yet", "{label}");
+        assert!(write_dir(root).is_ok(), "{label}: write admission");
+    };
+    // Genuine absence.
+    let fresh = folder("census-fresh-");
+    attach(&fresh, true).unwrap();
+    allowed(&fresh, "no records");
+    let named = folder("census-records-file-");
+    std::fs::write(named.join("records"), b"a project file named records\n").unwrap();
+    attach(&named, true).unwrap();
+    allowed(&named, "a file named records at the project's root");
+    // (1) The registered legacy log, its folder unsearchable.
+    let root = folder("census-unsearchable-");
+    records::append(&root.join(storage::LEGACY_LOG), "evidence_limit", &APP_WRITER, body("legacy history")).unwrap();
+    attach(&root, true).unwrap();
+    assert!(write_dir(&root).unwrap_err().starts_with("import needed: 1"), "readable: import needed");
+    let parent = root.join(storage::LEGACY_LOG).parent().unwrap().to_path_buf();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(root.join(storage::LEGACY_LOG)).map(|_| ()).map_err(|e| e.kind());
+    let result = std::panic::catch_unwind(|| refused(&root, "the registered log's folder unsearchable"));
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(result.is_ok(), "the registered log's folder unsearchable");
+    // (2) Something other than a folder where a census folder is expected.
+    for (label, rel) in [("records/runs a file", ".chirality/records/runs"), ("records a file", ".chirality/records"), ("captures a file", ".chirality/captures"),
+        ("connector accounts a file", crate::connector_route_store::LEGACY_DIRECTORY), ("the registered log a folder", storage::LEGACY_LOG)] {
+        let root = folder("census-wrong-type-");
+        let path = root.join(rel);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        if label == "the registered log a folder" { std::fs::create_dir(&path).unwrap(); } else { std::fs::write(&path, b"{\"invented\":\"bytes where a folder is expected\"}\n").unwrap(); }
+        attach(&root, true).unwrap();
+        refused(&root, label);
+    }
+}
+
+/// The same premise in the store's own identity record: a folder whose link
+/// names a project the store holds, with that project's record unable to be
+/// examined (its store folder unsearchable, a real permission failure), is
+/// never taken for a project the store does not hold: attaching it, reading
+/// it, writing for it and adopting it are each refused, never read in place.
+#[test]
+fn an_identity_record_that_cannot_be_examined_is_never_taken_for_one_the_store_does_not_hold() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let root = folder("identity-unexaminable-");
+    records::append_project(&root, None, "writer:i", "evidence_limit", &APP_WRITER, body("in the store")).unwrap();
+    let attachment = attach(&root, false).unwrap();
+    let dir = attachment.dir.clone().unwrap();
+    // The registry names the identity nowhere (as when a minting stopped
+    // before its first registry line), so whether the store holds it is
+    // decided by its record alone.
+    let store = opened().unwrap().0;
+    std::fs::write(store.join("roots.jsonl"), b"").unwrap();
+    *ROOTS.lock().unwrap() = None;
+    let readable = attach(&root, false).unwrap();
+    assert_eq!(readable.fault, Some("no folder recorded"), "readable: records kept, not attached: {readable:?}");
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(dir.join("project.json")).map(|_| ()).map_err(|e| e.kind());
+    let attached = attach(&root, false);
+    let reading = status(Some(&root))["project"]["reading"].clone();
+    let written = write_dir(&root);
+    let adopted = adopt(&root);
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(attached.as_ref().is_err_and(|e| e.contains("whether the store holds this project is not known")), "{attached:?}");
+    assert!(reading != "no records yet" && reading.as_str().is_none_or(|r| !r.contains("in place")), "{reading}");
+    assert!(written.is_err(), "{written:?}");
+    assert!(adopted.is_err(), "{adopted:?}");
+}
+
