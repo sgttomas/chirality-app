@@ -526,29 +526,39 @@ fn a_torn_roots_registry_reads_from_its_complete_lines_and_writes_nothing() {
 /// of its own before it builds the protected folder, and its own test holds
 /// what it does with the link removed or changed.
 ///
-/// What this test is: a check that detects changes to selected source
-/// expressions. It holds, by full line content and with multiplicity,
-/// (1) every product source line that names a records location in the
-/// project folder (nine names); (2) every line outside the store module that
-/// calls or names, by its `records_store::` path, a function of the store
-/// that returns a store path or an attachment without the decision; and
-/// (3) every `use` line outside the store module that names `records_store`,
-/// so that an import or an alias of one of those functions cannot arrive
-/// unlisted; and it requires (4) that no such function's name is called bare
-/// outside the store module. "The store module" is `records_store.rs` and
-/// the files it and they declare as submodules by path, test files apart;
-/// that list of files is held here too, so that a file cannot join it
-/// silently.
+/// What this test is: a limited check that fails when selected source lines
+/// change. It reads physical lines of the product's Rust files and holds, by
+/// full line content and with multiplicity, (1) the lines that contain one
+/// of nine names of a records location in the project folder; (2) the lines
+/// outside the store module that contain `records_store::` followed by the
+/// name of one of nine functions of the store that return a store path or an
+/// attachment without the decision; (3) the lines outside the store module
+/// that begin with `use` and contain `records_store`; and it fails for
+/// (4) a line outside the store module where one of those nine names is
+/// followed at once by an opening bracket and is not part of a path, a
+/// method call or a definition. "The store module" is `records_store.rs` and
+/// the files named by a line `#[path = "..."]` in it or in them, test files
+/// apart; that list of five files is held here too.
 ///
-/// What it is not. It does not enforce the architecture, and an unchanged
-/// listed line can do something different if an argument's origin changes
-/// elsewhere; review and the behavioural checks establish the permitted use.
-/// It does not see a comment line, a test file (a name ending `_tests.rs`),
-/// a file that is not Rust, or a location built with none of the nine names
-/// from a path a caller passes in. Reformatting a listed line fails it, by
-/// design: the digest is then updated with its reason unchanged.
+/// What it is not, and what it is known to miss (review round 5; App Agent 0
+/// decided that the test stays as it is and claims no more than this). It
+/// does not enforce the architecture, and it is not a complete list of who
+/// can obtain a location. It does not see: a `use` item spread over several
+/// lines; a call written with a space before its bracket; a path attribute
+/// written without spaces or with a comment inside it; `include!`; an
+/// out-of-line module declared beside a file that a path attribute brought
+/// in; a re-export inside the store's own files; a new function of the
+/// store that returns a location, a wrapper included; what a macro produces;
+/// a location built with none of the nine names from a path a caller passes
+/// in; an unchanged listed line whose argument now comes from somewhere
+/// else; a comment line; a file that is not Rust; and test files, those
+/// named `tests.rs` or ending `_tests.rs`. Review and the behavioural tests
+/// establish the permitted use. What ends the need for it is making the
+/// store's path functions private, which is the binding pull request's
+/// first item. Reformatting a listed line fails it, by design: the digest is
+/// then updated with its reason unchanged.
 #[test]
-fn the_places_that_name_a_records_location_in_the_project_folder_are_a_closed_list() {
+fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_content() {
     type Held = BTreeMap<String, Vec<(usize, String)>>;
     fn walk(dir: &std::path::Path, base: &std::path::Path, files: &mut Vec<(String, String)>) {
         for entry in std::fs::read_dir(dir).unwrap() {
@@ -599,8 +609,9 @@ fn the_places_that_name_a_records_location_in_the_project_folder_are_a_closed_li
     let mut files = Vec::new();
     walk(&base, &base, &mut files);
 
-    // "The store module" is these files: `records_store.rs` and every file it
-    // or they bring in by path, test files apart.
+    // "The store module" is these files: `records_store.rs` and every file a
+    // line `#[path = "..."]` in it or in them names, test files apart. Other
+    // ways a file can be brought in are not seen.
     const STORE_MODULE: [&str; 5] = ["records_package.rs", "records_package_controls.rs", "records_package_identity.rs", "records_package_import.rs", "records_store.rs"];
     let mut module = std::collections::BTreeSet::from(["records_store.rs".to_owned()]);
     let mut pending = vec!["records_store.rs".to_owned()];
@@ -614,7 +625,7 @@ fn the_places_that_name_a_records_location_in_the_project_folder_are_a_closed_li
             }
         }
     }
-    assert_eq!(module.iter().map(String::as_str).collect::<Vec<_>>(), STORE_MODULE, "the files of the store module changed: a file inside it may call the store's path functions freely, so the list is held");
+    assert_eq!(module.iter().map(String::as_str).collect::<Vec<_>>(), STORE_MODULE, "the files that path attributes name in the store module changed: a file inside it may call the store's path functions freely, so the list is held");
     assert!(!base.join("records_store").exists(), "a records_store folder would add files to the store module without a path attribute");
 
     // 1. Who names a records location in the project folder.
@@ -681,8 +692,8 @@ fn the_places_that_name_a_records_location_in_the_project_folder_are_a_closed_li
     }
     wrong.extend(differences("calls a function of the store that returns a store path or an attachment without the decision", &callers, &CALLERS));
 
-    // 3. Every `use` line outside the store module that names the store: an
-    // import or an alias of one of those functions would not be seen above.
+    // 3. The lines outside the store module that begin with `use` and name
+    // the store. A `use` item spread over several lines is not seen.
     const IMPORTS: [(&str, &str, &str); 6] = [
         ("fleet_records.rs", "6e895d82e9a7f87f", "the module itself, with others; every use of it in this file is by its records_store:: path"),
         ("desktop_startup.rs", "0681da416c9617cc", "the module itself, in a test module"),
@@ -693,9 +704,10 @@ fn the_places_that_name_a_records_location_in_the_project_folder_are_a_closed_li
     ];
     let imports = scan(&files, &|line: &str| { let line = line.trim_start(); (line.starts_with("use ") || line.starts_with("pub use ") || line.starts_with("pub(crate) use ")) && line.contains("records_store") }, &STORE_MODULE);
     wrong.extend(differences("imports from the records store by a use line", &imports, &IMPORTS));
-    // 4. No listed function is called by its bare name outside the store module.
+    // 4. A listed function's name followed at once by an opening bracket,
+    // outside the store module. A space before the bracket is not seen.
     for (file, lines) in scan(&files, &bare, &STORE_MODULE) {
-        wrong.push(format!("{file} calls, by a bare name, something named as one of the store's path functions is; if it is that function it reached this file unlisted:\n{}", lines.iter().map(|(n, l)| format!("    {n}: {l}")).collect::<Vec<_>>().join("\n")));
+        wrong.push(format!("{file} calls, by a bare name, something named as one of the store's path functions is; if it is that function, this file is not among the listed callers:\n{}", lines.iter().map(|(n, l)| format!("    {n}: {l}")).collect::<Vec<_>>().join("\n")));
     }
     assert!(wrong.is_empty(), "a project's records are read where records_store::readable_home says, and written where records_store::write_dir says. A new reader takes its place from the ReadHome that decision returns (it refuses for a refused attachment). Only where a line is none of that (a library's own store, a writer, administration, a test, a shape check) is this list changed, with the reason said:\n{}", wrong.join("\n"));
     // The decision itself: a refused attachment is an error, with nothing to read in place.

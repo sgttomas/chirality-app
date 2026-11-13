@@ -987,9 +987,10 @@ pub(crate) fn home(root: &Path) -> Result<Home, String> {
 
 /// Where an ordinary reader reads a project's records now. Made only by the
 /// one decision (`decide`), so having one means the attachment is not
-/// refused. Its methods are the only product code that joins the project
-/// folder with a records location; `the_places_that_name_a_records_location_
-/// in_the_project_folder_are_a_closed_list` holds that against the source.
+/// refused. Its methods are where ordinary readers join the project folder
+/// with a records location; a limited test (`selected_source_lines_about_
+/// where_a_projects_records_are_read_are_held_by_content`) fails when the
+/// source lines that name such a location change.
 #[derive(Clone, Debug)]
 pub(crate) struct ReadHome {
     pub attachment: Attachment,

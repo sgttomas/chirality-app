@@ -1473,14 +1473,19 @@ take the place from that decision and writers from `write_dir`, with one
 exception: the fleet reader (`fleet_records.rs`) must create nothing, so it
 keeps association checks of its own and builds the protected folder only
 after them; with the link removed or changed it reads no protected payload
-and gives the cause. This is held by name and by a test, not by
-construction: the test detects changes to the source lines that name a
-records location in the project folder, and to the lines outside the store
-module (`records_store.rs` and the files it declares as submodules) that
-call the store's other path-returning functions or import from it. It does
-not enforce the arrangement, and an unchanged listed line can do something
-different if an argument's origin changes elsewhere; review and the
-behavioural tests establish the permitted use. One case stands
+and gives the cause. This is held by name and by a limited test, not by
+construction: the test fails when selected source lines change (the lines
+that name a records location in the project folder, and, outside the store
+module, the lines that name one of nine of the store's path-returning
+functions by its `records_store::` path or that begin with `use` and name
+the store). It does not enforce the arrangement and is not a complete list
+of who can obtain a location: among what it does not see are an import
+spread over several lines, a file brought into the store module other than
+by a path attribute in its usual spelling, a re-export or a new function of
+the store, and an unchanged listed line whose argument now comes from
+somewhere else; its comment lists them. Review and the behavioural tests
+establish the permitted use, and making those functions private is later
+work. One case stands
 apart, unchanged: with no records store available at all and no link in the
 folder, connector route accounts are read in place and nothing is written,
 while ordinary records in that state are unavailable. A link naming a project whose records the store keeps
