@@ -3853,7 +3853,6 @@ for line in sys.stdin:
             })
             .unwrap();
         });
-        let before = f.wire().len();
         for mode in [NativeLoginMode::Browser, NativeLoginMode::DeviceCode] {
             let refusal = start_native_oauth(&f.home, &f.generation, mode, None, || {
                 panic!("the person is not asked")
@@ -3862,13 +3861,25 @@ for line in sys.stdin:
             .unwrap();
             assert_eq!(refusal, crate::dev_model_address::SIGN_IN_OFF);
         }
-        assert_eq!(f.wire().len(), before, "no request reached the supplier");
-        assert!(f.wire().iter().all(|frame| {
-            !matches!(
-                frame["method"].as_str(),
-                Some("account/login/start" | "configRequirements/read" | "account/read")
-            )
-        }));
+        // What the host itself sent, which does not depend on when the stand-in logs a frame:
+        // the start's own request and nothing else.
+        let sent: Vec<String> = f
+            .home
+            .host
+            .client_requests()
+            .iter()
+            .map(|request| request["method"].as_str().unwrap_or_default().to_owned())
+            .collect();
+        assert_eq!(sent, ["initialize"], "no request was sent after the start's own");
+        // And what the stand-in has received so far: the start's handshake at most. Its second
+        // frame, the `initialized` notification, may be logged at any moment after the start
+        // returns, so the frames are compared by what they are and never counted.
+        let beyond: Vec<Value> = f
+            .wire()
+            .into_iter()
+            .filter(|frame| !matches!(frame["method"].as_str(), Some("initialize" | "initialized")))
+            .collect();
+        assert!(beyond.is_empty(), "a frame beyond the start's handshake reached the supplier: {beyond:?}");
         assert!(f.home.oauth_login.lock().unwrap().is_none());
         // The same home without the setting still starts a sign-in.
         let plain = Fixture::new();
@@ -4560,6 +4571,16 @@ impl WorkflowRootSession {
         crate::workflow_workspace::development_catalog::verify_bundle_manifest(&root)
             .map_err(|e| format!("This App's included workflows could not be verified: {e}. Nothing can be selected or run from them (WR LS-5)"))?;
         Ok(root)
+    }
+    /// An included entry's own text, read as `select_production_bundle` would
+    /// resolve it from this App's installed resources, without selecting it.
+    pub(crate) fn read_included_text(&self, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::included(self.installed_bundle(), target)
+    }
+    /// The chosen workflow's own text (the inspected one with no chat), read
+    /// from the location it was resolved from and verified there by `verify_store`.
+    pub(crate) fn read_chosen_text(&self, chat: Option<&crate::workflow_selection::Chat>, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::chosen(self.choice(chat).map(|s| (&s.selection, s.package.as_path())), target)
     }
     pub(crate) fn retention_ready(&self)->Result<(),String>{
         if self.after_run_end.has_pending(){return Err("After-run-end observations still have pending records; wait for recording before closing project records".into());}
@@ -7986,6 +8007,7 @@ mod workflow_root_tests {
     mod real_backend_fixture_tests { use super::*; include!("workflow_real_backend_fixture_tests.rs"); }
     mod start_source_binding_tests { use super::*; include!("start_source_binding_tests.rs"); }
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
+    mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
