@@ -2,7 +2,8 @@ id: DEL-01-05
 name: Native ChatGPT sign-in and oMLX/local-provider access
 needs:
 - from: DEL-01-01
-  condition: A Codex child is started for each home with no credential in its environment; the
+  condition: A Codex child is started for each home; the App adds no credential to its
+    environment and removes the inherited variables on its list of names for that start path; the
     supplier's account, model and configuration methods and a conversation's provider selection
     are carried unchanged; and the destination Codex reports for a turn is available.
   gating: true
@@ -35,6 +36,8 @@ code_paths:
 - app/src-tauri/src/config_resource_continuation.rs
 - app/src-tauri/src/home_resources.rs
 - app/src-tauri/src/native_local_provider.rs
+# The development model address: a startup input the release configuration never consults.
+- app/src-tauri/src/dev_model_address.rs
 - app/src-tauri/src/native_secure_entry.rs
 - app/src-tauri/src/model_catalog.rs
 - app/src-tauri/src/desktop_setup_confirmation.rs
@@ -64,6 +67,8 @@ checks:
 - app/src-tauri/src/home_hold_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
+# Shared with DEL-01-01: credential and home-separation names removed from the child.
+- app/src-tauri/src/hosting_child_environment_tests.rs
 - app/tests/conversation-panel.test.mjs
 - app/tests/access-provider.test.mjs
 - app/tests/model-choice.test.mjs

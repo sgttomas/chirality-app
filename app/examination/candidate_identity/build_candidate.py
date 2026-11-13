@@ -536,10 +536,10 @@ def validate_bundle(p, root_id):
     _, info = _part(root, root_id, bundle / 'Contents/MacOS' / executable, 'executable')
     if not stat.S_ISREG(info.st_mode) or info.st_size == 0 or not info.st_mode & 0o111:
         raise ValueError('bundle executable missing, empty or not executable: ' + executable)
-    for name in ('instructions', 'workflows'):
-        folder, _ = _part(root, root_id, bundle / 'Contents/Resources' / name, 'resources ' + name)
+    for resource in ('instructions', 'workflows'):
+        folder, _ = _part(root, root_id, bundle / 'Contents/Resources' / resource, 'resources ' + resource)
         if not stat.S_ISDIR(os.lstat(folder).st_mode) or not os.listdir(folder):
-            raise ValueError('bundle resources missing or empty: ' + name)
+            raise ValueError('bundle resources missing or empty: ' + resource)
     if p['supplier']:
         _, info = _part(root, root_id, bundle / 'Contents/Resources/codex/bin/codex', 'supplier entrypoint')
         if not stat.S_ISREG(info.st_mode) or not info.st_mode & 0o111:

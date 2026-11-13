@@ -73,6 +73,13 @@ nonblocking App-data/profile/home inode leases. Invalid or competing sources
 return setup with no operational Root-data admission. The full explicit
 environment route remains exclusive, including incomplete/invalid inputs.
 This describes source behavior, not an actual Finder/install/launch witness.
+A launch writes the system web view's data and caches, and the App's own data
+unless redirected, under the home's `Library` in folders named for the build's
+bundle identifier, whatever `HOME` alone is set to. Setting `CFFIXED_USER_HOME`
+together with `HOME` to one throwaway folder redirects them;
+[`examination/standalone/launch.py`](../../examination/standalone/launch.py)
+does that for an identified development build. Agents do not remove those
+folders from the owner's Library.
 
 A physical P0–P4 candidate remains unsigned and unqualified. The ordinary route
 does not package the compiled attested S3 closure; the separate attested-reference
@@ -111,6 +118,13 @@ committed canonical distribution record (for example
 inventory P1 must also equal; it records no acquirer or authorization, and the
 identification states both as not recorded. The complete bundle inventory
 includes P1. The supplier-absent v2 format remains available for its original route.
+
+Identify a candidate when nothing is rebuilding or replacing it, and keep it so
+through its intended use; take the identity recorded for a walk or for the
+owner's own use from the bundle in the place it will be opened from, after it
+is put there. An identity describes the bundle the tool actually examined, not
+whatever occupied that pathname when the tool was asked; the tool's docstring
+says which comparisons it makes and when.
 
 The default `tauri.conf.json` maps the same P2 and P3 trees (the governing
 PKG §4.1 P-2/P-3), so a bundle built without this overlay carries
