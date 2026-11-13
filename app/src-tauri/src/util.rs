@@ -119,3 +119,21 @@ pub fn package_snapshot(bytes: &[u8]) -> Result<(serde_json::Value, String), Str
     crate::schema_validation::validate_package(&package)?;
     Ok((package, sha256_hex(bytes)))
 }
+
+/// The mutex, taken by `deadline` or not at all: polls `try_lock` so that the
+/// caller's wait has the deadline as its bound whatever the holder is doing.
+/// A poisoned mutex is taken as it is.
+pub fn lock_by<T>(mutex: &std::sync::Mutex<T>, deadline: std::time::Instant) -> Option<std::sync::MutexGuard<'_, T>> {
+    loop {
+        match mutex.try_lock() {
+            Ok(guard) => return Some(guard),
+            Err(std::sync::TryLockError::Poisoned(poisoned)) => return Some(poisoned.into_inner()),
+            Err(std::sync::TryLockError::WouldBlock) => {}
+        }
+        let now = std::time::Instant::now();
+        if now >= deadline {
+            return None;
+        }
+        std::thread::sleep((deadline - now).min(std::time::Duration::from_millis(5)));
+    }
+}

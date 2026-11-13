@@ -389,7 +389,7 @@ impl Session {
     /// generation or, where Codex was not seen to end, "App quit".
     pub(crate) fn end_delegation_at_exit(&mut self, homes: &[Arc<HomeSession>]) {
         self.end_own_delegation(&|generation| {
-            let home = homes.iter().find(|home| home.host.snapshot()["generation"]["home"] == generation["home"])?;
+            let home = homes.iter().find(|home| home.host.snapshot_without_records()["generation"]["home"] == generation["home"])?;
             Some(generation_end(home, generation).unwrap_or("App quit"))
         });
     }

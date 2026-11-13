@@ -951,7 +951,7 @@ fn a_quit_with_the_recovery_writer_held_throughout_settles_and_proceeds_within_i
     assert!(!observed.to_string().contains("not recorded") && !observed.to_string().contains("not written"), "{observed}");
     // The person's quit shows this notice, with OK only, before it exits.
     assert_eq!(crate::app_quit::RECORDING_WAIT_LIMIT, Duration::from_secs(10));
-    assert_eq!(crate::app_quit::RECORDING_NOT_CONFIRMED, "Chirality is quitting. Codex was stopped for every home and its processes are settled. Recording the end of this session was not confirmed within 10 seconds, so the record may or may not have been written; the next start reads it as it finds it.");
+    assert_eq!(crate::app_quit::RECORDING_NOT_CONFIRMED, "Chirality is quitting. The App's own processes for every Codex home have ended. Recording the end of this session was not confirmed within 10 seconds, so the record may or may not have been written; the next start reads it as it finds it.");
     assert_eq!(crate::app_quit::recording_notice(&observed), Some(crate::app_quit::RECORDING_NOT_CONFIRMED));
     assert!(!crate::recovery::stored_entries(&f.ledger()).iter().any(|e| e["kind"] == "session_ended"));
     let _ = release.send(());
@@ -965,6 +965,9 @@ fn a_quit_with_the_recovery_writer_held_throughout_settles_and_proceeds_within_i
 fn a_confirmed_quit_whose_end_was_not_written_is_read_by_decision_a_with_the_notice() {
     let f = Fixture::new();
     f.outstanding_approval(42, "thread", "turn-1");
+    // A live turn: its interrupt writes the queued question and answer before
+    // it is sent, so the confirmed quit is in the ledger before settlement.
+    f.live_turn("thread", "turn-1");
     let release = f.hold_recovery_writer_from_settlement();
     let bound = LIMIT + PER_HOME_ENDING + Duration::from_secs(10) + SLACK;
     let (_, observed, _) = person_quit_within(&f, LIMIT, bound);
@@ -1003,14 +1006,17 @@ fn an_earlier_session_with_no_quit_entry_keeps_the_not_established_reading_and_n
     f.await_late_session_end();
 }
 
-/// (7) With the writer free the ledger order of the quit is as before: the
-/// question, the answer, the stop rows, then the session end.
+/// (7) With the writer free and one home, the ledger order of the quit is as
+/// before: the question, the answer, the stop rows, then the session end. The
+/// order is this home's queue order; across homes no order is claimed.
 #[test]
 fn with_the_writer_free_the_quits_ledger_order_is_unchanged() {
     let f = Fixture::new();
     f.live_turn("thread", "turn-1");
     let (_, observed, _) = person_quit_within(&f, LIMIT, LIMIT + PER_HOME_ENDING + SLACK);
-    assert_eq!(observed.unwrap()["write"], "confirmed");
+    let observed = observed.unwrap();
+    assert_eq!(observed["write"], "confirmed");
+    assert_eq!(crate::app_quit::recording_notice(&observed), None, "the confirmed write shows no notice");
     let kinds = quit_kinds(&crate::recovery::stored_entries(&f.ledger()));
     assert_eq!(kinds, ["quit_requested", "quit_answered confirmed", "stop_request SR-01 quit", "stop_request SR-02 quit", "stop_request SR-04 quit", "stop_request SR-06 quit", "session_ended quit"], "{kinds:?}");
 }
@@ -1102,7 +1108,7 @@ fn a_session_end_committed_but_not_observed_in_time_is_found_and_honoured_at_the
 fn admit_key(f: &Fixture, key: &Mutex<()>, hold: &Mutex<Option<crate::app_quit::KeyHold>>, answer: Result<bool, String>) -> (String, Option<String>, Duration) {
     let mut shown = None;
     let begin = Instant::now();
-    let admission = crate::app_quit::admit_key_setup(key, hold, &[Arc::clone(&f.home)], |text| { shown = Some(text.to_owned()); answer }, crate::app_quit::KEY_RELEASE_WAIT_LIMIT);
+    let admission = crate::app_quit::admit_key_setup(key, hold, &[Arc::clone(&f.home)], |text| { shown = Some(text.to_owned()); answer.clone() }, crate::app_quit::KEY_RELEASE_WAIT_LIMIT);
     let took = begin.elapsed();
     let outcome = match admission {
         crate::app_quit::KeyAdmission::Admitted(_) => "admitted".to_owned(),
@@ -1238,9 +1244,9 @@ fn a_key_operation_that_does_not_let_go_after_its_codex_is_stopped_refuses_the_q
     assert!(!operation.join().unwrap());
 }
 
-/// A session-end write that returns a failure before the bound still gives the
-/// person's quit its notice, with the host's own reason in place of "within 10
-/// seconds", and says only that the record was not confirmed.
+/// A session-end recording that fails before any write (here: no App-owned
+/// account home) still gives the person's quit its notice, with the host's own
+/// reason, and says the end was not recorded: nothing was written.
 #[test]
 fn a_session_end_failure_before_the_bound_gives_the_persons_quit_the_notice_with_the_hosts_reason() {
     // No App-owned account home: the recording thread returns the host's own
@@ -1251,11 +1257,280 @@ fn a_session_end_failure_before_the_bound_gives_the_persons_quit_the_notice_with
     assert!(begin.elapsed() < crate::app_quit::RECORDING_WAIT_LIMIT, "a failure returned before the bound is not waited out");
     assert_eq!(observation["write"], "not-confirmed", "{observation}");
     let reason = observation["limit"].as_str().unwrap().to_owned();
-    assert_eq!(crate::app_quit::recording_notice(&observation), Some(crate::app_quit::recording_failed_notice(&reason).as_str()));
-    let notice = crate::app_quit::recording_notice(&observation).unwrap();
-    assert!(notice.contains(&format!("was not confirmed ({reason})")) && !notice.contains("within 10 seconds"), "{notice}");
-    assert!(!notice.contains("not recorded") && !notice.contains("not written"), "{notice}");
+    assert_eq!(reason, "no App-owned account home");
+    assert_eq!(crate::app_quit::recording_notice(&observation), Some("Chirality is quitting. The App's own processes for every Codex home have ended. The end of this session was not recorded (no App-owned account home); the next start reads the ledger as it finds it."));
     // The system path shows no notice, whatever the write did.
     let system = crate::app_quit::finish_exit(&[home], None);
     assert!(system.as_ref().map(|o| o.get("notice").is_none()).unwrap_or(true), "{system:?}");
+}
+
+// ---- Round 1 of the bounded quit: nothing drains on the quit's thread, every
+// unconfirmed result is told, and every wait the quit takes has its bound.
+
+impl Fixture {
+    /// A test thread takes the App ledger itself (not the recovery writer) and
+    /// holds it until the returned sender is used or dropped: an append in
+    /// progress, or a stalled sync, as any drain would meet it.
+    fn hold_ledger(&mut self) -> Sender<()> {
+        let ledger = self.host().inner.0.lock().unwrap().recovery.clone().unwrap();
+        let (held_tx, held_rx) = channel();
+        let (release_tx, release_rx) = channel::<()>();
+        self.held.push(std::thread::spawn(move || {
+            let _held = ledger.lock().unwrap();
+            held_tx.send(()).unwrap();
+            let _ = release_rx.recv();
+        }));
+        held_rx.recv().unwrap();
+        release_tx
+    }
+}
+
+/// F1 (the reader's reproduction): with the recovery writer free and the
+/// ledger held, recording the quit's question and answer returns at once:
+/// both are queued, neither is written on the quit's thread.
+#[test]
+fn the_quits_question_and_answer_wait_on_no_ledger_even_with_the_writer_free() {
+    let mut f = Fixture::new();
+    let release = f.hold_ledger();
+    assert!(f.host().recovery_writer.try_lock().is_ok(), "the writer is free");
+    let host = Arc::clone(f.host());
+    let (tx, rx) = channel();
+    std::thread::spawn(move || {
+        let actor = crate::stop_records::person("fixture person");
+        let _ = tx.send((host.record_quit_requested(&actor, &json!({})), host.record_quit_answered(&actor, true)));
+    });
+    let (requested, answered) = rx.recv_timeout(Duration::from_millis(300)).expect("returned without waiting on the ledger");
+    for record in [&requested, &answered] {
+        assert_eq!(record["state"], "not yet recorded", "{record}");
+    }
+    let _ = release.send(());
+}
+
+/// F1: the ledger held through the whole of a person's quit with a live turn.
+/// The question and answer are queued, the interrupt waits its limit, the
+/// settlement's stop and the reader's end of output drain nothing (the home is
+/// fenced), the processes end, and only the recording thread waits, for its
+/// bound. Released, that thread writes the queued facts and then the end.
+#[test]
+fn a_held_ledger_delays_no_part_of_the_quit_but_its_bounded_recording() {
+    let mut f = Fixture::new();
+    f.live_turn("thread", "turn-1");
+    let group = f.group();
+    let release = f.hold_ledger();
+    let bound = LIMIT + PER_HOME_ENDING + crate::app_quit::RECORDING_WAIT_LIMIT + SLACK;
+    let (decision, observed, took) = person_quit_within(&f, LIMIT, bound);
+    eprintln!("stop-bound: quit with the ledger held returned after {took:?}");
+    let crate::app_quit::Decision::Quit(out) = decision else { panic!("{decision:?}") };
+    assert_eq!(out["records"][0]["state"], "not yet recorded", "{out}");
+    assert!(f.group_ended(group), "every home's processes are settled");
+    assert!(f.host().drains_deferred_to_quit(), "from the fence on, the quit's recording drains");
+    let observed = observed.expect("the quit proceeds");
+    assert_eq!(observed["write"], "not-confirmed", "{observed}");
+    assert_eq!(crate::app_quit::recording_notice(&observed), Some(crate::app_quit::RECORDING_NOT_CONFIRMED));
+    let _ = release.send(());
+    f.await_late_session_end();
+    let kinds = quit_kinds(&crate::recovery::stored_entries(&f.ledger()));
+    assert_eq!(kinds.first().map(String::as_str), Some("quit_requested"), "{kinds:?}");
+    assert_eq!(kinds.last().map(String::as_str), Some("session_ended quit"), "the queued facts are written before the end: {kinds:?}");
+}
+
+/// F1: the quit's own stop of a home (the key offer's) with the ledger held
+/// ends that home's Codex within the stop's own waits and leaves its facts
+/// queued; Stop Codex outside the quit is unchanged.
+#[test]
+fn the_quits_own_stop_ends_codex_without_waiting_on_the_ledger() {
+    let mut f = Fixture::new();
+    let group = f.group();
+    let release = f.hold_ledger();
+    let host = Arc::clone(f.host());
+    let (tx, rx) = channel();
+    std::thread::spawn(move || { let _ = tx.send(host.stop_for_quit("the person", crate::app_quit::QUIT_STOP_REASON, Instant::now() + Duration::from_secs(10))); });
+    let stopped = rx.recv_timeout(PER_HOME_ENDING + SLACK).expect("the stop did not wait on the ledger");
+    assert_eq!(stopped.unwrap()["state"], "stopped");
+    assert!(f.group_ended(group));
+    let _ = release.send(());
+}
+
+/// F2: every session-end result other than the confirmed write gives the
+/// person's quit a notice with the host's own reason; the system path shows
+/// none. Unknown: the ledger refused the append.
+#[test]
+fn an_unknown_session_end_write_gives_the_persons_quit_the_notice_with_the_hosts_reason() {
+    let f = Fixture::new();
+    let db = rusqlite::Connection::open(crate::recovery::store::database_path(&f.ledger())).unwrap();
+    db.execute_batch("CREATE TRIGGER fixture_refuse_end BEFORE INSERT ON ledger_entry WHEN NEW.kind='session_ended' BEGIN SELECT RAISE(ABORT, 'fixture session end refused'); END;").unwrap();
+    let observed = crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(vec![])).unwrap();
+    assert_eq!(observed["write"], "unknown", "{observed}");
+    let reason = observed["limit"].as_str().unwrap();
+    assert!(reason.contains("fixture session end refused"), "the host's own reason: {reason}");
+    assert_eq!(crate::app_quit::recording_notice(&observed), Some(format!("Chirality is quitting. The App's own processes for every Codex home have ended. Recording the end of this session was not confirmed ({reason}), so the record may or may not have been written; the next start reads it as it finds it.").as_str()));
+}
+
+/// F2: not attempted (the account home has no ledger): the notice says the end
+/// was not recorded, with the host's own reason; the system path shows none.
+#[test]
+fn a_session_end_not_attempted_gives_the_persons_quit_the_not_recorded_notice() {
+    let account = || Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, Arc::new(Host::new()), Err("no supplier (fixture)".into())).unwrap());
+    let observed = crate::app_quit::finish_exit(&[account()], Some(vec![])).unwrap();
+    assert_eq!(observed["write"], "not-attempted", "{observed}");
+    assert_eq!(observed["limit"], "ledger unavailable; App end observed in memory only");
+    assert_eq!(crate::app_quit::recording_notice(&observed), Some("Chirality is quitting. The App's own processes for every Codex home have ended. The end of this session was not recorded (ledger unavailable; App end observed in memory only); the next start reads the ledger as it finds it."));
+    let system = crate::app_quit::finish_exit(&[account()], None).unwrap();
+    assert_eq!(system["write"], "not-attempted");
+    assert!(system.get("notice").is_none(), "{system}");
+}
+
+/// F3: a home whose observation another App activity holds (as the tick
+/// holds it while it waits on file I/O) is not read past the assessment's
+/// bound; the question shows it as not read, and it counts as live work.
+#[test]
+fn a_held_home_observation_is_shown_as_not_read_within_the_assessment_bound() {
+    let f = Fixture::new();
+    let home = Arc::clone(&f.home);
+    let (held_tx, held_rx) = channel();
+    let (release_tx, release_rx) = channel::<()>();
+    let holder = std::thread::spawn(move || {
+        let _held = home.runtime.lock().unwrap();
+        held_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    });
+    held_rx.recv().unwrap();
+    let workflows = Mutex::new(WorkflowRootSession::default());
+    let mut shown = Vec::new();
+    let begin = Instant::now();
+    let mut ops = crate::app_quit::HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "fixture person", |view: &Value| -> Result<bool, String> { shown.push(view.clone()); Ok(false) });
+    let decision = crate::app_quit::quit_sequence(&mut ops, LIMIT);
+    let took = begin.elapsed();
+    drop(ops);
+    let _ = release_tx.send(());
+    holder.join().unwrap();
+    assert!(matches!(decision, crate::app_quit::Decision::Cancelled(_)), "{decision:?}");
+    assert!(took >= crate::app_quit::QUIT_ASSESSMENT_WAIT_LIMIT && took < crate::app_quit::QUIT_ASSESSMENT_WAIT_LIMIT + SLACK, "{took:?}");
+    assert_eq!(shown.len(), 1, "asked: what could not be read is possibly live");
+    assert_eq!(shown[0]["assessmentLimits"], json!(["account home: live work could not be read within 5 seconds"]), "{}", shown[0]);
+    assert_eq!(crate::app_quit::live_work_not_read(crate::home_resources::HomeClass::Account), "account home: live work could not be read within 5 seconds");
+}
+
+/// F3: the App's workflow runs held past the bound are shown as not read.
+#[test]
+fn held_workflow_runs_are_shown_as_not_read_within_the_assessment_bound() {
+    let f = Fixture::new();
+    let workflows = Arc::new(Mutex::new(WorkflowRootSession::default()));
+    let (held_tx, held_rx) = channel();
+    let (release_tx, release_rx) = channel::<()>();
+    let held = Arc::clone(&workflows);
+    let holder = std::thread::spawn(move || {
+        let _held = held.lock().unwrap();
+        held_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    });
+    held_rx.recv().unwrap();
+    let begin = Instant::now();
+    let (_, runs, limits) = crate::app_quit::assess_homes(&[Arc::clone(&f.home)], &workflows, Instant::now() + crate::app_quit::QUIT_ASSESSMENT_WAIT_LIMIT);
+    let took = begin.elapsed();
+    let _ = release_tx.send(());
+    holder.join().unwrap();
+    assert!(took < crate::app_quit::QUIT_ASSESSMENT_WAIT_LIMIT + SLACK, "{took:?}");
+    assert!(runs.is_empty());
+    assert_eq!(limits, vec![json!("Workflow runs could not be read within 5 seconds")]);
+}
+
+/// F3: a Codex start holding a home's source gate past the fencing bound: the
+/// person's quit is refused with the sentence, nothing is fenced, settled or
+/// recorded, and the App keeps running.
+#[test]
+fn a_start_holding_the_source_gate_past_the_bound_refuses_the_persons_quit() {
+    assert_eq!(crate::app_quit::start_under_way(crate::home_resources::HomeClass::Account), "A Codex start for the account home is under way and did not finish within 10 seconds, so quitting did not begin. The App is still running.");
+    let f = Fixture::new();
+    let group = f.group();
+    let host = Arc::clone(f.host());
+    let (held_tx, held_rx) = channel();
+    let (release_tx, release_rx) = channel::<()>();
+    let holder = std::thread::spawn(move || {
+        let _gate = host.attachment_gate.lock().unwrap();
+        held_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    });
+    held_rx.recv().unwrap();
+    let begin = Instant::now();
+    let refused = crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(vec![]));
+    let took = begin.elapsed();
+    let _ = release_tx.send(());
+    holder.join().unwrap();
+    assert_eq!(refused.unwrap_err(), crate::app_quit::start_under_way(crate::home_resources::HomeClass::Account));
+    assert!(took >= crate::app_quit::QUIT_FENCE_WAIT_LIMIT && took < crate::app_quit::QUIT_FENCE_WAIT_LIMIT + SLACK, "{took:?}");
+    assert!(!f.host().quit_fence.load(std::sync::atomic::Ordering::SeqCst) && !f.host().drains_deferred_to_quit(), "nothing stays fenced");
+    assert!(!f.group_ended(group), "nothing was stopped");
+    assert_eq!(f.host().snapshot()["state"], "ready");
+    assert!(!crate::recovery::stored_entries(&f.ledger()).iter().any(|e| e["kind"] == "session_ended"), "nothing recorded");
+}
+
+/// F6: the key operation finishes while the person reads the offer. Their
+/// answer applied to what the offer named, which no longer holds: the hold is
+/// read again, the key setup is free, and the quit takes it without stopping
+/// anything.
+#[test]
+fn a_key_operation_that_finishes_while_the_offer_is_open_is_not_stopped() {
+    use crate::app_quit::KeyHold;
+    use crate::home_resources::HomeClass;
+    let f = Fixture::new();
+    let (key, hold) = (Arc::new(Mutex::new(())), Arc::new(Mutex::new(None)));
+    let (end, operation) = key_operation(&f, &key, &hold, Some(KeyHold::WaitingOnCodex(HomeClass::Account)), false);
+    let mut finishing = Some((end, operation));
+    let mut offers = 0;
+    let admission = crate::app_quit::admit_key_setup(&key, &hold, &[Arc::clone(&f.home)], |_| {
+        offers += 1;
+        if let Some((end, operation)) = finishing.take() {
+            end.send(()).unwrap();
+            assert!(!operation.join().unwrap());
+        }
+        Ok(true)
+    }, crate::app_quit::KEY_RELEASE_WAIT_LIMIT);
+    assert!(matches!(admission, crate::app_quit::KeyAdmission::Admitted(_)), "{admission:?}");
+    assert_eq!(offers, 1);
+    assert_eq!(f.host().snapshot()["state"], "ready", "nothing stopped");
+}
+
+/// F6: the operation turns to asking the person while the offer is open: read
+/// again, the quit is refused with today's words and nothing is stopped.
+#[test]
+fn a_key_hold_that_changes_while_the_offer_is_open_is_assessed_again() {
+    use crate::app_quit::KeyHold;
+    use crate::home_resources::HomeClass;
+    let f = Fixture::new();
+    let (key, hold) = (Arc::new(Mutex::new(())), Arc::new(Mutex::new(None)));
+    let (end, operation) = key_operation(&f, &key, &hold, Some(KeyHold::WaitingOnCodex(HomeClass::Account)), false);
+    let changed = Arc::clone(&hold);
+    let admission = crate::app_quit::admit_key_setup(&key, &hold, &[Arc::clone(&f.home)], |_| {
+        *changed.lock().unwrap() = Some(KeyHold::Asking);
+        Ok(true)
+    }, crate::app_quit::KEY_RELEASE_WAIT_LIMIT);
+    let crate::app_quit::KeyAdmission::Refused(reason) = admission else { panic!("{admission:?}") };
+    assert_eq!(reason, crate::app_quit::KEY_OPERATION_UNDER_WAY);
+    assert_eq!(f.host().snapshot()["state"], "ready", "nothing stopped");
+    end.send(()).unwrap();
+    assert!(!operation.join().unwrap());
+}
+
+/// The bounded acquisition every quit-side lock uses: a mutex held past the
+/// deadline is not had, and the wait ends at the deadline.
+#[test]
+fn a_lock_held_past_its_deadline_is_not_waited_for() {
+    let mutex = Arc::new(Mutex::new(()));
+    let (held_tx, held_rx) = channel();
+    let (release_tx, release_rx) = channel::<()>();
+    let held = Arc::clone(&mutex);
+    let holder = std::thread::spawn(move || {
+        let _held = held.lock().unwrap();
+        held_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    });
+    held_rx.recv().unwrap();
+    let begin = Instant::now();
+    assert!(crate::util::lock_by(&mutex, Instant::now() + Duration::from_millis(200)).is_none());
+    let took = begin.elapsed();
+    assert!(took >= Duration::from_millis(200) && took < Duration::from_millis(700), "{took:?}");
+    let _ = release_tx.send(());
+    holder.join().unwrap();
+    assert!(crate::util::lock_by(&mutex, Instant::now()).is_some(), "free, it is had at once");
 }

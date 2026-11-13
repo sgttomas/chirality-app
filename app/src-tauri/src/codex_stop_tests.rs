@@ -136,7 +136,7 @@ fn confirm_closes_to_new_turns_writes_every_interrupt_then_waits_then_stops() {
     assert!(t4["codexReported"].is_null());
     assert!(out["historyNote"].as_str().unwrap().contains("comes from this stop"), "G-5 note for a turn live at the stop");
     assert_eq!(out["standing"], "your operational choice; not a recorded act");
-    assert!(out["records"].as_str().unwrap().contains("a stop-request record for each interrupt before it is sent"));
+    assert!(out["records"].as_str().unwrap().contains("a stop-request record for each interrupt, attempted before it is sent"));
     assert_eq!(ops.log.iter().filter(|l| *l == "record").count(), 1, "one codex_stop record");
     assert!(out["start"].is_null() && out["conversations"].is_null());
 }
@@ -877,7 +877,14 @@ for line in sys.stdin:
         assert_eq!(f.wire(), wire, "nothing written to Codex");
         assert_eq!(f.home.host.lifecycle_events().len(), lifecycle, "no stop transition");
         assert_eq!(f.home.host.snapshot()["state"], "ready");
-        let k = kinds(&ledger_rows(&f));
+        // The question and the answer are written by a flush the quit does not
+        // wait for; it is waited for here, within a bound.
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        let mut k = kinds(&ledger_rows(&f));
+        while !(k.contains(&"quit_requested".to_owned()) && k.contains(&"quit_answered cancelled".to_owned())) && std::time::Instant::now() < deadline {
+            std::thread::sleep(Duration::from_millis(10));
+            k = kinds(&ledger_rows(&f));
+        }
         assert!(k.contains(&"quit_requested".to_owned()) && k.contains(&"quit_answered cancelled".to_owned()), "{k:?}");
         assert!(!k.iter().any(|x| x.starts_with("stop_request") || x.starts_with("session_ended")), "{k:?}");
         let _ = f.home.host.turn_steer_text(&f.generation, "thread", "turn-1", "still open");

@@ -195,40 +195,113 @@ pub(crate) struct HostQuit<'a, C> {
     /// The person as the App observes them (K1-4), for the records.
     pub(crate) person: Value,
     closed: Vec<(Arc<HomeSession>, Value)>,
+    /// Set when the person's confirming answer is queued; until then a
+    /// dropped binding hands the queued question (and any keep-running
+    /// answer) to an ordinary flush that nothing waits on.
+    confirmed: bool,
+}
+/// A quit the person kept running, or one never asked: the queued question
+/// and answer are written by an ordinary flush on its own thread, which the
+/// App does not wait for (the person's answer is not delayed by the ledger).
+impl<C> Drop for HostQuit<'_, C> {
+    fn drop(&mut self) {
+        if self.confirmed { return; }
+        if let Some(home) = self.ledger_host().cloned() {
+            let _ = std::thread::Builder::new().name("quit-kept-running-flush".into()).spawn(move || { home.host.flush_recovery_observations(); });
+        }
+    }
 }
 impl<'a, C> HostQuit<'a, C> {
     pub(crate) fn new(homes: Vec<Arc<HomeSession>>, workflows: &'a Mutex<WorkflowRootSession>, person: &str, confirm: C) -> Self {
-        Self { homes, workflows, confirm, person: crate::stop_records::person(person), closed: Vec::new() }
+        Self { homes, workflows, confirm, person: crate::stop_records::person(person), closed: Vec::new(), confirmed: false }
     }
     /// The ledger is the App's one REC custody; the account home's Host holds it.
     fn ledger_host(&self) -> Option<&Arc<HomeSession>> {
         self.homes.iter().find(|h| h.class() == crate::home_resources::HomeClass::Account).or(self.homes.first())
     }
     fn home_for(&self, generation: &Value) -> Option<&Arc<HomeSession>> {
-        self.homes.iter().find(|h| h.host.snapshot()["generation"] == *generation)
+        self.homes.iter().find(|h| h.host.snapshot_without_records()["generation"] == *generation)
     }
 }
 
-/// One home's live work as Stop Codex assesses it, or the reason it is not
-/// assessed. Absent, stopped and refused homes have no Codex process.
-pub(crate) fn assess_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSession>) -> (Option<(Value, Value)>, Vec<Value>, Option<Value>) {
-    let snapshot = home.host.snapshot();
-    let generation = snapshot["generation"].clone();
-    let state = snapshot["state"].as_str().unwrap_or("not reported").to_owned();
-    let class = home.class().as_str();
-    if matches!(state.as_str(), "absent" | "stopped" | "refused") || generation.is_null() {
-        return (None, vec![], None);
+/// How long one assessment waits for every home's live work to be read, and
+/// for the App's workflow runs: one deadline for all homes. A home's read
+/// takes that home's observation (`home.runtime`), which the App's tick and
+/// commands also hold, and Codex's delivered state, which reads the records
+/// capability's view and the distribution store; any of them may wait on file
+/// I/O. Execution lane's own bound (App Type 1), its to change.
+pub(crate) const QUIT_ASSESSMENT_WAIT_LIMIT: Duration = Duration::from_secs(5);
+/// What the question shows for a home whose live work was not read in time.
+/// It counts as live work (`has_live_work`): what could not be read is
+/// treated as possibly live, never as idle.
+pub(crate) fn live_work_not_read(class: crate::home_resources::HomeClass) -> String {
+    format!("{} home: live work could not be read within {} seconds", home_name(class), QUIT_ASSESSMENT_WAIT_LIMIT.as_secs())
+}
+/// Quit refused because the App's list of homes was held past the bound.
+pub(crate) fn homes_not_read() -> String {
+    format!("The App's list of Codex homes was held by another App activity for {} seconds, so quitting did not begin. The App is still running.", QUIT_ASSESSMENT_WAIT_LIMIT.as_secs())
+}
+/// What the question shows when the App's workflow runs were not read in time.
+pub(crate) fn runs_not_read() -> String {
+    format!("Workflow runs could not be read within {} seconds", QUIT_ASSESSMENT_WAIT_LIMIT.as_secs())
+}
+/// Every home's live work as Stop Codex assesses it, or the reason it is not
+/// assessed, waited for until `deadline`. Each ready home is read on its own
+/// thread; a read not finished by the deadline is left to finish on its own
+/// (it updates that home's observation as any read does) and its result is
+/// never used. Absent, stopped and refused homes have no Codex process.
+pub(crate) fn assess_homes(homes: &[Arc<HomeSession>], workflows: &Mutex<WorkflowRootSession>, deadline: Instant) -> (Vec<(Value, Value)>, Vec<Value>, Vec<Value>) {
+    let (sent, received) = std::sync::mpsc::channel();
+    let mut rows: Vec<Option<(Value, Value)>> = Vec::new();
+    let mut pending = Vec::new();
+    let mut limits = Vec::new();
+    let mut home_ids = Vec::new();
+    for (index, home) in homes.iter().enumerate() {
+        let snapshot = home.host.snapshot_without_records();
+        let generation = snapshot["generation"].clone();
+        let state = snapshot["state"].as_str().unwrap_or("not reported").to_owned();
+        let class = home.class();
+        if matches!(state.as_str(), "absent" | "stopped" | "refused") || generation.is_null() {
+            rows.push(None);
+            continue;
+        }
+        home_ids.extend(generation["home"].as_str().map(str::to_owned));
+        let mut row = json!({"modeHomeClass":class.as_str(),"generation":generation,"state":state});
+        if state != "ready" {
+            row["notReady"] = json!(format!("Codex is {state}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
+            rows.push(Some((row, json!({}))));
+            continue;
+        }
+        rows.push(Some((row, json!({}))));
+        let (home, sent) = (Arc::clone(home), sent.clone());
+        let reader = std::thread::Builder::new().name("quit-assessment".into()).spawn(move || {
+            let read = crate::runtime_session::assess_native_home_work(&home, &generation).map(|work| work.snapshot());
+            let _ = sent.send((index, read));
+        });
+        match reader {
+            Ok(_) => pending.push((index, class)),
+            Err(error) => limits.push(json!(format!("{}: live work could not be read ({error})", class.as_str()))),
+        }
     }
-    let runs = generation["home"].as_str().map(|id| workflows.lock().unwrap().runs_in_force_in_home(id)).unwrap_or_default();
-    let mut row = json!({"modeHomeClass":class,"generation":generation,"state":state});
-    if state != "ready" {
-        row["notReady"] = json!(format!("Codex is {state}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
-        return (Some((row, json!({}))), runs, None);
+    drop(sent);
+    let runs = match crate::util::lock_by(workflows, deadline) {
+        Some(root) => home_ids.iter().flat_map(|id| root.runs_in_force_in_home(id)).collect(),
+        None => {
+            limits.push(json!(runs_not_read()));
+            Vec::new()
+        }
+    };
+    while !pending.is_empty() {
+        let Ok((index, read)) = received.recv_timeout(deadline.saturating_duration_since(Instant::now())) else { break };
+        let Some(at) = pending.iter().position(|(i, _)| *i == index) else { continue };
+        let (_, class) = pending.remove(at);
+        match read {
+            Ok(work) => if let Some((_, slot)) = rows[index].as_mut() { *slot = work },
+            Err(error) => limits.push(json!(format!("{}: {error}", class.as_str()))),
+        }
     }
-    match crate::runtime_session::assess_native_home_work(home, &generation) {
-        Ok(work) => (Some((row, work.snapshot())), runs, None),
-        Err(error) => (Some((row, json!({}))), runs, Some(json!(format!("{class}: {error}")))),
-    }
+    limits.extend(pending.into_iter().map(|(_, class)| json!(live_work_not_read(class))));
+    (rows.into_iter().flatten().collect(), runs, limits)
 }
 
 impl<C> Interrupts for HostQuit<'_, C> {
@@ -245,7 +318,7 @@ impl<C> Interrupts for HostQuit<'_, C> {
         // The same guard as the person's Interrupt control; the request is
         // written (its SR-01 record first), not awaited, and its write is
         // waited for no later than the quit's stop deadline.
-        crate::runtime_session::interrupt_conversation_turn(&host.snapshot(), &turn["generation"], thread, id, |g, t, u| {
+        crate::runtime_session::interrupt_conversation_turn(&host.snapshot_without_records(), &turn["generation"], thread, id, |g, t, u| {
             written = Some(host.turn_interrupt_within(g, t, u, crate::stop_records::Cause::Quit, class, person, deadline));
             Ok(Value::Null)
         }).map_err(Unsent::NotSent)?;
@@ -262,13 +335,7 @@ impl<C> Interrupts for HostQuit<'_, C> {
 }
 impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
     fn assess(&mut self) -> Assessment {
-        let (mut homes, mut runs, mut limits) = (Vec::new(), Vec::new(), Vec::new());
-        for home in &self.homes {
-            let (row, home_runs, limit) = assess_home(home, self.workflows);
-            homes.extend(row);
-            runs.extend(home_runs);
-            limits.extend(limit);
-        }
+        let (homes, runs, limits) = assess_homes(&self.homes, self.workflows, Instant::now() + QUIT_ASSESSMENT_WAIT_LIMIT);
         Assessment::new(merge(homes, runs, limits))
     }
     fn record_requested(&mut self, material: &Value) -> Value {
@@ -281,6 +348,7 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
         (self.confirm)(view)
     }
     fn record_answered(&mut self, confirmed: bool) -> Value {
+        self.confirmed |= confirmed;
         match self.ledger_host() {
             Some(home) => home.host.record_quit_answered(&self.person, confirmed),
             None => json!({"state":"not recorded","reading":"no App-owned home holds the App ledger"}),
@@ -288,7 +356,7 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
     }
     fn close_to_new_turns(&mut self) {
         for home in &self.homes {
-            let snapshot = home.host.snapshot();
+            let snapshot = home.host.snapshot_without_records();
             // Only a process this quit closed is recorded, so the quit reopens
             // only what it closed, never one a Stop/Restart closed.
             if snapshot["state"] == "ready" && home.host.close_to_new_turns(&snapshot["generation"]) == Ok(true) {
@@ -304,7 +372,7 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
     fn stop_record(&mut self, turn: &Value) -> Value {
         let Some(home) = self.home_for(&turn["generation"]) else { return Value::Null };
         let generation = crate::recovery::generation_ref(&turn["generation"]).unwrap_or_default();
-        let rows = home.host.snapshot()["stopRequests"]["records"].clone();
+        let rows = home.host.snapshot_without_records()["stopRequests"]["records"].clone();
         rows.as_array().into_iter().flatten().rev()
             .find(|r| r["generation"] == generation.as_str() && r["threadId"] == turn["threadId"] && r["turnId"] == turn["turnId"] && r["cause"] == "quit")
             .cloned().unwrap_or(Value::Null)
@@ -461,41 +529,47 @@ pub(crate) enum KeyAdmission<'a> {
 /// SQ-Q: Quit and a key operation holding the key setup. Free: taken for the
 /// quit. Held with nothing published, or by an operation asking the person:
 /// refused with today's words. Held by an operation waiting on a home's Codex:
-/// the person is offered to stop that home's Codex as part of quitting; on
-/// Quit anyway that home's Codex is stopped (the Host's bounded stop), then
-/// the key setup is waited for up to `release_wait`.
-pub(crate) fn admit_key_setup<'a>(key_setup: &'a Mutex<()>, hold: &Mutex<Option<KeyHold>>, homes: &[Arc<HomeSession>], offer: impl FnOnce(&str) -> Result<bool, String>, release_wait: Duration) -> KeyAdmission<'a> {
-    if let Ok(held) = key_setup.try_lock() {
-        return KeyAdmission::Admitted(held);
-    }
-    let published = *hold.lock().unwrap_or_else(|e| e.into_inner());
-    let class = match published {
-        Some(KeyHold::WaitingOnCodex(class)) => class,
-        None | Some(KeyHold::Asking) => return KeyAdmission::Refused(KEY_OPERATION_UNDER_WAY.into()),
+/// the person is offered to stop that home's Codex as part of quitting. Their
+/// answer applies to what the offer named: the published hold is read again
+/// after the answer and, if it changed or cleared, assessed again from the
+/// start (a cleared hold with the key setup free is taken without stopping
+/// anything; a different home is offered again in its own words). On Quit
+/// anyway with the hold unchanged, that home's Codex is stopped (the Host's
+/// bounded stop, its source gate taken within `release_wait`), then the key
+/// setup is waited for up to `release_wait`.
+pub(crate) fn admit_key_setup<'a>(key_setup: &'a Mutex<()>, hold: &Mutex<Option<KeyHold>>, homes: &[Arc<HomeSession>], mut offer: impl FnMut(&str) -> Result<bool, String>, release_wait: Duration) -> KeyAdmission<'a> {
+    let read = || *hold.lock().unwrap_or_else(|e| e.into_inner());
+    let class = loop {
+        if let Ok(held) = key_setup.try_lock() {
+            return KeyAdmission::Admitted(held);
+        }
+        let published = read();
+        let class = match published {
+            Some(KeyHold::WaitingOnCodex(class)) => class,
+            None | Some(KeyHold::Asking) => return KeyAdmission::Refused(KEY_OPERATION_UNDER_WAY.into()),
+        };
+        match offer(&key_wait_offer(class)) {
+            Ok(true) => {}
+            Ok(false) => return KeyAdmission::KeptRunning,
+            Err(reason) => return KeyAdmission::NotAsked(reason),
+        }
+        if read() == published {
+            break class;
+        }
     };
-    match offer(&key_wait_offer(class)) {
-        Ok(true) => {}
-        Ok(false) => return KeyAdmission::KeptRunning,
-        Err(reason) => return KeyAdmission::NotAsked(reason),
-    }
+    let stop_by = Instant::now() + release_wait;
     for home in homes.iter().filter(|home| home.class() == class) {
-        if let Err(error) = home.host.stop("the person", QUIT_STOP_REASON) {
-            let state = home.host.snapshot()["state"].as_str().unwrap_or_default().to_owned();
+        if let Err(error) = home.host.stop_for_quit("the person", QUIT_STOP_REASON, stop_by) {
+            let state = home.host.snapshot_without_records()["state"].as_str().unwrap_or_default().to_owned();
             if !matches!(state.as_str(), "absent" | "stopped" | "refused") {
                 return KeyAdmission::Refused(key_home_not_stopped(class, &error));
             }
         }
     }
     let deadline = Instant::now() + release_wait;
-    loop {
-        if let Ok(held) = key_setup.try_lock() {
-            return KeyAdmission::Admitted(held);
-        }
-        let now = Instant::now();
-        if now >= deadline {
-            return KeyAdmission::Refused(key_still_held(class));
-        }
-        std::thread::sleep((deadline - now).min(Duration::from_millis(10)));
+    match crate::util::lock_by(key_setup, deadline) {
+        Some(held) => KeyAdmission::Admitted(held),
+        None => KeyAdmission::Refused(key_still_held(class)),
     }
 }
 
@@ -542,71 +616,132 @@ pub(crate) const QUIT_CANNOT_ESTABLISH: &str = "Chirality cannot establish wheth
 /// needs) to be confirmed written, from when that wait begins. The writing
 /// thread is not ended at the bound; a result it reports later is not observed.
 pub(crate) const RECORDING_WAIT_LIMIT: Duration = Duration::from_secs(10);
+/// How long the exit waits, across every home, for a Codex start under way to
+/// let go of its home's source gate so that the home can be fenced.
+pub(crate) const QUIT_FENCE_WAIT_LIMIT: Duration = Duration::from_secs(10);
+/// The person's quit refused because a start under way kept a home unfenced.
+pub(crate) fn start_under_way(class: crate::home_resources::HomeClass) -> String {
+    format!("A Codex start for the {} home is under way and did not finish within {} seconds, so quitting did not begin. The App is still running.", home_name(class), QUIT_FENCE_WAIT_LIMIT.as_secs())
+}
+/// What every notice before the person's quit exits says first: settlement
+/// established that each home's original owned process group is empty.
+const QUITTING: &str = "Chirality is quitting. The App's own processes for every Codex home have ended.";
 /// The notice shown, with OK only, before the person's quit exits when the
 /// session-end record was not confirmed within [`RECORDING_WAIT_LIMIT`].
-pub(crate) const RECORDING_NOT_CONFIRMED: &str = "Chirality is quitting. Codex was stopped for every home and its processes are settled. Recording the end of this session was not confirmed within 10 seconds, so the record may or may not have been written; the next start reads it as it finds it.";
-/// The same notice when the session-end write returned a failure before the
-/// bound: the host's own reason in place of "within 10 seconds". The reason
-/// is what the host returned, not a reading of it.
+pub(crate) const RECORDING_NOT_CONFIRMED: &str = "Chirality is quitting. The App's own processes for every Codex home have ended. Recording the end of this session was not confirmed within 10 seconds, so the record may or may not have been written; the next start reads it as it finds it.";
+/// The same notice when the write returned before the bound with its outcome
+/// unknown (the ledger refused the append): the host's own reason in place of
+/// "within 10 seconds". The reason is what the host returned, not a reading.
 pub(crate) fn recording_failed_notice(reason: &str) -> String {
-    format!("Chirality is quitting. Codex was stopped for every home and its processes are settled. Recording the end of this session was not confirmed ({reason}), so the record may or may not have been written; the next start reads it as it finds it.")
+    format!("{QUITTING} Recording the end of this session was not confirmed ({reason}), so the record may or may not have been written; the next start reads it as it finds it.")
 }
+/// The notice when no write of the session end was made (no ledger, no App
+/// custody, the entry could not be formed or its thread not started), with
+/// the host's own reason.
+pub(crate) fn recording_not_written_notice(reason: &str) -> String {
+    format!("{QUITTING} The end of this session was not recorded ({reason}); the next start reads the ledger as it finds it.")
+}
+/// `work` on its own thread, waited for at most `limit`; Err when it does not
+/// report in time (it is not ended; a later result is not observed) or its
+/// thread could not be started.
+fn within<T: Send + 'static>(name: &str, limit: Duration, work: impl FnOnce() -> T + Send + 'static) -> Result<T, Within> {
+    let (sent, received) = std::sync::mpsc::channel();
+    std::thread::Builder::new().name(name.into()).spawn(move || { let _ = sent.send(work()); }).map_err(|error| Within::NotStarted(error.to_string()))?;
+    received.recv_timeout(limit).map_err(|_| Within::NotInTime)
+}
+enum Within { NotStarted(String), NotInTime }
 /// The session-end write (taking the App custody first if it is not yet
-/// held) on its own thread, waited for at most `limit`. The observation the
-/// write reports, or `not-confirmed` with the reason it was not observed.
+/// held) on its own thread, waited for at most `limit`. That thread drains
+/// every home's queued recovery facts, in each home's order, before the end
+/// entry. The observation the write reports, or `not-confirmed` with the
+/// reason it was not observed.
 fn record_session_end_within(homes: &[Arc<HomeSession>], how: &'static str, stops: Vec<Value>, limit: Duration) -> Result<Value, String> {
     let account = homes.iter().find(|home| home.class() == crate::home_resources::HomeClass::Account).cloned();
-    let (sent, received) = std::sync::mpsc::channel();
-    let spawned = std::thread::Builder::new().name("quit-session-end".into()).spawn(move || {
+    let written = within("quit-session-end", limit, move || {
         let result = match &account {
             None => Err("no App-owned account home".to_owned()),
             Some(home) => home.host.app_runtime_custody().and_then(|custody| custody.record_app_session_end_as(how, &stops)),
         };
         #[cfg(test)]
         if let Some(home) = &account { home.host.after_quit_recording(); }
-        let _ = sent.send(result);
+        result
     });
-    if let Err(error) = spawned {
-        return Err(format!("the session-end recording could not be started: {error}"));
-    }
-    match received.recv_timeout(limit) {
+    match written {
         Ok(result) => result,
-        Err(_) => Ok(json!({"write":"not-confirmed","waitLimitSeconds":limit.as_secs(),
+        Err(Within::NotStarted(error)) => Err(format!("the session-end recording could not be started: {error}")),
+        Err(Within::NotInTime) => Ok(json!({"write":"not-confirmed","waitLimitSeconds":limit.as_secs(),
             "limit":format!("Recording the end of this session was not confirmed within {} seconds; the record may or may not have been written.", limit.as_secs()),
             "standing":"the write was not observed to complete; it may complete after this observation"})),
     }
 }
-/// Before deliberate exit: fence every App-owned home, settle each home's actual owned processes
-/// (Q-6, AS-08; HOSTING §4.5 closes the generation, so a quit stop request Codex never reported
-/// ended gets SR-08), and only then record `session_ended` with each quit stop request's state
-/// (Q-7, AS-09), waiting for that record at most [`RECORDING_WAIT_LIMIT`]. A settlement failure
-/// refuses the quit before any recording. With no quit decided (AS-10) the *system-terminated*
-/// record is written first, as the system allows, waited for at most the same bound, then every
-/// home is fenced and settled. Returns the session-end observation.
+/// After the system's early session end: the recovery facts settlement left
+/// queued (drains being deferred once fenced), written on their own thread
+/// and waited for at most `limit`.
+fn drain_after_settlement_within(homes: &[Arc<HomeSession>], limit: Duration) -> Value {
+    let Some(account) = homes.iter().find(|home| home.class() == crate::home_resources::HomeClass::Account).cloned() else {
+        return json!({"standing":"no App-owned account home; queued facts not written"});
+    };
+    match within("quit-final-drain", limit, move || account.host.app_runtime_custody().map(|custody| custody.flush_captured_recovery())) {
+        Ok(Ok(observation)) => observation,
+        Ok(Err(error)) => json!({"standing":format!("queued facts not written: {error}")}),
+        Err(Within::NotStarted(error)) => json!({"standing":format!("queued facts not written: the drain could not be started: {error}")}),
+        Err(Within::NotInTime) => json!({"standing":format!("queued facts not confirmed written within {} seconds", limit.as_secs())}),
+    }
+}
+/// Before deliberate exit: fence every App-owned home (within
+/// [`QUIT_FENCE_WAIT_LIMIT`] across all of them), settle each home's actual
+/// owned processes (Q-6, AS-08; HOSTING §4.5 closes the generation, so a quit
+/// stop request Codex never reported ended gets SR-08), and only then record
+/// `session_ended` with each quit stop request's state (Q-7, AS-09), waiting
+/// for that record at most [`RECORDING_WAIT_LIMIT`]. A home not fenced in time
+/// or a settlement failure refuses the person's quit before any recording.
+/// From the fence on, nothing drains the recovery queues on this thread: the
+/// recording thread drains them first. With no quit decided (AS-10) the
+/// *system-terminated* record is written first, as the system allows, waited
+/// for at most the same bound, then every home is fenced and settled, then
+/// the facts settlement queued are written, waited for at most the same bound.
+/// Returns the session-end observation.
 pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<String>>) -> Result<Value, String> {
     // AS-10: the system allows a final write; write it first (bounded), then
     // stop each home's process as the system allows.
     let early = if proceeding.is_none() { Some(record_session_end_within(homes, "system-terminated", vec![], RECORDING_WAIT_LIMIT)) } else { None };
     let (actor, reason) = if proceeding.is_some() { ("the person", QUIT_STOP_REASON) } else { ("the system", "system termination") };
-    // Fence every home before settling any one of them. Retain these fences
-    // through successful session-end publication and the native exit.
-    for home in homes { home.host.begin_quit(); }
+    // Fence every home before settling any one of them, one deadline for all.
+    // Retain these fences through session-end publication and the native exit.
+    let fence_by = Instant::now() + QUIT_FENCE_WAIT_LIMIT;
     let mut failures = Vec::new();
     for home in homes {
+        if let Err(error) = home.host.begin_quit_by(fence_by) {
+            if proceeding.is_some() {
+                for home in homes { home.host.cancel_quit(); }
+                return Err(start_under_way(home.class()));
+            }
+            failures.push(format!("{}: {error}", home.class().as_str()));
+        }
+    }
+    for home in homes {
+        // A home the system's exit could not fence is not settled: its own
+        // settlement refuses without the fence, and is reported as a limit.
         if let Err(error) = home.host.settle_for_quit(actor, reason) {
             failures.push(format!("{}: {error}", home.class().as_str()));
         }
     }
-    let records: Vec<Value> = homes.iter().flat_map(|home| home.host.snapshot()["stopRequests"]["records"].as_array().cloned().unwrap_or_default()).collect();
+    let records: Vec<Value> = homes.iter().flat_map(|home| home.host.snapshot_without_records()["stopRequests"]["records"].as_array().cloned().unwrap_or_default()).collect();
     if let Some(early) = early {
         // AS-10 cannot delay system-forced termination. Report cleanup limits
         // separately instead of presenting them as normal Quit. No notice is
         // shown: the next start reads what the ledger holds.
+        // The drain needs the same App writer as the early write: when that
+        // write was not observed within its bound, the drain is not waited for.
+        let drained = match &early {
+            Ok(observation) if observation.get("waitLimitSeconds").is_some() => json!({"standing":"not attempted: the early session-end write was not observed within its bound, and this drain needs the same App writer"}),
+            _ => drain_after_settlement_within(homes, RECORDING_WAIT_LIMIT),
+        };
         if !failures.is_empty() { eprintln!("chirality: system termination cleanup unavailable: {}", failures.join("; ")); }
         if let Ok(observation) = &early {
             if observation["write"] == "not-confirmed" { eprintln!("chirality: {}", observation["limit"].as_str().unwrap_or("system termination session end not confirmed")); }
         }
-        return early.map(|mut observation| { observation["ownedProcessCleanupLimits"] = json!(failures); observation });
+        return early.map(|mut observation| { observation["ownedProcessCleanupLimits"] = json!(failures); observation["queuedAfterSettlement"] = drained; observation });
     }
     if !failures.is_empty() {
         for home in homes { home.host.cancel_quit(); }
@@ -621,18 +756,23 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
     }
     let (how, stops) = session_end(proceeding, &records);
     // Q-7: a ledger limit is a recording limit, not grounds to fabricate an
-    // end or block an already settled exit. The next start reads the ledger
-    // as it finds it.
+    // end or block an already settled exit. Every result other than the
+    // confirmed write is told to the person before the exit, with the host's
+    // own reason; the next start reads the ledger as it finds it.
     Ok(match record_session_end_within(homes, how, stops, RECORDING_WAIT_LIMIT) {
         Ok(mut observation) => {
-            if observation["write"] == "not-confirmed" && observation.get("waitLimitSeconds").is_some() {
-                observation["notice"] = json!(RECORDING_NOT_CONFIRMED);
-            }
+            let reason = observation["limit"].as_str().map(str::to_owned).unwrap_or_else(|| format!("the host reported the write as {}", observation["write"]));
+            let notice = match observation["write"].as_str() {
+                Some("confirmed") => None,
+                Some("not-confirmed") if observation.get("waitLimitSeconds").is_some() => Some(RECORDING_NOT_CONFIRMED.to_owned()),
+                Some("not-attempted") => Some(recording_not_written_notice(&reason)),
+                _ => Some(recording_failed_notice(&reason)),
+            };
+            if let Some(notice) = notice { observation["notice"] = json!(notice); }
             observation
         }
-        // A failure the host returned before the bound: the person's quit says so too, with the
-        // host's own reason, and only that the record was not confirmed.
-        Err(error) => json!({"write":"not-confirmed","limit":error,"standing":"owned processes settled; session-end recording unavailable","notice":recording_failed_notice(&error)}),
+        // A failure the host returned before the bound: nothing was written.
+        Err(error) => json!({"write":"not-confirmed","limit":error,"standing":"owned processes settled; session-end recording unavailable","notice":recording_not_written_notice(&error)}),
     })
 }
 /// The notice the person's quit shows before exit, when its session-end

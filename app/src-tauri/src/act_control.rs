@@ -517,7 +517,7 @@ pub(crate) mod native_statement {
             tail.push("No conversation is continued automatically; continue one yourself.".into());
         }
         tail.push("None observed is not none: coverage is not complete.".into());
-        tail.push("This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending; what the ledger accepts can be read after a relaunch.".into());
+        tail.push("This is your operational choice, not a recorded act. If you confirm, the App attempts to record the stop and each interrupt in its recovery ledger before sending, and sends even when a record could not be made; what the ledger accepts can be read after a relaunch.".into());
         tail.push(format!("Observed at {}.", text_or(&view["observedAt"], "not reported")));
         tail.push(format!("{act} proceeds; {KEEP_CODEX} (the default) and Cancel change nothing."));
         let whole = [head.clone(), listed, tail.clone()].concat().join("\n");
@@ -576,7 +576,7 @@ pub(crate) mod native_statement {
             ),
             "Waiting requests are not answered; they end with the process. Workflow runs stay open: quitting ends no run. After a relaunch the turns read \"interrupted by quit\" and nothing continues until you choose to.".into(),
             "None observed is not none: coverage is not complete.".into(),
-            "This is your operational choice, not a recorded act. The App records each interrupt in its recovery ledger before sending it. It also records this question and your answer, in that order, but quitting does not wait for that record.".into(),
+            "This is your operational choice, not a recorded act. The App attempts to record each interrupt before sending it. It also attempts to record this question and your answer, in that order, but quitting does not wait for those two entries to be written; they may be absent at the next start.".into(),
             format!("Observed at {}.", text_or(&view["observedAt"], "not reported")),
             format!("{QUIT_APP} proceeds; {KEEP_RUNNING} (the default) and Cancel change nothing."),
         ];

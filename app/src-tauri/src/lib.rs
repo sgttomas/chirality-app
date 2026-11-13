@@ -1592,7 +1592,13 @@ fn request_quit(app: tauri::AppHandle) {
             let statement = act_control::native_statement::bounded("Quit offer", text.to_owned()).map(|text| act_control::native_statement::NativeStatement { text, in_app: None });
             native_lifecycle_confirmation::confirm(window, "Quit Chirality", statement, act_control::native_statement::KEEP_RUNNING, app_quit::QUIT_ANYWAY)
         };
-        let homes = state.homes.lock().unwrap().entries();
+        // The list of homes is read within a bound: a command can hold it while
+        // it reads a home's full state, which waits on file I/O.
+        let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
+            show_main_window(&app);
+            native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            return;
+        };
         let _key_setup = match app_quit::admit_key_setup(&state.key_setup, &state.key_hold, &homes, offer, app_quit::KEY_RELEASE_WAIT_LIMIT) {
             app_quit::KeyAdmission::Admitted(held) => held,
             app_quit::KeyAdmission::KeptRunning => return,
@@ -1607,9 +1613,12 @@ fn request_quit(app: tauri::AppHandle) {
             }
         };
         // Read again now that the key setup is held: no home is added meanwhile.
-        let homes = state.homes.lock().unwrap().entries();
-        let active = state.homes.lock().unwrap().active();
-        let person = stop_person(&state, &active);
+        let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
+            show_main_window(&app);
+            native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            return;
+        };
+        let person = quit_person(&state);
         let retained_question_window = question_window.clone();
         let mut ops = app_quit::HostQuit::new(homes.clone(), &state.workflows, &person, move |view: &Value| {
             use act_control::native_statement as ns;
@@ -2040,6 +2049,16 @@ fn conversation_interrupt(
 }
 /// The person as a stop request names them (K1-4): the App's name setting
 /// and the OS account, never verified.
+/// The person as the quit records them: the same line as [`stop_person`],
+/// formed from the same two inputs (the name the person gave and the OS
+/// account) without reading any home's observation, which the quit does not
+/// wait on.
+fn quit_person(state: &AppState) -> String {
+    let name = state.person_name.lock().unwrap().clone();
+    let actor = act_control::person(name.as_deref(), util::os_account().as_deref());
+    let line = act_control::native_statement::actor_line(&actor);
+    line.strip_suffix(" (identity not verified)").unwrap_or(&line).to_owned()
+}
 fn stop_person(state: &AppState, home: &Arc<runtime_session::HomeSession>) -> String {
     let (_, context) = current_actor_context_for(state, home);
     let actor = act_control::person(context["displayName"].as_str(), context["osAccount"].as_str());
@@ -3356,7 +3375,12 @@ pub fn run() {
             // from the Dock's Quit, logout or shutdown).
             tauri::RunEvent::Exit => {
                 let st: State<'_, AppState> = app.state();
-                let homes = st.homes.lock().unwrap().entries();
+                // Read within a bound, as the quit reads it; not read in time,
+                // no home is settled or ended here and that is logged.
+                let homes = match util::lock_by(&st.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
+                    Some(router) => router.entries(),
+                    None => { eprintln!("chirality: exit: the App's list of Codex homes was held by another App activity for {} seconds; no home was settled or ended here", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs()); Vec::new() }
+                };
                 // Ordinary Quit already settled processes and recorded its end
                 // before permission to exit. Only an unapproved/system exit
                 // takes the limited AS-10 best-effort path here.
@@ -3366,10 +3390,13 @@ pub fn run() {
                     }
                 }
                 // DEL-06-01: this session's observation of each child it recorded ends with it.
-                if let Ok(mut links) = st.native_links.lock() {
-                    links.end_delegation_at_exit(&homes);
+                match util::lock_by(&st.native_links, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
+                    Some(mut links) => links.end_delegation_at_exit(&homes),
+                    None => eprintln!("chirality: exit: delegation observation not ended: the App's conversation links were held by another App activity for {} seconds", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs()),
                 }
-                records_index::close_all();
+                if !records_index::close_all_by(std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
+                    eprintln!("chirality: exit: the records index caches were held by a records reader for {} seconds and are left as a crash leaves them", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs());
+                }
             }
             _ => {}
         });

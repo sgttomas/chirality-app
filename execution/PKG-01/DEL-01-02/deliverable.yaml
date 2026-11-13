@@ -12,6 +12,12 @@ needs:
   condition: Every conversation belongs to exactly one App-owned Codex home, and each home has
     a stable identity that survives a relaunch.
   gating: true
+- from: DEL-01-05
+  condition: A key operation that publishes that it is waiting on a home's Codex keeps that publication
+    current while it holds the App's key setup, and does not save its settings change once that
+    home's Codex has been stopped; if it cannot hold to that, the quit's offer, which says the settings
+    are not changed, changes its words with it.
+  gating: false
 - from: DEL-01-04
   condition: The interrupt control, the question before a quit, and Stop Codex and Restart Codex
     are offered to the person, and with live work only the person's confirmation in a native question
