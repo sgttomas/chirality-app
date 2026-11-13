@@ -848,6 +848,10 @@ struct Imports {
 /// unfinished import, and an export verifies. Like an added line, that is a
 /// change made to an unsigned file from outside the App; the App's own
 /// interrupted append leaves a partial line or none and never removes one.
+/// Signing does not by itself close it: a signed export of a cut account
+/// authenticates the cut, and signed lines still allow a suffix to be
+/// removed. Closing it needs trusted, retained evidence of the expected
+/// history, covering the started line and checked before export.
 fn import_line(line: &Value) -> Option<&'static str> {
     let text = |v: &Value| v.as_str().is_some_and(|s| !s.is_empty());
     let file = |f: &Value| f.is_object() && text(&f["original"]) && text(&f["copy"]) && text(&f["sha256"]) && f["bytes"].as_u64().is_some();

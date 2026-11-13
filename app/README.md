@@ -1463,6 +1463,13 @@ later interrupted import whose started line is cut away reads as no
 unfinished import, and an export verifies. Like an added line, that is a
 change made to an unsigned file from outside the App; the App's own
 interrupted append leaves a partial line or none and never removes one.
+Signing does not by itself close it: a signed export of a cut account
+authenticates the cut, and signed lines still allow a suffix to be removed.
+Closing it needs trusted, retained evidence of the expected history, covering
+the started line and checked before export, which the signing work has to
+establish. An export of such an account that verifies says that the package's
+present bytes agree with its manifests and heads, not that a preceding import
+completed or that no history was removed.
 Verification of a package says its bytes agree with its manifests and chain
 heads, not that the import behind them completed. (The store's appender
 creates the file and then writes, so a stop between the two leaves an empty
