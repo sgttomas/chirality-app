@@ -1213,6 +1213,14 @@ pub(crate) struct ReaderBinding {
     /// from the store.
     store: Option<(PathBuf, String)>,
     records: Option<BoundFolder>,
+    /// When the decision read the records in place: the folder it read them
+    /// from, and that folder relative to the project folder.
+    in_place: Option<InPlace>,
+}
+#[derive(Debug, Clone)]
+pub(crate) struct InPlace {
+    pub(crate) records: PathBuf,
+    pub(crate) relative: PathBuf,
 }
 #[derive(Debug)]
 struct BoundFolder {
@@ -1236,24 +1244,43 @@ fn hold_folder(path: &Path, what: &str) -> Result<((u64, u64), std::fs::File), S
 /// The decision made again: the project's folder in the store, or `None` for
 /// records read in place.
 fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, String> {
+    decided_home(root, decision).map(|(store, _)| store)
+}
+/// The decision, with the folder records are read from in place when it
+/// says in place (workflow records: `ReadHome::records`), so that a reader
+/// takes its in-place folder from the decision and spells no location.
+fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf>, Option<InPlace>), String> {
     match decision {
-        ReaderDecision::Records => Ok(readable_home(root)?.in_store().map(Path::to_path_buf)),
-        ReaderDecision::Accounts => {
-            let place = route_accounts_place(root, false)?;
-            if let Some(dir) = &place.store_dir {
-                if crate::records_retention::terminal(dir)? {
-                    return Err("project records disposed or disposal incomplete; nothing read".into());
+        ReaderDecision::Records => {
+            let home = readable_home(root)?;
+            Ok(match home.in_store() {
+                Some(dir) => (Some(dir.to_path_buf()), None),
+                None => {
+                    let records = home.records();
+                    let relative = records.strip_prefix(&home.attachment.root).map_err(|_| format!("the project's records in place ({}) are not within the project folder; nothing read", records.display()))?.to_path_buf();
+                    (None, Some(InPlace { records, relative }))
                 }
-            }
-            Ok(place.store_dir)
+            })
+        }
+        ReaderDecision::Accounts => decided_accounts(root).map(|store| (store, None)),
+    }
+}
+/// The connector accounts' place, with the store's own record of a disposal.
+fn decided_accounts(root: &Path) -> Result<Option<PathBuf>, String> {
+    let place = route_accounts_place(root, false)?;
+    if let Some(dir) = &place.store_dir {
+        if crate::records_retention::terminal(dir)? {
+            return Err("project records disposed or disposal incomplete; nothing read".into());
         }
     }
+    Ok(place.store_dir)
 }
 /// The binding of a reader opened now for the canonical project folder
 /// `root`, by the decision it reads by.
 pub(crate) fn bind_reader(root: &Path, decision: ReaderDecision) -> Result<ReaderBinding, String> {
     let (project, project_open) = hold_folder(root, "the project folder")?;
-    let (store, records) = match decided_place(root, decision)? {
+    let (place, in_place) = decided_home(root, decision)?;
+    let (store, records) = match place {
         Some(dir) => {
             let store = opened()?;
             let (node, open) = hold_folder(&dir, "the project's records folder in the store")?;
@@ -1261,7 +1288,7 @@ pub(crate) fn bind_reader(root: &Path, decision: ReaderDecision) -> Result<Reade
         }
         None => (None, None),
     };
-    Ok(ReaderBinding { decision, root: root.to_path_buf(), project, _project_open: project_open, store, records })
+    Ok(ReaderBinding { decision, root: root.to_path_buf(), project, _project_open: project_open, store, records, in_place })
 }
 impl ReaderBinding {
     /// Before each read: the store is still the one bound; the project
@@ -1311,6 +1338,11 @@ impl ReaderBinding {
     /// second lookup of the path after the proof.
     pub(crate) fn records_folder_handle(&self) -> Option<Result<std::fs::File, String>> {
         self.records.as_ref().map(|r| r._open.try_clone().map_err(|e| format!("not known: the project's records folder {} could not be read through ({e}); nothing read", r.path.display())))
+    }
+    /// Where the decision read the records in place when this reader was
+    /// bound (workflow records), if it did.
+    pub(crate) fn in_place(&self) -> Option<&InPlace> {
+        self.in_place.as_ref()
     }
     /// The device and inode of the project folder this reader was opened for.
     pub(crate) fn project_folder(&self) -> (u64, u64) {

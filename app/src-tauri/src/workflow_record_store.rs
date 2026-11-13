@@ -154,10 +154,12 @@ enum Admitted {
     /// The project's records folder in the store, through the descriptor the
     /// binding holds.
     Store { home: RecordsHome, folder: File },
-    /// In place, below the pinned project folder.
-    InPlace,
-    /// Records nowhere at admission: read as absent.
-    Nowhere,
+    /// In place, below the pinned project folder, where the decision read
+    /// them.
+    InPlace(crate::records_store::InPlace),
+    /// Records nowhere at admission: read as absent. Where the decision would
+    /// read in place, for a source binding.
+    Nowhere(Option<crate::records_store::InPlace>),
 }
 #[derive(Debug, Clone)]
 struct RecordsHome {
@@ -241,6 +243,10 @@ impl ProjectRecords {
         // a changed, missing or moved link attaches nothing until the person
         // resolves it); the binding is kept, so it reads again once they do.
         let mut reader=self.reader.lock().unwrap_or_else(|p|p.into_inner());
+        // Where the decision reads in place, from a binding not kept because
+        // records are nowhere yet: still the decision's folder, not one this
+        // reader spells.
+        let mut not_kept=None;
         if reader.is_none(){
             // Bound at the first read that finds a place holding records,
             // before anything is read: the store folder, or records in place.
@@ -258,6 +264,8 @@ impl ProjectRecords {
             if binding.records_folder().is_some() || !crate::records_store::legacy_census(&self.root)?.is_empty(){
                 self.keep_bound_home(&binding)?;
                 *reader=Some(binding);
+            } else {
+                not_kept=binding.in_place().cloned();
             }
         }
         // The place proved here is the place every read of this operation
@@ -271,10 +279,10 @@ impl ProjectRecords {
                         let folder=folder?;
                         return Ok((crate::records_retention::read_path(dir)?,Admitted::Store{home:RecordsHome{path:dir.to_path_buf(),identity:node},folder}));
                     }
-                    _=>Admitted::InPlace,
+                    _=>Admitted::InPlace(binding.in_place().cloned().ok_or("not known: where this project's records are read in place; nothing read")?),
                 }
             }
-            None=>Admitted::Nowhere,
+            None=>Admitted::Nowhere(not_kept),
         };
         // Read in place, or records nowhere: the admission of the project's
         // store folder, when it has one, is held as before.
@@ -289,15 +297,15 @@ impl ProjectRecords {
     fn workflow_dir_read(&self,place:&Admitted)->Result<Option<File>,String>{
         match place{
             Admitted::Store{folder,..}=>plain_dir_at(folder,"workflow"),
-            Admitted::InPlace=>{
+            Admitted::InPlace(in_place)=>{
                 let mut at:Option<File>=None;
-                for part in crate::storage::LEGACY_RECORDS.split('/').chain(["workflow"]){
-                    let Some(next)=plain_dir_at(at.as_ref().unwrap_or(&self.directory),part)? else { return Ok(None) };
+                for part in in_place.relative.components().map(|c|c.as_os_str().to_str().ok_or("non-UTF8 records component")).chain([Ok("workflow")]){
+                    let Some(next)=plain_dir_at(at.as_ref().unwrap_or(&self.directory),part?)? else { return Ok(None) };
                     at=Some(next);
                 }
                 Ok(at)
             }
-            Admitted::Nowhere=>Ok(None),
+            Admitted::Nowhere(_)=>Ok(None),
         }
     }
     /// The handle's cached records home made, or found to be, the bound
@@ -330,13 +338,14 @@ impl ProjectRecords {
         // pinned project folder. The place is not decided again.
         let (path, directory) = match place {
             Admitted::Store { home, folder } => (home.path, folder),
-            Admitted::InPlace | Admitted::Nowhere => {
+            Admitted::InPlace(in_place) | Admitted::Nowhere(Some(in_place)) => {
                 let mut directory = self.directory.try_clone().map_err(|e| e.to_string())?;
-                for part in crate::storage::LEGACY_RECORDS.split('/') {
-                    directory = child(&directory, part, false)?;
+                for part in in_place.relative.components() {
+                    directory = child(&directory, part.as_os_str().to_str().ok_or("non-UTF8 records component")?, false)?;
                 }
-                (self.root.join(crate::storage::LEGACY_RECORDS), directory)
+                (in_place.records, directory)
             }
+            Admitted::Nowhere(None) => return Err("not known: where this project's records are read; nothing read".into()),
         };
         let metadata = directory.metadata().map_err(|e| e.to_string())?;
         let records = RecordsHome { path, identity: (metadata.dev(), metadata.ino()) };
