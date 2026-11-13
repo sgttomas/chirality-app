@@ -377,3 +377,17 @@ fn the_startup_closure_and_session_end_leave_send_unknown_and_old_rows_as_they_a
     assert!(added.is_empty(), "nothing written for them: {added:?}");
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// SR-01 in this App session, while the interrupt's write may be under way:
+/// request, transmission and outcome stay separate facts. The reading claims
+/// neither that the interrupt was sent nor that it was not.
+#[test]
+fn a_requested_stop_in_this_session_reads_its_send_as_not_yet_confirmed() {
+    let record = requested(Cause::CodexStop).record().clone();
+    let session = record["appSession"].as_str().unwrap().to_owned();
+    let view = outcomes(&[], &[(record.clone(), "kept".to_owned())], &session);
+    let row = &view["records"][0];
+    assert_eq!(row["reading"], "Stop requested. The App has not yet confirmed whether the interrupt was sent to Codex.", "{row}");
+    assert!(row["label"].is_null(), "{row}");
+    assert!(!row["reading"].as_str().unwrap().contains("not yet sent"), "{row}");
+}

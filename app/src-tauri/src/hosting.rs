@@ -880,9 +880,15 @@ pub(crate) enum SendPhase {
 impl WriteBound {
     /// The thread's side, under the Host's internal lock just before the
     /// attempt is registered: Ok if the write may begin (now `Writing`), Err
-    /// if the caller has withdrawn (nothing is written; recorded not sent).
+    /// if the caller has withdrawn or the deadline has passed (nothing is
+    /// written; recorded not sent). The deadline is decided here, under the
+    /// phase lock, not only by the caller: a caller scheduled late cannot let
+    /// a write begin after the stop limit.
     fn begin_write(&self) -> Result<(), String> {
         let mut phase = self.phase.lock().unwrap();
+        if *phase == SendPhase::Pending && std::time::Instant::now() >= self.deadline {
+            *phase = SendPhase::Withdrawn;
+        }
         if *phase == SendPhase::Withdrawn {
             *self.gave_up.lock().unwrap() = Some(NOT_WRITTEN_IN_LIMIT.to_owned());
             return Err(NOT_WRITTEN_IN_LIMIT.to_owned());

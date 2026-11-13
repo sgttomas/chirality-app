@@ -394,6 +394,10 @@ pub(crate) const SOURCE_SESSION_UNAVAILABLE: &str = "A stop request was recorded
 /// session's request with no final status). A label is derived only where
 /// the source session's end is established; a request of another session
 /// whose end is not established is shown as recorded, with no label.
+/// A stop request recorded in this App session and neither sent, not sent nor
+/// of unknown write outcome yet: its write may be under way.
+pub(crate) const REQUESTED_READING: &str = "Stop requested. The App has not yet confirmed whether the interrupt was sent to Codex.";
+
 fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
     let cause = record["cause"].as_str().unwrap_or_default();
     if let Some(label) = record["outcomeLabel"].as_str() {
@@ -427,7 +431,9 @@ fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
         // generation closed: never a label, never sent or not sent.
         ("send-unknown", _) => (None, SEND_UNKNOWN_READING.into()),
         ("requested", true) => (None, "Stop requested; the App session ended before its send was recorded, so whether it was sent is not known.".into()),
-        ("requested", false) => (None, "Stop requested; not yet sent.".into()),
+        // SR-01 while the interrupt's write may be under way: nothing about
+        // its transmission is established yet (REQ-002).
+        ("requested", false) => (None, REQUESTED_READING.into()),
         (_, true) => (
             label(cause, "unknown").map(str::to_owned),
             "The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.".into(),

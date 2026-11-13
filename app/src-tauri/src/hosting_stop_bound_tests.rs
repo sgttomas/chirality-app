@@ -615,9 +615,12 @@ fn stop_with_the_recovery_writer_held_does_not_wait_past_its_limit() {
     assert_eq!((f.attempted_interrupts("turn-1"), f.wire_interrupts()), (0, 0), "the released thread wrote nothing");
 }
 
-/// The same for the menu quit's interrupts.
+/// The same for the menu quit's interrupt phase (`quit_sequence`). The
+/// recovery writer is released BEFORE `finish_exit` runs, so this shows that
+/// the quit's interrupts do not wait past their limit on a held recovery
+/// writer. It does not show a bounded full quit while that writer stays held.
 #[test]
-fn quit_with_the_recovery_writer_held_does_not_wait_past_its_limit() {
+fn the_quits_interrupt_phase_does_not_wait_past_its_limit_on_a_held_recovery_writer() {
     let f = Fixture::new();
     f.live_turn("thread", "turn-1");
     let release = hold_recovery_writer_at_the_interrupt(f.host());
@@ -687,6 +690,56 @@ fn a_begun_write_is_never_reported_not_sent() {
     let row = f.wait_for_state("turn-1", "settled");
     assert_eq!((row["send"].as_str(), row["codexReported"].as_str()), (Some("sent"), Some("interrupted")), "the write completed after the deadline: recorded sent");
     assert_eq!(f.attempted_interrupts("turn-1"), 1);
+    f.assert_nothing_held();
+}
+
+/// A write that reaches its admission after the stop limit is withdrawn there,
+/// under the phase lock, even when the caller has not yet withdrawn it: it is
+/// not sent and nothing is written.
+#[test]
+fn a_write_reaching_admission_after_the_limit_is_withdrawn_there() {
+    let late = WriteBound { deadline: Instant::now() - Duration::from_millis(1), phase: Arc::new(Mutex::new(SendPhase::Pending)), gave_up: Mutex::new(None) };
+    assert_eq!(late.begin_write().unwrap_err(), NOT_WRITTEN_IN_LIMIT);
+    assert_eq!(*late.phase.lock().unwrap(), SendPhase::Withdrawn);
+    assert_eq!(late.gave_up.lock().unwrap().as_deref(), Some(NOT_WRITTEN_IN_LIMIT));
+    assert!(late.withdrawn());
+    // Before the limit the write may begin, and once begun it stays begun.
+    let early = WriteBound { deadline: Instant::now() + LIMIT, phase: Arc::new(Mutex::new(SendPhase::Pending)), gave_up: Mutex::new(None) };
+    assert!(early.begin_write().is_ok());
+    assert_eq!(*early.phase.lock().unwrap(), SendPhase::Writing);
+    // The clock never reclassifies a write that began: past its limit it is
+    // still begun, never withdrawn, so the caller reads it as of unknown
+    // outcome (or sent, once it completes), never as not sent
+    // (`stop_whose_own_write_blocks_records_the_write_outcome_unknown`).
+    let begun = WriteBound { deadline: Instant::now() - Duration::from_millis(1), phase: Arc::new(Mutex::new(SendPhase::Writing)), gave_up: Mutex::new(None) };
+    assert!(!begun.withdrawn());
+    assert_eq!(*begun.phase.lock().unwrap(), SendPhase::Writing);
+    assert!(begun.gave_up.lock().unwrap().is_none());
+}
+
+/// The same through the request itself, with no caller to withdraw: an
+/// interrupt whose bound has already passed when it reaches admission is
+/// refused there. Nothing is registered as attempted and nothing reaches
+/// Codex's input.
+#[test]
+fn an_interrupt_reaching_admission_after_the_limit_is_not_written() {
+    let f = Fixture::new();
+    f.live_turn("thread", "turn-1");
+    let late = WriteBound { deadline: Instant::now() - Duration::from_millis(1), phase: Arc::new(Mutex::new(SendPhase::Pending)), gave_up: Mutex::new(None) };
+    let attempts = |host: &Host| host.inner.0.lock().unwrap().source_requests.values().filter(|e| e.write_attempt_in_progress || e.attempt_position.is_some()).count();
+    let (before, wire) = (attempts(f.host()), f.wire_interrupts());
+    let refused = f.host().request_begin_with_access_offer_guarded("turn/interrupt", json!({"threadId":"thread","turnId":"turn-1"}), json!({"kind":"person-directed"}), false, Some(&f.generation), false, None, None, None, None, false, None, None, None, None, Some(&late));
+    // The request is registered and its write is refused at admission: no
+    // attempt is observed and nothing is written.
+    let source = refused.expect("the request is registered and its write refused");
+    assert_eq!(source.write_attempt_observed(), Some(false));
+    assert_eq!(source.evidence()["actualWriteAttemptObserved"], false);
+    assert_ne!(source.evidence()["writeResult"], "written");
+    assert_eq!(late.gave_up.lock().unwrap().as_deref(), Some(NOT_WRITTEN_IN_LIMIT));
+    assert_eq!(*late.phase.lock().unwrap(), SendPhase::Withdrawn);
+    assert_eq!(attempts(f.host()), before, "nothing registered as attempted");
+    assert_eq!(f.wire_interrupts(), wire, "nothing reached Codex's input");
+    assert_eq!(f.attempted_interrupts("turn-1"), 0);
     f.assert_nothing_held();
 }
 
