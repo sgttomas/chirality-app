@@ -327,6 +327,59 @@ class TheWalkItself(unittest.TestCase):
         self.assertEqual((result['out'][0], result['out'][2]), ('fail', 0))
         self.assertIn('unavailable', result['out'][1])
 
+    def test_a_failed_view_keeps_its_message_and_each_cause_whole_and_nothing_else(self):
+        # As the supplier's client fails a cold start: its message, and the cause it attaches, which carries its own.
+        result = harness('''
+          const inner = new Error('Sky Computer Use native pipe connection timed out');
+          const middle = new Error('the last attempt', { cause: inner });
+          const outer = new Error('Sky Computer Use native pipe startup failed', { cause: middle });
+          outer.secret = 'not kept'; inner.cause = middle;  // a property and a loop, neither of which may be kept or followed
+          const failing = { get_app_state: async () => { throw outer; }, click: async () => {} };
+          const r = await walk.run({ ...base, sky: failing });
+          return [r.verdict, r.view_error, r.stopped, walk.summary(r), JSON.stringify(r).includes('not kept'), JSON.stringify(r).includes('    at ')];''')
+        verdict, failed, stopped, summary, kept_property, kept_stack = result['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertEqual(failed, {'where': 'the first view before any click', 'message': 'Sky Computer Use native pipe startup failed',
+                                  'causes': ['the last attempt', 'Sky Computer Use native pipe connection timed out']})
+        self.assertIn('the view failed (Sky Computer Use native pipe startup failed)', stopped)
+        self.assertIn('    caused by: the last attempt\n    caused by: Sky Computer Use native pipe connection timed out', summary)
+        self.assertEqual((kept_property, kept_stack), (False, False))
+        # A failure at a later step is kept the same way, and an error that is not an Error is kept as its text.
+        result = harness('''let calls = 0;
+          const failing = { get_app_state: async () => { calls += 1; if (calls > 3) throw 'plain text'; return { app: viewOf.app, text: nextView() }; }, click: async () => {} };
+          const r = await walk.run({ ...base, sky: failing });
+          return [r.view_error, r.steps.at(-1).error];''')
+        self.assertEqual(result['out'][0], {'where': 'S2', 'message': 'plain text', 'causes': []})
+        self.assertEqual(result['out'][1], 'plain text')
+        # A cause with no prototype, a cause whose getter throws, and a message that is not text: the walk stops
+        # where it would have, with a result, and nothing of the error is converted to text by its own code.
+        result = harness('''
+          const bare = new Error('top', { cause: Object.create(null) });
+          const trap = new Error('top'); Object.defineProperty(trap, 'cause', { get() { throw new Error('getter'); } });
+          const odd = new Error('top', { cause: { message: { toString() { return 'converted by its own code'; } } } });
+          const out = [];
+          for (const thrown of [bare, trap, odd]) {
+            const failing = { get_app_state: async () => { throw thrown; }, click: async () => {} };
+            const r = await walk.run({ ...base, sky: failing });
+            out.push([r.verdict, r.stopped.startsWith('stopped at the first view before any click: the view failed (top)'), r.view_error.causes]);
+          }
+          return out;''')
+        self.assertEqual(result['out'], [
+            ['inconclusive', True, ['(a thrown object with no message text)']],
+            ['inconclusive', True, ['(a cause that could not be read)']],
+            ['inconclusive', True, ['(a thrown object with no message text)']]])
+        # A failure whose reading breaks the collector itself (a cause getter that replaces Array.prototype.push, as
+        # code in the same runtime can): the walk still returns its result, with the failure said to be unreadable.
+        result = harness('''
+          const push = Array.prototype.push;
+          const thrown = { message: 'top', get cause() { Array.prototype.push = () => { throw new Error('broken'); }; return { message: 'inner' }; } };
+          const failing = { get_app_state: async () => { throw thrown; }, click: async () => {} };
+          let r;
+          try { r = await walk.run({ ...base, sky: failing }); } finally { Array.prototype.push = push; }
+          return [r.verdict, r.view_error];''')
+        self.assertEqual(result['out'], ['inconclusive', {'where': 'the first view before any click',
+                                                          'message': '(the failure could not be read)', 'causes': []}])
+
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
         result = harness('''
           const before = walk.parseView('Window: "Chirality"\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button');

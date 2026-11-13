@@ -1,26 +1,68 @@
 # Operating a development build's window
 
-**HELD. This route is held by App Agent 0 since 13 November 2026 and is not to
-be used by anyone.** Each walk's first call starts a Codex app-server from
-inside ChatGPT.app, configured to use the owner's own Codex home (`~/.codex`),
-which the continuing boundary in AGENTS.md forbids for development and tests.
-The owner's decision is pending. The terms of use below ("When it may be
-used", the cautions, what ends the exception, and the operator's terms) are to
-be rewritten when the owner has answered; until then they do not permit a
-walk. What was seen is under "What was observed", and the full record is the
-examination lane's.
-
 This is how an agent reads and clicks the window of an identified development
 build of the App during an examination. It uses the supplier's own computer-use
 service, reached from inside a Codex session. Reaching it runs binaries inside
 ChatGPT.app (the operator's node runtime, and a Codex app-server it starts),
 and the service itself is installed under the owner's Codex home
-(`~/.codex/computer-use/`) (see the hold notice at the top).
+(`~/.codex/computer-use/`) (see "What the route starts").
 
 It is development tooling. What it yields is what an agent saw and did in a
 development build. It is never evidence that the product does something for a
 person, and it is never the person-operated observation a release criterion
 asks for.
+
+## What the route starts, and the owner's answer
+
+A walk's first call starts two things outside the throwaway home, and the owner
+has accepted them as they are. What is known of each, marked as read, observed
+(by the examination lane, from process names, parents, arguments and start
+times, on 13 November 2026), observed by App Agent 0, or not examined:
+
+- **A Codex app-server.** `codex app-server --listen stdio://`, run from inside
+  ChatGPT.app (`/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex`),
+  a child of the operator's node runtime (observed, twice), which is itself a
+  binary inside ChatGPT.app (observed by App Agent 0). It starts within the same second as the walk's
+  first call; whether the import in step 4 or the first call starts it is not
+  known, since both are made in one block (observed; the cause not
+  established). It outlives the walk and its operator (observed, twice). It runs
+  with CODEX_HOME set to the owner's own Codex home, `~/.codex`, and HOME the
+  account's real home (observed by App Agent 0).
+- **The window service.** `SkyComputerUseService`, from
+  `~/.codex/computer-use/Codex Computer Use.app`, started by launchd within the
+  same second as the first call when it is not already running (observed,
+  twice). Each of the two so started was later found no longer running,
+  without the lane or App Agent 0 having signalled it (observed: absent at a
+  later check; when it ended, and why, not known).
+- **Not examined:** which files the app-server reads, whether it uses a
+  credential (such as a sign-in held under `~/.codex`), and what it or the
+  service sends. The supplier's documentation for the service says nothing
+  about a Codex app-server, a Codex home or a native pipe (read).
+- **The start-up failure.** Twice a walk's first call failed with "Sky Computer
+  Use native pipe startup failed" within about five seconds, each time with a
+  freshly started service and app-server (observed). Why is not established.
+
+The owner's answer, 13 November 2026, to a question App Agent 0 put in a
+dialog. The question: "Agent-operated walks of the App are held because the
+supplier's computer-use helper starts a second Codex using your real ~/.codex
+home (not a scratch one), and it also failed to start cleanly once ("native
+pipe startup failed"). How do you want me to proceed with that route?" The
+owner chose "Permit as it is", whose description read: "Allow walks now,
+accepting that the helper's Codex runs against your real ~/.codex. Agents still
+never open that folder, sign in, or answer a macOS prompt. The start-up failure
+remains unexplained." That is the whole of the authorisation. App Agent 0
+applies it to walks of the first-use setup scenario by the route as found;
+everything in "When it may be used" below still holds, and a scenario that
+confirms setup, types anything or starts the App's own Codex needs its own
+question to the owner.
+
+The owner's words permit the route despite its unexamined behaviour. They
+establish neither that a credential is used nor that it is untouched. App Agent
+0's operating rule, which is App Agent 0's and not the owner's: established
+reading or use of the owner's credentials by anything a walk starts stops the
+walk, one under way included, and returns the question to the owner. Proving
+that no credential is accessed is not a prerequisite for a walk, and nobody
+inspects the protected home to find out.
 
 ## When it may be used
 
@@ -46,10 +88,15 @@ All of these hold, every time:
   name and the permission it asks for; the owner answers it. An App
   confirmation is operated only where a scenario names it and the governing
   text below allows it; the first-use setup scenario names none.
-- A walk by this route starts a Codex: each walk's first call starts a Codex
-  app-server from inside ChatGPT.app, configured to use `~/.codex`, whatever
-  the scenario (see the hold notice at the top). The App itself starts no Codex in the
-  first-use setup scenario.
+- A walk by this route starts the helper's Codex app-server on `~/.codex` and
+  the window service, as the owner has accepted (see "What the route starts").
+  After every walk, attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered (steps 10 and 11). Neither may already be
+  running when the operator looks, before the walk's import and first call;
+  if one is, no walk is made (step 10). No agent opens or reads
+  anything under `~/.codex` or `~/.codex-hub`, signs in, copies a sign-in or
+  sees a credential's value.
+- The App itself starts no Codex in the first-use setup scenario. Launches
+  that start the App's real Codex through the launcher remain closed.
 
 ## What governs it
 
@@ -78,7 +125,7 @@ purpose: no setup confirmed, nothing typed, no Codex started by the App, no macO
 answered (see "Running a scenario"). The governing text does not enlarge the
 exception the owner accepted, and App Agent 0 decided, for its live runs.
 
-## Two cautions
+## Three cautions
 
 1. **Launch through the launcher, and confirm the process is running, before
    any state call.** A state call for an application that is not running
@@ -87,6 +134,9 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    running" below for what remains of this once a walk is under way.
 2. **Address the build by its bundle identifier in every call, and never call
    `list_apps`.** An application name can match another application.
+3. **The walk starts a Codex on the owner's own Codex home.** The helper's
+   app-server outlives the walk unless it is ended. By whatever path the walk
+   ended, attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered (steps 10 and 11).
 
 ## What the operator is given
 
@@ -205,7 +255,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 
    It must be this dynamic import inside that tool. Whether the import alone
    starts anything is not known: it and the first call are made in one block,
-   and by that block a Codex app-server is started (see the hold notice at the top).
+   and by that block a Codex app-server is started (see "What the route starts").
 5. **A view.**
 
    ```js
@@ -256,19 +306,98 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
    from outside, not a defect.
 9. **What stays.** The launch folder with its record, and the evidence
    folder. Nobody opens the home.
-10. **What is ended, and what is left.** The launcher, the App and the watch
-    are ended; the supplier's window service, which the first view starts, is
-    left as it is, its state is recorded, and what becomes of it is the
-    owner's. The first call also starts a Codex app-server, a child of the
-    operator's node runtime, which outlives the walk; this method neither
-    names nor ends it, so a walk under it leaves a Codex running on `~/.codex`
-    (see the hold notice at the top). The operator ends what it started: the
+10. **What is ended.** The launcher, the App and the watch are ended. Of the
+    route's own processes (see "What the route starts"), those attributable to
+    the walk are ended; unresolved ones are reported, and a walk with an
+    unresolved process has not been recovered. The operator ends what it started: the
     launcher as in step 8, which ends the App, and the watch, which ends by
     itself when the App does and is otherwise ended by its process number
     (`kill <the watch's process number>`). It then confirms, for the launcher,
     the watch and the App, that `ps -p <number>` shows no process, and that
     the App's process group is gone (`pgrep -g <the App's process number>`
     prints nothing).
+    Then the route's processes. Each is identified before it is signalled, its
+    identity is checked again immediately before the signal, and each is
+    recorded with its number, start time (in UTC), parent and command. Of
+    them, attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered.
+
+    ```sh
+    ps -axo pid=,ppid=,lstart=,command=      # every process: number, parent, start time (local), command
+    ps -o lstart=,ppid=,command= -p <number> # one process, again, just before it is signalled
+    date -u -r "$(date -j -f '%a %b %e %T %Y' '<lstart as ps printed it>' +%s)" +%FT%TZ   # that start time in UTC
+    lsof -t "<evidence folder>/runtime.marker"   # the process holding the operator's marker open
+    kill <number>                            # an ordinary termination
+    ps -o stat= -p <number>                  # nothing, or a state beginning with Z: it has ended
+    ```
+
+    - **The operator's node runtime**, identified before the look and before
+      the walk's import: the operator makes one call in its `js`
+      tool that opens a marker file in the evidence folder and keeps it open,
+      `globalThis.runtimeMarker = await (await import('node:fs')).promises.open('<evidence folder>/runtime.marker', 'w');`,
+      and then asks which process holds it (`lsof -t`, above). That one
+      process is its runtime, recorded by number and start time. If `lsof`
+      names none or more than one, the runtime is not identified and no walk
+      is made. That call imports only the standard library and invokes no
+      computer-use method; whether it starts anything has not been tried. The
+      look comes after it and before the permitted import, and an unexpected
+      helper the look finds means no walk. This one call, by the operator, at
+      a walk, is the only use of the node runtime's `js` tool before the
+      walk's own block: App Agent 0 held that tool, and narrows its hold for
+      this call alone, not for any other agent or use. The marker file is in
+      the operator's evidence folder, never under either Codex home. When the
+      walk ends, and whenever a walk is refused after the marker was opened
+      while its runtime is still available (the look finds a process, `lsof`
+      names none or more than one, or the two looks disagree), the operator
+      closes it (`await runtimeMarker.close()`) and it is kept, not removed. The first walk is also the first trial of this
+      identification: if it fails, that is "no walk", recorded as a finding
+      about this method.
+    - **The look, before the import and before the first call.** Then, as the
+      last thing before the `js` block that imports the service ("Running a
+      scenario"), the operator looks, with the first `ps` command above, for
+      a window service (by its command, below) and for any process whose
+      command is the app-server's, whatever its parent. If one is running, no
+      walk is made: it is recorded with its number, start time and parent, the
+      operator ends what it started (steps 8 and 10) and returns, and it comes
+      to App Agent 0. A helper left by an earlier attempt blocks the walk in
+      the same way; who owns it is decided from that attempt's evidence, never
+      by assigning it to the new walk. The lane also looks, from its own
+      shell, at App Agent 0's go, with the same command, and keeps what it
+      finds in the evidence folder as its own record. The operator's look
+      decides; if the two disagree, no walk is made, and it comes to App
+      Agent 0.
+    - **The walk's app-server** is a process whose command is exactly
+      `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex app-server --listen stdio://`
+      (the whole command, compared as text, not a part of it); whose parent
+      is the operator's own node runtime (its number, and that process's start
+      time the one recorded); and whose start, in UTC, is no earlier than the
+      look and no later than the walk's end. A process meeting all three is
+      ended. One with that command that fails either of the others is not the
+      walk's: it is recorded, left and reported.
+    - **The walk's window service** is a process whose command is exactly
+      `$HOME/.codex/computer-use/Codex Computer Use.app/Contents/MacOS/SkyComputerUseService` (with `$HOME` as the account's home, compared as text),
+      whose parent is launchd (process 1), and whose start, in UTC, is no
+      earlier than the look and no later than the walk's end; and the look
+      found none, and the route was used by this operator alone. Then it is
+      ended. Where its attribution is conflicting or uncertain (more than one
+      such process, a look not made or not recorded, the two looks in
+      disagreement), it is left, recorded, and reported, and the recovery is
+      incomplete.
+    - **Before every signal**, the second `ps` command shows the same start
+      time, parent and command as when the process was identified; if not, it
+      is not signalled, and it is reported.
+    - **What the look cannot rule out.** Something else could start a window
+      service between the look and the walk's first call. It would lie inside
+      the interval, be taken for the walk's and be ended. The look cannot rule
+      that out; one operator at a time across this project and the others on
+      this machine is what makes it unlikely. This is a limit of attribution:
+      it gives no permission to disregard contrary evidence or known desktop
+      activity. If anything says a service is not the walk's, it is
+      unresolved, whatever its start time.
+    - An ended process may stay listed with a state beginning with `Z` until
+      its parent collects it; that is ended. No process that predates the
+      walk is ever signalled. The operator signals nothing else: not the node
+      runtime, not the provider's Codex, not a process group. None of these
+      commands opens anything under `~/.codex`.
     The lane's agent, not the operator, then confirms the same from its own
     shell after every run: the launcher's and the watch's process numbers are
     in the evidence folder's `*.started.json` files, and the App's is `pid` in
@@ -277,11 +406,6 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
     these numbers may never have been recorded; step 11 is then how what was
     left is found and ended. A launch left without its operator is ended, not
     continued by someone else.
-    The operator records whether a process named `SkyComputerUseService` is
-    running at the end, with its start time, and the lane reports that:
-    `pgrep -x SkyComputerUseService` prints its number or nothing, and
-    `ps -o lstart= -p <that number>` its start time. Neither starts or ends
-    it.
 11. **The lane looks for what remains.** The lane's agent, not the operator,
     makes this from its own shell after every run, by whatever path the run
     ended: a normal end, a walk stopped because the watch no longer showed
@@ -316,22 +440,23 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
        start the launcher did not make look the same to it, and it does not
        tell the home or environment either was started with. Only step 10's
        records, where they exist, can say more.
-    4. The launch record's Library comparison (`real_library` in
+    4. The route's processes, identified as step 10 says, from the operator's
+       records of its runtime and its look (where there are none, nothing is
+       attributable): attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered. Each is recorded with its number, start
+       time, parent and command, and whether the operator or the lane ended it.
+    5. The launch record's Library comparison (`real_library` in
        `record/launch-record.json` in the launch folder) is read. The
        launcher lists the real Library's places named for the build before
        the launch, and again about five and about ten seconds after the App
        exits, and compares those listings; it does not watch in between, and
        nothing is listed after its last listing. Where the launcher wrote no
        record, there is no comparison, and that is said.
-    5. What steps 1 to 4 found, and what could not be done, is reported by
+    6. What steps 1 to 5 found, and what could not be done, is reported by
        the lane to App Agent 0 within the hour.
 
     The search finds the bundle's one executable and says nothing about Codex;
     that a stray start of the App starts no Codex rests on what step 1 checks,
-    and the search does not establish it. Step 11 does not cover the route's
-    own processes, the window service and the Codex app-server a walk's first
-    call starts: a recovery complete under this step can leave a Codex
-    app-server running on `~/.codex` (see the hold notice at the top). It looks at nothing in the real Library;
+    and the search does not establish it. It looks at nothing in the real Library;
     nothing under the real Library is removed by any agent. This step is part
     of the condition of the exception stated in the next section.
 
@@ -339,7 +464,7 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 
 This is one way the method can act outside the throwaway home, and it is not
 closed. It is not the only one: the route's own Codex app-server and window
-service act outside it on every call (see the hold notice at the top).
+service act outside it on every call (see "What the route starts").
 
 - **What happens.** A view of an application that is not running starts it:
   the service launches it in the background through the system's launch
@@ -412,17 +537,16 @@ service act outside it on every call (see the hold notice at the top).
   (step 1, `session_env.py`), or the walk is refused. After every run, by
   whatever path it ended, the lane ends what the started files show,
   searches for remaining candidate processes by the executable's file, ends
-  what it finds, reads the launch record's Library comparison (or records
-  that the launcher wrote none), and reports the same hour (step 11). A run
+  what it finds, ends the route's processes that step 10 attributes to the walk
+  and reports any it cannot attribute (a walk with an unresolved process has
+  not been recovered), reads the launch record's Library comparison (or
+  records that the launcher wrote none), and reports the same hour (step 11). A run
   after which any of that was not done is a breach, reported to App Agent 0
   as one; it is not an inconclusive run. Throughout, the lane keeps the
   identified bundle unchanged: no rebuild, replacement, renaming or added
   link, from identification through recovery. The search's comparisons of
   the bundle's executable detect a change; they do not prove the file
   stayed unchanged.
-  The condition does not cover the route's own processes: a walk's first
-  call starts a Codex app-server on `~/.codex` and the window service, and
-  neither is ended or searched for by step 11 (see the hold notice at the top).
   What the two checks do not see: a stray start that began after the
   launcher's last listing and ended by itself before the search is seen by
   neither. **Neither a clean process search nor an unchanged Library
@@ -474,11 +598,25 @@ service act outside it on every call (see the hold notice at the top).
   - Its condition is the one stated above, under "The condition of the
     exception". The rule that a fact found wrong means no walk until the
     owner is asked again also stands.
-  - What ends the exception without a further word from anyone: evidence
-    that this guarded scenario reaches the owner's credentials, the
-    installed v3, the keychain or `~/.codex`, or sends application or user
-    content. Then the walk stops, nothing is retried, and the lane tells App
-    Agent 0.
+  - What is permitted under `~/.codex`, as the owner accepted it (see "What
+    the route starts"): the launch service executing the window service's
+    bundle under `~/.codex/computer-use/`, and the helper's Codex running
+    with `~/.codex` as its home. The two conditions below bite on anything
+    beyond that.
+  - What ends the exception until the owner is asked again, without a further
+    word from anyone: evidence that this guarded scenario (the App, and
+    anything a walk of it starts, the route's helper and window service
+    included) reaches the owner's credentials (App Agent 0's operating rule
+    in "What the route starts"), the installed v3 or the keychain, reaches
+    `~/.codex` beyond what is permitted above, or sends application or user
+    content; or that an agent opened or read anything under `~/.codex` or
+    `~/.codex-hub`, signed in, saw a credential's value or answered a macOS
+    prompt. Then the walk stops, nothing is retried, the lane tells App Agent
+    0, and no walk follows until the owner has answered.
+  - What stops walks until App Agent 0 has said: anything else newly learned
+    about the route, such as what the helper or the service reads, uses or
+    sends short of the above. It is told to App Agent 0 at once; a walk under
+    way stops; App Agent 0 decides whether it is a matter for the owner.
 
 ## Running a scenario
 
@@ -488,7 +626,7 @@ without a project, new settings". It is the opening of the first-use setup page
 up to, and not including, the App's own confirmation. Its acts are views and
 clicks; nothing is typed, no file or folder is chosen, no confirmation is
 answered and no setup is confirmed. The App starts no Codex in it and it needs
-no sign-in; a walk of it by this route does start a Codex app-server (see the hold notice at the top).
+no sign-in; a walk of it by this route does start the helper's Codex app-server (see "What the route starts").
 These prohibitions are narrower than the governing text on purpose (see "What
 governs it"). Its controls (a project choice, two settings choices, "Review
 setup", "Change my choices" and two disclosures) are none of the act controls
@@ -510,7 +648,9 @@ What it shows when it passes:
   the App's data folder under the throwaway home.
 
 It is agent-operated development evidence on a development build. It is neither
-setup completed nor a person's observation.
+setup completed nor a person's observation. A pass records the checks on views
+returned by the supplier's client; that client is part of the trusted
+examination tooling (its limit is stated beside `failure` in `walk.mjs`).
 
 **Before a window: the same walk on recorded views.** No application and no
 screen are involved.
@@ -532,6 +672,46 @@ has other words that begin the same way, which the walk does not click (it
 stops, inconclusive, exit 2). This is the check rejecting wrong states; it
 says nothing about a build.
 
+**The lane's sample of the service's socket folder.** From App Agent 0's go, the
+lane's agent (not the operator) samples, from its own shell, the names and times
+in the window service's socket folder once a second, until the walk's result
+file exists and fifteen seconds more, or thirty minutes at most. Names and times
+only: no file there is opened, read, connected to or removed, and nothing is
+written there. The output goes in the walk's evidence folder:
+
+```sh
+F="$HOME/Library/Group Containers/2DC432GLL2.com.openai.sky.CUAService/IPC"
+end=; stop=$(( $(date +%s) + 1800 ))
+while [ "$(date +%s)" -lt "$stop" ]; do
+  now=$(date -u +%FT%TZ)
+  if out=$(ls -laT "$F" 2>&1); then
+    if printf '%s\n' "$out" | grep -q ' computeruse\.sock$'; then seen='LISTED: computeruse.sock present'
+    else seen='LISTED: no computeruse.sock among the names'; fi
+    printf '%s %s\n%s\n' "$now" "$seen" "$out"
+  else
+    printf '%s NOT EXAMINED: ls exited %s: %s\n' "$now" "$?" "$out"
+  fi
+  [ -z "$end" ] && [ -e "<evidence folder>/scenario-result.json" ] && end=$(( $(date +%s) + 15 ))
+  [ -n "$end" ] && [ "$(date +%s)" -ge "$end" ] && break
+  sleep 1
+done > "<evidence folder>/socket-folder-sample.txt"
+```
+
+Why this folder: the supplier's client for the service, read where it lies
+inside ChatGPT.app (nothing copied into this repository, nothing run), first
+tries the service's socket in that folder for a fraction of a second; if
+nothing answers, it asks for the service to be started, then tries the socket
+again for up to five seconds, connecting and asking for a reply. "Sky Computer
+Use native pipe startup failed" is what it reports when those five seconds pass
+without an answer. Each sample says one of two things: the folder was listed,
+and whether a name `computeruse.sock` was among its entries; or it was NOT
+EXAMINED, with the listing's exit status and message. A sample not examined
+is not a sample that saw no socket. The sample shows whether the socket was
+present at each moment the folder was listed, about a second apart, against
+the walk's first call. What
+happens between two samples (a socket present for less than a second, for
+instance) is not seen, and it cannot show why anything happened.
+
 **In a window.** Steps 1 to 3 above first: the launcher running, the App's
 process number confirmed, the identifier taken from the identification record.
 Then start the watch, in the same way as the launcher. It keeps a small file
@@ -546,7 +726,10 @@ the system itself:
 
 The watch ends by itself when the App does.
 
-Then, in the operator's `js` tool, with the values filled in:
+Then the operator identifies its node runtime by the marker, and makes its
+look for route processes (step 10, "The operator's node runtime" and "The
+look"), as the last things before the block; if either fails, no walk. Then,
+in the operator's `js` tool, with the values filled in:
 
 ```js
 var fs = await import('node:fs');
@@ -597,8 +780,10 @@ nodeRepl.write(walk.summary(report));
   there. That view, and the window rebuilt from it, are kept in the result for
   reading; no check is credited from a rebuilt view and no click is made from
   one, because how differences place what they add has not been established.
-- This scenario starts no process. If the watch file shows the App with a
-  child process, the script stops and the result is a failure.
+- The App starts no process in this scenario. If the watch file shows the App
+  with a child process, the script stops and the result is a failure. (The
+  route's own processes are not the App's children; see "What the route
+  starts".)
 - A watch file that is missing, cannot be read, is for another process, says
   the process has gone, names an executable outside the bundle, or was last
   written more than three seconds ago is read as the build not running: the
@@ -608,6 +793,19 @@ nodeRepl.write(walk.summary(report));
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
 - The result file holds every call made and every view's returned text whole.
+  When a view fails, it also holds the failure as messages only, in
+  `view_error`: where it failed, the error's own message, and each cause the
+  error carries, in order and whole (at most eight); the summary prints the
+  causes under the line that says where the walk stopped. The causes are
+  diagnostic evidence supplied by the supplier's client, not causes
+  established independently. Nothing else of the
+  error is kept: a message is kept only when it is text, anything else is
+  named for what it is, and a part that cannot be read is said to be so.
+  What it cannot do: reading an error's message and cause can run code the
+  error carries, in the same runtime as the walk. The error comes from the
+  supplier's client, which runs there too and could change anything the walk
+  holds without throwing at all; so the walk's result rests on that client, as
+  every call does, not on how a failure is read.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt appearing, or the focus leaving the build) to its own
   record.
@@ -655,7 +853,9 @@ On a development candidate built from main, in two windows the owner gave:
 - Walk A2's second and third attempts, each by a fresh operator from this
   method alone, reached the walk's first call. Each call failed within about
   five seconds with "Sky Computer Use native pipe startup failed"; nothing was
-  clicked (observed). Why is not established.
+  clicked (observed). Why is not established. The walk then kept only that
+  message and dropped the causes the supplier's client attaches to it; it now
+  keeps them (`view_error`).
 - Each of those calls started, within the same second, a Codex app-server
   (`codex app-server --listen stdio://` from inside ChatGPT.app, a child of
   the operator's node runtime, which is itself inside ChatGPT.app) and a window
