@@ -532,6 +532,10 @@ mod platform {
         /// go only there.
         store_dir: Option<PathBuf>,
         location: String,
+        /// The kept reader's binding to the store, project folder and
+        /// accounts' records folder it was opened for, proved before each
+        /// operation (`records_store::ReaderBinding`).
+        reader: crate::records_store::ReaderBinding,
     }
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub(super) enum Stage {
@@ -601,7 +605,13 @@ mod platform {
                 let id = identity(&directory)?;
                 (directory, id)
             };
+            let reader = crate::records_store::bind_reader(&root, crate::records_store::ReaderDecision::Accounts)
+                .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))?;
+            if reader.records_folder().map(|(dir, _)| dir) != place.store_dir.as_deref() {
+                return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's accounts place changed while it was opened; reopen"));
+            }
             let store = Self {
+                reader,
                 root,
                 project_identity,
                 anchor: place.anchor,
@@ -687,15 +697,13 @@ mod platform {
         /// were opened in (RS §13.8). The binding is kept, never reassociated:
         /// once the person resolves the link, the same store works again.
         fn check_association(&self) -> Result<()> {
-            let Some(dir) = &self.store_dir else {
-                // Accounts read in the project folder: the place is decided
-                // again before each read, so a folder whose attachment has
-                // since been refused is not read in the place of its records.
-                return crate::records_store::route_accounts_place(&self.root, false)
-                    .map(|_| ())
-                    .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e));
-            };
-            crate::records_store::require_attached(&self.root, dir)
+            // The binding made when these accounts were opened, proved again:
+            // the same store, the same project folder, the same place (in the
+            // store or in the project) by the decision made again, and the same
+            // records folder. A kept reader opened in place refuses once the
+            // accounts have moved into the store.
+            self.reader
+                .prove()
                 .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))
         }
         fn check_root(&self) -> Result<()> {

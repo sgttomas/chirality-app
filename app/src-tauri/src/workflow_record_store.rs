@@ -189,6 +189,9 @@ pub struct ProjectRecords {
     /// The project's records store folder once this handle has resolved it:
     /// later reads and writes keep to it even if the path is replaced.
     store: std::sync::Mutex<Option<RecordsHome>>,
+    /// The kept reader's binding to that store, project folder and records
+    /// folder, proved before each read (`records_store::ReaderBinding`).
+    reader: std::sync::Mutex<Option<crate::records_store::ReaderBinding>>,
 }
 impl ProjectRecords {
     pub fn open(explicit_root: &Path) -> Result<Self, String> {
@@ -216,16 +219,31 @@ impl ProjectRecords {
             directory,
             identity: (m.dev(), m.ino()),
             store: std::sync::Mutex::new(None),
+            reader: std::sync::Mutex::new(None),
         })
     }
     fn read_admission(&self)->Result<Option<crate::storage::Ownership>,String>{
         // A previously resolved reader belongs to that original store identity
-        // and is never reassociated. It reads only while the project path is
-        // still attached, cleanly, to that same store folder (RS §13.8: a
-        // changed, missing or moved link attaches nothing until the person
+        // and is never reassociated. It reads only while its binding holds:
+        // the same store, the same project folder, the project still attached
+        // cleanly to the same records folder, and that same folder (RS §13.8:
+        // a changed, missing or moved link attaches nothing until the person
         // resolves it); the binding is kept, so it reads again once they do.
         if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){
-            crate::records_store::require_attached(&self.root,&dir.path)?;
+            let mut reader=self.reader.lock().unwrap_or_else(|p|p.into_inner());
+            if reader.is_none(){
+                // Bound at the first read, to what this handle resolved: the
+                // folders it recorded then, and no others.
+                let binding=crate::records_store::bind_reader(&self.root,crate::records_store::ReaderDecision::Records)?;
+                if binding.project_folder()!=self.identity{
+                    return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read",self.root.display()));
+                }
+                if binding.records_folder()!=Some((dir.path.as_path(),dir.identity)){
+                    return Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into());
+                }
+                *reader=Some(binding);
+            }
+            reader.as_ref().expect("bound above").prove()?;
             return crate::records_retention::read_path(&dir.path);
         }
         let attachment=crate::records_store::attach(&self.root,false)?;

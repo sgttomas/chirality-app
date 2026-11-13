@@ -720,3 +720,90 @@ fn a_kept_handle_refuses_while_the_link_disagrees_and_reads_again_once_restored(
     assert!(write.is_err(), "moved: {:?}", write.map(|r| r.reference().to_owned()));
     assert_eq!(p.list_references().unwrap(), vec![reference.clone()], "moved: nothing was written while refused");
 }
+
+// ---- Slice 1: a kept reader of the project's workflow records reads only
+// the store, project and records folder it bound. These protect KEPT READERS;
+// writers are slice 2's. ----
+
+/// A test's own records store on this thread, removed with its folder.
+struct KeptReaderStore(PathBuf);
+impl KeptReaderStore {
+    fn new() -> Self {
+        let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("kept-reader-store-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: root.clone(), placement: crate::records_store::Placement::Override, limits: vec![] })));
+        Self(root)
+    }
+}
+impl Drop for KeptReaderStore {
+    fn drop(&mut self) {
+        crate::records_store::use_store_for_test(None);
+        let _ = std::fs::remove_dir_all(&self.0);
+    }
+}
+fn unreadable_text(read: Result<Vec<u8>, ResolutionError>) -> String {
+    match read {
+        Err(ResolutionError::Unreadable(e)) => e,
+        Ok(bytes) => panic!("read through the kept reader: {} bytes", bytes.len()),
+        Err(other) => panic!("refused, but not as unreadable: {other:?}"),
+    }
+}
+
+/// 240 R2-2: the project's folder replaced by another at the same path,
+/// carrying a copy of its link. The kept reader refuses, and reads again once
+/// the folder it bound is back.
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_a_replacement_folder_carrying_a_copied_link() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let p = f.store();
+    let a = pending(&p);
+    let reference = a.reference().to_owned();
+    let first = p.publish(&a).unwrap();
+    assert_eq!(p.resolve(&reference).unwrap().bytes(), first.bytes());
+    let aside = f.0.with_file_name(format!("{}-aside", f.0.file_name().unwrap().to_string_lossy()));
+    std::fs::rename(&f.0, &aside).unwrap();
+    let link = std::path::Path::new(crate::records_store::PROJECT_LINK);
+    std::fs::create_dir_all(f.0.join(link.parent().unwrap())).unwrap();
+    std::fs::copy(aside.join(link), f.0.join(link)).unwrap();
+    let read = p.resolve(&reference).map(|r| r.bytes().to_vec());
+    let listed = p.list_references();
+    std::fs::remove_dir_all(&f.0).unwrap();
+    std::fs::rename(&aside, &f.0).unwrap();
+    let refused = unreadable_text(read);
+    assert!(refused.contains("not the folder"), "{refused}");
+    assert!(listed.is_err(), "{listed:?}");
+    assert_eq!(p.resolve(&reference).unwrap().bytes(), first.bytes(), "the same reader reads again once its folder is back");
+}
+
+/// 246 round 2, finding 2: the store's identity file replaced by a copy of
+/// itself (restored from a backup), and the project's import account damaged.
+/// The kept reader refuses each.
+#[test]
+fn records_store_kept_reader_of_workflow_records_refuses_a_replaced_identity_file_and_a_damaged_import_account() {
+    let store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let p = f.store();
+    let a = pending(&p);
+    let reference = a.reference().to_owned();
+    p.publish(&a).unwrap();
+    let dir = crate::records_store::attach(&f.0, false).unwrap().dir.unwrap();
+    // The import account damaged: a line no reader can read.
+    let account = dir.join("imports.jsonl");
+    let account_before = std::fs::read(&account).ok();
+    let mut damaged = account_before.clone().unwrap_or_default();
+    damaged.extend_from_slice(b"not an import line\n");
+    std::fs::write(&account, &damaged).unwrap();
+    let read = p.resolve(&reference).map(|r| r.bytes().to_vec());
+    match &account_before { Some(bytes) => std::fs::write(&account, bytes).unwrap(), None => std::fs::remove_file(&account).unwrap() }
+    let refused = unreadable_text(read);
+    assert!(refused.contains("import"), "a damaged import account: {refused}");
+    assert!(p.resolve(&reference).is_ok(), "reads again once the account is as it was");
+    // The identity file replaced by another holding the same bytes.
+    let identity = store.0.join("store.json");
+    let bytes = std::fs::read(&identity).unwrap();
+    std::fs::remove_file(&identity).unwrap();
+    std::fs::write(&identity, bytes).unwrap();
+    let refused = unreadable_text(p.resolve(&reference).map(|r| r.bytes().to_vec()));
+    assert!(refused.contains("replaced"), "a replaced identity file: {refused}");
+}

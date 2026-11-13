@@ -1183,6 +1183,132 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     Ok(out)
 }
 
+/// The decision a kept reader was opened with, made again before each read:
+/// the project's records home (`readable_home`), or the place of its
+/// connector accounts (`route_accounts_place`, with the store's own record of
+/// a disposal).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ReaderDecision {
+    Records,
+    Accounts,
+}
+/// A kept reader's binding: the records store, the project folder and the
+/// project's records folder in the store that the reader was opened for. It
+/// protects kept readers; a writer's binding is not this.
+///
+/// A folder's physical identity here is the device and inode of the folder
+/// itself, read without following a link. Each bound folder is held open for
+/// the binding's life, so its inode cannot be given to another folder while
+/// the binding lives.
+///
+/// `prove` runs before each read, and the read then goes by path: a change
+/// between the proof and the read is not seen by this binding.
+#[derive(Debug)]
+pub(crate) struct ReaderBinding {
+    decision: ReaderDecision,
+    root: PathBuf,
+    project: (u64, u64),
+    _project_open: std::fs::File,
+    /// The store's canonical root and identity, when the records are read
+    /// from the store.
+    store: Option<(PathBuf, String)>,
+    records: Option<BoundFolder>,
+}
+#[derive(Debug)]
+struct BoundFolder {
+    path: PathBuf,
+    node: (u64, u64),
+    _open: std::fs::File,
+}
+/// `path` opened and held, with its device and inode: the folder examined
+/// without following a link, and the folder opened, must be one folder.
+fn hold_folder(path: &Path, what: &str) -> Result<((u64, u64), std::fs::File), String> {
+    use std::os::unix::fs::MetadataExt;
+    let not_known = |e: std::io::Error| format!("not known: {what} {} could not be examined ({e}); nothing read", path.display());
+    let at = node(path).map_err(not_known)?;
+    let file = std::fs::File::open(path).map_err(not_known)?;
+    let meta = file.metadata().map_err(not_known)?;
+    if !meta.file_type().is_dir() || (meta.dev(), meta.ino()) != at {
+        return Err(format!("{what} {} is not a folder a reader can bind (a link, or changed while it was opened); nothing read", path.display()));
+    }
+    Ok((at, file))
+}
+/// The decision made again: the project's folder in the store, or `None` for
+/// records read in place.
+fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, String> {
+    match decision {
+        ReaderDecision::Records => Ok(readable_home(root)?.in_store().map(Path::to_path_buf)),
+        ReaderDecision::Accounts => {
+            let place = route_accounts_place(root, false)?;
+            if let Some(dir) = &place.store_dir {
+                if crate::records_retention::terminal(dir)? {
+                    return Err("project records disposed or disposal incomplete; nothing read".into());
+                }
+            }
+            Ok(place.store_dir)
+        }
+    }
+}
+/// The binding of a reader opened now for the canonical project folder
+/// `root`, by the decision it reads by.
+pub(crate) fn bind_reader(root: &Path, decision: ReaderDecision) -> Result<ReaderBinding, String> {
+    let (project, project_open) = hold_folder(root, "the project folder")?;
+    let (store, records) = match decided_place(root, decision)? {
+        Some(dir) => {
+            let store = opened()?;
+            let (node, open) = hold_folder(&dir, "the project's records folder in the store")?;
+            (Some(store), Some(BoundFolder { path: dir, node, _open: open }))
+        }
+        None => (None, None),
+    };
+    Ok(ReaderBinding { decision, root: root.to_path_buf(), project, _project_open: project_open, store, records })
+}
+impl ReaderBinding {
+    /// Before each read: the store is still the one bound; the project
+    /// folder is still the one bound; the decision made again gives the same
+    /// place; and the records folder is still the one bound. What cannot be
+    /// examined refuses as not known, never as unchanged. A changed one
+    /// refuses with its reason; the binding is kept, never moved, so the
+    /// reader reads again once what changed is as it was.
+    pub(crate) fn prove(&self) -> Result<(), String> {
+        if let Some((root, id)) = &self.store {
+            let (now, now_id) = opened()?;
+            if &now != root || &now_id != id {
+                return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()));
+            }
+        }
+        match node(&self.root) {
+            Ok(at) if at == self.project => {}
+            Ok(_) => return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display())),
+            Err(e) => return Err(format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display())),
+        }
+        let now = decided_place(&self.root, self.decision)?;
+        match (&self.records, now) {
+            (Some(bound), Some(dir)) if dir == bound.path => {}
+            (Some(_), _) => return Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into()),
+            (None, Some(_)) => return Err("the project's records have moved into the records store since this reader was opened in place; reopen; nothing read".into()),
+            (None, None) => {}
+        }
+        if let Some(bound) = &self.records {
+            match node(&bound.path) {
+                Ok(at) if at == bound.node => {}
+                Ok(_) => return Err(format!("the project's records folder {} is not the folder this reader was opened for; nothing read", bound.path.display())),
+                Err(e) => return Err(format!("not known: the project's records folder {} could not be examined ({e}); nothing read", bound.path.display())),
+            }
+        }
+        Ok(())
+    }
+    /// The project's records folder in the store this reader was opened for,
+    /// with its device and inode.
+    pub(crate) fn records_folder(&self) -> Option<(&Path, (u64, u64))> {
+        self.records.as_ref().map(|r| (r.path.as_path(), r.node))
+    }
+    /// The device and inode of the project folder this reader was opened for.
+    pub(crate) fn project_folder(&self) -> (u64, u64) {
+        self.project
+    }
+}
+
 /// For a handle bound earlier to the store folder `bound`: `root` must be
 /// attached now, cleanly, to that same folder. Whatever stands between the
 /// folder and its records refuses with the attachment's own text; a check
