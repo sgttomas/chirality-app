@@ -635,7 +635,7 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
     let names: Vec<String> = ["LEGACY_RECORDS", "LEGACY_LOG", "CAPTURES", "CAPTURE_STORE", "LEGACY_DIRECTORY",
         ".chirality/records", ".chirality/captures", "records/coordination.rs.jsonl", "\".chirality\""].iter().map(|n| n.to_string()).collect();
     const NAMED: [(&str, &str, &str); 11] = [
-        ("records_store.rs", "58199fc5ca3c95dc", "the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
+        ("records_store.rs", "71a9fb0ca2a91b13", "the one decision (ReadHome and the in-project accounts place), the import's census of what an earlier build left in the folder, and the folder the project link is written in"),
         ("storage.rs", "6ca4d68f984fcdfc", "the three names' definitions, the library's own act log and capture folder, and checks of the shape of a path already in hand"),
         ("connector_route_store.rs", "9e740a8128ab3c84", "the accounts folder's name and two comparisons of a path recorded in an account; the place itself comes from records_store::route_accounts_place"),
         ("act_control.rs", "9e08f8f561e55d16", "the A15 capture store's name and the library act log's recorded name: an A15 capture stays with its library"),
@@ -2288,4 +2288,219 @@ fn a_capability_read_makes_only_its_read_logs_own_folder_and_nothing_above_it() 
     drop(own);
     new_process();
     let _ = std::fs::remove_dir_all(root);
+}
+
+/// The census's premise (App Agent 0, from the INTERLOCUTOR's reading of
+/// main): a census that could not inspect a project's records never says
+/// there are none. Reproduced on main before the repair: in each state below
+/// the census was empty, status read "no records yet" and write admission was
+/// given. (1) The project's only record is its registered legacy log, and its
+/// folder cannot be searched (a real permission failure). (2) Something other
+/// than a folder where a census folder is expected, inside the App's own
+/// `.chirality` folder. Genuine absence stays allowed: no records reads "no
+/// records yet" and may be written, and so does a project with a file named
+/// `records` at its root (the registered log cannot exist under it).
+#[test]
+fn a_census_that_cannot_inspect_the_records_never_says_there_are_none() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let refused = |root: &Path, label: &str| {
+        assert!(legacy_census(root).is_err(), "{label}: census");
+        let shown = status(Some(root));
+        assert_ne!(shown["project"]["reading"], "no records yet", "{label}: {shown}");
+        assert_eq!(shown["project"]["state"], "unavailable", "{label}: {shown}");
+        assert!(write_dir(root).is_err(), "{label}: write admission");
+    };
+    let allowed = |root: &Path, label: &str| {
+        assert!(legacy_census(root).unwrap().is_empty(), "{label}: census");
+        assert_eq!(status(Some(root))["project"]["reading"], "no records yet", "{label}");
+        assert!(write_dir(root).is_ok(), "{label}: write admission");
+    };
+    // Genuine absence.
+    let fresh = folder("census-fresh-");
+    attach(&fresh, true).unwrap();
+    allowed(&fresh, "no records");
+    let named = folder("census-records-file-");
+    std::fs::write(named.join("records"), b"a project file named records\n").unwrap();
+    attach(&named, true).unwrap();
+    allowed(&named, "a file named records at the project's root");
+    // (1) The registered legacy log, its folder unsearchable.
+    let root = folder("census-unsearchable-");
+    records::append(&root.join(storage::LEGACY_LOG), "evidence_limit", &APP_WRITER, body("legacy history")).unwrap();
+    attach(&root, true).unwrap();
+    assert!(write_dir(&root).unwrap_err().starts_with("import needed: 1"), "readable: import needed");
+    let parent = root.join(storage::LEGACY_LOG).parent().unwrap().to_path_buf();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(root.join(storage::LEGACY_LOG)).map(|_| ()).map_err(|e| e.kind());
+    let result = std::panic::catch_unwind(|| refused(&root, "the registered log's folder unsearchable"));
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(result.is_ok(), "the registered log's folder unsearchable");
+    // (2) Something other than a folder where a census folder is expected.
+    for (label, rel) in [("records/runs a file", ".chirality/records/runs"), ("records a file", ".chirality/records"), ("captures a file", ".chirality/captures"),
+        ("connector accounts a file", crate::connector_route_store::LEGACY_DIRECTORY), ("the registered log a folder", storage::LEGACY_LOG)] {
+        let root = folder("census-wrong-type-");
+        let path = root.join(rel);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        if label == "the registered log a folder" { std::fs::create_dir(&path).unwrap(); } else { std::fs::write(&path, b"{\"invented\":\"bytes where a folder is expected\"}\n").unwrap(); }
+        attach(&root, true).unwrap();
+        refused(&root, label);
+    }
+}
+
+/// The same premise in the store's own identity record: a folder whose link
+/// names a project the store holds, with that project's record unable to be
+/// examined (its store folder unsearchable, a real permission failure), is
+/// never taken for a project the store does not hold: attaching it, reading
+/// it, writing for it and adopting it are each refused, never read in place.
+#[test]
+fn an_identity_record_that_cannot_be_examined_is_never_taken_for_one_the_store_does_not_hold() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let root = folder("identity-unexaminable-");
+    records::append_project(&root, None, "writer:i", "evidence_limit", &APP_WRITER, body("in the store")).unwrap();
+    let attachment = attach(&root, false).unwrap();
+    let dir = attachment.dir.clone().unwrap();
+    // The registry names the identity nowhere (as when a minting stopped
+    // before its first registry line), so whether the store holds it is
+    // decided by its record alone.
+    let store = opened().unwrap().0;
+    std::fs::write(store.join("roots.jsonl"), b"").unwrap();
+    *ROOTS.lock().unwrap() = None;
+    let readable = attach(&root, false).unwrap();
+    assert_eq!(readable.fault, Some("no folder recorded"), "readable: records kept, not attached: {readable:?}");
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(dir.join("project.json")).map(|_| ()).map_err(|e| e.kind());
+    let attached = attach(&root, false);
+    let reading = status(Some(&root))["project"]["reading"].clone();
+    let written = write_dir(&root);
+    let adopted = adopt(&root);
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(attached.as_ref().is_err_and(|e| e.contains("whether the store holds this project is not known")), "{attached:?}");
+    assert!(reading != "no records yet" && reading.as_str().is_none_or(|r| !r.contains("in place")), "{reading}");
+    assert!(written.is_err(), "{written:?}");
+    assert!(adopted.is_err(), "{adopted:?}");
+}
+
+/// Startup recovery shows what it left as it was. What it could not examine
+/// (the store's own record, or a project's import account) is shown too,
+/// never passed over as though there were nothing there to recover.
+#[test]
+fn startup_recovery_never_passes_over_what_it_could_not_examine() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let root = folder("recovery-unexaminable-");
+    let dir = attach(&root, true).unwrap().dir.unwrap();
+    let store = opened().unwrap().0;
+    let account = dir.join("imports.jsonl");
+    // An append cut short: a fragment recovery would close and name.
+    std::fs::write(&account, b"{\"cut short").unwrap();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(&account).map(|_| ()).map_err(|e| e.kind());
+    let left = recover_at_startup();
+    std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    let left = left.unwrap();
+    assert!(left.iter().any(|l| l.contains(&account.display().to_string()) && l.contains("could not be examined")), "the account is shown as not examined: {left:?}");
+    assert_eq!(std::fs::read(&account).unwrap(), b"{\"cut short", "left as it was");
+
+    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(store.join("store.json")).map(|_| ()).map_err(|e| e.kind());
+    let recovered = recover_at_startup();
+    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(recovered.as_ref().is_err_and(|e| e.contains("store.json")), "a store whose record cannot be examined is not a store not yet created: {recovered:?}");
+}
+
+
+/// A registered legacy log that cannot be examined is not absent from the
+/// project's record set, in either read home: discovery shows a limit. And a
+/// late import, which copies a log only when the store's set does not
+/// already hold its record identities, is refused when that set could not
+/// be read whole: it never copies a duplicate of a record it could not see.
+#[test]
+fn a_registered_log_that_cannot_be_examined_is_never_left_out_of_the_set_or_copied_again() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    // The late import.
+    let root = folder("registered-late-import-");
+    let original = root.join(storage::LEGACY_LOG);
+    records::append(&original, "evidence_limit", &APP_WRITER, body("registered history")).unwrap();
+    attach(&root, true).unwrap();
+    import(&root).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let copy = dir.join(REGISTERED_COPY);
+    // A late log in the project folder holding the same record identity.
+    let late = root.join(".chirality/records/runs/late-run/late.jsonl");
+    std::fs::create_dir_all(late.parent().unwrap()).unwrap();
+    std::fs::copy(&original, &late).unwrap();
+    let parent = copy.parent().unwrap().to_path_buf();
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let denied = std::fs::symlink_metadata(&copy).map(|_| ()).map_err(|e| e.kind());
+    let imported = import(&root);
+    std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    let after = storage::read_all_parts(&root);
+    assert!(after.0.len() == 1 && after.1.is_empty(), "no duplicate record identity was copied: {imported:?}; the set reads {after:?}");
+    assert!(imported.is_err(), "refused, never reported copied: {imported:?}");
+    let _ = std::fs::remove_dir_all(&root);
+
+    for stored in [false, true] {
+        let root = folder("registered-unexaminable-");
+        records::append(&root.join(storage::LEGACY_LOG), "evidence_limit", &APP_WRITER, body("registered history")).unwrap();
+        attach(&root, true).unwrap();
+        if stored { import(&root).unwrap(); }
+        let log = readable_home(&root).unwrap().registered_log();
+        let readable = storage::read_all_parts(&root);
+        assert!(readable.0.len() == 1 && readable.1.is_empty(), "control (stored {stored}): {readable:?}");
+        let parent = log.parent().unwrap().to_path_buf();
+        std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let denied = std::fs::symlink_metadata(&log).map(|_| ()).map_err(|e| e.kind());
+        let set = storage::read_all_parts(&root);
+        let index = crate::records_index::with_index(&root, |ix| ix.limits());
+        std::fs::set_permissions(&parent, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+        assert!(set.0.is_empty() && set.1.iter().any(|l| l.contains("could not be examined")), "stored {stored}: never a clean empty set: {set:?}");
+        assert!(index.iter().any(|l| l.contains("could not be examined")), "stored {stored}: the index shows it too: {index:?}");
+        let _ = std::fs::remove_dir_all(&root);
+    }
+}
+
+/// A run folder whose entries can be listed but not examined is not an empty
+/// record set. Through a caller that decides from the set: composing an A16
+/// offer finds its act request in the set, and a set it could not walk whole
+/// is refused as incomplete, never reported as one without the request.
+/// (Writes are kept from this premise already: an append checks the set
+/// through the index, whose own walk examines every entry; finishing a
+/// delayed capture over such a set was refused before this repair.)
+#[test]
+fn a_record_set_that_cannot_be_walked_whole_never_decides_a_record_is_missing() {
+    use std::os::unix::fs::PermissionsExt;
+    let _own = OwnStore::new();
+    let root = folder("set-unwalkable-");
+    let rel = format!("{}/PKG-1.json", crate::recorder::DECISIONS_DIR);
+    std::fs::create_dir_all(root.join(crate::recorder::DECISIONS_DIR)).unwrap();
+    let bytes = std::fs::read(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/FX-DP1/project/decisions/PKG-1.json")).unwrap();
+    std::fs::write(root.join(&rel), &bytes).unwrap();
+    let (pkg, identity) = crate::util::package_snapshot(&bytes).unwrap();
+    let body = crate::recorder::request_from_file(&pkg, &rel, &identity, json!({"kind":"agent"}), &crate::util::now_rfc3339());
+    // The act request, recorded in a run's log.
+    let request = records::append_project(&root, Some("run:invented-a16"), "writer:a16", "act_request", &APP_WRITER, body).unwrap();
+    let rid = request["recordId"].as_str().unwrap().to_owned();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let readable = crate::act_control::ActControl::new(&root).compose_a16(&rid);
+    assert!(readable.is_ok(), "control: the request is found and offered: {readable:?}");
+    let runs = dir.join("runs");
+    let child = std::fs::read_dir(&runs).unwrap().next().unwrap().unwrap().path();
+    std::fs::set_permissions(&runs, std::fs::Permissions::from_mode(0o400)).unwrap();
+    let denied = std::fs::symlink_metadata(&child).map(|_| ()).map_err(|e| e.kind());
+    let set = storage::read_all_parts(&root);
+    let offered = crate::act_control::ActControl::new(&root).compose_a16(&rid);
+    std::fs::set_permissions(&runs, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(offered.as_ref().is_err_and(|e| !e.contains("no act_request")), "never reported as a record without the request: {offered:?}; the set read {set:?}");
+    assert!(offered.as_ref().is_err_and(|e| e.contains("incomplete")), "{offered:?}");
+    assert!(!set.1.is_empty(), "never a clean set: {set:?}");
+    let _ = std::fs::remove_dir_all(&root);
 }

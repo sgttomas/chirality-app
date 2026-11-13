@@ -194,7 +194,9 @@ fn marker_head(dir: &Path) -> Result<Option<String>, String> {
 }
 fn ensure_history_marker(dir: &Path) -> Result<(), String> {
     let first = control(dir)?.join("events/00000000000000000001.json");
-    if first.exists() {
+    // A required member that cannot be examined is an error: no marker is
+    // made or relied on, and no sync is claimed, over what was not seen.
+    if crate::records_export::present(&first)? {
         let head = util::sha256_hex(&read_plain(&first)?);
         if let Some(expected) = marker_head(dir)? {
             if expected != head {
@@ -462,12 +464,20 @@ pub(crate) fn view(dir: &Path) -> Value {
 pub(crate) fn activity(project: &Path) -> Result<Option<storage::Ownership>, String> {
     // An absent cwd cannot host a supplier; preserve the host's own spawn
     // failure (and generation/counter evidence), without minting an identity.
-    if !project.exists() {
-        return Ok(None);
+    // Only a cwd that is not there, or a link that is not there, is absent:
+    // one that cannot be examined is not known to be unlinked, so it refuses.
+    match std::fs::symlink_metadata(project) {
+        Ok(_) => {}
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(format!("project retention unavailable; no Codex start: {} could not be examined: {e}", project.display())),
     }
     if let Err(error) = records_store::current() {
-        if std::fs::symlink_metadata(project.join(records_store::PROJECT_LINK)).is_ok()
-            || records_store::known_project_root(project)
+        let linked = match std::fs::symlink_metadata(project.join(records_store::PROJECT_LINK)) {
+            Ok(_) => true,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+            Err(e) => return Err(format!("project retention unavailable; no Codex start: the project link could not be examined ({e}), so whether this is a records project is not known: {error}")),
+        };
+        if linked || records_store::known_project_root(project)
         {
             return Err(format!(
                 "project retention unavailable; no Codex start: {error}"
@@ -568,7 +578,7 @@ fn context(
     if action == "dispose" {
         let folder =
             bag.ok_or("choose a verified export of the current complete project payload first")?;
-        if control(dir)?.join("removal").exists() {
+        if crate::records_export::present(&control(dir)?.join("removal"))? {
             return Err("unexplained disposal staging is present; no new disposal act".into());
         }
         out["payloadFolder"] = physical(dir)?;
@@ -581,7 +591,7 @@ fn context(
                 .as_str()
                 .ok_or("original export path absent")?,
         );
-        if dir.exists() && physical(dir)? != original["context"]["payloadFolder"] {
+        if crate::records_export::present(dir)? && physical(dir)? != original["context"]["payloadFolder"] {
             return Err(
                 "original project payload folder was replaced; nothing more disposed".into(),
             );
@@ -754,11 +764,11 @@ fn event(
 }
 fn durable_history(dir: &Path) -> Result<(), String> {
     ensure_history_marker(dir)?;
-    if history_marker(dir)?.exists() {
+    if crate::records_export::present(&history_marker(dir)?)? {
         storage::sync_publication(&history_marker(dir)?)?;
     }
     let folder = control(dir)?.join("events");
-    if folder.exists() {
+    if crate::records_export::present(&folder)? {
         for e in std::fs::read_dir(folder).map_err(|e| e.to_string())? {
             storage::sync_publication(&e.map_err(|e| e.to_string())?.path())?;
         }
@@ -781,6 +791,8 @@ fn durable_history(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+#[cfg(test)]
+thread_local! { static AROUND_APPLY_HISTORY: std::cell::RefCell<Option<(Box<dyn FnOnce()>, Box<dyn FnOnce()>)>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
 thread_local! { static AFTER_DISPOSAL_ACT:std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const {std::cell::RefCell::new(None)}; static FAIL_COMPLETION_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_ADMIN_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_REMOVE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 #[cfg(test)]
@@ -811,10 +823,14 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     if current != plan.context {
         return Err("project, actor, closure, hold, export or payload changed during native confirmation; nothing changed; review again".into());
     }
+    #[cfg(test)]
+    let around = AROUND_APPLY_HISTORY.with(|h| h.borrow_mut().take()).map(|(before, after)| { before(); after });
     durable_history(&plan.dir)?;
+    #[cfg(test)]
+    if let Some(after) = around { after(); }
     let mut s = state(&plan.dir)?;
     if plan.action == "resume-disposal" && s.completed {
-        if plan.dir.exists() {
+        if crate::records_export::present(&plan.dir)? {
             return Err(
                 "completed disposal's subtree reappeared; no second removal performed".into(),
             );
@@ -828,7 +844,13 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         // The resumed check's own finding about the export is returned here
         // too; the original act is not rewritten.
         let relied = crate::records_export::stored_log_integrity(&current["export"]);
-        let mut out = json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":state(&plan.dir)?.view(),
+        // The completion is recorded and now synced: a state that cannot be
+        // read again for this reply is shown as such, never hiding it.
+        let administration = match state(&plan.dir) {
+            Ok(s) => s.view(),
+            Err(read) => json!({"disposition":"unavailable","limit":format!("the completion is recorded and synced; the retention state could not be read again for this reply: {read}")}),
+        };
+        let mut out = json!({"state":"disposed","completion":"existing completion evidence synced; no new disposal act","administration":administration,
             "export":current["export"],"exportLogIntegrity":relied});
         if let Some(limit) = crate::records_export::integrity_statement(&relied) {
             out["standing"] = json!(format!("The export's bytes were verified against what remained of the store. {limit}"));
@@ -846,6 +868,11 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
     }
     // The durable original act, including the original complete export identity,
     // precedes deletion. Failure leaves a terminal admission fence for safe retry.
+    // Set immediately before the completion's publication is attempted.
+    // Under the retention gate this call holds, the state read above showed
+    // no completion, and only this closure publishes one: so while the flag
+    // is unset, no completion exists, whatever else can be read.
+    let completion_attempted = std::cell::Cell::new(false);
     let result: Result<(), String> = (|| {
         #[cfg(test)]
         if FAIL_REMOVE.with(|v| v.get()) {
@@ -864,7 +891,7 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
                 .as_str()
                 .ok_or("original export missing")?,
         );
-        if plan.dir.exists() && physical(&plan.dir)? != original["context"]["payloadFolder"] {
+        if crate::records_export::present(&plan.dir)? && physical(&plan.dir)? != original["context"]["payloadFolder"] {
             return Err("original payload folder changed after act publication; no removal".into());
         }
         let verified = crate::records_export::matches_current(&plan.dir, bag, true)?;
@@ -881,25 +908,62 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
                 .as_str()
                 .ok_or("original export identity absent")?,
         )?;
+        completion_attempted.set(true);
         event(&plan.dir, &s, "disposal-completed", None, &current)?;
         Ok(())
     })();
+    // What is reported follows what THIS ATTEMPT established, in three
+    // phases; a state that cannot be read again never erases it, and
+    // nothing here asserts that unreadable store contents are absent.
+    //  1. Stopped before the completion's publication was attempted: this
+    //     attempt published no completion. No uncertainty marker from it.
+    //  2. Removal established and publication attempted, but it failed or
+    //     its durability is unknown: the marker, so Finish disposal syncs a
+    //     completion that is in fact recorded.
+    //  3. Publication and its required syncs succeeded: kept as success;
+    //     only the refreshed administration view may be unavailable.
     match result {
-        Ok(()) => Ok(
-            json!({"state":"disposed","projectId":current["projectId"],"administration":state(&plan.dir)?.view(),"export":current["export"],"exportLogIntegrity":crate::records_export::stored_log_integrity(&current["export"]),"standing":match crate::records_export::integrity_statement(&crate::records_export::stored_log_integrity(&current["export"])) {
+        Ok(()) => {
+            // Any marker an earlier unreadable outcome left is cleared: this
+            // completion's publication and syncs are established.
+            UNCERTAIN_COMPLETIONS
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
+                .remove(&plan.dir);
+            let administration = match state(&plan.dir) {
+                Ok(s) => s.view(),
+                Err(read) => json!({"disposition":"unavailable","limit":format!("this attempt published the completion and its syncs succeeded; the retention state could not be read again for this reply: {read}")}),
+            };
+            Ok(
+            json!({"state":"disposed","projectId":current["projectId"],"administration":administration,"export":current["export"],"exportLogIntegrity":crate::records_export::stored_log_integrity(&current["export"]),"standing":match crate::records_export::integrity_statement(&crate::records_export::stored_log_integrity(&current["export"])) {
                 Some(limit) => format!("Only this project's App store payload was removed. Administrative evidence and the export survive. The export's bytes were verified against the store. {limit}"),
                 None => "Only this project's App store payload was removed. Administrative evidence and the verified export survive.".to_owned(),
             }}),
-        ),
+            )
+        }
         Err(e) => {
-            if state(&plan.dir).is_ok_and(|s| s.completed) {
+            let uncertain = || {
                 UNCERTAIN_COMPLETIONS
                     .lock()
                     .unwrap_or_else(|p| p.into_inner())
-                    .insert(plan.dir.clone());
-                Err(format!("records removed; completion publication durability uncertain; original disposal act retained and recording blocked; use Finish disposal to sync the existing completion evidence: {e}"))
-            } else {
-                Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes: {e}"))
+                    .insert(plan.dir.clone())
+            };
+            match state(&plan.dir) {
+                Ok(s) if s.completed => {
+                    uncertain();
+                    Err(format!("records removed; completion publication durability uncertain; original disposal act retained and recording blocked; use Finish disposal to sync the existing completion evidence: {e}"))
+                }
+                Ok(_) if completion_attempted.get() => Err(format!("disposal incomplete: this attempt removed the payload, and its completion was not published; original act retained and recording blocked; use Finish disposal to publish it: {e}")),
+                Ok(_) => Err(format!("disposal incomplete; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes: {e}")),
+                // Phase 1: no completion was attempted by this call, and
+                // under its gate none can exist (see the flag).
+                Err(read) if !completion_attempted.get() => Err(format!("disposal incomplete: this attempt stopped before publishing a completion; original act retained and recording blocked; use Finish disposal to verify the original export and remaining bytes (the retention state could not be read again: {read}): {e}")),
+                Err(read) => {
+                    // Phase 2. The marker counts only if a completion is in
+                    // fact recorded; then Finish disposal syncs it.
+                    uncertain();
+                    Err(format!("this attempt removed the payload and attempted to publish its completion; whether that completion was published, or published durably, is not known: the retention state could not be read ({read}); original disposal act retained and recording blocked; use Finish disposal once the state can be read: {e}"))
+                }
             }
         }
     }
