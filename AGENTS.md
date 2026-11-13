@@ -378,11 +378,18 @@ Agent 0 takes that duty. Agent 0 may arm GitHub
 auto-merge instead of merging by hand. It arms only after the review and any
 INTERLOCUTOR consultation are done and the last push is made, against the
 reviewed head, and it triages `nightly` issues when arming. It disarms before
-any further push to the branch. `main` does not require an up-to-date branch:
-before merging or arming, Agent 0 updates the branch and waits for a fresh run
-when a PR merged since the branch's base touched the same files or the same
-deliverable. Open PRs that overlap this way merge in turn: the later one stays
-unarmed until the earlier has landed and the later has been updated. A later
+any further push to the branch. `main` does not require an up-to-date branch.
+Before merging or arming, Agent 0 updates the branch and waits for a fresh run
+when a PR merged since its base touched the same files or the same deliverable.
+If the PRs share no file and their deliverable overlap arises only through
+files declared under several deliverables, Agent 0 may instead keep the checked
+head without updating from main or rerunning checks. Before deciding, it
+compares the merged tree with the checked tree and reads where the changes
+meet; it records its decision and reason in the PR so the owner can reverse it.
+Open PRs with that file or deliverable overlap merge in turn unless Agent 0 has
+decided under this exception to keep the checked head. When merging in turn,
+the later stays unarmed until the earlier has landed and the later has been
+updated. A later
 PR whose head already contains the exact reviewed head of each earlier one may
 instead be merged first by hand and so land them, when its required checks are
 green on its exact head, a comparison made at merge time shows that the merge
