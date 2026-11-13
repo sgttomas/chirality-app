@@ -234,7 +234,20 @@ fn from_environment() -> Result<Store, String> {
 /// `<App data>/records/`. A development build uses only the override, never
 /// the real App data folder. `project` and `codex_homes` are the folders the
 /// store must stay out of.
+///
+/// Precondition: its production caller (`initialize_startup_consumers`)
+/// calls it only after admission has admitted operational inputs, which a
+/// start whose App data cannot be resolved and held never has
+/// (`admitted_startup`). It answers truly only with complete protected-home
+/// inputs: every Codex home in `codex_homes`, and the App data folder this
+/// start uses, from which the folder reserved for the App's account homes is
+/// computed. Given no App data, it cannot compute that reservation and, as a
+/// function, still admits an explicit override; the App's start never gives
+/// it that input.
 pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Store, String> {
+    // The App data folder as placement needs it (its reserved folders),
+    // taken before the branches below consume it.
+    let data_for_placement: Option<&Path> = app_data.as_ref().ok().copied();
     // The override is honoured only in a development (or debug) build.
     let mut limits = Vec::new();
     let override_root = match override_root {
@@ -260,7 +273,7 @@ pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, 
     }
     // Refused in every build; only the development override may name a
     // temporary folder (a test store).
-    let problems = placement_problems(&root, project, codex_homes, placement == Placement::Override);
+    let problems = placement_problems_in(&root, project, codex_homes, placement == Placement::Override, data_for_placement);
     if !problems.is_empty() {
         return Err(format!("records store refused: {}", problems.join("; ")));
     }
@@ -290,7 +303,7 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
     if !location.is_absolute() {
         return Err("choose an absolute folder for the records store".into());
     }
-    let problems = placement_problems(location, project, codex_homes, false);
+    let problems = placement_problems_in(location, project, codex_homes, false, Some(app_data));
     if !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -305,16 +318,46 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
 pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool) -> Vec<String> {
+    placement_problems_in(root, project, codex_homes, allow_temporary, None)
+}
+/// As `placement_problems`, with the App data folder known: the folder where
+/// the App allocates its account homes (`desktop_startup::desktop_account_homes`)
+/// is reserved, whether or not any home has been planned or created in it,
+/// so a store equal to it, inside it or containing it is refused.
+fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
-        let outer = resolve_lexically(outer);
+        // An empty folder name is an invalid input, refused by name: never
+        // compared, so it neither overlaps everything nor nothing.
+        if outer.as_os_str().is_empty() {
+            problems.push(format!("{what} is given as an empty path, an invalid input, so whether {} overlaps it cannot be established", root.display()));
+            return;
+        }
+        // Never compared while still relative: a relative folder would never
+        // overlap an absolute store and so would pass silently. Made absolute
+        // against the App's own working folder (the caller has already added
+        // the resolution its child uses); a folder that cannot be made
+        // absolute is a refusal, never "no overlap".
+        let outer = match resolve_lexically(outer) {
+            relative if relative.is_relative() => match std::path::absolute(&relative) {
+                Ok(absolute) => resolve_lexically(&absolute),
+                Err(e) => {
+                    problems.push(format!("{what} {} could not be made absolute ({e}), so whether {} overlaps it is not known", relative.display(), root.display()));
+                    return;
+                }
+            },
+            resolved_outer => resolved_outer,
+        };
         if resolved.starts_with(&outer) || outer.starts_with(&resolved) {
             problems.push(format!("{} overlaps {what} {}", root.display(), outer.display()));
         }
     };
     if let Some(project) = project {
         inside(project, "the project working tree");
+    }
+    if let Some(data) = app_data {
+        inside(&crate::desktop_startup::desktop_account_homes(data), "the folder reserved for the App's account homes");
     }
     for home in codex_homes {
         inside(home, "the Codex home");
@@ -332,7 +375,7 @@ fn is_temporary(root: &Path) -> bool {
     [std::env::temp_dir(), PathBuf::from("/tmp")].iter().any(|t| resolved.starts_with(resolve_lexically(t)))
 }
 /// The canonical form of the longest existing ancestor, with the rest appended.
-fn resolve_lexically(path: &Path) -> PathBuf {
+pub(crate) fn resolve_lexically(path: &Path) -> PathBuf {
     let mut tail = Vec::new();
     let mut at = path.to_path_buf();
     loop {
