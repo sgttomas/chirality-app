@@ -314,7 +314,8 @@ fn an_error_reply_or_a_withdrawal_frees_the_reservation_and_restores_no_older_pr
 /// Withdrawal and write admission are exclusive, in both orders: a reading whose deadline is found
 /// passed once it has the writer is withdrawn and writes nothing; a reading admitted to its write
 /// before its deadline is written even if the deadline passes during the write, and is never
-/// told it was not sent.
+/// told it was not sent. The second reading's limit is LONG, so the work before its write does not
+/// use it up, and it is held at the write until that deadline has passed.
 #[test]
 fn withdrawal_and_write_admission_exclude_each_other_in_both_orders() {
     let rig = Rig::new();
@@ -322,8 +323,10 @@ fn withdrawal_and_write_admission_exclude_each_other_in_both_orders() {
     assert_eq!(read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), Duration::from_millis(100)).err().unwrap(), READING_WITHDRAWN);
     assert!(rig.stage().is_none() && rig.current().is_none());
     rig.none(Duration::from_millis(100));
-    *rig.host.before_request_write.lock().unwrap() = Some(Box::new(|_| std::thread::sleep(Duration::from_millis(200))));
-    let source = read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), Duration::from_millis(100)).expect("admitted before its deadline: written");
+    let deadline = Instant::now() + LONG;
+    *rig.host.before_request_write.lock().unwrap() = Some(Box::new(move |_| std::thread::sleep((deadline + Duration::from_millis(100)).saturating_duration_since(Instant::now()))));
+    let source = rig.host.request_reading("config/read", json!({"cwd":W,"includeLayers":false}), json!({"kind":"synthetic reader"}), &rig.g, false, deadline).expect("admitted before its deadline: written");
+    assert!(Instant::now() > deadline, "its deadline passed during the write");
     let frame = rig.frame();
     assert_eq!(frame["id"], *source.request_id());
     assert_eq!(rig.stage(), Some((Some(frame["id"].to_string()), ReadingStage::AwaitingReply)), "outstanding, never withdrawn");
