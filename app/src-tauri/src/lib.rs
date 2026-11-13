@@ -6,6 +6,8 @@
 //! webview only reads snapshots and asks the host to act.
 
 pub mod access;
+// A test build only (build.rs sets this cfg and refuses it with the release feature).
+#[cfg(chirality_scripted_driver)] mod scripted_driver;
 pub mod act_control;
 pub mod act_policy;
 pub mod attachments;
@@ -3163,8 +3165,14 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// The scripted driver's page-load hook in a test build; in every other build, the builder unchanged.
+#[cfg(chirality_scripted_driver)]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { scripted_driver::install(builder) }
+#[cfg(not(chirality_scripted_driver))]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { builder }
+
 pub fn run() {
-    tauri::Builder::default()
+    with_scripted_driver(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
         .on_menu_event(|app, event| {
