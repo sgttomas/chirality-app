@@ -699,3 +699,43 @@ fn a_requirements_reading_after_continues_final_check_reaches_codex_after_it() {
     rig.answer(&requirements, json!({"requirements":null}));
     reader.lock().unwrap().take().unwrap().join().unwrap().unwrap();
 }
+
+/// An account Continue or fork refused at its own configuration reading passes the sentence on as it
+/// is (`cloud_continuation_admission`), as a start's admission does: nothing of the operation is
+/// registered or reaches Codex, and the fork's role-supply record takes it as refused before send,
+/// with the sentence alone as its message. The gate: an earlier reading is left unanswered. The
+/// withdrawal: the reservation is free and the frame writer is held past the deadline.
+#[test]
+fn an_account_continue_or_fork_refused_at_its_reading_passes_the_sentence_on_and_is_known_not_sent() {
+    for operation in ["thread/resume", "thread/fork"] {
+        for sentence in [READING_GATE, READING_WITHDRAWN] {
+            let rig = Rig::new();
+            rig.host.inner.0.lock().unwrap().server_cwd = Some(W.into());
+            *rig.host.continuation_reading_budget.lock().unwrap() = Some(Duration::from_millis(150));
+            if sentence == READING_GATE {
+                read(&rig.host, &rig.g, json!({"cwd":"/invented/other","includeLayers":false}), LONG).unwrap();
+                let _never_answered = rig.frame();
+            }
+            let query = continue_query(&rig);
+            let home = crate::runtime_session::HomeSession::new(crate::home_resources::HomeClass::Account, rig.host.clone(), Err("synthetic reading-gate home".into())).unwrap();
+            let (requests, pending) = (rig.requests(), rig.pending());
+            let writer = (sentence == READING_WITHDRAWN).then(|| rig.host.frame_write.lock().unwrap());
+            let refused = if operation == "thread/resume" {
+                rig.host.history_dispatch(&query).map(|_| ()).unwrap_err()
+            } else {
+                crate::conversation_roles::fork_conversation_tracked(&home, &rig.g, "thread", LONG, |_| panic!("{operation}: nothing is dispatched")).map(|_| ()).unwrap_err()
+            };
+            drop(writer);
+            assert_eq!(refused, sentence, "{operation}: the sentence alone, not the built-in-provider refusal");
+            assert!(crate::conversation_roles::fork_refused_before_send(&refused), "{operation}: recorded as refused before send");
+            assert_eq!(crate::role_supply_refusal(&refused, &"invented publication"), sentence, "{operation}: nothing is shown with the sentence");
+            if sentence == READING_GATE {
+                assert_eq!((rig.requests(), rig.pending()), (requests, pending), "{operation}: at the gate nothing is registered, nothing pending");
+            } else {
+                assert_eq!(rig.pending(), pending, "{operation}: withdrawn, nothing pending");
+                assert!(rig.current().is_none() && rig.stage().is_none(), "{operation}: withdrawn, no reading is current and the reservation is free");
+            }
+            rig.none(Duration::from_millis(100));
+        }
+    }
+}

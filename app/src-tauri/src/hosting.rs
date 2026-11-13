@@ -965,6 +965,9 @@ pub struct Host {
     pub(crate) supersede_marking: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
     #[cfg(test)]
     pub(crate) after_continuation_reading: Mutex<Option<Box<dyn FnOnce(&Host)+Send>>>,
+    /// The cloud continuation reading's budget in place of its 10 s, so a test reaches its deadline quickly.
+    #[cfg(test)]
+    pub(crate) continuation_reading_budget: Mutex<Option<Duration>>,
     #[cfg(test)]
     cce_after_cut: Mutex<Option<Box<dyn FnOnce(&Host,&call_custody::IncomingCall)+Send>>>,
     #[cfg(test)]
@@ -1123,6 +1126,7 @@ impl Host {
             #[cfg(test)] supersede_waiting: Mutex::new(None),
             #[cfg(test)] supersede_marking: Mutex::new(None),
             #[cfg(test)] after_continuation_reading: Mutex::new(None),
+            #[cfg(test)] continuation_reading_budget: Mutex::new(None),
             #[cfg(test)] cce_after_cut: Mutex::new(None),
             #[cfg(test)] cce_after_write: Mutex::new(None),
             #[cfg(test)] cce_simulated_write: Mutex::new(None),

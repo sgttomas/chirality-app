@@ -1384,6 +1384,10 @@ impl Host {
     /// registration and final-write checks every start's proof passes (`check_continuation_proof`,
     /// through `check_provider_read`): a newer reading of the same folder, or a confirmed provider
     /// write, between this reading and the write refuses with nothing sent.
+    ///
+    /// A reading refused at the generation's one-at-a-time gate (`reading_gate`) was not sent, and
+    /// its sentence is passed on as it is, as a start's admission passes it on: the Continue or fork
+    /// is then known not to have been sent. Every other failure of the reading is `refusal`.
     pub(super) fn cloud_continuation_admission(&self, generation: &Value, refusal: &str) -> Result<Option<ProviderAdmission>, String> {
         let cwd = {
             let i = self.inner.0.lock().map_err(|_| unavailable())?;
@@ -1391,7 +1395,12 @@ impl Host {
             // No folder, no reading: Codex has not reported the built-in provider.
             i.server_cwd.clone().filter(|cwd| !cwd.is_empty()).ok_or_else(|| refusal.to_owned())?
         };
-        let reading = self.private_provider_config_read(generation, &cwd, Duration::from_secs(10), PrivateConfigPurpose::Admission).map_err(|_| refusal.to_owned())?;
+        let wait = Duration::from_secs(10);
+        #[cfg(test)]
+        let wait = self.continuation_reading_budget.lock().unwrap().unwrap_or(wait);
+        let reading = self
+            .private_provider_config_read(generation, &cwd, wait, PrivateConfigPurpose::Admission)
+            .map_err(|e| reading_gate::reading_or(e, || refusal.to_owned()))?;
         if reading.config["config"]["model_provider"] != "openai" { return Err(refusal.into()); }
         #[cfg(test)] {let hook=self.after_continuation_reading.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         Ok(Some(ProviderAdmission {
