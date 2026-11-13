@@ -16,7 +16,7 @@ do not exist.
 Limit: this checks spelling in a workflow file. It does not show that a listed
 test executes or passes, it does not read app/package.json's test script, and
 it does not see a web test file under another name pattern (for example
-``group_b_runner_test.mjs``) or a file reached only through a shell variable.
+``*_test.mjs``) or a file reached only through a shell variable.
 """
 from __future__ import annotations
 
