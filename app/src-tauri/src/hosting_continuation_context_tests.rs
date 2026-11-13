@@ -68,7 +68,7 @@ impl Peer {
                 // An account Continue first reads Codex's configuration: the stand-in reports the
                 // built-in provider and keeps its scripted replies for the history frames.
                 if frame["method"] == "config/read" {
-                    h.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"config":{"model_provider":"openai"},"origins":{}}})).unwrap(), &generation());
+                    h.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}})).unwrap(), &generation());
                     continue;
                 }
                 w.lock().unwrap().push(frame.clone());

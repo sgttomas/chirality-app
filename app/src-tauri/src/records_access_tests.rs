@@ -354,7 +354,7 @@ for line in sys.stdin:
   emit({'id':f['id'],'result':{'thread':thread(cwd),'model':f['params'].get('model'),'modelProvider':f['params'].get('modelProvider'),'cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}})
  elif method=='config/read':
   # An App-started account home reports the built-in provider; a fork is admitted only there.
-  emit({'id':f['id'],'result':{'config':{'model_provider':'openai'},'origins':{}}})
+  emit({'id':f['id'],'result':{'config':{'model_provider':'openai','model_providers':{}},'origins':{}}})
  elif method=='thread/fork':
   src=f['params']['threadId'];cwd=threads[src]
   if os.path.exists('fork-cwd'):cwd=open('fork-cwd').read()

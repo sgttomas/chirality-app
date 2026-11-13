@@ -647,7 +647,7 @@ for line in sys.stdin:
  method=f.get('method')
  if 'id' not in f or method is None:continue
  if method=='initialize':emit({'id':f['id'],'result':{'userAgent':'invented-continuity-peer'}})
- elif method=='config/read':emit({'id':f['id'],'result':{'config':{'model_provider':'openai'},'origins':{}}})
+ elif method=='config/read':emit({'id':f['id'],'result':{'config':{'model_provider':'openai','model_providers':{}},'origins':{}}})
  elif method=='thread/start':
   if f['params'].get('model')=='fail':emit({'id':f['id'],'error':{'code':-32600,'message':'invented refusal'}})
   elif f['params'].get('model')=='malformed':emit({'id':f['id'],'result':{'thread':{'id':'thread'}}})

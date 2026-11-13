@@ -233,7 +233,7 @@ runpy.run_path({peer},run_name='__main__')
                     assert!(e.get("frame_index").is_none() && e.get("source_frame_index").is_none(),"no recorded frame stands behind it");
                     assert!(e["constructed_standing"].as_str().is_some_and(|s|s.contains("no such frame was captured from the supplier")));
                     // The App journals a private configuration reply only in its withheld projection.
-                    return super::access_provider::withheld(&json!({"id":e["actual_rpc_id"],"result":{"config":{"model_provider":"openai"},"origins":{}}}));
+                    return super::access_provider::withheld(&json!({"id":e["actual_rpc_id"],"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}}));
                 }
                 if e["event"]=="constructed-frame" {
                     assert_eq!(e["recipe"],"thread-list-envelope-from-thread-read");

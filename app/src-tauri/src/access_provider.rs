@@ -552,6 +552,14 @@ pub(crate) const BUILT_IN_PROVIDER_UNREPORTED: &str = "Access entry unavailable:
 pub(crate) const BUILT_IN_PROVIDER_UNREPORTED_RESUME: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/resume sent";
 /// As BUILT_IN_PROVIDER_UNREPORTED, for a fork of a conversation.
 pub(crate) const BUILT_IN_PROVIDER_UNREPORTED_FORK: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/fork sent";
+/// One rule for every cloud admission (a start, an account Continue or fork): the configuration
+/// reading reports the built-in provider. Its definitions are a readable object (missing, null or
+/// any other kind is not established) with no definition named `openai`, which would shadow the
+/// built-in provider, and the provider in force is `openai`. A start reaches the first part through
+/// `classify`'s cloud arm, which is this same test of the definitions.
+pub(super) fn cloud_reading_reports_built_in(result: &Value) -> bool {
+    classify(result, "chatgpt-account", "openai", None).is_ok() && result["config"]["model_provider"] == "openai"
+}
 fn classify(
     result: &Value,
     entry: &str,
@@ -743,7 +751,7 @@ impl Host {
         classify(&reading.config, entry, provider, local.as_ref())?;
         // The cloud entries rest on the provider this home's Codex itself reports, not on the App's
         // own session setting: a managed requirement is applied before that setting.
-        if matches!(entry, "chatgpt-account" | "api-key") && reading.config["config"]["model_provider"] != "openai" {
+        if matches!(entry, "chatgpt-account" | "api-key") && !cloud_reading_reports_built_in(&reading.config) {
             return Err(BUILT_IN_PROVIDER_UNREPORTED.into());
         }
         if let Some(settings) = &local {
@@ -1401,11 +1409,9 @@ impl Host {
         let reading = self
             .private_provider_config_read(generation, &cwd, wait, PrivateConfigPurpose::Admission)
             .map_err(|e| reading_gate::reading_or(e, || refusal.to_owned()))?;
-        // The built-in provider, as a start's admission (`classify`) requires it: named `openai`, and
-        // not shadowed by a provider definition the configuration gives under that name.
-        let config = &reading.config["config"];
-        let shadowed = config.get("model_providers").and_then(Value::as_object).is_some_and(|definitions| definitions.contains_key("openai"));
-        if config["model_provider"] != "openai" || shadowed { return Err(refusal.into()); }
+        // The built-in provider by a start's own rule (`cloud_reading_reports_built_in`): a readable
+        // definitions object with no definition named `openai`, and `openai` reported.
+        if !cloud_reading_reports_built_in(&reading.config) { return Err(refusal.into()); }
         #[cfg(test)] {let hook=self.after_continuation_reading.lock().unwrap().take();if let Some(h)=hook{h(self);}}
         Ok(Some(ProviderAdmission {
             source: reading.source,

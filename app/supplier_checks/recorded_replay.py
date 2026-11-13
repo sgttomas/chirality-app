@@ -57,7 +57,7 @@ PROVIDER_READING_RECIPE = "config-read-reply-constructed-for-continue"
 PROVIDER_READING_STANDING = ("constructed-provider-reading; no such frame was captured from the supplier; "
                              "stands in so the recorded Continue can proceed; not evidence of a supplier reply")
 # Fixed: the least the App's Continue admission reads. Not configurable.
-PROVIDER_READING_RESULT = {"config": {"model_provider": "openai"}, "origins": {}}
+PROVIDER_READING_RESULT = {"config": {"model_provider": "openai", "model_providers": {}}, "origins": {}}
 
 
 class ReplayError(Exception):

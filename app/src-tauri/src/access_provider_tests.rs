@@ -6,6 +6,36 @@ use std::{
 };
 const CANARY: &str = "INVENTED_PRIVATE_PROVIDER_CANARY_481";
 
+/// DEL-01-05 AC-005: one rule for every cloud admission. A start (through `classify`'s cloud arm and
+/// then the provider in force) and an account Continue or fork (`cloud_continuation_admission`) both
+/// take `cloud_reading_reports_built_in`; this pins what it answers for each kind of definitions, and
+/// that a start's `classify` refuses exactly where the definitions are refused.
+#[test]
+fn the_cloud_rule_establishes_the_built_in_provider_only_from_readable_definitions_without_openai() {
+    let reading = |definitions: Option<Value>| {
+        let mut config = json!({"model_provider":"openai"});
+        if let Some(definitions) = definitions { config["model_providers"] = definitions; }
+        json!({"config":config,"origins":{}})
+    };
+    for (case, definitions, admitted) in [
+        ("an object naming openai", Some(json!({"openai":{"name":"invented","base_url":"http://invented.invalid/v1"}})), false),
+        ("an object without openai", Some(json!({"invented-local":{"name":"invented"}})), true),
+        ("an empty object", Some(json!({})), true),
+        ("missing", None, false),
+        ("null", Some(Value::Null), false),
+        ("an array", Some(json!([])), false),
+    ] {
+        let result = reading(definitions);
+        assert_eq!(cloud_reading_reports_built_in(&result), admitted, "{case}");
+        for entry in ["chatgpt-account", "api-key"] {
+            assert_eq!(classify(&result, entry, "openai", None).is_ok(), admitted, "{case}: a start's classify agrees ({entry})");
+        }
+    }
+    let mut other = reading(Some(json!({})));
+    other["config"]["model_provider"] = json!("invented-corporate-gateway");
+    assert!(!cloud_reading_reports_built_in(&other), "another provider in force");
+}
+
 fn access_settings_config(store: Value, plugins: Value) -> Value {
     let metadata = json!({"name":{"type":"user","file":format!("/invented/{CANARY}/config.toml"),"profile":CANARY},"version":CANARY});
     let config = json!({"cli_auth_credentials_store":store,"features":{"plugins":plugins},"developer_instructions":CANARY,"model_providers":{"private":{"experimental_bearer_token":CANARY}}});

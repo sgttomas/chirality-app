@@ -5559,7 +5559,7 @@ mod conversation_transport_tests {
     fn started_in_folder(host:&Host){
         {let mut i=host.inner.0.lock().unwrap();if i.server_cwd.is_none(){i.server_cwd=Some("/invented".into());}}
         let mut hook=host.before_provider_wait.lock().unwrap();
-        if hook.is_none(){*hook=Some(Box::new(|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai"},"origins":{}}})).unwrap(),source.generation());}));}
+        if hook.is_none(){*hook=Some(Box::new(|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}})).unwrap(),source.generation());}));}
     }
     fn next_operation_frame(reader:&mut BufReader<std::process::ChildStdout>)->Result<Value,String>{
         loop{let mut line=String::new();reader.read_line(&mut line).map_err(|e|format!("peer read failed: {e}"))?;let frame:Value=serde_json::from_str(&line).map_err(|e|format!("peer frame unavailable: {e}"))?;if frame["method"]!="config/read"{return Ok(frame);}}
@@ -6211,7 +6211,12 @@ mod conversation_transport_tests {
                     "absent"=>json!({"id":source.request_id(),"result":{"config":{},"origins":{}}}),
                     // `openai` named, and a definition under that name in the configuration shadows the built-in provider.
                     "shadowed"=>json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai","model_providers":{"openai":{"name":"invented","base_url":"http://invented.invalid/v1"}}},"origins":{}}}),
-                    provider=>json!({"id":source.request_id(),"result":{"config":{"model_provider":provider},"origins":{}}}),
+                    // `openai` named, with definitions that are not a readable object: no shadowing is established.
+                    "definitions-missing"=>json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai"},"origins":{}}}),
+                    "definitions-null"=>json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai","model_providers":null},"origins":{}}}),
+                    "definitions-array"=>json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai","model_providers":[]},"origins":{}}}),
+                    // As an App-started account home's Codex reports it: its definitions, none named `openai`.
+                    provider=>json!({"id":source.request_id(),"result":{"config":{"model_provider":provider,"model_providers":{}},"origins":{}}}),
                 };
                 h.on_line(&serde_json::to_vec(&frame).unwrap(),source.generation());
             }));
@@ -6232,17 +6237,17 @@ mod conversation_transport_tests {
     fn resume(home:&ReportingHome)->Result<(),String>{let mut view=history_selected();let query=view.continue_query().unwrap();home.home.host.history_dispatch(&query).map(|_|())}
     fn fork(home:&ReportingHome)->Result<(),String>{home.home.host.thread_fork_dispatch(&g(),"thread").map(|_|())}
     /// DEL-01-05 AC-005: an account or key-home Continue or fork rests on Codex's own report, read at
-    /// its own admission, of the built-in provider (named `openai` and not shadowed by a definition
-    /// under that name, as a start requires); otherwise nothing is sent for it.
+    /// its own admission, of the built-in provider (named `openai`, with readable definitions none of
+    /// which is named `openai`, as a start requires); otherwise nothing is sent for it.
     #[test]
     fn cloud_resume_and_fork_rest_on_codex_reporting_the_built_in_provider_at_their_own_admission(){
         use crate::home_resources::HomeClass;
         let ops:[(&str,fn(&ReportingHome)->Result<(),String>,&str);2]=[("thread/resume",resume,access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME),("thread/fork",fork,access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK)];
         for class in [HomeClass::Account,HomeClass::ApiKey] {
             for (method,op,refusal) in ops {
-                for case in ["built-in","requirement-names-another","not-reported","unreadable","shadowed"] {
+                for case in ["built-in","requirement-names-another","not-reported","unreadable","shadowed","definitions-missing","definitions-null","definitions-array"] {
                     let home=ReportingHome::new(class);
-                    home.reports(match case{"built-in"=>"openai","requirement-names-another"=>"invented-corporate-gateway","not-reported"=>"absent","shadowed"=>"shadowed",_=>"error"});
+                    home.reports(match case{"built-in"=>"openai","requirement-names-another"=>"invented-corporate-gateway","not-reported"=>"absent","unreadable"=>"error",other=>other});
                     let result=op(&home);
                     match case {
                         "built-in"=>assert!(result.is_ok(),"{class:?} {method}: sent as before"),
@@ -6575,7 +6580,7 @@ mod conversation_transport_tests {
         // The admitting reading is written and answered; then the input fails, so the resume's own write fails.
         let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut cat=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=cat.stdin.take();
-        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai"},"origins":{}})));let failed=host.history_dispatch(&query).unwrap();
+        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=host.history_dispatch(&query).unwrap();
         *host.before_provider_wait.lock().unwrap()=None;drop(kept);assert!(cat.wait().unwrap().success());let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);

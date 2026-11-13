@@ -43,7 +43,7 @@ for line in sys.stdin:
  if m=='config/read':
   # The account home's Codex reports its session setting's provider unless a fixture file names another.
   provider=open('reported-provider').read().strip() if os.path.exists('reported-provider') else 'openai'
-  emit({'id':f['id'],'result':{'config':{'model_provider':provider},'origins':{}}});continue
+  emit({'id':f['id'],'result':{'config':{'model_provider':provider,'model_providers':{}},'origins':{}}});continue
  if m=='thread/start':
   n['start']+=1;result(f,settled(thread('thread' if n['start']==1 else 'thread-%d'%n['start'])),'start');continue
  if m=='thread/fork':

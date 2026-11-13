@@ -8236,7 +8236,7 @@ for line in sys.stdin:
   where=f['params'].get('cwd')
   which='bare' if where is None else ('server' if os.path.realpath(where)==os.path.realpath(os.getcwd()) else 'folder')
   p=mode('config-provider-'+which) or mode('config-provider') or 'fixture-provider'
-  config={'model_provider':None if p=='none' else p,'developer_instructions':'fixture private configuration text'}
+  config={'model_provider':None if p=='none' else p,'model_providers':{},'developer_instructions':'fixture private configuration text'}
   if m in ('true','false'):config['features']={'multi_agent':m=='true'}
   result={'config':config,'origins':{}}
  elif method=='modelProvider/capabilities/read':
