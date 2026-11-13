@@ -464,7 +464,17 @@ session and the local model server without asking each time. They never sign
 in, never see or handle a credential, and stop and tell Agent 0 if the session
 asks for one. The custom native driver chain is closed: new native control
 tooling needs an approved proposal, and native Computer Use is development
-tooling only. Build offline by default;
+tooling only. The owner approved one such proposal on 13 November 2026, a
+scripted driver compiled only into a test build, in these words: "First a
+hosted run showing a test build can run a trivial script in its window on
+the runner the App already uses. Then the one first-use setup scenario end
+to end. Dropped and reported if the hosted run is not shown within two runs,
+or the scenario does not pass within two built attempts. Nothing in the
+shipped build. Development evidence only: it satisfies nothing in criteria 1
+and 2 and does not replace your own use. No later scenario, chooser, typing
+or confirmation is covered." Nothing beyond those words is approved. The
+approval is in force until its stop point is reached or its two results are
+shown; `app/examination/scripted_driver/README.md` says which. Build offline by default;
 downloads, including binaries and archives, require explicit permission
 identifying the file, source and size. Routine read-only inspection of public
 source code and documentation text is authorized.

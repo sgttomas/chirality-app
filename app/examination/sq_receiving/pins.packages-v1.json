@@ -31,7 +31,7 @@
     "app/packaging/terms/check.py": "8753abc39b93c8d8eb9c8db81d48fcd3876d83f9bbbc3aa052e55761d35225f9",
     "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2",
     "app/src-tauri/Cargo.toml": "32aeb2faacc2f8ec31a1d11aa617ff75fc83cced085fe1299a15cde64e4a3638",
-    "app/src-tauri/build.rs": "5c89aac6205db9e6e0df74165489ea62f6e12cfd8cd3f82e80f8b6a412a92b24",
+    "app/src-tauri/build.rs": "962fdf6dbb4dfaf34517faaea8a5700c8558a722f0b82707cae375b75cb2b292",
     "app/src-tauri/build_support/developer-id-application.s1.requirement-template.txt": "00a16b523232eab6750957666e2d48a9c9f0ea4bf75d45bc40b18713611a9272",
     "app/src-tauri/build_support/publisher_selection.rs": "b9921087b53d28d30aab7e2f5a24c37fa5dfaf37829cc47188807ec2fa6e4c36",
     "app/src-tauri/resources/distribution-successor/distribution-preflight-facts.s3.schema.json": "3a6eb9d2bbad03b85f405edcfc40e24012c7ca43edbdd3e396886385c3e20865",
@@ -54,7 +54,7 @@
     "app/packaging/successor/static-package-input.v2.schema.json": "42afd2913f781e8ab8cfdcb153fa3992ae232bc42505d4a0e6fd4cac5b439a96",
     "app/packaging/static_distribution/schemas/pkg.terms-record.schema.json": "46ee0d3c0072fd3a94c45749fd8da14ad05e6322367f2df51500e754eb6e6af9",
     "app/packaging/terms/terms-position.v1.schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
-    "app/examination/package_receiving/sources.package-v1.json": "b6f755986a7c248b4e7f242c9768107321405a7617c92e41571ebb597200f162",
+    "app/examination/package_receiving/sources.package-v1.json": "ba067ff5f6b31399a5fb3b4f0cdf007677a8791635c6d2c989dfe4f16a78f050",
     "app/examination/package_receiving/adapter.py": "dd32097f5979c8eb11b7a3dc2baad120c31f5997f7eb2ecdcc959a1b9a721107",
     "app/examination/sq_receiving/worker_packages.py": "c3a9c80b277314247f45e054fdeb0d2e78328ba6df2328c34112e8db379c8262",
     "app/src-tauri/resources/distribution-successor/lifecycle-transitions.s1.json": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
@@ -65,6 +65,6 @@
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",
-    "sha256": "b6f755986a7c248b4e7f242c9768107321405a7617c92e41571ebb597200f162"
+    "sha256": "ba067ff5f6b31399a5fb3b4f0cdf007677a8791635c6d2c989dfe4f16a78f050"
   }
 }
