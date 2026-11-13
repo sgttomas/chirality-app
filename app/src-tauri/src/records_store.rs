@@ -1244,13 +1244,7 @@ fn imports(dir: &Path) -> Result<Imports, String> {
         Ok(_) => Some(crate::records_retention::read_plain(&path).map_err(unknown)?),
     };
     let mut lines: Vec<(Value, &'static str)> = Vec::new();
-    if let Some(bytes) = &account {
-        if bytes.is_empty() {
-            if witness::empty_account_is_nothing_begun(dir) {
-                return Ok(Imports::default());
-            }
-            return Err(unknown("it exists and is empty; whether an import was begun is not known".into()));
-        }
+    if let Some(bytes) = account.as_ref().filter(|bytes| !bytes.is_empty()) {
         let Some(body) = bytes.strip_suffix(b"\n") else { return Err(unknown("its last line is not closed".into())) };
         let shared = lines::read(bytes, &path);
         let set_aside = shared.set_aside.clone();
@@ -1269,6 +1263,24 @@ fn imports(dir: &Path) -> Result<Imports, String> {
             let line = crate::workflow_declaration::parse_unique(text).map_err(|e| unknown(format!("its line {number} is not JSON, or gives a key twice ({e})")))?;
             let Some(event) = import_line(&line) else { return Err(unknown(format!("its line {number} is not an import line in a form this App reads"))) };
             lines.push((line, event));
+        }
+    }
+    // Whether an import was begun is decided on what was READ, not on the
+    // bytes: an account that exists and yields no import line (an empty
+    // file, or one holding only closed fragments and the lines that name
+    // them) cannot be told from an account emptied after an import, so it is
+    // unknown, except where nothing was begun for the project
+    // (`witness::empty_account_is_nothing_begun`).
+    if let Some(bytes) = &account {
+        if lines.is_empty() {
+            if witness::empty_account_is_nothing_begun(dir) {
+                return Ok(Imports::default());
+            }
+            return Err(unknown(if bytes.is_empty() {
+                "it exists and is empty; whether an import was begun is not known"
+            } else {
+                "it exists and holds no import line, only closed fragments and the lines that name them; whether an import was begun is not known"
+            }.into()));
         }
     }
     let mut out = Imports { any: !lines.is_empty(), lines: lines.len(), ..Imports::default() };

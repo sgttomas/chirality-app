@@ -457,3 +457,50 @@ fn an_unreadable_import_account_never_reads_no_import_through_the_witness() {
     }
 }
 
+/// Review round 3, finding R3-B1: an account that exists and yields no import
+/// line because it holds only closed fragments and the lines that name them
+/// is decided as an empty one is, on what was read and not on the bytes:
+/// unknown, unless nothing was begun for the project.
+#[test]
+fn an_import_account_holding_only_named_fragments_is_decided_as_an_empty_one() {
+    let unknown = |e: &str| e.contains("holds no import line, only closed fragments") && e.contains("whether an import was begun is not known");
+    let fragments_only = || {
+        let tail = br#"{"format":"chirality.records-import","formatVersion":"#;
+        let (closing, line) = store_lines::closure(tail);
+        [tail.as_slice(), &closing, &store_lines::naming_line(1, &line).unwrap()].concat()
+    };
+    // The reviewer's state: a project holding imported records, listed when
+    // the witness began, its account replaced by a fragment that the recovery
+    // then closed and named.
+    let l = Legacy::new();
+    import(&l.root).unwrap();
+    std::fs::remove_file(l.store.join(witness::WITNESS_FILE)).unwrap();
+    recover_at_startup().unwrap();
+    let account = l.dir.join("imports.jsonl");
+    std::fs::write(&account, br#"{"format":"chirality.records-import","formatVersion":"#).unwrap();
+    recover_at_startup().unwrap();
+    let recovered = std::fs::read(&account).unwrap();
+    assert_eq!(store_lines::read(&recovered, &account).set_aside, vec![1], "closed and named by the recovery");
+    assert!(unknown(&home(&l.root).map(|_| ()).unwrap_err()));
+    assert!(write_dir(&l.root).is_err());
+    assert!(storage::read_all(&l.root).0.is_empty());
+    let destination = folder("fragments-only-export-").join("bag");
+    let exported = crate::records_export::export(&l.root, &destination);
+    assert!(exported.is_err() && !destination.exists(), "no verified export: {exported:?}");
+    // The same, built directly, for a project created after the witness began
+    // that has a witness line: an import was begun, so unknown.
+    let later_root = folder("fragments-only-later-");
+    let later = attach(&later_root, true).unwrap();
+    let later_dir = later.dir.unwrap();
+    std::fs::write(later_dir.join("imports.jsonl"), fragments_only()).unwrap();
+    // A project that genuinely never imported still works, through reading,
+    // writing and export.
+    assert!(home(&later_root).is_ok(), "nothing begun: no import, as for an empty file");
+    records::append_project(&later_root, None, "writer:later", "evidence_limit", &APP_WRITER, body("never imported")).unwrap();
+    assert_eq!(storage::read_all(&later_root).0.len(), 1);
+    let destination = folder("fragments-only-never-imported-").join("bag");
+    assert!(crate::records_export::export(&later_root, &destination).is_ok(), "a project that never imported exports");
+    witness::record(&l.store, later.project.as_deref().unwrap(), "import:invented", &[]).unwrap();
+    assert!(unknown(&home(&later_root).map(|_| ()).unwrap_err()));
+}
+
