@@ -967,8 +967,8 @@ pub struct Host {
     /// a write to a Codex that has stopped reading its input blocks until that Codex reads again or
     /// exits (the write is made on a duplicate of the input, so closing the App's own copy does
     /// not end it), and the attachment custody's source lock is waited for without limit. Stop,
-    /// Restart and the menu quit do not end such a stall while a turn is live in that home: their
-    /// interrupts wait for this same lock, without a bound, before the step that ends the process.
+    /// Restart and the menu quit wait for this lock at their interrupts only up to the stop limit
+    /// (`Host::lock_within`), and then end the process, which ends such a stall.
     frame_write: Mutex<()>,
     attachment_gate: Mutex<()>,
     /// One stop request at a time for this Host (SR-11): its guard, SR-01 and

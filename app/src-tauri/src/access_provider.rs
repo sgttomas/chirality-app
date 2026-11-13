@@ -1193,8 +1193,10 @@ impl Host {
     /// bounds this step only. The save's own sign-out and account requests come before it and wait
     /// for the frame writer on the ordinary request route, which has no deadline, so a Codex that
     /// has stopped reading its input stalls the save there for as long as that write is blocked.
-    /// Stop does not end such a stall while a turn is live in this home (its interrupts wait for
-    /// the same lock). Once set, the mark is final, and
+    /// Stop and Restart end such a stall: their interrupts wait for this lock only up to the stop
+    /// limit (`Host::lock_within`), then the Codex process is ended, which ends the blocked write and
+    /// with it the save's request (the save is refused and changes nothing). The menu quit is refused
+    /// while the save runs, which holds the App's key operation lock. Once set, the mark is final, and
     /// asking again returns at once without waiting.
     pub(crate) fn supersede_local(&self, wait: Duration) -> Result<(), String> {
         {
