@@ -10,6 +10,8 @@ on:
       - .github/workflows/app-scripted-driver.yml
       - app/examination/scripted_driver/**
       - app/src-tauri/src/scripted_driver.rs
+      # The scenario the driver walks: a change to it alone reruns this job.
+      - app/examination/standalone/operated/first-use-setup.scenario.json
   workflow_dispatch:
 
 permissions:

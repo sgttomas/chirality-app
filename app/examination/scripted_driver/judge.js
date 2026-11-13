@@ -1,6 +1,7 @@
 // The scripted driver's judge: the first-use setup scenario's expectations, decided against a model of the page.
 //
-// It is a pure function of the model, so it is tested without a page (app/tests/group_b_scripted_driver_test.py).
+// It is a pure function of the model, so it is tested without a page, by the scripted driver's own test in the
+// repository checks.
 // page.js builds the model from the App's page; this file decides pass and fail. It mirrors walk.mjs's checks kind
 // by kind, but against the page itself, not the supplier's accessibility text. It is plain JavaScript, so the test
 // build evaluates it in the page unchanged, and node loads it through module.exports.
