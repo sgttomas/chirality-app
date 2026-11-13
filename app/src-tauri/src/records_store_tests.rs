@@ -2548,3 +2548,131 @@ fn an_imported_original_that_cannot_be_read_is_never_said_to_differ() {
     assert!(shown.iter().any(|n| n.contains(&rel) && n.contains("not known")), "said to be not known: {shown:?}");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+// ---- What could not be examined is never absent: the library's act set,
+// identity creation and a pending capture (the lint census's traces) ----
+
+/// Make `dir` unsearchable for the closure, and put its mode back after.
+fn unsearchable<T>(dir: &Path, f: impl FnOnce() -> T) -> T {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let out = f();
+    std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700)).unwrap();
+    out
+}
+
+/// A library's act log that cannot be examined is a limit on its act set,
+/// never an empty and complete set (only a log that is not there holds no
+/// acts).
+#[test]
+fn records_store_an_unexaminable_library_act_log_is_a_limit_never_an_empty_set() {
+    let library = folder("library-act-set-");
+    let log = storage::library_log(&library);
+    records::append(&log, "evidence_limit", &APP_WRITER, body("a library act")).unwrap();
+    assert_eq!(records::library_record_set(&library).0.len(), 1);
+    let folder_of_log = log.parent().unwrap().to_path_buf();
+    let (entries, limits) = unsearchable(&folder_of_log, || records::library_record_set(&library));
+    assert!(entries.is_empty(), "{entries:?}");
+    assert!(limits.iter().any(|l| l.contains("incomplete record")), "the act set is not complete: {limits:?}");
+    // A library with no act log at all still holds no acts, with no limit.
+    let empty = folder("library-no-acts-");
+    assert_eq!(records::library_record_set(&empty), (vec![], vec![]));
+    let _ = (std::fs::remove_dir_all(&library), std::fs::remove_dir_all(&empty));
+}
+
+/// Identity creation with the store's record of the identity there but not
+/// examinable (a link that leads nowhere, or a folder that cannot be
+/// searched): adoption refuses, and nothing is minted, attached, released or
+/// overwritten. The refusal comes from the strict reading of the record
+/// before anything is released (`identity_held`).
+#[test]
+fn records_store_an_unexaminable_identity_record_is_never_taken_for_absent_by_adoption() {
+    for case in ["dangling link", "unsearchable folder"] {
+        let _store = OwnStore::new();
+        let first = folder("adopt-first-");
+        records::append_project(&first, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+        let p = attach(&first, false).unwrap().project.unwrap();
+        // The person moves the project's folder: its link goes with it.
+        let moved = first.with_file_name(format!("{}-moved", first.file_name().unwrap().to_string_lossy()));
+        std::fs::rename(&first, &moved).unwrap();
+        let store = opened().unwrap().0;
+        let dir = project_dir(&store, &p);
+        let record = dir.join("project.json");
+        let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+        let link_before = std::fs::read(moved.join(PROJECT_LINK)).unwrap();
+        let record_before = std::fs::read(&record).unwrap();
+        let refused = match case {
+            "dangling link" => {
+                std::fs::rename(&record, dir.join("project.json.kept")).unwrap();
+                std::os::unix::fs::symlink(dir.join("nothing-here"), &record).unwrap();
+                let refused = adopt(&moved);
+                std::fs::remove_file(&record).unwrap();
+                std::fs::rename(dir.join("project.json.kept"), &record).unwrap();
+                refused
+            }
+            _ => unsearchable(&dir, || adopt(&moved)),
+        };
+        assert!(refused.as_ref().is_err_and(|e| e.contains("not known")), "{case}: {refused:?}");
+        assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "{case}: no roots line appended");
+        assert_eq!(std::fs::read(&record).unwrap(), record_before, "{case}: the record's bytes unchanged");
+        assert_eq!(std::fs::read(moved.join(PROJECT_LINK)).unwrap(), link_before, "{case}: the project's link unchanged");
+        assert!(attach(&moved, false).unwrap().dir.is_none(), "{case}: not attached");
+        let _ = std::fs::remove_dir_all(&moved);
+    }
+}
+
+/// The guard behind it, reached directly: the store's registration of an
+/// identity whose record is a link that leads nowhere. Its create-new
+/// publication refuses, so no record is written over the link and no roots
+/// line follows. (witness::begin runs before that publication. Here the
+/// witness had begun when the identity was minted, so it writes nothing; in a
+/// store whose witness had not begun it would begin it, listing what the
+/// store holds, which says nothing about this project.)
+#[test]
+fn records_store_registration_never_writes_over_an_identity_record_it_could_not_examine() {
+    let _store = OwnStore::new();
+    let project = folder("register-guard-");
+    records::append_project(&project, None, "writer:p", "evidence_limit", &APP_WRITER, body("P's entry")).unwrap();
+    let p = attach(&project, false).unwrap().project.unwrap();
+    let store = opened().unwrap().0;
+    let dir = project_dir(&store, &p);
+    let record = dir.join("project.json");
+    std::fs::rename(&record, dir.join("project.json.kept")).unwrap();
+    std::os::unix::fs::symlink(dir.join("nothing-here"), &record).unwrap();
+    let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
+    // The witness began when the identity was minted; beginning is done once.
+    let witness_before = std::fs::read(store.join(witness::WITNESS_FILE)).unwrap();
+    let registered = register(&store, &p, "/invented/elsewhere", "adopted");
+    assert!(registered.is_err(), "{registered:?}");
+    assert_eq!(std::fs::read(store.join(witness::WITNESS_FILE)).unwrap(), witness_before, "the witness, begun earlier, is unchanged");
+    assert_eq!(std::fs::read_link(&record).unwrap(), dir.join("nothing-here"), "the link is left as it was, not written over");
+    assert_eq!(std::fs::read(store.join("roots.jsonl")).unwrap(), roots_before, "no roots line appended");
+    let _ = std::fs::remove_dir_all(&project);
+}
+
+/// A pending capture submission already there but not examinable is never
+/// replaced without being compared: the submission is refused and the
+/// existing bytes stay as they were.
+#[test]
+fn records_store_an_unexaminable_pending_capture_is_never_replaced() {
+    let library = folder("pending-capture-");
+    let capture = json!({"captureId":"capture:invented","actKind":"A15"});
+    let pending = json!({"capture":capture,"recordId":"record:invented","observedAt":"2026-11-13T00:00:00Z"});
+    let path = storage::pending_file_for(&library, &capture).unwrap();
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let existing = serde_json::to_vec(&json!({"capture":capture,"recordId":"record:another","observedAt":"2026-11-12T00:00:00Z"})).unwrap();
+    std::fs::write(&path, &existing).unwrap();
+    // Its folder cannot be searched.
+    let refused = unsearchable(path.parent().unwrap(), || records::persist_capture_submission(&library, &pending));
+    assert!(refused.is_err(), "{refused:?}");
+    assert_eq!(std::fs::read(&path).unwrap(), existing, "the existing pending capture is unchanged");
+    // It is a link that leads nowhere.
+    std::fs::remove_file(&path).unwrap();
+    std::os::unix::fs::symlink(library.join("nothing-here"), &path).unwrap();
+    let mut failing = pending.clone();
+    let refused = records::note_capture_submission_failure(&library, &mut failing, "invented failure");
+    assert!(refused.is_err(), "{refused:?}");
+    assert_eq!(std::fs::read_link(&path).unwrap(), library.join("nothing-here"), "the link is left as it was");
+    assert!(std::fs::symlink_metadata(library.join("nothing-here")).is_err(), "nothing written through it");
+    let _ = std::fs::remove_dir_all(&library);
+}

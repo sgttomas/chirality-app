@@ -636,9 +636,8 @@ pub(crate) fn library_record_set(library: &Path) -> (Vec<Value>, Vec<String>) {
     if let Err(e) = crate::storage::check_path(&log) {
         return (vec![], vec![e]);
     }
-    if !log.exists() {
-        return (vec![], vec![]);
-    }
+    // Only a log that is not there holds no acts (read_log_parts' rule); one
+    // that cannot be examined is a limit, never an empty and complete set.
     let read = read_log_parts(&log);
     let mut limits = read.limits;
     let mut ids = std::collections::HashSet::new();
