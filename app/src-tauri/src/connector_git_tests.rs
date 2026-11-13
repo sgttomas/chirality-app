@@ -547,15 +547,45 @@ fn connector_git_supervised_framing_hash_stderr_and_child_reap() {
         ),
     )
     .unwrap();
-    let mut c = Repo::control();
-    c.deadline = std::time::Instant::now() + std::time::Duration::from_millis(50);
-    assert_eq!(
-        e.run(&a.objects, &[], &vec![b'x'; 1048576], 20, &c)
-            .unwrap_err()
-            .kind,
-        "deadline"
-    );
-    let pid = fs::read_to_string(pidfile).unwrap().parse::<i32>().unwrap();
+    // The deadline is fixed before the child starts, so on a loaded machine it can end the
+    // fake before the fake has recorded its pid. A missing or empty pid file means the child
+    // could not be examined, never that nothing survived: that run is repeated with a longer
+    // deadline, and the test fails if the fake records its pid under none of them.
+    let rungs = [50u64, 250, 1000, 5000];
+    let mut pid = None;
+    for ms in rungs {
+        match fs::remove_file(&pidfile) {
+            Err(err) if err.kind() != std::io::ErrorKind::NotFound => {
+                panic!("cannot clear the fake's pid file: {err}")
+            }
+            _ => {}
+        }
+        let mut c = Repo::control();
+        c.deadline = std::time::Instant::now() + std::time::Duration::from_millis(ms);
+        assert_eq!(
+            e.run(&a.objects, &[], &vec![b'x'; 1048576], 20, &c)
+                .unwrap_err()
+                .kind,
+            "deadline"
+        );
+        match fs::read_to_string(&pidfile) {
+            Ok(text) if text.is_empty() => {}
+            Ok(text) => {
+                pid = Some(text.parse::<i32>().unwrap_or_else(|_| {
+                    panic!("the fake's pid file holds {text:?}, not a pid")
+                }));
+                break;
+            }
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => panic!("cannot read the fake's pid file: {err}"),
+        }
+    }
+    let pid = pid.unwrap_or_else(|| {
+        panic!(
+            "child not examined: the fake git did not record its pid before any of the \
+             deadlines {rungs:?} ms ended it (the fake did not start within the deadline)"
+        )
+    });
     assert_eq!(unsafe { libc::kill(pid, 0) }, -1);
     assert_eq!(
         std::io::Error::last_os_error().raw_os_error(),
