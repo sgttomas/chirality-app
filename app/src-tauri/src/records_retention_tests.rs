@@ -1428,3 +1428,105 @@ for line in sys.stdin:
     assert!(started.as_ref().is_err_and(|e| e.contains("no Codex start")), "{started:?}");
     let _ = (std::fs::remove_dir_all(&project), std::fs::remove_dir_all(&output));
 }
+
+/// The folder comparison stage. After the disposal act is published and
+/// before anything is removed, apply compares the payload folder with the
+/// one the act names. A payload folder that cannot be examined then (the
+/// projects folder made unsearchable at that point) is not taken as gone:
+/// nothing is removed and no completion is recorded.
+#[test]
+fn a_disposal_whose_payload_folder_cannot_be_examined_at_removal_removes_and_records_nothing() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    let before = files_with_bytes(&dir);
+    let projects = dir.parent().unwrap().to_path_buf();
+    let blocked = projects.clone();
+    AFTER_DISPOSAL_ACT.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+        std::fs::set_permissions(&blocked, std::fs::Permissions::from_mode(0o400)).unwrap();
+    })));
+    let probe = dir.clone();
+    let disposed = f.act("dispose", Some(&bag));
+    let denied = std::fs::symlink_metadata(&probe).map(|_| ()).map_err(|e| e.kind());
+    std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    let s = state(&dir).unwrap();
+    assert!(!s.completed, "no completion is recorded: {disposed:?}");
+    assert!(s.disposition.is_some(), "the original disposal act survives");
+    assert_eq!(files_with_bytes(&dir), before, "nothing was removed");
+    assert!(disposed.as_ref().is_err_and(|e| e.contains("disposal incomplete")), "{disposed:?}");
+    assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
+}
+
+/// The completion's choice of path. Finish disposal after a completion whose
+/// publication was uncertain reconciles only when the payload is gone; a
+/// payload folder that has reappeared and cannot be examined is never
+/// reported as disposed.
+#[test]
+fn finishing_a_completed_disposal_never_reports_disposed_over_a_payload_it_cannot_examine() {
+    use std::os::unix::fs::PermissionsExt;
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(true));
+    let uncertain = f.act("dispose", Some(&bag)).unwrap_err();
+    FAIL_COMPLETION_PUBLICATION.with(|flag| flag.set(false));
+    storage::fail_directory_for_test(None);
+    assert!(uncertain.contains("completion publication durability uncertain"), "{uncertain}");
+    assert!(!dir.exists());
+    // The subtree reappears, and then cannot be examined.
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("reappeared.json"), b"invented reappeared bytes").unwrap();
+    let projects = dir.parent().unwrap().to_path_buf();
+    std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o400)).unwrap();
+    let denied = std::fs::symlink_metadata(&dir).map(|_| ()).map_err(|e| e.kind());
+    let finished = f.act("resume-disposal", None);
+    std::fs::set_permissions(&projects, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    assert!(finished.as_ref().map_or(true, |v| v["state"] != "disposed"), "never reported disposed: {finished:?}");
+    assert!(finished.is_err(), "{finished:?}");
+    assert_eq!(std::fs::read(dir.join("reappeared.json")).unwrap(), b"invented reappeared bytes", "nothing removed");
+}
+
+/// The removal's inventory. When the private removal stage cannot be
+/// examined after the last member is staged, nothing staged is passed over:
+/// no completion is recorded and the staged bytes are kept. (This one holds
+/// on main too: the completion's own record lives in the same administration
+/// folder as the stage, so a stage that cannot be examined there leaves the
+/// completion unwritable as well. It guards the stage's checks themselves.)
+#[test]
+fn a_disposal_whose_removal_stage_cannot_be_examined_records_no_completion() {
+    use std::os::unix::fs::PermissionsExt;
+    fn block_after(n: usize, folder: PathBuf) {
+        crate::records_export::AFTER_MEMBER_STAGE.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+            if n <= 1 { std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o400)).unwrap(); }
+            else { block_after(n - 1, folder); }
+        })));
+    }
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    let stage = control(&dir).unwrap().join("removal");
+    let administration = control(&dir).unwrap();
+    let before = files_with_bytes(&dir);
+    block_after(before.len(), administration.clone());
+    let disposed = f.act("dispose", Some(&bag));
+    let denied = std::fs::symlink_metadata(&stage).map(|_| ()).map_err(|e| e.kind());
+    std::fs::set_permissions(&administration, std::fs::Permissions::from_mode(0o700)).unwrap();
+    crate::records_export::AFTER_MEMBER_STAGE.with(|h| *h.borrow_mut() = None);
+    assert_eq!(denied, Err(std::io::ErrorKind::PermissionDenied), "a real permission failure");
+    let s = state(&dir).unwrap();
+    assert!(!s.completed, "no completion is recorded: {disposed:?}");
+    let mut kept = files_with_bytes(&dir);
+    kept.extend(files_with_bytes(&stage));
+    let exported = files_with_bytes(&bag.join("data"));
+    for (rel, bytes) in &before {
+        let control = rel == ".writer.lock" || rel == "captures/.capture.lock";
+        assert!(kept.get(rel) == Some(bytes) || exported.get(rel) == Some(bytes) || (control && bytes.is_empty()), "kept, or removed only after its bytes were verified in the export: {rel}");
+    }
+    assert!(disposed.is_err(), "{disposed:?}");
+}
