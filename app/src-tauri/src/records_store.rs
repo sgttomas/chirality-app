@@ -1306,6 +1306,12 @@ impl ReaderBinding {
     pub(crate) fn records_folder(&self) -> Option<(&Path, (u64, u64))> {
         self.records.as_ref().map(|r| (r.path.as_path(), r.node))
     }
+    /// A duplicate of the held records folder's descriptor, read-only: a
+    /// reader reads through the folder its proof held, never through a
+    /// second lookup of the path after the proof.
+    pub(crate) fn records_folder_handle(&self) -> Option<Result<std::fs::File, String>> {
+        self.records.as_ref().map(|r| r._open.try_clone().map_err(|e| format!("not known: the project's records folder {} could not be read through ({e}); nothing read", r.path.display())))
+    }
     /// The device and inode of the project folder this reader was opened for.
     pub(crate) fn project_folder(&self) -> (u64, u64) {
         self.project

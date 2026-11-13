@@ -148,6 +148,17 @@ fn validate(envelope: &Value) -> Result<(), String> {
         .validate(envelope)
         .map_err(|e| e.to_string())
 }
+/// The place a read's admission proved, handed to every read of that
+/// operation.
+enum Admitted {
+    /// The project's records folder in the store, through the descriptor the
+    /// binding holds.
+    Store { home: RecordsHome, folder: File },
+    /// In place, below the pinned project folder.
+    InPlace,
+    /// Records nowhere at admission: read as absent.
+    Nowhere,
+}
 #[derive(Debug, Clone)]
 struct RecordsHome {
     path: PathBuf,
@@ -222,7 +233,7 @@ impl ProjectRecords {
             reader: std::sync::Mutex::new(None),
         })
     }
-    fn read_admission(&self)->Result<Option<crate::storage::Ownership>,String>{
+    fn read_admission(&self)->Result<(Option<crate::storage::Ownership>,Admitted),String>{
         // A previously resolved reader belongs to that original store identity
         // and is never reassociated. It reads only while its binding holds:
         // the same store, the same project folder, the project still attached
@@ -249,16 +260,45 @@ impl ProjectRecords {
                 *reader=Some(binding);
             }
         }
-        if let Some(binding)=reader.as_ref(){
-            binding.prove()?;
-            if let Some((dir,_))=binding.records_folder(){
-                return crate::records_retention::read_path(dir);
+        // The place proved here is the place every read of this operation
+        // goes through: the held store folder, or in place below the pinned
+        // project folder. Nothing decides the place again after this proof.
+        let place=match reader.as_ref(){
+            Some(binding)=>{
+                binding.prove()?;
+                match (binding.records_folder(),binding.records_folder_handle()){
+                    (Some((dir,node)),Some(folder))=>{
+                        let folder=folder?;
+                        return Ok((crate::records_retention::read_path(dir)?,Admitted::Store{home:RecordsHome{path:dir.to_path_buf(),identity:node},folder}));
+                    }
+                    _=>Admitted::InPlace,
+                }
             }
-        }
-        // Read in place: the admission of the project's store folder, when
-        // it has one, is held as before.
+            None=>Admitted::Nowhere,
+        };
+        // Read in place, or records nowhere: the admission of the project's
+        // store folder, when it has one, is held as before.
         let attachment=crate::records_store::attach(&self.root,false)?;
-        match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir),None if attachment.refusal.is_some()=>Err(attachment.refusal.unwrap()),None=>Ok(None)}
+        let admission=match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir)?,None if attachment.refusal.is_some()=>return Err(attachment.refusal.unwrap()),None=>None};
+        Ok((admission,place))
+    }
+    /// The WR records folder for a read, through the place its admission
+    /// proved: beneath the held store folder, or in place below the pinned
+    /// project folder (§13.7), one name at a time without following a link.
+    /// Records nowhere at admission reads as absent. `None` when absent.
+    fn workflow_dir_read(&self,place:&Admitted)->Result<Option<File>,String>{
+        match place{
+            Admitted::Store{folder,..}=>plain_dir_at(folder,"workflow"),
+            Admitted::InPlace=>{
+                let mut at:Option<File>=None;
+                for part in crate::storage::LEGACY_RECORDS.split('/').chain(["workflow"]){
+                    let Some(next)=plain_dir_at(at.as_ref().unwrap_or(&self.directory),part)? else { return Ok(None) };
+                    at=Some(next);
+                }
+                Ok(at)
+            }
+            Admitted::Nowhere=>Ok(None),
+        }
     }
     /// The handle's cached records home made, or found to be, the bound
     /// records folder: a home this handle resolved before must be that
@@ -284,9 +324,20 @@ impl ProjectRecords {
         if current.identity != self.identity {
             return Err("opened project source was replaced".into());
         }
-        let admission = self.read_admission()?;
-        let path = crate::records_store::readable_home(&self.root)?.records();
-        let directory = opened_directory(&path)?;
+        let (admission, place) = self.read_admission()?;
+        // The records home is the one the admission proved, through its held
+        // folder; in place (or records nowhere), the §13.7 folder below the
+        // pinned project folder. The place is not decided again.
+        let (path, directory) = match place {
+            Admitted::Store { home, folder } => (home.path, folder),
+            Admitted::InPlace | Admitted::Nowhere => {
+                let mut directory = self.directory.try_clone().map_err(|e| e.to_string())?;
+                for part in crate::storage::LEGACY_RECORDS.split('/') {
+                    directory = child(&directory, part, false)?;
+                }
+                (self.root.join(crate::storage::LEGACY_RECORDS), directory)
+            }
+        };
         let metadata = directory.metadata().map_err(|e| e.to_string())?;
         let records = RecordsHome { path, identity: (metadata.dev(), metadata.ino()) };
         if let Some(original) = self.store.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
@@ -313,8 +364,8 @@ impl ProjectRecords {
     /// dangling) or otherwise non-plain folder on the way is reported as an
     /// error, never as "no records".
     pub fn list_references(&self) -> Result<Vec<String>, String> {
-        let _admission=self.read_admission()?;
-        let Some(dir) = self.workflow_dir(false)? else {
+        let (_admission, place)=self.read_admission()?;
+        let Some(dir) = self.workflow_dir_read(&place)? else {
             return Ok(vec![]);
         };
         let mut references = Vec::new();
@@ -332,6 +383,8 @@ impl ProjectRecords {
     fn records(&self, create: bool) -> Result<File, String> {
         self.workflow_dir(create)?.ok_or_else(|| "WR record folder absent".into())
     }
+    // `workflow_dir(false)` is no longer a read path: reads go through
+    // `workflow_dir_read` with the place their admission proved.
     /// The WR records folder (RS §13.8 `workflow/`): in the project's records
     /// store subtree; before an import, for reading only, the §13.7 folder in
     /// place. A write is refused visibly (store unavailable, no identity,
@@ -401,9 +454,9 @@ impl ProjectRecords {
     }
 
     fn read_raw(&self, reference: &str) -> Result<ResolvedRecord, ResolutionError> {
-        let _admission=self.read_admission().map_err(ResolutionError::Unreadable)?;
+        let (_admission, place)=self.read_admission().map_err(ResolutionError::Unreadable)?;
         let k = key(reference)?;
-        let dir = self.records(false).map_err(ResolutionError::Unreadable)?;
+        let dir = self.workflow_dir_read(&place).map_err(ResolutionError::Unreadable)?.ok_or_else(|| ResolutionError::Unreadable("WR record folder absent".into()))?;
         let mut f = open_at(&dir, &format!("{k}.json"), libc::O_RDONLY).map_err(ioerr)?;
         if !f.metadata().map_err(ioerr)?.is_file() {
             return Err(ResolutionError::Invalid("not regular file".into()));

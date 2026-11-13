@@ -964,3 +964,65 @@ fn records_store_kept_reader_of_workflow_records_refuses_a_home_it_cannot_examin
     assert!(p.reader.lock().unwrap().is_none(), "nothing bound on a place not examined");
     assert_eq!(p.list_references().unwrap(), Vec::<String>::new(), "reads once it can be examined");
 }
+
+/// Counts the store's opens (each decision of the place opens the store)
+/// while `f` runs, through the store's test seam.
+fn store_opens_during<T>(f: impl FnOnce() -> T) -> (T, usize) {
+    use std::{cell::Cell, rc::Rc};
+    fn count(c: Rc<Cell<usize>>) {
+        crate::records_store::after_open_for_test(Some(Box::new(move || { c.set(c.get() + 1); count(c); })));
+    }
+    let opens = Rc::new(Cell::new(0));
+    count(opens.clone());
+    let out = f();
+    crate::records_store::after_open_for_test(None);
+    (out, opens.get())
+}
+
+/// Round 2 of pull request 294, finding 2: after its admission proved the
+/// place, source_binding decides nothing again. It returns the place the
+/// admission proved (here in place), with no store open beyond the
+/// admission's own, so a record appearing in the store in between cannot
+/// become its source.
+#[test]
+fn records_store_kept_reader_of_workflow_records_source_binding_decides_nothing_after_its_proof() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    let home = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let original = pending(&kept);
+    let reference = original.reference().to_owned();
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join(format!("{}.json", key(&reference).unwrap())), &original.bytes).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), original.bytes);
+    let (_, admission) = store_opens_during(|| kept.read_admission().map(|_| ()).unwrap());
+    let (source, operation) = store_opens_during(|| kept.source_binding().map(|b| b.records_root().to_path_buf()));
+    assert_eq!(operation, admission, "no store open, and so no decision of the place, beyond the admission's own");
+    assert_eq!(source.unwrap(), f.0.join(crate::storage::LEGACY_RECORDS), "the source is the place the admission proved");
+    assert_ne!(f.0.join(crate::storage::LEGACY_RECORDS), home);
+}
+
+/// Round 2 of pull request 294, finding 2: a read whose admission found
+/// records nowhere reads them as absent and decides nothing again; it binds at
+/// its next operation, once records are there, and so never returns bytes
+/// from a folder it does not hold.
+#[test]
+fn records_store_kept_reader_of_workflow_records_reads_absent_where_its_admission_found_records_nowhere() {
+    let _store = KeptReaderStore::new();
+    let f = Fixture::new();
+    crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let record = pending(&kept);
+    let reference = record.reference().to_owned();
+    let (_, admission) = store_opens_during(|| kept.read_admission().map(|_| ()).unwrap());
+    assert!(kept.reader.lock().unwrap().is_none(), "records nowhere: nothing bound");
+    let (listed, operation) = store_opens_during(|| kept.list_references());
+    assert_eq!(listed.unwrap(), Vec::<String>::new());
+    assert_eq!(operation, admission, "no decision of the place beyond the admission's own");
+    // The first record arrives; the next operation binds to it and reads it
+    // through the folder it holds.
+    f.store().publish(&record).unwrap();
+    assert_eq!(kept.resolve(&reference).unwrap().bytes(), record.bytes);
+    assert!(kept.reader.lock().unwrap().as_ref().is_some_and(|b| b.records_folder().is_some()), "the read that returned bytes holds the folder it read");
+}

@@ -244,6 +244,9 @@ mod platform {
     };
 
     #[cfg(test)] thread_local!{static INSPECTION_AUDIT:std::cell::RefCell<Option<Vec<String>>>=const{std::cell::RefCell::new(None)};}
+    #[cfg(test)] thread_local!{static CHAIN_WALKS:std::cell::Cell<usize>=const{std::cell::Cell::new(0)};}
+    /// How many walks from the anchor `f` made (test only).
+    #[cfg(test)] pub(super) fn chain_walks<T>(f:impl FnOnce()->T)->(T,usize){CHAIN_WALKS.with(|w|w.set(0));let value=f();(value,CHAIN_WALKS.with(|w|w.get()))}
     #[cfg(test)] pub(super) fn audit_inspection<T>(f:impl FnOnce()->T)->(T,Vec<String>){INSPECTION_AUDIT.with(|a|*a.borrow_mut()=Some(Vec::new()));let value=f();let audit=INSPECTION_AUDIT.with(|a|a.borrow_mut().take().unwrap());(value,audit)}
     fn ioerr(context: &str, e: std::io::Error) -> StoreError {
         let kind = match e.raw_os_error() {
@@ -741,6 +744,8 @@ mod platform {
                     return Err(StoreError::new(ErrorKind::LocationMismatch, format!("this reference names a folder outside this project's records in the store ({}); nothing read", parts.join("/"))));
                 }
             }
+            #[cfg(test)]
+            CHAIN_WALKS.with(|w| w.set(w.get() + 1));
             let mut handles = vec![self
                 .directory
                 .try_clone()
@@ -754,6 +759,12 @@ mod platform {
             Ok(Chain { handles, ids })
         }
         fn compare(&self, parts: &[&str], expected: &[FileIdentity]) -> Result<()> {
+            self.compared(parts, expected).map(|_| ())
+        }
+        /// The association proved, the chain walked once and compared with
+        /// `expected`, and that same chain returned: a read goes through the
+        /// folders just compared, never through a second walk of the path.
+        fn compared(&self, parts: &[&str], expected: &[FileIdentity]) -> Result<Chain> {
             self.check_root()?;
             let actual = self.chain(parts, false).map_err(|e| {
                 StoreError::new(
@@ -767,7 +778,7 @@ mod platform {
                     "canonical directory identities changed; caller reconciliation required",
                 ));
             }
-            Ok(())
+            Ok(actual)
         }
         fn inspection_chain(&self, expected: &[FileIdentity]) -> Result<Chain> {
             let mut handles = vec![self
@@ -1308,7 +1319,8 @@ mod platform {
                         .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e))?;
                     let parts = relative_parts(&a.reference.relative_path)?;
                     let (name, ancestors) = parts.split_last().unwrap();
-                    let chain = self.chain(ancestors, false)?;
+                    // Read through the chain just compared with the binding.
+                    let chain = self.compared(ancestors, &a.reference.directories)?;
                     let again = read_account_mode(
                         chain.last(),
                         name,
@@ -1437,8 +1449,8 @@ mod platform {
                     "incomplete reference directory identity binding",
                 ));
             }
-            self.compare(ancestors, &reference.directories)?;
-            let chain = self.chain(ancestors, false)?;
+            // Read through the chain just compared with the binding.
+            let chain = self.compared(ancestors, &reference.directories)?;
             let observed = read_account(
                 chain.last(),
                 name,

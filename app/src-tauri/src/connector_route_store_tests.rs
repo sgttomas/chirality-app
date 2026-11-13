@@ -1648,3 +1648,24 @@ fn records_store_kept_reader_of_accounts_refuses_another_projects_reference() {
         assert_eq!(reader.resolve(&own_reference).unwrap().account, own_data, "{which}: its own account still reads");
     }
 }
+
+/// Round 2 of pull request 294, finding 2: a non-0.5 resolve reads through the
+/// chain it has just compared with the binding, not through a second walk of
+/// the path. Beyond the canonical discovery's own walks, it walks twice: the
+/// comparison that is also the read, and the comparison after the read (the
+/// round-2 code walked three times: compare, walk again to read, compare).
+#[test]
+fn records_store_kept_reader_of_accounts_reads_through_the_chain_it_compared() {
+    let _own = KeptReaderStore::new();
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let data = account("ra:compared-chain");
+    let reference = store.write(&data).unwrap();
+    assert_ne!(reference.format_version, "0.5", "the branch under test");
+    let (discovered, discovery) = super::platform::chain_walks(|| store.discover());
+    assert!(discovered.enumeration_complete);
+    let (read, walks) = super::platform::chain_walks(|| store.resolve(&reference));
+    assert_eq!(read.unwrap().account, data);
+    assert_eq!(walks - discovery, 2, "compare-and-read, then compare after: no walk between the comparison and the read");
+}
