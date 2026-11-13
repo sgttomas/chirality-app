@@ -91,7 +91,9 @@ fn records_store_import_gate_unfamiliar_member_is_unknown_never_authority() {
         let (_own, root, dir) = import_gate_project();
         std::fs::create_dir_all(dir.join(name)).unwrap();
         std::fs::write(dir.join(name).join("unfamiliar"), b"unrecognised bytes").unwrap();
-        results.push((name, write_dir(&root)));
+        let result = records::append_project(&root, None, "writer:gate", "evidence_limit", &APP_WRITER, body("must wait for import"));
+        results.push((name, result));
+        assert!(!dir.join(storage::log_rel(None, "writer:gate")).exists(), "{name}: a refused append must create no record: {results:?}");
         std::fs::remove_dir_all(root).unwrap();
     }
     assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
@@ -105,8 +107,12 @@ fn records_store_import_gate_empty_census_does_not_refuse_unrecognised_member() 
     std::fs::create_dir(dir.join("workflow")).unwrap();
     std::fs::write(dir.join("workflow/unfamiliar"), b"not a recognised record").unwrap();
     assert!(legacy_census(&root).unwrap().is_empty());
-    let result = write_dir(&root);
+    let result = records::append_project(&root, None, "writer:gate", "evidence_limit", &APP_WRITER, body("nothing to import"));
     assert!(result.is_ok(), "nothing to import, so no authority is needed to waive a census: {result:?}");
+    let written = result.unwrap();
+    let (entries, limits) = records::read_log(&dir.join(storage::log_rel(None, "writer:gate")));
+    assert_eq!(entries, vec![written]);
+    assert!(limits.is_empty(), "{limits:?}");
     std::fs::remove_dir_all(root).unwrap();
 }
 
