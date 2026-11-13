@@ -717,6 +717,26 @@ fn a_write_reaching_admission_after_the_limit_is_withdrawn_there() {
     assert!(begun.gave_up.lock().unwrap().is_none());
 }
 
+/// An interrupt the caller has withdrawn at the limit keeps that reason even
+/// when the Codex process is already ending by the time its thread next looks
+/// (the ending Stop began after the withdrawal): the record and the turn give
+/// one reason.
+#[test]
+fn a_withdrawn_interrupt_keeps_the_limit_as_its_reason_when_the_process_is_ending() {
+    let f = Fixture::new();
+    let held = Mutex::new(());
+    let _writer = held.lock().unwrap();
+    let withdrawn = WriteBound { deadline: Instant::now() + LIMIT, phase: Arc::new(Mutex::new(SendPhase::Withdrawn)), gave_up: Mutex::new(None) };
+    // A generation other than the current one: the process is ending for this interrupt.
+    let ending = json!("gen:a-generation-that-has-ended");
+    let reason = f.host().lock_within(&held, &withdrawn, &ending, NOT_WRITTEN_IN_LIMIT).err();
+    assert_eq!(reason.as_deref(), Some(NOT_WRITTEN_IN_LIMIT));
+    assert_eq!(withdrawn.gave_up.lock().unwrap().as_deref(), Some(NOT_WRITTEN_IN_LIMIT));
+    // Not withdrawn and before the limit, an ending process is the reason.
+    let pending = WriteBound { deadline: Instant::now() + LIMIT, phase: Arc::new(Mutex::new(SendPhase::Pending)), gave_up: Mutex::new(None) };
+    assert_eq!(f.host().lock_within(&held, &pending, &ending, NOT_WRITTEN_IN_LIMIT).err().as_deref(), Some(PROCESS_ENDING));
+}
+
 /// The same through the request itself, with no caller to withdraw: an
 /// interrupt whose bound has already passed when it reaches admission is
 /// refused there. Nothing is registered as attempted and nothing reaches

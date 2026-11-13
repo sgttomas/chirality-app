@@ -4006,7 +4006,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 Err(std::sync::TryLockError::Poisoned(_)) => "the App's interrupt writer is unavailable; nothing was written".to_owned(),
                 Err(std::sync::TryLockError::WouldBlock) => {
                     let ended = { let i = self.inner.0.lock().unwrap(); i.generation != *generation || i.server_requests.is_closed(generation) || i.state != "ready" };
-                    if ended { PROCESS_ENDING.to_owned() } else if limit.withdrawn() || std::time::Instant::now() >= limit.deadline { reason.to_owned() } else { std::thread::sleep(Duration::from_millis(2)); continue; }
+                    // A withdrawal or the deadline is decided first: once the caller has
+                    // withdrawn at the limit, the process ending that Stop then begins is
+                    // not why this interrupt was not written.
+                    if limit.withdrawn() || std::time::Instant::now() >= limit.deadline { reason.to_owned() } else if ended { PROCESS_ENDING.to_owned() } else { std::thread::sleep(Duration::from_millis(2)); continue; }
                 }
             };
             *limit.gave_up.lock().unwrap() = Some(gave_up.clone());
