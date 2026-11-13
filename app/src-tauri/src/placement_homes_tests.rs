@@ -188,3 +188,71 @@ fn the_bootstrap_plans_the_local_home_placement_protects() {
     assert!(codex_homes_from([&cfg].into_iter(), Some(&data), |_| None).contains(&planned), "placement protects the planned folder");
     let _ = (std::fs::remove_dir_all(&data), std::fs::remove_dir_all(&root));
 }
+
+/// The folder where the App allocates its account homes is reserved: a
+/// store equal to it, inside it (a planned home included, before it exists)
+/// or containing it is refused, with that reason, at the person's choice and
+/// at start-up; a store beside it in the App data folder is still allowed.
+#[test]
+fn the_account_homes_folder_is_reserved_before_any_home_is_planned() {
+    let data = folder("placement-namespace-data-");
+    let reserved = desktop_startup::desktop_account_homes(&data);
+    assert!(!reserved.exists(), "nothing planned or created yet");
+    let homes = codex_homes_from(std::iter::empty(), Some(&data), |_| None);
+    let refused = |location: &Path| records_store::choose_location(&data, location, None, &homes).is_err_and(|e| e.contains("reserved for the App's account homes"));
+    assert!(refused(&reserved), "equal to it");
+    assert!(refused(&reserved.join("account-invented").join("records")), "inside it");
+    // A planned home, through the real planner, before it exists.
+    let mut desktop = desktop_startup::DesktopSetup::new(Ok(data.clone()), Err("invented resources unused by a preview".into()));
+    let planned = PathBuf::from(desktop.preview_new_settings(None).unwrap()["accountHome"].as_str().unwrap());
+    assert!(!planned.exists() && refused(&planned.join("records")), "inside a planned home");
+    // Containing it: the whole App data folder chosen as the store.
+    let containing = records_store::choose_location(&data, &data, None, &homes);
+    assert!(containing.as_ref().is_err_and(|e| e.contains("reserved for the App's account homes")), "containing it: {containing:?}");
+    // At start-up, a location chosen earlier inside it.
+    std::fs::write(data.join(records_store::CHOICE_FILE), serde_json::to_vec(&serde_json::json!({"location": planned.join("records").display().to_string()})).unwrap()).unwrap();
+    let started = records_store::for_app(None, Ok(&data), false, None, &homes);
+    assert!(started.as_ref().is_err_and(|e| e.contains("reserved for the App's account homes")), "start-up: {started:?}");
+    // Beside it: never refused as reserved (this App data folder lies under
+    // the temporary folder in tests, so it is refused as temporary instead).
+    std::fs::remove_file(data.join(records_store::CHOICE_FILE)).unwrap();
+    for beside in [data.join("records"), data.join("another-store")] {
+        let placed = records_store::choose_location(&data, &beside, None, &homes);
+        assert!(placed.as_ref().map_or_else(|e| !e.contains("reserved"), |_| true), "beside it: {placed:?}");
+    }
+    let default = records_store::for_app(None, Ok(&data), false, None, &homes);
+    assert!(default.as_ref().map_or_else(|e| !e.contains("reserved"), |_| true), "the default store: {default:?}");
+    let _ = std::fs::remove_dir_all(&data);
+}
+
+/// The desktop planner, its parent-location check and placement share one
+/// calculation of the reserved folder: the planner plans its home as a new
+/// leaf directly in it. This fails if the planner ever plans one outside.
+#[test]
+fn the_desktop_planner_plans_inside_the_reserved_folder() {
+    let data = folder("placement-desktop-agree-");
+    let mut desktop = desktop_startup::DesktopSetup::new(Ok(data.clone()), Err("invented resources unused by a preview".into()));
+    let planned = PathBuf::from(desktop.preview_new_settings(None).unwrap()["accountHome"].as_str().unwrap());
+    assert_eq!(planned.parent(), Some(desktop_startup::desktop_account_homes(&data).as_path()), "planned as a new leaf in the reserved folder");
+    let _ = std::fs::remove_dir_all(&data);
+}
+
+/// Raw environment values are given to placement as main resolved them:
+/// one of which nothing exists in the App's own folder refuses nothing (it
+/// never matched in main); one whose ancestor exists there is compared, as
+/// main compared it.
+#[test]
+fn raw_values_are_compared_as_main_compared_them() {
+    let data = folder("placement-raw-data-");
+    let here = std::env::current_dir().unwrap();
+    assert!(!here.join("invented-unused-home").exists() && here.join("src").is_dir());
+    // Nothing of it exists: no refusal at the App's folder.
+    let nothing = codex_homes_from(std::iter::empty(), Some(&data), |key| (key == "CODEX_HOME").then(|| "invented-unused-home".into()));
+    let chosen = records_store::choose_location(&data, &here.join("invented-unused-home").join("records"), None, &nothing);
+    assert!(chosen.as_ref().map_or_else(|e| !e.contains("Codex home"), |_| true), "no false refusal: {chosen:?}");
+    // An ancestor exists: compared from the App's folder, as main did.
+    let partly = codex_homes_from(std::iter::empty(), Some(&data), |key| (key == "CODEX_HOME").then(|| "src/invented-home".into()));
+    let refused = records_store::choose_location(&data, &here.join("src/invented-home/records"), None, &partly);
+    assert!(refused.as_ref().is_err_and(|e| e.contains("Codex home")), "compared as main compared it: {refused:?}");
+    let _ = std::fs::remove_dir_all(&data);
+}
