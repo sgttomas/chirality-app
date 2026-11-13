@@ -219,10 +219,15 @@ impl ProjectRecords {
         })
     }
     fn read_admission(&self)->Result<Option<crate::storage::Ownership>,String>{
-        // A previously resolved reader belongs to that original store identity,
-        // even if another folder now stands at the project path. Consult its
-        // retention state without reassociating through the replacement path.
-        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){return crate::records_retention::read_path(&dir.path);}
+        // A previously resolved reader belongs to that original store identity
+        // and is never reassociated. It reads only while the project path is
+        // still attached, cleanly, to that same store folder (RS §13.8: a
+        // changed, missing or moved link attaches nothing until the person
+        // resolves it); the binding is kept, so it reads again once they do.
+        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){
+            crate::records_store::require_attached(&self.root,&dir.path)?;
+            return crate::records_retention::read_path(&dir.path);
+        }
         let attachment=crate::records_store::attach(&self.root,false)?;
         match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir),None if attachment.refusal.is_some()=>Err(attachment.refusal.unwrap()),None=>Ok(None)}
     }
@@ -239,12 +244,7 @@ impl ProjectRecords {
             return Err("opened project source was replaced".into());
         }
         let admission = self.read_admission()?;
-        let home = crate::records_store::home(&self.root)?;
-        if let Some(reason) = home.attachment.refusal { return Err(reason); }
-        let path = match (home.store_mode, home.attachment.dir) {
-            (true, Some(dir)) => dir,
-            _ => self.root.join(crate::storage::LEGACY_RECORDS),
-        };
+        let path = crate::records_store::readable_home(&self.root)?.records();
         let directory = opened_directory(&path)?;
         let metadata = directory.metadata().map_err(|e| e.to_string())?;
         let records = RecordsHome { path, identity: (metadata.dev(), metadata.ino()) };
@@ -297,6 +297,9 @@ impl ProjectRecords {
     /// import needed), never redirected. `None` when the folder is absent.
     fn workflow_dir(&self, create: bool) -> Result<Option<File>, String> {
         let cached = self.store.lock().unwrap_or_else(|p| p.into_inner()).clone();
+        // Where the workflow records are read in the project folder, when the
+        // one decision says they are read in place.
+        let mut in_project = None;
         let store = match cached {
             Some(dir) if !create => Some(dir.path),
             _ => {
@@ -309,11 +312,9 @@ impl ProjectRecords {
                 let resolved = if create {
                     Some(crate::records_store::write_dir(&self.root)?)
                 } else {
-                    let home = crate::records_store::home(&self.root)?;
-                    match (home.store_mode, home.attachment.dir) {
-                        (true, Some(dir)) => Some(dir),
-                        _ => None,
-                    }
+                    let home = crate::records_store::readable_home(&self.root)?;
+                    in_project = home.in_place_parts("workflow");
+                    home.in_store().map(Path::to_path_buf)
                 };
                 if let Some(dir) = &resolved {
                     let opened = opened_directory(dir)?;
@@ -331,9 +332,14 @@ impl ProjectRecords {
         };
 
         let Some(store) = store else {
-            let Some(a) = plain_dir_at(&self.directory, ".chirality")? else { return Ok(None) };
-            let Some(b) = plain_dir_at(&a, "records")? else { return Ok(None) };
-            return plain_dir_at(&b, "workflow");
+            // Opened one name at a time below the pinned project folder.
+            let Some(parts) = in_project else { return Ok(None) };
+            let mut at: Option<File> = None;
+            for part in parts {
+                let Some(next) = plain_dir_at(at.as_ref().unwrap_or(&self.directory), part)? else { return Ok(None) };
+                at = Some(next);
+            }
+            return Ok(at);
         };
         let path = store.join("workflow");
         if create {

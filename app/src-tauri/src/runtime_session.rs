@@ -9605,15 +9605,34 @@ for line in sys.stdin:
     }
     // DEL-06-01: a child recorded under one project identity is given no end
     // under a replacement identity (review round 2 of the producer).
+    //
+    // How the replacement identity is made here. The App itself refuses to
+    // give a folder a new identity, or to adopt it, while Codex runs for it
+    // (DEL-04-03 AC-008, containment), so this state can arise only from
+    // outside the App: something else changes the store's registry and the
+    // project's link while Codex runs. The test therefore writes them as an
+    // outside process would, in the store's own formats, and does not call
+    // the App's own act: a line releasing the folder from its identity, a
+    // line recording it for another, the link naming that other, and the
+    // other project's folder in the store with its identity file, which is
+    // everything the App's own act leaves. The replacement is a complete
+    // identity: its recording context is captured before the exit, so the
+    // exit has somewhere it could write and must still write nothing. This
+    // is preparation of the fixture only; the writer whose behaviour the
+    // test establishes runs untouched. It stands for the cases containment
+    // does not cover. (Setup changed by the Records lane with App Agent 0's
+    // decision; the three assertions are as 235 wrote them, and the limit's
+    // own reason is asserted beside them.)
     #[test]
     fn the_apps_exit_writes_nothing_under_a_replacement_project_identity(){
         let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-identity-store-").unwrap());
         crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
         struct ResetStore(PathBuf);
         impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
-        let _reset=ResetStore(store);
+        let _reset=ResetStore(store.clone());
         let peer=Peer::new();let g=peer.generation.clone();
-        let original=crate::records_store::attach(&peer.fixture.root,true).unwrap().dir.unwrap();
+        let first=crate::records_store::attach(&peer.fixture.root,true).unwrap();
+        let original=first.dir.clone().unwrap();
         let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
         let mut links=crate::native_conversation_links::Session::default();
         let log=|dir:&std::path::Path|std::fs::read_to_string(dir.join("fleet/coordination.fleet.jsonl")).unwrap_or_default();
@@ -9624,13 +9643,34 @@ for line in sys.stdin:
             assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
         }
         let before=log(&original);
-        crate::records_store::new_identity(&peer.fixture.root).unwrap();
+        // The App's own act is refused while this Codex runs, with nothing changed.
+        assert!(crate::records_store::new_identity(&peer.fixture.root).unwrap_err().contains("is still in use"));
+        assert_eq!(crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.as_ref(),Some(&original));
+        // From outside the App: the registry and the link, written by hand.
+        let other=crate::util::opaque_id("chirality-project:").unwrap();
+        let at=peer.fixture.root.to_str().unwrap();
+        let line=|project:&str,how:&str|format!("{}\n",json!({"format":"chirality.records-store.root","formatVersion":"0.1","projectId":project,"root":at,"at":crate::util::now_rfc3339(),"how":how}));
+        let registry=store.join("roots.jsonl");
+        let mut lines=std::fs::read_to_string(&registry).unwrap();
+        lines.push_str(&line(first.project.as_deref().unwrap(),"released"));lines.push_str(&line(&other,"minted"));
+        std::fs::write(&registry,lines).unwrap();
+        let link_path=peer.fixture.root.join(crate::records_store::PROJECT_LINK);
+        let mut link:Value=serde_json::from_slice(&std::fs::read(&link_path).unwrap()).unwrap();
+        link["projectId"]=json!(other);
+        std::fs::write(&link_path,serde_json::to_vec(&link).unwrap()).unwrap();
         let replacement=crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.unwrap();
+        std::fs::create_dir_all(&replacement).unwrap();
+        std::fs::write(replacement.join("project.json"),serde_json::to_vec(&json!({"format":"chirality.records-store.project","formatVersion":"0.1","projectId":other,"createdAt":crate::util::now_rfc3339(),"how":"minted"})).unwrap()).unwrap();
+        assert_eq!(crate::native_conversation_links::captured_context_identity_for_test(&peer.fixture.root).as_deref(),Ok(other.as_str()),"the replacement identity is complete: the recording context captured now is the replacement's, and not the original's");
+        assert_ne!(first.project.as_deref(),Some(other.as_str()));
         assert_ne!(replacement,original);
         links.end_delegation_at_exit(&[peer.home.clone()]);links.retry(peer.project());
         assert!(!log(&replacement).contains("observation_ended"),"nothing of that child under the replacement identity");
         assert_eq!(log(&original),before,"and nothing more under the original, which is no longer in force");
         assert!(links.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
+        // For the reason the test exists for, and not because the replacement could not be opened.
+        let limits=links.snapshot()["limits"].to_string();
+        assert!(limits.contains("original project/store association changed; no reassociation")&&!limits.contains("No such file"),"{limits}");
     }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.

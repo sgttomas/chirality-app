@@ -226,7 +226,10 @@ fn records_retention_hold_close_export_dispose_and_tombstone_preserve_other_evid
     assert!(records_store::write_dir(&f.project).is_err());
     assert!(records_store::import(&f.project).is_err());
     assert!(records_store::new_identity(&f.project).is_err());
-    assert!(records_store::restore_link(&f.project).is_err());
+    // Putting the project file back reads no record and reopens nothing: it
+    // stays possible, and the disposed payload stays gone and unwritable.
+    assert!(records_store::restore_link(&f.project).is_ok());
+    assert!(records_store::write_dir(&f.project).is_err());
     assert!(storage::create_json(&dir.join("captures/resurrection.json"), &json!({})).is_err());
     assert!(!dir.exists());
     assert!(storage::sources(&f.project).is_err());
@@ -298,6 +301,34 @@ fn records_retention_partial_disposal_recovery_requires_original_unchanged_bag_a
     std::fs::remove_file(dir.join("unexported.json")).unwrap();
     assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
     assert!(!dir.exists());
+}
+#[test]
+fn records_retention_a_link_changed_during_an_unfinished_disposal_can_be_restored_and_the_disposal_finished() {
+    let f = Fixture::new();
+    f.act("close", None).unwrap();
+    let bag = f.export("bag");
+    let dir = f.dir();
+    let project = records_store::attach(&f.project, false).unwrap().project.unwrap();
+    fail_remove_for_test(true);
+    assert!(f.act("dispose", Some(&bag)).unwrap_err().contains("disposal incomplete"));
+    fail_remove_for_test(false);
+    // The project file is edited while the disposal stands unfinished.
+    let link = f.project.join(records_store::PROJECT_LINK);
+    let mut changed: Value = serde_json::from_slice(&std::fs::read(&link).unwrap()).unwrap();
+    changed["projectId"] = json!("chirality-project:invented-other");
+    std::fs::write(&link, serde_json::to_vec(&changed).unwrap()).unwrap();
+    let attachment = records_store::attach(&f.project, false).unwrap();
+    assert_eq!((attachment.fault, attachment.recorded.as_deref()), (Some("link changed"), Some(project.as_str())));
+    assert!(attachment.resolutions.contains(&"restore-link"));
+    assert!(f.act("resume-disposal", None).is_err(), "the disposal cannot be finished for a folder that is not attached");
+    // Restoring the link reads no record, so the standing disposal does not
+    // refuse it; then the same disposal is finished.
+    assert_eq!(records_store::restore_link(&f.project).unwrap()["projectId"], project.as_str());
+    assert_eq!(f.act("resume-disposal", None).unwrap()["state"], "disposed");
+    assert!(!dir.exists());
+    // And after the disposal is complete the link can still be put back.
+    std::fs::remove_file(&link).unwrap();
+    assert_eq!(records_store::restore_link(&f.project).unwrap()["projectId"], project.as_str());
 }
 #[test]
 fn records_retention_strict_history_and_uncertain_publication_never_enable_disposal() {
@@ -1153,4 +1184,127 @@ fn records_retention_export_defaults_are_owner_only_under_a_permissive_umask() {
     modes(&bag);
     crate::records_export::verify(&bag).unwrap();
     modes(&bag); // Imported/existing-package verification changes no modes.
+}
+/// DEL-04-03 AC-008 / REQ-007: a capture destination and a read-log path
+/// resolved while the project was attached are not written once its link
+/// names another identity, names another store or is missing: nothing appears
+/// under the old subtree until the person restores the link.
+#[test]
+fn records_retention_a_write_resolved_before_the_link_changed_is_refused_until_the_link_is_restored() {
+    fn listing(dir: &Path) -> Vec<(PathBuf, u64)> {
+        let mut out = Vec::new();
+        let mut stack = vec![dir.to_path_buf()];
+        while let Some(at) = stack.pop() {
+            for entry in std::fs::read_dir(&at).unwrap() {
+                let entry = entry.unwrap();
+                let meta = std::fs::symlink_metadata(entry.path()).unwrap();
+                if meta.is_dir() {
+                    stack.push(entry.path());
+                }
+                out.push((entry.path(), if meta.is_dir() { 0 } else { meta.len() }));
+            }
+        }
+        out.sort();
+        out
+    }
+    fn refusal(result: Result<(), storage::CapturePublicationFailure>) -> String {
+        match result {
+            Ok(()) => panic!("the capture was published"),
+            Err(storage::CapturePublicationFailure::DefinitelyNotPublished(e)) => e,
+            Err(storage::CapturePublicationFailure::PublicationUncertain(e)) => panic!("publication attempted: {e}"),
+        }
+    }
+    const STALE: &str = "project root association changed; stale queued write refused";
+    let f = Fixture::new();
+    let project = f.project.clone();
+    let dir = records_store::attach(&project, false).unwrap().dir.unwrap();
+    // Resolved while attached.
+    let captures = storage::write_capture_dir(&project).unwrap();
+    let capture = captures.join(format!("{}.json", storage::key("cap:link-fixture")));
+    let pending = captures.join("pending").join(format!("{}.json", storage::key("cap:link-fixture")));
+    let read_log = records_store::read_log_path(&project).unwrap();
+    storage::ensure_directory(read_log.parent().unwrap()).unwrap();
+    let capability = crate::records_access::RecordsCapability::at(&project, read_log.clone()).unwrap();
+    let call = |n: u64| crate::records_access::Call {
+        app_session: "app-session:fixture".into(), generation: "g:fixture".into(), request: json!(n),
+        thread: "thread".into(), turn: "turn".into(), call: format!("call-{n}"), arguments: json!({"operation":"list_runs"}),
+    };
+    let cwd = project.to_str().unwrap().to_owned();
+    assert_eq!(capability.answer(&call(1), Some(&cwd))["success"], true);
+    let logged = std::fs::read(&read_log).unwrap();
+    assert!(!logged.is_empty());
+    let value = json!({"captureId":"cap:link-fixture","actKind":"A16","fixture":"invented"});
+    let link_path = project.join(records_store::PROJECT_LINK);
+    let link: Value = serde_json::from_slice(&std::fs::read(&link_path).unwrap()).unwrap();
+    let mut changed = link.clone();
+    changed["projectId"] = json!("chirality-project:forged-fixture");
+    let mut other_store = link.clone();
+    other_store["storeId"] = json!("records-store:another-fixture");
+    let before = listing(&dir);
+    for (n, (case, replacement, expected)) in [
+        ("changed", Some(changed), "names project chirality-project:forged-fixture"),
+        ("another store", Some(other_store), "names another records store (records-store:another-fixture)"),
+        ("missing", None, "is missing"),
+    ].into_iter().enumerate() {
+        match &replacement {
+            Some(v) => std::fs::write(&link_path, serde_json::to_vec(v).unwrap()).unwrap(),
+            None => std::fs::remove_file(&link_path).unwrap(),
+        }
+        let e = refusal(storage::create_capture_json(&capture, &value));
+        assert!(e.contains(STALE) && e.contains(expected), "{case}: {e}");
+        let e = storage::create_json(&pending, &json!({"capture":value})).unwrap_err();
+        assert!(e.contains(STALE) && e.contains(expected), "{case}: {e}");
+        let answer = capability.answer(&call(10 + n as u64), Some(&cwd));
+        assert_eq!(answer["success"], false, "{case}: {answer}");
+        assert_eq!(std::fs::read(&read_log).unwrap(), logged, "{case}: the read is not recorded under the old subtree");
+        assert_eq!(listing(&dir), before, "{case}: nothing appears under the old subtree");
+        records_store::restore_link(&project).unwrap();
+    }
+    // Restored: the same resolved paths are written.
+    storage::create_capture_json(&capture, &value).map_err(|_| "capture refused after restore").unwrap();
+    storage::create_json(&pending, &json!({"capture":value})).unwrap();
+    assert!(capture.is_file() && pending.is_file());
+    assert_eq!(capability.answer(&call(20), Some(&cwd))["success"], true);
+    assert!(std::fs::read(&read_log).unwrap().len() > logged.len());
+}
+
+#[test]
+fn a_queued_write_is_refused_when_the_store_identity_attach_would_refuse() {
+    // Review round 2, finding 5: the low-level write admission took storeId
+    // from store.json without checking it is a records store identity or the
+    // one this process opened. Attach refuses both; so must a queued write.
+    const STALE: &str = "project root association changed; stale queued write refused";
+    let f = Fixture::new();
+    let project = f.project.clone();
+    let captures = storage::write_capture_dir(&project).unwrap();
+    let pending = captures.join("pending").join(format!("{}.json", storage::key("cap:store-identity-fixture")));
+    let identity_path = f.store.join("store.json");
+    let identity_bytes = std::fs::read(&identity_path).unwrap();
+    let identity: Value = serde_json::from_slice(&identity_bytes).unwrap();
+    let link_path = project.join(records_store::PROJECT_LINK);
+    let link_bytes = std::fs::read(&link_path).unwrap();
+    // The same id with a format that is not a records store identity.
+    let mut wrong_format = identity.clone();
+    wrong_format["format"] = json!("invented.not-a-records-store");
+    std::fs::write(&identity_path, serde_json::to_vec(&wrong_format).unwrap()).unwrap();
+    assert!(records_store::attach(&project, false).is_err(), "attach refuses this store identity");
+    let e = storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap_err();
+    assert!(e.contains(STALE) && e.contains("not a records store identity"), "{e}");
+    assert!(!pending.exists());
+    // Another id, with the project link changed to name it.
+    let mut replaced = identity.clone();
+    replaced["storeId"] = json!("records-store:replaced-fixture");
+    std::fs::write(&identity_path, serde_json::to_vec(&replaced).unwrap()).unwrap();
+    let mut link: Value = serde_json::from_slice(&link_bytes).unwrap();
+    link["storeId"] = json!("records-store:replaced-fixture");
+    std::fs::write(&link_path, serde_json::to_vec(&link).unwrap()).unwrap();
+    assert!(records_store::attach(&project, false).is_err(), "attach refuses a changed store identity");
+    let e = storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap_err();
+    assert!(e.contains(STALE) && e.contains("identity changed"), "{e}");
+    assert!(!pending.exists());
+    // Put back, the same resolved path is written.
+    std::fs::write(&identity_path, &identity_bytes).unwrap();
+    std::fs::write(&link_path, &link_bytes).unwrap();
+    storage::create_json(&pending, &json!({"fixture":"invented"})).unwrap();
+    assert!(pending.is_file());
 }

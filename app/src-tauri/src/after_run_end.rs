@@ -25,10 +25,7 @@ impl Scope {
         let root = project.canonicalize().map_err(|e| e.to_string())?;
         crate::storage::check_path(&root)?;
         let meta = std::fs::symlink_metadata(&root).map_err(|e| e.to_string())?;
-        let home = crate::records_store::home(&root)?;
-        if let Some(reason) = home.attachment.refusal {
-            return Err(reason);
-        }
+        let home = crate::records_store::readable_home(&root)?;
         let dir = home
             .attachment
             .dir
@@ -238,11 +235,11 @@ impl Observer {
             }
         }
         // Resolve the current ordinary record home once, not once per run.
-        let home = crate::records_store::home(&scope.root)?;
+        let home = crate::records_store::readable_home(&scope.root)?;
         let base = if home.store_mode {
             scope.dir.clone()
         } else {
-            scope.root.join(".chirality/records")
+            home.records()
         };
         let writer = format!(
             "{}.jsonl",
@@ -618,11 +615,11 @@ impl Observer {
             }
             Ok(())
         })?;
-        let home = crate::records_store::home(&scope.root)?;
+        let home = crate::records_store::readable_home(&scope.root)?;
         let base = if home.store_mode {
             scope.dir.clone()
         } else {
-            scope.root.join(".chirality/records")
+            home.records()
         };
         let mut observations = BTreeMap::new();
         for (path, cached) in &mut self.cache {
