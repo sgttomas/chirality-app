@@ -616,24 +616,28 @@ fn a_reply_invalid_as_codex_sent_it_releases_nothing_though_its_projection_looks
 }
 
 /// The generic synchronous route gives a reading one deadline from the call's start: time spent
-/// waiting for the reservation leaves only the remainder for the reply.
+/// waiting for the reservation leaves only the remainder for the reply. The reading waits HOLD of
+/// its LONG deadline at the reservation; the rest (LONG - HOLD) covers its work before the write,
+/// and the bound, LONG + HOLD / 2, lies midway between the one deadline and a fresh full timeout
+/// granted after the wait (HOLD + LONG).
 #[test]
 fn the_generic_route_waits_for_a_readings_reply_only_for_what_remains_of_its_deadline() {
+    const HOLD: Duration = Duration::from_secs(2);
     let rig = Rig::new();
     read(&rig.host, &rig.g, json!({"cwd":W,"includeLayers":false}), LONG).unwrap();
     let held = rig.frame();
     let (host, g) = (rig.host.clone(), rig.g.clone());
     let started = Instant::now();
     let generic = std::thread::spawn(move || {
-        let result = host.request_inner_scoped("config/read", json!({"cwd":W,"includeLayers":false}), json!({"kind":"synthetic generic"}), Duration::from_millis(1000), false, Some(&g));
+        let result = host.request_inner_scoped("config/read", json!({"cwd":W,"includeLayers":false}), json!({"kind":"synthetic generic"}), LONG, false, Some(&g));
         (result, started.elapsed())
     });
-    std::thread::sleep(Duration::from_millis(600));
+    std::thread::sleep(HOLD);
     rig.answer(&held, cfg());
     assert_eq!(rig.frame()["method"], "config/read", "registered once the reservation was free, and left unanswered");
     let (result, elapsed) = generic.join().unwrap();
     assert!(result.is_err(), "no reply within its deadline");
-    assert!(elapsed < Duration::from_millis(1350), "the whole call is bounded by its one deadline: {elapsed:?}");
+    assert!(elapsed < LONG + HOLD / 2, "the whole call is bounded by its one deadline: {elapsed:?}");
 }
 
 fn continue_query(rig: &Rig) -> HistoryQuery {
