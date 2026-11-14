@@ -936,6 +936,21 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertEqual([c for c in calls if not c.startswith('get_app_state')],
                          [f'set_value16={PROJECT}', 'click37', 'click57', 'click69', 'click4'])
 
+    def test_a_sheet_step_with_no_press_captures_the_sheet_and_presses_nothing(self):
+        # The re-recording's capture: the sheet is opened from S4, captured whole and not pressed, whatever it says.
+        capture = json.loads(SETUP.read_text())
+        next(s for s in capture['steps'] if s['act'] == 'confirm_sheet')['press'] = False
+        for name, sheet in (('the recorded sheet', None), ('a sheet that differs', SHEET_ON_ITS_OWN.replace('Leave setup unchanged', 'Leave it'))):
+            with self.subTest(name), tempfile.TemporaryDirectory() as folder:
+                path = Path(folder) / 'capture.scenario.json'
+                path.write_text(json.dumps(capture))
+                result = setup_walk('const r = await walk.run(base); return [r.verdict, r.stopped, r.calls.map(c => c.call + (c.element_index ?? "")), r.steps.at(-1).sheet_view];',
+                                    setup_views(sheet=sheet), path)
+                verdict, stopped, calls, captured = result['out']
+                self.assertEqual((verdict, stopped), ('inconclusive', 'stopped at S5: the sheet is captured, and this step has no press'))
+                self.assertEqual([c for c in calls if not c.startswith('get_app_state')], ['set_value16', 'click37', 'click57', 'click69'])
+                self.assertEqual(captured, sheet or SHEET_ON_ITS_OWN)
+
     def test_a_dialog_anywhere_below_the_window_stops_an_ordinary_step(self):
         result = harness("texts[2] = texts[2].replace('\\t\\t2 HTML content', '\\t\\t\\t\\t950 sheet Confirm\\n\\t\\t2 HTML content'); "
                          'const r = await walk.run(base); return [r.verdict, r.stopped];')

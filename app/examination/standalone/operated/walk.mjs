@@ -665,6 +665,9 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
         return finish('inconclusive', `stopped at ${step.id}: the sheet's view failed (${entry.error})`);
       }
       entry.sheet_view = shown.text;
+      // A sheet step with "press": false captures the sheet and ends the walk there, whatever the sheet says: it has no
+      // press. It records a sheet from a new build before any walk presses it (the setup walk's re-recording).
+      if (step.press === false) return finish('inconclusive', `stopped at ${step.id}: the sheet is captured, and this step has no press`);
       if (!shown.whole) return finish('inconclusive', asDifferences(step.id));
       if (shown.refusal) return finish('inconclusive', `${unaddressed(step.id, shown.refusal)}; nothing was pressed`);
       const checked = sheetCheck(shown.text, sheet, values, bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length));
