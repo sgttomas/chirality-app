@@ -312,6 +312,8 @@ impl Snapshot {
         Ok(id)
     }
     pub fn publish_new(&self, destination: &Path) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_workspace::Snapshot::publish_new");
         // Exclusive new directory; callers own library lock, ledger, fsync and interruption recovery.
         fs::create_dir(destination).map_err(|e| e.to_string())?;
         for (p, b) in &self.files {
@@ -336,6 +338,8 @@ const HY5_EXCEEDED: &str = "HY-5: package exceeds review bound (1000 files / 16 
 /// may have been swapped since, decides which entry is opened.
 #[cfg(unix)]
 fn open_at(dir: &fs::File, name: &std::ffi::OsStr, flags: i32) -> std::io::Result<fs::File> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("workflow_workspace::open_at"); }
     use std::os::fd::{AsRawFd, FromRawFd};
     use std::os::unix::ffi::OsStrExt;
     let name = std::ffi::CString::new(name.as_bytes())
