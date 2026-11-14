@@ -95,6 +95,7 @@ code_paths:
 checks:
 - app/examination/native_support/test_*.py
 - app/examination/session_comparison/test_compare.py
+- app/examination/session_comparison/test_stub_provider.py
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_launch_home_test.py
 - app/tests/group_b_operated_scenario_test.py

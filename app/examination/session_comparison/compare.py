@@ -73,6 +73,8 @@ UNRECOGNISED = 'unrecognised'
 # A turn the view shows with no native turn behind it (by an item, a checklist
 # or an error notice only): shown, but with no status.
 NO_STATUS = 'shown with no status'
+DRIVER_RUN = 'driver-run.json'
+REVISION = re.compile(r'^[0-9a-f]{40}$')
 ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:@-]{0,159}$')
 HEX64 = re.compile(r'^[0-9a-f]{64}$')
 START_EVENTS = ('task_started', 'turn_started')
@@ -143,11 +145,16 @@ def examination_root(path):
     if record.is_symlink() or record.resolve() != record:
         raise Refused("record/ does not resolve to the root's own record folder")
     launch = sorted(record.glob('launch-record*.json')) + ([record / 'kept.json'] if (record / 'kept.json').exists() else [])
-    if not launch:
-        raise Refused('the folder has no launch record; only a folder the launcher made is read')
-    for name in launch:
+    driver = record / DRIVER_RUN
+    if launch and (driver.exists() or driver.is_symlink()):
+        raise Refused('the folder has both a launch record and a driver-run record')
+    if not launch and not (driver.exists() or driver.is_symlink()):
+        raise Refused('the folder has no launch record or driver-run record; only a folder the launcher or the driver made is read')
+    for name in launch or [driver]:
         if name.is_symlink() or root not in name.resolve().parents:
             raise Refused('a launch record resolves outside the examination root')
+    if not launch:
+        driver_run(root)
     codex = (Path.home() / '.codex').resolve()
     if root == codex or codex in root.parents or root in codex.parents:
         raise Refused("the owner's Codex home is never read")
@@ -157,6 +164,22 @@ def examination_root(path):
         if other == root or root in other.parents or other in root.parents:
             raise Refused('the CODEX_HOME of this process overlaps the examination root')
     return root
+
+
+def driver_run(root):
+    """The scripted driver's run record: a test build, never a candidate.
+    Refused unless every field is as the driver writes it."""
+    try:
+        value = json.loads(inside(root, root / 'record' / DRIVER_RUN).read_text())
+    except Refused:
+        raise
+    except Exception:
+        raise Refused('the driver-run record could not be read')
+    if not isinstance(value, dict) or value.get('driver_run') is not True or value.get('test_build') is not True \
+            or not isinstance(value.get('revision'), str) or not REVISION.fullmatch(value['revision']) \
+            or ident(value.get('run')) == UNRECOGNISED:
+        raise Refused('the driver-run record is not one the scripted driver writes')
+    return {'revision': value['revision'], 'run': value['run']}
 
 
 def inside(root, path):
@@ -535,13 +558,15 @@ def fallback_header(root, **extra):
             return read()
         except Exception:
             return None
-    return {'header': True, 'candidate_key': tried(lambda: candidate_key(root)),
+    driver = tried(lambda: driver_run(root) if (root / 'record' / DRIVER_RUN).exists() else None)
+    return {'header': True, 'candidate_key': tried(lambda: candidate_key(root)), **({'driver_run': driver} if driver else {}),
             'examination_root': str(root), 'tool': TOOL, 'tool_sha256': tried(tool_digest), 'model_version': MODEL_VERSION,
             'pinned_codex': PINNED_CODEX, 'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE, 'fallback': True, **extra}
 
 
 def header(root, **extra):
-    return {'header': True, 'candidate_key': candidate_key(root), 'examination_root': str(root), 'tool': TOOL,
+    driver = {'driver_run': driver_run(root)} if (root / 'record' / DRIVER_RUN).exists() else {}
+    return {'header': True, 'candidate_key': candidate_key(root), **driver, 'examination_root': str(root), 'tool': TOOL,
             'tool_sha256': tool_digest(), 'model_version': MODEL_VERSION, 'pinned_codex': PINNED_CODEX,
             'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE, **extra}
 
