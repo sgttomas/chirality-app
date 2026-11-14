@@ -118,6 +118,7 @@ pub mod schema_validation;
 pub mod standing;
 pub mod storage;
 pub mod working_folder;
+pub mod working_files;
 pub mod stop_records;
 pub mod util;
 
