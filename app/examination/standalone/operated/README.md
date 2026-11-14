@@ -245,7 +245,12 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
 `~/.codex` and signals nothing.
 
 1. **The screen lock, first.** `screen_lock.py` reads the login session's own
-   state (the key `CGSSessionScreenIsLocked`, read only) and changes nothing:
+   description (read only) and changes nothing. As read on this Mac on 14
+   November 2026, the key `CGSSessionScreenIsLocked` is present, at 1, while
+   the screen is locked, and absent while it is not. So: on the console
+   (`kCGSSessionOnConsoleKey` 1) with the lock key absent or 0 is not locked;
+   the lock key present and not 0 is locked; no session, not on the console,
+   or either key given twice is not established:
 
    ```sh
    <python> -B app/examination/standalone/operated/screen_lock.py > <evidence folder>/lane-screen-lock.txt
@@ -1217,17 +1222,29 @@ either driver marker.
   step does this, in order:
   1. It is not taken if any earlier check failed.
   2. It clicks the opener once, waits, and views.
-  3. Before any press, it checks the view, the App's own element tree:
-     - the view says it is of the bundle;
-     - at the top it holds the one window and the menu bar;
-     - directly inside the window it holds what the scenario lists and
-       exactly one thing more, a sheet;
-     - below the window, at any depth, there is no other window, sheet,
-       dialog, alert or popover, the page's own alerts included;
-     - directly inside the sheet, and nothing deeper, are exactly the named
-       buttons, the named title once, and the statement's text. An image (the
-       App's icon) is allowed and recorded. Anything else in the sheet is a
-       difference;
+  3. Before any press, it checks the view, the App's own element tree. The
+     view says it is of the bundle, and it has one of two shapes and no
+     other:
+     - **the sheet inside the window**: at the top, the one window and the
+       menu bar; directly inside the window, what the scenario lists and
+       exactly one thing more, a sheet; below the window, at any depth, no
+       other window, sheet, dialog, alert or popover, the page's own alerts
+       included; directly inside the sheet, and nothing deeper, exactly the
+       named buttons, the named title once, and the statement's text;
+     - **the sheet on its own**, the shape the supplier's view gave for the
+       real sheet on 14 November 2026
+       (`tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt`,
+       with its paths and identifier replaced by invented ones): at the top,
+       exactly two things, the menu bar and a sheet whose line is exactly
+       `sheet Description: alert, Secondary Actions: Raise`; no other window,
+       sheet, dialog, alert or popover anywhere; directly inside the sheet,
+       and nothing deeper, exactly one text, which is the title, one space and
+       the statement, and exactly the named buttons, each written as its
+       words followed by `, ID: action-button-` and a number, a suffix that
+       must be there.
+
+     In either shape an image (the App's icon) is allowed and recorded, and
+     anything else in the sheet is a difference. The record names the shape.
      - the statement's text equals the complete statement. Line breaks, in
        whatever form the view gives them (a new element, a new line, or
        written as `\n`), become one space, and each line is trimmed at its
@@ -1245,6 +1262,16 @@ either driver marker.
   6. It presses the named button once, by its index, waits and views. If the
      sheet, or anything else that is not the page, is still there, the walk
      stops and does not press again.
+- **What tells the App's own sheet apart.** Not its shape: in the sheet on
+  its own, a window, title or attribute names nothing of the App's, and an
+  alert sheet of the same build looks the same in every part but its words.
+  What tells it apart is two things together. The view is asked of the
+  development build by its bundle identifier, and the supplier gives that
+  process's own tree, so a sheet of the system or of another application is
+  not in it (see the next point). And the sheet's one text must equal the
+  App's title and its complete statement, every word and path, with the
+  locations the page showed one step earlier; another alert of
+  the same build, with other words, is a difference and nothing is pressed.
 - **What the tree does not show.** The view is the development build's own
   tree. A window of another application, or of the system, over the build is
   not in it, and the walk cannot see one. The operator stops if one appears in
@@ -1298,7 +1325,10 @@ in a kept folder whose launches reach the network, so that the owner can sign
 in and one model turn can be made. App Agent 0 approved its design, with the
 INTERLOCUTOR's additions, which App Agent 0 adopted. This section is its
 method text. **Nothing here is run until App Agent 0 names a date and the
-owner's sign-in is arranged.** Its scenario files, and the typing of its one
+owner's sign-in is arranged.** The candidate must contain the execution lane's
+repair of the temporary-folder allocations, and no date is named before that
+repair is on main: App Agent 0 holds that no conversation with a real model is
+made on a build without it. Its scenario files, and the typing of its one
 fixed prompt, come to App Agent 0 with that date. The rehearsal is development
 evidence and satisfies nothing in criteria 1 and 2.
 

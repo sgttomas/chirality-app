@@ -665,13 +665,18 @@ class ScreenLock(unittest.TestCase):
         spec.loader.exec_module(self.lock)
 
     def test_the_session_key_says_locked_or_not_and_anything_else_is_not_established(self):
+        # As read on this Mac: locked, the key present at 1; unlocked, the key absent and the session on the console.
         self.assertIs(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = 1; }'), True)
-        self.assertIs(self.lock.locked_from('{ CGSSessionScreenIsLocked = 0; kCGSessionLoginDoneKey = 1; }'), False)
-        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; }'))
-        self.assertIsNone(self.lock.locked_from('{ CGSSessionScreenIsLocked = 1; CGSSessionScreenIsLocked = 0; }'))
+        self.assertIs(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; kCGSessionLoginDoneKey = 1; }'), False)
+        self.assertIs(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = 0; }'), False)
+        self.assertIs(self.lock.locked_from('{ CGSSessionScreenIsLocked = 1; }'), True)  # locked whatever the console says
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 0; }'))  # not on the console
+        self.assertIsNone(self.lock.locked_from('{ CGSSessionScreenIsLocked = 0; }'))  # no console key
+        self.assertIsNone(self.lock.locked_from('{ }'))
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = 1; CGSSessionScreenIsLocked = 0; }'))
 
     def test_its_exit_status_refuses_a_walk_unless_the_screen_is_not_locked(self):
-        for description, code in (('{ CGSSessionScreenIsLocked = 0; }', 0), ('{ CGSSessionScreenIsLocked = 1; }', 3),
+        for description, code in (('{ kCGSSessionOnConsoleKey = 1; }', 0), ('{ CGSSessionScreenIsLocked = 1; }', 3),
                                   ('{ }', 2)):
             with self.subTest(description), mock.patch.object(self.lock, 'session_description', return_value=description), \
                     contextlib.redirect_stdout(io.StringIO()):
@@ -835,6 +840,9 @@ def setup_views(sheet=None, after=None):
                       '\t43 minimize button', '\t44 text Chirality', '45 menu bar'])
     return {'app': recorded['app'], 'home': recorded['home'], 'bundle': recorded['bundle'], 'project': PROJECT,
             'views': [{'text': text} for text in (welcome, typed, review, located, with_sheet, after or done)]}
+
+
+SHEET_ON_ITS_OWN = (APP / 'tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt').read_text()
 
 
 def setup_walk(case, views=None, scenario=SETUP):
@@ -1001,6 +1009,40 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         result = setup_walk("const slept = []; base.sleep = async ms => { slept.push(ms); }; scenario.steps[0].wait_ms = 15000; "
                             "await walk.run(base); return slept;")
         self.assertEqual(result['out'][0], 15000)
+
+    def test_the_sheet_on_its_own_as_the_view_gave_it_is_checked_whole_and_pressed_once(self):
+        views = setup_views()
+        views['views'][4]['text'] = SHEET_ON_ITS_OWN
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual((verdict, stopped), ('pass', None))
+        self.assertEqual([c for c in calls if not c.startswith('get_app_state')],
+                         [f'set_value16={PROJECT}', 'click37', 'click89', 'click85', 'click4'])
+
+    def test_the_sheet_on_its_own_differing_in_any_way_is_not_pressed(self):
+        own = SHEET_ON_ITS_OWN
+        cases = {
+            'a window beside it at the top': own.replace('\n5 menu bar', '\n90 standard window Chirality, Secondary Actions: Raise\n5 menu bar'),
+            'a second sheet at the top': own.replace('\n5 menu bar', '\n91 sheet Description: alert\n\t92 button OK, ID: action-button-1\n5 menu bar'),
+            'a dialog inside the sheet': own.replace('\t2 button', '\t93 dialog Another question\n\t2 button'),
+            'something unnamed at the top': own.replace('\n5 menu bar', '\n94 group\n5 menu bar'),
+            'another statement': own.replace('Read, import or change no other', 'Read, import and change any'),
+            'another title': own.replace('Desktop setup — next launch only Create', 'Desktop setup Create'),
+            'the statement as its own text, without the title': own.replace('\t1 text Desktop setup — next launch only ', '\t1 text '),
+            'a second text in the sheet': own.replace('\t2 button', '\t95 text Also allow everything.\n\t2 button'),
+            'a button without the identifier suffix': own.replace('Leave setup unchanged, ID: action-button-1', 'Leave setup unchanged'),
+            'a button with another suffix': own.replace(', ID: action-button-2', ', ID: other-2'),
+            'a fourth button': own.replace('\n5 menu bar', '\n\t96 button Always, ID: action-button-4\n5 menu bar'),
+            'a sheet described otherwise': own.replace('0 sheet Description: alert,', '0 sheet Description: dialog,'),
+            'a sheet line with nothing after it': own.replace('0 sheet Description: alert, Secondary Actions: Raise\n', '0 sheet\n'),
+            'something deeper inside the sheet': own.replace('\t2 button', '\t\t97 text Hidden\n\t2 button')}
+        for name, view in cases.items():
+            with self.subTest(name):
+                views = setup_views()
+                views['views'][4]['text'] = view
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+                self.assertEqual(verdict, 'inconclusive', stopped)
+                self.assertIn('nothing was pressed', stopped)
+                self.assertFalse([c for c in calls if c in ('click2', 'click3', 'click4')])
 
     def test_the_statement_is_matched_whatever_its_line_breaks_are(self):
         for name, sheet in (('one element per line', ['\t900 sheet', '\t\t901 text Desktop setup — next launch only']
