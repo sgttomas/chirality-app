@@ -374,6 +374,8 @@ pub struct HostConfig {
 pub(crate) const SAVED_IN_APP_DATA_UNKNOWN: &str = "Chirality could not establish where this conversation works, so it was not continued or copied: it might be Chirality's own data folder. Nothing was sent to it.";
 /// The account home's provider, as a session setting (see `HostConfig::new`).
 pub(crate) const ACCOUNT_PROVIDER_FLAG: &str = "model_provider=\"openai\"";
+/// Plugins off, as a session setting, in every home the App starts Codex in (DEL-01-05 REQ-010).
+pub(crate) const PLUGINS_OFF_FLAG: &str = "features.plugins=false";
 /// DEL-01-05 REQ-010: every setting the App applies to its own Codex when it
 /// starts it, each with its reason, for the person to read. A setting with no
 /// reason here is still listed, marked as such, never left out.
@@ -382,7 +384,7 @@ pub(crate) fn applied_session_settings(flags: &[String]) -> Value {
         let key = flag.split('=').next().unwrap_or("");
         match key {
             "analytics.enabled" => "Turns off Codex's analytics traffic.",
-            "features.plugins" => "Turns off Codex's plugin traffic in the local model home, which shares nothing with your Codex settings.",
+            "features.plugins" if flag == PLUGINS_OFF_FLAG => "Turns off Codex's plugins in this home: the App's Codex fetches, installs and loads none, so a plugin named in your own Codex settings is not loaded here. Your own Codex and its files are not changed.",
             "features.api_key_model_discovery" => "Stops Codex sending the local server's key to a model catalogue address.",
             "cli_auth_credentials_store" => "Keeps the local server's key in this home's own Codex file, not your keychain or your own Codex home.",
             "model_provider" if flag == ACCOUNT_PROVIDER_FLAG => "Codex runs a conversation only on the provider it was started with, so this home's Codex is started on its built-in OpenAI provider, whatever default your Codex settings name. Your files are not changed.",
@@ -407,13 +409,14 @@ impl HostConfig {
             app_data: None,
             expected_sha256: None,
             allow_unverified_dev: false,
-            // ACCESS §9 K-12: analytics off in the session flags. Plugins follow the
-            // person's own setting (L-3), so the App passes nothing for them.
+            // ACCESS §9 K-12: analytics off in the session flags. DEL-01-05 REQ-010:
+            // plugins off whatever the person's own setting (App Agent 0's decision for
+            // 4.0.0), so no plugin is fetched, installed or loaded in this home.
             // DEL-01-05 account home: Codex at the pin runs a conversation only on
             // the provider its process was started with, so this home's Codex is
             // started on the built-in provider whatever default the person's
             // settings name. Nothing is written to the person's files.
-            session_flags: vec!["analytics.enabled=false".into(), ACCOUNT_PROVIDER_FLAG.into()],
+            session_flags: vec!["analytics.enabled=false".into(), PLUGINS_OFF_FLAG.into(), ACCOUNT_PROVIDER_FLAG.into()],
             wait_limit: Duration::from_secs(20),
             probe_wait_limit: Duration::from_secs(20),
             distribution: None,
@@ -5943,7 +5946,7 @@ fn network_disclosure() -> Value {
         "observedByApp": false,
         "samplingLimits": "historical bounded observations; current child sockets not sampled by this snapshot",
         "entries": [
-            {"phase": "startup", "purpose": "supplier-service", "destination": "chatgpt.com; github.com/openai/plugins", "condition": "provider/plugin/account dependent; plugins follow user configuration"},
+            {"phase": "startup", "purpose": "supplier-service", "destination": "chatgpt.com; github.com/openai/plugins", "condition": "provider/plugin/account dependent; the App turns plugins off in every home it starts Codex in"},
             {"phase": "thread-start", "purpose": "model", "destination": "selected model provider", "detail": "Responses websocket prewarm can contact the selected model provider before a turn; default hosted provider observed at 0.158.0"}
         ]
     })

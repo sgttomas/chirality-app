@@ -238,3 +238,24 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** keep material the agent must not read out
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
+
+### LIM-024: Plugins are not available in the App's Codex
+
+- **Id:** LIM-024
+- **Exit criteria:** 6
+- **What is unavailable:** plugins in the App's Codex. The App starts its Codex
+  with plugins turned off, whatever your own plugin setting, so the App's Codex
+  fetches, installs and loads no plugin. A plugin named in your own Codex
+  settings is not loaded in the App, and no skill, tool server or hook comes
+  from one.
+- **Why:** the App does not yet show which plugins are named or loaded, or what
+  each one adds. A plugin that runs where the App shows nothing could act on
+  your behalf without your seeing it, so plugins stay off until the App can
+  show them.
+- **What the person does instead:** use the plugin in your own Codex, outside
+  the App. The App's list of the settings it applies to its Codex shows this
+  one, with its reason.
+- **Basis:** DEL-01-05 (REQ-010, the settings the App applies to its Codex).
+  That turning plugins off stops the start-up plugin traffic is shown for the
+  lock file of the curated sync and for the featured list. The sync's own
+  network attempts are read from the source (`app/supplier_checks/level`).

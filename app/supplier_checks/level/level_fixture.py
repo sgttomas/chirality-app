@@ -613,9 +613,9 @@ class Run:
         env.update(extra or {})
         return env
 
-    def start(self):
+    def start(self, flags=()):
         admitted_binary(self.binary)
-        client = Client(self)
+        client = Client(self, flags)
         self.clients.append(client)
         client.initialize()
         return client
@@ -643,12 +643,14 @@ class Run:
 
 
 class Client:
-    def __init__(self, run):
+    def __init__(self, run, flags=()):
+        """`flags` are further `-c` settings, placed after the fixture's own and before `app-server`."""
         self.run = run
         self.stderr = open(run.root / ('codex-stderr-%d.log' % len(run.clients)), 'wb')
+        extra = [part for flag in flags for part in ('-c', flag)]
         self.proc = subprocess.Popen(
             [run.binary, '-c', 'analytics.enabled=false', '-c', 'model_provider="openai"',
-             '-c', 'openai_base_url="%s"' % run.stub.base_url, 'app-server'],
+             '-c', 'openai_base_url="%s"' % run.stub.base_url] + extra + ['app-server'],
             cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=self.stderr, start_new_session=True)
         self.pgid = self.proc.pid  # its own session, so its own process group

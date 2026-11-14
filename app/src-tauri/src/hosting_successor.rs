@@ -426,6 +426,23 @@ for line in sys.stdin:
             .map(|line| serde_json::from_str(line).unwrap())
             .collect()
     }
+    /// DEL-01-05 REQ-010: the successor route's start and restart carry plugins off.
+    #[test]
+    fn the_successor_start_carries_plugins_off() {
+        let f = Fixture::new("pass");
+        let host = Arc::new(Host::new());
+        host.start(&f.cfg, "fixture").unwrap();
+        host.stop("fixture", "restart").unwrap();
+        host.start(&f.cfg, "fixture restart").unwrap();
+        let starts = started_with(&f);
+        assert_eq!(starts.len(), 2, "{starts:?}");
+        for arguments in &starts {
+            let at = arguments.iter().position(|a| a == crate::hosting::PLUGINS_OFF_FLAG).expect("plugins off is passed");
+            assert_eq!(arguments[at - 1], "-c");
+            assert_eq!(arguments.last().map(String::as_str), Some("app-server"));
+        }
+        let _ = host.stop("fixture", "test ended");
+    }
     /// DEL-01-05: the development model address reaches the successor start's arguments
     /// when it is admitted, and only then.
     #[test]

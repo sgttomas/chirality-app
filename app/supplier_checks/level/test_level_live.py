@@ -305,6 +305,40 @@ class Presets(Probing):
             self.succeeded(probe(run, client, thread, 'in', **EDITS_NET_OFF))
 
 
+class Plugins(unittest.TestCase):
+    """The App's account home turns plugins off with `features.plugins=false`. Here two fresh homes are started on the
+    account route, without and with that setting, and nothing else is done. The ChatGPT base address points at the
+    stub, so the featured-plugins request reaches it; every other address goes to the closed proxy port, and the
+    system proxy fallback is off, so nothing leaves loopback. What distinguishes the two starts: the curated sync's lock
+    file in the home (made before any network attempt) and the featured-plugins request at the stub."""
+
+    WAIT = 15
+
+    def observe(self, flags):
+        with L.Run(SCRATCH, BINARY) as run:
+            base = '"http://127.0.0.1:%d/backend-api/"' % run.stub.port
+            client = run.start(flags=['chatgpt_base_url=%s' % base, 'features.system_proxy_fallback=false'] + flags)
+            lock = run.root / 'home' / '.tmp' / 'plugins.sync.lock'
+
+            def featured():
+                return [p for m, p in run.stub.unexpected if m == 'GET' and p.endswith('/plugins/featured')]
+            deadline = time.monotonic() + self.WAIT
+            while time.monotonic() < deadline and not (lock.exists() and featured()):
+                time.sleep(0.25)
+            seen = {'sync lock': lock.exists(), 'tmp folder': (run.root / 'home' / '.tmp').exists(),
+                    'plugins cache': (run.root / 'home' / 'plugins').exists(), 'featured requests': featured()}
+            self.assertIsNone(client.proc.poll(), 'the server is still running when observed')
+            return seen
+
+    def test_plugins_off_stops_the_curated_sync_and_the_featured_list_that_start_without_it(self):
+        on = self.observe([])
+        self.assertTrue(on['sync lock'], on)  # the curated sync began
+        self.assertTrue(on['featured requests'], on)  # the featured list was asked for
+        off = self.observe(['features.plugins=false'])
+        self.assertEqual(off, {'sync lock': False, 'tmp folder': False, 'plugins cache': False,
+                               'featured requests': []}, 'with plugins off, after %d s' % self.WAIT)
+
+
 class Carriers(Probing):
     """Case 2: where a setting can be sent, whether it is held to, and what the replies report."""
 
