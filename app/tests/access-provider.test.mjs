@@ -26,10 +26,10 @@ const canary='INVENTED_PRIVATE_PROVIDER_CANARY_481';
 let settingsPacket;
 const settingsHost = () => ({state:'ready',generationClosed:false,generation:settingsPacket.scope.generation,
  homeRouting:{activeModeHomeClass:'account'},accessSettingsReadRevision:null,currentAppProjectContext:{reference:'/invented/work'}});
-async function mountedSettings(handler,check) {
+async function mountedSettings(handler,check,automatic=false) {
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
  let host=settingsHost(),navigating=false;
- const render=()=>root.render(React.createElement(EffectiveAccessSettingsPanel,{host,navigating,refresh:async()=>{
+ const render=()=>root.render(React.createElement(EffectiveAccessSettingsPanel,{host,navigating,automatic,refresh:async()=>{
   host={...host,accessSettingsReadRevision:settingsPacket.scope.readRevision};render();return structuredClone(host);
  }}));
  const idle=installIdleNativeWaiting(async(command,args)=>{calls.push({command,args});assert.equal(command,'read_effective_access_settings');return handler(command,args);});
@@ -50,6 +50,26 @@ test('effective access settings actual private Host projection reaches explicit 
   failure=true;await press(c,'Read effective storage and plugin settings');
   assert.doesNotMatch(c.textContent,/Credential storage: file/);assert.match(c.textContent,/private diagnostic withheld/);assert.doesNotMatch(c.textContent,new RegExp(canary));
  });
+});
+// As the App mounts it: read once as soon as Codex is ready, so where a sign-in is kept can be read
+// before any sign-in, in the person's words with Codex's value beside them; a reading that failed
+// is not retried by itself, and the button reads again on request.
+test('mounted as the App mounts it, the settings are read once when ready and say where the sign-in is kept',async()=>{
+ let failure=false;
+ await mountedSettings(async()=>{if(failure)throw Error(canary);return structuredClone(settingsPacket);},async(c,calls,update)=>{
+  assert.equal(calls.length,1,'one read as soon as Codex is ready');
+  assert.match(c.textContent,/Where your sign-in is kept: in a file, auth\.json, in this home's sign-in folder \(file\), as Codex reported it for this launch\./);
+  assert.match(c.textContent,/its sandbox and when it asks you, is shown for each conversation when it is started/);
+  await update(settingsHost());assert.equal(calls.length,1,'not read again for the same source');
+  await update({...settingsHost(),accessSettingsReadRevision:'newer-read'});assert.equal(calls.length,1,'a newer revision retires the reading and is read on request');
+  failure=true;await update({...settingsHost(),generation:{...settingsPacket.scope.generation,spawnCounter:2}});
+  assert.equal(calls.length,2,'a new Codex source is read once');assert.match(c.textContent,/private diagnostic withheld/);
+  await update({...settingsHost(),generation:{...settingsPacket.scope.generation,spawnCounter:2}});assert.equal(calls.length,2,'a failed reading is not retried by itself');
+ },true);
+ for(const [value,words] of [['keyring',"in your Mac's keychain (keyring)"],['auto',"in your Mac's keychain where available, otherwise in a file, auth.json, in this home's sign-in folder (auto)"],['ephemeral','not kept after Codex stops (ephemeral)'],[canary,'Codex did not report it']]){
+  const packet=structuredClone(settingsPacket);packet.credentialStore={state:'reported',value,source:{state:'unknown'}};
+  await mountedSettings(async()=>packet,async(c)=>{assert.ok(c.textContent.includes(`Where your sign-in is kept: ${words}, as Codex reported it for this launch.`),value);assert.doesNotMatch(c.textContent,new RegExp(canary));},true);
+ }
 });
 test('effective access settings unknown values and sources never become defaults or raw metadata',async()=>{
  const packet=structuredClone(settingsPacket);
@@ -188,6 +208,7 @@ test('Start says why it is unavailable until the built-in route and a model are 
   await change(labelled(c,'input','Model '),'person-model');
   assert.equal(props(button(c,'Start thread')).disabled,false);assert.equal(why(),undefined,'no reason is shown while Start is available');
   assert.equal(props(button(c,'Start thread'))['aria-describedby'],undefined);
-  assert.equal(calls.filter(call=>!['host_status','decision_view','native_confirmation_content'].includes(call.command)).length,0,'choosing issues nothing');
+  // The App's one automatic settings read when Codex is ready is not a choice's.
+  assert.equal(calls.filter(call=>!['host_status','decision_view','native_confirmation_content','read_effective_access_settings'].includes(call.command)).length,0,'choosing issues nothing');
  });
 });

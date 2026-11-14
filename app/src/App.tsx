@@ -1235,7 +1235,21 @@ const accessSettingSources: Record<string, string> = {
   sessionFlags: "Session overrides", legacyManagedConfigTomlFromFile: "Legacy managed configuration",
   legacyManagedConfigTomlFromMdm: "Legacy managed preferences",
 };
-export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { host: Json; navigating: boolean; refresh: (isCurrent: () => boolean) => Promise<Json> }) {
+/** Where Codex keeps a sign-in, in the person's words, from the credential store Codex reported; the
+ * value Codex gave stays in brackets. Nothing is inferred when Codex reported none. */
+export function signInKept(field: Json): string {
+  const value = field?.state === "reported" ? field?.value : undefined;
+  switch (value) {
+    case "file": return "in a file, auth.json, in this home's sign-in folder (file)";
+    case "keyring": return "in your Mac's keychain (keyring)";
+    case "auto": return "in your Mac's keychain where available, otherwise in a file, auth.json, in this home's sign-in folder (auto)";
+    case "ephemeral": return "not kept after Codex stops (ephemeral)";
+    default: return "Codex did not report it";
+  }
+}
+export function EffectiveAccessSettingsPanel({ host, navigating, refresh, automatic: automaticProp = false }: { host: Json; navigating: boolean; refresh: (isCurrent: () => boolean) => Promise<Json>;
+  /** Read once as soon as Codex is ready for a source, without a press. */
+  automatic?: boolean }) {
   const scopeOf = (snapshot: Json) => JSON.stringify([snapshot?.homeRouting?.activeModeHomeClass, snapshot?.generation, snapshot?.currentAppProjectContext ?? null, snapshot?.state, snapshot?.generationClosed]);
   const context = useRef({ key: "", epoch: 0, host });
   const key = JSON.stringify([scopeOf(host), navigating]);
@@ -1284,6 +1298,14 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
   };
   const current = ready && observation?.epoch === epoch && observation.sequence === sequence.current
     && observation.packet.scope.readRevision === host?.accessSettingsReadRevision;
+  // Read once as soon as Codex is ready for this source, so where a sign-in is kept can be read
+  // here before the person signs in; the button reads again on request.
+  const automatic = useRef(-1), auto = automaticProp;
+  useEffect(() => {
+    const at = epoch;
+    if (!auto || !ready || current || pending.current || error || automatic.current === at) return;
+    automatic.current = at; void read();
+  });
   const row = (label: string, field: Json, storage: boolean) => {
     const value = field?.state === "reported" && (storage
       ? ["file", "keyring", "auto", "ephemeral"].includes(field?.value)
@@ -1297,6 +1319,7 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
     <button disabled={!ready || reading} onClick={read}>Read effective storage and plugin settings</button>
     {reading && <p role="status">Reading the selected Codex source…</p>}
     {current ? <div role="status">
+      <p aria-label="Where your sign-in is kept"><strong>Where your sign-in is kept:</strong> {signInKept(observation.packet.credentialStore)}, as Codex reported it for this launch.</p>
       {row("Credential storage", observation.packet.credentialStore, true)}
       {row("Plugins", observation.packet.plugins, false)}
       {host.homeRouting.activeModeHomeClass === "account" && (observation.packet.personDefaultProvider?.state === "reported" && observation.packet.personDefaultProvider.value !== "openai"
@@ -1306,6 +1329,7 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
       <p>Read from the selected {host.homeRouting.activeModeHomeClass} home’s current Codex process. A source category is shown only when its reported origin matches an enabled layer and that layer reports the same setting.</p>
     </div> : <p>No current settings observation. An earlier reading is not reused after a source change or a newer configuration read.</p>}
     {error && !current && <p role="alert">{error}</p>}
+    <p>What Codex may do in a conversation, its sandbox and when it asks you, is shown for each conversation when it is started.</p>
     <p>Only these two settings are shown from Codex’s effective configuration response, at the time of the read. Missing values and sources stay unknown. This is separate from login requirements and does not prove credential custody, actual file or keychain effects, plugin activity or ongoing configuration freshness. Reading changes no setting and starts no sign-in, model or conversation.</p>
   </section>;
 }
@@ -2618,7 +2642,7 @@ export function App() {
           <DesktopSetupPanel view={host?.desktopSetup}/>
           <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
             <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} local={localAccess} act={async (command, args) => { await homeAction(command, args); }}/>
-            <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
+            <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings} automatic/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-files" title="Files and standing acts" description="Review a saved App-side output and its original act context">
