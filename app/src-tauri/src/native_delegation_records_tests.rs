@@ -654,3 +654,41 @@ fn overlapping_reads_retries_and_damaged_logs_take_one_end_at_most() {
         assert!(words.contains(if torn { "unclosed final line" } else { "duplicate/conflicting" }), "{words}");
     }
 }
+
+/// The guard tells a retry of this end from a competing end. This end is
+/// appended to the store and its acknowledgment fails; another writer (an
+/// older build, under the exception) then appends an end of its own. The
+/// retry finds this end's exact line, completes the project copy from it, and
+/// appends nothing to the store.
+#[test]
+fn a_retry_beside_a_competing_end_completes_its_own_and_appends_no_end() {
+    use std::io::Write;
+    let f = Fixture::new();
+    left_open(&f);
+    let mut second = Session::default();
+    super::super::FAIL_AFTER_WRITE.with(|flag| flag.set(Some(0)));
+    second.end_earlier_observations(Some(&f.project), &established("second", &["first"]));
+    super::super::FAIL_AFTER_WRITE.with(|flag| flag.set(None));
+    assert_eq!(second.reconciliation_status()["state"], "unavailable");
+    let store = published_at(&f.scope, 0);
+    let ours: Vec<Value> = std::fs::read(&store).unwrap().split(|b| *b == b'\n').filter(|l| !l.is_empty())
+        .map(|l| serde_json::from_slice::<Value>(l).unwrap()).filter(|row| row["kind"] == "observation_ended").collect();
+    assert_eq!(ours.len(), 1, "this end is in the store, unacknowledged");
+    let mut competing = ours[0].clone();
+    competing["observationId"] = json!("fl:app:competing-older-build");
+    competing["body"]["cause"] = json!("App quit");
+    let mut line = serde_json::to_vec(&competing).unwrap();
+    line.push(b'\n');
+    std::fs::OpenOptions::new().append(true).open(&store).unwrap().write_all(&line).unwrap();
+    let before = std::fs::read(&store).unwrap();
+    second.retry(Some(&f.project));
+    let after = std::fs::read(&store).unwrap();
+    assert!(after.starts_with(&before), "the store is appended to, never rewritten");
+    let added: Vec<Value> = after[before.len()..].split(|b| *b == b'\n').filter(|l| !l.is_empty()).map(|l| serde_json::from_slice(l).unwrap()).collect();
+    assert!(added.iter().all(|row| ["recording_limit", "recording_recovered"].contains(&row["kind"].as_str().unwrap())),
+        "the retry adds no end, only the account of its own unconfirmed write: {added:?}");
+    assert_eq!(second.reconciliation_status()["state"], "recorded", "{}", second.reconciliation_status());
+    let project = std::fs::read(published_at(&f.scope, 1)).unwrap();
+    let own = serde_json::to_vec(&ours[0]).unwrap();
+    assert_eq!(project.split(|b| *b == b'\n').filter(|l| *l == own.as_slice()).count(), 1, "the project copy of this end is completed from its own line");
+}

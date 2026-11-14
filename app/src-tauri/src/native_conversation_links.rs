@@ -1279,8 +1279,11 @@ fn publish_bound(
     if duplicate.is_some_and(|(_, line)| line.as_slice() != bytes) {
         return Err("original observation identity conflicts with stored bytes".into());
     }
+    // A retry finds its own exact line and completes from it; only an end
+    // that is not this one, with this one absent, is a second end.
     if phase == 0
         && record["kind"] == "observation_ended"
+        && !prior.iter().any(|(_, line)| line.as_slice() == bytes)
         && prior.iter().any(|(row, line)| {
             row["formatVersion"] == "0.2"
                 && row["kind"] == "observation_ended"
