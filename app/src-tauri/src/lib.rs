@@ -3055,7 +3055,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
         trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
-        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
+        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open_before_store).map(Arc::new),
         native_links: Mutex::new(native_conversation_links::Session::default()),
         project_context, project_context_limit,
         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
@@ -3101,6 +3101,9 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
         match records_store::recover_at_startup() {
             Ok(left) => for note in left { eprintln!("chirality: records store line file left as it is: {note}"); },
             Err(e) => eprintln!("chirality: records store line files not examined at startup: {e}"),
+        }
+        if let Ok(log) = &state.role_log {
+            if let Err(e) = log.bind_writer_source() { eprintln!("chirality: role observation writer not bound at startup: {e}"); }
         }
     }
     // AAC §6.3 SEAL-C: install the App-owned location; the gated signed

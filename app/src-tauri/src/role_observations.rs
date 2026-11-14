@@ -189,6 +189,11 @@ fn payload_key(identity: &Value) -> Result<&str, String> {
     }
     Ok(s)
 }
+#[derive(Debug)]
+struct WriterSource {
+    binding: Result<Option<records_store::WriterBinding>, String>,
+    origin: Result<records_store::ReaderBinding, String>,
+}
 /// Opened once from the explicit Root App project; never inferred from native cwd.
 #[derive(Debug)]
 pub struct RoleLog {
@@ -196,11 +201,18 @@ pub struct RoleLog {
     project_directory: File,
     project_identity: (u64, u64),
     writer: std::sync::Mutex<()>,
-    binding: std::sync::Mutex<Result<Option<records_store::WriterBinding>, String>>,
-    origin: Result<records_store::ReaderBinding, String>,
+    source: std::sync::Mutex<Option<WriterSource>>,
 }
 impl RoleLog {
     pub fn open(project: &Path) -> Result<Self, String> {
+        let log = Self::open_before_store(project)?;
+        // Writer unavailability does not prevent the existing read-only use.
+        let _ = log.bind_writer_source();
+        Ok(log)
+    }
+    /// Startup pins the project before the store has been configured. It
+    /// binds this writer once, after initializing that store and attachment.
+    pub(crate) fn open_before_store(project: &Path) -> Result<Self, String> {
         let project_directory = directory(project)?;
         let project_identity = identity(&project_directory)?;
         Ok(Self {
@@ -208,9 +220,19 @@ impl RoleLog {
             project_directory,
             project_identity,
             writer: std::sync::Mutex::new(()),
-            binding: std::sync::Mutex::new(records_store::bind_writer_if_attached(project)),
-            origin: records_store::bind_reader(project, records_store::ReaderDecision::Records),
+            source: std::sync::Mutex::new(None),
         })
+    }
+    pub(crate) fn bind_writer_source(&self) -> Result<(), String> {
+        let mut source = self.source.lock().unwrap_or_else(|p| p.into_inner());
+        if source.is_none() {
+            self.check_project()?;
+            *source = Some(WriterSource {
+                binding: records_store::bind_writer_if_attached(&self.project),
+                origin: records_store::bind_reader(&self.project, records_store::ReaderDecision::Records),
+            });
+        }
+        source.as_ref().unwrap().binding.as_ref().map(|_| ()).map_err(Clone::clone)
     }
     fn check_project(&self) -> Result<(), String> {
         let current = directory(&self.project)?;
@@ -226,10 +248,11 @@ impl RoleLog {
         }
     }
     fn writer_dir(&self) -> Result<PathBuf, String> {
-        let mut held = self.binding.lock().unwrap_or_else(|p| p.into_inner());
-        let binding = held.as_mut().map_err(|e| e.clone())?;
+        let mut held = self.source.lock().unwrap_or_else(|p| p.into_inner());
+        let source = held.as_mut().ok_or("role observation writer source not initialized")?;
+        let binding = source.binding.as_mut().map_err(|e| e.clone())?;
         if binding.is_none() {
-            self.origin.as_ref().map_err(Clone::clone)?.prove()?;
+            source.origin.as_ref().map_err(Clone::clone)?.prove()?;
             if records_store::bind_writer_if_attached(&self.project)?.is_some() {
                 return Err("the project acquired a records identity since this role observation handle was opened; reopen; nothing written".into());
             }
@@ -238,7 +261,8 @@ impl RoleLog {
         Ok(binding.as_ref().unwrap().records_dir().to_path_buf())
     }
     fn prove_writer(&self) -> Result<(), String> {
-        self.binding.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map_err(Clone::clone)?
+        self.source.lock().unwrap_or_else(|p| p.into_inner()).as_ref().ok_or("role observation writer source not initialized")?
+            .binding.as_ref().map_err(Clone::clone)?
             .as_ref().ok_or("role observation writer binding unavailable")?.prove_for_write()
     }
     fn location(
@@ -641,7 +665,8 @@ impl RoleLog {
             };
             content = Some(payloads);
         }
-        let project = self.binding.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map_err(Clone::clone)?
+        let project = self.source.lock().unwrap_or_else(|p| p.into_inner()).as_ref().ok_or("role observation writer source not initialized")?
+            .binding.as_ref().map_err(Clone::clone)?
             .as_ref().ok_or("record store project identity absent")?.project_id().to_owned();
         row["project"] = json!({"projectId":project,"sourceRoot":crate::attachments::native_path_identity(&self.project),"device":self.project_identity.0,"inode":self.project_identity.1});
         row["seq"] = json!(chain.lines + 1);

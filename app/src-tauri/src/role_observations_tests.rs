@@ -97,6 +97,22 @@ fn records_store_writer_binding_unattached_role_handle_does_not_acquire_a_later_
     assert!(result.is_err(), "{result:?}");
     assert!(!dir.join(RELATIVE_LOG).exists());
 }
+
+#[test]
+fn records_store_writer_binding_startup_role_handle_binds_after_store_initialization_once() {
+    let f = Fixture::new();
+    records_store::use_store_for_test(Some(Err("store not configured yet".into())));
+    let log = RoleLog::open_before_store(&f.project).unwrap();
+    assert!(!f.project.join(records_store::PROJECT_LINK).exists());
+    assert!(log.append(observation("sup:too-early", "unknown"), Some(&composition())).is_err());
+    records_store::use_store_for_test(Some(Ok(Store { root: f.store.clone(), placement: Placement::Test, limits: vec![] })));
+    records_store::attach(&f.project, true).unwrap();
+    log.bind_writer_source().unwrap();
+    f.append(&log, "sup:after-initialization", "unknown");
+    records_store::new_identity(&f.project).unwrap();
+    log.bind_writer_source().unwrap();
+    assert!(log.append(observation("sup:later-identity", "unknown"), Some(&composition())).is_err(), "initialization cannot rebind a writer");
+}
 #[test]
 fn fresh_reader_keeps_exact_app_sources_without_role_authority() {
     let f = Fixture::new();
