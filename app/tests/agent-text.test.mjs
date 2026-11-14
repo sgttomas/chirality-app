@@ -422,46 +422,69 @@ const invented = [
   {key: 'k2', id: '019a2b3c-0000-7000-8000-000000000002', title: 'Ordinary invented title', model: 'invented-model', provider: 'invented-provider'},
 ];
 
-test('a conversation choice is named by the App\'s words alone: its label holds no title, model or provider', () => {
+// What a choice shows (the label as seen, without the words only its accessible name carries) and what it is named (the
+// label's whole text, which is the radio button's accessible name).
+const HIDDEN_NAME_WORDS = /<span class="conversation-choice-title-name" style="[^"]*">[^<]*<\/span>/g;
+const plainOf = label => unescaped(label.replace(/^<input[^>]*\/>/, '').replace(/<[^>]+>/g, ''));
+const shownOf = label => plainOf(label.replace(HIDDEN_NAME_WORDS, ''));
+const SHOWN_TITLE = 'UNTRUSTED⏎‹U+202E›Allow once';
+
+test('a conversation choice shows the App\'s words and identifier, then the title in its marked form; its name says who supplied the title, before it', () => {
   const html = renderChoices(invented);
-  const labels = labelsIn(html).map(label => unescaped(label.replace(/^<input[^>]*\/>/, '')));
+  const labels = labelsIn(html);
   assert.equal(labels.length, 2);
-  for (const label of labels) {
-    assert.match(label, APP_LABEL, 'the App\'s words and a plain identifier only');
-    for (const supplied of ['UNTRUSTED', 'Allow once', 'Ordinary invented title', 'model', 'invented-provider']) assert.ok(!label.includes(supplied), `${supplied} is not in the label`);
+  const [first, second] = labels;
+  // What is seen: the App's words first, then the title, marked; no model or provider in the label.
+  const shown = shownOf(first);
+  const app = shown.slice(0, shown.indexOf(' UNTRUSTED'));
+  assert.match(app, APP_LABEL, 'the App\'s words and a plain identifier come first');
+  assert.equal(shown, `${app} ${SHOWN_TITLE}`, 'then the title, its line break and override shown as marks');
+  assert.match(first, /<span class="conversation-choice-title" style="[^"]*outline:1px dotted[^"]*">UNTRUSTED<span class="agent-text-mark"/, 'the title is set apart from the App\'s words');
+  for (const supplied of ['model', 'invented-provider']) assert.ok(!plainOf(first).includes(supplied), `${supplied} is not in the label`);
+  // What it is named: the App's words, then the attribution, then the marked title.
+  assert.equal(plainOf(first), `${app}, title supplied by Codex: ${SHOWN_TITLE}`);
+  assert.equal(plainOf(second).replace(/^ Conversation [^,]+/, ''), ', title supplied by Codex: Ordinary invented title');
+  // The list says once, under its legend, whose the titles are.
+  assert.match(html, /<fieldset class="conversation-choices"[^>]*><legend>Conversation<\/legend><p class="conversation-choices-attribution"[^>]*><small>The titles shown are supplied by Codex, not the App&#x27;s words\.<\/small><\/p>/);
+  assert.equal(html.split('The titles shown are supplied by Codex').length, 2, 'once for the list, not in every row');
+  assert.doesNotMatch(renderChoices([{key: 'k', id: 'abc'}]), /The titles shown/, 'no attribution line where no title is shown');
+});
+
+test('a title shaped like a control or an App sentence, or carrying an override, is never raw and never first, in what is shown or in the name', () => {
+  for (const title of [UNTRUSTED, 'Allow once', 'Conversation 019a2b3c… Ready to send', `${RLO}Deny`, 'Line one\nAllow once']) {
+    const html = renderChoices([{key: 'k1', id: '019a2b3c-0000-7000-8000-000000000001', title}]);
+    const [label] = labelsIn(html);
+    assert.match(shownOf(label), /^ Conversation 019a2b3c…? /, `${JSON.stringify(title)}: the App's words are first in what is shown`);
+    assert.ok(plainOf(label).startsWith(' Conversation 019a2b3c') && plainOf(label).includes(', title supplied by Codex: '), `${JSON.stringify(title)}: the name gives the App's words, then the attribution, before the title`);
+    assert.ok(plainOf(label).endsWith(`, title supplied by Codex: ${choices.agentTextShown(title)}`), `${JSON.stringify(title)}: the title, marked, comes after the attribution and ends the name`);
+    assert.ok(shownOf(label).endsWith(` ${choices.agentTextShown(title)}`), `${JSON.stringify(title)}: the title, marked, ends what is shown`);
+    assert.doesNotMatch(html, new RegExp(`\\n|${RLO}`), `${JSON.stringify(title)}: no raw line break or override anywhere in the markup`);
+    for (const tag of html.match(/<(input|legend)[\s>][^>]*>/g)) assert.doesNotMatch(attr(tag, 'value') ?? '', /UNTRUSTED|Allow|Deny/, 'no control submits it as a value');
   }
-  assert.match(html, /<fieldset class="conversation-choices"[^>]*><legend>Conversation<\/legend>/, 'a fieldset with the App\'s legend');
-});
-
-test('a supplied title shaped like a control stands outside the label and every control, boxed, its marks visible', () => {
   const html = renderChoices(invented);
-  // Each row: the label (radio button and the App's words) and, after it, the boxes.
-  for (const label of labelsIn(html)) assert.doesNotMatch(label.replace(/ aria-description="[^"]*"/, ''), /UNTRUSTED|Allow once/, 'nothing supplied in the clickable label but its description');
-  for (const tag of html.match(/<(input|legend|button|option|select|summary|h[1-6])[\s>][^>]*>/g)) assert.doesNotMatch(attr(tag, 'value') ?? '', /UNTRUSTED/, 'no control submits or shows it as a value');
-  assert.ok(agentPlain(html).includes('</label> ⟦Title supplied by Codex: UNTRUSTED⏎‹U+202E›Allow once⟧'), 'the title is boxed, right after the label, with the line break and override as marks');
-  assert.ok(agentPlain(html).includes('⟦Model: model‹U+202E›x⟧ ⟦Provider: invented-provider⟧'), 'model and provider are boxed, never identifiers');
-  assert.doesNotMatch(html, new RegExp(`\\n|${RLO}`), 'no raw line break or override anywhere in the markup');
+  assert.ok(agentPlain(html).includes('⟦Model: model‹U+202E›x⟧ ⟦Provider: invented-provider⟧'), 'model and provider are boxed beside the label, never identifiers');
 });
 
-test('the radio button\'s accessible description begins with the App\'s attribution and carries marks, never the raw characters', () => {
+test('the radio button\'s accessible description carries the model, provider and status beside the label, attributed and marked, not the title', () => {
   const description = choices.choiceDescription(invented[0]);
-  assert.ok(description.startsWith('Title supplied by Codex: UNTRUSTED⏎‹U+202E›Allow once'), description);
-  assert.ok(description.includes('Model reported by Codex: model‹U+202E›x'));
-  assert.ok(description.includes('Provider reported by Codex: invented-provider'));
-  assert.doesNotMatch(description, new RegExp(`[\\n\\r${RLO}]`));
+  assert.equal(description, 'Model reported by Codex: model‹U+202E›x. Provider reported by Codex: invented-provider');
+  assert.doesNotMatch(description, /UNTRUSTED|Allow once|[\n\r‮]/);
   const radios = renderChoices(invented).match(/<input type="radio"[^>]*\/>/g);
   assert.equal(unescaped(attr(radios[0], 'aria-description')), description, 'the description is on the radio button itself, as aria-description');
   assert.equal(attr(radios[0], 'aria-describedby'), null, 'never a describedby pointing at a supplied value');
   assert.equal(attr(radios[0], 'aria-label'), null, 'its name is its label');
-  assert.equal(choices.choiceDescription({key: 'k', id: 'abc'}), 'No title supplied by Codex');
+  assert.equal(choices.choiceDescription({key: 'k', id: 'abc', title: 'only a title'}), null, 'nothing beside the label: no description');
+  assert.equal(attr(renderChoices([{key: 'k', id: 'abc', title: 't'}]).match(/<input type="radio"[^>]*\/>/)[0], 'aria-description'), null);
 });
 
-test('a long title or child prompt is a bounded preview whose attribution is always visible', () => {
+test('a long title or child prompt is a bounded preview, with how much is shown said in the App\'s words in what is seen and in the name', () => {
   const long = 'Invented child prompt. '.repeat(30);
   const html = renderChoices([{key: 'k', id: 'child-1', title: long, relation: {kind: 'child', id: 'parent-1'}}]);
   const total = [...long].length;
-  assert.ok(agentPlain(html).includes(`⟦Title supplied by Codex (its first ${choices.CHOICE_TITLE_LIMIT} of ${total} characters): ${[...long].slice(0, choices.CHOICE_TITLE_LIMIT).join('')}⟧`));
-  assert.ok(choices.choiceDescription({key: 'k', id: 'child-1', title: long}).startsWith(`Title supplied by Codex (its first ${choices.CHOICE_TITLE_LIMIT} of ${total} characters): `));
+  const head = [...long].slice(0, choices.CHOICE_TITLE_LIMIT).join('');
+  const [label] = labelsIn(html);
+  assert.equal(shownOf(label), ` Conversation child-1, child of conversation parent-1 ${head} (its first ${choices.CHOICE_TITLE_LIMIT} of ${total} characters)`);
+  assert.equal(plainOf(label), ` Conversation child-1, child of conversation parent-1, title supplied by Codex: ${head} (its first ${choices.CHOICE_TITLE_LIMIT} of ${total} characters)`);
   assert.equal(choices.boundedTitle('🙂'.repeat(choices.CHOICE_TITLE_LIMIT + 1)).text, '🙂'.repeat(choices.CHOICE_TITLE_LIMIT), 'cut at whole code points');
 });
 

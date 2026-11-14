@@ -456,11 +456,12 @@ test('history discovery uses native names before previews and retains exact IDs 
     ui.host.nativeHistory.threads[1].native.name = 'Notes to actions';
     await ui.show();
     const option = id => rowOf(ui.chooser(), id);
-    // The radio button is named by the App's words; the name, status and an identity that is not plain stand beside.
-    assert.equal(labelOf(ui.chooser(), 'stored'), 'Conversation stored');
-    assert.match(option('stored').textContent, /Title supplied by Codex: Office move Status: not loaded$/);
-    assert.equal(labelOf(ui.chooser(), 'other-É'), 'Conversation 2 (identity shown beside)', 'its place in the list');
-    assert.match(option('other-É').textContent, /Identity: other-É Title supplied by Codex: Notes to actions Status: idle$/);
+    // The radio button is named by the App's words, then who supplied the title, then the title; the status and an
+    // identity that is not plain stand beside.
+    assert.equal(labelOf(ui.chooser(), 'stored'), 'Conversation stored, title supplied by Codex: Office move');
+    assert.match(option('stored').textContent, /Conversation stored, title supplied by Codex: Office move Status: not loaded$/);
+    assert.equal(labelOf(ui.chooser(), 'other-É'), 'Conversation 2 (identity shown beside), title supplied by Codex: Notes to actions', 'its place in the list');
+    assert.match(option('other-É').textContent, /Notes to actions Identity: other-É Status: idle$/);
     await ui.search('NOTES TO ACTIONS');
     assert.match(ui.c.textContent, /1 matching of 2 received/);
     assert.equal(chosenIn(ui.chooser()), 'stored', 'search never replaces the selected work');

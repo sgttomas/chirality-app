@@ -221,7 +221,12 @@ export function boundedTitle(value: unknown): { text: string; total: number; sho
   const points = [...text];
   return points.length > CHOICE_TITLE_LIMIT ? { text: points.slice(0, CHOICE_TITLE_LIMIT).join(""), total: points.length, shortened: true } : { text, total: points.length, shortened: false };
 }
-const titleAttribution = (title: { total: number; shortened: boolean }) => title.shortened ? `Title supplied by Codex (its first ${CHOICE_TITLE_LIMIT} of ${title.total} characters)` : "Title supplied by Codex";
+/** The App's words after a shortened title: how much of it is shown. */
+const titleCount = (title: { total: number; shortened: boolean }) => title.shortened ? ` (its first ${CHOICE_TITLE_LIMIT} of ${title.total} characters)` : "";
+/** The list's one visible attribution for its titles; each choice's accessible name repeats it before its own title. */
+export const CHOICE_TITLES_ATTRIBUTION = "The titles shown are supplied by Codex, not the App's words.";
+/** Said in each choice's accessible name before its title, and not shown: a screen reader or a tool reads a row on its own. */
+export const CHOICE_TITLE_NAME_WORDS = ", title supplied by Codex:";
 
 /** Each identity's shortest form that tells it apart in the list: the shortest prefix of at least SHORT_ID_MIN
  * characters that no other identity in the list begins with, followed by … when shortened; the whole identity when
@@ -258,10 +263,10 @@ export function choiceLabels(rows: readonly ConversationChoice[]): string[] {
   });
 }
 
-/** The accessible description of one choice: each supplied value after the App's attribution, every mark in place. */
-export function choiceDescription(row: ConversationChoice): string {
-  const title = boundedTitle(row.title);
-  const parts = [title ? `${titleAttribution(title)}: ${agentTextShown(title.text)}` : "No title supplied by Codex"];
+/** The accessible description of one choice: each supplied value beside its label (the title is in the label), after the
+ * App's attribution, every mark in place; null when there is none. */
+export function choiceDescription(row: ConversationChoice): string | null {
+  const parts: string[] = [];
   const supplied = (words: string, value: unknown) => { if (value !== null && value !== undefined) parts.push(`${words}: ${agentTextShown(agentTextValue(value as Json))}`); };
   supplied("Model reported by Codex", row.model);
   supplied("Provider reported by Codex", row.provider);
@@ -271,8 +276,13 @@ export function choiceDescription(row: ConversationChoice): string {
   }
   if (plainId(row.id) === null) supplied("Identity reported by Codex", row.id);
   if (row.relation && plainId(row.relation.id) === null) supplied("Recorded identity of the related conversation", row.relation.id);
-  return parts.join(". ");
+  return parts.length > 0 ? parts.join(". ") : null;
 }
+
+// The title inside a choice's label: the compact marked inline form. Not an AgentText box: a box is a named group, and in
+// a control's accessible name a descendant's own name replaces its content, so the title would vanish from the name.
+const choiceTitleStyle: CSSProperties = { outline: "1px dotted var(--ink-faint, #786f5f)", outlineOffset: 1, borderRadius: 2, padding: "0 2px", fontFamily: "var(--font-code, monospace)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" };
+const visuallyHidden: CSSProperties = { position: "absolute", width: 1, height: 1, margin: -1, padding: 0, border: 0, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" };
 
 const RETAINED_WORDS = { "outside-search": "chosen — outside this search", "not-received": "chosen — not in the received list" } as const;
 const choiceRowStyle: CSSProperties = { display: "block", margin: "2px 0" };
@@ -291,16 +301,18 @@ export function ConversationChoices({ legend, value, chosen, onChoose, group, di
   const labels = choiceLabels(rows);
   return <fieldset className="conversation-choices" disabled={disabled} aria-describedby={describedBy} style={{ border: "none", padding: 0, margin: "4px 0", ...style }}>
     <legend>{legend}</legend>
+    {rows.some(row => boundedTitle(row.title) !== null) && <p className="conversation-choices-attribution" style={{ margin: "0 0 2px" }}><small>{CHOICE_TITLES_ATTRIBUTION}</small></p>}
     {none !== undefined && <div className="conversation-choice" style={choiceRowStyle}>
       <label><input type="radio" name={group} value="" checked={chosen === ""} disabled={disabled} onChange={() => onChoose("")} /> {none}</label>
     </div>}
     {rows.map((row, i) => {
       const title = boundedTitle(row.title);
       return <div key={row.key} className="conversation-choice" style={choiceRowStyle}>
-        <label><input type="radio" name={group} value={row.key} checked={chosen === row.key} disabled={disabled} onChange={() => onChoose(row.key)} aria-description={choiceDescription(row)} /> {labels[i]}</label>
+        <label><input type="radio" name={group} value={row.key} checked={chosen === row.key} disabled={disabled} onChange={() => onChoose(row.key)} aria-description={choiceDescription(row) ?? undefined} /> {labels[i]}
+          {title && <><span className="conversation-choice-title-name" style={visuallyHidden}>{CHOICE_TITLE_NAME_WORDS}</span> <span className="conversation-choice-title" style={choiceTitleStyle}><Parts value={title.text} /></span>{title.shortened && <small>{titleCount(title)}</small>}</>}</label>
         {plainId(row.id) === null && <>{" "}<AgentText value={row.id} source="codex" label="Identity:" name="The conversation's identity as Codex reported it, not the App's words" /></>}
         {row.relation && plainId(row.relation.id) === null && <>{" "}<AgentText value={row.relation.id} source="record" label="Related conversation:" name="The recorded identity of the related conversation" /></>}
-        {" "}{title ? <AgentText value={title.text} source="codex" label={`${titleAttribution(title)}:`} name="The conversation's title or first message as Codex supplied it, not the App's words" /> : <i>no title supplied</i>}
+        {!title && <>{" "}<i>no title supplied</i></>}
         {row.model !== undefined && <>{" "}{row.model !== null ? <AgentText value={row.model} source="codex" label="Model:" name="The model as Codex reported it, not the App's words" /> : <i>model not reported</i>}</>}
         {row.provider !== undefined && <>{" "}{row.provider !== null ? <AgentText value={row.provider} source="codex" label="Provider:" name="The provider as Codex reported it, not the App's words" /> : <i>provider not reported</i>}</>}
         {row.status !== undefined && <>{" "}<small>Status: <Word value={row.status} words={THREAD_STATUS} /></small></>}
