@@ -184,5 +184,179 @@
   "where": "@aria-label",
   "expr": "label",
   "reason": "the App's words: every caller passes a string literal (the five ConversationContext uses)"
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "text",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or the workflow-draft request draftRequestText builds and offerComposer places (\"Replace my text with the request\"). This text is composed by the Host and may carry supplied words; part 3 adds a line beside the field saying it was prepared from material the App does not vouch for."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "ordinaryModelValue",
+  "reason": "a text field holding only what the person typed: a const derived from state that this field's typing sets, or reset to \"\"; the guard does not follow a derived const."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "search",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or searchHint.text, a saved conversation identity a trial offers."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "name",
+  "reason": "a text field holding only what the person typed: state set only by this field's onChange (two fields, lines 1097 and 1452). The guard matches setters by name, and the name is also bound elsewhere in the file (1097); at 1452 it is a prop of App state."
+ },
+ {
+  "file": "RunJourney.tsx",
+  "where": "@value",
+  "expr": "personText",
+  "reason": "a text field holding only what the person typed: App's text state, passed down as setText; setText(e.target.value) is its only call (App.tsx:1140 and here). The guard does not follow a setter passed as a prop."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "@value",
+  "expr": "model",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or another choice of model (route or choice state)."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "@value",
+  "expr": "draft",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from handoff.draftText, seeded once. This text is composed by the Host and may carry supplied words; part 3 adds a line beside the field saying it was prepared from material the App does not vouch for."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@value",
+  "expr": "paths[index]?.displayPath ?? \"\"",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or desktop_setup_pick (the native folder picker)."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@value",
+  "expr": "project?.displayPath ?? \"\"",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or desktop_setup_pick (the native folder picker)."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@value",
+  "expr": "projectText",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or desktop_setup_pick (the native folder picker)."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@value",
+  "expr": "paths[index]?.displayPath ?? \"\"",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or desktop_setup_pick (the native folder picker)."
+ },
+ {
+  "file": "LocalProviderAccess.tsx",
+  "where": "@value",
+  "expr": "draft.endpoint",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the saved local settings or the endpoint the Host offers."
+ },
+ {
+  "file": "LocalProviderAccess.tsx",
+  "where": "@value",
+  "expr": "draft.model",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the saved local settings."
+ },
+ {
+  "file": "MakeJourney.tsx",
+  "where": "@value",
+  "expr": "name",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or draft.name when the person chooses \"Continue …\"."
+ },
+ {
+  "file": "ModelChoice.tsx",
+  "where": "@value",
+  "expr": "model",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from the person's typing, or a model chosen from Codex's list or the oMLX model."
+ },
+ {
+  "file": "TrialComposer.tsx",
+  "where": "@value",
+  "expr": "message",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from pending.message, the trial message and inputs the Host composes (lines 126 and 174). This text is composed by the Host and may carry supplied words; part 3 adds a line beside the field saying it was prepared from material the App does not vouch for."
+ },
+ {
+  "file": "TrialComposer.tsx",
+  "where": "@value",
+  "expr": "prompt",
+  "reason": "a text field the App prefills; its value is exact, and the person reads and changes it before anything is sent or saved. Prefilled from pending.prompt, the bring-back message the Host composes. This text is composed by the Host and may carry supplied words; part 3 adds a line beside the field saying it was prepared from material the App does not vouch for."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.statement",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.assertedBy",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.description",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.effect",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.responsible.identity??\"\"",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "r.reportedBy",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "r.reportedActor??\"\"",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "r.reason",
+  "reason": "a text field holding only what the person typed: props of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value; the guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "question[key]",
+  "reason": "a text field holding only what the person typed: setQuestion({...question,[key]:e.target.value}) is its only write, and its initial value is an object literal of empty strings; the guard accepts only updater writes and an empty initial object."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "responsible",
+  "reason": "a text field holding only what the person typed: two components each own a responsible state set only by their field's typing (lines 127 and 212); the guard matches setters by name, so each one's declaration fails the other."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "c.role",
+  "reason": "a text field holding only what the person typed: held in a per-reference map and set only through the choose() helper from this field's typing."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "value.reason",
+  "reason": "a text field holding only what the person typed: set only by a nested-spread updater on the duties map from this field's typing."
  }
 ]
