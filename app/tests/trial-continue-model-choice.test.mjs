@@ -243,6 +243,8 @@ test('in the App, a generation or home change keeps the clean trial composer and
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     if (command === 'read_available_models') return packet({generation:args.generation, serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider'});
+    // "Waiting on you"'s timed read of the return queue: a read that writes nothing, not an act.
+    if (command === 'read_fleet_records') throw Error('invented: no fleet records in this harness');
     acts.push(command); throw Error(`unexpected ${command}`);
   });
   const intervals = new Map(), previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById}; let timer = 0;
