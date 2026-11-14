@@ -28,6 +28,23 @@ const accountCheckpoint = (host: Json) => {
   const source = latestAccountRead(host)?.source;
   return JSON.stringify([source?.requestRef, source?.outcome, source?.authResponseShapeValid, host?.accountObservation?.state]);
 };
+/** What the App knows of this connection's sign-in, from the person's own
+ * account check only (the App makes no automatic authentication read): a
+ * ChatGPT account or no account as Codex reported it for the current Codex
+ * process and home, else not checked. A reading from an earlier process or
+ * home is never carried forward: latestAccountRead keeps only reads of the
+ * current generation, and a read no longer current counts as not checked. */
+export type ConnectionSignIn = "chatgpt-account" | "no-account" | "not-checked";
+export function connectionSignIn(host: Json): ConnectionSignIn {
+  if (!host?.generation) return "not-checked";
+  const generation = host.generation, latest = latestAccountRead(host), source = latest?.source, observation = latest?.accountObservation;
+  const current = host?.accountObservation;
+  if (!latest || source?.sourceCurrent !== true || source.outcome !== "response-observed-result" || source.authResponseShapeValid !== true) return "not-checked";
+  if (!sameActivityGeneration(current?.generation, generation) || current?.home !== generation.home || current?.state !== "observed") return "not-checked";
+  if (observation?.state === "native account null observed" && observation.account === null && current.nativeAccount === null) return "no-account";
+  if (observation?.state === "native account type observed" && observation.account?.type === "chatgpt" && current.nativeAccount?.type === "chatgpt") return "chatgpt-account";
+  return "not-checked";
+}
 function accountSummary(host: Json): string {
   const generation = host.generation, latest = latestAccountRead(host), source = latest?.source, observation = latest?.accountObservation;
   if (!latest) return "Account status has not been checked for this connection.";

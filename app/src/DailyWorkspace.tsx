@@ -83,7 +83,7 @@ export function refusedStartWords(cause?: string | null, build?: string | null):
     default: return { link: true, words: "The App did not record why. Connection and access shows Codex's controls." };
   }
 }
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build }: {
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "not-checked" }: {
   state?: string; setupRequired?: boolean; savedSetup?: boolean; generationClosed?: boolean;
   /** The host status's `lastStartRefusal`: why the last start of Codex was refused before it was spawned, and for which home. */
   startRefusal?: { reason?: string; home?: string } | null;
@@ -91,6 +91,9 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   codexHome?: string | null;
   /** The host status's `startRefusalCause` and `build`. */
   refusalCause?: string | null; build?: string | null;
+  /** What Codex reported of this connection's sign-in at the person's own check (AccountStatus
+   * connectionSignIn); "not-checked" until then, and again after Codex or its home changes. */
+  signIn?: "chatgpt-account" | "no-account" | "not-checked";
 }) {
   const ready = state === "ready" && generationClosed !== true;
   const homeRefusal = !setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome;
@@ -98,14 +101,18 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   const refused = !setupRequired && (state === "refused" || homeRefusal);
   const cause = state === "refused" && !setupRequired && !homeRefusal ? refusedStartWords(refusalCause, build) : null;
   const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
-    : !state ? "Reading connection status…" : ready ? "Codex is connected"
+    : !state ? "Reading connection status…" : ready ? signIn === "chatgpt-account" ? "Codex is running and signed in" : "Codex is running"
     : state === "starting" ? "Codex is starting…" : state === "stopping" ? "Codex is stopping…"
     : refused ? "Codex was not started"
     : state === "exited-unexpectedly" ? "Codex could not stay connected"
     : "Codex is not connected";
   const linkUseful = !cause || cause.link;
   const guidance = setupRequired ? savedSetup ? "Your saved choices apply on the next launch." : "Choose shared settings and a project below."
-    : ready ? "Choose a conversation, or select a model and access entry for a new one."
+    // Codex started and the App reached it. Whether anyone is signed in is known only from the
+    // person's own account check for this connection; the App makes no automatic authentication read.
+    : ready ? signIn === "chatgpt-account" ? "Choose a conversation, or choose a model for a new one."
+      : signIn === "no-account" ? "Codex reports that you're not signed in. Sign in under Connection and access to choose a model."
+      : "The App hasn't checked whether you're signed in. Check or sign in under Connection and access, then choose a model and start a conversation."
     : !state ? "Waiting for the App to report its current connection."
     : cause ? cause.words
     : "Open Connection and access to inspect the current status and available controls.";
@@ -114,7 +121,7 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
     {/* Only while no start is under way, and only for the home being shown. */}
     {homeRefusal && startRefusal?.reason
       && <p role="alert" aria-label="Why Codex was not started">{startRefusal.reason.startsWith("Codex was not started") ? startRefusal.reason : `Codex was not started: ${startRefusal.reason}`}</p>}
-    {!setupRequired && state && linkUseful && <a href={ready ? "#workspace-start" : "#workspace-connection"}>{ready ? "Choose a new conversation" : "Open connection controls"}</a>}
+    {!setupRequired && state && linkUseful && <a href={ready && signIn === "chatgpt-account" ? "#workspace-start" : "#workspace-connection"}>{ready && signIn === "chatgpt-account" ? "Choose a new conversation" : "Open connection controls"}</a>}
   </section>;
 }
 

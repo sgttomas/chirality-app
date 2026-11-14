@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
+import { LOCAL_ROUTE_OFFERED, LOCAL_ROUTE_NOT_OFFERED } from "./localRoute";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -48,14 +49,14 @@ export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "
   const localChosen = !!local && entryId === local.entryId && modelProvider === local.providerId && model === local.model;
   return <div aria-label="How this conversation connects">
     {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
-      : homeClass === "local-provider" ? (local
+      : homeClass === "local-provider" ? (!LOCAL_ROUTE_OFFERED ? <p>{LOCAL_ROUTE_NOT_OFFERED}</p> : local
         ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use oMLX model {local.model}</button>{localChosen ? " — chosen" : ""}
           <br/><small>Local server <code>{local.endpoint}</code>; the key stays with Codex in the local home.</small>
           {local.credentialState === "entry-required" && <><br/><span role="note">No key is saved for this server yet. A conversation can be started, but its messages will fail until the key is entered under Connection &amp; access.</span></>}</p>
         : <p>Prepare the oMLX connection under Connection &amp; access for this Codex session first.</p>)
       : <p>Choose the account connection under Connection &amp; access first.</p>}
-    {homeClass === "account" && <p><small>{localHint ?? "A local model server has its own home: set it up and switch to it under Connection & access."}</small></p>}
-    {entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
+    {LOCAL_ROUTE_OFFERED && homeClass === "account" && <p><small>{localHint ?? "A local model server has its own home: set it up and switch to it under Connection & access."}</small></p>}
+    {LOCAL_ROUTE_OFFERED && entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
   </div>;
 }
 
@@ -74,7 +75,7 @@ export function AvailableModels({ packet, current, reading, message, model, mode
   const server = typeof packet?.serverProvider === "string" ? packet.serverProvider : null;
   const rows = list(packet?.models);
   if (localHome && !fixedModel) return <div aria-label="Available models">
-    <p>{localHome === "prepared" ? "The oMLX connection has one model. Choose it above." : "Prepare the oMLX connection under Connection & access first."}</p>
+    <p>{!LOCAL_ROUTE_OFFERED ? LOCAL_ROUTE_NOT_OFFERED : localHome === "prepared" ? "The oMLX connection has one model. Choose it above." : "Prepare the oMLX connection under Connection & access first."}</p>
   </div>;
   if (modelProvider && LOCAL_ENTRIES.includes(entryId)) return <div aria-label="Available models">
     {fixedModel ? <p>This connection uses one model: <code>{fixedModel}</code>{model === fixedModel ? " — chosen" : ""}.</p>

@@ -404,6 +404,21 @@ fn endpoint_offer_result(
     )?;
     Ok(view)
 }
+/// In this version the App does not offer a local model server or a local
+/// provider (DEL-01-05 "For 4.0.0"; LIM-015). The route's code is kept for a
+/// later update and nothing it made is deleted; every host command that would
+/// prepare, read, create, edit, select or start it refuses here, at the command
+/// boundary, in words a person can act on. The discard commands stay: they only
+/// drop an offer, which no refused command can now make.
+const LOCAL_ROUTE_OFFERED: bool = false;
+pub(crate) const LOCAL_ROUTE_NOT_OFFERED: &str = "This version of the App does not offer a local model server or a local provider. Use your ChatGPT account: sign in under Connection and access.";
+fn local_route_refused() -> Result<(), String> {
+    if LOCAL_ROUTE_OFFERED { Ok(()) } else { Err(LOCAL_ROUTE_NOT_OFFERED.into()) }
+}
+/// The reading a read of the local route returns in this version: not a fault.
+fn local_route_not_offered_reading() -> Value {
+    json!({"state":"not-in-this-version","offered":false,"reason":LOCAL_ROUTE_NOT_OFFERED})
+}
 #[tauri::command(async)]
 fn provider_endpoint_offer(
     state: State<'_, AppState>,
@@ -412,6 +427,7 @@ fn provider_endpoint_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
+    local_route_refused()?;
     endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch).map_err(endpoint_offer_refusal)
 }
 /// What the endpoint offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
@@ -546,6 +562,7 @@ fn provider_create_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
+    local_route_refused()?;
     create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch).map_err(create_offer_refusal)
 }
 /// What the Add save command returns for a failure: either reading sentence as it is (the reading
@@ -563,6 +580,7 @@ fn provider_create_save(
     state: State<'_, AppState>,
     token: String,
 ) -> Result<Value, String> {
+    local_route_refused()?;
     let (epoch, remaining) = {
         let c = state
             .endpoint_edits
@@ -647,6 +665,7 @@ fn provider_endpoint_save(
     state: State<'_, AppState>,
     token: String,
 ) -> Result<Value, String> {
+    local_route_refused()?;
     let epoch = state
         .endpoint_edits
         .lock()
@@ -1229,6 +1248,7 @@ fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
 #[tauri::command]
 fn select_home(state: State<'_,AppState>, mode_home_class:String)->Result<Value,String>{
     let class=home_class(&mode_home_class)?;
+    if class==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
     let mut homes=state.homes.lock().unwrap();
     homes.activate(class)?;
     let view=homes.snapshot();drop(homes);invalidate_endpoint_edits(&state)?;
@@ -1264,6 +1284,7 @@ fn read_effective_access_settings(state:State<'_,AppState>,generation:Value,mode
 
 #[tauri::command(async)]
 fn read_configured_providers(state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
+    if !LOCAL_ROUTE_OFFERED { return Ok(local_route_not_offered_reading()); }
     invalidate_endpoint_edits(&state)?;
     // Only the currently selected actual account source; no caller cwd/home,
     // alternate-home fallback, configuration write, model or capability read.
@@ -1405,6 +1426,7 @@ fn local_home_preflight(state: &AppState, bootstrap: &runtime_session::HomeBoots
 /// endpoint/model/key argument and no account resource links. Never writes defaults.
 #[tauri::command(async)]
 fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
+    local_route_refused()?;
     if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
@@ -1441,6 +1463,7 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
 }
 #[tauri::command(async)]
 fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state: State<'_, AppState>, generation: Value) -> Result<Value, String> {
+    local_route_refused()?;
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
     let home=state.homes.lock().unwrap().for_generation(&generation)?;
@@ -1456,6 +1479,7 @@ fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state
 /// Reads only the dedicated local home's config.toml; starts nothing; never a key.
 #[tauri::command(async)]
 fn local_model_settings_read(state: State<'_, AppState>) -> Value {
+    if !LOCAL_ROUTE_OFFERED { return local_route_not_offered_reading(); }
     let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
     let in_force=home.as_ref().and_then(|home| home.host.local_settings().ok());
     let superseded=home.as_ref().is_some_and(|home| home.host.local_superseded());
@@ -1466,6 +1490,7 @@ fn local_model_settings_read(state: State<'_, AppState>) -> Value {
 /// window. Never takes a key. An address change first has Codex sign out of the saved key.
 #[tauri::command(async)]
 fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, endpoint: String, model: String) -> Result<Value, String> {
+    local_route_refused()?;
     if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
     let proposed=native_local_provider::LocalSettings::new(&endpoint,&model)?;
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
@@ -1489,6 +1514,7 @@ fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, 
 
 #[tauri::command(async)]
 fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Value, String> {
+    if home_class(&mode_home_class)?==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
     start_home(&state, &home, "the person")
 }
@@ -1826,6 +1852,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         .as_ref()
         .map_err(Clone::clone)?
         .cwd.to_str().ok_or("Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent")?.to_owned();
+    if entry_id==native_local_provider::ENTRY || entry_id=="local-provider" || home.class()==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
     let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>home.host.local_settings().is_ok_and(|settings|native_local_provider::fixed_selection(&settings,&entry_id,&model_provider,&model).is_ok()),home_resources::HomeClass::Probe=>false };
     if home.class()==home_resources::HomeClass::LocalProvider { home.host.check_local_home()?; }
     if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
@@ -3544,6 +3571,9 @@ mod workflow_root_context_tests {
 
 #[cfg(all(test,unix))]
 mod file_act_consumer_tests;
+#[cfg(all(test,unix))]
+#[path = "local_route_refusal_tests.rs"]
+mod local_route_refusal_tests;
 #[cfg(test)]
 mod file_act_lapse_tests;
 

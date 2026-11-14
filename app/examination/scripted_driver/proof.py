@@ -495,7 +495,7 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
             'standing': 'a fact for another lane, not a judgment: what a person sees on the first launch after setup '
                         'without pressing anything, and how many presses it takes to learn which project the App holds '
                         'and whether they are signed in, as read in the App\'s source for this revision',
-            'seen_without_pressing': 'the workspace heading "Chirality" and its connection line ("Codex is connected", '
+            'seen_without_pressing': 'the workspace heading "Chirality" and its connection line ("Codex is running", '
                                      '"Codex could not stay connected", "Codex is starting…" or "Codex was not started", with guidance)',
             'project': 'shown as "Project folder: …" under "Project" in "Run a workflow", the task view shown first: no '
                        'press, unless that guide is withheld',

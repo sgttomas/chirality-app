@@ -1,4 +1,5 @@
 import { ActionFeedback } from "./ActionFeedback";
+import { LOCAL_ROUTE_OFFERED } from "./localRoute";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
@@ -36,7 +37,7 @@ import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
-import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
+import { AccountStatus, connectionSignIn, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -1200,12 +1201,12 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
   };
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
-    <p>Use your ChatGPT account, or a model server running on this machine. Each has its own home; switching between them leaves the other set up.</p>
+    <p>Sign in with your ChatGPT account to reach a model.</p>
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
-    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed. A local model server is set up below, under “Use oMLX / a local model”.</p>}
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed.</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <details><summary>Other sign-in options</summary>
@@ -1213,11 +1214,11 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
     <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button></details>
-    <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
+    {LOCAL_ROUTE_OFFERED && <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
       <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
         prepare={local.prepare} enterKey={local.enterKey} settingsChanged={local.settingsTouched} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
-    </section>
+    </section>}
     <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
     {error && <p role="alert">{error}</p>}
     <details><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
@@ -2501,7 +2502,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={connectionSignIn(host)}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2557,7 +2558,7 @@ export function App() {
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
             local={fixedLocal} choose={route => reviseChoice(route)}/>
-          {homeClass === "account" && <p aria-label="Local model servers">Custom local providers are not offered from this home. <a href="#workspace-connection">Set up the App’s local model connection</a> under Connection &amp; access, and switch to its home to start a conversation with it.</p>}
+          {homeClass === "account" && <p aria-label="Local model servers">Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
             model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
