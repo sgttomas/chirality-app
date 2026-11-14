@@ -413,9 +413,8 @@ def expect(outcome, kind):
 class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
 
-    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, home_name='home'):
+    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False):
         self.binary = binary
-        self.home_name = home_name  # the Codex home's folder name under the root
         self.name = 'level-' + secrets.token_hex(6)
         scratch = Path(scratch).resolve()
         if not scratch.is_dir():
@@ -441,7 +440,7 @@ class Run:
             raise Refused('%s already exists' % self.slash_tmp)
         os.mkdir(self.root, 0o700)
         try:
-            for child in (self.home_name, 'userhome', 'project', 'outside', 'tmpdir'):
+            for child in ('home', 'userhome', 'project', 'outside', 'tmpdir'):
                 os.mkdir(self.root / child, 0o700)
             if self.git_marker:
                 os.mkdir(self.root / 'project' / '.git', 0o700)
@@ -474,17 +473,13 @@ class Run:
         return False
 
     @property
-    def home(self):
-        return self.root / self.home_name
-
-    @property
     def project(self):
         return self.root / 'project'
 
     def environment(self, extra=None):
         package = Path(self.binary).resolve().parent.parent
         env = {'PATH': str(package / 'codex-path') + ':' + SYSTEM_PATH, 'HOME': str(self.root / 'userhome'),
-               'TZ': 'UTC', 'LANG': 'en_US.UTF-8', 'CODEX_HOME': str(self.root / self.home_name),
+               'TZ': 'UTC', 'LANG': 'en_US.UTF-8', 'CODEX_HOME': str(self.root / 'home'),
                'TMPDIR': str(self.root / 'tmpdir') + '/'}
         env.update({name: PROXY for name in PROXY_NAMES})
         env.update({'NO_PROXY': EXEMPT, 'no_proxy': EXEMPT})

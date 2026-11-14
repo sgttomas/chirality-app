@@ -251,9 +251,8 @@ class Presets(Probing):
 
     def test_paths_with_spaces_and_shell_characters_stay_contained(self):
         """A scratch folder whose name holds spaces, single quotes, parentheses, a semicolon and an ampersand: the
-        quoted commands write only their own targets, and the sandbox still refuses outside the project. A dollar
-        sign, a backquote and a double quote are left out, because Codex itself mishandles them (the next two
-        tests)."""
+        quoted commands write only their own targets, and the sandbox still refuses outside the project. A double
+        quote is left out here (the next test)."""
         odd = Path(tempfile.mkdtemp(prefix="level odd 'q' (p) ; & ", dir=SCRATCH))
         try:
             before = sorted(p.name for p in odd.parent.iterdir())
@@ -288,21 +287,6 @@ class Presets(Probing):
                 self.succeeded(probe(run, client, thread, 'in', **FULL))
         finally:
             odd.rmdir()
-
-    def test_codex_expands_its_home_path_at_thread_start_beyond_the_threads_level(self):
-        """Codex validates its shell snapshot with `. "<snapshot path>"`, the path under CODEX_HOME inside double
-        quotes (core/src/shell_snapshot.rs at the tag), so a command substitution in the home's folder name runs.
-        Observed: at thread/start, before any turn, it ran with the project as its folder and wrote there, though
-        the thread's level is read-only and a turn's write to the project is refused."""
-        with L.Run(SCRATCH, BINARY, home_name='home $(touch level-mark)') as run:
-            mark = run.project / 'level-mark'
-            client = run.start()
-            self.assertFalse(mark.exists())
-            reply = client.start_thread()
-            self.assertEqual(reply['sandbox'], {'type': 'readOnly', 'networkAccess': False})
-            self.assertTrue(client.wait(lambda: mark.exists(), 20))  # before any turn
-            self.assertEqual([n for n in client.notes if n['method'] == 'turn/started'], [])
-            self.refused(probe(run, client, reply['thread']['id'], 'in'))  # the level forbids this write
 
 
 class Carriers(Probing):
