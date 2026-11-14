@@ -147,7 +147,7 @@ test('in the dedicated local home a clean trial offers the prepared oMLX route a
     assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'nothing preselected');
     assert.equal(button(ui.c, 'Read available models'), undefined, 'no Codex list is offered before a route is chosen in the local home');
     assert.match(region(ui.c, 'How this conversation connects').textContent, /No key is saved for this server yet/);
-    await ui.press('Use oMLX model invented-local-model');
+    await ui.press('Use the oMLX model shown');
     assert.match(region(ui.c, 'Available models').textContent, /This connection uses one model: invented-local-model — chosen/);
     assert.equal(nodes(region(ui.c, 'Available models'), 'input').length, 0, 'the fixed route takes no typed model');
     await ui.press('Send');

@@ -231,7 +231,9 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.equal(!!props(button(ui.c, 'Sign in with your ChatGPT account (through Codex)…')).disabled, true, 'account sign-in belongs to the account home');
     assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined);
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, 'no route chosen yet');
-    await ui.press(`Use oMLX model ${LOCAL.model}`);
+    // The model's name is the saved setting's, shown exactly beside the App's button words.
+    assert.ok(region(ui.c, 'How this conversation connects').textContent.includes(`Model: ${LOCAL.model}`));
+    await ui.press('Use the oMLX model shown');
     assert.match(ui.summary(), new RegExp(`${LOCAL.model} via chirality-omlx \\(local-provider-keyed\\)`));
     await ui.press('Start thread');
     const start = ui.issued().filter(call => call.command === 'thread_start');
@@ -269,7 +271,7 @@ test('a settings save withdraws the key and route shown before, whether it succe
       const panel = () => region(ui.c, 'Keyed oMLX connection').textContent;
       assert.match(panel(), /Key saved by Codex — not verified/);
       await ui.press('Use local oMLX home');
-      await ui.press(`Use oMLX model ${LOCAL.model}`);
+      await ui.press('Use the oMLX model shown');
       assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
       await ui.press('Show local model settings');
       const address = nodes(ui.c, 'input').find(node => node.parentNode.textContent.startsWith('Server address '));
@@ -278,7 +280,7 @@ test('a settings save withdraws the key and route shown before, whether it succe
       assert.doesNotMatch(panel(), /Key saved by Codex — not verified/, outcome);
       assert.equal(region(ui.c, 'oMLX destination'), undefined, `${outcome}: the earlier destination is no longer shown as prepared`);
       assert.match(panel(), /The connection and key state shown before are withdrawn; prepare the oMLX connection again/, outcome);
-      assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, `${outcome}: the old route is not offered`);
+      assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined, `${outcome}: the old route is not offered`);
       assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, `${outcome}: a route chosen before the save cannot start`);
       if (outcome === 'saved') assert.match(panel(), /Saved\. Codex removed the saved key for the earlier address/);
       else {
@@ -340,7 +342,7 @@ test('keyed oMLX refuses incomplete views, stale routes and duplicate presses', 
     assert.ok(region(ui.c, 'oMLX destination'));
     await ui.press('Use local oMLX home');
     assert.match(ui.c.textContent, /Prepare the oMLX connection under Connection & access for this Codex session first/, 'a view for another generation offers no route');
-    assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined);
+    assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined);
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
     assertNoSecretTraffic(ui);
   });
@@ -353,7 +355,7 @@ test('review: a retained local Start cannot dispatch against a replacement gener
     throw Error(`unexpected ${command}`);
   }, async u => {
     ui = u;
-    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press('Use the oMLX model shown');
     const retained = props(button(ui.c, 'Start thread')).onClick;
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
     ui.setSnapshot(routed('local-provider', {...lg, spawnCounter:2})); await ui.refresh();
@@ -428,7 +430,7 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     throw Error(`unexpected ${command}`);
   }, async u => {
     ui = u;
-    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press('Use the oMLX model shown');
     await ui.press('Start thread');
     assert.ok(ui.c.textContent.includes(`thread_start: Error: ${LIMIT}`), 'the fixed refusal is shown as given');
     assert.match(region(ui.c, 'Keyed oMLX connection').textContent, /Key saved by Codex — not verified/, 'a Start refusal is not a key observation');
@@ -438,7 +440,7 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     assert.doesNotMatch(local, /Key saved by Codex|Key entry required|earlier Codex session/, 'a refusal supplies no key state');
     assert.equal(region(ui.c, 'oMLX destination'), undefined);
     assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined);
-    assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, 'no local route without a current observation');
+    assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined, 'no local route without a current observation');
     assertNoSecretTraffic(ui);
   });
 });

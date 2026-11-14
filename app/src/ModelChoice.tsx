@@ -50,7 +50,7 @@ export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "
   return <div aria-label="How this conversation connects">
     {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
       : homeClass === "local-provider" ? (local
-        ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use oMLX model {idWords(local.model)}</button>{localChosen ? " — chosen" : ""}
+        ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use the oMLX model shown</button>{localChosen ? " — chosen" : ""} <AgentText value={local.model} source="record" label="Model:" />
           <br/><small>Local server <code>{local.endpoint}</code>; the key stays with Codex in the local home.</small>
           {local.credentialState === "entry-required" && <><br/><span role="note">No key is saved for this server yet. A conversation can be started, but its messages will fail until the key is entered under Connection &amp; access.</span></>}</p>
         : <p>Prepare the oMLX connection under Connection &amp; access for this Codex session first.</p>)

@@ -1,4 +1,4 @@
-import { RecordedData, idWords } from "./AgentText";
+import { RecordedData, idWords, plainId } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 type Json = any;
 const text = (value: Json) => value == null ? "not established" : typeof value === "string" ? value : JSON.stringify(value);
@@ -17,6 +17,18 @@ export const RECORDED_AT_QUIT_WORDS = "Live work an earlier App session recorded
 export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${event?.kind ? idWords(event.kind) : "not established"}:`
   : event?.liveAtSessionEnd === "recorded-at-quit" ? RECORDED_AT_QUIT_WORDS : LAST_RECORDED_LIVE_WORDS;
 const detail = (value: Json) => <RecordedData value={value} />;
+/** A request identity as the record serializes it (JSON: 1 for an integer, "1" for a string), in the App's words:
+ * the plain identifier, in quotes when the record says it is a string; anything else is named as not plain and is
+ * shown exactly in the entry's recorded data below. */
+const requestIdWords = (serialized: Json, type: Json): string => {
+  if (type === "string" && typeof serialized === "string") {
+    let parsed: unknown = null;
+    try { parsed = JSON.parse(serialized); } catch { parsed = null; }
+    const id = typeof parsed === "string" ? plainId(parsed) : null;
+    return id === null ? "with an identity that is not a plain identifier" : `"${id}"`;
+  }
+  return idWords(serialized);
+};
 
 export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (threadId: string) => void }) {
   const custody = data.custody;
@@ -103,7 +115,7 @@ export function RecoveryRequestHistory({ modeHomeClass, generation, read }: { mo
       {data.page.entries.map((entry: Json, i: number) => {
         const summary = entry.summary;
         return <details key={JSON.stringify([summary.generation, summary.requestIdentity]) + i}>
-          <summary>{idWords(summary.endedAs)}: {idWords(summary.method)} · request {idWords(summary.requestIdentity)}{entry.requestIdentityType === "legacy-unknown" ? " (legacy type unknown)" : ""} · recorded {idWords(summary.at)}</summary>
+          <summary>{idWords(summary.endedAs)}: {idWords(summary.method)} · request {requestIdWords(summary.requestIdentity, entry.requestIdentityType)}{entry.requestIdentityType === "legacy-unknown" ? " (legacy type unknown)" : ""} · recorded {idWords(summary.at)}</summary>
           {summary.endedAs === "open-at-app-session-end" && <p>{OPEN_AT_APP_SESSION_END_WORDS}</p>}
           <p>Source home: {text(entry.sourceGeneration?.home)}; source App session: {text(entry.sourceGeneration?.appSession)}; spawn: {text(entry.sourceGeneration?.spawnCounter)}.</p>
           <p>Transition: {summary.transition}; context: {text(summary.context)}; reply write: {summary.replyWrite}; acknowledgment: {summary.acknowledgment}.</p>

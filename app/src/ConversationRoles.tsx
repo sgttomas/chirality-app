@@ -301,10 +301,10 @@ export function RoleSupplyHistory({ view }: { view: Json }) {
       {list(observation.limits).map((limit, j) => <p role="alert" key={j}>{text(limit)}</p>)}
       {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
         <AgentText block value={text(observation.sourceBytes.composed)} source="record" exactLineEnds />
-        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{idWords(part.source?.path)} · {idWords(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>Part {j + 1} · {idWords(part.kind)}</summary><AgentText value={part.source?.path} source="record" label="Path:" /><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
         {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {idWords(child.role)} child instruction bytes (quoted evidence)</summary>
           <AgentText block value={text(child.composed)} source="record" exactLineEnds />
-          {list(child.parts).map((part, k) => <details key={k}><summary>{idWords(part.source?.path)} · {idWords(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+          {list(child.parts).map((part, k) => <details key={k}><summary>Part {k + 1} · {idWords(part.kind)}</summary><AgentText value={part.source?.path} source="record" label="Path:" /><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
           <details><summary>Recorded child configuration file bytes</summary><AgentText block value={text(child.envelope)} source="record" exactLineEnds /></details>
           <details><summary>Recorded child limit account</summary><RecordedData value={child.limitAccount} /></details>
         </details>)}

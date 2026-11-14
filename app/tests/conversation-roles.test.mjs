@@ -413,7 +413,8 @@ test('quoted history exposes exact child composition, sources, envelope and orig
   assert.ok(html.includes('Recorded TASK child instruction bytes (quoted evidence)'));
   // Exact bytes: a carriage return stays visible as a mark, each line in the recorded box.
   assert.ok(agentPlain(html).includes('⟦Recorded text:\ncommon‹U+000D›\n\n# Active role: TASK\n\n&lt;child instructions&gt;⟧'));
-  assert.ok(html.includes('agents/AGENT_TASK.md · role-guidance')&&html.includes('&lt;child instructions&gt;'));
+  // The path is the record's, shown exactly in its own box beside the App's summary line.
+  assert.ok(html.includes('Part 1 · role-guidance')&&agentPlain(html).includes('⟦Path: agents/AGENT_TASK.md⟧')&&html.includes('&lt;child instructions&gt;'));
   assert.ok(html.includes('Recorded child configuration file bytes')&&agentPlain(html).includes('⟦Recorded text:\ndeveloper_instructions = &quot;quoted\\r\\n&quot;\n⟧'));
   assert.ok(html.includes('Recorded child limit account')&&html.includes('L-TASK-1'));
   assert.ok(html.includes('Quoted child bytes do not restore child associations')&&!html.includes('Original App child guidance'));
