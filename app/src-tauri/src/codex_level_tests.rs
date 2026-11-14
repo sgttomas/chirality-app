@@ -169,3 +169,28 @@ fn a_malformed_table_is_refused() {
     let inconsistent = TABLE.replacen("\"workspaceWrite\": null", "\"workspaceWrite\": {}", 1);
     assert!(parse(&inconsistent).is_err());
 }
+
+#[test]
+fn the_level_ledger_rows_are_valid_under_0_6_only_and_carry_no_decision_actor() {
+    let current: Value = serde_json::from_str(include_str!(
+        "../resources/runtime_core/recovery.app-ledger-entry.schema.json")).unwrap();
+    let before: Value = serde_json::from_str(include_str!(
+        "../resources/runtime_core/recovery.app-ledger-entry.v0.5.schema.json")).unwrap();
+    assert_eq!(current["$id"], "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.6");
+    let current = jsonschema::options().offline().build(&current).unwrap();
+    let before = jsonschema::options().offline().build(&before).unwrap();
+    let rows = [
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.default.valid.json"), true),
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.conversation.valid.json"), true),
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-sent.valid.json"), true),
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-reported.valid.json"), true),
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.no-digest.invalid.json"), false),
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.unknown-scope.invalid.json"), false),
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.actor.invalid.json"), false),
+    ];
+    for (bytes, valid) in rows {
+        let row: Value = serde_json::from_str(bytes).unwrap();
+        assert_eq!(current.is_valid(&row), valid, "{}", row["entryId"]);
+        assert!(!before.is_valid(&row), "a 0.5 reader refuses {}", row["entryId"]);
+    }
+}

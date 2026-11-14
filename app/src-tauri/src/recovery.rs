@@ -33,13 +33,16 @@ fn recorded_ends(entries: &[Value]) -> std::collections::BTreeSet<&str> {
         .collect()
 }
 
-/// The App ledger's entry schema, `…:app-ledger-entry:0.5`. The compatibility
+/// The App ledger's entry schema, `…:app-ledger-entry:0.6`. The compatibility
 /// rule is the one each earlier version followed: a version only adds; this
-/// reader accepts every row of the retained earlier versions (0.2, 0.3, 0.4)
-/// unchanged and rewrites none; a row this reader does not know (a later
+/// reader accepts every row of the retained earlier versions (0.2, 0.3, 0.4,
+/// 0.5) unchanged and rewrites none; a row this reader does not know (a later
 /// version's addition) fails validation, so the ledger is not read and that
 /// is shown as a recovery limit, never read in part. 0.5 adds the optional
-/// `session_started.livenessLock` ([`crate::session_liveness::FIELD`]).
+/// `session_started.livenessLock` ([`crate::session_liveness::FIELD`]). 0.6
+/// adds the permission level's `level_chosen`, `level_sent` and
+/// `level_reported` ([`crate::codex_level`]); an earlier build refuses a
+/// ledger holding them.
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
     VALIDATOR

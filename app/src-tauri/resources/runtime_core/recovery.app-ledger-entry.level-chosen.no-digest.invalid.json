@@ -1,0 +1,33 @@
+{
+  "kind": "level_chosen",
+  "session": "app-session:invented",
+  "entryId": "level-chosen:1",
+  "at": "2026-11-14T12:00:00Z",
+  "scope": {
+    "kind": "default-for-new-conversations"
+  },
+  "level": {
+    "id": "edits",
+    "tableDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "approvalPolicy": "on-request",
+    "approvalsReviewer": "user",
+    "sandbox": "workspace-write",
+    "sandboxPolicy": {
+      "type": "workspaceWrite",
+      "writableRoots": [],
+      "networkAccess": false,
+      "excludeTmpdirEnvVar": true,
+      "excludeSlashTmp": true
+    },
+    "workspaceWrite": {
+      "network_access": false,
+      "exclude_slash_tmp": true,
+      "exclude_tmpdir_env_var": true,
+      "writable_roots": []
+    }
+  },
+  "previous": null,
+  "confirmation": {
+    "kind": "native"
+  }
+}
