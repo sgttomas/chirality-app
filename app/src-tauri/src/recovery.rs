@@ -1372,6 +1372,21 @@ impl RecoveryCustodyView {
         self
     }
 }
+/// The App sessions of this ledger that `session`'s own start established as
+/// ended: every earlier session with a `session_started` entry here.
+/// `session`'s start was appended only after [`RecoveryLedger::earlier_sessions_ended`]
+/// established each of them ended (an end record, or the rule of
+/// [`crate::session_liveness::establish_ended`]) and refused while any was still
+/// running, so this is that set, read back from the ledger, not decided anew.
+/// A session another App recorded in its own ledger is never here. Refused
+/// unless `session`'s own start is among `rows`: then nothing was established.
+pub(crate) fn established_ended_sessions(rows: &[Value], session: &str) -> Result<std::collections::BTreeSet<String>, String> {
+    let started = |id: &str| rows.iter().any(|e| e["kind"] == "session_started" && e["session"] == id);
+    if !started(session) {
+        return Err("this App session's start is not in the App ledger read, so no earlier session's end is established".into());
+    }
+    Ok(rows.iter().filter(|e| e["kind"] == "session_started").filter_map(|e| e["session"].as_str()).filter(|id| *id != session).map(str::to_owned).collect())
+}
 /// The limit shown for a stop request whose source session this ledger has no start record for.
 pub(crate) const STOP_SOURCE_UNAVAILABLE: &str = "Historical stop request source session start is unavailable; no startup closure inferred";
 /// SR-08 at startup: the stop requests an earlier session left unsettled that this startup may

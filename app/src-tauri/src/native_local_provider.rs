@@ -339,6 +339,8 @@ fn read_key_address(plan: &OwnedHomePlan) -> Result<Option<String>, String> {
 /// synced, renamed over the record, the directory synced, then read back strictly. Holds the
 /// address only; never a key or anything derived from one.
 fn write_key_address(plan: &OwnedHomePlan, address: &str) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::write_key_address");
     if !valid_endpoint(address) {
         return Err(RECORD_UNWRITTEN.into());
     }
@@ -384,6 +386,8 @@ fn write_key_address(plan: &OwnedHomePlan, address: &str) -> Result<(), String> 
 }
 /// Removes the record after Codex itself reported no account. Removal is confirmed by absence.
 fn remove_key_address(plan: &OwnedHomePlan) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::remove_key_address");
     let path = plan.native_path().join(KEY_ADDRESS);
     match std::fs::remove_file(&path) {
         Ok(()) => {}
@@ -519,6 +523,8 @@ pub(crate) fn read(plan: &OwnedHomePlan) -> Result<Reading, String> {
 }
 /// Prepare an already-set home for binding. Never writes settings or defaults.
 pub(crate) fn prepare(plan: &OwnedHomePlan) -> Result<LocalSettings, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::prepare");
     if stored(plan)?.is_none() {
         return Err(UNSET.into());
     }
@@ -557,6 +563,8 @@ fn write_initial_staged(
     settings: &LocalSettings,
     staged: impl FnOnce(&Path) -> Result<(), String>,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::write_initial_staged");
     if plan.class() != HomeClass::LocalProvider {
         return Err(LIMIT.into());
     }
@@ -619,6 +627,8 @@ fn write_initial_staged(
 /// replaced). A file system without RENAME_EXCL refuses (ENOTSUP), which also fails closed.
 #[cfg(target_os = "macos")]
 fn rename_exclusive(from: &Path, to: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::rename_exclusive");
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|_| LIMIT)?;
     let to = std::ffi::CString::new(to.as_os_str().as_bytes()).map_err(|_| LIMIT)?;
@@ -632,6 +642,8 @@ fn rename_exclusive(from: &Path, to: &Path) -> Result<(), String> {
 }
 /// Changed settings: atomic replacement in the same directory. Nothing else in the home is touched.
 fn replace(plan: &OwnedHomePlan, before: &LocalSettings, after: &LocalSettings) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::replace");
     if settings_file(plan)? != *before {
         return Err(CHANGED.into());
     }
@@ -705,6 +717,8 @@ pub(crate) enum ProcessLockRefusal {
 /// The checks and the exclusive, non-waiting flock on the opened lock file.
 #[cfg(unix)]
 fn lock_opened(file: std::fs::File) -> Result<std::fs::File, ProcessLockRefusal> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::lock_opened");
     use std::os::fd::AsRawFd;
     use std::os::unix::fs::MetadataExt;
     let m = file.metadata().map_err(|_| ProcessLockRefusal::Unavailable)?;
@@ -731,6 +745,8 @@ fn lock_opened(file: std::fs::File) -> Result<std::fs::File, ProcessLockRefusal>
 /// child only.
 #[cfg(unix)]
 pub(crate) fn take_process_lock_in(home: &std::fs::File) -> Result<std::fs::File, ProcessLockRefusal> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::take_process_lock_in");
     use std::os::fd::{AsRawFd, FromRawFd};
     let name = std::ffi::CString::new(PROCESS_LOCK).map_err(|_| ProcessLockRefusal::Unavailable)?;
     let fd = unsafe {
@@ -748,6 +764,8 @@ pub(crate) fn take_process_lock_in(home: &std::fs::File) -> Result<std::fs::File
 }
 #[cfg(not(unix))]
 pub(crate) fn take_process_lock_in(_: &std::fs::File) -> Result<std::fs::File, ProcessLockRefusal> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_local_provider::take_process_lock_in");
     Err(ProcessLockRefusal::Unavailable)
 }
 /// Opens (creating it private if absent) the App's lock file by path and takes an exclusive,

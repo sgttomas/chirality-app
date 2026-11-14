@@ -61,6 +61,16 @@ fn controls(dir: &Path) -> Result<PathBuf, String> {
         .join("administration")
         .join(dir.file_name().ok_or("project has no key")?))
 }
+/// Unpublished lock preparation must not become payload or administrative
+/// history, including while a prior unused identity is being examined.
+fn preparation(dir: &Path) -> Result<PathBuf, String> {
+    Ok(dir
+        .parent()
+        .and_then(Path::parent)
+        .ok_or("project has no store")?
+        .join("package-preparation")
+        .join(dir.file_name().ok_or("project has no key")?))
+}
 fn journal(dir: &Path) -> Result<PathBuf, String> {
     Ok(controls(dir)?.join("package-imports"))
 }
@@ -348,8 +358,13 @@ impl Drop for Lease {
         }
     }
 }
-fn exclusive(path: &Path) -> Result<Lease, String> {
-    bag::create_or_match(path, b"")?;
+fn exclusive(path: &Path, staging: Option<&Path>) -> Result<Lease, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_import::exclusive");
+    match staging {
+        Some(staging) => bag::create_or_match_staged(path, b"", staging)?,
+        None => bag::create_or_match(path, b"")?,
+    }
     let f = crate::records_index::open_log(path).map_err(|e| e.to_string())?;
     if f.metadata().map_err(|e| e.to_string())?.nlink() != 1 {
         return Err("import lock is hardlinked".into());
@@ -381,7 +396,7 @@ fn lock_for(store: &Path, dir: &Path, prior: Option<&Path>) -> Result<Guards, St
     dirs.sort();
     let mut leases = Vec::new();
     for dir in &dirs {
-        leases.push(exclusive(&controls(dir)?.join(".admission.lock"))?);
+        leases.push(exclusive(&controls(dir)?.join(".admission.lock"), None)?);
     }
     // Stable admission also excludes disposal. Refuse its validated terminal
     // history before creating any lock inside a removed payload subtree.
@@ -393,13 +408,13 @@ fn lock_for(store: &Path, dir: &Path, prior: Option<&Path>) -> Result<Guards, St
     let owner = Owner::enter(dir)?;
     OWNER.with(|o| *o.borrow_mut() = dirs.clone());
     for dir in &dirs {
-        leases.push(exclusive(&controls(dir)?.join(".activity.lock"))?);
+        leases.push(exclusive(&controls(dir)?.join(".activity.lock"), None)?);
     }
     for dir in &dirs {
-        leases.push(exclusive(&dir.join("captures/.capture.lock"))?);
+        leases.push(exclusive(&dir.join("captures/.capture.lock"), Some(&preparation(dir)?))?);
     }
     for dir in &dirs {
-        leases.push(exclusive(&dir.join(".writer.lock"))?);
+        leases.push(exclusive(&dir.join(".writer.lock"), Some(&preparation(dir)?))?);
     }
     Ok(Guards {
         _owner: owner,
@@ -996,6 +1011,8 @@ fn require_native_actor(actor: &Value) -> Result<(), String> {
 /// Append under the store lock through its held physical parent. A torn or
 /// changed roots file is evidence to reconcile, never silently repaired.
 fn publish_roots(intent: &Intent) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_import::publish_roots");
     let store = intent.store_path();
     let path = store.join("roots.jsonl");
     if optional(&path)?.is_none() {
@@ -1215,6 +1232,8 @@ fn finish_with_link_recovery(
     snapshot: &bag::Snapshot,
     allow_missing_link: bool,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_import::finish_with_link_recovery");
     let dir = i.dir();
     // Retry syncs the existing immutable intent; it never creates a second act.
     identity::publish_intent(i)?;
@@ -1284,7 +1303,7 @@ fn checkpoint(_: &str) -> Result<(), String> {
     Ok(())
 }
 #[cfg(test)]
-thread_local! {static STOP:RefCell<Option<&'static str>>=const{RefCell::new(None)}; static BEFORE_LINK:RefCell<Option<Box<dyn FnOnce()>>>=const{RefCell::new(None)};}
+thread_local! {pub(crate) static STOP:RefCell<Option<&'static str>>=const{RefCell::new(None)}; static BEFORE_LINK:RefCell<Option<Box<dyn FnOnce()>>>=const{RefCell::new(None)};}
 #[cfg(test)]
 fn checkpoint(at: &str) -> Result<(), String> {
     STOP.with(|s| {

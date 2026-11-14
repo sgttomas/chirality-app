@@ -470,6 +470,8 @@ impl ReadLog {
     /// The read log's file for this read: in the project's store folder (its
     /// folder made if needed), never anywhere else.
     fn target(&self) -> Result<PathBuf, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_access::ReadLog::target");
         match &self.place {
             LogPlace::Fixed(path) => Ok(path.clone()),
             LogPlace::Store(root) => {
@@ -492,6 +494,8 @@ impl ReadLog {
         }
     }
     fn write(path: &Path, entry: &Value) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_access::ReadLog::write");
         let _admission=crate::records_retention::write_path_existing(path)?;
         static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
         let validator = VALIDATOR

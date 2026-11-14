@@ -253,6 +253,8 @@ fn name(s: &str) -> Result<CString, String> {
     CString::new(s).map_err(err)
 }
 fn open_at(dir: &File, p: &str, flags: i32) -> Result<File, String> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("hosting_terminal_export::open_at"); }
     let n = name(p)?;
     let fd = unsafe {
         libc::openat(
@@ -313,6 +315,8 @@ impl Dir {
         Ok(())
     }
     fn fresh(&self, part: &str) -> Result<Self, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("hosting_terminal_export::Dir::fresh");
         safe(part)?;
         if part.contains('/') {
             return Err("one directory component required".into());
@@ -331,6 +335,8 @@ impl Dir {
         Ok(d)
     }
     fn write(&self, p: &str, b: &[u8]) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("hosting_terminal_export::Dir::write");
         safe(p)?;
         let mut fd = self.fd.try_clone().map_err(err)?;
         let mut iter = p.split('/').peekable();
@@ -360,6 +366,8 @@ impl Dir {
         self.guard()
     }
     fn marker(&self, marker: &str, raw: &[u8]) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("hosting_terminal_export::Dir::marker");
         if !matches!(marker, "exchange.json" | "exchange.diagnostic.json") {
             return Err("unsupported marker".into());
         }
@@ -555,6 +563,8 @@ fn export(
     marker: &str,
     before_marker: impl FnOnce(),
 ) -> Result<Value, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("hosting_terminal_export::export");
     let read = host.distribution_evidence(&c.generation);
     let event = host
         .lifecycle_events()

@@ -1,0 +1,203 @@
+{
+  "scenario": "signed-out setup with a project, confirmed on the App's own sheet",
+  "version": 1,
+  "what_it_is": "Agent-operated development evidence on an identified development build: first-use setup with an invented project folder and new settings, confirmed by an agent's one press on the App's own native confirmation sheet after the sheet is checked whole. It needs no sign-in and makes no conversation. It is not a person's observation and meets no criterion.",
+  "starting_state": "An identified candidate built from main, without the driver's markers; a kept home made by the launcher with its network blocks on; the invented project folder beside the home, empty; no App data; the App running and confirmed from the shell; no child process.",
+  "acts": "views, clicks, one set-value of the project path into the field Project folder (typed because the alternative is the system's folder panel, which no agent operates), and one press on the App's own setup confirmation sheet; no file or folder is chosen and no other sheet, dialog or prompt is answered",
+  "never_clicked": [
+    "Browse for project folder",
+    "Choose…",
+    "Continue without a project",
+    "Use my existing Codex settings",
+    "the window's own buttons",
+    "the menu bar"
+  ],
+  "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
+  "starts_no_process": true,
+  "typed_fields": [
+    "Project folder"
+  ],
+  "sheets": [
+    {
+      "id": "desktop-setup",
+      "opener": "Create settings and save for next launch…",
+      "element": "sheet",
+      "title": "Desktop setup — next launch only",
+      "buttons": [
+        "Leave setup unchanged",
+        "Create settings and save for next launch",
+        "Cancel"
+      ],
+      "press": "Create settings and save for next launch",
+      "statement_form": "whole: for these paths the statement is within 30 lines and 1,500 characters (ns::bounded), so the App shows it whole; the digest form stops the walk",
+      "statement": [
+        "Create NEW App-owned settings folder: {settings}",
+        "with an empty config.toml, an empty AGENTS.md and an empty skills folder.",
+        "Create NEW App-owned account directory: {account}",
+        "Link its config.toml, AGENTS.md and skills to those new settings.",
+        "Read, import or change no other Codex settings, home or credential.",
+        "Project for next launch: {project}",
+        "Save a private pending request in {request}.",
+        "Codex: the copy included with this App (bundled-owner-use-development).",
+        "The current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation."
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "id": "S1",
+      "act": "view",
+      "says": "the welcome, with nothing chosen yet",
+      "expect": [
+        {
+          "heading": "Welcome to Chirality"
+        },
+        {
+          "button": "Review setup",
+          "is": "unavailable"
+        },
+        {
+          "text": "Choose the folder you want to work in, or continue without a project."
+        },
+        {
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+          "is": "chosen"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "act": "type",
+      "control": {
+        "kind": "text field",
+        "label": "Project folder",
+        "placeholder": "/full/path/to/your/project"
+      },
+      "value": "{project}",
+      "wait_ms": 1000,
+      "says": "the project path set into the field; judged by what the page does with it, not by the field's shown value",
+      "expect": [
+        {
+          "text": "Ready to review. Nothing is created or saved until you confirm."
+        },
+        {
+          "button": "Review setup",
+          "is": "available"
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "act": "click",
+      "control": {
+        "kind": "button",
+        "label": "Review setup"
+      },
+      "wait_ms": 3000,
+      "says": "what setup will do: its five lines, with the project, and the control that opens the confirmation",
+      "expect": [
+        {
+          "heading": "What setup will do"
+        },
+        {
+          "texts_from": {
+            "kind": "heading",
+            "label": "What setup will do"
+          },
+          "up_to": {
+            "kind": "summary",
+            "label": "Exact locations"
+          },
+          "are": [
+            "What setup will do",
+            "Create a new settings folder for this App, inside its data folder",
+            "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+            "Create a new sign-in folder for this App, linked to those settings",
+            "Project when you next open the App: {project}",
+            "Save these choices privately for the next launch"
+          ]
+        },
+        {
+          "button": "Create settings and save for next launch…",
+          "is": "available"
+        },
+        {
+          "summary": "Exact locations",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Exact locations"
+      },
+      "says": "the three locations, each under the App's data folder in the kept home; their paths are kept for the sheet",
+      "capture": {
+        "settings": "Settings folder",
+        "account": "Sign-in folder",
+        "request": "Saved choices"
+      },
+      "expect": [
+        {
+          "summary": "Exact locations",
+          "is": "on"
+        },
+        {
+          "location": "Settings folder",
+          "under": "{app_data}"
+        },
+        {
+          "location": "Sign-in folder",
+          "under": "{app_data}"
+        },
+        {
+          "location": "Saved choices",
+          "under": "{app_data}"
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "act": "confirm_sheet",
+      "sheet": "desktop-setup",
+      "control": {
+        "kind": "button",
+        "label": "Create settings and save for next launch…"
+      },
+      "sheet_wait_ms": 2000,
+      "wait_ms": 3000,
+      "says": "the App's own confirmation, checked whole and pressed once: setup is saved for the next launch, with the project",
+      "expect": [
+        {
+          "heading": "You're set up"
+        },
+        {
+          "text": "Project: {project}"
+        },
+        {
+          "no_text": "Not saved — you cancelled in the dialog. Your choices are still here."
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "PROJECT TYPED AND REVIEWED": [
+      "S2",
+      "S3",
+      "S4"
+    ],
+    "SETUP SAVED THROUGH THE APP'S OWN CONFIRMATION": [
+      "S5"
+    ]
+  }
+}

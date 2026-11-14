@@ -64,6 +64,7 @@ jobs:
           v10_r1_notice_accepted_but_never_written_stays_pending
           handoff_notice_sources_survive_native_error_and_observation_loss
           hosting::conversation_transport_tests::attachment_outcome_tests
+          hosting::conversation_transport_tests::attachment_host_final_reread_
     steps:
       - uses: actions/checkout@v4
         with:
@@ -134,6 +135,7 @@ jobs:
           records_export records_retention records_inspect placement_homes_tests installation::tests connector_route_store
           recovery::tests records_continuity fleet_ reply_close native_requests::tests
           call_custody after_run_end chat_workflow native_links startup_refusal
+          native_conversation_links::delegation::tests
           recovery_root_cold_ waiting_requests_tests::
           runtime_session::workflow_root_tests::library_entries_tests
           stop_bound_tests home_hold::tests session_liveness::tests local_process_lock_tests

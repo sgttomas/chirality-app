@@ -15,6 +15,33 @@ fn actor() -> Value {
 fn observed() -> Value {
     json!({"fixture":"native context test double; no actual human act"})
 }
+
+#[test]
+fn records_store_routing_package_preparation_interrupts_outside_live_payload() {
+    for name in ["captures/.capture.lock", ".writer.lock"] {
+        let f = Fixture::new();
+        let target = f.dir().join(name);
+        bag::fail_control_before_publish_for_test(Some(target.clone()));
+        let result = prepare(&f.root, &f.bag, &actor(), &observed());
+        bag::fail_control_before_publish_for_test(None);
+        assert!(result.as_ref().is_err_and(|e| e.contains("interrupted before publication")), "{name}: {:?}", result.as_ref().err());
+        assert!(!target.exists(), "unpublished final control appeared");
+        fn temporary_files(dir: &Path, out: &mut Vec<PathBuf>) {
+            for entry in std::fs::read_dir(dir).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() { temporary_files(&path, out); }
+                else if path.extension().is_some_and(|e| e == "tmp") { out.push(path); }
+            }
+        }
+        let mut live = vec![];
+        temporary_files(&f.dir(), &mut live);
+        assert!(live.is_empty(), "live payload has unpublished temporary: {live:?}");
+        let mut staged = vec![];
+        temporary_files(&f.destination.join("package-preparation").join(storage::key(&f.project)), &mut staged);
+        assert_eq!(staged.len(), 1, "interruption must retain its actual temporary outside payload");
+        assert_eq!(std::fs::metadata(&staged[0]).unwrap().dev(), std::fs::metadata(&f.dir()).unwrap().dev());
+    }
+}
 impl Fixture {
     fn new() -> Self {
         Self::named("project")

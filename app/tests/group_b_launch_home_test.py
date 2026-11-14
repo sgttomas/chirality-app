@@ -55,7 +55,7 @@ echo invented > "$HOME/Library/WebKit/{id}/WebsiteData/store"
 SHELL_OWN = {'PWD', 'SHLVL', '_', 'OLDPWD', '__CF_USER_TEXT_ENCODING'}  # set by /bin/sh or the macOS runtime itself
 OVERRIDES = {**{n: v for n, (v, _) in launch.PROXY_OVERRIDES.items()}, launch.MODEL_ADDRESS: 'http://127.0.0.1:9/v1'}
 CLEAN_RECORD_FIELDS = {'note', 'made_by', 'made_at', 'candidate_key', 'identifier', 'candidate_folder', 'bundle',
-                       'launch_folder', 'home', 'project', 'git_marker_above', 'codex', 'address_override', 'environment_constructed_for_the_app',
+                       'launch_folder', 'home', 'project', 'git_marker_above', 'codex', 'address_override', 'network', 'environment_constructed_for_the_app',
                        'output', 'started_at', 'pid', 'ended_at', 'process_group_after_settle', 'disclosed',
                        'app_started', 'ended', 'real_library', 'signals_received', 'failures', 'outcome'}
 
@@ -994,6 +994,200 @@ class OnlyTheIdentifiedCandidate(Fixture):
         (app / 'Contents/Resources/instructions/AGENTS.md').write_text('changed after identification\n')
         code, out = self.call('launch', '--candidate', str(candidate))
         self.assert_refused(code, out, '1 changed')
+
+
+class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home across launches, every network block on
+    def setUp(self):
+        super().setUp()
+        patch = mock.patch.object(launch, 'running_candidates', return_value=[])
+        patch.start()
+        self.addCleanup(patch.stop)
+
+    def make(self, candidate):
+        code, out = self.call('keep-make', '--candidate', str(candidate))
+        self.assertEqual(code, 0, out)
+        return Path(json.loads(out)['kept_folder'])
+
+    def test_one_home_is_launched_twice_with_the_environment_of_launch_and_a_numbered_record_each_time(self):
+        candidate = self.candidate('echo "$((1 + $(cat "$HOME/launches" 2>/dev/null || echo 0)))" > "$HOME/launches"\n')
+        folder = self.make(candidate)
+        self.assertEqual(sorted(p.name for p in folder.iterdir()), ['home', 'project', 'record'])
+        kept = json.loads((folder / 'record/kept.json').read_text())
+        self.assertEqual((kept['folder'], kept['device'], kept['inode']), (str(folder), folder.stat().st_dev, folder.stat().st_ino))
+        for number in (1, 2):
+            code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+            record = json.loads((folder / f'record/launch-record-{number}.json').read_text())
+            self.groups.append(record['pid'])
+            self.assertEqual(record['home'], str(folder / 'home'))
+            self.assertEqual((folder / 'home/launches').read_text().strip(), str(number))  # the same home, kept
+        env = record['environment_constructed_for_the_app']
+        self.assertEqual(set(env), set(launch.ALLOWED))  # the allowlist of launch, every proxy and the address on it
+        self.assertTrue(all(env[name] == value for name, (value, _) in launch.PROXY_OVERRIDES.items()))
+        self.assertEqual(env[launch.MODEL_ADDRESS], launch.DEFAULT_MODEL_ADDRESS)
+
+    def test_a_rehearsal_folder_launches_without_the_overrides_and_says_so(self):
+        candidate = self.candidate()
+        code, out = self.call('keep-make', '--candidate', str(candidate), '--network', 'open')
+        self.assertEqual(code, 0, out)
+        folder = Path(json.loads(out)['kept_folder'])
+        self.assertTrue(folder.name.startswith('rehearsal-'), folder.name)
+        kept = json.loads((folder / 'record/kept.json').read_text())
+        self.assertEqual(kept['network'], 'open')
+        self.assertEqual(sorted(p.name for p in (folder / 'project').iterdir()), ['DEVELOPMENT-EVIDENCE.txt'])
+        self.assertIn('operated by an agent, not a person', (folder / 'project/DEVELOPMENT-EVIDENCE.txt').read_text())
+        code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+        record = json.loads((folder / 'record/launch-record-1.json').read_text())
+        self.groups.append(record['pid'])
+        self.assertEqual(record['network'], 'open')
+        env = record['environment_constructed_for_the_app']
+        self.assertEqual(set(env), set(launch.ALLOWED_OPEN))
+        self.assertEqual(set(env), {'HOME', 'CFFIXED_USER_HOME', 'TMPDIR', 'PATH', 'LANG'})
+        received = self.received(record)
+        self.assertFalse(set(received) & (set(launch.PROXY_OVERRIDES) | {launch.MODEL_ADDRESS}), received)
+        self.assertEqual(record['real_library']['result'], 'unchanged')
+
+    def test_an_ordinary_kept_folder_records_the_network_blocked_and_its_project_is_empty(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        self.assertEqual(json.loads((folder / 'record/kept.json').read_text())['network'], 'blocked')
+        self.assertEqual(list((folder / 'project').iterdir()), [])
+
+    def test_the_network_is_chosen_only_when_the_folder_is_made_and_only_as_named(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        for argv in (['keep-launch', '--folder', str(folder), '--candidate', str(candidate), '--network', 'open'],
+                     ['launch', '--candidate', str(candidate), '--network', 'open'],
+                     ['keep-make', '--candidate', str(candidate), '--network', 'wide']):
+            with self.subTest(argv[0]), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    launch.main(argv)
+        saved = (folder / 'record/kept.json').read_text()
+        for value in ('open', 'wide'):  # an ordinary folder's record edited to say open is refused, never launched open
+            with self.subTest(value):
+                (folder / 'record/kept.json').write_text(json.dumps({**json.loads(saved), 'network': value}))
+                try:
+                    code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+                finally:
+                    (folder / 'record/kept.json').write_text(saved)
+                self.assert_refused(code, out, 'does not match the folder it names')
+        self.assertFalse((folder / 'record/launch-record-1.json').exists())
+
+    def test_the_open_allowlist_takes_no_override_and_the_blocked_one_needs_them_all(self):
+        home, tmp = Path('/invented/home'), '.t'
+        open_env = launch.child_environment(home, tmp, launch.DEFAULT_MODEL_ADDRESS, 'open')
+        self.assertEqual(launch.check_environment(dict(open_env), home, tmp, 'open'), open_env)
+        with self.assertRaises(launch.Refusal):
+            launch.check_environment({**open_env, 'HTTPS_PROXY': 'http://127.0.0.1:9'}, home, tmp, 'open')
+        with self.assertRaises(launch.Refusal):
+            launch.check_environment(dict(open_env), home, tmp, 'blocked')
+        with self.assertRaises(launch.Refusal):
+            launch.check_environment(dict(open_env), home, tmp, 'wide')
+
+    def test_a_kept_launch_is_refused_unless_every_condition_holds(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        launch_folder = self.root / 'launch-20260101T000000Z-00000000'
+        launch_folder.mkdir()
+        kept = json.loads((folder / 'record/kept.json').read_text())
+        cases = {
+            'a folder not named kept-': (str(launch_folder), None, 'not a kept folder'),
+            'a folder outside the homes root': (str(self.tmp / folder.name), None, 'not a kept folder'),
+            'a record naming another folder': (str(folder), {**kept, 'inode': kept['inode'] + 1}, 'does not name this folder'),
+            'an expired folder': (str(folder), {**kept, 'expires_at': '2000-01-01T00:00:00Z'}, 'expired'),
+            'another candidate': (str(folder), {**kept, 'candidate_key': 'another'}, 'another candidate'),
+        }
+        for name, (given, record, reason) in cases.items():
+            with self.subTest(name):
+                saved = (folder / 'record/kept.json').read_text()
+                if record is not None:
+                    (folder / 'record/kept.json').write_text(json.dumps(record))
+                try:
+                    code, out = self.call('keep-launch', '--folder', given, '--candidate', str(candidate))
+                finally:
+                    (folder / 'record/kept.json').write_text(saved)
+                self.assert_refused(code, out, reason)
+                self.assertFalse(list((folder / 'record').glob('launch-record-*.json')))
+        with mock.patch.object(launch, 'running_candidates', return_value=[{'pid': 1}]):
+            code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+        self.assert_refused(code, out, 'already running')
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):  # no address override: every block stays
+            launch.main(['keep-launch', '--folder', str(folder), '--candidate', str(candidate), '--model-address', 'http://127.0.0.1:1/v1'])
+
+    def test_a_test_build_carrying_the_scripted_driver_is_never_kept_or_launched(self):
+        for marker in launch.DRIVER_MARKERS:
+            with self.subTest(marker.decode()):
+                candidate = self.candidate(f'# {marker.decode()}\n', where=f'marked-{marker.decode()[-6:]}')
+                code, out = self.call('keep-make', '--candidate', str(candidate))
+                self.assert_refused(code, out, 'test build carrying the scripted driver')
+                self.assertFalse([p for p in self.root.iterdir() if p.name.startswith('kept-')])
+
+    def test_remove_deletes_the_folder_whole_without_following_a_link_and_refuses_what_is_not_the_kept_folder(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        outside = self.tmp / 'outside-file'
+        outside.write_text('must stay')
+        (folder / 'home/a-link').symlink_to(outside)
+        (folder / 'project/deep/er').mkdir(parents=True)
+        code, out = self.call('keep-remove', '--folder', str(self.tmp / folder.name), '--candidate', str(candidate))
+        self.assert_refused(code, out, 'not a kept folder')
+        code, out = self.call('keep-remove', '--folder', str(folder))
+        self.assert_refused(code, out, 'needs the candidate')
+        saved = (folder / 'record/kept.json').read_text()
+        (folder / 'record/kept.json').write_text(json.dumps({**json.loads(saved), 'candidate_key': 'another'}))
+        try:
+            code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        finally:
+            (folder / 'record/kept.json').write_text(saved)
+        self.assert_refused(code, out, 'made for another candidate')
+        marked = self.candidate(f'# {launch.DRIVER_MARKERS[0].decode()}\n', where='marked')
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(marked))
+        self.assert_refused(code, out, 'test build carrying the scripted driver')
+        self.assertTrue(folder.exists())
+        with mock.patch.object(launch, 'running_candidates', return_value=[{'pid': 1}]):
+            code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assert_refused(code, out, 'still running')
+        self.assertTrue(folder.exists())
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assertEqual(code, 0, out)
+        self.assertFalse(folder.exists())
+        self.assertEqual(outside.read_text(), 'must stay')
+
+    def test_remove_leaves_a_directory_put_in_the_kept_folders_place_while_it_ran(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        moved = self.tmp / 'moved-away'
+
+        def swap(_executable):  # between the folder's checks and its removal, another directory takes its name
+            folder.rename(moved)
+            folder.mkdir()
+            (folder / 'kept-by-someone-else').write_text('must stay')
+            return []
+        with mock.patch.object(launch, 'running_candidates', side_effect=swap):
+            code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assert_refused(code, out, 'no longer names the directory that was emptied')
+        self.assertEqual((folder / 'kept-by-someone-else').read_text(), 'must stay')
+        self.assertEqual(list(moved.iterdir()), [])  # the checked directory was emptied through its handle, wherever it went
+
+    def test_an_interrupted_removal_can_be_run_again_while_the_record_remains(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        (folder / 'project/deep').mkdir()
+        real_rmtree = launch.shutil.rmtree
+        seen = []
+
+        def fail_once(name, dir_fd=None, **kwargs):
+            seen.append(name)
+            if len(seen) == 1:
+                raise OSError('interrupted')
+            real_rmtree(name, dir_fd=dir_fd, **kwargs)
+        with mock.patch.object(launch.shutil, 'rmtree', side_effect=fail_once):
+            code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assertNotEqual(code, 0, out)
+        self.assertNotEqual(seen[0], 'record')
+        self.assertTrue((folder / 'record/kept.json').is_file())
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assertEqual(code, 0, out)
+        self.assertFalse(folder.exists())
 
 
 class Housekeeping(unittest.TestCase):

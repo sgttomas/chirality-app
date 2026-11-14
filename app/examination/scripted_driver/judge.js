@@ -10,6 +10,8 @@
 //   button   a <button>; state 'available' or 'unavailable' (disabled, or inside a disabled fieldset)
 //   summary  a <summary>; state 'on' when its <details> is open, else 'off'
 //   radio    an <input type=radio>; state 'chosen' when checked, else 'not chosen'
+//   textbox  an <input> that takes text (no type, or text or search); state its value; 'unavailable' is kept apart
+//            as the element's `unavailable` flag (disabled, or inside a disabled fieldset)
 //   heading  an <h1> to <h6>
 //   text     one run of words, as described below
 // NAME RULE: an element's name is its aria-label when it has one; a radio's name is the words of its <label>;
@@ -45,6 +47,11 @@ const ChiralityJudge = (() => {
       const found = one('text', expectation.no_text);
       return result(found.length === 0, found.length ? 'present' : 'absent');
     }
+    if ('text_starts_one_of' in expectation) {  // exactly one text starts with one of these; which one is kept
+      const starts = expectation.text_starts_one_of.map(start => fill(start, values));
+      const found = model.filter(element => element.kind === 'text' && starts.some(start => element.name.startsWith(start)));
+      return result(found.length === 1, found.length === 1 ? found[0].name : count(found));
+    }
     if ('text_starts' in expectation) {
       const start = fill(expectation.text_starts, values);
       const found = model.filter(element => element.kind === 'text' && element.name.startsWith(start));
@@ -54,10 +61,11 @@ const ChiralityJudge = (() => {
       const found = one('heading', expectation.heading);
       return result(found.length === 1, found.length ? 'present' : 'absent');
     }
-    for (const kind of ['button', 'summary', 'radio']) {
+    for (const kind of ['button', 'summary', 'radio', 'textbox']) {
       if (kind in expectation) {
         const state = stateOf(one(kind, expectation[kind]));
-        return result(state === expectation.is, state);
+        const wanted = kind === 'textbox' ? fill(expectation.is, values) : expectation.is;  // a typed value names a path
+        return result(state === wanted, state);
       }
     }
     if ('texts_from' in expectation) {  // every text from one element up to another, in order, and no other
@@ -80,17 +88,20 @@ const ChiralityJudge = (() => {
   };
 
   /**
-   * Which one element a step clicks, or why none. Exactly one element of the step's kind and words; never one whose
-   * words end with an ellipsis, never one the scenario says is never clicked, never an unavailable button.
+   * Which one element a step acts on, or why none. Exactly one element of the step's kind and words; never one the
+   * scenario says is never clicked, never an unavailable button or textbox, and never one whose words end with an
+   * ellipsis unless the scenario names it in `confirms` (the setup scenario names exactly one: desktop setup's own
+   * confirmation, answered by the test build's stand-in).
    */
   const target = (model, step, scenario) => {
     const label = step.control.label;
-    if (endsWithEllipsis(label) || (scenario.never_clicked ?? []).includes(label)) {
+    if ((endsWithEllipsis(label) && !(scenario.confirms ?? []).includes(label)) || (scenario.never_clicked ?? []).includes(label)) {
       return { verdict: 'inconclusive', why: `the control "${label}" is never clicked` };
     }
     const found = select(model, step.control);
     if (found.length !== 1) return { verdict: 'inconclusive', why: `the control to click was found ${found.length} times` };
     if (found[0].kind === 'button' && found[0].state === 'unavailable') return { verdict: 'fail', why: 'the control to click is unavailable' };
+    if (found[0].kind === 'textbox' && found[0].unavailable) return { verdict: 'fail', why: 'the field to type into is unavailable' };
     return { index: model.indexOf(found[0]) };
   };
 
