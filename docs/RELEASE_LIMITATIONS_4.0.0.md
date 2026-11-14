@@ -238,3 +238,35 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** keep material the agent must not read out
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
+
+### LIM-018: An earlier version of the App cannot open the history a later version wrote
+
+- **Id:** LIM-018
+- **Exit criteria:** 4
+- **What is unavailable:** after a version of the App has recorded something
+  new in its history (for example, the permission level a person chose),
+  opening the same App data with an earlier version of the App refuses the
+  whole history: that version shows that the history is unavailable, and shows
+  none of it.
+- **Why:** the App reads its history only whole. An entry it does not know
+  could change what the rest means, so it reads none rather than part. Nothing
+  is rewritten or lost.
+- **What the person does instead:** open the App data with the same or a later
+  version of the App; the history is all there.
+- **Basis:** DEL-01-02 (the App's recovery history).
+
+### LIM-019: The App cannot be used on an account whose home folder's name holds certain characters
+
+- **Id:** LIM-019
+- **Exit criteria:** 6
+- **What is unavailable:** on a Mac account whose home folder's name contains a
+  dollar sign ($), a backquote (`), a double quote (") or a backslash (\), the
+  App does not start Codex, so no conversation can be had. The App keeps its
+  data, and the folder it starts Codex in, under the account's home folder,
+  and it offers no setting to place them elsewhere, so on such an account the
+  App cannot be used at all.
+- **Why:** the App accepts, for the folder it starts Codex in, only a path
+  holding none of these characters.
+- **What the person does instead:** use the App from a Mac account whose home
+  folder's name contains none of these characters.
+- **Basis:** DEL-01-05 (homes) and DEL-01-01.
