@@ -107,8 +107,8 @@ embedding interface, with native sign-in (D-19; [architecture](ARCHITECTURE.md))
   and plan revision, substantive tool use, approvals and questions,
   delegation to subagents, interruption, and continuation after restart.
 - **V4-APP-02** The App offers sign-in with the user's Codex (ChatGPT)
-  account, chosen for each conversation without a default (D-06; current
-  owner scope correction). Standalone OpenAI API-key access and its
+  account. A conversation's model is chosen by the person, with no default
+  (D-06; current owner scope correction). Standalone OpenAI API-key access and its
   qualification commitment are omitted from this increment; existing native
   plumbing and saved homes are retained. oMLX/local model providers are
   deferred to a later update by the owner's decision of 14 November 2026:

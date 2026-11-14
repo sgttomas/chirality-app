@@ -200,8 +200,8 @@ An entry is added in the same pull request that makes the limitation standing.
   Where a managed Codex requirement names another provider, that home's
   Codex does not report the built-in one, and the App starts no ChatGPT
   account conversation and says so.
-- **Why:** the owner decided that 4.0.0 concentrates on Codex with the
-  ChatGPT account and that the local model server follows in a later update.
+- **Why:** this release concentrates on Codex with the ChatGPT account; a
+  local model server follows in a later update.
   At the selected supplier version, Codex runs conversations only on the
   provider its process started with, so the App starts the account home's
   Codex on the built-in provider.
