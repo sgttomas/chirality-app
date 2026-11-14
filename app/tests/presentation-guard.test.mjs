@@ -206,7 +206,8 @@ function leaves(value, path = [], out = []) {
   return out;
 }
 function poisonedAt(data, {path, key}) {
-  const copy = structuredClone(data);
+  // A JSON copy, so an object the fixture shares in two places (a generation) is two objects: one leaf changes.
+  const copy = JSON.parse(JSON.stringify(data));
   const at = path.reduce((v, k) => v[k], copy);
   if (key === undefined) {
     if (path.length === 0) return P;
