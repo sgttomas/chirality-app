@@ -1,0 +1,20 @@
+[
+ {
+  "file": "NativeHistory.tsx",
+  "where": "drawn",
+  "expr": "binding.notice",
+  "reason": "the App's words: every notice a HistoryPageBinding carries is a string literal set in historyPageBinding, or a continuation notice passed through from continuationContextBinding, whose notices are all string literals"
+ },
+ {
+  "file": "NativeHistory.tsx",
+  "where": "drawn",
+  "expr": "owner.notice",
+  "reason": "the App's words: every notice continuationContextBinding returns is a string literal"
+ },
+ {
+  "file": "RequestCards.tsx",
+  "where": "{...}",
+  "expr": "EXACT_TEXT",
+  "reason": "the App's attributes: exactText.ts's EXACT_TEXT is a const of four literal attributes (autoCapitalize, autoCorrect, spellCheck, autoComplete), none of which names, describes or holds text"
+ }
+]

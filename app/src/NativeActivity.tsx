@@ -1,10 +1,17 @@
 import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
+import { AgentText, type AgentTextSource, plainId, SuppliedId, Word, Num, Flag, wordOf, numberWords } from "./AgentText";
+import { RunOffer, type RunAct } from "./RunOffers";
+import { AGENT_STATUS, AGENT_TOOL, CHANGE_KIND, CHILD_STATUS, COMMAND_SOURCE, ITEM_KIND, ITEM_STATUS, MESSAGE_PHASE, REASONING_EFFORT, STEP_STATUS, SUBAGENT_ACTIVITY, TURN_STATUS } from "./nativeWords";
 type Json = any;
 
 // Readable presentation of the host's native view (DEL-01-03 §5–§7; messages
 // and reasoning are the DEL-01-04 conversation part of the same timeline).
 // Every row keeps the native item unchanged beside its display reading (TR-1);
 // nothing here infers checking, acceptance, approval, return or reliance.
+// Every value the agent, its tools or Codex supplies is shown through
+// AgentText, so nothing in the stream that the App did not draw from a host
+// record can read as the App's own words or as a request card. The App's own
+// labels (item kinds, statuses) stay outside the box.
 
 export type ActivityTurn = { turnId: string; native: Json | null; items: Json[]; checklists: Json[]; errors: Json[]; unreadableErrors: Json[] };
 export type ActivityModel = { threadId: string; turns: ActivityTurn[]; goal: Json | null; checklistGaps: Json[]; children: Json[]; subtree: Json[]; parent: Json | null };
@@ -95,16 +102,24 @@ export function activityModel(view: Json, threadId: string): ActivityModel {
   };
 }
 
-const NATIVE_STATE_LABEL: Record<string, string> = {
+// The host's display state for a row: its own states, and a completed item's native status copied in.
+const NATIVE_STATE_LABEL = {
   "in-progress": "in progress",
   "waiting-on-request": "waiting on a request",
   "not-completed": "not completed (turn ended)",
   unknown: "unknown — no completion observed",
-};
+  completed: "completed",
+  failed: "failed",
+  declined: "declined",
+  interrupted: "interrupted",
+} as const;
 export function displayStateText(row: Json): string {
-  const state = row?.displayState ?? "unknown";
-  return typeof state === "string" && Object.prototype.hasOwnProperty.call(NATIVE_STATE_LABEL, state) ? NATIVE_STATE_LABEL[state] : text(state);
+  return wordOf(NATIVE_STATE_LABEL, row?.displayState ?? "unknown") ?? "a state the App does not recognise";
 }
+// The host's own sentences for why a row ended and what a preview stands for.
+const END_REASON = { "turn ended without item completion": "turn ended without item completion", "in progress at the read": "in progress at the read" } as const;
+const PREVIEW_STANDING = { "in progress; may differ from completed plan": "in progress; may differ from completed plan", "streamed so far; may differ from the completed item": "streamed so far; may differ from the completed item" } as const;
+const PARENT_SOURCE = { "collabAgentToolCall.senderThreadId": "the delegating item's sender", "not-confirmed": "not confirmed", "subAgentActivity containing thread (inference)": "the thread holding its sub-agent activity (inferred)" } as const;
 
 const KNOWN = new Set(["userMessage", "agentMessage", "reasoning", "plan", "commandExecution", "fileChange", "mcpToolCall", "dynamicToolCall", "functionCallOutput", "collabAgentToolCall", "subAgentActivity", "webSearch", "imageView", "imageGeneration", "enteredReviewMode", "exitedReviewMode", "contextCompaction", "sleep", "hookPrompt"]);
 
@@ -114,36 +129,62 @@ const card = { borderLeft: "3px solid #999", padding: "2px 8px", margin: "6px 0"
 function json(value: Json): string {
   try { return JSON.stringify(value, null, 2) ?? String(value); } catch { return String(value); }
 }
-function Raw({ value, label = "Native item" }: { value: Json; label?: string }) {
-  return <details><summary>{label}</summary><pre style={pre}>{json(value)}</pre></details>;
+// Native JSON as Codex sent it: it holds the agent's text, so it is shown as text the App did not write.
+const NATIVE_JSON = "Native JSON as Codex sent it, which holds the agent's text, not the App's words";
+function NativeJson({ value }: { value: Json }) {
+  return <AgentText block value={json(value)} source="codex" label="As Codex sent it:" name={NATIVE_JSON} />;
 }
+function Raw({ value, label = "Native item" }: { value: Json; label?: string }) {
+  return <details><summary>{label}</summary><NativeJson value={value} /></details>;
+}
+/** A Codex-supplied identifier in the App's words: as written when it is a plain identifier, else boxed as Codex's text. */
+function Id({ value }: { value: Json }) {
+  const id = plainId(value);
+  return id !== null ? <>{id}</> : value === null || value === undefined || value === "" ? <>not reported</> : <AgentText value={text(value)} source="codex" label="Identity:" name="Identity as Codex reported it, not the App's words" />;
+}
+/** The same for a control's own words, which cannot hold a box. */
+const idWords = (value: Json) => plainId(value) ?? "with an identity that is not a plain identifier";
 // Native fields are interpolated through text() so an off-schema value from a
 // different supplier shows as JSON instead of breaking the whole view.
 function text(value: Json): string {
   return value === null || value === undefined ? "" : typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : JSON.stringify(value);
 }
-function Shown({ label, value }: { label: string; value: Json }) {
+// A field whose value is a number, a flag or Codex's own vocabulary: the App's words only for a value it checks.
+function ShownNumber({ label, value }: { label: string; value: Json }) {
   if (value === undefined) return null;
-  return <div>{label}: {value === null ? <i>null (as supplied)</i> : typeof value === "string" ? value : JSON.stringify(value)}</div>;
+  return <div>{label}: {value === null ? <i>null (as supplied)</i> : <Num value={value} />}</div>;
 }
-function LongText({ text: value, label }: { text: Json; label: string }) {
+function ShownFlag({ label, value }: { label: string; value: Json }) {
+  if (value === undefined) return null;
+  return <div>{label}: {value === null ? <i>null (as supplied)</i> : <Flag value={value} yes="true" no="false" />}</div>;
+}
+function ShownEffort({ value }: { value: Json }) {
+  if (value === undefined) return null;
+  return <div>effort: {value === null ? <i>null (as supplied)</i> : <Word value={value} words={REASONING_EFFORT} />}</div>;
+}
+// A field whose value the agent (or its tool) supplied.
+function Supplied({ label, value, source = "agent" }: { label: string; value: Json; source?: AgentTextSource }) {
+  if (value === undefined) return null;
+  return <div>{label}: {value === null ? <i>null (as supplied)</i> : <AgentText value={text(value)} source={source} />}</div>;
+}
+function LongText({ text: value, label, source = "tool" }: { text: Json; label: string; source?: AgentTextSource }) {
   if (value === null || value === undefined) return <div>{label}: <i>not supplied by Codex</i></div>;
   const shown = text(value);
-  if (shown.length <= 2000) return <div>{label}:<pre style={pre}>{shown}</pre></div>;
-  return <details><summary>{label} ({shown.length} characters)</summary><pre style={pre}>{shown}</pre></details>;
+  if (shown.length <= 2000) return <div>{label}:<AgentText block value={shown} source={source} /></div>;
+  return <details><summary>{label} ({numberWords(shown.length)} characters)</summary><AgentText block value={shown} source={source} /></details>;
 }
 function StateLine({ row }: { row: Json }) {
   const native = row.native ?? {};
   return <div>
-    <b>{displayStateText(row)}</b>
-    {" · native status "}{native.status === undefined ? <i>none in this item kind</i> : native.status === null ? <i>null (as supplied)</i> : text(native.status)}
+    <b><Word value={row?.displayState ?? "unknown"} words={NATIVE_STATE_LABEL} label="Recorded:" source="codex" name="A state the App does not recognise, as the host recorded it, not the App's words" /></b>
+    {" · native status "}{native.status === undefined ? <i>none in this item kind</i> : native.status === null ? <i>null (as supplied)</i> : <Word value={native.status} words={ITEM_STATUS} name="An item status Codex sent that the App does not recognise, not the App's words" />}
     {row.standing === "recovered-from-supplier" && " · read from Codex history"}
     {row.historyRead && " · status at the read; current outcome not established"}
     {row.observationEnded && " · observation ended"}
-    {row.endReason && ` · ${text(row.endReason)}`}
-    {row.previewStanding && row.displayState !== "completed" && ` · ${text(row.previewStanding)}`}
+    {row.endReason && <> · <Word value={row.endReason} words={END_REASON} label="Recorded:" name="Why the row ended, as recorded; the App does not vouch for its words" /></>}
+    {row.previewStanding && row.displayState !== "completed" && <> · <Word value={row.previewStanding} words={PREVIEW_STANDING} label="Recorded:" name="What the preview stands for, as recorded; the App does not vouch for its words" /></>}
     {row.requestRef && <>{" · "}<a href={`#${requestAnchorId(row.requestRef.generation, row.requestRef.requestIdentity)}`}>{row.displayState === "waiting-on-request" ? "answer it on its request card" : "its request card"}</a>{row.displayState === "waiting-on-request" && "; this row offers no answer"}</>}
-    {row.settlementOrigin && ` · request settled by ${JSON.stringify(row.settlementOrigin)}`}
+    {row.settlementOrigin && <> · request settled by <AgentText value={JSON.stringify(row.settlementOrigin)} source="codex" label="Settlement:" name="The request's settlement, as recorded; the App does not vouch for its words" /></>}
   </div>;
 }
 
@@ -200,8 +241,8 @@ function UserMessage({ content, fold }: { content: Json; fold: boolean }) {
   const folded = parts.filter((part: Json) => fold && part?.type === "text" && typeof part.text === "string" && RUN_TEXT.test(part.text));
   const rest = parts.filter((part: Json) => !folded.includes(part));
   return <>
-    {folded.map((part: Json, i: number) => <details key={i}><summary>Workflow run text the App supplied ({part.text.length} characters)</summary><pre style={pre}>{part.text}</pre></details>)}
-    {(rest.length > 0 || folded.length === 0) && <pre style={pre}>{messageText(rest)}</pre>}
+    {folded.map((part: Json, i: number) => <details key={i}><summary>Workflow run text the App supplied ({numberWords(part.text.length)} characters)</summary><AgentText block value={part.text} source="file" label="The run text, with the workflow's files as the App read them:" name="Workflow run text from the workflow's files, not the App's words" /></details>)}
+    {(rest.length > 0 || folded.length === 0) && <AgentText block value={messageText(rest)} source="person" />}
   </>;
 }
 
@@ -212,7 +253,7 @@ function ToolContent({ content }: { content: Json }) {
   return <>{content.map((part: Json, i: number) => {
     const value = part?.type === "text" || part?.type === "inputText" ? part.text
       : part?.type === "resource" ? part.resource?.text : undefined;
-    return value !== undefined ? <LongText key={i} label="result text" text={value} /> : <Raw key={i} label={`result content ${i + 1} (${text(part?.type) || "unreported type"})`} value={part} />;
+    return value !== undefined ? <LongText key={i} label="result text" text={value} /> : <Raw key={i} label={`result content ${i + 1}`} value={part} />;
   })}</>;
 }
 
@@ -222,11 +263,11 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
     case "userMessage":
       return <div><b>User message</b> (text Codex recorded as input; not an act)<Unfinished row={row} /><UserMessage content={n.content} fold={runStart} /></div>;
     case "agentMessage":
-      return <div><b>Agent</b>{n.phase ? ` · ${n.phase === "final_answer" ? "final answer" : text(n.phase)}` : ""}<Unfinished row={row} />
-        <pre style={pre}>{streamed(row) ?? text(n.text)}</pre></div>;
+      return <div><b>Agent</b>{n.phase ? <> · <Word value={n.phase} words={MESSAGE_PHASE} /></> : ""}<Unfinished row={row} />
+        <AgentText block value={streamed(row) ?? text(n.text)} /></div>;
     case "reasoning": {
       const summary: Json[] = Array.isArray(row.summaryPreview) && row.displayState !== "completed" ? row.summaryPreview : list(n.summary);
-      return <details><summary>Reasoning summary<Unfinished row={row} /></summary>{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <pre style={pre}>{summary.map(text).join("\n\n")}</pre>}</details>;
+      return <details><summary>Reasoning summary{row.displayState === "completed" ? "" : " (not finished; its state is shown inside)"}</summary><Unfinished row={row} />{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <AgentText block value={summary.map(text).join("\n\n")} />}</details>;
     }
     case "plan": {
       // An ordinal counts revisions in the order this App received them, so it
@@ -234,59 +275,62 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
       // ones follow the order history pages were read.
       const revision = plans.find(r => r?.itemId === n.id && r?.turnId === row.turnId);
       // The state line already says "read from Codex history" for a recovered row.
-      const where = revision?.standing === "live-observed" ? ` · revision ${text(revision.ordinal)} in this conversation`
+      const where = revision?.standing === "live-observed" ? ` · revision ${numberWords(revision.ordinal) ?? "not numbered"} in this conversation`
         : revision?.standing === "recovered-from-supplier" && row.standing !== "recovered-from-supplier" ? " · revision read from Codex history" : "";
       return <div><b>Plan</b>{where}
-        <StateLine row={row} /><pre style={pre}>{streamed(row) ?? text(n.text)}</pre></div>;
+        <StateLine row={row} /><AgentText block value={streamed(row) ?? text(n.text)} /></div>;
     }
     case "commandExecution": {
       const startSource = row.startNative?.source;
       return <div><b>Command</b><StateLine row={row} />
-        {typeof n.exitCode === "number" && n.exitCode !== 0 && <p role="status">Command exited with code {n.exitCode}.</p>}
-        <details><summary>Command details</summary><code>{text(n.command)}</code>
-        <Shown label="cwd" value={n.cwd} />
-        <div>source: {startSource !== undefined && startSource !== n.source ? `${text(startSource)} at start, ${text(n.source)} at completion` : text(n.source ?? "not supplied")}{n.source === "userShell" && " (the App's call at the person's direction)"}</div>
-        <Shown label="exit code" value={n.exitCode} /><Shown label="duration ms" value={n.durationMs} /></details>
+        {typeof n.exitCode === "number" && n.exitCode !== 0 && <p role="status">Command exited with code {numberWords(n.exitCode)}.</p>}
+        <div>Command: <AgentText value={text(n.command)} /></div>
+        <details><summary>Command details</summary>
+        <Supplied label="cwd" value={n.cwd} />
+        <div>source: {startSource !== undefined && startSource !== n.source ? <><Word value={startSource} words={COMMAND_SOURCE} /> at start, <Word value={n.source} words={COMMAND_SOURCE} /> at completion</> : n.source === undefined || n.source === null ? "not supplied" : <Word value={n.source} words={COMMAND_SOURCE} />}{n.source === "userShell" && " (the App's call at the person's direction)"}</div>
+        <ShownNumber label="exit code" value={n.exitCode} /><ShownNumber label="duration ms" value={n.durationMs} /></details>
         {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : <details><summary>Command output{streamed(row) !== null ? " so far" : ""}</summary><LongText label={streamed(row) !== null ? "output so far" : "output"} text={streamed(row) ?? n.aggregatedOutput} /></details>}</div>;
     }
     case "fileChange":
       return <div><b>File change</b><StateLine row={row} />
-        {list(n.changes).map((change: Json, i: number) => <details key={i}><summary>{text(change?.kind?.type) || "change"} {text(change?.path)}{change?.kind?.move_path ? ` → ${text(change.kind.move_path)}` : ""}</summary><pre style={pre}>{text(change?.diff)}</pre></details>)}</div>;
+        {list(n.changes).map((change: Json, i: number) => <div key={i}>
+          <div>{change?.kind?.type ? <Word value={change.kind.type} words={CHANGE_KIND} /> : "change"} <AgentText value={text(change?.path)} label="Path:" />{change?.kind?.move_path ? <>, moved to <AgentText value={text(change.kind.move_path)} label="Path:" /></> : ""}</div>
+          <details><summary>Change {i + 1} (diff)</summary><AgentText block value={text(change?.diff)} label="The agent's change (diff):" /></details></div>)}</div>;
     case "mcpToolCall":
-      return <div><b>MCP tool</b> {text(n.server)} / {text(n.tool)}<StateLine row={row} />
-        <Shown label="arguments" value={n.arguments} /><Shown label="read-only hint" value={n.readOnlyHint} /><Shown label="duration ms" value={n.durationMs} />
+      return <div><b>MCP tool</b> <AgentText value={text(n.server)} label="Server:" source="tool" name="MCP server name as Codex reports it, not the App's words" /> / <AgentText value={text(n.tool)} label="Tool:" source="tool" name="MCP tool name as Codex reports it, not the App's words" /><StateLine row={row} />
+        <Supplied label="arguments" value={n.arguments} /><ShownFlag label="read-only hint" value={n.readOnlyHint} /><ShownNumber label="duration ms" value={n.durationMs} />
         {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : <>{n.error && <LongText label="error" text={n.error.message ?? n.error} />}{n.result != null && <><ToolContent content={n.result.content} /><Raw label="result" value={n.result} /></>}</>}</div>;
     case "dynamicToolCall":
-      return <div><b>App tool</b> {n.namespace ? `${text(n.namespace)} / ` : ""}{text(n.tool)}<StateLine row={row} />
-        <Shown label="arguments" value={n.arguments} /><Shown label="success" value={n.success} />
+      return <div><b>App tool</b> <AgentText value={`${n.namespace ? `${text(n.namespace)} / ` : ""}${text(n.tool)}`} label="Name:" source="tool" name="Tool name as Codex reports it, not the App's words" /><StateLine row={row} />
+        <Supplied label="arguments" value={n.arguments} /><ShownFlag label="success" value={n.success} />
         {resultNotSupplied(row) ? <div>result not supplied by Codex</div> : n.contentItems != null && <><ToolContent content={n.contentItems} /><Raw label="content items" value={n.contentItems} /></>}</div>;
     case "functionCallOutput":
-      return <div><b>Function output</b> {n.namespace ? `${text(n.namespace)} / ` : ""}{text(n.name)}<StateLine row={row} />{typeof n.output === "string" ? <LongText label="output" text={n.output} /> : <Raw label="output" value={n.output} />}</div>;
+      return <div><b>Function output</b> <AgentText value={`${n.namespace ? `${text(n.namespace)} / ` : ""}${text(n.name)}`} label="Name:" source="tool" name="Function name as Codex reports it, not the App's words" /><StateLine row={row} />{typeof n.output === "string" ? <LongText label="output" text={n.output} /> : <Raw label="output" value={n.output} />}</div>;
     case "collabAgentToolCall":
-      return <div><b>Delegation</b> {text(n.tool)}<StateLine row={row} />
-        <div>from {text(n.senderThreadId)} to {list(n.receiverThreadIds).map(text).join(", ") || "no receivers reported"}</div>
-        <Shown label="requested model" value={n.model} /><Shown label="effort" value={n.reasoningEffort} />
-        {n.prompt && <LongText label="prompt" text={n.prompt} />}
-        {Object.entries(n.agentsStates && typeof n.agentsStates === "object" && !Array.isArray(n.agentsStates) ? n.agentsStates : {}).map(([id, state]: [string, Json]) => <div key={id}>agent {id}: Codex status {text(state?.status)}{state?.message ? ` — ${text(state.message)}` : ""}</div>)}</div>;
+      return <div><b>Delegation</b> <Word value={n.tool} words={AGENT_TOOL} /><StateLine row={row} />
+        <div>from <Id value={n.senderThreadId} /> to {list(n.receiverThreadIds).length ? list(n.receiverThreadIds).map((r: Json, i: number) => <span key={i}>{i ? ", " : ""}<Id value={r} /></span>) : "no receivers reported"}</div>
+        <Supplied label="requested model" value={n.model} /><ShownEffort value={n.reasoningEffort} />
+        {n.prompt && <LongText label="prompt" text={n.prompt} source="agent" />}
+        {Object.entries(n.agentsStates && typeof n.agentsStates === "object" && !Array.isArray(n.agentsStates) ? n.agentsStates : {}).map(([id, state]: [string, Json]) => <div key={id}>agent <Id value={id} />: Codex status <Word value={state?.status} words={AGENT_STATUS} />{state?.message ? <> — <AgentText value={text(state.message)} /></> : ""}</div>)}</div>;
     case "subAgentActivity":
-      return <div><b>Subagent activity</b> {text(n.kind)} · {text(n.agentPath)} ({text(n.agentThreadId)})<StateLine row={row} /></div>;
+      return <div><b>Subagent activity</b> <Word value={n.kind} words={SUBAGENT_ACTIVITY} /> · <AgentText value={text(n.agentPath)} label="Agent path:" /> (<Id value={n.agentThreadId} />)<StateLine row={row} /></div>;
     case "webSearch":
-      return <div><b>Web search</b> {text(n.query)}<StateLine row={row} /></div>;
+      return <div><b>Web search</b> <AgentText value={text(n.query)} label="Query:" /><StateLine row={row} /></div>;
     case "contextCompaction":
       return <div><i>Context compacted</i><Unfinished row={row} /></div>;
     default:
-      if (!KNOWN.has(n.type)) return <div><b>unfamiliar item <code>{text(n.type) || "with no type"}</code></b><StateLine row={row} /></div>;
-      return <div><b>{text(n.type)}</b><StateLine row={row} /></div>;
+      if (!KNOWN.has(n.type)) return <div><b>unfamiliar item</b> {n.type === undefined || n.type === null || n.type === "" ? "with no type" : <AgentText value={n.type} source="codex" label="Type:" name="An item type Codex sent that the App does not recognise, not the App's words" />}<StateLine row={row} /></div>;
+      return <div><b><Word value={n.type} words={ITEM_KIND} /></b><StateLine row={row} /></div>;
   }
 }
 
 function Checklist({ revisions }: { revisions: Json[] }) {
   const latest = revisions[revisions.length - 1];
   return <div style={card}>
-    <b>Checklist</b> · revision {text(latest.ordinal)} of {revisions.length} observed live (Codex does not keep checklist updates in its history){latest.afterTurnEnd && " · received after the turn ended"}
-    {latest.content?.explanation && <p>{text(latest.content.explanation)}</p>}
-    <ol>{list(latest.content?.steps).map((step: Json, i: number) => <li key={i}>[{text(step?.status)}] {text(step?.step)}</li>)}</ol>
-    {revisions.length > 1 && <details><summary>Earlier revisions</summary>{revisions.slice(0, -1).map((r, i) => <div key={i}>revision {text(r?.ordinal)}{r?.unchangedFromPrevious ? " (unchanged)" : ""}: {list(r?.content?.steps).map((s: Json) => `[${text(s?.status)}] ${text(s?.step)}`).join("; ")}</div>)}</details>}
+    <b>Checklist</b> · revision <Num value={latest.ordinal} /> of {numberWords(revisions.length)} observed live (Codex does not keep checklist updates in its history){latest.afterTurnEnd && " · received after the turn ended"}
+    {latest.content?.explanation && <AgentText block value={text(latest.content.explanation)} />}
+    <ol>{list(latest.content?.steps).map((step: Json, i: number) => <li key={i}>[<Word value={step?.status} words={STEP_STATUS} />] <AgentText value={text(step?.step)} label="Step:" /></li>)}</ol>
+    {revisions.length > 1 && <details><summary>Earlier revisions</summary>{revisions.slice(0, -1).map((r, i) => <div key={i}>revision <Num value={r?.ordinal} />{r?.unchangedFromPrevious ? " (unchanged)" : ""}: {list(r?.content?.steps).map((s: Json, k: number) => <span key={k}>{k > 0 && "; "}[<Word value={s?.status} words={STEP_STATUS} />] <AgentText value={text(s?.step)} label="Step:" /></span>)}</div>)}</details>}
   </div>;
 }
 
@@ -294,11 +338,11 @@ function Child({ child, trialLabel }: { child: Json; trialLabel?: Json }) {
   const reported = child.lastObservedStatus;
   const status = reported && typeof reported === "object" ? reported : { status: reported };
   return <>
-    {trialLabel ? <><b>{text(trialLabel)}</b> · </> : null}
-    {text(child.threadId)} · last observed Codex status {text(status.status) || "not reported"}{status.message ? ` — ${text(status.message)}` : ""}
-    {child.statusSource ? ` (status source ${text(child.statusSource)})` : ""} · parent from {text(child.parentSource)}
-    {child.nativeThread?.agentRole != null && ` · role ${text(child.nativeThread.agentRole)} (as Codex reports)`}{child.nativeThread?.agentNickname != null && ` · nickname ${text(child.nativeThread.agentNickname)}`}
-    {child.observationEnded && " · observation ended"} · guidance {child.guidance === "not-known" ? "not known" : text(child.guidance)}
+    {trialLabel ? <><AgentText value={trialLabel} source="codex" label="Trial:" name="The trial's label, as recorded; the App does not vouch for its words" /> · </> : null}
+    <Id value={child.threadId} /> · last observed Codex status {status.status === undefined || status.status === null || status.status === "" ? "not reported" : <Word value={status.status} words={CHILD_STATUS} />}{status.message ? <> — <AgentText value={text(status.message)} /></> : ""}
+    {child.statusSource ? <> (status source <AgentText value={text(child.statusSource)} source="codex" label="Status source:" name="Where the status was read, as recorded; the App does not vouch for its words" />)</> : ""} · parent from <Word value={child.parentSource} words={PARENT_SOURCE} label="Recorded:" name="Where the parent was read, as recorded; the App does not vouch for its words" />
+    {child.nativeThread?.agentRole != null && <> · role <AgentText value={text(child.nativeThread.agentRole)} label="Role:" name="Agent role as Codex reports it, not the App's words" /> (as Codex reports)</>}{child.nativeThread?.agentNickname != null && <> · nickname <AgentText value={text(child.nativeThread.agentNickname)} label="Name:" name="Agent nickname as Codex reports it, not the App's words" /></>}
+    {child.observationEnded && " · observation ended"} · guidance {child.guidance === "not-known" ? "not known" : <AgentText value={text(child.guidance)} source="codex" label="Guidance:" name="The descendant's guidance reading, as recorded; the App does not vouch for its words" />}
     {" "}· return, review and integration not inferred
   </>;
 }
@@ -323,7 +367,8 @@ export class RowBoundary extends Component<BoundaryProps, { failed: boolean; row
   render() {
     if (!this.state.failed) return this.props.children;
     const what = this.props.label === "native item" ? "the native JSON follows unchanged" : "its JSON entry follows unchanged";
-    return <div style={card}><i>This {this.props.label} could not be shown readably; {what}.</i><pre style={pre}>{json(this.props.value)}</pre></div>;
+    const kind = this.props.label === "native item" ? "native item" : this.props.label === "checklist" ? "checklist" : this.props.label === "descendant" ? "descendant" : "entry";
+    return <div style={card}><i>This {kind} could not be shown readably; {what}.</i><NativeJson value={this.props.value} /></div>;
   }
 }
 
@@ -333,7 +378,7 @@ export class RowBoundary extends Component<BoundaryProps, { failed: boolean; row
 export function NativeItemCard({ row, plans = [], runStart = false, history = false, children, after }: { row: Json; plans?: Json[]; runStart?: boolean; history?: boolean; children?: ReactNode; after?: ReactNode }) {
   const shown = history ? historyItemRow(row?.native, row?.threadId, row?.turnId) : row;
   return <RowBoundary value={shown.native} row={row} label="native item"><div style={card} {...(!history ? { id: itemAnchorId(shown.threadId, shown.turnId, shown.native?.id) } : {})}>
-    {history && <div><small>Native item {text(shown.native?.id)} · {text(shown.native?.type)} · read from Codex history</small></div>}
+    {history && <div><small>Native item <SuppliedId value={shown.native?.id} label="Item:" name="Item identity as Codex reported it, not the App's words" /> · <Word value={shown.native?.type} words={ITEM_KIND} /> · read from Codex history</small></div>}
     <ItemBody row={shown} plans={history ? [] : plans} runStart={!history && runStart} />
     {!history && children}
     <Raw value={shown.native} />
@@ -346,6 +391,14 @@ const marker = { borderTop: "2px dashed #777", borderBottom: "2px dashed #777", 
 const runOpened = (run: Json) => typeof run?.lifecycle?.state === "string" && /^(open|ended)/.test(run.lifecycle.state);
 function runName(run: Json): string {
   return `${text(run?.workflow?.name) || "workflow"} ${text(run?.workflow?.revision).slice(0, 12)}`.trim();
+}
+/** A run's workflow name and revision in the App's words when the name meets the App's own rule and the revision is
+ * hexadecimal, else boxed as recorded. */
+function RunName({ run }: { run: Json }) {
+  const name = text(run?.workflow?.name), revision = text(run?.workflow?.revision).slice(0, 12);
+  if ((!name || (name.length <= 64 && SAFE_WORKFLOW_NAME.test(name))) && /^[0-9a-f]*$/i.test(revision))
+    return <b>{name ? plainId(name) : "workflow"}{revision ? <> {plainId(revision)}</> : null}</b>;
+  return <AgentText value={runName(run)} source="codex" label="Workflow name:" name="Workflow name as recorded, not the App's words" />;
 }
 // NPTD §5.7 (R19-2): the run in force at a turn, from the App's run markers
 // only: a run whose start turn is shown at or before the turn, and whose end,
@@ -372,24 +425,56 @@ export function runInForce(runs: Json[], turnIds: string[], turnId: string): Jso
 // ‹revision›". Messages, reasoning and compaction are conversation, not plan or
 // tool rows, and carry none.
 const UNLABELLED = new Set(["userMessage", "agentMessage", "reasoning", "contextCompaction"]);
-function RunLabel({ run }: { run: Json | null }) {
-  return run ? <div><small>During the run of <b>{runName(run)}</b>, as the App's run markers place this turn.</small></div> : null;
+/** A workflow name the App's own rule admits (`workflow_workspace::valid_name`): lowercase letters,
+ * digits and single hyphens, at most 64 characters. A name outside it may come from a file an agent
+ * wrote, so it is drawn as text the App did not write, never inside the App's sentence. */
+const SAFE_WORKFLOW_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export function RunLabel({ run }: { run: Json | null }) {
+  if (!run) return null;
+  return <div><small>During the run of <RunName run={run} />, as the App's run markers place this turn.</small></div>;
 }
+const RUN_ID = { label: "Run:", name: "Run reference, as recorded; the App does not vouch for its words" } as const;
 export function RunStartMarker({ run }: { run: Json }) {
-  return <div role="note" style={marker}>Workflow run started: <b>{runName(run)}</b> (run {text(run?.reference)}), as the App recorded it. The workflow text it supplied is folded in the user message of this turn.</div>;
+  return <div role="note" style={marker}>Workflow run started: <RunName run={run} /> (run <SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />), as the App recorded it. The workflow text it supplied is folded in the user message of this turn.</div>;
+}
+// The host's run-end causes (runtime_session.rs run_end_cause): its own words, or "ended to start ‹name›" with a
+// name the App's rule admits. Anything else is boxed.
+const RUN_END_CAUSE = { "ended by the person": "ended by the person", completed: "completed", invalid: "invalid" } as const;
+function RunEndCause({ cause }: { cause: Json }) {
+  if (cause === undefined || cause === null || cause === "") return <b>cause not recorded</b>;
+  const word = wordOf(RUN_END_CAUSE, cause);
+  if (word !== null) return <b>{word}</b>;
+  const successor = typeof cause === "string" && cause.startsWith("ended to start ") ? cause.slice("ended to start ".length) : null;
+  if (successor !== null && successor.length <= 64 && SAFE_WORKFLOW_NAME.test(successor)) return <b>ended to start {plainId(successor)}</b>;
+  return <AgentText value={cause} source="codex" label="Cause:" name="Why the run ended, as recorded; the App does not vouch for its words" />;
 }
 export function RunEndMarker({ run }: { run: Json }) {
-  const cause = text(run?.lifecycle?.end?.cause) || "cause not recorded";
-  return <div role="note" style={marker}>Run ended: <b>{cause}</b> ({runName(run)}, run {text(run?.reference)}){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
+  return <div role="note" style={marker}>Run ended: <RunEndCause cause={run?.lifecycle?.end?.cause} /> (<RunName run={run} />, run <SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
 }
 
 // TO-4 / RECOVERY §3.4: the App's own label for a turn it was asked to stop,
 // beside Codex's reported status (Codex cannot say who interrupted). A REC SR
 // row carries its own reading and where it is recorded.
+// The App's own labels for a stopped turn (stop_records.rs label, codex_stop.rs outcome_label).
+const STOP_LABEL = {
+  "interrupted by the person": "interrupted by the person",
+  "completed (stop requested)": "completed (stop requested)",
+  "failed (stop requested)": "failed (stop requested)",
+  "outcome unknown (stop requested)": "outcome unknown (stop requested)",
+  "interrupted by quit": "interrupted by quit",
+  "completed (quit requested)": "completed (quit requested)",
+  "failed (quit requested)": "failed (quit requested)",
+  "interrupted by quit (final status not observed)": "interrupted by quit (final status not observed)",
+  "interrupted by Stop Codex": "interrupted by Stop Codex",
+  "completed (Stop Codex requested)": "completed (Stop Codex requested)",
+  "failed (Stop Codex requested)": "failed (Stop Codex requested)",
+  "interrupted by Stop Codex (final status not observed)": "interrupted by Stop Codex (final status not observed)",
+} as const;
+const STOP_WORDS = { label: "The stop's label, as recorded; the App does not vouch for its words", reading: "The stop request's reading, as recorded; the App does not vouch for its words", persistence: "Where the stop is recorded, as recorded; the App does not vouch for its words" } as const;
 export function StopLabel({ stop }: { stop: Json | null }) {
   if (!stop) return null;
-  if (stop.stopRequestId) return <p role="note">{stop.label ? <>App label: <b>{text(stop.label)}</b>{stop.labelDerived ? " (derived; not written)" : ""}. </> : "Stop request: "}{text(stop.reading)}{stop.codexReported ? ` Codex reported: ${text(stop.codexReported)}.` : ""}{stop.earlierSession ? " From an earlier App session." : ""} Codex's own status is shown beside it. <small>Record: {text(stop.persistence)}.</small></p>;
-  return <p role="note">App label: <b>{text(stop.label)}</b> ({stop.codexReported ? `Codex reported at the stop: ${text(stop.codexReported)}` : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
+  if (stop.stopRequestId) return <p role="note">{stop.label ? <>App label: <b><Word value={stop.label} words={STOP_LABEL} label="Recorded:" name={STOP_WORDS.label} /></b>{stop.labelDerived ? " (derived; not written)" : ""}. </> : "Stop request: "}<AgentText value={text(stop.reading)} source="codex" label="Reading:" name={STOP_WORDS.reading} />{stop.codexReported ? <> Codex reported: <Word value={stop.codexReported} words={TURN_STATUS} />.</> : ""}{stop.earlierSession ? " From an earlier App session." : ""} Codex's own status is shown beside it. <small>Record: <AgentText value={text(stop.persistence)} source="codex" label="Record:" name={STOP_WORDS.persistence} />.</small></p>;
+  return <p role="note">App label: <b><Word value={stop.label} words={STOP_LABEL} label="Recorded:" name={STOP_WORDS.label} /></b> ({stop.codexReported ? <>Codex reported at the stop: <Word value={stop.codexReported} words={TURN_STATUS} /></> : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
 }
 
 // NPTD §7.1: the delegation view by the host's reading for this conversation.
@@ -397,11 +482,12 @@ export function StopLabel({ stop }: { stop: Json | null }) {
 // view is absent and one line says why. Not established: shown only when
 // delegation items arrive. Items that arrive are always shown (the list
 // below), whatever the reading.
+const DELEGATION_REASON = "Why delegation is not available, as recorded; the App does not vouch for its words";
 export function DelegationLine({ delegation, descendants }: { delegation: Json; descendants: number }) {
-  const at = delegation?.readAt ? ` (read ${text(delegation.readAt)})` : "";
+  const at = delegation?.readAt ? <> (read <AgentText value={text(delegation.readAt)} source="codex" label="Read at:" name="When the delegation reading was taken, as recorded; the App does not vouch for its words" />)</> : "";
   if (delegation?.reading === "present") return descendants > 0 ? null : <p><small>Delegation available{at}; no descendants observed.</small></p>;
-  if (delegation?.reading === "missing") return <p role="note"><small>Delegation not available: {text(delegation.reason)}{at}.{descendants > 0 ? " Descendants that arrived anyway are shown below." : ""}</small></p>;
-  if (descendants > 0 && delegation?.reading === "not established") return <p><small>Delegation availability not established: {text(delegation.reason)}.</small></p>;
+  if (delegation?.reading === "missing") return <p role="note"><small>Delegation not available: <AgentText value={text(delegation.reason)} source="codex" label="Reason:" name={DELEGATION_REASON} />{at}.{descendants > 0 ? " Descendants that arrived anyway are shown below." : ""}</small></p>;
+  if (descendants > 0 && delegation?.reading === "not established") return <p><small>Delegation availability not established: <AgentText value={text(delegation.reason)} source="codex" label="Reason:" name={DELEGATION_REASON} />.</small></p>;
   return null;
 }
 
@@ -411,7 +497,7 @@ export function DelegationLine({ delegation, descendants }: { delegation: Json; 
  */
 export const turnStatusWords = (native: Json | null, observationEnded: boolean) => !native ? "status unknown"
   : native.status === "inProgress" && observationEnded ? "in progress when last observed; the App is no longer receiving from that Codex process, so its outcome is unknown"
-  : text(native.status);
+  : wordOf(TURN_STATUS, native.status) ?? "a status the App does not recognise (shown under Turn source and timing)";
 
 /** One error notice in the supplier's own words: its message, then its details where it sent any. */
 /** A Codex error in Codex's own words: its message and, where given, its additional details. */
@@ -435,10 +521,10 @@ export function TurnErrors({ errors, unreadable, turn }: { errors: Json[]; unrea
   const unreadCount = typeof lastUnread?.ordinalInTurn === "number" ? lastUnread.ordinalInTurn : unread.length;
   const requests = unread.filter((entry: Json) => entry?.kind === "server-request-named-error").length;
   const refused = unread.length > 0 && <p role="status">
-    Codex sent {unreadCount === 1 ? "a frame" : `${unreadCount} frames`} named <code>error</code> for this turn that the App could not read as the error notice its Codex version defines, so {unreadCount === 1 ? "its" : "their"} meaning and retry state are not established.
+    Codex sent {unreadCount === 1 ? "a frame" : `${numberWords(unreadCount)} frames`} named <code>error</code> for this turn that the App could not read as the error notice its Codex version defines, so {unreadCount === 1 ? "its" : "their"} meaning and retry state are not established.
     {requests > 0 && ` ${requests === unread.length && unreadCount === unread.length ? (requests === 1 ? "It was" : "They were") : `${requests} of those kept ${requests === 1 ? "was" : "were"}`} ${requests === 1 ? "a request from Codex and not a notice" : "requests from Codex and not notices"}.`}
     {unreadCount > unread.length && ` The App kept the latest ${unread.length}.`}
-    {" "}Received at position {unread.map((entry: Json) => text(entry?.receiptPosition)).join(", ")}; the original {unread.length === 1 ? "envelope is" : "envelopes are"} under Host diagnostics only while the host's journal still holds {unread.length === 1 ? "it" : "them"}.
+    {" "}Received at position {unread.map((entry: Json, i: number) => <span key={i}>{i > 0 ? ", " : ""}<Num value={entry?.receiptPosition} /></span>)}; the original {unread.length === 1 ? "envelope is" : "envelopes are"} under Host diagnostics only while the host's journal still holds {unread.length === 1 ? "it" : "them"}.
   </p>;
   // With nothing readable, no error notice was established: the group is not labelled as one.
   if (errors.length === 0) return <div aria-label="Frames named error that the App could not read">{refused}</div>;
@@ -449,20 +535,23 @@ export function TurnErrors({ errors, unreadable, turn }: { errors: Json[]; unrea
     : latest?.observationEnded === true ? "The App stopped receiving from that Codex process before any later event naming this turn."
     : turn?.status === "inProgress" || turn === null ? "No later event naming this turn has reached the App." : "";
   return <div role={latest?.willRetry === false ? "alert" : "status"} aria-label="Errors Codex reported in this turn">
-    <p>Codex reported an error in this turn{received > 1 ? ` ${received} times; the latest` : ""}: <q>{errorWords(latest?.error)}</q> {retry}{since && ` ${since}`}</p>
-    <details><summary>{errors.length === 1 ? "The error notice, with its whole error object" : `The ${errors.length} error notices in the order received, each with its whole error object`}</summary>
-      {received > errors.length && <p><small>{received - errors.length} earlier {received - errors.length === 1 ? "notice is" : "notices are"} no longer kept.</small></p>}
+    <p>Codex reported an error in this turn{received > 1 ? ` ${numberWords(received)} times; the latest` : ""}: <AgentText value={errorWords(latest?.error)} source="codex" /> {retry}{since && ` ${since}`}</p>
+    <details><summary>{errors.length === 1 ? "The error notice, with its whole error object" : `The ${numberWords(errors.length)} error notices in the order received, each with its whole error object`}</summary>
+      {received > errors.length && <p><small>{numberWords(received - errors.length)} earlier {received - errors.length === 1 ? "notice is" : "notices are"} no longer kept.</small></p>}
       <ol>{errors.map((entry: Json, i: number) => <li key={i} value={typeof entry?.ordinalInTurn === "number" ? entry.ordinalInTurn : i + 1}>
-        {errorWords(entry?.error)} · {entry?.willRetry === true ? "will retry" : entry?.willRetry === false ? "will not retry" : "retry not stated"}
-        <small> · received at position {text(entry?.receiptPosition)}</small>
-        <pre style={pre}>{json(entry?.error)}</pre>
+        <AgentText value={errorWords(entry?.error)} source="codex" /> · {entry?.willRetry === true ? "will retry" : entry?.willRetry === false ? "will not retry" : "retry not stated"}
+        <small> · received at position <Num value={entry?.receiptPosition} /></small>
+        <NativeJson value={entry?.error} />
       </li>)}</ol>
     </details>
     {refused}
   </div>;
 }
 
-export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
+// RN-3…RN-7: the run offers beneath an agent message are drawn by RunOffer (a guarded view) with what the App
+// supplies for its buttons; the activity takes no other renderer for them.
+export type OfferControls = { generation: Json; ready: boolean; busy: boolean; act: RunAct };
+export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
   const [shown, setShown] = useState<string>("");
   const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
   const revision = useRef(0);
@@ -506,32 +595,32 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
   const shownTurns = new Set(model.turns.map(turn => turn.turnId));
   const turnIds = model.turns.map(turn => text(turn.turnId));
   const unplaced = ownRuns.filter((run: Json) => !shownTurns.has(run.turn) || (run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn)));
-  const offersFor = (row: Json) => target === threadId && renderOffer ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
+  const offersFor = (row: Json) => target === threadId && offerControls ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
   return <div ref={container} aria-label="Native activity">
     <h3>Activity</h3>
-    <details><summary>Activity source and limits</summary><p>Codex types {text(view?.typesPin) || "not reported"} · supplier standing {String(view?.supplierStanding ?? "not established")}. {list(view?.limits).map(text).join(" ")}</p></details>
+    <details><summary>Activity source and limits</summary><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
     {descendants.length > 0 && <label>Show <select value={target} onChange={e => {
       revision.current++; setPending(null);
       setShown(e.target.value === threadId ? "" : e.target.value);
     }}>
       <option value={threadId}>this conversation</option>
-      {descendants.map((c: Json) => <option key={text(c.threadId)} value={text(c.threadId)}>descendant {text(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${text(c.parentThreadId)})` : ""}</option>)}
+      {descendants.map((c: Json) => <option key={text(c.threadId)} value={text(c.threadId)}>descendant {idWords(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${idWords(c.parentThreadId)})` : ""}</option>)}
     </select></label>}
-    {model.parent && <p>Descendant of {text(model.parent.parentThreadId)} ({text(model.parent.parentSource)}).</p>}
-    {model.goal && <p>Goal ({text(model.goal.source)}): {model.goal.native === null ? "cleared" : typeof model.goal.native?.objective === "string" ? model.goal.native.objective : JSON.stringify(model.goal.native)}</p>}
-    {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn {text(gap.turnId)}: {text(gap.reason)}</p>)}
+    {model.parent && <p>Descendant of <Id value={model.parent.parentThreadId} /> (<Word value={model.parent.parentSource} words={PARENT_SOURCE} label="Recorded:" name="Where the parent was read, as recorded; the App does not vouch for its words" />).</p>}
+    {model.goal && <p>Goal (<AgentText value={text(model.goal.source)} source="codex" label="Source:" name="Where the goal was read, as recorded; the App does not vouch for its words" />): {model.goal.native === null ? "cleared" : <AgentText value={typeof model.goal.native?.objective === "string" ? model.goal.native.objective : JSON.stringify(model.goal.native)} source="codex" />}</p>}
+    {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn <SuppliedId value={gap.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" />: <AgentText value={text(gap.reason)} source="codex" label="Reason:" name="Why the checklist is missing, as recorded; the App does not vouch for its words" /></p>)}
     {unplaced.length > 0 && <div><small>Workflow runs in this conversation whose position this view cannot show:</small>
       {unplaced.map((run: Json) => <div key={text(run.reference)}>{!shownTurns.has(run.turn) && <RunStartMarker run={run} />}{run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn) && <RunEndMarker run={run} />}</div>)}</div>}
     {model.turns.length === 0 && <p>No activity observed for this conversation in the current Codex generation. This view shows what the App received live in this generation and what it has read from Codex history; earlier generations' observations remain under the native JSON below.</p>}
     {model.turns.map((turn, index) => <section key={text(turn.turnId)} aria-label={`Conversation turn ${index + 1}`} style={{ borderTop: "1px solid #ccc", marginTop: 8 }}>
       {ownRuns.filter((run: Json) => run.turn === turn.turnId).map((run: Json) => <RunStartMarker key={text(run.reference)} run={run} />)}
       <h4>{`Turn ${index + 1}`} · {turnStatusWords(turn.native, view?.observationEnded === true)}</h4>
-      <details><summary>Turn source and timing</summary><small>Turn {text(turn.turnId)} · {turn.native ? `native status ${text(turn.native.status)}` : "turn status not observed"}{turn.native?.durationMs != null && ` · ${text(turn.native.durationMs)} ms`}</small></details>
-      {turnLabel(target, turn.turnId) && <p role="note"><small>{text(turnLabel(target, turn.turnId))}</small></p>}
+      <details><summary>Turn source and timing</summary><small>Turn <SuppliedId value={turn.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> · {turn.native ? <>native status <Word value={turn.native.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" /></> : "turn status not observed"}{turn.native?.durationMs != null && <> · <Num value={turn.native.durationMs} /> ms</>}</small></details>
+      {turnLabel(target, turn.turnId) && <p role="note"><small><AgentText value={text(turnLabel(target, turn.turnId))} source="codex" label="Trial:" name="The trial's label for this turn, as recorded; the App does not vouch for its words" /></small></p>}
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
-      {turn.native?.error?.message && <p role="alert">Turn error: {text(turn.native.error.message)}</p>}
+      {turn.native?.error?.message && <p role="alert">Turn error: <AgentText value={text(turn.native.error.message)} source="codex" /></p>}
       <TurnErrors errors={turn.errors} unreadable={turn.unreadableErrors} turn={turn.native} />
-      {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}>
+      {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{offerControls && <RunOffer offer={offer} generation={offerControls.generation} ready={offerControls.ready} busy={offerControls.busy} act={offerControls.act} />}</div>)}>
         {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
       </NativeItemCard>)}
       {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /><RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} /></RowBoundary>}

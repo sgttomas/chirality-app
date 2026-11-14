@@ -155,7 +155,7 @@ test('listener failure still drains the process-owned startup selection',async()
 test('native selection while existing home navigation is busy reports refusal instead of silently dropping or retrying it',async()=>{
   const wait=deferred();
   await mounted(async ui=>{
-    await ui.press('account · conversation shared-thread: 2');
+    await ui.press('account · thread shared-thread: 2');
     await ui.wake(ui.dto.native.intents['api-key']);
     assert.match(ui.container.textContent,/navigation refused while another home or conversation operation is pending/);
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
