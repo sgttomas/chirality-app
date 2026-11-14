@@ -838,9 +838,9 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
             Ok(observation) if observation.get("waitLimitSeconds").is_some() => json!({"standing":"not attempted: the early session-end write was not observed within its bound, and this drain needs the same App writer"}),
             _ => drain_after_settlement_within(homes, RECORDING_WAIT_LIMIT),
         };
-        if !failures.is_empty() { eprintln!("chirality: system termination cleanup unavailable: {}", failures.join("; ")); }
+        if !failures.is_empty() { crate::util::diagnostic(format!("chirality: system termination cleanup unavailable: {}", failures.join("; "))); }
         if let Ok(observation) = &early {
-            if observation["write"] == "not-confirmed" { eprintln!("chirality: {}", observation["limit"].as_str().unwrap_or("system termination session end not confirmed")); }
+            if observation["write"] == "not-confirmed" { crate::util::diagnostic(format!("chirality: {}", observation["limit"].as_str().unwrap_or("system termination session end not confirmed"))); }
         }
         return early.map(|mut observation| { observation["ownedProcessCleanupLimits"] = json!(failures); observation["queuedAfterSettlement"] = drained; observation });
     }

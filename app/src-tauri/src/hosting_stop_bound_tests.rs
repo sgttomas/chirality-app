@@ -1738,3 +1738,42 @@ fn a_release_off_thread_never_drops_on_the_caller() {
     let on = dropped.lock().unwrap().expect("dropped");
     assert_ne!(on, caller, "dropped on its own thread");
 }
+
+/// R3-3: a diagnostic is never waited for. With nothing to take it (the
+/// diagnostics thread not started, as in tests, or a full queue), it is
+/// dropped and counted at once.
+#[test]
+fn a_diagnostic_is_never_waited_for() {
+    let begin = Instant::now();
+    for n in 0..(crate::util::DIAGNOSTIC_QUEUE * 4) { crate::util::diagnostic(format!("chirality: test diagnostic {n}")); }
+    assert!(begin.elapsed() < Duration::from_millis(500), "{:?}", begin.elapsed());
+}
+
+/// R3-2: the account the App runs as is one observation for the session, read
+/// on its own thread. Quit, Stop and ordinary acts look and never wait; an act
+/// that requires it (a file act) waits within its bound, and is otherwise
+/// refused with the sentence; no caller makes the lookup on its own thread.
+#[test]
+fn the_account_observation_is_never_waited_for_except_by_an_act_that_requires_it_within_a_bound() {
+    use crate::util::{AccountObservation, ACCOUNT_NOT_YET_READ};
+    fn stalled() -> Option<String> { std::thread::sleep(Duration::from_secs(60)); Some("never".into()) }
+    fn quick() -> Option<String> { std::thread::sleep(Duration::from_millis(200)); Some("invented-account".into()) }
+    // The read stalled: quit, Stop and an ordinary act look, at once, and record no account.
+    let stalled_read: &'static AccountObservation = Box::leak(Box::new(AccountObservation::new(stalled)));
+    assert!(stalled_read.start());
+    let begin = Instant::now();
+    let looked = stalled_read.observed();
+    assert!(begin.elapsed() < Duration::from_millis(50) && looked.is_none(), "looked at, not waited for");
+    let actor = crate::act_control::person(Some("Invented Person"), looked.as_deref());
+    assert!(actor.get("osAccount").is_none(), "an ordinary act before the read records no account: {actor}");
+    // A file act with the read stalled: refused within its bound, with the sentence.
+    let begin = Instant::now();
+    let refused = stalled_read.within(Duration::from_millis(300)).ok_or(ACCOUNT_NOT_YET_READ);
+    assert!(begin.elapsed() >= Duration::from_millis(300) && begin.elapsed() < Duration::from_millis(300) + SLACK, "{:?}", begin.elapsed());
+    assert_eq!(refused, Err(ACCOUNT_NOT_YET_READ));
+    // A file act before a read that then completes within the bound: it proceeds with the account.
+    let quick_read: &'static AccountObservation = Box::leak(Box::new(AccountObservation::new(quick)));
+    assert_eq!(quick_read.observed(), None, "not started: nothing observed, and nothing read by looking");
+    assert_eq!(quick_read.within(Duration::from_secs(3)), Some(Some("invented-account".into())), "the read is started by the act, on its own thread, and waited for");
+    assert_eq!(quick_read.observed().as_deref(), Some("invented-account"), "one observation for the session");
+}

@@ -69,7 +69,61 @@ fn civil_from_days(z: i64) -> (i64, u32, u32) {
     (if m <= 2 { y + 1 } else { y }, m, d)
 }
 
-/// The operating-system account of the user running the App (AAC §7: always present).
+/// The name of the operating-system account the App runs as, read once for
+/// the App's session on a thread of its own, and not at each act. The App
+/// never changes its credentials (nothing in its source calls setuid, seteuid,
+/// setgid or setgroups); the mapping from its uid to a name can change outside
+/// the App, so this is what was read, when it was read.
+pub(crate) static OS_ACCOUNT: AccountObservation = AccountObservation::new(os_account);
+/// How long an act that requires the account waits for the session's
+/// observation (this lane's own bound, which it may change).
+pub(crate) const ACCOUNT_WAIT_LIMIT: std::time::Duration = std::time::Duration::from_secs(3);
+/// Shown to the person when an act that records the account cannot have it in time.
+pub(crate) const ACCOUNT_NOT_YET_READ: &str = "Chirality has not yet been able to read the name of the account it is running as, which this act records. Try again in a moment.";
+/// One observation, read once on its own thread. Callers never make the read
+/// on their own thread: they look at it, or wait for it within a bound.
+pub(crate) struct AccountObservation {
+    read: fn() -> Option<String>,
+    started: std::sync::atomic::AtomicBool,
+    value: std::sync::Mutex<Option<Option<String>>>,
+    ready: std::sync::Condvar,
+}
+impl AccountObservation {
+    pub(crate) const fn new(read: fn() -> Option<String>) -> Self {
+        Self { read, started: std::sync::atomic::AtomicBool::new(false), value: std::sync::Mutex::new(None), ready: std::sync::Condvar::new() }
+    }
+    /// Starts the read on its own thread, once; false where it could not start.
+    pub(crate) fn start(&'static self) -> bool {
+        if self.started.swap(true, std::sync::atomic::Ordering::SeqCst) { return true; }
+        std::thread::Builder::new().name("os-account".into()).spawn(move || {
+            let read = (self.read)();
+            *self.value.lock().unwrap_or_else(|e| e.into_inner()) = Some(read);
+            self.ready.notify_all();
+        }).map_err(|_| self.started.store(false, std::sync::atomic::Ordering::SeqCst)).is_ok()
+    }
+    /// The observation if it is there, never waited for: None where the read
+    /// has not finished, could not start, or found no name.
+    pub(crate) fn observed(&self) -> Option<String> {
+        self.value.lock().unwrap_or_else(|e| e.into_inner()).clone().flatten()
+    }
+    /// For an act that requires the account: the observation, waiting for it
+    /// at most `limit` (starting the read if it was never started). Some(read)
+    /// once the read has finished; None if it has not within the limit.
+    pub(crate) fn within(&'static self, limit: std::time::Duration) -> Option<Option<String>> {
+        self.start();
+        let deadline = std::time::Instant::now() + limit;
+        let mut value = self.value.lock().unwrap_or_else(|e| e.into_inner());
+        while value.is_none() {
+            let left = deadline.saturating_duration_since(std::time::Instant::now());
+            if left.is_zero() { return None; }
+            value = self.ready.wait_timeout(value, left).unwrap_or_else(|e| e.into_inner()).0;
+        }
+        value.clone()
+    }
+}
+
+/// The operating-system account of the user running the App (AAC §7): the
+/// lookup itself, made only by [`OS_ACCOUNT`]'s own thread.
 pub fn os_account() -> Option<String> {
     // SAFETY: getpwuid returns a pointer into static storage or null; we copy out at once.
     unsafe {
@@ -168,4 +222,32 @@ pub(crate) fn release_off_thread<T: Send + 'static>(
         Ok(()) => Released::Done,
         Err(_) => Released::NotInTime,
     }
+}
+
+/// How many diagnostics wait to be written before a new one is dropped.
+pub(crate) const DIAGNOSTIC_QUEUE: usize = 64;
+static DIAGNOSTICS: std::sync::OnceLock<std::sync::mpsc::SyncSender<String>> = std::sync::OnceLock::new();
+static DIAGNOSTICS_DROPPED: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+/// Starts the thread that writes diagnostics to standard error, at App start.
+/// A full or stalled standard error then stalls only that thread.
+pub(crate) fn start_diagnostics() {
+    let (sender, lines) = std::sync::mpsc::sync_channel::<String>(DIAGNOSTIC_QUEUE);
+    let started = std::thread::Builder::new().name("diagnostics".into()).spawn(move || {
+        for line in lines {
+            let dropped = DIAGNOSTICS_DROPPED.swap(0, std::sync::atomic::Ordering::SeqCst);
+            if dropped > 0 { eprintln!("chirality: {dropped} diagnostics could not be written"); }
+            eprintln!("{line}");
+        }
+    });
+    if started.is_ok() { let _ = DIAGNOSTICS.set(sender); }
+}
+/// One diagnostic line, best effort, never waited for: queued for the
+/// diagnostics thread if there is room at once, otherwise dropped and
+/// counted. The count is written before the next line that is written, if any
+/// is; nothing flushes, drains or joins the thread. Before the thread has
+/// started, or where it could not start, the line is dropped and counted.
+/// Nothing a person must read goes only through here.
+pub(crate) fn diagnostic(line: String) {
+    let queued = DIAGNOSTICS.get().is_some_and(|sender| sender.try_send(line).is_ok());
+    if !queued { DIAGNOSTICS_DROPPED.fetch_add(1, std::sync::atomic::Ordering::SeqCst); }
 }

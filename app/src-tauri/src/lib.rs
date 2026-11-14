@@ -1644,7 +1644,7 @@ fn request_quit(app: tauri::AppHandle) {
             app_quit::KeyAdmission::Admitted(held) => held,
             app_quit::KeyAdmission::KeptRunning => return,
             app_quit::KeyAdmission::NotAsked(reason) => {
-                eprintln!("chirality: the quit offer could not be shown ({reason}); the App keeps running");
+                crate::util::diagnostic(format!("chirality: the quit offer could not be shown ({reason}); the App keeps running"));
                 return;
             }
             app_quit::KeyAdmission::Refused(reason) => {
@@ -1675,7 +1675,7 @@ fn request_quit(app: tauri::AppHandle) {
         });
         let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
         if let app_quit::Decision::NotAsked(outcome) = &decision {
-            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
+            crate::util::diagnostic(format!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown")));
         }
         let mut ended = None;
         match state.app_quit.allow(&decision, |ids| {
@@ -1695,8 +1695,8 @@ fn request_quit(app: tauri::AppHandle) {
             Ok(false) => {},
             Err(error) => {
                 app_quit::QuitOps::reopen_to_new_turns(&mut ops);
-                eprintln!("chirality: {error}");
                 app_quit::refuse_after_releasing((ops, key_setup, held), || {
+                    crate::util::diagnostic(format!("chirality: {error}"));
                     show_main_window(&app);
                     native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
                 });
@@ -2102,7 +2102,8 @@ fn conversation_interrupt(
 /// wait on.
 fn quit_person(state: &AppState) -> String {
     let name = state.person_name.lock().unwrap().clone();
-    let actor = act_control::person(name.as_deref(), util::os_account().as_deref());
+    // Looked at, never waited for (P12): absent, the quit records no account.
+    let actor = act_control::person(name.as_deref(), util::OS_ACCOUNT.observed().as_deref());
     let line = act_control::native_statement::actor_line(&actor);
     line.strip_suffix(" (identity not verified)").unwrap_or(&line).to_owned()
 }
@@ -2261,7 +2262,9 @@ fn current_actor_context(state: &AppState) -> (Value, Value) {
 }
 fn current_actor_context_for(state: &AppState, home: &runtime_session::HomeSession) -> (Value, Value) {
     let name = state.person_name.lock().unwrap().clone();
-    let os = util::os_account();
+    // Looked at, never waited for: Stop and the ordinary acts record no
+    // account where the session's read has not finished.
+    let os = util::OS_ACCOUNT.observed();
     let mut runtime = home.runtime.lock().unwrap();
     let (observation, _) = runtime.receive_native(&home.host);
     let context = runtime.actor_context(&observation, name.as_deref(), os.as_deref());
@@ -2869,7 +2872,10 @@ fn file_act_observe(state:&AppState, home:&Arc<runtime_session::HomeSession>) ->
     match &*binding { Ok(set)=>set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?, Err(_) if home.class()==home_resources::HomeClass::Account=>{}, Err(e)=>return Err(e.clone()) }
     drop(binding);
     let name=state.person_name.try_lock().map_err(|_|"Actor setting busy; review again")?.clone();
-    let os=util::os_account();
+    // A file act records the account and requires it: it waits for the
+    // session's read within a bound, holding nothing, and is otherwise refused.
+    // A read that finished with no name keeps the file act's own refusal.
+    let os=util::OS_ACCOUNT.within(util::ACCOUNT_WAIT_LIMIT).ok_or(util::ACCOUNT_NOT_YET_READ)?;
     let mut runtime=home.runtime.try_lock().map_err(|_|"Actor observation busy; review again")?;
     let (observed, _)=runtime.receive_native(&home.host);
     let current=runtime.actor_context(&observed,name.as_deref(),os.as_deref());
@@ -3274,6 +3280,11 @@ fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri:
 fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { builder }
 
 pub fn run() {
+    // Diagnostics are written to standard error by a thread of their own,
+    // so that a stalled standard error holds up no quit, stop or exit.
+    util::start_diagnostics();
+    // The account the App runs as, read once for the session on its own thread.
+    util::OS_ACCOUNT.start();
     with_scripted_driver(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
@@ -3471,14 +3482,14 @@ pub fn run() {
                 // no home is settled or ended here and that is logged.
                 let homes = match util::lock_by(&st.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
                     Some(router) => router.entries(),
-                    None => { eprintln!("chirality: exit: the App's list of Codex homes was held by another App activity for {} seconds; no home was settled or ended here, and no delegation observation is ended here (the next start ends them)", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs()); Vec::new() }
+                    None => { crate::util::diagnostic(format!("chirality: exit: the App's list of Codex homes was held by another App activity for {} seconds; no home was settled or ended here, and no delegation observation is ended here (the next start ends them where it establishes this session ended and finds the store's log usable)", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs())); Vec::new() }
                 };
                 // Ordinary Quit already settled processes and recorded its end
                 // before permission to exit. Only an unapproved/system exit
                 // takes the limited AS-10 best-effort path here.
                 if st.app_quit.proceeding().is_none() {
                     if let Err(error) = app_quit::finish_exit(&homes, None) {
-                        eprintln!("chirality: system termination observation unavailable: {error}");
+                        crate::util::diagnostic(format!("chirality: system termination observation unavailable: {error}"));
                     }
                 }
                 // DEL-06-01: this session's observation of each child it recorded ends with it.
@@ -3491,16 +3502,16 @@ pub fn run() {
                     let st: State<'_, AppState> = handle.state();
                     util::lock_by(&st.native_links, by).map(|mut links| links.end_delegation_at_exit(&worker_homes)).is_some()
                 }) {
-                    eprintln!("chirality: exit: {limit}");
+                    crate::util::diagnostic(format!("chirality: exit: {limit}"));
                 }
                 // Each outcome its own words: a records reader holding the index is only one of them.
                 let limit = app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs();
                 match records_index::close_all_by(std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
                     util::Released::Done => {}
-                    util::Released::NotTaken => eprintln!("chirality: exit: the records index was held by a records reader for {limit} seconds; its caches are left as a crash leaves them"),
-                    util::Released::NotStarted => eprintln!("chirality: exit: the thread to release the records index caches could not be started; they are left as a crash leaves them"),
-                    util::Released::NotHanded => eprintln!("chirality: exit: the records index caches could not be handed to their release; they are left as a crash leaves them"),
-                    util::Released::NotInTime => eprintln!("chirality: exit: releasing the records index caches did not finish within {limit} seconds; what it had not released is left as a crash leaves it"),
+                    util::Released::NotTaken => crate::util::diagnostic(format!("chirality: exit: the records index was held by a records reader for {limit} seconds; its caches are left as a crash leaves them")),
+                    util::Released::NotStarted => crate::util::diagnostic(format!("chirality: exit: the thread to release the records index caches could not be started; they are left as a crash leaves them")),
+                    util::Released::NotHanded => crate::util::diagnostic(format!("chirality: exit: the records index caches could not be handed to their release; they are left as a crash leaves them")),
+                    util::Released::NotInTime => crate::util::diagnostic(format!("chirality: exit: releasing the records index caches did not finish within {limit} seconds; what it had not released is left as a crash leaves it")),
                 }
             }
             _ => {}
