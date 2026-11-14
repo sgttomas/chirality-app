@@ -219,7 +219,8 @@ test('off-schema collections and nested values render as text instead of throwin
   assert.ok(html.includes('(none supplied)'));
   assert.ok(html.includes('b.txt'));assert.ok(html.includes('{&quot;deep&quot;:1}'));assert.ok(html.includes('{&quot;d&quot;:2}'));
   assert.ok(html.includes('{&quot;t&quot;:1}'));assert.ok(html.includes('to no receivers reported'));assert.ok(html.includes('obj prompt'));
-  assert.ok(html.includes('to {&quot;id&quot;:&quot;X&quot;}, Y'));
+  // An off-schema receiver is not a plain identifier, so it is boxed as Codex's text, never in the App's sentence.
+  assert.ok(html.includes('to <span>⟦Identity: {&quot;id&quot;:&quot;X&quot;}⟧</span><span>, Y</span>'));
   assert.ok(html.includes('obj output'));assert.ok(html.includes('{&quot;t&quot;:&quot;obj text&quot;}'));
   assert.ok(html.includes('unfamiliar item <code>{&quot;weird&quot;:true}</code>'));
   assert.ok(html.includes('native status {&quot;nested&quot;:&quot;status&quot;}'));
