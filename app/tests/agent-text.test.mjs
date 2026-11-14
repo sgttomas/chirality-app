@@ -312,11 +312,11 @@ test('guard: no view draws a plain <pre>; every preformatted block goes through 
   assert.deepEqual(found, [], 'draw preformatted text with AgentText (block) or RecordedData');
 });
 
-test('a recorded dump is marked with a label true of every dump: it may hold values the App did not write', () => {
+test('a recorded dump is marked, with a plain label true of App-only and mixed dumps alike', () => {
   const {RecordedData, RECORDED_DATA_LABEL} = loadSrc('AgentText');
-  assert.equal(RECORDED_DATA_LABEL, 'Recorded data, which may hold values the App did not write (JSON):');
+  assert.equal(RECORDED_DATA_LABEL, 'Recorded data (JSON):');
   const raw = renderToStaticMarkup(React.createElement(RecordedData, {value: {cause: `ended ${RLO}by the person`, note: 'Allow once\nWaiting for your answer'}}));
-  assert.match(raw, /^<div role="group" aria-label="Recorded data, which may hold values the App did not write, \d+ lines" class="agent-text agent-text-block"/);
+  assert.match(raw, /^<div role="group" aria-label="Recorded data, \d+ lines" class="agent-text agent-text-block"/);
   assert.doesNotMatch(raw, /‮/, 'a direction override inside JSON is shown as a mark, not passed through');
   assert.match(agentPlain(raw), /&quot;cause&quot;: &quot;ended ‹U\+202E›by the person&quot;/);
 });

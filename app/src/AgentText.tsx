@@ -21,9 +21,9 @@ export const AGENT_TEXT_WORDS: Record<AgentTextSource, { label: string; name: st
   person: { label: "Recorded as your message:", name: "Text Codex recorded as your message, not the App's words" },
   codex: { label: "Codex sent:", name: "Text Codex sent, not the App's words" },
   file: { label: "From a file:", name: "Text from a file the App read, not the App's words" },
-  // A record or report the App keeps or received: it may hold values the App did not write (an agent's, a tool's,
-  // a file's or Codex's), so it is shown marked, and its label says "may", which is true of every such record.
-  record: { label: "Recorded text, which may hold values the App did not write:", name: "Recorded text, which may hold values the App did not write" },
+  // A record or report the App keeps or received. It may hold values the App did not write (an agent's, a tool's,
+  // a file's or Codex's), so it is shown marked; its plain label is true of App-only and mixed records alike.
+  record: { label: "Recorded text:", name: "Recorded text" },
 };
 
 // Every character in Unicode's "Other" categories (controls, format
@@ -112,11 +112,11 @@ export function AgentText({ value, source = "agent", label, name, block = false,
   </div>;
 }
 
-export const RECORDED_DATA_LABEL = "Recorded data, which may hold values the App did not write (JSON):";
-/** A diagnostic record shown as indented JSON, marked as text that may hold values the App did not write. JSON
+export const RECORDED_DATA_LABEL = "Recorded data (JSON):";
+/** A diagnostic record shown as indented JSON, in a marked box since it may hold values the App did not write. JSON
  * escapes line breaks but not direction or other format characters, so the marking matters inside JSON too. */
 export function RecordedData({ value, label = RECORDED_DATA_LABEL, name, style }: { value: Json; label?: string; name?: string; style?: CSSProperties }) {
   let shown: string;
   try { shown = JSON.stringify(value, null, 2) ?? String(value); } catch { shown = String(value); }
-  return <AgentText block value={shown} source="record" label={label} name={name ?? "Recorded data, which may hold values the App did not write"} style={style} />;
+  return <AgentText block value={shown} source="record" label={label} name={name ?? "Recorded data"} style={style} />;
 }
