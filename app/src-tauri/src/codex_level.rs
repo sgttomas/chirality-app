@@ -181,8 +181,7 @@ pub fn agreement(level: &Level, reply: &Value) -> Agreement {
     }
 }
 
-/// Characters a shell expands or mishandles inside double quotes. At the pin, Codex places its home's path inside
-/// double quotes in a shell command when a conversation starts.
+/// Characters the App does not accept anywhere in the path of a Codex home it starts Codex in.
 pub const UNSAFE_HOME_CHARACTERS: [char; 4] = ['$', '`', '"', '\\'];
 
 /// The first component of `path`, as written or as resolved through links, that holds one of
