@@ -3274,3 +3274,13 @@ fn records_store_import_gate_helper_keeps_the_gates_order() {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+fn alias_store_append(kind: &str) {
+    storage::append_alias_fixture(kind, b"original\n", |path| write_appending(path, b"new\n"));
+}
+#[test]
+fn alias_refusal_store_hardlink() { alias_store_append("hardlink"); }
+#[test]
+fn alias_refusal_store_symlink() { alias_store_append("symlink"); }
+#[test]
+fn alias_refusal_store_fifo() { alias_store_append("fifo"); }

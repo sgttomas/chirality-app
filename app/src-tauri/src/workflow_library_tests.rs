@@ -2903,3 +2903,55 @@ fn owner_with_held(owner: &LibraryOwner, level: AssuranceLevel) -> LibraryOwner 
     same.set_assurance_level(level);
     same
 }
+
+fn alias_registry_append(kind: &str) {
+    storage::append_alias_fixture(kind, b"", |path| {
+        // The writer's fixed registry spelling, aliased to the fixture's final.
+        let library = path.parent().unwrap().join("library");
+        fs::create_dir_all(library.join(".chirality")).unwrap();
+        fs::rename(path, library.join(".chirality/workflow-registry.jsonl")).unwrap();
+        let result = append_line(&library, &json!({"invented":"line"})).map_err(|e| e.to_string());
+        fs::rename(library.join(".chirality/workflow-registry.jsonl"), path).unwrap();
+        result
+    });
+}
+#[test]
+fn alias_refusal_registry_hardlink() { alias_registry_append("hardlink"); }
+#[test]
+fn alias_refusal_registry_symlink() { alias_registry_append("symlink"); }
+#[test]
+fn alias_refusal_registry_dangling() { alias_registry_append("dangling"); }
+#[test]
+fn alias_refusal_registry_fifo() { alias_registry_append("fifo"); }
+
+#[test]
+fn alias_refusal_registry_pending_retains_liveness_and_true_sentence_on_repeat() {
+    let s = Scratch::new();
+    let snap = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", snap.revision()).unwrap();
+    let r = receipt(&session);
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let other = s.0.join("other");
+    fs::write(&other, b"").unwrap();
+    fs::hard_link(&other, &path).unwrap();
+    let mut reasons = Vec::new();
+    for _ in 0..2 {
+        match &attempt.advance()[0] {
+            EntryOutcome::Pending { reason, .. } => {
+                assert!(reason.contains("has another name") && reason.contains("nothing was written") && reason.contains("registration was not made"), "{reason}");
+                assert!(!reason.contains("durability uncertain"), "{reason}");
+                reasons.push(reason.clone());
+            }
+            other => panic!("expected explicit refusal with retained liveness: {other:?}"),
+        }
+        assert!(matches!(attempt.progress[0], Progress::Pending(_)));
+        assert!(attempt.session.live.is_some());
+        assert!(storage::try_lock_exclusive(&liveness_path(&s.0)).unwrap().is_none());
+        assert_eq!(fs::read(&other).unwrap(), b"");
+        assert_eq!(fs::read(&path).unwrap(), b"");
+        assert!(s.persistent_owner().reconciliation()[0].starts_with("X-2 deferred"));
+    }
+    assert_eq!(reasons[0], reasons[1]);
+}

@@ -128,6 +128,139 @@ pub fn check_path(path: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+/// An append-open refusal is distinct from an I/O failure after an append
+/// starts. Only `open_append` constructs `Refused`: it has written no bytes.
+#[derive(Debug)]
+pub(crate) struct AppendOpenError(AppendOpenCause);
+#[derive(Debug)]
+enum AppendOpenCause {
+    Refused(String),
+    Io(std::io::Error),
+    Other(String),
+}
+impl AppendOpenError {
+    pub(crate) fn is_refusal(&self) -> bool { matches!(self.0, AppendOpenCause::Refused(_)) }
+    pub(crate) fn is_not_found(&self) -> bool {
+        matches!(&self.0, AppendOpenCause::Io(e) if e.kind() == std::io::ErrorKind::NotFound)
+    }
+}
+impl std::fmt::Display for AppendOpenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.0 {
+            AppendOpenCause::Refused(s) | AppendOpenCause::Other(s) => f.write_str(s),
+            AppendOpenCause::Io(e) => std::fmt::Display::fmt(e, f),
+        }
+    }
+}
+impl From<String> for AppendOpenError {
+    fn from(s: String) -> Self { Self(AppendOpenCause::Other(s)) }
+}
+impl From<&str> for AppendOpenError {
+    fn from(s: &str) -> Self { s.to_owned().into() }
+}
+/// Open the final name without following a link or waiting on a special file,
+/// and inspect the opened inode before any append (including a torn-line
+/// repair). Missing files are created exclusively, through this same handle.
+/// This checks the file at open; it does not protect against parent-directory
+/// substitution or mutation after open. Callers retain their path/admission
+/// checks. `read` grants access for a writer's last-byte check or repair read.
+pub(crate) fn open_append(path: &Path, create: bool, read: bool) -> Result<File, AppendOpenError> {
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    let refused = |reason: &str| AppendOpenError(AppendOpenCause::Refused(format!(
+        "append file {} {reason}; nothing was written", path.display()
+    )));
+    let open = |exclusive: bool| {
+        OpenOptions::new().append(true).read(read).create_new(exclusive)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK).open(path)
+    };
+    let result = match open(false) {
+        Err(e) if create && e.kind() == std::io::ErrorKind::NotFound => {
+            match open(true) {
+                // A name appeared after the first attempt: retry it once,
+                // without O_CREAT. Never drop the exclusive-create condition.
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => open(false),
+                other => other,
+            }
+        }
+        other => other,
+    };
+    let file = result.map_err(|e| match e.raw_os_error() {
+        Some(libc::ELOOP) if std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) => refused("has another name (symbolic link refused)"),
+        // A write-only, nonblocking FIFO with no reader fails at open, before
+        // it can supply a handle for fstat. Directories also refuse at open.
+        Some(libc::ENXIO) | Some(libc::EISDIR) => refused("is not a regular file"),
+        _ => AppendOpenError(AppendOpenCause::Io(e)),
+    })?;
+    let meta = file.metadata().map_err(|e| AppendOpenError(AppendOpenCause::Io(e)))?;
+    if !meta.is_file() { return Err(refused("is not a regular file")); }
+    if meta.nlink() > 1 { return Err(refused("has another name")); }
+    if meta.nlink() != 1 { return Err(refused("no longer has a name")); }
+    // Only a checked regular file reaches writes. Restore blocking writes,
+    // retaining O_APPEND and the descriptor's O_CLOEXEC.
+    let flags = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETFL) };
+    if flags == -1 || unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETFL, flags & !libc::O_NONBLOCK) } == -1 {
+        return Err(AppendOpenError(AppendOpenCause::Io(std::io::Error::last_os_error())));
+    }
+    Ok(file)
+}
+
+/// Isolated refusal witness: a blocked writer is killed, never unblocked by
+/// opening a reader on a FIFO. The parent checks the original bytes even when
+/// the child fails. No product path depends on this test process protocol.
+#[cfg(test)]
+pub(crate) fn append_alias_fixture(kind: &str, before: &[u8], write: impl Fn(&Path) -> Result<(), String>) {
+    use std::{os::unix::{ffi::OsStrExt, fs::symlink}, process::{Command, Stdio}, time::{Duration, Instant}};
+    const CHILD_PATH: &str = "CHIRALITY_APPEND_ALIAS_CHILD_PATH";
+    if let Some(path) = std::env::var_os(CHILD_PATH) {
+        let start = Instant::now();
+        let result = write(Path::new(&path));
+        let elapsed = start.elapsed();
+        if kind == "fifo" {
+            assert!(elapsed < Duration::from_millis(500), "FIFO refusal took {elapsed:?}");
+        }
+        let error = result.expect_err("aliased or special file must be refused");
+        assert!(error.contains(if kind == "fifo" { "not a regular file" } else { "has another name" }), "{error}");
+        assert!(error.contains("nothing was written"), "{error}");
+        return;
+    }
+    let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("append-alias-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let path = root.join("log.jsonl");
+    let other = root.join("other");
+    if kind != "dangling" { std::fs::write(&other, before).unwrap(); }
+    match kind {
+        "hardlink" => std::fs::hard_link(&other, &path).unwrap(),
+        "symlink" | "dangling" => symlink(&other, &path).unwrap(),
+        "fifo" => {
+            let cpath = std::ffi::CString::new(path.as_os_str().as_bytes()).unwrap();
+            assert_eq!(unsafe { libc::mkfifo(cpath.as_ptr(), 0o600) }, 0);
+        }
+        _ => panic!("unknown fixture"),
+    }
+    let thread = std::thread::current();
+    let mut child = Command::new(std::env::current_exe().unwrap())
+        .args([thread.name().unwrap(), "--exact", "--nocapture", "--test-threads=1"])
+        .env(CHILD_PATH, &path).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+    let start = Instant::now();
+    let mut timed_out = false;
+    loop {
+        if child.try_wait().unwrap().is_some() { break; }
+        if start.elapsed() > Duration::from_secs(3) {
+            timed_out = true;
+            child.kill().unwrap();
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    let output = child.wait_with_output().unwrap();
+    let unchanged = if kind == "dangling" { !other.exists() } else { std::fs::read(&other).unwrap() == before };
+    let same_name = if kind == "hardlink" { std::fs::read(&path).unwrap() == before } else { true };
+    std::fs::remove_dir_all(&root).unwrap();
+    assert!(unchanged && same_name, "the other file or alias changed: {}", String::from_utf8_lossy(&output.stdout));
+    assert!(!timed_out, "writer blocked on {kind}; no FIFO reader was opened");
+    assert!(output.status.success(), "{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+}
+
 pub struct Ownership(File, #[allow(dead_code)] Option<Box<Ownership>>);
 impl Drop for Ownership {
     fn drop(&mut self) {
@@ -769,6 +902,18 @@ pub(crate) fn project_of_log(log: &Path) -> Result<Option<PathBuf>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn alias_open(kind: &str) {
+        append_alias_fixture(kind, b"original\n", |path| open_append(path, true, true).map(|_| ()).map_err(|e| e.to_string()));
+    }
+    #[test]
+    fn alias_refusal_storage_hardlink() { alias_open("hardlink"); }
+    #[test]
+    fn alias_refusal_storage_symlink() { alias_open("symlink"); }
+    #[test]
+    fn alias_refusal_storage_dangling() { alias_open("dangling"); }
+    #[test]
+    fn alias_refusal_storage_fifo() { alias_open("fifo"); }
+
     use std::{cell::RefCell, os::unix::fs::MetadataExt, rc::Rc};
     fn scratch() -> PathBuf {
         let p = std::env::temp_dir().join(crate::util::opaque_id("atomic-publication-").unwrap());

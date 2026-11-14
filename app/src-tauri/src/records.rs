@@ -33,8 +33,8 @@ pub mod supply;
 
 use crate::util::now_rfc3339;
 use serde_json::{json, Value};
-use std::fs::OpenOptions;
-use std::io::Write;
+use std::fs::File;
+use std::io::{Read, Write};
 use std::path::Path;
 
 pub struct Recorder<'a> {
@@ -629,10 +629,9 @@ fn tail_is_entry(existing: &[u8], validator: &crate::schema_validation::RecordVa
     crate::record_lines::decode_line(&existing[start..], validator).is_ok()
 }
 
-fn w0_write(log: &Path, bytes: &[u8]) -> Result<(), String> {
+fn w0_write(log: &Path, f: &mut File, bytes: &[u8]) -> Result<(), String> {
     #[cfg(test)]
     crate::records_effect_guard::mutation_for_test("records::w0_write");
-    let mut f = OpenOptions::new().append(true).open(log).map_err(|e| format!("open log: {e}"))?;
     f.write_all(bytes).map_err(|e| format!("W-0 repair write: {e}; nothing more written"))?;
     f.sync_all().map_err(|e| format!("W-0 repair sync uncertain: {e}; nothing more written"))?;
     crate::storage::sync_publication(log)
@@ -643,9 +642,14 @@ fn w0_write(log: &Path, bytes: &[u8]) -> Result<(), String> {
 /// RS §14.1 W-0 when the App act control opens its own log (AAC §5.2a keeps
 /// RS W-0 in force): a torn last line is terminated and named first.
 pub(crate) fn open_owning_log(root: &Path, log: &Path) -> Result<(), String> {
-    if read_log_parts(log).partial_tail.is_none() {
-        return Ok(());
-    }
+    let mut file = match crate::storage::open_append(log, false, true) {
+        Ok(file) => file,
+        Err(e) if e.is_not_found() => return Ok(()),
+        Err(e) => return Err(format!("open log: {e}")),
+    };
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes).map_err(|e| format!("read owning log: {e}"))?;
+    if bytes.is_empty() || bytes.ends_with(b"\n") { return Ok(()); }
     w0_open(root, log)
 }
 /// Whether a torn line W-0 kept unread in `log` holds `text` (AAC §5.2a: a
@@ -703,12 +707,14 @@ fn writer_ownership(log: &Path) -> Result<crate::storage::Ownership, String> {
 fn w0_open(root: &Path, log: &Path) -> Result<(), String> {
     let validator = crate::schema_validation::bundled().map_err(|e| format!("RS W-1 validation unavailable; nothing written: {e}"))?;
     let _ownership = writer_ownership(log)?;
-    let existing = std::fs::read(log).map_err(|e| format!("read owning log: {e}"))?;
+    let mut file = crate::storage::open_append(log, false, true).map_err(|e| format!("open log: {e}"))?;
+    let mut existing = Vec::new();
+    file.read_to_end(&mut existing).map_err(|e| format!("read owning log: {e}"))?;
     if existing.is_empty() || existing.ends_with(b"\n") {
         return Ok(());
     }
     if tail_is_entry(&existing, validator) {
-        return w0_write(log, b"\n");
+        return w0_write(log, &mut file, b"\n");
     }
     let own = read_log_parts(log);
     if !own.limits.is_empty() {
@@ -719,7 +725,7 @@ fn w0_open(root: &Path, log: &Path) -> Result<(), String> {
     let start = existing.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1);
     let line_no = existing[..start].iter().filter(|b| **b == b'\n').count() + 1;
     let (bytes, _) = crate::records_index::with_index(root, |ix| w0_bytes(log, &existing[start..], line_no, seq, run.as_deref(), own.chain.last.as_deref(), &|id| ix.holds(id), validator))?;
-    w0_write(log, &bytes)
+    w0_write(log, &mut file, &bytes)
 }
 /// One entry to write: as an entry line alone, or as one entry of a group.
 pub(crate) struct Spec<'a> {
@@ -775,6 +781,14 @@ fn append_unit(
     if ids.iter().collect::<std::collections::BTreeSet<_>>().len() != ids.len() {
         return Err("one record identity twice in one unit; nothing written".into());
     }
+    // Refuse an existing alias or special file before the writer's reads,
+    // which otherwise could follow it or block on a FIFO. Delay creation
+    // until validation succeeds, preserving the no-file-on-invalid-entry rule.
+    let mut checked = match crate::storage::open_append(log, false, false) {
+        Ok(file) => Some(file),
+        Err(e) if e.is_not_found() => None,
+        Err(e) => return Err(format!("open log: {e}")),
+    };
     crate::storage::check_path(log)?;
     let _ownership = writer_ownership(log)?;
     let project = crate::storage::project_of_log(log)?;
@@ -784,37 +798,39 @@ fn append_unit(
     // partial, never an entry (R-2): it cannot hold an identity and does not
     // make the set incomplete. If discovery itself fails, only the owning log
     // is read.
-    let indexed = project.as_ref().map(|root| crate::records_index::with_index_writing(root, log, |ix| {
-        let own = ix.own(log);
-        let held = ids.iter().find(|id| ix.holds(id)).cloned();
-        (own.map(|o| (o.limits, o.partial, o.next_seq, o.complete_end, o.complete_lines, o.chain_last)), ix.limits(), ix.discovery_failed(), held)
-    }));
-    let (own_limits, torn, next_seq, complete_end, complete_lines, mut previous, set_limits, held) = match indexed {
-        Some((Some((limits, partial, next, end, lines, last)), set_limits, false, held)) => (limits, partial, next, end, lines, last, set_limits, held),
-        Some((None, set_limits, false, held)) if !log.exists() => (vec![], false, Some(1), 0, 0, None, set_limits, held),
-        other => {
-            // Outside a records tree, or discovery failed: the owning log alone.
-            let own = read_log_parts(log);
-            let existing = std::fs::read(log).unwrap_or_default();
-            let end = existing.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1) as u64;
-            let lines = existing[..end as usize].iter().filter(|b| **b == b'\n').count();
-            let next = own.entries.iter().filter_map(|e| e["seq"].as_u64()).max().unwrap_or(0).checked_add(1);
-            let held = own.entries.iter().filter_map(|e| e["recordId"].as_str()).find(|i| ids.iter().any(|id| id == i)).map(str::to_owned)
-                .or_else(|| other.as_ref().and_then(|o| o.3.clone()));
-            let set_limits = other.map(|o| o.1).unwrap_or_default();
-            (own.limits, own.partial_tail.is_some(), next, end, lines, own.chain.last, set_limits, held)
+    let (torn, next_seq, complete_end, complete_lines, mut previous, set_limits, held) = loop {
+        let indexed = project.as_ref().map(|root| crate::records_index::with_index_writing(root, log, |ix| {
+            let own = ix.own(log);
+            let held = ids.iter().find(|id| ix.holds(id)).cloned();
+            (own.map(|o| (o.limits, o.partial, o.next_seq, o.complete_end, o.complete_lines, o.chain_last)), ix.limits(), ix.discovery_failed(), held)
+        }));
+        let (own_limits, torn, next_seq, complete_end, complete_lines, previous, set_limits, held) = match indexed {
+            Some((Some((limits, partial, next, end, lines, last)), set_limits, false, held)) => (limits, partial, next, end, lines, last, set_limits, held),
+            Some((None, set_limits, false, held)) if !log.exists() => (vec![], false, Some(1), 0, 0, None, set_limits, held),
+            other => {
+                // Outside a records tree, or discovery failed: the owning log alone.
+                let own = read_log_parts(log);
+                let existing = std::fs::read(log).unwrap_or_default();
+                let end = existing.iter().rposition(|b| *b == b'\n').map_or(0, |i| i + 1) as u64;
+                let lines = existing[..end as usize].iter().filter(|b| **b == b'\n').count();
+                let next = own.entries.iter().filter_map(|e| e["seq"].as_u64()).max().unwrap_or(0).checked_add(1);
+                let held = own.entries.iter().filter_map(|e| e["recordId"].as_str()).find(|i| ids.iter().any(|id| id == i)).map(str::to_owned)
+                    .or_else(|| other.as_ref().and_then(|o| o.3.clone()));
+                let set_limits = other.map(|o| o.1).unwrap_or_default();
+                (own.limits, own.partial_tail.is_some(), next, end, lines, own.chain.last, set_limits, held)
+            }
+        };
+        if !own_limits.is_empty() {
+            return Err(format!("incomplete owning log: {own_limits:?}"));
         }
+        if torn && tail_is_entry(&read_tail(log, complete_end)?, validator) {
+            // W-0 for a whole line whose newline was lost: terminate it only, then
+            // run this append again on the now complete log (every check again).
+            w0_write(log, checked.as_mut().ok_or("owning log disappeared before W-0; nothing written")?, b"\n")?;
+            continue;
+        }
+        break (torn, next_seq, complete_end, complete_lines, previous, set_limits, held);
     };
-    if !own_limits.is_empty() {
-        return Err(format!("incomplete owning log: {own_limits:?}"));
-    }
-    if torn && tail_is_entry(&read_tail(log, complete_end)?, validator) {
-        // W-0 for a whole line whose newline was lost: terminate it only, then
-        // run this append again on the now complete log (every check again).
-        w0_write(log, b"\n")?;
-        drop(_ownership);
-        return append_unit(log, specs, run, set, Ok(validator));
-    }
     if !set_limits.is_empty() && set == RecordSet::Complete {
         return Err(format!("record-set conflict/incomplete: {set_limits:?}"));
     }
@@ -852,17 +868,16 @@ fn append_unit(
         serde_json::to_string(&group).map_err(|e| e.to_string())?
     };
     line.push('\n');
-    if let Some(bytes) = repair {
-        w0_write(log, &bytes)?;
-    }
     if let Some(dir) = log.parent() {
         crate::storage::ensure_directory(dir)?;
     }
-    let mut f = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(log)
-        .map_err(|e| format!("open log: {e}"))?;
+    let mut f = match checked {
+        Some(file) => file,
+        None => crate::storage::open_append(log, true, false).map_err(|e| format!("open log: {e}"))?,
+    };
+    if let Some(bytes) = repair {
+        w0_write(log, &mut f, &bytes)?;
+    }
     f.write_all(line.as_bytes())
         .map_err(|e| format!("write: {e}"))?;
     f.sync_all()

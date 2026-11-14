@@ -503,9 +503,9 @@ impl ReadLog {
             .as_ref()
             .map_err(Clone::clone)?;
         validator.validate(entry).map_err(|e| format!("read log entry refused: {} at {}", e.masked(), e.instance_path()))?;
-        crate::storage::check_path(path)?;
         let created = !path.exists();
-        let mut file = std::fs::OpenOptions::new().create(true).read(true).append(true).open(path).map_err(|e| format!("read log unavailable: {e}"))?;
+        let mut file = crate::storage::open_append(path, true, true).map_err(|e| format!("read log unavailable: {e}"))?;
+        crate::storage::check_path(path)?;
         let length = file.metadata().map_err(|e| e.to_string())?.len();
         if length > 0 {
             let mut last = [0u8];

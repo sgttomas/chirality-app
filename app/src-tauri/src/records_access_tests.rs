@@ -921,3 +921,32 @@ fn records_continuity_physical_project_changed_during_source_read_is_a_logged_re
     assert_eq!(response["success"],false);assert!(!response.to_string().contains("NEW-PROJECT-SECRET"));assert!(!response.to_string().contains("run:foreign"));
     let log=f.logged();assert_eq!(log.len(),1);assert_eq!(log[0]["outcome"],"refused");assert!(log[0]["refusal"].as_str().unwrap().contains("physical project changed"));
 }
+
+fn alias_read_log(kind: &str) {
+    crate::storage::append_alias_fixture(kind, b"", |path| {
+        let f = Scratch::new();
+        let project = f.project("project");
+        write_run(&project, "run:alias", 1, "secret-invented-record-content", false);
+        let cap = RecordsCapability::at(&project, path.to_path_buf()).unwrap();
+        let request = call(1, json!({"operation":"read_run","run":"run:alias"}));
+        let answer = cap.answer(&request, project.to_str());
+        assert_eq!(answer["success"], false, "{answer}");
+        let text = answer["contentItems"][0]["text"].as_str().unwrap();
+        assert!(text.contains("the read could not be recorded") && text.contains("nothing returned"), "{text}");
+        assert!(!text.contains("secret-invented-record-content"), "{text}");
+        let log = cap.log.lock().unwrap();
+        assert!(log.answered.is_empty(), "the repeat marker must roll back");
+        let cause = log.limit.clone().unwrap();
+        drop(log);
+        assert_eq!(cap.snapshot()["readLogLimit"], cause);
+        Err(cause)
+    });
+}
+#[test]
+fn alias_refusal_read_log_hardlink() { alias_read_log("hardlink"); }
+#[test]
+fn alias_refusal_read_log_symlink() { alias_read_log("symlink"); }
+#[test]
+fn alias_refusal_read_log_dangling() { alias_read_log("dangling"); }
+#[test]
+fn alias_refusal_read_log_fifo() { alias_read_log("fifo"); }
