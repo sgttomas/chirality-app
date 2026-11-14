@@ -11,7 +11,7 @@ behaving so.
   the tool names offered and the output Codex returned for each scripted call. It writes nothing
   to disk and never logs a body or a header value.
 - `Run`: one fresh root (home, user home, project, outside, tmpdir) under a scratch folder, removed
-  afterwards. Codex is started with an environment built here and nothing inherited: PATH, HOME,
+  afterwards; with `working_files`, the home and TMPDIR are laid out as the App lays them out. Codex is started with an environment built here and nothing inherited: PATH, HOME,
   TZ, CODEX_HOME, TMPDIR, LANG and the examination launcher's proxy overrides. The App's
   account-home flags point the built-in provider at the stub.
 - `Client`: the App side of stdio JSON-RPC. Every approval request it receives is declined and
@@ -30,6 +30,7 @@ import shlex
 import shutil
 import signal
 import socketserver
+import stat
 import subprocess
 import threading
 import time
@@ -380,9 +381,17 @@ NOT_OFFERED = 'not-offered'                  # the stub could not make the call:
 NETWORK = 'network'  # the target of the network probe
 
 
+class Lines(frozenset):
+    """The exact lines that alone show the sandbox refused a command that is not a shell redirection (a rename,
+    a removal, a link), given by the command's own author. Passed as a call's target."""
+
+
 def refusal_lines(target):
     """The exact lines that show the sandbox refused the expected target, one per shell seen at the pin: zsh's,
-    bash's and sh's for a write to `target`, and the network probe's own line. Nothing else counts."""
+    bash's and sh's for a write to `target`, and the network probe's own line; or, for `Lines`, exactly those.
+    Nothing else counts."""
+    if isinstance(target, Lines):
+        return set(target)
     if target == NETWORK:
         return {'connect failed: Operation not permitted'}
     path = str(target)
@@ -439,7 +448,8 @@ def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn
       inconclusive, never as a pass;
     - otherwise the stub must have issued it, and the turn must have completed;
     - succeeded: the output says exit 0, and a commandExecution item with the call's id started in that turn;
-    - refused by the sandbox: a non-zero exit, and the whole output is the refusal line for the expected target;
+    - refused by the sandbox: a non-zero exit, and the whole output is the refusal line for the expected target; no
+      item is required, but an item that completed, or carries another exit code, contradicts it and refuses;
     - declined: an approval request with the call's id reached the fixture, the output says rejected, and the
       call's item, if any, ended declined, not run;
     - rejected by policy: the output says so, and no approval request with the call's id was raised.
@@ -463,6 +473,11 @@ def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn
             raise Refused('%s was declined, yet its item ended %s' % (call_id, item_status))
         if item_exit is not None:
             raise Refused('%s was declined, yet its item carries exit code %r' % (call_id, item_exit))
+    if outcome.kind == SANDBOX_REFUSED and (item_status == 'completed' or
+                                            (item_exit is not None and item_exit != outcome.exit)):
+        # No item is required for a refusal (a refused command completes none), but one that is present and says
+        # otherwise contradicts it.
+        raise Refused('%s printed a refusal, yet its item ended %s with exit code %r' % (call_id, item_status, item_exit))
     if outcome.kind == REJECTED and asked:
         raise Refused('%s was reported rejected by policy, yet a request was raised for it' % call_id)
     outcome.evidence = {'issued': True, 'item': call_id in item_ids, 'request': asked, 'turn': turn_status,
@@ -523,7 +538,8 @@ def group_members(pgid, run=subprocess.run):
 class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
 
-    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project'):
+    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project',
+                 working_files=False):
         self.binary = binary
         if '/' in project_name or project_name in ('', '.', '..'):
             raise Refused('a project folder name, not a path')
@@ -533,6 +549,19 @@ class Run:
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
         self.git_marker = git_marker
         self.made_slash_tmp = False
+        # With `working_files`, the App's layout (invented names): the Codex home inside an invented data folder,
+        # and TMPDIR a folder made inside "codex-tmp" in the "<data folder> Working Files" folder beside it.
+        self.working_files = working_files
+        if working_files:
+            self.data = self.root / 'Invented App Data'
+            self.home = self.data / 'homes' / 'account'
+            self.working = self.root / 'Invented App Data Working Files'
+            self.codex_tmp = self.working / 'codex-tmp'
+            self.tmpdir = self.codex_tmp / ('start-' + secrets.token_hex(4))
+        else:
+            self.data = self.working = self.codex_tmp = None
+            self.home = self.root / 'home'
+            self.tmpdir = self.root / 'tmpdir'
         self.stub = None
         self.clients = []
 
@@ -550,8 +579,12 @@ class Run:
             raise Refused('%s already exists' % self.slash_tmp)
         os.mkdir(self.root, 0o700)
         try:
-            for child in ('home', 'userhome', self.project_name, 'outside', 'tmpdir'):
+            for child in ('userhome', self.project_name, 'outside'):
                 os.mkdir(self.root / child, 0o700)
+            for folder in (self.home, self.tmpdir):
+                os.makedirs(folder, 0o700)
+            if self.working_files:
+                (self.home / 'config.toml').write_bytes(b'')  # new, empty settings
             if self.git_marker:
                 os.mkdir(self.project / '.git', 0o700)
             if self.slash_tmp is not None:
@@ -606,8 +639,8 @@ class Run:
     def environment(self, extra=None):
         package = Path(self.binary).resolve().parent.parent
         env = {'PATH': str(package / 'codex-path') + ':' + SYSTEM_PATH, 'HOME': str(self.root / 'userhome'),
-               'TZ': 'UTC', 'LANG': 'en_US.UTF-8', 'CODEX_HOME': str(self.root / 'home'),
-               'TMPDIR': str(self.root / 'tmpdir') + '/'}
+               'TZ': 'UTC', 'LANG': 'en_US.UTF-8', 'CODEX_HOME': str(self.home),
+               'TMPDIR': str(self.tmpdir) + '/'}
         env.update({name: PROXY for name in PROXY_NAMES})
         env.update({'NO_PROXY': EXEMPT, 'no_proxy': EXEMPT})
         env.update(extra or {})
@@ -624,7 +657,7 @@ class Run:
         """The paths the fixed commands write."""
         out = {'in': self.project / 'w-in', 'out': self.root / 'outside' / 'w-out',
                'out2': self.root / 'outside' / 'w-out2',
-               'tmpdir': self.root / 'tmpdir' / 'w-tmpdir', 'late': self.root / 'outside' / 'w-late',
+               'tmpdir': self.tmpdir / 'w-tmpdir', 'late': self.root / 'outside' / 'w-late',
                'git': self.project / '.git' / 'w-git', 'extra': self.root / 'outside' / 'w-extra'}
         if self.slash_tmp is not None:
             out['slashtmp'] = self.slash_tmp / 'w-slashtmp'
@@ -639,7 +672,54 @@ class Run:
         cmds['late'] = 'sleep 4; printf ok > %s' % shlex.quote(str(p['late']))
         cmds['read'] = '/bin/ls %s' % shlex.quote(str(self.project))
         cmds['net'] = '/usr/bin/perl -e %s %d' % (shlex.quote(NET_PROBE), self.stub.port)
+        if self.working_files:
+            cmds.update({key: command for key, (command, _) in self.entry_operations().items()})
         return cmds
+
+    def entry_operations(self):
+        """With `working_files`: commands that change the directory entry naming Codex's temporary folder, or an
+        ancestor's entry, each with the exact line the sandbox's refusal of its first step prints. Each is
+        attempted whole; where the first step is refused, the later ones never run. No `rm` is used."""
+        if not self.working_files:
+            return {}
+        q = lambda path: shlex.quote(str(path))  # noqa: E731
+        t, p, w = self.tmpdir, self.codex_tmp, self.working
+        moved = lambda path, suffix: path.with_name(path.name + suffix)  # noqa: E731
+
+        def mv(src, dst):
+            return 'mv %s %s' % (q(src), q(dst)), 'mv: rename %s to %s: Operation not permitted' % (src, dst)
+
+        def rmdir(path):
+            return 'rmdir %s' % q(path), 'rmdir: %s: Operation not permitted' % path
+
+        def ln(target, link):
+            return 'ln -s %s %s' % (q(target), q(link)), 'ln: %s: Operation not permitted' % link
+
+        ops = {
+            'entry-t-rename': mv(t, moved(t, '.moved')),
+            'entry-t-remake': (rmdir(t)[0] + ' && mkdir ' + q(t), rmdir(t)[1]),
+            'entry-t-link': (mv(t, moved(t, '.aside'))[0] + ' && ln -s %s %s' % (q(moved(t, '.aside')), q(t)),
+                             mv(t, moved(t, '.aside'))[1]),
+            'entry-p-new-link': ln(t, p / 'x-link'),
+            'entry-p-rename': mv(p, moved(p, '.moved')),
+            'entry-p-remove': rmdir(p),
+            'entry-p-link': (mv(p, moved(p, '.aside'))[0] + ' && ln -s %s %s' % (q(moved(p, '.aside')), q(p)),
+                             mv(p, moved(p, '.aside'))[1]),
+            'entry-w-rename': mv(w, moved(w, '.moved')),
+            'entry-w-new-link': ln(p, w / 'x-link'),
+        }
+        return {key: (command, Lines({line})) for key, (command, line) in ops.items()}
+
+    def entries(self):
+        """Identity of each folder on the temporary folder's path, from the run's root down, and the names each of
+        the App's folders holds: what an entry operation would change."""
+        folders = [self.root, self.data, self.working, self.codex_tmp, self.tmpdir]
+        ident = {}
+        for folder in folders:
+            st = os.lstat(folder)
+            ident[str(folder)] = (st.st_dev, st.st_ino, stat.S_IFMT(st.st_mode))
+        names = {str(f): sorted(os.listdir(f)) for f in (self.root, self.working, self.codex_tmp)}
+        return ident, names
 
 
 class Client:

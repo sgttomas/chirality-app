@@ -147,6 +147,27 @@ class Runs(unittest.TestCase):
                 self.assertEqual(shlex.split(commands['net'])[:2], ['/usr/bin/perl', '-e'])
                 self.assertEqual(shlex.split(commands['net'])[-1], str(run.stub.port))
 
+    def test_the_apps_layout_puts_the_home_and_tmpdir_where_the_app_does_and_its_operations_stay_inside(self):
+        with L.Run(self.scratch, '/nonexistent/codex', working_files=True) as run:
+            env = run.environment()
+            self.assertEqual(Path(env['CODEX_HOME']), run.root / 'Invented App Data' / 'homes' / 'account')
+            self.assertEqual((run.home / 'config.toml').read_bytes(), b'')
+            self.assertEqual(run.tmpdir.parent, run.root / 'Invented App Data Working Files' / 'codex-tmp')
+            self.assertEqual(env['TMPDIR'], str(run.tmpdir) + '/')
+            ops = run.entry_operations()
+            self.assertEqual(set(ops) - set(run.commands()), set())  # every operation is on the enforced list
+            for key, (command, lines) in ops.items():
+                words = [w for w in shlex.split(command) if w.startswith('/')]
+                self.assertTrue(words and all(w.startswith(str(run.root) + '/') for w in words), key)
+                self.assertNotIn('rm ', command + ' ')
+                self.assertEqual(len(lines), 1, key)
+            ident, names = run.entries()
+            self.assertEqual(len(ident), 5)
+            self.assertEqual(names[str(run.codex_tmp)], [run.tmpdir.name])
+        self.assertFalse(run.root.exists())
+        with L.Run(self.scratch, '/nonexistent/codex') as run:
+            self.assertEqual(run.entry_operations(), {})
+
     def test_a_scratch_name_with_spaces_and_shell_characters_stays_one_word(self):
         odd = Path(self.scratch) / "odd dir 'q' (p) ; & #"
         odd.mkdir()
@@ -272,6 +293,23 @@ class Judging(unittest.TestCase):
         for turn in (None, 'interrupted', 'failed'):
             with self.assertRaises(L.Refused):
                 self.judge('Process exited with code 1\nOutput:\noperation not permitted\n', turn=turn)
+
+    def test_given_lines_alone_make_a_refusal(self):
+        lines = L.Lines({'mv: rename /a to /b: Operation not permitted'})
+        refused = self.judge('Process exited with code 1\nOutput:\nmv: rename /a to /b: Operation not permitted\n',
+                             target=lines, items=())
+        self.assertEqual(refused.kind, L.SANDBOX_REFUSED)
+        other = self.judge('Process exited with code 1\nOutput:\nmv: rename /a to /c: Operation not permitted\n',
+                           target=lines, items=())
+        self.assertEqual(other.kind, L.FAILED)
+
+    def test_an_item_that_contradicts_a_refusal_refuses(self):
+        refused = 'Process exited with code 1\nOutput:\nzsh:1: operation not permitted: /run/project/w-in\n'
+        self.assertEqual(self.judge(refused, items=()).kind, L.SANDBOX_REFUSED)  # no item: a refusal
+        self.assertEqual(self.judge(refused, item_status='failed', item_exit=1).kind, L.SANDBOX_REFUSED)
+        for status, exit_code in (('completed', 0), ('completed', 1), ('failed', 0), (None, 0)):
+            with self.assertRaises(L.Refused, msg=(status, exit_code)):
+                self.judge(refused, item_status=status, item_exit=exit_code)
 
     def test_a_failure_without_the_sandbox_text_is_not_a_refusal(self):
         failed = self.judge('Process exited with code 7\nOutput:\ncurl: (7) Failed to connect\n', items=())
