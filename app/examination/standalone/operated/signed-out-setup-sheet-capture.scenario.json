@@ -377,6 +377,7 @@
     {
       "id": "S1",
       "act": "view",
+      "state": "S1",
       "says": "the welcome, with nothing chosen yet",
       "expect": [
         {
@@ -398,6 +399,7 @@
     {
       "id": "S2",
       "act": "type",
+      "state": "S2",
       "from_state": "S1",
       "control": {
         "kind": "text field",
@@ -420,6 +422,7 @@
     {
       "id": "S3",
       "act": "click",
+      "state": "S3",
       "from_state": "S2",
       "control": {
         "kind": "button",
@@ -462,6 +465,7 @@
     {
       "id": "S4",
       "act": "click",
+      "state": "S4",
       "from_state": "S3",
       "control": {
         "kind": "summary",

@@ -63,7 +63,7 @@
       ]
     }
   ],
-  "states_recorded": "14 November 2026 09:01 UTC, by the supplier's view of this candidate, signed out, in a kept home with an invented empty project: each view a step acts from, with the project path, the three paths the App made, the App's name and the scroll bar's position made placeholders. The walk acts only when the view is one of these states, line for line",
+  "states_recorded": "S1 and S2 recorded on 14 November 2026 at 09:01 UTC and S3 and S4 re-recorded on a build of main 1023908b (launches R-a and R-b), by the supplier's view of this candidate, signed out, in a kept home with an invented empty project; S5, the view after the press, recorded from launch R-c (17:49 UTC), which judged that view by expectations only, so S5 is a first recording and not a re-confirmation. Each view a step acts from or is judged by, with the project path, the three paths the App made, the App's name and the scroll bar's position made placeholders. The walk acts only when the view is one of these states, line for line, and passes only when every step's view equals the state it names",
   "states": {
     "S1": [
       "Window: \"Chirality\", App: {app_name}.",
@@ -366,6 +366,37 @@
       "\t92 Help",
       "\t93 Waiting requests (0)",
       ""
+    ],
+    "S5": [
+      "Window: \"Chirality\", App: {app_name}.",
+      "0 standard window Chirality, Secondary Actions: Raise",
+      "\t1 scroll area",
+      "\t\t2 HTML content Description: Chirality, URL: tauri://localhost",
+      "\t\t\t3 container Welcome",
+      "\t\t\t\t4 heading Welcome to Chirality, Value: 1",
+      "\t\t\t\t\t5 text Welcome to Chirality",
+      "\t\t\t\t6 text Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.",
+      "\t\t\t\t7 container Setup saved",
+      "\t\t\t\t\t8 heading You're set up, Value: 2",
+      "\t\t\t\t\t\t9 text You're set up",
+      "\t\t\t\t\t10 text Next: quit Chirality (⌘Q) and open it again. Reopening loads your saved project and Codex settings. Then open Connection & access to sign in with your ChatGPT account or prepare the oMLX connection. After connecting, choose a model and start a conversation.",
+      "\t\t\t\t\t11 container",
+      "\t\t\t\t\t\t12 text Project: {project}",
+      "\t\t\t\t13 summary Technical details, Value: off",
+      "\t\t\t\t\t14 text Technical details",
+      "\t15 close button",
+      "\t16 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t17 minimize button",
+      "\t18 text Chirality",
+      "19 menu bar",
+      "\t20 {app_name}",
+      "\t21 File",
+      "\t22 Edit",
+      "\t23 View",
+      "\t24 Window",
+      "\t25 Help",
+      "\t26 Waiting requests (0)",
+      ""
     ]
   },
   "capture_forms": {
@@ -377,6 +408,7 @@
     {
       "id": "S1",
       "act": "view",
+      "state": "S1",
       "says": "the welcome, with nothing chosen yet",
       "expect": [
         {
@@ -398,6 +430,7 @@
     {
       "id": "S2",
       "act": "type",
+      "state": "S2",
       "from_state": "S1",
       "control": {
         "kind": "text field",
@@ -420,6 +453,7 @@
     {
       "id": "S3",
       "act": "click",
+      "state": "S3",
       "from_state": "S2",
       "control": {
         "kind": "button",
@@ -462,6 +496,7 @@
     {
       "id": "S4",
       "act": "click",
+      "state": "S4",
       "from_state": "S3",
       "control": {
         "kind": "summary",
@@ -495,6 +530,7 @@
     {
       "id": "S5",
       "act": "confirm_sheet",
+      "state": "S5",
       "from_state": "S4",
       "sheet": "desktop-setup",
       "control": {

@@ -37,15 +37,20 @@ HARNESS = '''
 import { readFileSync } from 'node:fs';
 const walkModule = await import(process.argv[1]);
 // A scenario that names no listed states (the first-use scenario, kept for the hosted driver) is given, for these
-// tests of the walk's mechanics, the views it is fed as its states, read when the walk starts.
+// tests of the walk's mechanics, the views it is fed as its states, read when the walk starts: each acting step's
+// from_state, and each step's own judged state (the view it is fed after it), so that a pass here rests on equality
+// with a recorded state as the verdict rule requires.
 const listAll = () => {
-  if (scenario.states) return;
+  // Only a scenario that acts and lists no states: a view-only scenario gets none, and stays captured, not judged.
+  if (scenario.states || !scenario.steps.some(step => ['type', 'click', 'confirm_sheet'].includes(step.act))) return;
   scenario.states = {};
   scenario.steps.forEach((step, n) => {
     if (['type', 'click', 'confirm_sheet'].includes(step.act)) {
       step.from_state = 'V' + (n - 1);
       scenario.states[step.from_state] = String(texts[Math.max(n - 1, 0)] ?? '').split('\\n');
     }
+    step.state = 'V' + n;
+    scenario.states[step.state] = String(texts[n] ?? '').split('\\n');
   });
 };
 const walk = { ...walkModule, run: options => { listAll(); return walkModule.run(options); } };
@@ -156,12 +161,15 @@ class Replay(unittest.TestCase):
 
     def test_the_whole_result_arrives_through_a_pipe(self):
         views = setup_views()
-        # The page after the press, which nothing acts from, given a long text so the result outgrows a pipe.
+        # The page after the press, given a long text so the result outgrows a pipe. It then no longer equals the
+        # recorded state S5, so the walk reports that as a failed check: the result arrives whole all the same.
         views['views'][5]['text'] = in_order(views['views'][5]['text'].replace(f'\t\t\t\t\t\t12 text Project: {PROJECT}',
                                                                       f'\t\t\t\t\t\t12 text Project: {PROJECT}\n\t\t\t\t\t\t13 text ' + 'invented words ' * 5000))
         done = subprocess.run([NODE, str(REPLAY), str(SETUP), str(self.views_file(views))], capture_output=True, text=True)
         self.assertGreater(len(done.stdout), 65536)  # longer than a pipe holds at once
-        self.assertEqual(json.loads(done.stdout)['verdict'], 'pass')
+        result = json.loads(done.stdout)
+        self.assertEqual(result['verdict'], 'fail')
+        self.assertEqual([check['expectation'] for step in result['steps'] for check in step['checks'] if not check['pass']], [{'state': 'S5'}])
 
     def test_a_wrong_state_file_that_does_not_match_the_views_is_an_error_not_a_pass(self):
         bad = FIXTURES.parent / 'does-not-apply.json'
@@ -224,7 +232,9 @@ class TheWalkItself(unittest.TestCase):
                                  'return [r.verdict, r.stopped, r.calls.length];')
                 verdict, stopped, calls = result['out']
                 self.assertEqual((verdict, calls), ('inconclusive', 7), stopped)
-                self.assertIn('the view holds something beside the window "Chirality"', stopped)
+                # Refused at recognition now (the anchor: the top level is exactly element 0 and the menu bar), before
+                # the page check that used to refuse it; still nothing further is called.
+                self.assertIn('stopped at S3: its top level is not exactly its first element and the menu bar; nothing is clicked, typed or pressed from it', stopped)
         for name, change in (('a window whose title only begins the same way', "'standard window Chirality Setup, Secondary Actions: Raise'"),
                              ('no window', "'group'")):
             with self.subTest(name):
@@ -1007,6 +1017,10 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertIs(sheet_step.pop('press'), False)
         for field in ('scenario', 'what_it_is'):
             self.assertNotEqual(capture.pop(field), setup.pop(field))
+        # Only the setup walk reaches the view after the press, so only it holds S5 and judges its last step by it.
+        setup['states'].pop('S5')
+        next(s for s in setup['steps'] if s['id'] == 'S5').pop('state')
+        capture.pop('states_recorded'), setup.pop('states_recorded')
         self.assertEqual(capture, setup)
 
     def test_a_dialog_anywhere_below_the_window_stops_an_ordinary_step(self):
@@ -1413,6 +1427,24 @@ class AViewRecognisedLineForLine(unittest.TestCase):
                 self.assertNotEqual(text, whole)
                 refusal, _ = self.recognise(text)
                 self.assertIsNotNone(refusal)
+        # Round two of the independent reading: a second menu bar, inside the block or as a whole second block, and
+        # anything else at the top level, refuse.
+        cases2 = {
+            'a second menu bar inside the block, the rest numbered on': '\n'.join(
+                lines[:start + 1] + ['20 menu bar'] + [line.replace(f'\t{20 + j} ', f'\t{21 + j} ', 1) for j, line in enumerate(block[1:])] + lines[start + 8:]),
+            'a second whole block appended, numbered on': '\n'.join(
+                lines[:start + 8] + ['27 menu bar'] + [line.replace(f'\t{20 + j} ', f'\t{28 + j} ', 1) for j, line in enumerate(block[1:])] + lines[start + 8:]),
+            'a third top-level element before the block': '\n'.join(
+                lines[:start] + ['19 group'] + ['20 menu bar'] + [line.replace(f'\t{20 + j} ', f'\t{21 + j} ', 1) for j, line in enumerate(block[1:])] + lines[start + 8:]),
+            'a menu bar element nested in page content': '\n'.join(
+                lines[:start] + ['\t19 menu bar'] + ['20 menu bar'] + [line.replace(f'\t{20 + j} ', f'\t{21 + j} ', 1) for j, line in enumerate(block[1:])] + lines[start + 8:]),
+        }
+        for name, text in cases2.items():
+            with self.subTest(name):
+                self.assertNotEqual(text, whole)
+                refusal, _ = self.recognise(text)
+                self.assertIsNotNone(refusal)
+        self.assertIsNone(self.recognise(whole.replace('Waiting requests (0)', 'Waiting requests (1000000)'))[0])
         # The one free part: any non-negative count of waiting requests.
         self.assertIsNone(self.recognise(whole.replace('Waiting requests (0)', 'Waiting requests (12)'))[0])
 
@@ -1452,15 +1484,40 @@ class TheViewOnlyScenarios(unittest.TestCase):
                 self.assertNotIn('typed_fields', scenario)
                 self.assertNotIn('sheets', scenario)
 
-    def test_the_first_launch_view_reads_the_recorded_first_use_page_and_acts_on_nothing(self):
+    def test_the_first_launch_view_is_captured_not_judged_and_acts_on_nothing(self):
+        # It names no recorded state, so its view is captured, not judged: no affirmative result rests on the anchor
+        # alone, however many of its expectations the view meets.
         views = setup_views()
         views['views'] = [views['views'][0]]
         result = setup_walk(RESULT.replace('OPTIONS', 'base'), views, OPERATED / 'first-launch-view.scenario.json')
         verdict, stopped, calls = result['out']
-        self.assertEqual((verdict, stopped), ('pass', None))
+        self.assertEqual((verdict, stopped), ('captured, not judged', None))
         self.assertEqual(set(calls), {'get_app_state'})
         self.assertEqual(result['touched'], ['get_app_state'] * 3)
 
+    def test_no_committed_scenario_can_pass_with_a_step_that_names_no_state(self):
+        # Every scenario file in the repository, through the walk's own verdict rule, with every expectation met: it can
+        # report a pass only when every step names a recorded state that its view equalled. A scenario added later
+        # without states cannot bring back a pass on the anchor alone.
+        files = sorted(OPERATED.glob('*.scenario.json'))
+        self.assertGreaterEqual(len(files), 5)
+        outcomes = {}
+        for path in files:
+            scenario = json.loads(path.read_text())
+            entries = [{'checks': [{'pass': True}], 'judged': isinstance((scenario.get('states') or {}).get(step.get('state')), list)}
+                       for step in scenario['steps']]
+            verdict = harness(f'return walk.verdictOf({json.dumps(entries)});')['out']
+            names_all = all(isinstance((scenario.get('states') or {}).get(step.get('state')), list) for step in scenario['steps'])
+            with self.subTest(path.name):
+                self.assertEqual(verdict, 'pass' if names_all else 'captured, not judged')
+            outcomes[path.name] = verdict
+        self.assertEqual(outcomes['signed-out-setup.scenario.json'], 'pass')
+        for name in ('first-launch-view.scenario.json', 'signed-out-relaunch.scenario.json', 'first-use-setup.scenario.json'):
+            self.assertEqual(outcomes[name], 'captured, not judged')
+        # And the rule itself: a step judged false, or one with no judgement at all, is never a pass.
+        self.assertEqual(harness("return walk.verdictOf([{checks: [{pass: true}], judged: true}, {checks: [{pass: true}]}]);")['out'], 'captured, not judged')
+        self.assertEqual(harness("return walk.verdictOf([]);")['out'], 'captured, not judged')
+        self.assertEqual(harness("return walk.verdictOf([{checks: [{pass: false}], judged: true}]);")['out'], 'fail')
 
     def test_the_first_launch_view_does_not_pass_on_a_view_with_a_line_inside_its_menu_bar_block(self):
         # The independent reading of PR 351 (round one): a further line inside the block was accepted, and this
@@ -1469,6 +1526,19 @@ class TheViewOnlyScenarios(unittest.TestCase):
         first = views['views'][0]['text'].split('\n')
         bar = next(n for n, line in enumerate(first) if line.endswith(' menu bar') and not line.startswith('\t'))
         views['views'] = [dict(views['views'][0], text='\n'.join(first[:bar + 1] + ['unfamiliar text inside menu block'] + first[bar + 1:]))]
+        result = setup_walk(RESULT.replace('OPTIONS', 'base'), views, OPERATED / 'first-launch-view.scenario.json')
+        verdict, stopped, calls = result['out']
+        self.assertNotEqual(verdict, 'pass')
+        self.assertEqual(set(calls), {'get_app_state'})
+
+
+    def test_the_first_launch_view_does_not_pass_on_a_view_with_a_second_menu_bar(self):
+        # The independent reading of PR 351 (round two): "46 menu bar" inserted after "45 menu bar", the items numbered
+        # on, was recognised and this view-only scenario passed. It must not.
+        views = setup_views()
+        first = views['views'][0]['text'].split('\n')
+        bar = next(n for n, line in enumerate(first) if line.endswith(' menu bar') and not line.startswith('\t'))
+        views['views'] = [dict(views['views'][0], text=in_order('\n'.join(first[:bar + 1] + ['0 menu bar'] + first[bar + 1:])))]
         result = setup_walk(RESULT.replace('OPTIONS', 'base'), views, OPERATED / 'first-launch-view.scenario.json')
         verdict, stopped, calls = result['out']
         self.assertNotEqual(verdict, 'pass')
@@ -1502,7 +1572,9 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
         # The setup acts only in its five listed states: four recorded views and the sheet.
         self.assertEqual({step['id']: step.get('from_state') for step in setup['steps'] if step['act'] != 'view'},
                          {'S2': 'S1', 'S3': 'S2', 'S4': 'S3', 'S5': 'S4'})
-        self.assertEqual(sorted(setup['states']), ['S1', 'S2', 'S3', 'S4'])
+        # S1 to S4 are acted from; S5, the view after the press, is only judged: nothing acts from it.
+        self.assertEqual(sorted(setup['states']), ['S1', 'S2', 'S3', 'S4', 'S5'])
+        self.assertEqual([(step['id'], step.get('state')) for step in setup['steps']], [(n, n) for n in ('S1', 'S2', 'S3', 'S4', 'S5')])
         # The relaunch acts in no state: one view, read.
         self.assertEqual([(step['id'], step['act']) for step in relaunch['steps']], [('R1', 'view')])
         self.assertNotIn('states', relaunch)

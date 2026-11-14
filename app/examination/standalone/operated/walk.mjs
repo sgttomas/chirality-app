@@ -36,7 +36,7 @@ export const UNADDRESSED = 'the view gives the same element index to more than o
  */
 // The App window's own menu bar, with which every whole view of the App ends (see anchored, below).
 const MENU_ITEMS = ['File', 'Edit', 'View', 'Window', 'Help'];
-const WAITING = '(0|[1-9][0-9]{0,5})';  // the one free part of the block: a non-negative integer
+const WAITING = '(0|[1-9][0-9]*)';  // the one free part of the block: a non-negative integer, in plain decimal
 // The window line, whole: a title holding no quote, the App's name, and nothing after.
 const WINDOW_PARTS = new RegExp(`^Window: "([^"]*)", App: (${WORDS}+)\\.$`, 'u');
 
@@ -86,6 +86,7 @@ export function recognise(text, launchedName) {
  *   App's name in the window line and the menu bar's index, with only the number in "Waiting requests (n)" free. It is
  *   one comparison, not a check of pieces: an extra line of any kind (a further line, a well-formed element line), a
  *   missing line or an altered line inside the block refuses, and so does a view without the block;
+ * - that block's menu bar is the view's only one, and the view's top level is exactly element 0 and that menu bar;
  * - the window line must be whole: `Window: "<title>", App: <name>.`, a title holding no quote, nothing after; <name>
  *   must be exactly the launched build's name (its bundle's, as the walk was given it), and the block is built from it;
  * - so every index the walk may act on is one the view assigns, in order, each once, and an index it does not assign
@@ -109,6 +110,13 @@ function anchored(lines, last, elements, launchedName) {
   if (k < 0 || last - 7 < 1 || block.length !== 8 || expected.some((line, i) => block[i] !== line) || !waiting.test(block[7])) {
     return refuse('it does not end with the App window\'s own menu bar, line for line (menu bar; the window line\'s App name, File, Edit, View, Window, Help, "Waiting requests (n)")');
   }
+  // That block is the view's only menu bar, and the view holds nothing else at its top level: exactly two top-level
+  // elements, element 0 (the App's window, or a sheet) and the menu bar that begins the block, as every whole view
+  // recorded has (35 of 35 on 14 November 2026). A second menu bar, inside the block or anywhere before it, or another
+  // top-level element, refuses.
+  const top = elements.filter(element => element.depth === 0);
+  if (top.length !== 2 || top[0].index !== 0 || top[1].index !== k) return refuse('its top level is not exactly its first element and the menu bar');
+  if (elements.filter(element => element.content === 'menu bar').length !== 1) return refuse('it holds more than one menu bar');
   return null;
 }
 
@@ -405,8 +413,8 @@ export function checkOne(elements, expectation, values) {
  *   now       optional: () => the time as text (default: the UTC time)
  *   project   the invented project folder beside the home, for a scenario with a `type` step: the one value it types
  * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped, view_error when a view failed, click_error when a
- * click failed}. verdict is 'pass', 'fail' or
- * 'inconclusive'; a refusal before any call is 'inconclusive' with nothing called.
+ * click failed}. verdict is 'pass', 'fail', 'captured, not judged' or 'inconclusive'; a refusal before any call is
+ * 'inconclusive' with nothing called. See verdictOf: no affirmative result rests on the anchor alone.
  */
 /**
  * A failed call, as messages only: the error's own message and then each cause it carries, in order, whole. A message
@@ -773,11 +781,33 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const pattern = typeof form === 'string' ? new RegExp('^' + fill(form, values).split('{~uuid}').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}') + '$', 'u') : null;
       if (!pattern || !pattern.test(values[name])) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" is not of the form the App makes`);
     }
+    // The step's judgement, after its captures (a state can name a path captured at this step): its view must equal the recorded state it names, line for line, under the comparison the
+    // acts use. A step that names none is captured, not judged; a view that differs is a failed check.
+    if (step.state !== undefined) {
+      const differs = Array.isArray(scenario.states?.[step.state]) ? stateCheck(seen.text, scenario.states[step.state], values, appName)
+        : [`the scenario holds no recorded state ${step.state}`];
+      entry.state = step.state;
+      entry.judged = differs.length === 0;
+      if (differs.length) entry.checks.push({ expectation: { state: step.state }, pass: false, found: differs[0] });
+    } else {
+      entry.judged = false;
+    }
     const after = gate(`after ${step.id}`);
     entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';
     if (after) return after;
   }
-  return finish(report.steps.every(step => step.checks.every(check => check.pass)) ? 'pass' : 'fail');
+  return finish(verdictOf(report.steps));
+}
+
+/**
+ * The verdict of a walk that reached its end. No affirmative result rests on the anchor alone (App Agent 0, after the
+ * second independent reading of PR 351): 'pass' only when every step's view equalled the recorded state it names,
+ * line for line, and every expectation held. Expectations can only fail. A view that passed the anchor but names no
+ * recorded state is 'captured, not judged'. The anchor itself only refuses (recognise), and never grounds a pass.
+ */
+export function verdictOf(steps) {
+  if (steps.some(step => (step.checks ?? []).some(check => !check.pass))) return 'fail';
+  return steps.length > 0 && steps.every(step => step.judged === true) ? 'pass' : 'captured, not judged';
 }
 
 /** The result as the few lines a reader wants first. */
