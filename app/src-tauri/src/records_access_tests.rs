@@ -921,3 +921,49 @@ fn records_continuity_physical_project_changed_during_source_read_is_a_logged_re
     assert_eq!(response["success"],false);assert!(!response.to_string().contains("NEW-PROJECT-SECRET"));assert!(!response.to_string().contains("run:foreign"));
     let log=f.logged();assert_eq!(log.len(),1);assert_eq!(log[0]["outcome"],"refused");assert!(log[0]["refusal"].as_str().unwrap().contains("physical project changed"));
 }
+
+#[test]
+fn records_history_notice_changed_page_keeps_notice_and_reduces_items_at_final_bound() {
+    struct Fixed(Corpus);
+    impl RecordsSource for Fixed {
+        fn read(&self) -> Corpus { Corpus { entries: self.0.entries.clone(), limits: self.0.limits.clone() } }
+    }
+    let f = Scratch::new(); let project = f.project("near-bound");
+    let arguments = json!({"operation":"read_run","run":"run:near-bound","limit":MAX_ITEMS});
+    let request = Request::parse(&arguments).unwrap();
+    let root = ProjectRoot::new(&project, &project);
+    let read_id = "rread:00000000-0000-4000-8000-000000000000";
+    let mut corpus = Corpus { entries: (1..=3).map(|seq| SourcedEntry {
+        entry: crate::records::envelope("evidence_limit", &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"invented bound case","detail":"x".repeat(4500)}),
+            format!("rec:app:near-bound-{seq}"), seq, Some("run:near-bound"), None),
+        log:"invented.jsonl".into(), line:seq as usize,
+    }).collect(), limits:vec![String::new(); MAX_LIMITS] };
+    // Escaped control characters create a valid near-bound document without
+    // relying on oversized entries (which the source reader would stub).
+    let target = RESPONSE_LIMIT - 50;
+    let missing = target - document_text(read_id, &request, &page(&corpus, &request, &root)).len();
+    let mut escaped = missing / 6;
+    for limit in &mut corpus.limits { let n = escaped.min(300); *limit = "\0".repeat(n); escaped -= n; }
+    assert_eq!(escaped, 0);
+    corpus.limits.last_mut().unwrap().push_str(&"x".repeat(missing % 6));
+    let near = page(&corpus, &request, &root);
+    assert_eq!(document_text(read_id, &request, &near).len(), target);
+    let before_items = near.items.len(); assert_eq!(before_items, 3);
+    let mut expanded = near;
+    expanded.history_notices = crate::records_store::HistoryNotice::Changed.page();
+    assert!(document_text(read_id, &request, &expanded).len() > RESPONSE_LIMIT);
+    let changed_project = project.clone();
+    crate::records_store::HISTORY_AFTER_ROWS.with(|hook| *hook.borrow_mut() = Some(Box::new(move || {
+        crate::records::append_project(&changed_project, None, "notice-bound", "evidence_limit", &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"routing changed","detail":"invented final store record"})).unwrap();
+    })));
+    let capability = RecordsCapability::with_source(&project, Box::new(Fixed(corpus)), f.read_log()).unwrap();
+    let answer = capability.answer(&call(1, arguments), project.to_str());
+    assert_eq!(answer["success"], true, "{answer}");
+    let text = text_of(&answer); assert!(text.len() <= RESPONSE_LIMIT, "{} bytes", text.len());
+    let result = returned(&answer);
+    assert_eq!(result["historyNotices"], json!([crate::records_store::HISTORY_CHANGED_PAGE]));
+    assert!(result["items"].as_array().unwrap().len() < before_items);
+    assert_eq!(result["next"], "o:2", "pagination resumes at the first removed original item");
+}
