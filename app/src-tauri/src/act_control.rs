@@ -60,9 +60,10 @@ fn capture_time() -> String {
 const STANDING: &str = "no arrival: a standing act (RC-6)";
 
 /// Err((words, stale)). A standing that changed, or an offer without one, makes the offer
-/// stale. Records that cannot be read now are reported with their own cause, never as a
-/// changed standing, and the offer stays presented so the same decision can be made once
-/// they can be read.
+/// stale. A records home that refuses here (the store unavailable, or its attachment refused) is reported
+/// with its own cause and leaves the offer presented, so the same decision can be made once
+/// it can be read. A home that admits but whose logs then read incompletely still reads as a
+/// different standing, and so as changed.
 fn check_standing(root: &Path, offer: &Value) -> Result<(), (String, bool)> {
     if offer.get("packageStanding").is_none() || offer.get("otherRequestsForPath").is_none() {
         return Err(("The A16 offer has no complete request standing; review it again; nothing captured.".into(), true));
