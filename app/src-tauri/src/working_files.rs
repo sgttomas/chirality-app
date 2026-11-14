@@ -390,6 +390,67 @@ impl WorkingFiles {
     }
 }
 
+/// The Working Files of the App data folder this launch holds, established
+/// once at its first use. The first use in the process also cleans what
+/// earlier launches left, under the App's process lock (one App per App data
+/// folder, held before any start), protecting the App data folder and the
+/// person's own Codex home.
+static LAUNCH: std::sync::Mutex<Option<(PathBuf, WorkingFiles)>> = std::sync::Mutex::new(None);
+fn protected_for(app_data: &Path) -> Vec<PathBuf> {
+    let mut protected = vec![app_data.to_path_buf()];
+    if let Some(home) = std::env::var_os("HOME") {
+        protected.push(PathBuf::from(home).join(".codex"));
+    }
+    protected
+}
+fn report(cleaning: &Cleaning) {
+    for (path, why) in &cleaning.kept {
+        eprintln!("chirality: a working folder was kept: {} ({why})", path.display());
+    }
+}
+/// The Working Files of `app_data` for this launch.
+pub fn for_launch(app_data: &Path) -> Result<WorkingFiles, String> {
+    let mut launch = LAUNCH.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some((data, working)) = launch.as_ref() {
+        if data == app_data {
+            return Ok(working.clone());
+        }
+    }
+    let working = establish(app_data)?;
+    if launch.is_none() {
+        report(&working.clean(&protected_for(app_data)));
+    }
+    *launch = Some((app_data.to_path_buf(), working.clone()));
+    Ok(working)
+}
+/// The Working Files this launch established, for a caller that does not
+/// know the App data folder. Refused when none is established: there is no
+/// fall-back to a temporary folder. Tests that make none get their own, under
+/// a temporary folder of the test run.
+pub fn launch() -> Result<WorkingFiles, String> {
+    if let Some((_, working)) = LAUNCH.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
+        return Ok(working.clone());
+    }
+    #[cfg(test)]
+    {
+        static TEST: std::sync::OnceLock<Result<WorkingFiles, String>> = std::sync::OnceLock::new();
+        return TEST.get_or_init(|| {
+            let data = std::fs::canonicalize(std::env::temp_dir()).map_err(|e| e.to_string())?.join(crate::util::opaque_id("test-app-data-")?);
+            std::fs::create_dir_all(&data).map_err(|e| e.to_string())?;
+            establish(&data)
+        }).clone();
+    }
+    #[allow(unreachable_code)]
+    Err("Chirality's working files are not set up for this launch, so nothing was made".into())
+}
+/// At the App's exit: removes what this launch made and still is what it was.
+pub fn clean_at_exit() {
+    let launch = LAUNCH.lock().unwrap_or_else(|e| e.into_inner()).clone();
+    if let Some((data, working)) = launch {
+        report(&working.clean(&protected_for(&data)));
+    }
+}
+
 /// Whether any entry under `path` is named [`SIGN_IN_FILE`], looked for by
 /// name and never opened, and never through a link.
 fn holds_sign_in(path: &Path) -> std::io::Result<bool> {

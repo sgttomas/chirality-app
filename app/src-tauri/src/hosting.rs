@@ -2476,6 +2476,16 @@ impl Host {
         // With the App data folder known, the child's working folder is set from the checked
         // open directory below, never from the path.
         if working_folder.is_none() { cmd.current_dir(&cfg.cwd); }
+        // DEL-01-01: with the App data folder known, Codex is given a temporary folder of its
+        // own, made for this start in the App's Working Files (never the person's shared one),
+        // and the start is refused if it cannot be made: there is no fall-back.
+        let codex_tmp = match &cfg.app_data {
+            Some(data) => Some(crate::working_files::for_launch(data)
+                .and_then(|working| working.allocate(crate::working_files::Kind::CodexTmp))
+                .map_err(|why| format!("Codex was not started. {why}"))?),
+            None => None,
+        };
+        if let Some(tmp) = &codex_tmp { cmd.env("TMPDIR", &tmp.path); }
         cmd.args(&args)
             .env("CODEX_HOME", &cfg.codex_home)
             .stdin(Stdio::piped())
@@ -2630,7 +2640,12 @@ impl Host {
             let conf = json!({
                 "launcher": executable.display().to_string(),
                 "arguments": args,
-                "environment": {"CODEX_HOME": "App-owned home (path recorded by the App, not here)"},
+                "environment": if codex_tmp.is_some() {
+                    json!({"CODEX_HOME": "App-owned home (path recorded by the App, not here)",
+                           "TMPDIR": "a temporary folder the App made for this start in its Working Files, in place of the person's (path recorded by the App, not here)"})
+                } else {
+                    json!({"CODEX_HOME": "App-owned home (path recorded by the App, not here)"})
+                },
                 "removedEnvironment": removed_names,
                 "removedEnvironmentClasses": removed_classes,
                 "inheritedEnvironmentPresence": presence_only_record(presence_only),

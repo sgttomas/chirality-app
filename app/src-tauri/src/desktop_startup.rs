@@ -6268,7 +6268,7 @@ mod tests {
         };
         // The environment route names its App data; the platform's is not used.
         let platform = if environment { PathBuf::from("/invented/platform-app-data") } else { data.clone() };
-        let (desktop, inputs) = crate::admitted_startup(input, Ok(platform), Ok(resources), true, || {
+        let (desktop, inputs) = crate::admitted_startup(input, Ok(platform), Ok(resources), true, |_| {
             panic!("a second App allocates no probe home")
         });
         assert!(!inputs.allow_operational);
@@ -6300,7 +6300,7 @@ mod tests {
         let mut setup = f.setup();
         f.prepare(&mut setup, true);
         drop(setup);
-        let (first, inputs) = crate::admitted_startup(|_| None, Ok(f.data.clone()), Ok(f.resources.clone()), true, || f.probe());
+        let (first, inputs) = crate::admitted_startup(|_| None, Ok(f.data.clone()), Ok(f.resources.clone()), true, |_| f.probe());
         assert!(inputs.allow_operational);
         std::fs::create_dir_all(f.data.join("runtime")).unwrap();
         let ledger_path = f.data.join("runtime/recovery.ledger.jsonl");
@@ -6317,7 +6317,7 @@ mod tests {
         drop(host);
         drop(first);
         // Once the first App has gone, the next one on the same data is admitted.
-        let (_next, inputs) = crate::admitted_startup(|_| None, Ok(f.data.clone()), Ok(f.resources.clone()), true, || f.probe());
+        let (_next, inputs) = crate::admitted_startup(|_| None, Ok(f.data.clone()), Ok(f.resources.clone()), true, |_| f.probe());
         assert!(inputs.allow_operational);
     }
 
@@ -6328,7 +6328,7 @@ mod tests {
     fn an_environment_route_app_holds_its_named_app_data_against_both_routes() {
         let f = Fixture::new();
         let named = |data: PathBuf| move |key: &str| (key == crate::APP_DATA_ENV).then(|| data.clone().into_os_string());
-        let (first, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        let (first, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, |_| panic!("incomplete environment allocates no probe"));
         assert!(inputs.allow_operational, "the environment route keeps its own errors");
         assert_eq!(first.view()["launch"]["state"], "environment");
         let files = tree(&f.data);
@@ -6337,11 +6337,11 @@ mod tests {
             assert_eq!(tree(&f.data), files, "{route}: App data unchanged byte for byte");
         }
         let other = f.root.join("other-app-data");
-        let (_other, inputs) = crate::admitted_startup(named(other.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        let (_other, inputs) = crate::admitted_startup(named(other.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), true, |_| panic!("incomplete environment allocates no probe"));
         assert!(inputs.allow_operational, "parallel runs that name their own App data are not refused");
         assert!(other.is_dir());
         drop(first);
-        let (_again, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        let (_again, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, |_| panic!("incomplete environment allocates no probe"));
         assert!(inputs.allow_operational);
     }
 
@@ -6353,7 +6353,7 @@ mod tests {
         let f = Fixture::new();
         let elsewhere = f.root.join("named-by-the-environment");
         let named = |data: PathBuf| move |key: &str| (key == crate::APP_DATA_ENV).then(|| data.clone().into_os_string());
-        let (built, inputs) = crate::admitted_startup(named(elsewhere.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), false, || f.probe());
+        let (built, inputs) = crate::admitted_startup(named(elsewhere.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), false, |_| f.probe());
         // With no saved setup the built App is at its own first-use setup, on its own App data.
         assert_eq!(built.view()["launch"]["state"], "setup-required", "the input alone does not select the environment route in a built App");
         assert!(!inputs.allow_operational);
@@ -6361,7 +6361,7 @@ mod tests {
         assert!(!elsewhere.exists(), "nothing is created at the named path");
         // The same input in a development run names the data and selects the route.
         drop(built);
-        let (dev, inputs) = crate::admitted_startup(named(elsewhere.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        let (dev, inputs) = crate::admitted_startup(named(elsewhere.clone()), Ok(f.data.clone()), Ok(f.resources.clone()), true, |_| panic!("incomplete environment allocates no probe"));
         assert_eq!(inputs.data.as_deref(), Ok(elsewhere.as_path()));
         assert_eq!(dev.view()["launch"]["state"], "environment");
     }
@@ -6388,7 +6388,7 @@ mod tests {
                     _ => None,
                 }
             };
-            let (desktop, inputs) = crate::admitted_startup(input, platform, Ok(f.resources.clone()), true, || {
+            let (desktop, inputs) = crate::admitted_startup(input, platform, Ok(f.resources.clone()), true, |_| {
                 panic!("no probe home is allocated without held App data")
             });
             assert!(!inputs.allow_operational, "{expected}");
@@ -6421,7 +6421,7 @@ mod tests {
             (dotted_up, "CHIRALITY_APP_DATA must be an absolute path without . or .. components"),
         ] {
             let input = |key: &str| (key == crate::APP_DATA_ENV).then(|| value.clone());
-            let (desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, || {
+            let (desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, |_| {
                 panic!("no probe home is allocated without held App data")
             });
             assert!(!inputs.allow_operational, "{expected}");
@@ -6433,7 +6433,7 @@ mod tests {
         // A clean absolute value is held, as before.
         let held = f.root.join("named-app-data");
         let input = |key: &str| (key == crate::APP_DATA_ENV).then(|| held.clone().into_os_string());
-        let (_desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe home"));
+        let (_desktop, inputs) = crate::admitted_startup(input, Ok(platform.clone()), Ok(f.resources.clone()), true, |_| panic!("incomplete environment allocates no probe home"));
         assert_eq!(inputs.data.as_ref().ok(), Some(&held));
         assert!(!platform.exists());
     }
@@ -6444,7 +6444,7 @@ mod tests {
     fn the_environment_routes_app_data_is_rechecked_before_each_start() {
         let f = Fixture::new();
         let named = |data: PathBuf| move |key: &str| (key == crate::APP_DATA_ENV).then(|| data.clone().into_os_string());
-        let (desktop, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || panic!("incomplete environment allocates no probe"));
+        let (desktop, inputs) = crate::admitted_startup(named(f.data.clone()), Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, |_| panic!("incomplete environment allocates no probe"));
         assert!(inputs.allow_operational);
         desktop.recheck_active().unwrap();
         std::fs::rename(&f.data, f.root.join("moved-app-data")).unwrap();
@@ -6488,7 +6488,7 @@ mod tests {
         probe_root: &Path,
     ) -> (crate::AppState, Arc<runtime_session::HomeSession>, Arc<Mutex<DesktopSetup>>, Option<Result<Value, String>>) {
         let (desktop, RootInputs { launch, data, allow_operational }) =
-            crate::admitted_startup(input, Ok(platform), Ok(resources), true, || runtime_session::allocate_fresh_probe(probe_root));
+            crate::admitted_startup(input, Ok(platform), Ok(resources), true, |_| runtime_session::allocate_fresh_probe(probe_root));
         let (key, shared) = (launch.key_path.clone(), launch.shared_paths.clone());
         let host_config = launch.host_config.clone();
         let desktop = Arc::new(Mutex::new(desktop));
@@ -7223,7 +7223,7 @@ mod tests {
             Host::check_working_folder(cfg).unwrap();
             assert_no_project_folder(&f.data, cfg);
             if is_dev {
-                let (_desktop, inputs) = crate::admitted_startup(input, Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || f.probe());
+                let (_desktop, inputs) = crate::admitted_startup(input, Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, |_| f.probe());
                 assert_eq!(inputs.launch.host_config.as_ref().unwrap().cwd, f.data.join("conversations-without-project"));
             }
         }
@@ -7472,12 +7472,12 @@ mod tests {
     /// as the person is shown it, and whether the folder set aside exists and what is in it.
     struct Started { view: Value, config: Result<HostConfig, String>, workspace: Option<PathBuf>, leaf_entries: Option<Vec<PathBuf>> }
     fn start_through_consumers(f: &Fixture, data: &Path, input: impl Fn(&str) -> Option<std::ffi::OsString>, is_dev: bool) -> Started {
-        start_with_probe(f, data, input, is_dev, || f.probe())
+        start_with_probe(f, data, input, is_dev, |_| f.probe())
     }
     /// As `start_through_consumers`, with the probe home allocated by `probe` (the App's own
     /// allocator, `crate::probe_home`, where a test needs it). The view is read at the end, after
     /// the consumers have run.
-    fn start_with_probe(f: &Fixture, data: &Path, input: impl Fn(&str) -> Option<std::ffi::OsString>, is_dev: bool, probe: impl Fn() -> Result<PathBuf, String>) -> Started {
+    fn start_with_probe(f: &Fixture, data: &Path, input: impl Fn(&str) -> Option<std::ffi::OsString>, is_dev: bool, probe: impl Fn(&Path) -> Result<PathBuf, String>) -> Started {
         let (desktop, inputs) = crate::admitted_startup(input, Ok(data.to_path_buf()), Ok(f.resources.clone()), is_dev, probe);
         let RootInputs { launch, data: admitted, allow_operational } = inputs;
         let (key, shared, config) = (launch.key_path.clone(), launch.shared_paths.clone(), launch.host_config.clone());

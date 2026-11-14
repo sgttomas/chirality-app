@@ -448,6 +448,9 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
             failures.push(format!("{}: {error}", home.class().as_str()));
         }
     }
+    // DEL-01-01: with every owned Codex process settled, the working folders this launch made
+    // (probe homes, Codex's temporary folders) are removed, by their recorded identity only.
+    if failures.is_empty() { crate::working_files::clean_at_exit(); }
     let records: Vec<Value> = homes.iter().flat_map(|home| home.host.snapshot()["stopRequests"]["records"].as_array().cloned().unwrap_or_default()).collect();
     if let Some(early) = early {
         // AS-10 cannot delay system-forced termination. Report cleanup limits

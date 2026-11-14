@@ -62,32 +62,25 @@ pub struct Engine {
     pub version: String,
     identity: serde_json::Value,
     helper_identity: (u64, u64),
+    /// The Working Files folder it was made in, and as what: removed only as that.
+    made: Option<(crate::working_files::WorkingFiles, crate::working_files::Made)>,
 }
 impl Engine {
     pub fn create(objects: &Path, format: &str, control: &Control) -> Result<Self> {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("connector_git_process::Engine::create");
-        use std::os::unix::fs::DirBuilderExt;
-        // DEL-01-01: the temporary folder is checked by identity before anything is made, and
-        // refused if it is in Chirality's data folder (its folder for conversations without a
-        // project included). The path is resolved again below, so a folder replaced after the
-        // check is outside what the check guarantees.
-        let temporary = crate::runtime_session::temporary_root("The connector's working folder")
-            .map_err(|e| Failure::abort("supervision", e))?;
-        let helper = temporary.join(
-            crate::util::opaque_id("connector-git-")
-                .map_err(|e| Failure::abort("supervision", e))?,
-        );
-        std::fs::DirBuilder::new()
-            .mode(0o700)
-            .create(&helper)
-            .map_err(|e| Failure::abort("supervision", e.to_string()))?;
+        // DEL-01-01: the connector's working folder is made, exclusively and recorded, in the
+        // App's Working Files beside the App data folder, never in a temporary folder; with no
+        // Working Files established it is refused, with no fall-back.
+        let working = crate::working_files::launch().map_err(|e| Failure::abort("supervision", e))?;
+        let made = working.allocate(crate::working_files::Kind::Connector).map_err(|e| Failure::abort("supervision", e))?;
         let mut engine = Self {
-            helper,
+            helper: made.path.clone(),
             executable: PathBuf::from("/usr/bin/git"),
             version: String::new(),
             identity: serde_json::Value::Null,
             helper_identity: (0, 0),
+            made: Some((working, made)),
         };
         {
             use std::os::unix::fs::MetadataExt;
@@ -345,11 +338,12 @@ impl Drop for Engine {
     fn drop(&mut self) {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("connector_git_process::Engine::drop");
-        use std::os::unix::fs::MetadataExt;
-        if std::fs::symlink_metadata(&self.helper)
-            .is_ok_and(|m| m.is_dir() && (m.dev(), m.ino()) == self.helper_identity)
-        {
-            let _ = std::fs::remove_dir_all(&self.helper);
+        // Removed only if it is still the folder made and recorded (device, inode and creation
+        // time); anything else in its place is kept and reported.
+        if let Some((working, made)) = self.made.take() {
+            for (path, why) in working.remove(&made, &[]).kept {
+                eprintln!("chirality: a working folder was kept: {} ({why})", path.display());
+            }
         }
     }
 }

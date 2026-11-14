@@ -323,7 +323,7 @@ fn a_start_without_app_data_places_no_records_store() {
         }
     };
     let saved = records_store::configured_for_test();
-    let (desktop, inputs) = crate::admitted_startup(environment, Err("platform App data unavailable (invented)".into()), Err("invented resources".into()), true, || Err("no probe home without held App data".into()));
+    let (desktop, inputs) = crate::admitted_startup(environment, Err("platform App data unavailable (invented)".into()), Err("invented resources".into()), true, |_| Err("no probe home without held App data".into()));
     let desktop_startup::RootInputs { launch, data, allow_operational } = inputs;
     assert!(!allow_operational, "nothing operational is admitted without App data");
     let (state, home) = crate::freeze_startup_state(launch, std::sync::Arc::new(std::sync::Mutex::new(desktop)), serde_json::Value::Null);
