@@ -156,6 +156,7 @@ jobs:
           j3_end_writes_run_ended_and_the_next_ordinary_turn_carries_the_notice_once
           runtime_session::workflow_root_tests::selected_chain_disclosure_tests
           runtime_session::workflow_root_tests::action_result_tests
+          local_route_refusal_tests
     steps:
       - uses: actions/checkout@v4
         with:

@@ -80,7 +80,7 @@
       "inventory": {"saved_request": true, "account_homes": 1, "settings_folders": 1, "sign_in_file_absent": "auth.json"},
       "steps": [
         {"id": "S1", "act": "view", "wait_ms": 15000, "says": "the workspace, not the welcome; the connection line says whether Codex started",
-         "expect": [{"heading": "Chirality"}, {"no_text": "Welcome to Chirality"}, {"text_starts_one_of": ["Codex is connected", "Codex could not stay connected", "Codex is starting…", "Codex was not started"]}]},
+         "expect": [{"heading": "Chirality"}, {"no_text": "Welcome to Chirality"}, {"text_starts_one_of": ["Codex is running", "Codex could not stay connected", "Codex is starting…", "Codex was not started"]}]},
         {"id": "S2", "act": "read_state", "says": "the App's state as the page's own status read gave it (not a person-visible element)",
          "expect_state": [["launch_state", "saved-request"], ["setup_required", false], ["project", "{project}"],
                           ["project_source", "explicit saved desktop request, revalidated this launch"],
