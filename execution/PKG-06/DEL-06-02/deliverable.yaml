@@ -36,6 +36,8 @@ needs:
     the package names and whether or not an arrival was recorded; only the person's confirmation captures;
     and each capture yields capture evidence and a direct-capture record with the person's observed
     identity marked not verified.
+    A separate named-provider seal observation preserves the recorded claim when verification
+    fails or is unavailable; it supplies no new prerequisite for recorded decided selection.
   gating: true
   when: The positive case of AC-004
 - from: external:person deciding the matter
@@ -57,6 +59,7 @@ code_paths:
 - app/src-tauri/src/lib.rs
 - app/src/App.tsx
 checks:
+- app/src-tauri/src/act_control.rs
 # History notices on the person-facing RS readings, including empty results.
 - app/tests/workflow-action-result.test.mjs
 # fleet_views_tests.rs is shared with DEL-06-01. Here: the queue, waiting and decision-wait cases.

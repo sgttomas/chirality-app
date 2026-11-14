@@ -238,3 +238,30 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** keep material the agent must not read out
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
+
+### LIM-026: Capture-seal continuity has bounded protection
+
+- **Id:** LIM-026
+- **Exit criteria:** 8, 12
+- **What is unavailable:** a guarantee that earlier keychain protection can
+  always be recognised after complete keychain reset or loss, coherent
+  rollback, or a same-account replacement of the enrolment join at the
+  moment of enrolment. The last case can let one file seal, labelled key
+  file, attach after protection commits. It never supplies keychain standing.
+- **Why:** complete loss or coherent rollback can leave the same observations
+  as a fresh installation. The enrolment join coordinates participating App
+  operations; another process on the same account can replace it and already
+  has access to the file key. “No enrolment evidence found” is not proof that
+  protection never existed. The keychain's protection is not established
+  until release criterion 8 has been met on the installed, signed candidate.
+- **What the person does instead:** read the provider stated for each capture
+  and counted act. A key-file seal remains weaker after keychain setup; a
+  process on this account could forge it. When protection evidence survives
+  but cannot be used, restore access to the original key and continuity, then
+  check again. A capture published without a seal is never sealed later; to
+  obtain a counted act from that case, perform the act again.
+- **What would remove it:** an independently maintained continuity anchor
+  with a separately reviewed enrolment and recovery protocol, and installed
+  signed qualification of the claimed protection. Repeating observations of
+  the same empty local stores cannot establish erased history.
+- **Basis:** DEL-01-04 (REQ-009, AC-009, VER-009), DEL-01-06; release criterion 8.

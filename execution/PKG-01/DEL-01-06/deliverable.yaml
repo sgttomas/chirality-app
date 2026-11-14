@@ -17,8 +17,10 @@ needs:
 - from: DEL-01-04
   condition: The keychain service and access group that keychain protection uses are stated, so
     that any entitlement the App's own code needs for it can be named.
+    The lookup identity and namespace are stable for both signed pre-protection absence
+    observations and enrolled operation; a changed namespace requires a reviewed migration.
   gating: true
-  when: Signing a package that offers keychain protection
+  when: Signing a package that offers keychain protection or signed pre-protection file sealing
 - from: DEL-09-01
   condition: A built candidate can be identified in a candidate identification record, and a native
     packaged-application check can be run and recorded with the package it observed.
