@@ -13,9 +13,13 @@ Children, items, outputs, conversations and order follow in later parts.
 - **The reference.** It is the session file Codex writes under its home: `sessions/YYYY/MM/DD/rollout-<UTC time>-<threadId>.jsonl`, one `{timestamp, ordinal?, type, payload}` per line. It holds:
   - each turn's start: `event_msg` `task_started`;
   - each turn's end: `task_complete`, with `error` when the turn failed, or `turn_aborted`, with its reason;
-  - what the model was given: `response_item` messages.
+  - the messages of the conversation: `response_item` messages. The person's input is kept verbatim, including a run text with its workflow.
 
-  It never holds approvals, requests to the person, warnings or errors other than a turn's own. Those are not compared here.
+  It does not hold everything the model was given. Codex sends each request with a developer message made from its base instructions, with some sections cut, and with its tool definitions; the file holds neither. It never holds approvals, requests to the person, warnings or errors other than a turn's own. None of these is compared here.
+- **Checked against the real format.** The parser was checked against one real session file made at the pin, 0.167.0. That file was made with a scripted loopback provider, no model and no sign-in, in a scratch examination home.
+  - Its three turns (completed, interrupted, failed on an error) and their lines read as the file records them.
+  - The run text's workflow was found verbatim, in the person's message.
+  - The file was removed after the check, and only notes on its format were kept.
 - **Where it may be read.** It is read only inside an examination root: a folder `standalone/launch.py` made, with `home/`, `project/` and `record/`, and a launch record in `record/`.
   - The tool refuses any other folder, and the owner's Codex home.
   - It refuses any path that resolves outside the root.
@@ -41,7 +45,7 @@ Where a saved view exists, the comparison is exact. It is never replaced by the 
 | C2 turns | each `task_started` turn | the view's turns | passed if both have it; failed if only one does (both directions) |
 | C3 outcome | completed, failed (`task_complete` with `error`), interrupted (`turn_aborted`), or not reported | the view's status | passed if equal. Where Codex reported no end: failed if the App shows an end, passed if it shows none. Any other difference fails. |
 | C4 interrupts | the turn's end | the stop record's `turnOutcome` | passed if equal, or if both have no end. Failed if the App records an end Codex did not record, or a stop of a turn Codex has no record of. Inconclusive if Codex recorded an end the App did not learn. |
-| W1 workflow | the SHA-256 of the bytes between `<<<chirality-workflow NAME@REV begin>>>\n` and `\n<<<… end>>>` in a user message | the manifest's WORKFLOW.md digest and the `run_text` record's digest | passed if all three are equal. Failed if any differs, naming which. Blocked if any is missing. Not run if no workflow run was started in the thread. |
+| W1 workflow | the SHA-256 of the bytes between `<<<chirality-workflow NAME@REV begin>>>\n` and `\n<<<… end>>>` in a user message: exactly the WORKFLOW.md bytes `compose_run_text` puts there | the manifest's WORKFLOW.md digest and the `run_text` record's digest | passed if all three are equal. Failed if any differs, naming which. Blocked if any is missing. Not run if no workflow run was started in the thread. |
 
 When one side cannot be read, its comparisons are blocked, with the reason. A saved view is taken after the session ended. Comparing views at earlier points of a run is a later part.
 

@@ -195,6 +195,45 @@ class SessionComparison(unittest.TestCase):
         self.assertEqual([r['outcome'] for r in answered], ['passed', 'not run'])
 
 
+class TheRealFormat(unittest.TestCase):
+    """An invented session laid out as the 0.167.0 file is: an ordinal on each
+    line, a developer message and other user-role messages beside the
+    person's, item_completed lines, no `error` key on a clean end or an abort,
+    and an error object on a failed turn."""
+
+    def test_turns_and_the_workflow_read_from_the_pins_layout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / f'rollout-2026-11-14T06-11-12-{THREAD}.jsonl'
+            msg = lambda role, text, turn, kind: {'type': 'message', 'id': 'msg_x', 'role': role, 'content': [{'type': 'input_text', 'text': text}],
+                                                 'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind]}}
+            lines = [
+                ('session_meta', {'id': THREAD, 'base_instructions': {'text': 'invented'}}),
+                ('event_msg', {'type': 'task_started', 'turn_id': 'A', 'root_turn_id': 'A', 'started_at': 1}),
+                ('response_item', msg('developer', 'Invented role guidance.', 'A', 'developer.instructions')),
+                ('response_item', msg('user', '<environment_context>invented</environment_context>', 'A', 'environments.environment_context')),
+                ('world_state', {}),
+                ('turn_context', {'turn_id': 'A', 'cwd': '/invented'}),
+                ('response_item', msg('user', run_text(), 'A', 'user.text')),
+                ('event_msg', {'type': 'item_completed', 'turn_id': 'A', 'item': {'type': 'UserMessage', 'id': 'other-id', 'client_id': 'c', 'content': [{'type': 'text', 'text': run_text()}]}}),
+                ('event_msg', {'type': 'task_complete', 'turn_id': 'A', 'root_turn_id': 'A', 'last_agent_message': 'hi'}),
+                ('event_msg', {'type': 'task_started', 'turn_id': 'B'}),
+                ('response_item', msg('user', '<turn_aborted>invented</turn_aborted>', 'B', 'generic.turn_aborted')),
+                ('event_msg', {'type': 'turn_aborted', 'turn_id': 'B', 'reason': 'interrupted'}),
+                ('event_msg', {'type': 'task_started', 'turn_id': 'C'}),
+                ('event_msg', {'type': 'task_complete', 'turn_id': 'C', 'last_agent_message': None, 'error': {'message': 'invented', 'codex_error_info': 'other'}}),
+            ]
+            path.write_text(''.join(json.dumps({'timestamp': 't', 'ordinal': n, 'type': k, 'payload': p}) + '\n' for n, (k, p) in enumerate(lines)))
+            session = compare.read_session(path)
+            self.assertEqual([(t, compare.codex_status(session['turns'][t])) for t in session['order']],
+                             [('A', 'completed'), ('B', 'interrupted'), ('C', 'failed')])
+            self.assertEqual(session['turns']['B']['end']['reason'], 'interrupted')
+            r = Root(tmp)
+            r.lines = [{'timestamp': 't', 'type': k, 'payload': p} for k, p in lines[1:]]
+            r.run_text_record()
+            (w1,) = rows(r.compare(), 'W1')
+            self.assertEqual((w1['outcome'], w1['codex']['line']), ('passed', 7), 'found in the person\'s message, not the others')
+
+
 class WhereRecordsMayBeRead(unittest.TestCase):
     def test_only_a_root_launch_made_is_read(self):
         with tempfile.TemporaryDirectory() as tmp:
