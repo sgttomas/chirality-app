@@ -172,10 +172,27 @@ fn several_unordered_decisions_have_their_own_form() {
         c.offers[&id].offer["packageStanding"]["form"],
         "several-unordered"
     );
-    assert!(c
-        .confirmation_text(&id, "ALT-1", &person(None, None))
-        .unwrap()
-        .contains("Several decisions on this request are recorded"));
+    assert_eq!(c.offers[&id].offer["otherRequestsForPath"], json!({"state":"read-whole","rows":[]}));
+    let text = c.confirmation_text(&id, "ALT-1", &person(None, None)).unwrap();
+    assert!(text.contains("Several decisions on this request are recorded"));
+    assert!(!text.contains("Other requests for the file at this path could not all be read."));
+}
+
+#[test]
+fn own_unordered_standing_does_not_hide_an_unreadable_other_request() {
+    let f = Fixture::new();
+    f.claim(&f.request, "ALT-1", 1);
+    f.claim(&f.request, "ALT-2", 2);
+    let other = f.request_again(false);
+    let decision = f.claim(&other, "ALT-1", 3);
+    let (c, id) = f.compose();
+    assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "several-unordered");
+    assert_eq!(c.offers[&id].offer["otherRequestsForPath"]["state"], "read-whole");
+    f.corrupt_record(decision["recordId"].as_str().unwrap());
+    let (mut c, id) = f.compose();
+    assert_eq!(c.offers[&id].offer["otherRequestsForPath"]["state"], "not-read-whole");
+    let text = c.confirmation_text(&id, "ALT-1", &person(None, None)).unwrap();
+    assert!(text.contains("Other requests for the file at this path could not all be read."));
 }
 
 #[test]

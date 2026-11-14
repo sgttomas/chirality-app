@@ -80,10 +80,9 @@ fn from_view(view: &Value, request: &str, path: &str) -> (Value, Value) {
         form(view, own.first().copied())
     };
     let mut rows = Vec::new();
-    let mut read_whole = whole(view)
-        && own.len() == 1
-        && standing["form"] != "unknown"
-        && own.first().is_some_and(|row| resolved_limits(row));
+    // Completeness of other requests is independent of the own row's standing.
+    // Its ambiguity is already carried by packageStanding.
+    let mut read_whole = whole(view);
     for row in all
         .iter()
         .filter(|row| row["packageFile"] == path && row["package"] != request)
