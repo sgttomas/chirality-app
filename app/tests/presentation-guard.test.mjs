@@ -79,6 +79,51 @@ test('presentation guard: each bypass attempt fails, and only a written-down tru
   assert.deepEqual(sourceFailures('Invented.tsx', 'export const V = () => <p>words</p>;', listed).used.size, 0, 'an unused listing is not used, and guardFailures reports it stale');
 });
 
+// The third reading's bypasses (review of PR 336, round 3), each closed by one rule of the guard.
+test('presentation guard closure: attribute contents are judged as children are (a children attribute, a ref callback, a function in an attribute)', () => {
+  const wrap = 'function Wrap({ children }: any) { return <div>{children}</div>; }\n';
+  fails(wrap + 'export const V = ({ row }: any) => <Wrap children={<button>{row.text}</button>} />;', 'an element with supplied text in a children attribute');
+  fails(wrap + 'export const V = ({ row }: any) => <Wrap children={row.text} />;', 'a supplied value as a children attribute');
+  fails('export const V = ({ row }: any) => <p ref={el => { if (el) el.textContent = row.text; }} />;', 'a ref callback writing DOM text');
+  fails('export const V = ({ row }: any) => <button onClick={() => { document.body.insertAdjacentHTML("beforeend", row.text); }}>Go</button>;', 'an event handler inserting HTML');
+  fails('import { List } from "./List";\nexport const V = ({ rows }: any) => <List render={(r: any) => <b>{r.text}</b>} />;', 'supplied text in an element a render prop returns');
+  passes(wrap + 'export const V = () => <Wrap children={<b>The App\'s words</b>} />;', 'an element of the App\'s words in a children attribute');
+});
+test('presentation guard closure: a spread of attributes carries only listed keys, never raw HTML', () => {
+  const raw = 'export const V = ({ row }: any) => <div {...{ dangerouslySetInnerHTML: { __html: row.text } }} />;';
+  fails(raw, 'raw HTML in a spread');
+  assert.notDeepEqual(judge(raw, 'Invented.tsx', [{file: 'Invented.tsx', where: '{...}', expr: '{ dangerouslySetInnerHTML: { __html: row.text } }', reason: 'invented'}]), [], 'raw HTML in a spread cannot be listed');
+  fails('export const V = ({ row }: any) => <div {...(row.on ? { title: "App" } : { dangerouslySetInnerHTML: { __html: row.text } })} />;', 'raw HTML in one branch of a spread');
+  fails('export const V = ({ row }: any) => <div {...{ children: row.text }} />;', 'children in a spread');
+  fails('import { Pretty } from "./Pretty";\nexport const V = ({ row }: any) => <div {...{ children: <Pretty value={row.text} /> }} />;', 'an outside component hidden in a spread\'s children');
+  fails('export const V = () => <div {...{ onClick: () => {} }} />;', 'a key not on the list');
+  passes('export const V = () => <div {...{ id: "x", className: "c", title: "The App\'s words" }} />;', 'listed keys with the App\'s values');
+});
+test('presentation guard closure: a control or heading role holds only the App\'s words, as the tags do', () => {
+  fails(IMPORTS + 'export const V = ({ row }: any) => <div role="heading"><AgentText value={row.text} /></div>;', 'a box inside role=heading');
+  fails(IMPORTS + 'export const V = ({ row }: any) => <span role="button"><SuppliedId value={row.id} /></span>;', 'an identity presentation inside role=button');
+  fails(IMPORTS + 'export const V = ({ row, h }: any) => <div role={h ? "heading" : "note"}><AgentText value={row.text} /></div>;', 'a box inside a role that may be a heading');
+  fails('export const V = ({ row }: any) => <div role={row.role}>words</div>;', 'a role not built of literals');
+  passes(IMPORTS + 'export const V = ({ row, a }: any) => <div role={a ? "alert" : "status"}><AgentText value={row.text} /></div>;', 'a box inside a status');
+});
+test('presentation guard closure: a naming or describing reference names only a literal id of an App-only element in the same file', () => {
+  fails(IMPORTS + 'export const V = ({ row }: any) => <div><span ref={el => { const v = el?.querySelector(".agent-text-value"); if (v) v.id = "supplied"; }}><AgentText value={row.text} /></span><button aria-labelledby="supplied">App</button></div>;',
+    'labelledby a value span given an id through a ref');
+  fails(IMPORTS + 'export const V = ({ row }: any) => <div><span id="w"><AgentText value={row.text} /></span><button aria-describedby="w">App</button></div>;', 'describedby a wrapper around a box');
+  fails('export const V = ({ row }: any) => <div><button aria-labelledby={`x-${row.id}`}>App</button></div>;', 'a reference that is not a literal');
+  fails('export const V = () => <div><button aria-labelledby="nowhere">App</button></div>;', 'a reference naming no element in this file');
+  fails('export const V = () => <div><span id="n">One</span><span id="n">Two</span><button aria-labelledby="n">Go</button></div>;', 'a reference naming two elements');
+  passes('export const V = () => <div><span id="n">The App\'s words</span><button aria-labelledby="n" aria-describedby="n">Go</button></div>;', 'a reference to an App-only element');
+});
+test('presentation guard closure: a trusted name is trusted only when it is bound to the import from the trusted module', () => {
+  fails(IMPORTS + 'function Probe({ row }: any) { const idWords = (x: any) => x; return <p>{idWords(row.text)}</p>; }\nexport const V = () => <Probe row={1} />;', 'a local shadowing the imported idWords');
+  fails(IMPORTS + 'export function V({ row, idWords }: any) { return <p>{idWords(row.text)}</p>; }', 'a parameter shadowing the imported idWords');
+  fails(IMPORTS + 'export function V({ row }: any) { const AgentText = ({ value }: any) => <b>{value}</b>; return <AgentText value={row.text} />; }', 'a local component shadowing AgentText');
+  fails('import { CHANGE_KIND } from "./nativeWords";\nimport { wordOf } from "./AgentText";\nexport function V({ row, CHANGE_KIND: T }: any) { const CHANGE_KIND = row.table; return <p>{wordOf(CHANGE_KIND, row.kind)}</p>; }', 'a local shadowing an imported word table');
+  passes(IMPORTS + 'export const V = ({ row }: any) => <p>{idWords(row.id)}</p>;', 'the imported idWords');
+  passes('import { clockWords } from "./AgentText";\nexport const V = ({ at }: any) => <p>{clockWords(at)}</p>;', 'clockWords, an approved presentation');
+});
+
 // The rendered page: every supplied string poisoned with a marker and a direction override. Outside the boxes, and
 // in every control, heading and attribute that names or holds text, the marker never appears.
 const MARK = 'UNTRUSTED';

@@ -340,7 +340,7 @@ export function findings(name, text) {
       if (attribute === 'dangerouslySetInnerHTML') { record(a, '@dangerouslySetInnerHTML', {forbidden: true}); continue; }
       // A reference that names or describes an element: only a literal id of an element in this file that holds
       // only the App's words.
-      if (REFERENCE_ATTRIBUTES.has(attribute)) { if (!referenceMade(a.initializer)) record(a.initializer ?? a.name, `@${attribute}`); continue; }
+      if (REFERENCE_ATTRIBUTES.has(attribute)) { if (!referenceMade(a.initializer)) record(a.initializer ?? a.name, `@${attribute}`, {rule: true}); continue; }
       if (!a.initializer || ts.isStringLiteral(a.initializer) || !ts.isJsxExpression(a.initializer) || !a.initializer.expression) continue;
       const expr = a.initializer.expression;
       // An approved presentation takes any value to present; its other attributes (label, name, words…) are the App's.
@@ -509,7 +509,7 @@ export function findings(name, text) {
       // A role that makes the element a control or a heading counts as that element; a role not built of literals
       // cannot be judged and fails.
       const roles = rolesOf(opening);
-      if (roles === null) record(opening.tagName, `<${tag}> with a role not built of literals`);
+      if (roles === null) record(opening.tagName, `<${tag}> with a role not built of literals`, {rule: true});
       const role = (roles ?? []).find(r => APP_ONLY_ROLES.has(r));
       const within = APP_ONLY.has(tag) ? tag : role ? `role="${role}"` : inside;
       // Attribute contents are visited as children are: an element written in an attribute (a children attribute, a
@@ -552,7 +552,8 @@ export function sourceFailures(name, text, exceptions = []) {
   const failures = [], used = new Set();
   for (const f of findings(name, text)) {
     if (f.forbidden) { failures.push(`${name}:${f.line} ${f.where} ${f.expr} (cannot be listed)`); continue; }
-    if (!f.component && f.where !== '{...}' && appMade(f.node, f.context)) continue;
+    // A finding that breaks a rule (an unseen component, a spread, a reference, a role) fails whatever its expression.
+    if (!f.component && !f.rule && f.where !== '{...}' && appMade(f.node, f.context)) continue;
     const key = `${name}|${f.where}|${f.expr}`;
     if (listed.has(key)) used.add(key); else failures.push(`${name}:${f.line} ${f.where} ${f.expr}`);
   }
