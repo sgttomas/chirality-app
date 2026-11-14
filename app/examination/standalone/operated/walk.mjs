@@ -63,8 +63,8 @@ export function applyDifference(previous, text) {
 const fill = (text, values) => String(text).replace(/\{(\w+)\}/g, (whole, name) => (name in values ? values[name] : whole));
 
 /**
- * Every element a selector names. A selector is {kind, label} where kind is button, summary, radio, heading, text or
- * text field (a settable text field; its value and placeholder, after the label, are not part of the label).
+ * Every element a selector names. A selector is {kind, label} where kind is button, summary, radio, heading, text,
+ * link, or text field (a settable text field; its value and placeholder, after the label, are not part of the label).
  * The label is the control's words whole: a control whose words merely begin with the label is not it.
  */
 export function select(elements, selector) {
@@ -76,6 +76,7 @@ export function select(elements, selector) {
     if (kind === 'heading') return content.startsWith(`heading ${label}`) && /^(, Value: \d+)?$/.test(content.slice(`heading ${label}`.length));
     if (kind === 'text') return content === `text ${label}`;
     if (kind === 'text field') return content === `text field (settable) ${label}` || content.startsWith(`text field (settable) ${label}, `);
+    if (kind === 'link') return content === `link ${label}` || content.startsWith(`link ${label}, `);
     return false;
   });
 }

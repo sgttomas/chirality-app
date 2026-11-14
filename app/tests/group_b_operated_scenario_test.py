@@ -913,6 +913,14 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
                 self.assertIn(says, stopped)
                 self.assertNotIn('click904', calls)
 
+    def test_a_link_is_the_one_whose_words_are_exactly_the_scenarios(self):
+        elements = [{'index': 1, 'depth': 0, 'content': 'link Settings & tools'},
+                    {'index': 2, 'depth': 0, 'content': 'link Settings & tools, Visited'},
+                    {'index': 3, 'depth': 0, 'content': 'link Settings & tools and more'},
+                    {'index': 4, 'depth': 0, 'content': 'button Settings & tools'}]
+        result = harness(f"return walk.select({json.dumps(elements)}, {{ kind: 'link', label: 'Settings & tools' }}).map(e => e.index);")
+        self.assertEqual(result['out'], [1, 2])
+
     def test_the_first_use_walk_still_makes_no_set_value_and_presses_no_sheet(self):
         result = harness('return (await walk.run(base)).verdict;')
         self.assertNotIn('set_value', result['touched'])
@@ -944,6 +952,7 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
             self.assertIn(step['act'], ('view', 'click'))
             if step['act'] == 'click':
                 self.assertNotIn(step['control']['label'], relaunch['never_clicked'])
+                self.assertIn(step['control']['kind'], ('button', 'summary', 'link'))
                 self.assertFalse(step['control']['label'].endswith(('…', '...')))
         self.assertNotIn('typed_fields', relaunch)
         self.assertNotIn('sheets', relaunch)
