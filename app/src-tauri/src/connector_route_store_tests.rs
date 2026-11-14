@@ -1031,6 +1031,9 @@ fn records_store_kept_reader_reports_unsafe_census_and_changed_binding_with_dist
     for kind in ["symlink", "hard link", "fifo", "directory", "changed binding"] {
         let (scratch, project, store, reference) = inspection_fixture();
         assert_ne!(store.anchor(), project.as_path(), "reader must already be bound in the store");
+        // Once the sole final becomes unsafe, this real in-place alternative
+        // makes the census uncertainty decide the proof (and its true kind).
+        crate::records::append(&project.join(".chirality/records/acts/in-place.jsonl"), "evidence_limit", &crate::records::APP_WRITER, serde_json::json!({"label":"unresolvable reference","subjectRef":"invented alternate history"})).unwrap();
         store.resolve(&reference).unwrap();
         if kind == "changed binding" {
             let aside = scratch.0.join("original-project");

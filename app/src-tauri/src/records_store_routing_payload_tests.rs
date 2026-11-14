@@ -14,8 +14,113 @@ fn routing_fixture() -> (OwnStore, PathBuf, PathBuf, String) {
     (own, root, dir, record["recordId"].as_str().unwrap().into())
 }
 
+#[test]
+fn records_store_routing_in_place_empty_and_only_unknown_store_member_reads_the_store() {
+    let _own = OwnStore::new();
+    let root = folder("routing-empty-in-place-");
+    let dir = attach(&root, true).unwrap().dir.unwrap();
+    assert!(legacy_census(&root).unwrap().is_empty());
+    let relative = "acts/.unrecognised-member.jsonl";
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join(relative), b"invented unknown bytes\n").unwrap();
+    assert!(
+        store_holds(&dir).is_err(),
+        "the member alone proves neither records nor emptiness"
+    );
+    assert_eq!(
+        readable_home(&root).unwrap().in_store(),
+        Some(dir.as_path())
+    );
+    let (read, limits) = storage::read_all(&root);
+    assert!(
+        read.is_empty() && limits.iter().any(|e| e.contains(".unrecognised-member.jsonl")),
+        "{read:?}, {limits:?}"
+    );
+    assert_eq!(status(Some(&root))["project"]["reading"], "records store");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+fn unknown_in_place_census(kind: &str) {
+    let _own = OwnStore::new();
+    let root = folder("routing-unknown-in-place-");
+    let dir = attach(&root, true).unwrap().dir.unwrap();
+    std::fs::write(dir.join("unrecognised-member"), b"ambiguous store member").unwrap();
+    let runs = root.join(".chirality/records/runs");
+    std::fs::create_dir_all(runs.parent().unwrap()).unwrap();
+    if kind == "link" {
+        std::os::unix::fs::symlink(root.join("missing-target"), &runs).unwrap();
+    } else {
+        std::fs::create_dir(&runs).unwrap();
+        for name in ["a-ordinary", "b-ordinary"] {
+            std::fs::write(runs.join(name), b"not a record").unwrap();
+        }
+    }
+    let inspect = || {
+        let expected = if kind == "link" {
+            "symlink"
+        } else if kind == "partial" {
+            "injected partial directory listing failure"
+        } else {
+            "Permission denied"
+        };
+        let home = readable_home(&root).unwrap_err();
+        assert!(
+            home.contains("unknown")
+                && home.contains(&runs.display().to_string())
+                && home.contains(expected),
+            "{kind}: {home}"
+        );
+        let state = status(Some(&root));
+        assert_eq!(state["project"]["state"], "unavailable", "{kind}: {state}");
+        assert!(
+            state["project"]["error"]
+                .as_str()
+                .unwrap()
+                .contains(expected),
+            "{kind}: {state}"
+        );
+        let output = folder("routing-refused-in-place-export-");
+        let error = crate::records_export::export(&root, &output.join("bag")).unwrap_err();
+        assert!(
+            error.contains(expected) && error.contains(&runs.display().to_string()),
+            "{kind}: {error}"
+        );
+        std::fs::remove_dir_all(output).unwrap();
+    };
+    if kind == "unreadable" {
+        unsearchable(&runs, inspect);
+    } else if kind == "partial" {
+        LEGACY_LISTING_FAIL_AFTER.with(|hook| *hook.borrow_mut() = Some((runs.clone(), 1)));
+        let result = std::panic::catch_unwind(inspect);
+        LEGACY_LISTING_FAIL_AFTER.with(|hook| *hook.borrow_mut() = None);
+        if let Err(error) = result {
+            std::panic::resume_unwind(error);
+        }
+    } else {
+        inspect();
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_routing_in_place_unreadable_with_only_ambiguous_store_is_not_known() {
+    unknown_in_place_census("unreadable");
+}
+#[test]
+fn records_store_routing_in_place_partial_listing_with_only_ambiguous_store_is_not_known() {
+    unknown_in_place_census("partial");
+}
+#[test]
+fn records_store_routing_in_place_unresolved_link_with_only_ambiguous_store_is_not_known() {
+    unknown_in_place_census("link");
+}
+
 fn unknown_case(kind: &str) {
     let (_own, root, dir, _) = routing_fixture();
+    assert!(
+        !legacy_census(&root).unwrap().is_empty(),
+        "in-place records make the unknown store consequential"
+    );
     assert!(
         !store_holds(&dir).unwrap(),
         "no store record beside the ambiguous member"
@@ -130,14 +235,17 @@ fn records_store_routing_recognised_final_wins_over_earlier_unrecognised_member_
         "the reader must show the member's own limit: {limits:?}"
     );
     assert_eq!(status(Some(&root))["project"]["reading"], "records store");
-    // A known records home never excuses a member from whole inventories.
+    // An inventory carries ordinary unknown bytes; they are not an unresolved
+    // publication and cannot block the export of the known history.
     assert!(crate::records_package::payload_inventory(&dir)
-        .unwrap_err()
-        .contains(".unrecognised-member.jsonl"));
-    let output = folder("refused-unrecognised-export-");
-    assert!(crate::records_export::export(&root, &output.join("bag"))
-        .unwrap_err()
-        .contains(".unrecognised-member.jsonl"));
+        .unwrap()
+        .contains_key("acts/.unrecognised-member.jsonl"));
+    let output = folder("retained-unrecognised-export-");
+    crate::records_export::export(&root, &output.join("bag")).unwrap();
+    assert_eq!(
+        std::fs::read(output.join("bag/data/acts/.unrecognised-member.jsonl")).unwrap(),
+        b"unrecognised retained bytes\n"
+    );
     std::fs::remove_dir_all(output).unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }

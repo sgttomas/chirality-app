@@ -1615,6 +1615,21 @@ fn store_holds(dir: &Path) -> Result<bool, ReaderError> {
     })
 }
 
+/// A census ambiguity matters only if there are in-place records to choose
+/// instead. Only a complete legacy census can establish that there are none.
+/// Account refusals are never bypassed, and an existing census can be reused.
+fn store_read_holds(dir: &Path, legacy_empty: impl FnOnce() -> Result<bool, String>) -> Result<bool, ReaderError> {
+    match store_holds(dir) {
+        Err(error @ ReaderError::Census(_)) => {
+            match legacy_empty().map_err(|cause| format!("the project's records home is unknown: {cause}; nothing read"))? {
+                true => Ok(true),
+                false => Err(error),
+            }
+        }
+        result => result,
+    }
+}
+
 /// Cautious read routing is not authority to waive the import census. Only
 /// an import account, a completed package import or a recognised published
 /// record establishes that authority. Preparation has none; an unrecognised
@@ -1768,7 +1783,7 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if state.incomplete.is_some() {
         return Err("project import incomplete; finish the explicit import before export".into());
     }
-    if store_holds(dir).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
+    if store_read_holds(dir, || legacy_census(root).map(|c| c.is_empty())).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
     if !state.any && payload::census(dir)?.members.keys().any(|name| ["fleet/", "role-supply/", "connectors/"].iter().any(|prefix| name.starts_with(prefix))) && legacy_census(root)?.is_empty() {
         return Ok(());
     }
@@ -1784,6 +1799,13 @@ pub(crate) struct Home {
     /// The store holds this project's records: they are read from the store.
     /// Otherwise the project's §13.7 records (if any) are read in place.
     pub store_mode: bool,
+    legacy: Option<Vec<LegacyFile>>,
+}
+impl Home {
+    fn census(&mut self) -> Result<Vec<LegacyFile>, String> {
+        if self.legacy.is_none() { self.legacy = Some(legacy_census(&self.attachment.root)?); }
+        Ok(self.legacy.as_ref().unwrap().clone())
+    }
 }
 /// The project's home for reading. An unavailable configured store never
 /// falls back to retained originals, even with a missing project link. Explicit
@@ -1802,8 +1824,17 @@ fn unrefusing_home_checked(root: &Path) -> Result<Home, ReaderError> {
                 }
             }
             if let Some(dir)=attachment.dir.as_deref(){if crate::records_retention::terminal(dir)?{return Err("project records disposed or disposal incomplete; ordinary project record reads are unavailable; administrative recovery and export verification remain separate".into());}}
-            let store_mode = match attachment.dir.as_deref() { Some(dir) => store_holds(dir)?, None => false };
-            Ok(Home { attachment, store_mode })
+            let mut legacy = None;
+            let store_mode = match attachment.dir.as_deref() {
+                Some(dir) => store_read_holds(dir, || {
+                    let census = legacy_census(&attachment.root)?;
+                    let empty = census.is_empty();
+                    legacy = Some(census);
+                    Ok(empty)
+                })?,
+                None => false,
+            };
+            Ok(Home { attachment, store_mode, legacy })
         }
 
         Err(e) => Err(e.into()),
@@ -2043,6 +2074,12 @@ fn identity_held(dir: &Path) -> Result<bool, String> {
 /// records, and capture evidence (with pending submissions) other than A15
 /// captures, which stay with their library (U-STORE-2). The library's own act
 /// log and the registered legacy log are not among them.
+#[cfg(test)]
+thread_local! {
+    // A directory iterator can fail after returning some entries. Exercise
+    // that boundary without mistaking a partial census for an empty one.
+    static LEGACY_LISTING_FAIL_AFTER: std::cell::RefCell<Option<(PathBuf, usize)>> = const { std::cell::RefCell::new(None) };
+}
 pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     let mut out = Vec::new();
     let records = root.join(".chirality/records");
@@ -2061,8 +2098,12 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
             Err(e) => return Err(format!("§13.7 records could not all be listed: {}: {e}", dir.display())),
         };
         let mut v = Vec::new();
-        for entry in rd {
-            let entry = entry.map_err(|e| e.to_string())?;
+        for (index, entry) in rd.enumerate() {
+            #[cfg(test)]
+            let entry = if LEGACY_LISTING_FAIL_AFTER.with(|hook| hook.borrow().as_ref().is_some_and(|(path, after)| path == dir && *after == index)) {
+                Err(std::io::Error::other("injected partial directory listing failure"))
+            } else { entry };
+            let entry = entry.map_err(|e| format!("§13.7 records could not all be listed: {} after {index} entries: {e}", dir.display()))?;
             let path = entry.path();
             if path.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.')) {
                 continue;
@@ -2238,11 +2279,23 @@ fn route_accounts_place_checked(root: &Path, mint: bool) -> Result<AccountsPlace
     // Whether the store holds the project's records can be unknown (an import
     // account that cannot be read): that is an error here as everywhere the
     // account is read through the store, never "does not hold".
-    let store_mode = match attachment.dir.as_deref() { Some(dir) => store_holds(dir)?, None => false };
+    let mut legacy = None;
+    let store_mode = match attachment.dir.as_deref() {
+        Some(dir) => store_read_holds(dir, || {
+            let census = legacy_census(&attachment.root)?;
+            let empty = census.is_empty();
+            legacy = Some(census);
+            Ok(empty)
+        })?,
+        None => false,
+    };
     // The one decision, entered from the attachment: a refused attachment has
     // no accounts place, in the store or in the project.
     let read = decide(attachment, store_mode)?;
-    let in_project = !connector_census(&read.attachment.root)?.is_empty();
+    let in_project = match legacy {
+        Some(census) => census.iter().any(|file| file.copy.starts_with("connectors/")),
+        None => !connector_census(&read.attachment.root)?.is_empty(),
+    };
     let Some(dir) = read.attachment.dir.clone() else {
         return read.accounts_in_place(if in_project {
             "the project, read in place: import needed before accounts are written in the records store"
@@ -2414,7 +2467,7 @@ pub fn import(root: &Path) -> Result<Value, String> {
     let id = crate::util::opaque_id("import:")?;
     // Whether the store already held the project's records: a late import,
     // during which (and if it is interrupted) readers keep reading the store.
-    let store_held = store_holds(&dir).map_err(|e| format!("{e}; nothing imported"))?;
+    let store_held = store_read_holds(&dir, || Ok(census.is_empty())).map_err(|e| format!("{e}; nothing imported"))?;
     let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
     // The store's witness of this import, outside the project's subtree,
     // before the account's "started" line and before any copy.
@@ -2651,6 +2704,9 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
         Ok(h) => h,
         Err(e) => return vec![e],
     };
+    notes_from_home(home)
+}
+fn notes_from_home(mut home: Home) -> Vec<String> {
     let mut notes = home.attachment.limits.clone();
     notes.extend(home.attachment.registry.clone());
     if home.attachment.dir.as_deref().is_some_and(|d|crate::records_retention::terminal(d).unwrap_or(false)){notes.push("Records disposed or disposal incomplete; only surviving administration and export evidence remain. Retained project originals are not read or re-imported.".into());}
@@ -2663,7 +2719,7 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
             return notes;
         }
     };
-    let census = match legacy_census(&read.attachment.root) {
+    let census = match home.census() {
         Ok(c) => c,
         Err(e) => {
             notes.push(e);
@@ -2747,8 +2803,8 @@ pub fn status(project: Option<&Path>) -> Value {
         // What the project holds is read whole or reported unavailable: an
         // unreadable census or import record is never "no records yet" and
         // never a count of nothing.
-        out["project"] = match unrefusing_home(root).and_then(|home| {
-            let census = legacy_census(&home.attachment.root)?;
+        out["project"] = match unrefusing_home(root).and_then(|mut home| {
+            let census = home.census()?;
             // What is read comes from the one decision.
             let read = decide(home.attachment.clone(), home.store_mode);
             let imports = match home.attachment.dir.as_ref() { Some(d) => imports(d)?.lines, None => 0 };
@@ -2765,7 +2821,7 @@ pub fn status(project: Option<&Path>) -> Value {
                     else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty())}},
                 "importNeeded":read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
                 "legacyFiles":census.len(),"notImported":to_import,
-                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)}))
+                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home(home.clone())}))
         }) {
             Ok(view) => view,
             Err(e) => {

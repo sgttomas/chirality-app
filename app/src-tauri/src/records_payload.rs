@@ -63,6 +63,13 @@ enum Folder {
     ConnectorEvidence,
     Auxiliary(&'static str),
     RoleContent,
+    Opaque,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Purpose {
+    Routing,
+    Inventory,
 }
 
 fn child(folder: Folder, name: &str) -> Option<Folder> {
@@ -86,7 +93,7 @@ fn child(folder: Folder, name: &str) -> Option<Folder> {
         }),
         Folder::ConnectorEvidence => Some(Folder::ConnectorEvidence),
         Folder::Auxiliary("observations.jsonl") if name == "content" => Some(Folder::RoleContent),
-        Folder::Auxiliary(_) | Folder::RoleContent => None,
+        Folder::Auxiliary(_) | Folder::RoleContent | Folder::Opaque => None,
     }
 }
 
@@ -141,7 +148,7 @@ fn expects_directory(folder: Folder, name: &str) -> bool {
         Folder::ConnectorEvidence => name == "route-accounts",
         Folder::Auxiliary("observations.jsonl") => name == "content",
         Folder::Auxiliary(_) => false,
-        Folder::RoleContent => false,
+        Folder::RoleContent | Folder::Opaque => false,
     }
 }
 fn expects_file(folder: Folder, path: &Path, name: &str, rel: &str) -> bool {
@@ -155,6 +162,7 @@ fn expects_file(folder: Folder, path: &Path, name: &str, rel: &str) -> bool {
             }
             Folder::Auxiliary(expected) => name == expected,
             Folder::RoleContent => role_content(name),
+            Folder::Opaque => false,
         }
 }
 
@@ -167,6 +175,7 @@ fn member(
     name: &str,
     rel: &str,
     meta: &std::fs::Metadata,
+    purpose: Purpose,
 ) -> Result<(bool, bool), CensusError> {
     let fail = |why: &str| CensusError::uncertain(path, why);
     if !meta.is_file() {
@@ -181,7 +190,7 @@ fn member(
             "hard linked member; publication or identity not known",
         ));
     }
-    if expects_directory(folder, name) {
+    if purpose == Purpose::Routing && expects_directory(folder, name) {
         return Err(CensusError::unsafe_member(
             path,
             "not a directory at a payload folder",
@@ -234,20 +243,21 @@ fn member(
         Folder::RoleContent => role_content(name),
         _ => false,
     };
-    if record || auxiliary {
+    if record || auxiliary || purpose == Purpose::Inventory {
         Ok((true, record))
     } else {
         Err(fail("unrecognised payload member; not known"))
     }
 }
 
-fn scan(root: &Path) -> Scan {
+fn scan(root: &Path, purpose: Purpose) -> Scan {
     fn walk(
         root: &Path,
         dir: &Path,
         folder: Folder,
         out: &mut Scan,
         depth: usize,
+        purpose: Purpose,
     ) -> Result<(), CensusError> {
         if depth > 256 {
             return Err(CensusError::uncertain(dir, "census depth exceeded"));
@@ -283,18 +293,23 @@ fn scan(root: &Path) -> Scan {
                         CensusError::uncertain(&path, "payload path is not UTF-8")
                     })?;
                 if meta.is_dir() {
-                    if expects_file(folder, &path, name, rel) {
+                    if control(rel)
+                        || purpose == Purpose::Routing && expects_file(folder, &path, name, rel)
+                    {
                         return Err(CensusError::unsafe_member(
                             &path,
                             "directory where a final member belongs",
                         ));
                     }
-                    let next = child(folder, name).ok_or_else(|| {
-                        CensusError::uncertain(&path, "unrecognised payload folder; not known")
-                    })?;
-                    walk(root, &path, next, out, depth + 1)?;
+                    let next = child(folder, name)
+                        .or_else(|| (purpose == Purpose::Inventory).then_some(Folder::Opaque))
+                        .ok_or_else(|| {
+                            CensusError::uncertain(&path, "unrecognised payload folder; not known")
+                        })?;
+                    walk(root, &path, next, out, depth + 1, purpose)?;
                 } else {
-                    let (retained, record) = member(root, &path, folder, name, rel, &meta)?;
+                    let (retained, record) =
+                        member(root, &path, folder, name, rel, &meta, purpose)?;
                     if retained {
                         out.census.members.insert(rel.into(), Stamp::of(&meta));
                     }
@@ -309,7 +324,7 @@ fn scan(root: &Path) -> Scan {
         Ok(())
     }
     let mut out = Scan::default();
-    if let Err(error) = walk(root, root, Folder::Root, &mut out, 0) {
+    if let Err(error) = walk(root, root, Folder::Root, &mut out, 0, purpose) {
         out.unknown.get_or_insert(error);
     }
     out
@@ -319,7 +334,7 @@ fn scan(root: &Path) -> Scan {
 /// decides the answer only when no final establishes it; readers keep their
 /// own per-member limits after this home decision.
 pub(crate) fn holds_records(root: &Path) -> Result<bool, CensusError> {
-    let observed = scan(root);
+    let observed = scan(root, Purpose::Routing);
     if observed.census.holds_records {
         return Ok(true);
     }
@@ -329,10 +344,11 @@ pub(crate) fn holds_records(root: &Path) -> Result<bool, CensusError> {
     }
 }
 
-/// Inventories must account for every member. A final elsewhere cannot excuse
-/// an unresolved publication or an unexaminable member from an export/package.
+/// Inventories carry ordinary unknown payload byte for byte, as earlier builds
+/// did. Unresolved publications and physically unsafe/unexaminable members
+/// still refuse; their names alone never authorize omitting their bytes.
 pub(crate) fn census(root: &Path) -> Result<Census, String> {
-    let observed = scan(root);
+    let observed = scan(root, Purpose::Inventory);
     match observed.unknown {
         Some(error) => Err(error.to_string()),
         None => Ok(observed.census),
