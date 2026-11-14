@@ -5,6 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
@@ -118,7 +119,7 @@ test('a long already-safe App response keeps its distinct tail in optional detai
     assert.ok(details); assert.equal(!!props(details).open, false);
     const expected = `thread_start: ${JSON.stringify(response)}`;
     assert.ok(expected.length > 600);
-    assert.equal(nodes(details, 'pre')[0].textContent, expected);
+    assert.equal(agentBlockText(agentBlocks(details)[0]), expected);
     assert.doesNotMatch(nodes(feedback, 'p')[0].textContent, /success|completed|accepted/i);
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'acknowledged: false'));
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'error: Explicit negative acknowledgment.'));

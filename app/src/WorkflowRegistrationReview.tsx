@@ -81,7 +81,7 @@ function ReviewEntry({ entry, index }: { entry: Json; index: number }) {
     <ReportedFields value={entry} keys={entryHeader} />
     <h5>WORKFLOW.md</h5>
     {typeof entry.workflow_text === "string"
-      ? <AgentText block value={entry.workflow_text} source="record" name="Frozen WORKFLOW.md text" />
+      ? <AgentText block value={entry.workflow_text} source="file" label="WORKFLOW.md, frozen as reviewed:" name="Frozen WORKFLOW.md text" />
       : <ReportedValue value={own(entry, "workflow_text") ? entry.workflow_text : undefined} />}
     <h5>File manifest</h5><Manifest files={own(entry, "files") ? entry.files : undefined} />
     <ReportedFields value={entry} keys={Object.keys(entry).filter(key => ![...entryHeader, "workflow_text", "files"].includes(key))} />

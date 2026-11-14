@@ -299,12 +299,12 @@ export function RoleSupplyHistory({ view }: { view: Json }) {
       <RecordedData value={observation.record} />
       {list(observation.limits).map((limit, j) => <p role="alert" key={j}>{text(limit)}</p>)}
       {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
-        <AgentText block value={text(observation.sourceBytes.composed)} source="record" />
-        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" /></details>)}
+        <AgentText block value={text(observation.sourceBytes.composed)} source="record" exactLineEnds />
+        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
         {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {text(child.role)} child instruction bytes (quoted evidence)</summary>
-          <AgentText block value={text(child.composed)} source="record" />
-          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" /></details>)}
-          <details><summary>Recorded child configuration file bytes</summary><AgentText block value={text(child.envelope)} source="record" /></details>
+          <AgentText block value={text(child.composed)} source="record" exactLineEnds />
+          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+          <details><summary>Recorded child configuration file bytes</summary><AgentText block value={text(child.envelope)} source="record" exactLineEnds /></details>
           <details><summary>Recorded child limit account</summary><RecordedData value={child.limitAccount} /></details>
         </details>)}
       </details> : <p><small>Exact App instruction bytes are not established by this observation.</small></p>}

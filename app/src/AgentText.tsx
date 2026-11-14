@@ -93,7 +93,9 @@ function Parts({ value }: { value: string }) {
  * breaks are shown as ⏎. `label` replaces the visible label where a shorter
  * one sits better beside a field; `name` replaces the accessibility name.
  */
-export function AgentText({ value, source = "agent", label, name, block = false, style, tabIndex }: { value: Json; source?: AgentTextSource; label?: string; name?: string; block?: boolean; style?: CSSProperties; tabIndex?: number }) {
+export function AgentText({ value, source = "agent", label, name, block = false, style, tabIndex, exactLineEnds = false }: { value: Json; source?: AgentTextSource; label?: string; name?: string; block?: boolean; style?: CSSProperties; tabIndex?: number;
+  /** For a view that shows exact bytes: lines break only at a line feed, so a carriage return stays visible as a mark. */
+  exactLineEnds?: boolean }) {
   const words = AGENT_TEXT_WORDS[source];
   const shownLabel = label ?? words.label;
   const text = agentTextValue(value, block);
@@ -101,7 +103,7 @@ export function AgentText({ value, source = "agent", label, name, block = false,
     <span className="agent-text-label" style={labelStyle}>{shownLabel}</span>{" "}
     <span className="agent-text-value" style={valueStyle}><Parts value={text} /></span>
   </span>;
-  const lines = text.split(/\r?\n/);
+  const lines = text.split(exactLineEnds ? /\n/ : /\r?\n/);
   return <div role="group" aria-label={`${name ?? words.name}, ${lines.length} ${lines.length === 1 ? "line" : "lines"}`} className="agent-text agent-text-block" style={{ ...blockBox, ...style }} tabIndex={tabIndex}>
     <div className="agent-text-label" style={labelStyle}>{shownLabel}</div>
     <div className="agent-text-value" style={valueStyle}>

@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import React from 'react';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import './support/rust-prebuild.mjs';
 
@@ -131,11 +132,11 @@ const createButton = container => nodes(panelIn(container),'button').find(node =
 // a technical response keeps it in its details. The raw text must be unchanged.
 const resultText = container => {
   const region = labelled(panelIn(container),'Workflow command result');if (!region) return '';
-  const retained = (nodes(region,'pre')[0] ?? region).textContent,prefix = /^workflow_[a-z_]+: /.exec(retained);
+  const retained = (agentBlocks(region)[0] ? agentBlockText(agentBlocks(region)[0]) : region.textContent),prefix = /^workflow_[a-z_]+: /.exec(retained);
   assert.ok(prefix,'the retained response names its original command');return retained.slice(prefix[0].length);
 };
 const limits = container => panelIn(container).querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow observation limit').map(node => node.textContent);
-const relation = container => JSON.parse(nodes(nodes(labelled(panelIn(container),'Workflow action response'),'details').find(node => nodes(node,'summary')[0]?.textContent === 'Original workflow request'),'pre')[0].textContent);
+const relation = container => JSON.parse(agentBlockText(agentBlocks(nodes(labelled(panelIn(container),'Workflow action response'),'details').find(node => nodes(node,'summary')[0]?.textContent === 'Original workflow request'))[0]));
 
 async function mountedApp(t,{failFirstRefresh = false,metadataError,nativeRefusal = false,viewGate} = {}) {
   const source = actualPacket(),before = JSON.stringify(source),calls = [],unexpected = [];
