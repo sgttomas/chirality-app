@@ -153,6 +153,20 @@ class Presets(unittest.TestCase):
         self.assertFalse(rows['escalated']['effect'])
         self.assertFalse(rows['escalated']['ran'])
 
+    def test_edits_that_never_ask_fail_whatever_needs_more_and_raise_nothing(self):
+        """The examinations' level: workspace write, network off, both temporary folders excluded,
+        approval "never"."""
+        settings = {'approvalPolicy': 'never', 'sandboxPolicy': dict(WW, networkAccess=False, excludeSlashTmp=True,
+                                                                     excludeTmpdirEnvVar=True)}
+        _, _, rows = self.matrix(settings)
+        self.assertWrites(rows, {'in': True, 'out': False, 'tmpdir': False, 'slashtmp': False, 'git': False,
+                                 'net': False})
+        self.assertNoRequests(rows, rows)
+        for key in ('out', 'tmpdir', 'slashtmp', 'git', 'net'):
+            self.assertTrue(rows[key]['ran'] and not rows[key]['exit_zero'], key)
+        self.assertFalse(rows['escalated']['effect'])
+        self.assertFalse(rows['escalated']['ran'])  # refused by Codex before it runs
+
     def test_the_two_temporary_folder_exclusions(self):
         _, _, slash = self.matrix(dict(EDITS_NET_OFF, sandboxPolicy=dict(WW, excludeSlashTmp=True)), escalated=False)
         _, _, tmpdir = self.matrix(dict(EDITS_NET_OFF, sandboxPolicy=dict(WW, excludeTmpdirEnvVar=True)),
