@@ -1095,7 +1095,9 @@ failure, the same scenario and acts.
   may not: the view must say it is of the bundle; at the top it holds the
   App's one window and the menu bar and nothing else; directly inside the
   window it holds only what the scenario lists, and nowhere below the window,
-  at any depth, a window, sheet, dialog, alert or popover. A sheet, a dialog,
+  at any depth, a window, sheet, dialog, alert or popover. An alert inside the
+  page's own web content (below "HTML content") is part of the page: the App
+  writes its refusals that way. A sheet, a dialog,
   an alert, a second window, or a kind of thing nobody named, stops it; the one
   exception is the sheet a scenario's one `confirm_sheet` step names, checked
   whole before its one press, and a sheet still there after that press stops
@@ -1183,8 +1185,13 @@ either driver marker.
     and the project must be the same path ending in `/project`.
 
   The walk sets the value once, by the field's element index from the latest
-  view. The field is the one whose label is the named label whole, followed in
-  the view by nothing but its own value and placeholder. It judges by what the page then does, not by the value the field
+  view. The field must be empty and exactly as the view gives it: the named
+  label and the placeholder the scenario names (the App's own, from
+  `FirstUse.tsx`), and nothing more. It must come directly after the page's
+  label text for it, at the same depth. The view gives a field's label and
+  placeholder in one line, so a field whose label ended in words shaped like a
+  placeholder could not be told apart from them; the label element before it,
+  and the field being found once, are what rule that out here. It judges by what the page then does, not by the value the field
   shows.
 - **The sheet.** The scenario names one sheet in `sheets`: the control that
   opens it, its title, its three buttons, the button to press, and the
@@ -1199,7 +1206,8 @@ either driver marker.
      - directly inside the window it holds what the scenario lists and
        exactly one thing more, a sheet;
      - below the window, at any depth, there is no other window, sheet,
-       dialog, alert or popover;
+       dialog, alert or popover, apart from an alert inside the page's own web
+       content;
      - directly inside the sheet, and nothing deeper, are exactly the named
        buttons, the named title once, and the statement's text. An image (the
        App's icon) is allowed and recorded. Anything else in the sheet is a
@@ -1239,9 +1247,11 @@ either driver marker.
     folder>` removes it whole. It first makes keep-launch's checks of the
     candidate (admitted, identified, without the driver's markers, and the one
     the kept record names) and of the folder, and refuses while a candidate
-    process is running. It is not refused for age. It empties the folder
-    through the handle it holds on the directory the record names, and then
-    removes the folder by name only while that name is still that directory.
+    process is running. It is not refused for age. It first claims the
+    folder's name by one rename to a private name. Only if what it claimed is
+    the directory the record names does it empty that directory, through the
+    handle it holds, and remove it; otherwise it puts the name back and
+    refuses.
 
   `keep-launch` is run through `detached.py`, as `launch` is.
 - **The record.** It says that an agent pressed the confirmation, by the

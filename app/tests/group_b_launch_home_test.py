@@ -1098,18 +1098,18 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
         candidate = self.candidate()
         folder = self.make(candidate)
         moved = self.tmp / 'moved-away'
-        real_rmtree = launch.shutil.rmtree
 
-        def swap(name, dir_fd=None, **kwargs):
-            real_rmtree(name, dir_fd=dir_fd, **kwargs)
-            if not moved.exists():
-                folder.rename(moved)
-                folder.mkdir()
-                (folder / 'kept-by-someone-else').write_text('must stay')
-        with mock.patch.object(launch.shutil, 'rmtree', side_effect=swap):
+        def swap(_executable):  # between the folder's checks and its removal, another directory takes its name
+            folder.rename(moved)
+            folder.mkdir()
+            (folder / 'kept-by-someone-else').write_text('must stay')
+            return []
+        with mock.patch.object(launch, 'running_candidates', side_effect=swap):
             code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
-        self.assert_refused(code, out, 'no longer names the directory that was emptied')
+        self.assert_refused(code, out, 'no longer names the directory that was checked')
         self.assertEqual((folder / 'kept-by-someone-else').read_text(), 'must stay')
+        self.assertTrue((moved / 'record/kept.json').is_file())
+        self.assertFalse([p for p in self.root.iterdir() if p.name.startswith('.removing-')])
 
 
 class Housekeeping(unittest.TestCase):

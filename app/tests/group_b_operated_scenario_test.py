@@ -888,14 +888,42 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertEqual(result['out'][0], 'inconclusive')
         self.assertIn('the window holds something that is not the page (sheet Confirm)', result['out'][1])
 
-    def test_a_field_whose_label_only_begins_with_the_named_one_is_not_typed_into(self):
+    def test_only_the_empty_field_the_page_labels_is_typed_into(self):
+        field = '16 text field (settable) Project folder, Placeholder: /full/path/to/your/project'
+        cases = {'a label that only begins the same way': field.replace('Project folder,', 'Project folder, another purpose,'),
+                 'a label ending in words shaped like a value': field.replace('Project folder,', 'Project folder, Value: another purpose,'),
+                 'a label ending in words shaped like a placeholder':
+                     field.replace('Project folder,', 'Project folder, Placeholder: another purpose,'),
+                 'a field already holding a value': field.replace('Project folder,', 'Project folder, Value: /elsewhere,'),
+                 'another placeholder': field.replace('/full/path/to/your/project', '/another/path')}
+        for name, line in cases.items():
+            with self.subTest(name):
+                views = setup_views()
+                views['views'][0]['text'] = views['views'][0]['text'].replace(field, line)
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+                self.assertEqual(verdict, 'inconclusive')
+                self.assertIn('the field was found 0 times', stopped)
+                self.assertFalse([c for c in calls if c.startswith('set_value')])
         views = setup_views()
-        views['views'][0]['text'] = views['views'][0]['text'].replace(
-            '16 text field (settable) Project folder, Placeholder', '16 text field (settable) Project folder, another purpose, Placeholder')
+        views['views'][0]['text'] = views['views'][0]['text'].replace('15 text Project folder\n', '15 text Your folder\n')
         verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
-        self.assertEqual(verdict, 'inconclusive')
-        self.assertIn('the field was found 0 times', stopped)
+        self.assertIn('not directly after its label', stopped)
         self.assertFalse([c for c in calls if c.startswith('set_value')])
+
+    def test_a_link_with_other_words_after_its_label_is_not_it(self):
+        elements = [{'index': 1, 'depth': 0, 'content': 'link Settings & tools, Sign in'},
+                    {'index': 2, 'depth': 0, 'content': 'link Settings & tools, another purpose'}]
+        result = harness(f"return walk.select({json.dumps(elements)}, {{ kind: 'link', label: 'Settings & tools' }}).length;")
+        self.assertEqual(result['out'], 0)
+
+    def test_an_alert_in_the_pages_own_content_is_page_not_prompt(self):
+        result = harness("texts[2] = texts[2].replace('\\t\\t\\t3 container Welcome', '\\t\\t\\t3 container Welcome\\n\\t\\t\\t\\t990 alert Why Codex was not started'); "
+                         'return (await walk.run(base)).verdict;')
+        self.assertEqual(result['out'], 'pass')
+        result = harness("texts[2] = texts[2].replace('\\t41 close button', '\\t1 scroll area\\n\\t\\t990 alert Allow?\\n\\t41 close button'); "
+                         'const r = await walk.run(base); return [r.verdict, r.stopped];')
+        self.assertEqual(result['out'][0], 'inconclusive')
+        self.assertIn('alert Allow?', result['out'][1])
 
     def test_the_project_is_exactly_the_launch_folders_own(self):
         for project in ('/invented/homes/launch-invented/project/../../outside', '/invented/homes/launch-invented/home',

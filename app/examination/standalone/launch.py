@@ -1011,8 +1011,9 @@ def keep_remove(args):
     """Removes a kept folder whole, after the checks keep-launch makes of the candidate and the folder (an expired
     folder may be removed): the candidate admitted and identified, without the driver's markers, and the one the
     kept record names; and no process of it running. The folder's contents are removed through the handle held on
-    the very directory its record names, entries unlinked by name, a link never followed and no file opened or read;
-    then the folder itself, by name, only while that name is still that directory."""
+    the very directory its record names, entries unlinked by name, a link never followed and no file opened or read.
+    The folder's name is first claimed by one rename to a private name; only when what was claimed is that directory
+    is it emptied and removed, and otherwise it is put back."""
     root, root_fd = open_root()
     fd = None
     try:
@@ -1032,16 +1033,22 @@ def keep_remove(args):
         if not shutil.rmtree.avoids_symlink_attacks:
             raise Refusal('this platform cannot remove a tree without following links; refusing')
         held = os.fstat(fd)
+        # Claim the name first: one rename moves whatever the name holds to a new private name, so nothing can be put
+        # in the kept folder's place and then removed. Only if what was claimed is the checked directory is it emptied
+        # and removed; otherwise it is put back.
+        claimed = f'.removing-{secrets.token_hex(8)}'
+        os.rename(folder.name, claimed, src_dir_fd=root_fd, dst_dir_fd=root_fd)
+        now = os.stat(claimed, dir_fd=root_fd, follow_symlinks=False)
+        if (now.st_dev, now.st_ino) != (held.st_dev, held.st_ino):
+            os.rename(claimed, folder.name, src_dir_fd=root_fd, dst_dir_fd=root_fd)
+            raise Refusal('the kept folder\'s name no longer names the directory that was checked; it is left in place')
         for name in os.listdir(fd):
             if stat.S_ISDIR(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode):
                 shutil.rmtree(name, dir_fd=fd)
             else:
                 os.unlink(name, dir_fd=fd)
-        now = os.stat(folder.name, dir_fd=root_fd, follow_symlinks=False)
-        if (now.st_dev, now.st_ino) != (held.st_dev, held.st_ino):
-            raise Refusal('the kept folder\'s name no longer names the directory that was emptied; it is left in place')
-        os.rmdir(folder.name, dir_fd=root_fd)
-        gone = not os.path.lexists(folder)
+        os.rmdir(claimed, dir_fd=root_fd)
+        gone = not os.path.lexists(folder) and not os.path.lexists(root / claimed)
     finally:
         if fd is not None:
             os.close(fd)

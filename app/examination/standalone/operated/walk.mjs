@@ -75,12 +75,10 @@ export function select(elements, selector) {
     if (kind === 'radio') return content === `radio button Value: 0, ${label}` || content === `radio button Value: 1, ${label}`;
     if (kind === 'heading') return content.startsWith(`heading ${label}`) && /^(, Value: \d+)?$/.test(content.slice(`heading ${label}`.length));
     if (kind === 'text') return content === `text ${label}`;
-    if (kind === 'text field') {
-      // The label whole, then only the field's own value and placeholder, as the view gives them.
-      const head = `text field (settable) ${label}`;
-      return content.startsWith(head) && /^(, Value: [^,]*)?(, Placeholder: .*)?$/.test(content.slice(head.length));
-    }
-    if (kind === 'link') return content === `link ${label}` || content.startsWith(`link ${label}, `);
+    // An empty settable field, exactly as the view gives it: its label and, when the selector names one, its
+    // placeholder, and nothing more. A field that already holds a value is not this one.
+    if (kind === 'text field') return content === `text field (settable) ${label}` + (selector.placeholder ? `, Placeholder: ${selector.placeholder}` : '');
+    if (kind === 'link') return content === `link ${label}` || content === `link ${label}, Visited`;
     return false;
   });
 }
@@ -97,6 +95,23 @@ const MODAL = /^(sheet|dialog|alert|system dialog|popover|drawer|standard window
  * entries the scenario lists; and nowhere below it, at any depth, a window, sheet, dialog, alert or popover. Anything
  * else unlisted is not the page.
  */
+/**
+ * The positions of a view's elements that are a window or something modal. An alert inside the page's own web
+ * content (an element below "HTML content") is a region of the page, as the App writes its refusals, not a modal
+ * surface; any other alert, and a sheet, dialog, popover or window anywhere, is modal.
+ */
+function modalAt(elements, from) {
+  const found = [];
+  let web = null;  // the depth of the web content being walked, or null
+  for (let at = from; at < elements.length && elements[at].depth > 0; at++) {
+    const { depth, content } = elements[at];
+    if (web !== null && depth <= web) web = null;
+    if (web === null && content.startsWith('HTML content')) { web = depth; continue; }
+    if (MODAL.test(content) && !(web !== null && /^alert(,| |$)/.test(content))) found.push(at);
+  }
+  return found;
+}
+
 export function notThePage(elements, scenario) {
   const title = `standard window ${scenario.window}`;
   const isWindow = ({ content }) => content === title || content.startsWith(title + ', ');
@@ -109,8 +124,9 @@ export function notThePage(elements, scenario) {
     if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) {
       return `the window holds something that is not the page (${elements[at].content})`;
     }
-    if (MODAL.test(elements[at].content)) return `the window holds something that is not the page (${elements[at].content})`;
   }
+  const modal = modalAt(elements, start + 1);
+  if (modal.length) return `the window holds something that is not the page (${elements[modal[0]].content})`;
   return null;
 }
 
@@ -136,10 +152,9 @@ export function sheetCheck(text, elements, scenario, sheet, values) {
     problems.push('the view is not of the one window and the menu bar');
   }
   const start = elements.findIndex(isWindow);
-  const extra = [], modal = [];
+  const extra = [], modal = modalAt(elements, start + 1);
   for (let at = start + 1; at < elements.length && elements[at].depth > 0; at++) {
     if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) extra.push(at);
-    if (MODAL.test(elements[at].content)) modal.push(at);
   }
   if (extra.length !== 1 || modal.length !== 1 || modal[0] !== extra[0]) {
     problems.push(`the window holds ${extra.length} things beside the page and ${modal.length} windows, sheets or dialogs, not one sheet`);
@@ -479,6 +494,11 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const found = select(elements, step.control);
       entry.control = step.control;
       if (found.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the field was found ${found.length} times in the latest view`);
+      // The field is the one the page labels: the element before it in the view is its label's text, alone.
+      const label = elements[elements.indexOf(found[0]) - 1];
+      if (!label || label.content !== `text ${step.control.label}` || label.depth !== found[0].depth) {
+        return finish('inconclusive', `stopped at ${step.id}: the field is not directly after its label "${step.control.label}"`);
+      }
       if (report.calls.some(call => call.call === 'set_value')) return finish('inconclusive', `stopped at ${step.id}: a walk sets one value once`);
       const value = fill(step.value, values);
       entry.element_index = found[0].index;

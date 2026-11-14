@@ -77,7 +77,8 @@
       "act": "type",
       "control": {
         "kind": "text field",
-        "label": "Project folder"
+        "label": "Project folder",
+        "placeholder": "/full/path/to/your/project"
       },
       "value": "{project}",
       "wait_ms": 1000,
