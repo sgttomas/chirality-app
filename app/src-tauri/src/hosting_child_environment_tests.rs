@@ -10,12 +10,14 @@ use std::os::unix::fs::PermissionsExt;
 /// from the host's table: each name with the class code the record gives it.
 /// Every expectation below comes from these lists; the host's table is compared
 /// with them once, in `the_hosts_table_is_the_decided_list`.
-pub(super) const DECIDED: [(&str, &str); 25] = [
+pub(super) const DECIDED: [(&str, &str); 33] = [
     ("OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_ACCESS_TOKEN", "credential-custody/credential-variable"),
     ("OPENAI_ORG_ID", "credential-custody/credential-variable"),
     ("OPENAI_PROJECT_ID", "credential-custody/credential-variable"),
+    ("OPENAI_ORGANIZATION", "credential-custody/credential-variable"),
+    ("OPENAI_PROJECT", "credential-custody/credential-variable"),
     ("AZURE_OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("ANTHROPIC_API_KEY", "credential-custody/credential-variable"),
     ("ANTHROPIC_AUTH_TOKEN", "credential-custody/credential-variable"),
@@ -24,6 +26,7 @@ pub(super) const DECIDED: [(&str, &str); 25] = [
     ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", "credential-custody/credential-bearing"),
     ("CODEX_GUARDIAN_DECISIONS_API_KEY", "credential-custody/credential-bearing"),
     ("CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN", "credential-custody/credential-bearing"),
+    ("OPENAI_IDENTITY_TOKEN_FILE", "credential-custody/credential-bearing"),
     ("CODEX_APP_SERVER_LOGIN_ISSUER", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_APP_SERVER_LOGIN_CLIENT_ID", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_AUTHAPI_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
@@ -32,20 +35,27 @@ pub(super) const DECIDED: [(&str, &str); 25] = [
     ("CODEX_AGENT_IDENTITY_AUTHAPI_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_AGENT_IDENTITY_JWKS_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_APP_SERVER_CHATGPT_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
+    ("OPENAI_FEDERATION_RULE_ID", "credential-custody/sign-in-or-token-refresh"),
+    ("OPENAI_WORKLOAD_IDENTITY_CONTEXT", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_EXEC_SERVER_NOISE_REGISTRY_URL", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_EXEC_SERVER_NOISE_ENVIRONMENT_ID", "credential-custody/sign-in-or-token-refresh"),
+    ("CODEX_EXEC_SERVER_NOISE_CHATGPT_ACCOUNT_ID", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_SQLITE_HOME", "home-separation"),
     ("CODEX_ROLLOUT_TRACE_ROOT", "home-separation"),
     ("CODEX_PLUGIN_METRICS_OUTPUT", "home-separation"),
     ("CODEX_TUI_SESSION_LOG_PATH", "home-separation"),
 ];
-/// The names whose values a configuration record treats as secret: the eight
+/// The names whose values a configuration record treats as secret: the ten
 /// credential variables (the class is well-known provider credential names,
-/// finite and by name) and the five credential-bearing names.
-const DECIDED_SECRET: [&str; 13] = [
+/// finite and by name) and the six credential-bearing names.
+const DECIDED_SECRET: [&str; 16] = [
     "OPENAI_API_KEY",
     "CODEX_API_KEY",
     "CODEX_ACCESS_TOKEN",
     "OPENAI_ORG_ID",
     "OPENAI_PROJECT_ID",
+    "OPENAI_ORGANIZATION",
+    "OPENAI_PROJECT",
     "AZURE_OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_AUTH_TOKEN",
@@ -54,13 +64,51 @@ const DECIDED_SECRET: [&str; 13] = [
     "CODEX_GITHUB_PERSONAL_ACCESS_TOKEN",
     "CODEX_GUARDIAN_DECISIONS_API_KEY",
     "CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN",
+    "OPENAI_IDENTITY_TOKEN_FILE",
 ];
 /// Neither set nor removed; only its presence is recorded.
 const PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
 /// Removed only by the successor plan.
 pub(super) const WRAPPER: [&str; 2] = ["CODEX_MANAGED_PACKAGE_ROOT", "CODEX_MANAGED_BY_NPM"];
-/// Decided as kept, and a name on no list: neither may be removed.
-const KEPT: [&str; 2] = ["CODEX_CA_CERTIFICATE", "CODEX_EXEC_SERVER_URL"];
+/// Decided as kept: names the pinned Codex reads that the App leaves to the
+/// person, each with its reason. None may be on the host's list, and each
+/// reaches the child. The rule: the App removes what decides who Codex signs
+/// in as or supplies a credential for the model service; it leaves the
+/// person's network route and the person's own tooling alone. A reason that
+/// holds only at one supplier pin names that pin, and a test fails when the
+/// pin changes, so that the name is decided again.
+const KEPT: [(&str, &str, Option<&str>); 27] = [
+    ("CODEX_CA_CERTIFICATE", "TLS trust the person sets; deliberately kept", None),
+    ("CODEX_EXEC_SERVER_URL", "an execution backend the person sets; decided as kept", None),
+    ("HTTP_PROXY", "the person's own network route", None),
+    ("http_proxy", "the person's own network route", None),
+    ("HTTPS_PROXY", "the person's own network route", None),
+    ("https_proxy", "the person's own network route", None),
+    ("ALL_PROXY", "the person's own network route", None),
+    ("all_proxy", "the person's own network route", None),
+    ("NO_PROXY", "the person's own network route", None),
+    ("no_proxy", "the person's own network route", None),
+    ("CODEX_OSS_BASE_URL", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("CODEX_OSS_PORT", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("AWS_BEARER_TOKEN_BEDROCK", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("AWS_ACCESS_KEY_ID", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("AWS_SECRET_ACCESS_KEY", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("AWS_REGION", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("AWS_DEFAULT_REGION", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("GOOGLE_CLOUD_PROJECT", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("GOOGLE_CLOUD_LOCATION", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("GOOGLE_APPLICATION_CREDENTIALS", "another provider's input; the App starts Codex on the explicit openai provider", None),
+    ("GH_TOKEN", "the person's own tooling credential, not a sign-in route for Codex", None),
+    ("GITHUB_TOKEN", "the person's own tooling credential, not a sign-in route for Codex", None),
+    ("GH_ENTERPRISE_TOKEN", "the person's own tooling credential, not a sign-in route for Codex", None),
+    ("GITHUB_ENTERPRISE_TOKEN", "the person's own tooling credential, not a sign-in route for Codex", None),
+    ("GH_HOST", "the person's own tooling setting, not a sign-in route for Codex", None),
+    ("OPENAI_BASE_URL", "does not override the model service's address at this pin", Some("0.167.0")),
+    ("CODEX_CLOUD_TASKS_BASE_URL", "read only by the cloud command line, not by the app-server the App runs", None),
+];
+fn kept_names() -> impl Iterator<Item = &'static str> {
+    KEPT.iter().map(|(name, _, _)| *name)
+}
 const VISIBLE: &str = "CHIRALITY_SYNTHETIC_VISIBLE";
 const DUMP: &str = "CHIRALITY_CHILD_ENV_DUMP";
 const EXPECT: &str = "CHIRALITY_CHILD_ENV_EXPECT_PRESENCE";
@@ -81,7 +129,7 @@ fn sorted<'a>(names: impl IntoIterator<Item = &'a str>) -> Vec<&'a str> {
 /// Every name the parent sets to a canary: the decided removals, the successor
 /// wrapper settings, the kept names and the presence-only name.
 fn canary_names() -> Vec<&'static str> {
-    decided_names().chain(WRAPPER).chain(KEPT).chain([PRESENCE_ONLY]).collect()
+    decided_names().chain(WRAPPER).chain(kept_names()).chain([PRESENCE_ONLY]).collect()
 }
 
 /// Runs the inner test in a fresh test process whose own (parent) environment
@@ -179,7 +227,7 @@ fn child_environment_inner_observed_on_every_start_path() {
             for (name, _) in &expected {
                 assert!(!env.contains_key(*name), "{path} {kind}: {name} reached the child");
             }
-            for name in KEPT {
+            for name in kept_names() {
                 assert_eq!(env.get(name), Some(&canary(name)), "{path} {kind}: {name} not kept");
             }
             assert_eq!(env.get(VISIBLE).map(String::as_str), Some("ordinary"), "{path} {kind}: unrelated variable not kept");
@@ -218,6 +266,18 @@ fn child_environment_inner_observed_on_every_start_path() {
     println!("{DONE}");
 }
 
+/// A name kept for a reason that holds only at one supplier pin fails here
+/// when the pin changes, so that someone decides it again.
+#[test]
+fn a_name_kept_only_at_one_pin_is_decided_again_when_the_pin_changes() {
+    for (name, reason, pin) in KEPT {
+        if let Some(pin) = pin {
+            assert_eq!(crate::hosting::DECLARED_PIN, pin, "{name} is kept because it {reason} ({pin}); the supplier pin is now {}: decide again whether it may reach Codex", crate::hosting::DECLARED_PIN);
+        }
+    }
+    assert_eq!(sorted(kept_names()).windows(2).filter(|pair| pair[0] == pair[1]).count(), 0, "a kept name is listed twice");
+}
+
 /// The one place the host's table is read: it must be the decided list, name
 /// for name and class for class, with the decided redactions and presence name.
 #[test]
@@ -236,7 +296,7 @@ fn the_hosts_table_is_the_decided_list() {
     }
     assert_eq!(DECIDED.iter().filter(|(_, class)| class.starts_with("credential-custody/credential-")).count(), DECIDED_SECRET.len());
     assert_eq!(RECORDED_PRESENCE_ONLY, PRESENCE_ONLY);
-    for name in KEPT.into_iter().chain([PRESENCE_ONLY]).chain(WRAPPER) {
+    for name in kept_names().chain([PRESENCE_ONLY]).chain(WRAPPER) {
         assert!(!removed_environment_names().any(|listed| listed == name), "{name} must not be on the host's list");
     }
     let (plain, classes) = removed_environment_record(&WRAPPER);

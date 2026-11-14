@@ -773,6 +773,10 @@ pub fn backlink(path: &Path, record_id: &str) -> Result<Value, String> {
     Ok(capture)
 }
 pub fn discover(root: &Path) -> Result<Vec<PathBuf>, String> {
+    let home = records_store::readable_home(root)?;
+    discover_from_home(root, &home)
+}
+pub(crate) fn discover_from_home(root: &Path, home: &records_store::ReadHome) -> Result<Vec<PathBuf>, String> {
     fn walk(dir: &Path, out: &mut Vec<PathBuf>) -> Result<(), String> {
         check_path(dir)?;
         let rd = match std::fs::read_dir(dir) {
@@ -800,7 +804,7 @@ pub fn discover(root: &Path) -> Result<Vec<PathBuf>, String> {
         }
         Ok(())
     }
-    let found = sources(root)?;
+    let found = sources_from_home(root, home)?;
     let mut paths = Vec::new();
     for dir in &found.walk {
         walk(dir, &mut paths)?;
@@ -831,6 +835,9 @@ pub(crate) struct Sources {
 /// set incomplete (U-STORE-2).
 pub(crate) fn sources(root: &Path) -> Result<Sources, String> {
     let home = records_store::readable_home(root)?;
+    sources_from_home(root, &home)
+}
+pub(crate) fn sources_from_home(root: &Path, home: &records_store::ReadHome) -> Result<Sources, String> {
     let library = library_log(root);
     check_path(&library)?;
     let registered = home.registered_log();

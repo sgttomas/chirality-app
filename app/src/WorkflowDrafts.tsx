@@ -228,6 +228,7 @@ export function CompareResult({ result }: { result: Json }) {
   const row = (label: string, read: (s: Json) => string) => <tr><th scope="row">{label}</th>{sides.map((s, i) => <td key={i}>{read(s ?? {})}</td>)}</tr>;
   const difference = result.difference ?? {};
   return <div aria-label="Compare result">
+    {list(result.historyNotices).map((notice,i)=><p role="note" key={i}>{text(notice)}</p>)}
     <table><tbody>
       {row("Side", s => valueWords(s.label, "not reported"))}{row("Kind", s => valueWords(s.kind, "not reported"))}{row("Version", s => compareVersionWords(s.version))}
       {row("Conversation", s => compareConversationWords(s.conversation))}{row("Snapshot", s => compareSnapshotWords(s.snapshot))}
@@ -254,7 +255,7 @@ export function CompareResult({ result }: { result: Json }) {
 }
 
 /** The hookless body of the drafts view: everything shown, every press. */
-export function WorkflowDraftsList({ data, workspace, pointerLimits, conversations = [], runs = [], pending = [], busy, act, state, update, contextHost, authoringContextLimit }: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; state: DraftsState; update: Update; contextHost?: Json; authoringContextLimit?: string | null }) {
+export function WorkflowDraftsList({ data, workspace, pointerLimits, conversations = [], runs = [], pending = [], busy, act, state, update, contextHost, authoringContextLimit, comparisonOutside = false }: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; state: DraftsState; update: Update; contextHost?: Json; authoringContextLimit?: string | null; comparisonOutside?: boolean }) {
   const drafts: Json[] = data?.drafts ?? [];
   const transitions: Json[] = data?.transitions ?? [];
   // Problems the host could not resolve are shown, never hidden (damaged trial
@@ -321,19 +322,20 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
       {sides.length > 2 && <small> Tick exactly two.</small>}
       {selectedRunLimits.length > 0 && <p role="note">{selectedRunLimits.join(" ")}</p>}
       {state.compareError && <p role="alert">{state.compareError}</p>}
-      <CompareResult result={state.compared} />
+      {!comparisonOutside && <CompareResult result={state.compared} />}
     </div>}
     {transitions.length > 0 && <details><summary>Observed draft changes in this App session ({transitions.length})</summary><ul>{transitions.map((t, i) =>
       <li key={i}>{text(t.time)} · {text(t.draft?.name)}: {text(t.event)} ({text(t.from)} → {text(t.to)}); attribution {attributionWords(t.attribution)}</li>)}</ul></details>}
   </section>;
 }
 
-export function WorkflowDraftsView(props: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; contextHost?: Json }) {
-  const [state, setState] = useState<DraftsState>(initialDraftsState);
+export function WorkflowDraftsView(props: { data: Json; workspace: boolean; pointerLimits?: Json; conversations?: Json[]; runs?: Json[]; pending?: Json[]; busy: boolean; act: DraftAct; contextHost?: Json; state?: DraftsState; update?: Update; comparisonOutside?: boolean }) {
+  const [localState, setState] = useState<DraftsState>(initialDraftsState);
+  const state = props.state ?? localState;
   const authoringSource = useRef<string | null>(null);
   const currentSource = props.contextHost?.workflowRoot?.context?.sourceRef ?? null;
   return <WorkflowDraftsList {...props} state={state} authoringContextLimit={state.authoring && authoringSource.current !== currentSource ? "the authoring choice belongs to another workflow source" : null}
-    update={patch => { if (patch.authoring !== undefined) authoringSource.current = currentSource; setState(s => ({ ...s, ...patch })); }} />;
+    update={patch => { if (patch.authoring !== undefined) authoringSource.current = currentSource; if (props.update) props.update(patch); else setState(s => ({ ...s, ...patch })); }} />;
 }
 
 /** TT-13: the review's last clean trial line. Information only: it gates

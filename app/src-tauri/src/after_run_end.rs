@@ -163,6 +163,9 @@ pub(crate) struct Observer {
     pending_activity: Option<crate::storage::Ownership>,
     lapse_pending: Vec<LapsePending>,
     files: BTreeMap<PathBuf, FileIdentity>,
+    cache_route: Option<crate::records_store::HistoryRoute>,
+    generation: u64,
+    published: Option<Value>,
     #[cfg(test)]
     pub(crate) work: Work,
 }
@@ -177,6 +180,8 @@ pub(crate) struct Work {
     pub lapse_row_materializations: usize,
 }
 impl Observer {
+    #[cfg(test)]
+    pub(crate) fn cached_logs_for_test(&self) -> usize { self.cache.len() }
     pub(crate) fn has_pending(&self) -> bool {
         self.pending.values().any(PendingRunEntry::pending)
             || self
@@ -185,6 +190,7 @@ impl Observer {
                 .any(|p| p.members.iter().any(PendingRunEntry::pending))
     }
     pub(crate) fn observe(&mut self, project: &Path) {
+        self.generation += 1;
         if let Err(reason) = self.attempt(project).and_then(|_| {
             #[cfg(test)]
             BETWEEN_PHASES.with(|hook| {
@@ -236,6 +242,14 @@ impl Observer {
         }
         // Resolve the current ordinary record home once, not once per run.
         let home = crate::records_store::readable_home(&scope.root)?;
+        let route = home.history_route();
+        if self.cache_route.as_ref().is_some_and(|old| old != &route) {
+            self.cache.clear();
+            self.candidates = None;
+            self.rows.clear();
+            self.files.clear();
+        }
+        self.cache_route = Some(route);
         let base = if home.store_mode {
             scope.dir.clone()
         } else {
@@ -927,7 +941,22 @@ impl Observer {
         self.limits.dedup();
         Ok(())
     }
+    pub(crate) fn reading(&self) -> (u64, Value) { (self.generation, self.current_view()) }
+    pub(crate) fn publish(&mut self, generation: u64, view: Value, changed: bool) {
+        if self.generation != generation { return; }
+        self.published = Some(view);
+        if changed {
+            self.cache.clear();
+            self.cache_route = None;
+            self.candidates = None;
+            self.rows.clear();
+            self.files.clear();
+        }
+    }
     pub(crate) fn view(&self) -> Value {
+        self.published.clone().unwrap_or_else(|| json!({"held":[],"runs":[],"limits":[],"historyNotices":[],"pending":self.has_pending(),"standing":"After-run-end history has not been read yet."}))
+    }
+    fn current_view(&self) -> Value {
         let mut held:Vec<_>=self.pending.iter().filter(|(_,p)|p.pending()).map(|((run,_,_),p)|json!({"run":run,"recordId":p.record_id,"observedAt":p.observed_at,"body":p.body,"limit":p.failure})).collect();
         held.extend(self.lapse_pending.iter().flat_map(|unit|unit.members.iter().filter(|p|p.pending()).map(|p|json!({"run":unit.run,"recordId":p.record_id,"observedAt":p.observed_at,"kind":p.kind,"body":p.body,"limit":p.failure}))));
         let mut limits = self.limits.clone();

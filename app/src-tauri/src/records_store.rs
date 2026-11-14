@@ -272,6 +272,12 @@ pub(crate) fn fresh_test_store_name(pid: u32) -> String {
 /// function, still admits an explicit override; the App's start never gives
 /// it that input.
 pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Store, String> {
+    for_app_beside(override_root, app_data, development, project, codex_homes, &[])
+}
+/// As [`for_app`], and the store also stays out of every working folder the
+/// App gives its Codex (`working_folders`), whatever folder that is
+/// (DEL-01-01).
+pub fn for_app_beside(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf]) -> Result<Store, String> {
     // The App data folder as placement needs it (its reserved folders),
     // taken before the branches below consume it.
     let data_for_placement: Option<&Path> = app_data.as_ref().ok().copied();
@@ -300,7 +306,7 @@ pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, 
     }
     // Refused in every build; only the development override may name a
     // temporary folder (a test store).
-    let problems = placement_problems_in(&root, project, codex_homes, placement == Placement::Override, data_for_placement);
+    let problems = placement_problems_in(&root, project, codex_homes, working_folders, placement == Placement::Override, data_for_placement);
     if !problems.is_empty() {
         return Err(format!("records store refused: {}", problems.join("; ")));
     }
@@ -327,10 +333,15 @@ pub fn chosen_location(app_data: &Path) -> Result<Option<PathBuf>, String> {
 /// Records the person's chosen location for the next start. Records already
 /// in the current store are not moved or copied.
 pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Value, String> {
+    choose_location_beside(app_data, location, project, codex_homes, &[])
+}
+/// As [`choose_location`], and the store also stays out of every working
+/// folder the App gives its Codex (DEL-01-01).
+pub fn choose_location_beside(app_data: &Path, location: &Path, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf]) -> Result<Value, String> {
     if !location.is_absolute() {
         return Err("choose an absolute folder for the records store".into());
     }
-    let problems = placement_problems_in(location, project, codex_homes, false, Some(app_data));
+    let problems = placement_problems_in(location, project, codex_homes, working_folders, false, Some(app_data));
     if !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -449,9 +460,21 @@ pub(crate) fn confirm_placement(
     codex_homes: &[PathBuf],
     confirm: impl FnOnce(String, &str, &str) -> Result<bool, String>,
 ) -> Result<Value, String> {
+    confirm_placement_beside(app_data, location, project, codex_homes, &[], confirm)
+}
+/// As [`confirm_placement`], and the store also stays out of every working
+/// folder the App gives its Codex (DEL-01-01).
+pub(crate) fn confirm_placement_beside(
+    app_data: &Path,
+    location: Option<&Path>,
+    project: Option<&Path>,
+    codex_homes: &[PathBuf],
+    working_folders: &[PathBuf],
+    confirm: impl FnOnce(String, &str, &str) -> Result<bool, String>,
+) -> Result<Value, String> {
     let default = app_data.join("records");
     let destination = location.unwrap_or(&default);
-    let problems = placement_problems_in(destination, project, codex_homes, false, Some(app_data));
+    let problems = placement_problems_in(destination, project, codex_homes, working_folders, false, Some(app_data));
     if location.is_some() && !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -462,7 +485,7 @@ pub(crate) fn confirm_placement(
         return Ok(json!({"state":"choice cancelled"}));
     }
     match location {
-        Some(location) => choose_location(app_data, location, project, codex_homes),
+        Some(location) => choose_location_beside(app_data, location, project, codex_homes, working_folders),
         None => clear_choice(app_data),
     }
 }
@@ -471,13 +494,16 @@ pub(crate) fn confirm_placement(
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
 pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool) -> Vec<String> {
-    placement_problems_in(root, project, codex_homes, allow_temporary, None)
+    placement_problems_in(root, project, codex_homes, &[], allow_temporary, None)
 }
 /// As `placement_problems`, with the App data folder known: the folder where
 /// the App allocates its account homes (`desktop_startup::desktop_account_homes`)
 /// is reserved, whether or not any home has been planned or created in it,
-/// so a store equal to it, inside it or containing it is refused.
-fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
+/// so a store equal to it, inside it or containing it is refused. The folder
+/// set aside for conversations without a project
+/// (`desktop_startup::no_project_folder`) is reserved the same way, and so is
+/// every folder in `working_folders` (DEL-01-01).
+fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
@@ -517,6 +543,34 @@ fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[Pat
     }
     if let Some(home) = std::env::var_os("HOME") {
         inside(&PathBuf::from(home).join(".codex"), "the Codex home");
+    }
+    // DEL-01-01: decided against the established App data folder and folder set aside, by the
+    // identity of what exists, so that no spelling the file system would resolve into them
+    // passes. Placement creates nothing: the start establishes them first. Not established
+    // (absent, something else in the folder's place, or not examinable), nothing can be decided,
+    // and the store is refused.
+    if let Some(data) = app_data {
+        match crate::working_folder::established(data) {
+            Ok(set) => match set.overlaps_leaf(root) {
+                Ok(false) => {}
+                Ok(true) => problems.push(format!("{} overlaps the folder set aside for conversations without a project {}", root.display(), set.leaf().display())),
+                Err(()) => problems.push(format!("the place of {} relative to the folder set aside for conversations without a project {} cannot be established", root.display(), set.leaf().display())),
+            },
+            // Established absent (not yet made): a store established by identity to lie outside
+            // the App data folder needs nothing here. Anything else (a failed lookup, or something
+            // else in the folder's place, which may lead anywhere) refuses.
+            Err(blocked @ (crate::working_folder::Blocked::AppDataAbsent(_) | crate::working_folder::Blocked::LeafAbsent(_))) => if crate::working_folder::may_be_in_app_data(data, root) != Ok(false) {
+                problems.push(format!("{} cannot be placed yet: {}", root.display(), blocked.sentence()));
+            },
+            Err(blocked) => problems.push(format!("{} cannot be placed: {}", root.display(), blocked.sentence())),
+        }
+    }
+    for folder in working_folders {
+        match crate::working_folder::may_overlap(root, folder) {
+            Ok(false) => {}
+            Ok(true) => problems.push(format!("{} overlaps the working folder Codex is given {}", root.display(), folder.display())),
+            Err(()) => problems.push(format!("the place of {} relative to the working folder Codex is given {} cannot be established", root.display(), folder.display())),
+        }
     }
     if !allow_temporary && is_temporary(root) {
         problems.push(format!("{} is in a temporary folder (an agent under Codex's workspace-write sandbox can write there)", root.display()));
@@ -2029,8 +2083,9 @@ pub(crate) struct ReadHome {
     /// Otherwise the project's §13.7 records (if any) are read in place.
     pub store_mode: bool,
     place: ReadPlace,
+    legacy: Option<Vec<LegacyFile>>,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum ReadPlace {
     /// The project's folder in the records store.
     Store(PathBuf),
@@ -2044,6 +2099,12 @@ enum ReadPlace {
 /// in the project folder are never read in the place of records the store
 /// holds and will not attach. A folder that is simply new and unlinked has
 /// no refusal and reads in place as before.
+#[cfg(test)]
+thread_local! { static AFTER_READ_ROUTING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = std::cell::RefCell::new(None); }
+#[cfg(test)]
+pub(crate) fn after_read_routing_for_test(hook: impl FnOnce() + 'static) {
+    AFTER_READ_ROUTING.with(|slot| *slot.borrow_mut() = Some(Box::new(hook)));
+}
 fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> {
     if let Some(refusal) = &attachment.refusal {
         return Err(format!("project records unavailable: {refusal}; the files kept in the project folder are not read in their place"));
@@ -2052,7 +2113,13 @@ fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> 
         (true, Some(dir)) => ReadPlace::Store(dir),
         _ => ReadPlace::InPlace(attachment.root.clone()),
     };
-    Ok(ReadHome { attachment, store_mode, place })
+    let read = ReadHome { attachment, store_mode, place, legacy: None };
+    #[cfg(test)]
+    AFTER_READ_ROUTING.with(|slot| {
+        let hook = slot.borrow_mut().take();
+        if let Some(hook) = hook { hook(); }
+    });
+    Ok(read)
 }
 /// The project's records home for an ordinary reader: the one decision, after
 /// the unrefusing home's own refusals (an unavailable store, a disposal).
@@ -2061,7 +2128,9 @@ pub(crate) fn readable_home(root: &Path) -> Result<ReadHome, String> {
 }
 fn readable_home_checked(root: &Path) -> Result<ReadHome, ReaderError> {
     let home = unrefusing_home_checked(root)?;
-    decide(home.attachment, home.store_mode).map_err(ReaderError::from)
+    let mut read = decide(home.attachment, home.store_mode).map_err(ReaderError::from)?;
+    read.legacy = home.legacy;
+    Ok(read)
 }
 impl ReadHome {
     /// The project's store folder, when its records are read from the store.
@@ -2359,8 +2428,13 @@ thread_local! {
     // A directory iterator can fail after returning some entries. Exercise
     // that boundary without mistaking a partial census for an empty one.
     static LEGACY_LISTING_FAIL_AFTER: std::cell::RefCell<Option<(PathBuf, usize)>> = const { std::cell::RefCell::new(None) };
+    static LEGACY_CENSUS_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
+#[cfg(test)]
+pub(crate) fn take_census_calls_for_test() -> usize { LEGACY_CENSUS_CALLS.with(|calls| calls.replace(0)) }
 pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
+    #[cfg(test)]
+    LEGACY_CENSUS_CALLS.with(|calls| calls.set(calls.get() + 1));
     let mut out = Vec::new();
     let records = root.join(".chirality/records");
     let captures = root.join(".chirality/captures");
@@ -3111,6 +3185,118 @@ fn drifted(path: &Path, sha: &str, stamp: &Value) -> Result<bool, String> {
     Ok(d)
 }
 
+// The same uncovered-files calculation serves status and reading notices.
+fn uncovered_files(census: &[LegacyFile], covered: &HashMap<String, (String, String, Value)>) -> Vec<LegacyFile> {
+    census.iter().filter(|file| !covered.contains_key(&file.rel)).cloned().collect()
+}
+
+/// Display information only. Never part of an RS record-set completeness result.
+/// At the six deep sites the notice reports the records' home as read before
+/// and after the rows, not the home the rows were read from; at the two direct
+/// sites the rows and notice come from one routing value. A reading describes
+/// the records' home as it was while it was read.
+#[derive(Clone, Debug, Default)]
+pub(crate) enum HistoryNotice {
+    #[default]
+    None,
+    Unimported,
+    Unavailable(String),
+    Changed,
+}
+pub(crate) const HISTORY_CHANGED_VIEW: &str = "Whether records in the project folder are left out of this view is not known: where this project's records are kept changed while it was being read.";
+pub(crate) const HISTORY_CHANGED_PAGE: &str = "Whether records in the project folder are left out of this page is not known: where this project's records are kept changed while it was being read.";
+pub(crate) const HISTORY_UNIMPORTED_VIEW: &str = "This project's records are kept in the records store. Records in the project folder have not been imported and may not be shown in this view.";
+pub(crate) const HISTORY_UNIMPORTED_PAGE: &str = "This project's records are kept in the records store. Records in the project folder have not been imported and may not be shown on this page.";
+impl HistoryNotice {
+    fn words(&self, unimported: &str) -> Vec<String> {
+        match self {
+            Self::None => vec![],
+            Self::Unimported => vec![unimported.into()],
+            Self::Unavailable(error) => vec![format!("History notice unavailable: {error}; whether project-folder records are omitted is not known.")],
+            Self::Changed => unreachable!("the presentation selects the changed-home sentence"),
+        }
+    }
+    pub(crate) fn view(&self) -> Vec<String> {
+        if matches!(self, Self::Changed) { return vec![HISTORY_CHANGED_VIEW.into()]; }
+        self.words(HISTORY_UNIMPORTED_VIEW)
+    }
+    pub(crate) fn page(&self) -> Vec<String> {
+        if matches!(self, Self::Changed) { return vec![HISTORY_CHANGED_PAGE.into()]; }
+        if matches!(self, Self::Unavailable(_)) {
+            // Capability diagnostics name the failure without returning local
+            // store paths or filesystem error text to the agent. This fixed
+            // message also leaves page bounding independent of error length.
+            return vec!["History notice unavailable: the project-folder census or import coverage could not be read; whether records are omitted is not known.".into()];
+        }
+        self.words(HISTORY_UNIMPORTED_PAGE)
+    }
+}
+/// Read outside Host, workflow-owner and index locks: this performs the same
+/// unbounded census and import-coverage read as status. It admits no operation.
+pub(crate) fn history_notice(home: Result<&ReadHome, &str>) -> HistoryNotice {
+    let read = || -> Result<bool, String> {
+        let home = home.map_err(str::to_owned)?;
+        let Some(dir) = home.in_store() else { return Ok(false) };
+        let census = match &home.legacy {
+            Some(census) => census.clone(),
+            None => legacy_census(&home.attachment.root)?,
+        };
+        Ok(!uncovered_files(&census, &coverage(dir)?).is_empty())
+    };
+    match read() {
+        Ok(false) => HistoryNotice::None,
+        Ok(true) => HistoryNotice::Unimported,
+        Err(error) => HistoryNotice::Unavailable(error),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct HistoryRoute {
+    root: PathBuf,
+    project: Option<String>,
+    store: Option<PathBuf>,
+    place: ReadPlace,
+}
+impl ReadHome {
+    pub(crate) fn history_route(&self) -> HistoryRoute {
+        HistoryRoute { root: self.attachment.root.clone(), project: self.attachment.project.clone(), store: self.attachment.dir.clone(), place: self.place.clone() }
+    }
+}
+/// The shared readers decide routing inside themselves, so the notice cannot
+/// share their routing value. Owed with slice 2: each shared reader returns
+/// the routing it read under. Then remove this before-and-after check and the
+/// not-known sentence, and replace "may not be shown" with "are not shown"
+/// again on all eight surfaces.
+///
+/// Census cost remains unbounded. A single-source deep reading can run up to
+/// three folder censuses while store payload is ambiguous or unreadable, none
+/// otherwise beyond the notice's own, until the shared readers return their
+/// routing (owed with slice 2). Multi-source readers can make more internal
+/// routing decisions and hence more censuses. The before read's census is
+/// reused for the notice; the two added observations cost at most two censuses.
+pub(crate) struct HistoryRead {
+    before: Result<ReadHome, String>,
+}
+#[cfg(test)]
+thread_local! { pub(crate) static HISTORY_AFTER_ROWS: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+impl HistoryRead {
+    pub(crate) fn begin(root: &Path) -> Self { Self { before: readable_home(root) } }
+    pub(crate) fn finish(self, root: &Path) -> HistoryNotice {
+        #[cfg(test)]
+        HISTORY_AFTER_ROWS.with(|slot| { let hook = slot.borrow_mut().take(); if let Some(hook) = hook { hook(); } });
+        let after = readable_home(root);
+        match (&self.before, &after) {
+            (Ok(before), Ok(after)) if before.history_route() != after.history_route() => HistoryNotice::Changed,
+            (Err(error), _) | (_, Err(error)) => HistoryNotice::Unavailable(error.clone()),
+            (Ok(before), Ok(_)) => history_notice(Ok(before)),
+        }
+    }
+    pub(crate) fn attach(self, root: &Path, mut rows: Value) -> Value {
+        rows["historyNotices"] = json!(self.finish(root).view());
+        rows
+    }
+}
+
 /// Host status: which store the App writes, and the project's standing in it.
 pub fn status(project: Option<&Path>) -> Value {
     let store = current();
@@ -3141,7 +3327,7 @@ pub fn status(project: Option<&Path>) -> Value {
             let imports = account.as_ref().map_or(0, |a| a.lines);
             let covered = match home.attachment.dir.as_ref() { Some(d) => coverage(d)?, None => HashMap::new() };
             // §13.7 files no import has copied (all of them before the first).
-            let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
+            let to_import = uncovered_files(&census, &covered);
             // Admission, reading home and import coverage are separate facts.
             // Earlier gate refusals do not establish anything about imports.
             let inspection = inspect_write(root);
@@ -3155,8 +3341,8 @@ pub fn status(project: Option<&Path>) -> Value {
                     else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
                     else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty(), import_needed)}},
                 "importNeeded":import_needed,
-                "legacyFiles":census.len(),"notImported":to_import,
-                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home_with_inspection(home.clone(), &inspection).into_iter().chain(inspection.notes()).collect::<Vec<_>>()}))
+                "legacyFiles":census.len(),"notImported":to_import.len(),
+                "notImportedKinds":describe(&to_import),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home_with_inspection(home.clone(), &inspection).into_iter().chain(inspection.notes()).collect::<Vec<_>>()}))
         }) {
             Ok(view) => view,
             Err(e) => {

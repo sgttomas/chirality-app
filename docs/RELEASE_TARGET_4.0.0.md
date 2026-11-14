@@ -37,12 +37,15 @@ the judgment serves. It is not evidence that any criterion is met.
 **What the release is judged on.** App v4 is examined and released on working
 through the user interface it ships with. Two standalone journeys carry that:
 
-- **J1, use an existing workflow.** A person sets up a project, selects an
-  existing workflow, supplies its inputs, runs it to completion and finds the
-  results.
-- **J2, create, save, return and reuse.** A person does useful work, turns it
-  into a workflow, registers it, returns to unfinished work after closing and
-  reopening, and later runs the saved workflow with new inputs.
+- **J1, use an existing workflow.** A person sets up a project, choosing how
+  far the agent may act, selects an existing workflow, supplies its inputs,
+  runs it to completion and finds the results.
+- **J2, create, save, return and reuse.** A person does useful work, adding a
+  point during it at which a bounded agent contribution arrives and the right
+  party responds before work continues, turns the work into a workflow that
+  keeps the point, registers it, returns to unfinished work after closing and
+  reopening, and later runs the saved workflow with new inputs, meeting the
+  point again.
 
 J1 is the primary journey, and J2 is the complete workflow-making loop the App
 exists to provide (PRD §2.1). The core loop is necessary for publication and
@@ -87,6 +90,23 @@ selection, and any specialised workspace, keep their own.
   as v4. Because 4.0.0 keeps the existing production identifier, a person's
   existing data under that identity is preserved: nothing imports, resets or
   reseals it.
+- **Holds the App enforces, and points arising on conditions.** In 4.0.0 a
+  pause at a point is the agent's cooperation, and the App says so (LIM-016).
+  Holds the App itself enforces stay phased to the governance layer and are
+  not withdrawn (PRD V4-WF-05). A point arises where the person or the agent
+  places it. The App evaluates no condition about the work itself, such as
+  results that disagree, something unexpected or a limit reached. Observing
+  that a declared checkpoint's named output was produced or its named tool
+  was started stays as DEL-02-03 states it.
+- **The supplier's automatic reviewer, and elevation.** The App offers no
+  permission level that hands the supplier's requests to its automatic
+  reviewer, and with every level it sends that the person answers them,
+  whatever review routing the person's own settings name. It provides no
+  elevation to administrator; a system password prompt is the person's.
+- **A form for every kind of point, and points declared in the bundled
+  workflows.** A person places a point by asking the agent; the App needs no
+  form for each kind. No bundled workflow declares a point, and 4.0.0 adds
+  none to them.
 - **Work beyond the PRD's commitments.** It is not part of this release's
   definition of done. A capability the PRD commits to is, unless this section
   names it.
@@ -196,7 +216,9 @@ unmet; the owner's verdict supplies no missing evidence.
 
 Each criterion says in plain words what is observed, and then names the
 acceptance criteria that govern it. The named criteria are what is met; the
-description narrows none of them.
+description narrows none of them. Where a criterion's governing text is named
+as still to come from the pull request that builds it, the criterion is unmet
+until that text exists and is met.
 
 Every result names the candidate it was observed on: an App source revision, a
 build identity and the supplier pin. Criteria 1 to 7 and 15 may be observed on an
@@ -214,13 +236,16 @@ the owner decide on what was actually observed.
    supplies its inputs, runs it to completion and finds the results, with real
    execution doing useful work, every step taken through the App's shipped
    controls and the words it shows, and no control interpreted or operated by
-   any other means. Before the run the App says which of the workflow's
+   any other means. During setup the person chooses the permission level
+   (criterion 6). Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
-   needing none. A file the person selects as an input is sent as selected: if
-   it changes between selection and sending it is held and not sent. What the
-   agent receives is the selected workflow, byte for byte. No time or step
-   limit applies.
+   needing none. A file the person selects as an input is sent as selected.
+   Immediately before attempting to send, the App checks the selected files
+   again, and if it finds one changed, missing or no longer a file it holds the
+   send and sends nothing. A change made after that check is not detected: what
+   is sent is still the content as selected. What the agent receives is the
+   selected workflow, byte for byte. No time or step limit applies.
 
    *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
    the agent received); DEL-01-04 AC-011 (the run text reaches Codex
@@ -232,10 +257,18 @@ the owner decide on what was actually observed.
    trials, reviews and registers it, returns to unfinished work after closing
    and reopening, and in a later session runs the saved workflow with new
    inputs under their workflow approval policy, the agent receiving that saved
-   workflow byte for byte. No time or step limit applies.
+   workflow byte for byte. During the useful work the person asks the agent to
+   place a point; the App shows what took effect and records who placed it; a
+   bounded agent contribution arrives at the point and its card names who
+   asks, who must respond, what it concerns and who integrates the result;
+   the right party responds and work continues. The registered workflow keeps
+   the point, and the later run meets it again. No time or step limit applies.
 
    *Governed by:* DEL-02-02 AC-011 and AC-005; DEL-01-04 AC-011; DEL-09-02
-   AC-010.
+   AC-010. The point placed, its card and its reuse are governed by
+   DEL-02-03 (the point and its record in the run), DEL-01-04 (the card) and
+   DEL-02-02 (the point kept through registration), with criteria to come
+   from the pull requests that build them.
 3. **The core loop at least at v3.0.1's level.** A conversation starts in a
    role: HELP_HUMAN is preselected and can be cleared, HELPS_HUMANS,
    WORKING_ITEMS and no role are offered, TASK is not, and the chosen role's
@@ -271,10 +304,16 @@ the owner decide on what was actually observed.
    survive the closed window. At each recovery point what the App shows agrees
    with the supplier's actual events: a completed turn does not mark an active
    child done, a reply without acknowledgment is not shown as settled, and an
-   unavailable outcome is shown as unknown. When a run reaches a checkpoint
-   the workflow declares, its arrival is recorded, and the checkpoint's
-   disposition is waiting until evidence of the required human act exists; the
-   App does not pause or hold the run. Continued work, a tool's success, an
+   unavailable outcome is shown as unknown. Where work waits, the App says
+   that the agent was asked to pause, that a question is waiting or that a
+   turn completed, and never that work is held or blocked. When a run reaches
+   a checkpoint the workflow declares, its arrival is recorded, and the
+   checkpoint's disposition is waiting until evidence of the required human
+   act exists. While it is waiting, the arrival is shown as a card in the
+   list of what waits on the person; an arrival already answered by an
+   earlier act is not shown as waiting. The App does not itself pause,
+   interrupt or hold the run, and says that a pause there is the agent's
+   cooperation. Continued work, a tool's success, an
    interruption or a replay of history does not perform it. After quit and reopen it is the same run,
    and a later run inherits no arrival, disposition or act from it. A failure
    is repaired or given its disposition by Agent 0, which the owner sees in
@@ -283,7 +322,9 @@ the owner decide on what was actually observed.
    *Governed by:* DEL-09-02 AC-004 and AC-005; DEL-01-02 AC-001 to AC-006
    (window loss, interrupt, requests, acknowledgment, restart and quit);
    DEL-02-03 AC-002 and AC-003 (checkpoints and the run they belong to), with
-   the views of that behaviour owned by DEL-01-03 and DEL-01-04.
+   the views of that behaviour owned by DEL-01-03 and DEL-01-04. The words
+   for waiting and the arrival's card are governed by DEL-01-04, with
+   criteria to come from the pull requests that build them.
    DEL-02-03 AC-003's positive case with the person as actor is one of the
    human-positive cases named under Testing. A synthetic confirmation supplies
    control-and-record examination evidence only; it does not meet a positive
@@ -304,9 +345,18 @@ the owner decide on what was actually observed.
    awaits review. After the App is closed and reopened, the views are rebuilt
    from the files and show the same ownership, results, waiting causes,
    reviewed and integrated history and pending decisions, with a missing
-   observation shown as unknown.
+   observation shown as unknown. Everything waiting on the person, from every
+   agent, is in one list; each card names who asks (for a delegated agent, its
+   role and name as Codex reports them), who must respond, what it concerns
+   and who integrates the result; one request has one disposition wherever it
+   is seen, and a request waiting on an agent is shown as activity. A returned
+   review reads "review returned" and then "awaiting integration" with the
+   integration owner named, and never "approved".
 
-   *Governed by:* DEL-09-05 AC-001 to AC-007.
+   *Governed by:* DEL-09-05 AC-001 to AC-007. The list and its cards are
+   governed by DEL-06-02 (returns and decision packages) and DEL-01-04 (the
+   supplier's requests and the cards), with criteria to come from the pull
+   requests that build them.
 6. **Access.** A person signs in with their ChatGPT account, and the account
    view shows the account Codex reports. The App offers no standalone OpenAI
    API-key entry, and presents no local model server as a way to reach a
@@ -315,10 +365,22 @@ the owner decide on what was actually observed.
    runs with the ChatGPT account. The start-up connections of the App's Codex
    are listed, and those an App setting stops are absent. No credential
    appears in anything the App wrote. In the examination the owner performs
-   the sign-in, and agents examine what follows.
+   the sign-in, and agents examine what follows. Before the first
+   conversation the person chooses a permission level among those offered,
+   and none applies until they have chosen; a level marked as recommended is
+   shown as such beside the others; every level offered was first shown at
+   the pin by a fixture; the
+   level in force is always shown, with the statement that reading is not
+   limited; the App sends it to Codex on each turn and on start, resume and
+   fork; a change of level is taken from the person only and recorded, as
+   the person's own setting and not as a reserved act, and no agent raises
+   its own level.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
-   each in the words that its scope states are in force for 4.0.0.
+   each in the words that its scope states are in force for 4.0.0. The
+   permission level is governed by DEL-01-04 (choosing and capturing it),
+   DEL-04-02 (showing it) and DEL-01-01 (carrying it to Codex), with criteria
+   to come from the pull requests that build them.
    That no local model server is presented is governed by the "For 4.0.0"
    section of DEL-01-05, and is examined on the candidate by inspecting every
    view met in the journeys and examinations of criteria 1 to 6 for an offer

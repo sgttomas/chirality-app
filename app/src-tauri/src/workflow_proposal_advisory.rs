@@ -58,7 +58,49 @@ fn role_supply(role: &RoleInForce) -> Option<String> {
         _ => None,
     }
 }
-// Same evaluator and honest unobserved environment for both CK-1 receiving
+/// What the App host observed for one conversation that the requirement check
+/// can use: the delegation signals the host keeps for the conversation's model,
+/// provider and folder (DEL-01-03 NPTD §7.1; `delegation_availability`). The
+/// standalone App connects to no host application, so no catalog edition,
+/// catalog or channel is observed and those stay unobserved, never absent.
+pub(super) fn conversation_inventory(
+    home: &HomeSession,
+    threads: &Value,
+    generation: &Value,
+    thread: &str,
+) -> report::Inventory {
+    let row = threads
+        .as_array()
+        .into_iter()
+        .flatten()
+        .rev()
+        .find(|t| t["generation"] == *generation && t["threadId"] == thread);
+    let signals = row.and_then(|row| {
+        let wanted = crate::delegation_availability::key(row);
+        home.host
+            .delegation_readings()
+            .into_iter()
+            .rev()
+            .find(|r| r["key"] == wanted)
+            .map(|r| r["signals"].clone())
+    });
+    let source = if signals.is_some() {
+        "App host: this conversation's delegation signals as read; no host application catalog or channel observed"
+    } else {
+        "App host: no availability signal read for this conversation yet; no host application catalog or channel observed"
+    };
+    report::Inventory {
+        origin: report::InventoryOrigin::CallerSupplied {
+            source: source.into(),
+        },
+        host_id: None,
+        observations: report::Observations {
+            harness_signals: signals,
+            ..Default::default()
+        },
+    }
+}
+// Same evaluator and the host's own observations for both CK-1 receiving
 // surfaces. The closed subject is read only; no selection or report is stored.
 fn compatibility_for_subject(
     selection: &crate::workflow_workspace::Selection,
@@ -67,6 +109,7 @@ fn compatibility_for_subject(
     generation: &Value,
     thread: &str,
     label: &str,
+    inventory: report::Inventory,
 ) -> Value {
     let basis = report::Basis {
         home: generation["home"].as_str().unwrap_or("").into(),
@@ -84,13 +127,7 @@ fn compatibility_for_subject(
         basis: basis.clone(),
         occasion: report::Occasion::Selection,
         evaluated_at: crate::util::now_rfc3339(),
-        inventory: report::Inventory {
-            origin: report::InventoryOrigin::CallerSupplied {
-                source: "App Root: no environment collector; nothing observed".into(),
-            },
-            host_id: None,
-            observations: report::Observations::default(),
-        },
+        inventory,
         model_destination: None,
     }) {
         Ok(evaluation) => evaluation.view(&basis),
@@ -199,6 +236,12 @@ impl WorkflowRootSession {
             // malformed declaration cannot erase a valid ordinary choice.
             offer["proposal"]["resolution"]["workflow"] = json!(context.workflow);
             offer["proposal"]["context"] = json!(context);
+            let inventory = conversation_inventory(
+                home,
+                &host["threads"],
+                &context.generation,
+                &context.message.thread_id,
+            );
             offer["proposal"]["compatibility"] = compatibility_for_subject(
                 &selection,
                 &context.holding_library,
@@ -206,6 +249,7 @@ impl WorkflowRootSession {
                 &context.generation,
                 &context.message.thread_id,
                 "CK-1 offered candidate",
+                inventory,
             );
         }
         offers
@@ -250,6 +294,7 @@ impl WorkflowRootSession {
                     generation,
                     thread,
                     "CK-1 selected candidate",
+                    conversation_inventory(home, &host["threads"], generation, thread),
                 ))
             })();
             let mut compatibility = subject.unwrap_or_else(|limit| {
