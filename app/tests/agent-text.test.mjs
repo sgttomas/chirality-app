@@ -340,6 +340,14 @@ test('guard 1 judges each preformatted form, in a nested directory too, and list
   fails('export const V = ({ s, ws }: any) => <p style={{whiteSpace: ws}}>{s}</p>;', 'a whiteSpace that is not a literal');
   fails('export const V = ({ s, k }: any) => <p style={{[k]: "pre"}}>{s}</p>;', 'a style key that is not a literal');
   fails('import { createElement } from "react"; export const V = ({ s }: any) => createElement("div", {style: {whiteSpace: "pre-wrap"}}, s);', 'createElement with a preformatted style');
+  // Round two's reader: a const reused in both arms of a choice is not a cycle, and a capitalised parameter is not a
+  // component.
+  fails('const s = { whiteSpace: "pre-wrap" } as const; export const V = ({ value, flag }: any) => <div style={flag ? s : s}>{value}</div>;', 'the same const style in both arms');
+  fails('const s = { whiteSpace: "pre-line" } as const; export const V = ({ value, flag }: any) => <span style={{ ...(flag ? s : s) }}>{value}</span>;', 'the same const style in both arms of a spread');
+  fails('export const V = ({ value, flag }: any) => { const P = "pre"; const Tag = flag ? P : P; return <Tag>{value}</Tag>; };', 'the same alias of "pre" in both arms');
+  fails('import { createElement } from "react"; export const V = ({ s, Tag }: any) => createElement(Tag, null, s);', 'createElement with a capitalised parameter for a tag');
+  passes('import { createElement } from "react"; function Box({ children }: any) { return <div>{children}</div>; } export const V = ({ s }: any) => createElement(Box, null, s);', 'createElement with a declared component');
+  passes('import { createElement } from "react"; import { Pretty } from "./Pretty"; export const V = ({ s }: any) => createElement(Pretty, null, s);', 'createElement with an imported component');
   passes('export const V = ({ s }: any) => <p style={{whiteSpace:"nowrap"}}>{s}</p>;', 'another whiteSpace');
   passes('export const V = ({ s, style }: any) => <p style={style}>{s}</p>;', 'a style the guard cannot read as a whole is not judged');
   // An App-literal preformatted element passes only when listed, scoped to its component and counted.
