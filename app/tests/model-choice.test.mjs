@@ -46,6 +46,8 @@ async function mounted(handler, check, initial = snapshotFor()) {
     calls.push({command, args:structuredClone(args)});
     if (command === 'host_status') { if (statusFailure) throw statusFailure; const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
     if (command === 'decision_view') return {rows:[]};
+    // The waiting list's timed returns read (it writes nothing): an established empty fleet packet.
+    if (command === 'read_fleet_records') return {format:'f', formatVersion:'0', standing:'invented', project:{canonicalRoot:'/invented/project'}, briefs:[], graphs:[], limits:[], nativeRecording:'invented', coordination:{project:{source:{path:'fleet/coordination.fleet.jsonl'}, status:'read', complete:true}, projectRecords:[], governingStoreRecords:[], appObservations:[], protected:{state:'invented'}}, workspace:{standing:'invented', graphIdentityMethod:'m', limits:[], undertakings:[]}};
     if (command === 'native_confirmation_content') return [];
     return handler(command, args, {get snapshot() { return snapshot; }});
   });
@@ -54,7 +56,7 @@ async function mounted(handler, check, initial = snapshotFor()) {
   document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
   const ui = {c, calls, press:async label => React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }),
     setSnapshot:value => { snapshot = value; }, refresh:async () => React.act(async () => { for (const fn of intervals.values()) await fn(); }),
-    summary:() => region(c, 'New conversation choice').textContent, issued:() => calls.filter(call => !['host_status', 'decision_view', 'native_confirmation_content'].includes(call.command))};
+    summary:() => region(c, 'New conversation choice').textContent, issued:() => calls.filter(call => !['host_status', 'decision_view', 'read_fleet_records', 'native_confirmation_content'].includes(call.command))};
   try { await React.act(() => root.render(React.createElement(App))); await check(ui); }
   finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
     globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById; }
