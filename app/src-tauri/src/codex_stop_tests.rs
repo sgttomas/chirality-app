@@ -791,7 +791,7 @@ for line in sys.stdin:
     }
 
     fn ledger_rows(f: &Fixture) -> Vec<Value> {
-        crate::recovery::stored_entries(&f.ledger())
+        f.home.host.stored_entries_held(&f.ledger())
     }
     fn kinds(rows: &[Value]) -> Vec<String> {
         rows.iter().map(|e| match e["kind"].as_str().unwrap() {

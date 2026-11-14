@@ -6329,7 +6329,7 @@ mod tests {
         let ledger_path = f.data.join("runtime/recovery.ledger.jsonl");
         let host = Arc::new(Host::new());
         host.configure_recovery(ledger_path.clone()).unwrap();
-        let ledger = || crate::recovery::stored_entries(&ledger_path);
+        let ledger = || host.stored_entries_held(&ledger_path);
         let (entries, files) = (ledger(), tree(&f.data));
         assert_eq!(entries.len(), 1, "the first App's session start");
         for route in ["saved", "environment"] {
@@ -6549,8 +6549,9 @@ mod tests {
             // The stand-in asks for an approval after the handshake: wait until this App's ledger lists it.
             let ledger = runtime_session::reviewed_ledger_path(&data);
             let end = std::time::Instant::now() + std::time::Duration::from_secs(10);
-            while !crate::recovery::stored_entries(&ledger).iter().any(|e| e["transition"] == "RQ-01") {
-                assert!(std::time::Instant::now() < end, "the request was listed: {:?}", crate::recovery::stored_entries(&ledger));
+            // The other App process writes this ledger: a read that meets its journal is read again.
+            while !crate::recovery::try_stored_entries(&ledger).is_ok_and(|entries| entries.iter().any(|e| e["transition"] == "RQ-01")) {
+                assert!(std::time::Instant::now() < end, "the request was listed: {:?}", crate::recovery::try_stored_entries(&ledger));
                 std::thread::sleep(std::time::Duration::from_millis(20));
             }
         }
@@ -6679,7 +6680,7 @@ mod tests {
             let (state, app_home, desktop, _) = complete_startup(input, platform, f.resources.clone(), &f.root);
             runtime_session::start_with_recovery(&app_home.host, &app_home.recovery_startup, Ok(&f.data), None, || Ok(())).unwrap();
             assert_eq!(app_home.recovery_startup.lock().unwrap().snapshot()["state"], "configured", "{route}: {}", app_home.recovery_startup.lock().unwrap().snapshot());
-            let entries = crate::recovery::stored_entries(&runtime_session::reviewed_ledger_path(&f.data));
+            let entries = app_home.host.stored_entries_held(&runtime_session::reviewed_ledger_path(&f.data));
             let start = entries.iter().rev().find(|e| e["kind"] == "session_started").unwrap();
             assert_eq!(start["previousSession"], crashed.as_str(), "{route}");
             assert_eq!(start["previousSessionEnd"], "ended-without-record", "{route}");
