@@ -39,8 +39,10 @@ table. What it reads:
     counted as not run. The counts line itself says how many such records there are and how many passes
     they hold. Nothing else, a file's name included, is relied on to confine that doubt to one step.
   A table held this way is released only by resolving each such record, never by deleting it to clear the result:
-  read what it was and write a corrected record beside it, keeping the original, or establish that it does not
-  belong to this set of results and move it out of the folder with the reason noted (the README says more).
+  write the corrected record and move the original, unchanged, into a subfolder of the results folder with a note of
+  what it was and who resolved it, or establish that it does not belong to this set of results and move it out with
+  the reason noted (the README says more). A subfolder is kept and not read; a corrected record beside an original
+  left in place releases nothing.
   Removing a readable failure record is something the table cannot see. The table trusts the identities a record
   states: one readably naming another candidate, or a step the plan does not know, is listed and lowers nothing, and
   whether its writer named them correctly, or every record made is in the folder, is not established. Only .json

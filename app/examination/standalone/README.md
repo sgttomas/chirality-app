@@ -143,9 +143,15 @@ carries reaches as far as what it could be (App Agent 0, on the INTERLOCUTOR's f
 Nothing else is relied on to confine that doubt: not a file's name, and not any part of content that failed to read.
 
 **What releases a table held this way** is resolving each such record, never deleting it to clear an inconclusive
-result. The person who keeps the results does one of two things for each record:
-- reads what the record was and writes a corrected record beside it, keeping the original as it is; or
-- establishes that the record does not belong to this set of results and moves it out of the folder, noting why.
+result. The table reads only `.json` files directly in the results folder, so a record is out of what it reads once it
+is in a subfolder, which is kept and not read. Name the subfolder without a `.json` ending: a folder so named is read
+as a record that cannot be read. The person who keeps the results does one of two things for each record:
+- **Corrects it.** Reads what the record was, writes the corrected record in the results folder, and moves the
+  original, unchanged, into a subfolder (`resolved/`, say) with a note of what it was and who resolved it. A corrected
+  record written beside an original left in place does not release the table: the original is still read, and still
+  holds every pass.
+- **Shows it does not belong.** Establishes that the record does not belong to this set of results, and moves it out
+  of the folder or into such a subfolder, noting why.
 
 Removing a readable failure record is something the table cannot see.
 

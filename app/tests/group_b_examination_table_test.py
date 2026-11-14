@@ -566,6 +566,45 @@ class AnUnreadableRecordNeverRevivesAPass(Fixture):
         self.assertIn('| not run (no record) |', next(l for l in text.splitlines() if '| B-3 |' in l))
 
 
+class ResolvingADamagedRecord(Fixture):
+    """What releases a table held by a record that cannot be read: the corrected record written, and the original kept
+    unchanged in a subfolder, which is not read (App Agent 0)."""
+
+    PASS = {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00Z', 'outcome': 'passed'}
+    DAMAGED = '{"step": "B-1", "candidate": "c", "date": "2026-11-14T11:00:00Z", "outcome": "fai'
+    CORRECTED = {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14T11:00:00Z', 'outcome': 'failed'}
+
+    def counts(self, folder):
+        text = self.printed('--repo', str(self.repo()), '--results', str(folder), '--candidate', 'c')
+        return next(l for l in text.splitlines() if l.startswith('Counted steps in the release: ')), text
+
+    def test_a_corrected_record_beside_the_original_left_in_place_releases_nothing(self):
+        folder = self.results(self.PASS, self.CORRECTED)
+        (folder / 'r9.json').write_text(self.DAMAGED)
+        counts, text = self.counts(folder)
+        self.assertTrue(counts.startswith('Counted steps in the release: 0 passed, 1 failed, 0 blocked, 3 not run, '
+                                          '1 inconclusive.'), counts)
+        self.assertIn('Records that could not be read at all or name no step: 1.', counts)
+
+    def test_the_corrected_record_with_the_original_kept_in_a_subfolder_counts_the_passes_again(self):
+        folder = self.results(self.PASS, self.CORRECTED)
+        (folder / 'resolved').mkdir()
+        (folder / 'resolved/r9.json').write_text(self.DAMAGED)
+        (folder / 'resolved/r9.note.txt').write_text('r9.json was a truncated failure of B-1; corrected as r1.json.\n')
+        counts, text = self.counts(folder)
+        self.assertTrue(counts.startswith('Counted steps in the release: 1 passed, 1 failed, 0 blocked, 3 not run, '
+                                          '0 inconclusive.'), counts)
+        self.assertNotIn('could not be read', text)
+        self.assertEqual((folder / 'resolved/r9.json').read_text(), self.DAMAGED)  # the original kept unchanged
+
+    def test_a_subfolder_named_like_a_record_is_read_as_one_that_cannot_be_read(self):
+        folder = self.results(self.PASS)
+        (folder / 'resolved.json').mkdir()
+        counts, _ = self.counts(folder)
+        self.assertIn('0 passed', counts)
+        self.assertIn('Records that could not be read at all or name no step: 1.', counts)
+
+
 class Comparisons(Fixture):
     def section(self, folder):
         text = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
