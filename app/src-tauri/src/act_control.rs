@@ -71,61 +71,71 @@ fn check_standing(root: &Path, offer: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn a16_statement(offer: &Value, alternative: &str, actor: &Value) -> Result<native_statement::NativeStatement, String> {
+fn a16_lines(offer: &Value, alternative: &str, actor: &Value, whole_values: bool, all_rows: bool) -> Result<String, String> {
     use crate::native_text::{self as nt, Placed, Source, Unfit};
     let alt = offer["alternatives"].as_array().and_then(|a| a.iter().find(|a| a["id"] == alternative))
         .ok_or("the package names no such alternative")?;
+    let supplied = if whole_values { nt::supplied_whole } else { nt::supplied };
     let field = |label: &'static str, value: &Value, source: Source| -> Vec<String> {
         match nt::identifier(value, Unfit::Supplied {label,source}) {
             Placed::Inline(closed) => vec![format!("{label}: {closed}")],
-            Placed::Lines(supplied) => supplied.lines().to_vec(),
+            Placed::Lines(_) => supplied(label, source, value).lines().to_vec(),
         }
     };
-    let mut head = vec!["Decide (A16)".into(), String::new()];
-    head.extend(field("Package file", &offer["subject"]["ref"], Source::File));
-    head.extend(field("Content identity", &offer["subject"]["contentIdentity"]["value"], Source::File));
-    head.extend_from_slice(nt::supplied("Purpose", Source::File, &offer["purpose"]).lines());
-    head.extend_from_slice(nt::supplied("Scope", Source::File, &offer["scope"]).lines());
-    let standing = package_standing::line(&offer["packageStanding"]);
-    let others = package_standing::other_lines(&offer["otherRequestsForPath"], 3);
-    head.extend(standing.clone());
-    head.extend(others.clone());
-    let mut chosen = field("Chosen alternative", &alt["id"], Source::File);
-    chosen.extend_from_slice(nt::supplied("Chosen alternative's statement", Source::File, &alt["statement"]).lines());
+    let mut lines = vec!["Decide (A16)".into(), String::new()];
+    lines.extend(field("Package file", &offer["subject"]["ref"], Source::File));
+    lines.extend(field("Content identity", &offer["subject"]["contentIdentity"]["value"], Source::File));
+    lines.extend_from_slice(supplied("Purpose", Source::File, &offer["purpose"]).lines());
+    lines.extend_from_slice(supplied("Scope", Source::File, &offer["scope"]).lines());
+    lines.extend(if whole_values { package_standing::line_whole(&offer["packageStanding"]) } else { package_standing::line(&offer["packageStanding"]) });
+    lines.extend(if all_rows { package_standing::other_lines_whole(&offer["otherRequestsForPath"]) } else if whole_values { package_standing::other_lines_uncut(&offer["otherRequestsForPath"], 3) } else { package_standing::other_lines(&offer["otherRequestsForPath"], 3) });
+    lines.extend(field("Chosen alternative", &alt["id"], Source::File));
+    lines.extend_from_slice(supplied("Chosen alternative's statement", Source::File, &alt["statement"]).lines());
     for consequence in alt["consequences"].as_array().ok_or("consequences absent")? {
-        chosen.extend_from_slice(nt::supplied("Consequences", Source::File, consequence).lines());
+        lines.extend_from_slice(supplied("Consequences", Source::File, consequence).lines());
     }
     let mut actor_extra = Vec::new();
     let who: Vec<_> = [("displayName", "Actor's name", Source::Person), ("osAccount", "OS account", Source::Tool)]
         .into_iter().filter_map(|(member,label,source)| actor.get(member).map(|value| {
             match nt::identifier(value, Unfit::Supplied {label,source}) {
                 Placed::Inline(closed) => closed.to_string(),
-                Placed::Lines(supplied) => { actor_extra.extend_from_slice(supplied.lines()); nt::VALUE_NOT_SHOWN.into() }
+                Placed::Lines(_) => { actor_extra.extend_from_slice(supplied(label, source, value).lines()); nt::VALUE_NOT_SHOWN.into() }
             }
         })).collect();
-    let mut tail = vec![String::new(), format!("Actor: {} (identity not verified)", who.join(" / "))];
-    tail.extend(actor_extra);
-    tail.extend([format!("Answers: {STANDING}"), "Only Decide records this decision. Don't decide (the default) records nothing; no decline exists for A16; Cancel closes the control.".into()]);
-    let whole = [head, chosen, tail.clone()].concat().join("\n");
-    // Only marked content is handed to the in-App fallback too. The content digest is a
-    // pointer to those marked bytes; shownStatement separately binds the alert's exact text.
-    let content = json!({"markedStatement":whole});
+    lines.extend([String::new(), format!("Actor: {} (identity not verified)", who.join(" / "))]);
+    lines.extend(actor_extra);
+    lines.extend([format!("Answers: {STANDING}"), "Only Decide records this decision. Don't decide (the default) records nothing; no decline exists for A16; Cancel closes the control.".into()]);
+    Ok(lines.join("\n"))
+}
+
+fn a16_statement(offer: &Value, alternative: &str, actor: &Value) -> Result<native_statement::NativeStatement, String> {
+    let native = a16_lines(offer, alternative, actor, false, false)?;
+    // A value cut at the alert's 600-character limit must have a whole App counterpart,
+    // even when the shortened native statement would fit the alert's overall bound.
+    let uncut_native = a16_lines(offer, alternative, actor, true, false)?;
+    if native == uncut_native {
+        if let Ok(text) = native_statement::bounded("A16 native confirmation", native) {
+            return Ok(native_statement::NativeStatement { text, in_app: None });
+        }
+    }
+    let content = json!({"markedStatement":a16_lines(offer, alternative, actor, true, true)?});
+    let digest = native_statement::content_digest("A16 native confirmation", &content)?;
     let mut failure = String::new();
     for limit in (1..=3).rev() {
-    let shown = native_statement::whole_or_in_app("A16 native confirmation", "A16 chosen alternative", whole.clone(), &content, |digest| {
         let mut summary = vec!["Decide (A16)".into(), String::new(),
             "Package file, content identity, purpose and scope: shown in the App.".into()];
-        summary.extend(standing.clone());
+        summary.extend(package_standing::line(&offer["packageStanding"]));
         summary.extend(package_standing::other_lines(&offer["otherRequestsForPath"], limit));
-        summary.push(format!("Chosen alternative: its statement and all {} consequences, with the complete marked statement, are shown in full in the App now, under \"Content named by an open native confirmation\". Their sha-256 digest:", alt["consequences"].as_array().unwrap().len()));
-        summary.push(digest.to_owned());
-        // Actor values can themselves be unbounded after marking. Their marked form stays
-        // in the digest-named content; no supplied text is stripped to shorten the sheet.
+        summary.push("The complete marked statement has moved to the App, shown in full now under \"Content named by an open native confirmation\"; any values cut here are whole there. Its sha-256 digest:".into());
+        summary.push(digest.clone());
         summary.push("Actor: shown in the App (identity not verified)".into());
-        summary.extend(tail.iter().rev().take(2).rev().cloned());
-        summary.join("\n")
-    });
-    match shown { Ok(shown) => return Ok(shown), Err(error) => failure = error }
+        summary.extend([format!("Answers: {STANDING}"), "Only Decide records this decision. Don't decide (the default) records nothing; no decline exists for A16; Cancel closes the control.".into()]);
+        match native_statement::bounded("A16 native confirmation", summary.join("\n")) {
+            Ok(text) => return Ok(native_statement::NativeStatement {
+                text, in_app: Some(native_statement::InApp { kind: "A16 chosen alternative", digest, content }),
+            }),
+            Err(error) => failure = error,
+        }
     }
     Err(failure)
 }
@@ -1511,7 +1521,7 @@ impl ActControl {
         let request_ref = o["requestRef"].as_str().unwrap().to_string();
         let capture_id = crate::util::opaque_id("cap:")?;
         let bound = o["subject"]["contentIdentity"].clone();
-        let mut capture = json!({
+        let capture = json!({
             "format": "chirality.aac.capture-evidence", "formatVersion": "0.3",
             "captureId": capture_id, "offerId": offer_id, "offerDigest": o["offerDigest"],
             "choice": "act", "actKind": "A16", "actor": actor,
@@ -2285,7 +2295,7 @@ mod persistence_tests {
         }
         assert_eq!(shown.digest, native_statement::content_digest("x", &shown.content).unwrap());
         assert!(s.text.lines().any(|l| l == shown.digest), "{}", s.text);
-        assert!(s.text.contains("Chosen alternative: its statement and all 40 consequences, with the complete marked statement, are shown in full in the App now"), "{}", s.text);
+        assert!(s.text.contains("The complete marked statement has moved to the App, shown in full now"), "{}", s.text);
         assert!(s.text.contains("Only Decide records this decision.") && s.text.contains("Cancel closes the control"));
         assert!(native_statement::bounded("x", s.text.clone()).is_ok());
         control.present(&id).unwrap();
@@ -2300,13 +2310,16 @@ mod persistence_tests {
         assert!(s.text.lines().count() <= native_statement::MAX_LINES);
         assert!(s.text.contains("Stage 2 starts today; any changed supplier fact reopens the affected parts"));
         std::fs::remove_dir_all(root).unwrap();
-        // The shared supplied form explicitly bounds each original value at 600 characters.
-        // A long purpose moves to the digest-named marked content instead of overflowing the
-        // sheet; the cut is visible there and never silently removed to shorten the alert.
-        let (root, mut control, id, _) = edited(&|p| p["purpose"] = json!("invented purpose ".repeat(120)));
+        // Only alert values are bounded at 600 original characters. The App counterpart
+        // keeps the whole marked purpose; the native pointer states where it moved.
+        let purpose = format!("{}\nDecide (A16)\u{202e}\u{200b}", "p".repeat(685));
+        assert_eq!(purpose.chars().count(), 700);
+        let (root, mut control, id, _) = edited(&|p| p["purpose"] = json!(purpose));
         let statement = control.confirmation_statement(&id, "ALT-2", &actor).unwrap();
-        let marked = statement.in_app.as_ref().map_or(statement.text.as_str(), |app| app.content["markedStatement"].as_str().unwrap());
-        assert!(marked.contains("  (cut after 600 characters)"));
+        let marked = statement.in_app.as_ref().expect("long purpose is whole in the App").content["markedStatement"].as_str().unwrap();
+        assert!(marked.contains(&crate::native_text::supplied_whole("Purpose", crate::native_text::Source::File, &json!(purpose)).lines().join("\n")));
+        assert!(!marked.contains("(cut after"));
+        assert!(statement.text.contains("The complete marked statement has moved to the App, shown in full now"));
         assert!(native_statement::bounded("x", statement.text).is_ok());
         std::fs::remove_dir_all(root).unwrap();
     }

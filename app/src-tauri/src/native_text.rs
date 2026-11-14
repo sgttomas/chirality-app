@@ -122,6 +122,16 @@ pub(crate) fn workflow_name(value: &Value, otherwise: Unfit) -> Placed {
 /// marks, line breaks shown and continued on an indented line, and the original value bounded
 /// at 600 Unicode scalar characters before marking.
 pub(crate) fn supplied(label: &'static str, source: Source, value: &Value) -> Supplied {
+    supplied_marked(label, source, value, Some(600))
+}
+
+/// The same supplied marking, retaining the entire value for digest-named App content.
+/// Only the native alert's supplied form cuts values; its App counterpart must be whole.
+pub(crate) fn supplied_whole(label: &'static str, source: Source, value: &Value) -> Supplied {
+    supplied_marked(label, source, value, None)
+}
+
+fn supplied_marked(label: &'static str, source: Source, value: &Value, limit: Option<usize>) -> Supplied {
     let source = match source {
         Source::Agent => "agent", Source::Tool => "a tool", Source::Person => "the person",
         Source::Codex => "Codex", Source::File => "a file", Source::Record => "a record",
@@ -129,7 +139,7 @@ pub(crate) fn supplied(label: &'static str, source: Source, value: &Value) -> Su
     let text = value.as_str().map(str::to_owned).unwrap_or_else(|| value.to_string());
     let mut out = vec![format!("{label} (supplied by {source}, not the App's words):")];
     let mut line = String::from("  ");
-    let mut chars = text.chars().take(600).peekable();
+    let mut chars = text.chars().take(limit.unwrap_or(usize::MAX)).peekable();
     while let Some(c) = chars.next() {
         if c == '\r' || c == '\n' {
             line.push_str(&mark(c));
@@ -145,7 +155,7 @@ pub(crate) fn supplied(label: &'static str, source: Source, value: &Value) -> Su
         }
     }
     out.push(line);
-    if text.chars().count() > 600 { out.push("  (cut after 600 characters)".into()); }
+    if limit.is_some_and(|limit| text.chars().count() > limit) { out.push("  (cut after 600 characters)".into()); }
     Supplied(out)
 }
 

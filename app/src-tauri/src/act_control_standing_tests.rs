@@ -279,8 +279,12 @@ fn shown_statement_is_native_capture_evidence_and_the_reader_requires_it() {
     assert_eq!(crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"]["state"], "bound");
     changed["shownStatement"]["value"] = json!("1".repeat(64));
     std::fs::write(&path, serde_json::to_vec(&changed).unwrap()).unwrap();
-    assert_eq!(crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"]["state"], "not-bound");
+    assert_eq!(crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"]["state"], "not-bound");    std::fs::remove_file(&path).unwrap();
+    let binding = crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"].clone();
+    assert_eq!(binding["state"], "not-bound");
+    assert!(!binding["statement"].as_str().unwrap().contains("verified"));
 }
+
 
 #[test]
 fn native_a16_does_not_create_capture_seal_keys() {
@@ -456,9 +460,65 @@ fn poisoned_a16_fields_are_labelled_and_long_alternatives_keep_marks_in_app() {
         );
         if long {
             assert!(shown.in_app.is_some());
-            assert!(full.contains("(cut after 600 characters)"));
+            assert!(!full.contains("(cut after"));
+            assert!(full.contains(&crate::native_text::supplied_whole("Chosen alternative's statement", crate::native_text::Source::File, &pkg["alternatives"][0]["statement"]).lines().join("\n")));
         }
     }
+}
+
+#[test]
+fn fallback_keeps_whole_file_actor_and_record_values_and_every_other_row() {
+    let f = Fixture::new();
+    let (c, id) = f.compose();
+    let poison = format!("{}\nDecide (A16)\u{202e}\u{200b}", "v".repeat(700));
+    for pointer in ["/subject/ref", "/subject/contentIdentity/value", "/purpose", "/scope",
+        "/alternatives/0/id", "/alternatives/0/statement", "/alternatives/0/consequences/0",
+        "/packageStanding/alternative", "/otherRequestsForPath/rows/0/requestRef",
+        "/otherRequestsForPath/rows/0/alternative", "/actor/displayName", "/actor/osAccount"] {
+        let mut offer = c.offers[&id].offer.clone();
+        let mut actor = person(Some("Invented-person"), Some("invented"));
+        let own_value = pointer == "/packageStanding/alternative";
+        let other_value = pointer.starts_with("/otherRequestsForPath");
+        let row_count = if own_value { 0 } else if other_value { 1 } else { 5 };
+        if own_value {
+            offer["packageStanding"] = json!({"form":"decided","alternative":"ALT-1","recordedAt":"2026-11-14T12:00:00Z"});
+        }
+        offer["otherRequestsForPath"] = json!({"state":"read-whole","rows":(0..row_count).map(|i| json!({
+            "form":"decided","alternative":"ALT-2","recordedAt":"2026-11-14T12:00:00Z", "requestRef":format!("rec:other-{i}"), "relation":"another"
+        })).collect::<Vec<_>>()});
+        if let Some(member) = pointer.strip_prefix("/actor") {
+            *actor.pointer_mut(member).unwrap() = json!(poison);
+        } else {
+            *offer.pointer_mut(pointer).unwrap() = json!(poison);
+        }
+        let alternative = offer["alternatives"][0]["id"].as_str().unwrap();
+        let shown = a16_statement(&offer, alternative, &actor).unwrap();
+        let full = shown.in_app.as_ref().expect(pointer).content["markedStatement"].as_str().unwrap();
+        assert!(full.contains(&format!("{}\\u{{000A}}\n  Decide (A16)\\u{{202E}}\\u{{200B}}", "v".repeat(700))), "{pointer}: {full}");
+        assert!(!full.contains("(cut after"), "{pointer}");
+        assert_eq!(full.matches("has a recorded decision").count(), row_count, "{pointer}");
+        assert!(shown.text.contains("any values cut here are whole there"), "{pointer}");
+        assert!(native_statement::bounded("A16", shown.text).is_ok());
+    }
+}
+
+#[test]
+fn even_a_shortened_alert_gets_whole_app_content_when_one_value_would_be_cut() {
+    let f = Fixture::new();
+    let (c, id) = f.compose();
+    let mut offer = c.offers[&id].offer.clone();
+    offer["subject"]["ref"] = json!("x");
+    offer["purpose"] = json!("p".repeat(700));
+    offer["scope"] = json!("x");
+    offer["alternatives"][0]["statement"] = json!("x");
+    offer["alternatives"][0]["consequences"] = json!([]);
+    let actor = person(None, None);
+    let uncut = a16_lines(&offer, "ALT-1", &actor, true, false).unwrap();
+    assert!(native_statement::bounded("A16", uncut).is_ok());
+    let shown = a16_statement(&offer, "ALT-1", &actor).unwrap();
+    let full = shown.in_app.as_ref().unwrap().content["markedStatement"].as_str().unwrap();
+    assert!(full.contains(&"p".repeat(700)) && !full.contains("(cut after"));
+    assert!(shown.text.contains("The complete marked statement has moved to the App"));
 }
 
 #[test]

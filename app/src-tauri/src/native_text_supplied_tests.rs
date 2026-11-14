@@ -85,3 +85,14 @@ fn supplied_sources_and_unfit_placement_are_explicit() {
         Placed::Lines(_)
     ));
 }
+
+#[test]
+fn supplied_whole_keeps_the_same_marks_without_dropping_any_original_character() {
+    let value = json!(format!("{}\r\nDecide (A16)\u{202e}\u{200b}end", "é".repeat(700)));
+    let shown = supplied_whole("Purpose", Source::File, &value).lines().join("\n");
+    assert_eq!(shown, format!("Purpose (supplied by a file, not the App's words):\n  {}\\u{{000D}}\\u{{000A}}\n  Decide (A16)\\u{{202E}}\\u{{200B}}end", "é".repeat(700)));
+    assert!(!shown.contains("(cut after"));
+    for value in [json!(null), json!(42), json!({"x":"\u{202e}"})] {
+        assert_eq!(supplied_whole("Value", Source::Record, &value), supplied("Value", Source::Record, &value));
+    }
+}

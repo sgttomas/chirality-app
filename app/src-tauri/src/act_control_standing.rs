@@ -177,17 +177,19 @@ fn inline(placed: Placed, extra: &mut Vec<String>) -> String {
         }
     }
 }
-fn id(value: &Value, label: &'static str, extra: &mut Vec<String>) -> String {
-    inline(
-        nt::identifier(
+fn id(value: &Value, label: &'static str, extra: &mut Vec<String>, whole: bool) -> String {
+    let placed = nt::identifier(
             value,
             Unfit::Supplied {
                 label,
                 source: Source::Record,
             },
-        ),
-        extra,
-    )
+        );
+    let placed = match placed {
+        Placed::Lines(_) if whole => Placed::Lines(nt::supplied_whole(label, Source::Record, value)),
+        placed => placed,
+    };
+    inline(placed, extra)
 }
 fn time(value: &Value) -> String {
     inline(
@@ -199,9 +201,15 @@ fn time(value: &Value) -> String {
     )
 }
 pub(super) fn line(standing: &Value) -> Vec<String> {
+    standing_line(standing, false)
+}
+pub(super) fn line_whole(standing: &Value) -> Vec<String> {
+    standing_line(standing, true)
+}
+fn standing_line(standing: &Value, whole: bool) -> Vec<String> {
     let mut extra = Vec::new();
     let words = match standing["form"].as_str() {
-        Some("decided") => format!("A decision on this request is already recorded: alternative {}, recorded at {}. Deciding again records another decision; both are kept.", id(&standing["alternative"], "Recorded alternative", &mut extra), time(&standing["recordedAt"])),
+        Some("decided") => format!("A decision on this request is already recorded: alternative {}, recorded at {}. Deciding again records another decision; both are kept.", id(&standing["alternative"], "Recorded alternative", &mut extra, whole), time(&standing["recordedAt"])),
         Some("several-unordered") => "Several decisions on this request are recorded, and the records do not establish which stands. Deciding again records another decision; all are kept.".into(),
         Some("none-recorded") => "No decision on this request is recorded.".into(),
         _ => {
@@ -211,16 +219,16 @@ pub(super) fn line(standing: &Value) -> Vec<String> {
     };
     [vec![words], extra].concat()
 }
-pub(super) fn other_line(row: &Value) -> Vec<String> {
+fn other_line(row: &Value, whole: bool) -> Vec<String> {
     let mut extra = Vec::new();
     let prefix = match row["relation"].as_str() {
         Some("earlier") => "An earlier request",
         Some("later") => "A later request",
         _ => "Another request",
     };
-    let reference = id(&row["requestRef"], "Other request", &mut extra);
+    let reference = id(&row["requestRef"], "Other request", &mut extra, whole);
     let mut words = match row["form"].as_str() {
-        Some("decided") => format!("{prefix} for the file at this path has a recorded decision: alternative {}, recorded at {} (request {reference}).", id(&row["alternative"], "Recorded alternative", &mut extra), time(&row["recordedAt"])),
+        Some("decided") => format!("{prefix} for the file at this path has a recorded decision: alternative {}, recorded at {} (request {reference}).", id(&row["alternative"], "Recorded alternative", &mut extra, whole), time(&row["recordedAt"])),
         Some("several-unordered") => format!("{prefix} for the file at this path: decisions recorded, order not established (request {reference})."),
         Some("none-recorded") => format!("{prefix} for the file at this path: no decision recorded (request {reference})."),
         _ => {
@@ -234,6 +242,12 @@ pub(super) fn other_line(row: &Value) -> Vec<String> {
     [vec![words], extra].concat()
 }
 pub(super) fn other_lines(other: &Value, limit: usize) -> Vec<String> {
+    limited_other_lines(other, limit, false)
+}
+pub(super) fn other_lines_uncut(other: &Value, limit: usize) -> Vec<String> {
+    limited_other_lines(other, limit, true)
+}
+fn limited_other_lines(other: &Value, limit: usize, whole: bool) -> Vec<String> {
     let mut out = Vec::new();
     if other["state"] != "read-whole" {
         out.push("Other requests for the file at this path could not all be read.".into());
@@ -249,11 +263,23 @@ pub(super) fn other_lines(other: &Value, limit: usize) -> Vec<String> {
         decided.into_iter().take(limit).collect()
     };
     for row in &selected {
-        out.extend(other_line(row));
+        out.extend(other_line(row, whole));
     }
     let left = rows.len() - selected.len();
     if left > 0 {
         out.push(format!("and {left} more, shown in the App"));
+    }
+    out
+}
+
+/// The App counterpart retains every row and every marked value without alert cuts.
+pub(super) fn other_lines_whole(other: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    if other["state"] != "read-whole" {
+        out.push("Other requests for the file at this path could not all be read.".into());
+    }
+    for row in other["rows"].as_array().map(Vec::as_slice).unwrap_or_default() {
+        out.extend(other_line(row, true));
     }
     out
 }
@@ -304,7 +330,7 @@ pub(crate) fn shown_statement_binding(root: &Path, body: &Value) -> Value {
         Ok(capture)
     };
     let Ok(capture) = read() else {
-        return json!({"state":"unavailable","statement":"Whether what was shown is bound in this capture could not be established."});
+        return json!({"state":"not-bound","statement":"Whether what was shown is bound in this capture could not be established."});
     };
     let Some(digest) = capture.get("shownStatement") else {
         return json!({"state":"not-bound","statement":"What was shown is not bound in this capture."});
