@@ -832,7 +832,7 @@ fn f2_different_content_wording_requires_two_comparable_recorded_identities() {
 }
 
 #[test]
-fn f2_fitting_fallback_freezes_and_captures_but_an_oversized_summary_does_neither() {
+fn f2_fitting_fallback_freezes_and_captures_and_a_long_recorded_own_alternative_presents_too() {
     let actor = person(Some("Invented"), Some("invented"));
     {
         let f = Fixture::fallback();
@@ -858,17 +858,18 @@ fn f2_fitting_fallback_freezes_and_captures_but_an_oversized_summary_does_neithe
         assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "decided");
         let log = storage::project_file(&f.root, LOG).unwrap();
         let before = std::fs::read(&log).unwrap();
-        let error = c.confirmation_statement(&id, "ALT-2", &actor).err().expect("fallback-bound pair: withdrawn");
-        assert!(error.contains("exceeds the readable native confirmation"), "{error}");
-        let slot = &c.offers[&id];
-        assert!(slot.selected.is_none() && slot.frozen_offer.is_none() && slot.frozen_actor.is_none() && slot.frozen_statement.is_none());
-        assert!(c.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor.clone()).unwrap_err().contains("not presented"));
-        // Even a direct attempt to mark the rejected offer Presented cannot supply its
-        // absent frozen facts. No native capture or act record can follow this refusal.
+        // This input once overflowed every summary and was refused. The own standing is now
+        // closed words in the summary and the whole marked alternative is in the App, so it
+        // presents, freezes and captures; no real input still reaches the summary refusal.
+        let statement = c.confirmation_statement(&id, "ALT-2", &actor).expect("a long recorded own alternative presents");
+        assert!(statement.in_app.is_some());
+        assert!(statement.text.contains("an alternative shown in the App"), "{}", statement.text);
+        assert!(!statement.text.contains('\u{202e}') && !statement.text.contains('\u{200b}'));
+        assert_eq!(c.offers[&id].frozen_statement.as_deref(), Some(statement.text.as_str()));
         c.present(&id).unwrap();
-        assert!(c.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor).unwrap_err().contains("differs from the frozen native confirmation"));
-        assert!(c.native_captures.is_empty());
-        assert_eq!(std::fs::read(log).unwrap(), before);
+        let result = c.confirm_shown(&id, "ALT-2", actor, &statement.text).unwrap();
+        assert_eq!(result["state"], "AC-7 recorded");
+        assert_ne!(std::fs::read(log).unwrap(), before);
     }
 }
 
@@ -947,4 +948,30 @@ fn f2_fallback_exact_text_frozen_choice_and_stale_presentation_require_their_evi
         c.present(fresh_id).unwrap();
         assert_eq!(c.confirm_shown(fresh_id, "ALT-1", actor, &statement.text).unwrap()["state"], "AC-7 recorded");
     }
+}
+
+#[test]
+fn a_long_marked_own_recorded_alternative_moves_to_the_app_instead_of_refusing() {
+    let f = Fixture::new();
+    let (c, id) = f.compose();
+    let actor = person(Some("Invented-person"), Some("invented"));
+    let mut offer = c.offers[&id].offer.clone();
+    let alternative = offer["alternatives"][0]["id"].as_str().unwrap().to_owned();
+    // Permitted: a plain recorded alternative stays on the native summary itself.
+    offer["packageStanding"] = json!({"form":"decided","alternative":"ALT-2","recordedAt":"2026-11-14T12:00:00Z"});
+    offer["purpose"] = json!("p".repeat(1400));
+    let plain = a16_statement(&offer, &alternative, &actor).unwrap();
+    assert!(plain.in_app.is_some());
+    assert!(plain.text.contains("A decision on this request is already recorded: alternative ALT-2, recorded at 2026-11-14T12:00:00Z."), "{}", plain.text);
+    // Spoiled: 700 direction overrides mark to far more than the alert bound. Before, every
+    // fallback summary kept that marked value and the act was refused; now it moves wholly
+    // into the App content and the summary names it there in closed words.
+    let poison = "\u{202E}".repeat(700);
+    offer["packageStanding"] = json!({"form":"decided","alternative":poison,"recordedAt":"2026-11-14T12:00:00Z"});
+    let moved = a16_statement(&offer, &alternative, &actor).expect("a long recorded alternative must not refuse the act");
+    assert!(moved.text.contains("A decision on this request is already recorded: an alternative shown in the App, recorded at 2026-11-14T12:00:00Z."), "{}", moved.text);
+    assert!(!moved.text.contains("\\u{202E}") && !moved.text.contains('\u{202E}'));
+    let full = moved.in_app.as_ref().unwrap().content["markedStatement"].as_str().unwrap();
+    assert_eq!(full.matches("\\u{202E}").count(), 700, "the whole marked value is in the App");
+    assert!(native_statement::bounded("A16", moved.text).is_ok());
 }

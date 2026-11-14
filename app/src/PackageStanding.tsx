@@ -28,7 +28,7 @@ export function otherRequestLine(row: Other): string {
   switch (row.form) {
     case "decided": line = `${prefix} for the file at this path has a recorded decision: alternative ${identifier(row.alternative)}, recorded at ${time(row.recordedAt)} (request ${ref}).`; break;
     case "several-unordered": line = `${prefix} for the file at this path: decisions recorded, order not established (request ${ref}).`; break;
-    case "none-recorded": line = `${prefix} for the file at this path: no decision recorded (request ${ref}).`; break;
+    case "none-recorded": line = `${prefix} for the file at this path: no decision in the records as read (request ${ref}).`; break;
     default: line = `${prefix} for the file at this path: standing not known: ${cause(row.cause)} (request ${ref}).`;
   }
   return line + (row.differentContent === true ? " It was made on different content." : "");

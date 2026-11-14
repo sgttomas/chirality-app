@@ -121,11 +121,12 @@ fn a16_statement(offer: &Value, alternative: &str, actor: &Value) -> Result<nati
     let content = json!({"markedStatement":a16_lines(offer, alternative, actor, true, true)?});
     let digest = native_statement::content_digest("A16 native confirmation", &content)?;
     let mut failure = String::new();
-    // Down to no rows: a long recorded value never refuses the act; every row is whole in the App.
+    // Down to no rows, with the own standing in closed words only: a long recorded value
+    // moves wholly into the App content instead of refusing the act.
     for limit in (0..=3).rev() {
         let mut summary = vec!["Decide (A16)".into(), String::new(),
             "Package file, content identity, purpose and scope: shown in the App.".into()];
-        summary.extend(package_standing::line(&offer["packageStanding"]));
+        summary.extend(package_standing::line_summary(&offer["packageStanding"]));
         summary.extend(package_standing::other_lines(&offer["otherRequestsForPath"], limit));
         summary.push("The complete marked statement has moved to the App, shown in full now under \"Content named by an open native confirmation\"; any values cut here are whole there. Its sha-256 digest:".into());
         summary.push(digest.clone());

@@ -201,15 +201,27 @@ fn time(value: &Value) -> String {
     )
 }
 pub(super) fn line(standing: &Value) -> Vec<String> {
-    standing_line(standing, false)
+    standing_line(standing, false, false)
 }
 pub(super) fn line_whole(standing: &Value) -> Vec<String> {
-    standing_line(standing, true)
+    standing_line(standing, true, false)
 }
-fn standing_line(standing: &Value, whole: bool) -> Vec<String> {
+/// The fallback summary's form: closed words only. A recorded alternative that is not a
+/// plain identifier is named as shown in the App, where its whole marked value is.
+pub(super) fn line_summary(standing: &Value) -> Vec<String> {
+    standing_line(standing, false, true)
+}
+fn standing_line(standing: &Value, whole: bool, summary: bool) -> Vec<String> {
     let mut extra = Vec::new();
     let words = match standing["form"].as_str() {
-        Some("decided") => format!("A decision on this request is already recorded: alternative {}, recorded at {}. Deciding again records another decision; both are kept.", id(&standing["alternative"], "Recorded alternative", &mut extra, whole), time(&standing["recordedAt"])),
+        Some("decided") => {
+            let alternative = match nt::identifier(&standing["alternative"], Unfit::Withhold("")) {
+                Placed::Inline(closed) if summary && !closed.as_str().is_empty() => format!("alternative {closed}"),
+                _ if summary => "an alternative shown in the App".into(),
+                _ => format!("alternative {}", id(&standing["alternative"], "Recorded alternative", &mut extra, whole)),
+            };
+            format!("A decision on this request is already recorded: {alternative}, recorded at {}. Deciding again records another decision; both are kept.", time(&standing["recordedAt"]))
+        }
         Some("several-unordered") => "Several decisions on this request are recorded, and the records do not establish which stands. Deciding again records another decision; all are kept.".into(),
         Some("none-recorded") => "No decision on this request is in the records as read; the log is not signed, so a removed entry would not show.".into(),
         _ => {
@@ -230,7 +242,7 @@ fn other_line(row: &Value, whole: bool) -> Vec<String> {
     let mut words = match row["form"].as_str() {
         Some("decided") => format!("{prefix} for the file at this path has a recorded decision: alternative {}, recorded at {} (request {reference}).", id(&row["alternative"], "Recorded alternative", &mut extra, whole), time(&row["recordedAt"])),
         Some("several-unordered") => format!("{prefix} for the file at this path: decisions recorded, order not established (request {reference})."),
-        Some("none-recorded") => format!("{prefix} for the file at this path: no decision recorded (request {reference})."),
+        Some("none-recorded") => format!("{prefix} for the file at this path: no decision in the records as read (request {reference})."),
         _ => {
             let cause = row["cause"].as_str().filter(|c| CAUSES.contains(c)).unwrap_or(CAUSES[4]);
             format!("{prefix} for the file at this path: standing not known: {cause} (request {reference}).")
