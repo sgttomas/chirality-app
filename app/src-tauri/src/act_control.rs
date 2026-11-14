@@ -852,10 +852,11 @@ pub(crate) mod native_statement {
     /// person cannot confirm; this is where that is found, not by a reader.
     ///
     /// The limit (`MAX_CHARS`, `MAX_LINES`) protects what a person can read in
-    /// one native sheet before they confirm an act. The worst cases sit about
-    /// 18 characters under it (Restart asked again, 1,482; Quit across three
-    /// homes asked again, 1,481; with a spawn counter at its type's largest
-    /// value). A change that fails this test must shorten
+    /// one native sheet before they confirm an act. The sheet is shown to fit
+    /// for up to 99,999 items of each kind (`ITEMS`), with a spawn counter at
+    /// its type's largest value; the worst cases are Restart asked again and
+    /// Quit across three homes asked again. Past that bound the question is
+    /// refused whole, never cut short. A change that fails this test must shorten
     /// the question's text; it must not raise the limit, which is tunable only
     /// after a native look at the sheet.
     #[cfg(test)]
@@ -873,19 +874,25 @@ pub(crate) mod native_statement {
             json!({"appSession": crate::util::opaque_id("app-session:").unwrap(), "home": crate::util::opaque_id("home-").unwrap(), "spawnCounter": u64::MAX})
         }
         /// More items than any alert holds, so only the fallback can be shown.
-        fn work(g: &Value) -> Value {
-            let id = |p: &str, i: usize| format!("{p}-{i}-{}", "f".repeat(36));
+        /// The bound the sheet is shown to hold for: up to this many items of
+        /// each kind (each list, and the workflow runs). Past it the question
+        /// is refused whole (`bounded`): nothing is presented, captured or sent.
+        const ITEMS: usize = 99_999;
+        /// The counts lines read only each list's length, so the rows are
+        /// placeholders: the longest counts, not the longest rows, are tested.
+        fn work(_g: &Value) -> Value {
+            let rows = || Value::Array(vec![Value::Null; ITEMS]);
             json!({
-                "observedLiveTurns": (0..40).map(|i| json!({"generation": g, "threadId": id("thread", i), "turnId": id("turn", i), "status": "inProgress"})).collect::<Vec<_>>(),
-                "observedUnansweredTurnStarts": (0..40).map(|i| json!({"threadId": id("thread", i), "requestIdentity": u64::MAX - i as u64})).collect::<Vec<_>>(),
-                "observedOutstandingRequests": (0..40).map(|i| json!({"method": "item/tool/requestUserInput", "requestIdentity": i, "threadId": id("thread", i)})).collect::<Vec<_>>(),
-                "observedActiveChildren": (0..40).map(|i| json!({"threadId": id("child", i), "parentThreadId": id("thread", i), "reportedStatus": "running"})).collect::<Vec<_>>(),
-                "knownChildActivityUnknown": (0..40).map(|i| json!({"threadId": id("child-u", i), "parentThreadId": id("thread", i)})).collect::<Vec<_>>(),
-                "coverage": {"turns": {"unresolved": (0..40).map(|i| json!({"threadId": id("thread", i), "turnId": id("turn", i)})).collect::<Vec<_>>()}},
+                "observedLiveTurns": rows(),
+                "observedUnansweredTurnStarts": rows(),
+                "observedOutstandingRequests": rows(),
+                "observedActiveChildren": rows(),
+                "knownChildActivityUnknown": rows(),
+                "coverage": {"turns": {"unresolved": rows()}},
             })
         }
         fn runs() -> Value {
-            json!((0..40).map(|i| json!({"workflow": {"name": "w".repeat(60)}, "run": format!("run-{i}"), "conversation": format!("thread-{i}"), "state": "open"})).collect::<Vec<_>>())
+            Value::Array(vec![json!({"workflow": {"name": "w".repeat(60)}, "run": "run-1", "conversation": "thread-1", "state": "open"}); ITEMS])
         }
         fn fits(question: &str, built: Result<NativeStatement, String>) {
             match built {
