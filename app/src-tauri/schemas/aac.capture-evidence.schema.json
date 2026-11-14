@@ -434,7 +434,7 @@
           "pattern": "^[0-9a-f]{64}$"
         }
       },
-      "description": "SHA-256 of the UTF-8 bytes of the exact statement string handed to the native A16 confirmation, after native_text marking, frozen at presentation. It does not establish that macOS displayed those bytes or that the person read them."
+      "description": "SHA-256 of the UTF-8 bytes of the exact statement string handed to the native A16 confirmation, after native_text marking, frozen at presentation. It does not establish that macOS displayed those bytes or that the person read them. The native A16 capture stores this digest unsealed. Its chained human_act record cites only the capture ID and contains neither this digest nor a hash of the capture file. The records chain does not protect shownStatement or any other capture field; an edited unsealed digest still reads bound. The digest does not authenticate the capture's writer."
     }
   },
   "allOf": [

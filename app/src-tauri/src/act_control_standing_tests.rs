@@ -266,12 +266,16 @@ fn shown_statement_is_native_capture_evidence_and_the_reader_requires_it() {
     );
     let mut changed = capture.clone();
     changed["shownStatement"]["value"] = json!("0".repeat(64));
+    let log = storage::project_file(&f.root, LOG).unwrap();
+    let record_bytes = std::fs::read(&log).unwrap();
     std::fs::write(&path, serde_json::to_vec(&changed).unwrap()).unwrap();
-    assert_eq!(
-        crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"]
-            ["state"],
-        "bound"
-    );
+    let binding = crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"].clone();
+    assert_eq!(binding["state"], "bound");
+    assert_eq!(binding["digest"], changed["shownStatement"]);
+    assert_eq!(std::fs::read(&log).unwrap(), record_bytes);
+    let words = binding["statement"].as_str().unwrap();
+    assert!(words.contains("The records chain does not protect any capture field"));
+    assert!(words.contains("an edited unsealed digest still reads bound"));
     // An unsealed digest does not authenticate its writer or detect an edited digest.
     // If a capture does carry a seal, its evidence must still check before reporting bound.
     crate::capture_seal::seal(&f.root, &mut changed).unwrap();

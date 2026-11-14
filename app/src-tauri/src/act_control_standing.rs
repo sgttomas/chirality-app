@@ -286,6 +286,7 @@ pub(super) fn other_lines_whole(other: &Value) -> Vec<String> {
 
 /// One account of A16 shown-statement evidence, shared by the decision reader and capture
 /// reconciliation. A digest's presence is not agreement with any reconstructed statement.
+/// The record chain covers the record's capture ID, not this separate file or its digest.
 pub(crate) fn shown_statement_binding(root: &Path, body: &Value) -> Value {
     let read = || -> Result<Value, String> {
         let refs = body["captureEvidence"]
@@ -340,5 +341,5 @@ pub(crate) fn shown_statement_binding(root: &Path, body: &Value) -> Value {
     if capture.get("seal").is_some() && crate::capture_seal::verify(root, &capture).is_err() {
         return json!({"state":"not-bound","statement":"A statement digest is recorded, but this capture's seal could not be checked; what was shown is not bound here."});
     }
-    json!({"state":"bound","digest":digest,"statement":"What was shown is bound by this capture's statement digest. This does not establish who wrote the capture, that macOS displayed those bytes or that the person read them."})
+    json!({"state":"bound","digest":digest,"statement":"What was shown is bound by the statement digest stored in this capture. The chained human_act record cites only the capture ID, carrying neither that digest nor a hash of the capture file. The records chain does not protect any capture field; an edited unsealed digest still reads bound. This does not establish who wrote the capture, that macOS displayed those bytes or that the person read them."})
 }
