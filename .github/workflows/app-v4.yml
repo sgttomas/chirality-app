@@ -342,6 +342,10 @@ jobs:
           python3 -B -m unittest discover -s ../app/examination/native_support -p 'test_native_sheet_cancel.py'
           python3 -B -m unittest discover -s ../app/examination/native_support -p 'test_native_attended*.py'
           node ../app/examination/native_support/test_native_attended_manager.cjs
+      - name: Sandbox and approval settings at the pin (pinned supplier, loopback stub, no model)
+        env:
+          LEVEL_SCRATCH: ${{ runner.temp }}
+        run: python3 supplier_checks/level/test_level_live.py
       - name: Full Rust suite
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
       - name: Standalone terminal identity and connected static packaging
