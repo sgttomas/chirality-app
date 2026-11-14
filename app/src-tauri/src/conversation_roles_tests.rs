@@ -44,6 +44,7 @@ for line in sys.stdin:
   # The account home's Codex reports its session setting's provider unless a fixture file names another.
   provider=open('reported-provider').read().strip() if os.path.exists('reported-provider') else 'openai'
   emit({'id':f['id'],'result':{'config':{'model_provider':provider,'model_providers':{}},'origins':{}}});continue
+ if m=='experimentalFeature/list': emit({'id':f['id'],'result':{'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}});continue
  if m=='thread/start':
   n['start']+=1;result(f,settled(thread('thread' if n['start']==1 else 'thread-%d'%n['start'])),'start');continue
  if m=='thread/fork':
