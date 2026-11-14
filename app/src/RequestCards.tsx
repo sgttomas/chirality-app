@@ -564,20 +564,30 @@ export type WaitingRequestGroup = { modeHomeClass: string; generation: Json; thr
 /** WI-1…WI-3: local all-home metadata only; opening revalidates its native
  * source. It sits inside "Waiting on you" (WaitingOnYou.tsx), whose line holds
  * the one count; this part gives no total of its own, only each group's count. */
-export function WaitingRequestsIndicator({ overview, view, busy = false, open }: { overview: Json; view?: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void }) {
+/** The waiting overview by home and conversation. With `lastRead` (the time of the read that gave it, in
+ * the App's words), the overview is a failed read's last successful one: everything in it, its heading,
+ * its counts and its offers, is presented as last read, with its current state unknown, never as waiting now. */
+export function WaitingRequestsIndicator({ overview, view, busy = false, open, lastRead }: { overview: Json; view?: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void; lastRead?: string }) {
   const available = Array.isArray(overview?.groups);
   const waiting: WaitingRequestGroup[] = available ? overview.groups : [];
   const total = waiting.reduce((sum, row) => sum + row.count, 0);
-  return <section aria-label="Requests waiting for your answer" className="waiting-requests-by-home">
-    <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : "Requests from Codex waiting for your answer, by home and conversation"}</b>
+  const past = lastRead !== undefined;
+  const heading = past
+    ? !available ? `Request overview as last read at ${lastRead}: unavailable then.`
+      : total === 0 ? `Request overview as last read at ${lastRead}: no requests were observed then in configured homes; the current state is unknown.`
+      : `Requests from Codex by home and conversation, as last read at ${lastRead}; the current state is unknown, and these counts may be out of date.`
+    : !available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : "Requests from Codex waiting for your answer, by home and conversation";
+  return <section aria-label={past ? "Requests from Codex as last read" : "Requests waiting for your answer"} className="waiting-requests-by-home">
+    <b>{heading}</b>
     {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
       {/* A control carries only the App's words: a thread id stands in it only when it is a plain identifier. */}
-      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${row.threadId}` : "a conversation (its identity is shown beside)"}: {row.count}</button>
+      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${row.threadId}` : "a conversation (its identity is shown beside)"}: {row.count}{past ? " at that read" : ""}</button>
       {row.threadId && !plainId(row.threadId) && <> <AgentText value={row.threadId} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>}
       {" "}<AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.
       <small> Source: {JSON.stringify(row.generation)}.</small>
     </div>)}
-    {available && <p><small>{overview.coverage} {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json) => `${source.modeHomeClass}: ${source.state}; no current waiting groups shown. `).join("")}</small></p>}
-    {total > 0 && <small> Opening shows the original home's request cards; it answers nothing and resumes no conversation.</small>}
+    {available && <p><small>{past ? "At that read: " : ""}{overview.coverage} {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json) => past ? `${source.modeHomeClass}: ${source.state} at that read; no groups shown for it. ` : `${source.modeHomeClass}: ${source.state}; no current waiting groups shown. `).join("")}</small></p>}
+    {total > 0 && <small>{past ? " Opening checks that home and conversation again and shows the original home's request cards as they are now; it answers nothing and resumes no conversation."
+      : " Opening shows the original home's request cards; it answers nothing and resumes no conversation."}</small>}
   </section>;
 }

@@ -1490,8 +1490,8 @@ export function App() {
   const [fleetBusy, setFleetBusy] = useState(false);
   // "Waiting on you" keeps its own last good fleet packet, with when its read
   // started, and whether a later read of any route failed (and when it
-  // started): a failed read never removes a return the list showed, the list
-  // keeps it as last seen. The panel keeps its own behaviour. A read started
+  // started): while the latest read has failed, the list shows this last
+  // successful packet as last read, uncounted. The panel keeps its own behaviour. A read started
   // later wins over one that answers late, so an older reply never replaces a
   // newer failed or limited one.
   const [waitingFleet, setWaitingFleet] = useState<{ packet: FleetPacket; at: number } | null>(null);
@@ -1509,7 +1509,7 @@ export function App() {
   // the panel's button are the person's presses and go through `invoke`, so they
   // mark; the timer goes through `invokeTimedRead` (PRESSED_AND_TIMED_READS in
   // hostReads.ts), so a read the App issues by itself never marks. A read that
-  // fails keeps the packet, with its time, and the list shows its returns as last seen.
+  // fails keeps the packet, with its time, and the list shows it as last read, uncounted.
   const readFleetForWaiting = async (route: (command: string) => Promise<FleetPacket>) => {
     const sequence = ++fleetSequence.current; const at = Date.now();
     try { const packet = await readFleetPacket(route); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at }); setFleetError(""); setFleetAutoFailure(null); } }
@@ -2574,7 +2574,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WaitingOnYou readings={waitingReads} overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <div hidden={setupRequired}>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>

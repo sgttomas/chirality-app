@@ -74,7 +74,7 @@ const clock = at => { const d = new Date(at), p = n => String(n).padStart(2, '0'
 const allSources = (over = {}) => ({host:hostView(), hostReadAt:READ_AT - 1000, fleet:fleet(), fleetReadAt:READ_AT, decisions:decisions(), decisionsReadAt:READ_AT + 1000, ...over});
 const allEntries = (over = {}) => waitingModule().waitingEntries(allSources(over));
 const allReadings = (over = {}) => waitingModule().waitingReadings(allSources(over));
-const renderPlace = (readings = allReadings(), extra = {}) => renderToStaticMarkup(React.createElement(waitingModule().WaitingOnYou, {readings, overview:hostView().waitingRequests, view, openGroup:() => {}, go:() => {}, ...extra}));
+const renderPlace = (readings = allReadings(), extra = {}) => renderToStaticMarkup(React.createElement(waitingModule().WaitingOnYou, {readings, view, openGroup:() => {}, go:() => {}, ...extra}));
 const rows = html => [...agentPlain(html).matchAll(/<div class="waiting-on-you-entry" data-waiting-key="[^"]*" data-waiting-source="([^"]*)">([\s\S]*?)<\/div>/g)].map(m => ({source:m[1], text:m[2].replace(/<[^>]+>/g, '')}));
 
 test('the list joins all four sources, one entry per record, grouped by assignment where one exists, otherwise by conversation', () => {
@@ -206,7 +206,7 @@ test('agent text in entries is inside AgentText, and nothing an agent wrote read
   const CONTROL_ROLES = /^(button|link|heading|listitem|menuitem|checkbox|radio|tab|option|switch|textbox|dialog|article)$/;
   const container = document.createElement('div'); document.body.appendChild(container);
   const root = createRoot(container);
-  await React.act(() => root.render(React.createElement(waitingModule().WaitingOnYou, {readings:allReadings(), overview:hostView().waitingRequests, view, openGroup:() => {}, go:() => {}})));
+  await React.act(() => root.render(React.createElement(waitingModule().WaitingOnYou, {readings:allReadings(), view, openGroup:() => {}, go:() => {}})));
   for (const el of container.querySelectorAll(() => true)) {
     const role = el.getAttribute?.('role'); if (role) assert.doesNotMatch(role, CONTROL_ROLES, role);
     const name = el.getAttribute?.('aria-label'); if (name) assert.doesNotMatch(name, /Allow once|<button>|Ada|worker|U-pumps/, name);
@@ -387,7 +387,7 @@ test('decision reads are ordered: an older reply never restores a package a newe
   assert.equal(source.match(/invoke(<[^>]*>)?\("decision_view"\)/g).length, 1, 'one place reads decision_view');
 });
 
-test('a failed manual refresh of the fleet records keeps the returns the list showed, as last seen with their time, and does not count them', async () => {
+test('a failed manual refresh of the fleet records shows its last successful reading as one block, as last read with its time, and does not count it', async () => {
   let fail = false;
   const fleetPacket = () => fail ? Promise.reject(new Error('invented fleet read failure')) : fleet();
   await mountApp(async ({c, run}) => {
@@ -398,10 +398,10 @@ test('a failed manual refresh of the fleet records keeps the returns the list sh
     assert.ok(refreshButton, 'the panel\'s own refresh');
     await React.act(async () => { await props(refreshButton).onClick(); for (let i = 0; i < 8; i++) await Promise.resolve(); });
     const text = place(c).textContent;
-    const lastSeen = c.querySelectorAll(n => n.getAttribute('aria-label') === 'Last seen earlier, not counted')[0];
-    assert.ok(lastSeen && /a return is waiting for review[\s\S]*Last seen waiting at \d\d:\d\d:\d\d; current state unknown\./.test(lastSeen.textContent), 'the unsettled return is still listed, as last seen');
-    assert.match(text, /Returns could not be read at the last attempt\./);
-    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8 observed now \(5 requests from Codex\); status incomplete$/, 'the return last seen is not counted');
+    const lastRead = c.querySelectorAll(n => n.getAttribute('aria-label') === 'As last read, not counted')[0];
+    assert.ok(lastRead && /^Returns, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\.[\s\S]*as last read: a return is waiting for review[\s\S]*As last read at \d\d:\d\d:\d\d; current state unknown\. Returns have no review control in the App yet: it shows the return's record\./.test(lastRead.textContent), 'the last successful fleet reading, as it was');
+    assert.match(text, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. Its last successful reading, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\./);
+    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8 observed now \(5 requests from Codex\); status incomplete$/, 'the last-read return is not counted');
   }, {fleetPacket});
 });
 
@@ -431,10 +431,13 @@ const busy = {reference:'run-1', state:'original run operation pending'};
 
 // [source, case, the change to the established empty reading made through the real input, the reading expected, entries observed in it]
 const STATES = [
-  ['requests', 'Codex not running', withHost(h => { h.state = 'stopped'; }), 'not-read'],
-  ['requests', 'register not given', withHost(h => { delete h.serverRequests; }), 'not-read'],
-  ['requests', 'no generation', withHost(h => { delete h.generation; }), 'not-read'],
-  ['requests', 'the status read was rejected', {hostFailure:'Chirality could not refresh', hostFailedAt:READ_AT + 5000}, 'failed'],
+  ['requests:account', 'Codex not running', withHost(h => { h.state = 'stopped'; }), 'not-read'],
+  ['requests:account', 'register not given', withHost(h => { delete h.serverRequests; }), 'not-read'],
+  ['requests:account', 'no generation', withHost(h => { delete h.generation; }), 'not-read'],
+  // The third reader's finding 5: a generation that is not of the generation's shape is no identity for the register.
+  ['requests:account', 'a wrong-type generation', withHost(h => { h.generation = true; }), 'not-read'],
+  ['requests:account', 'a generation missing a field', withHost(h => { h.generation = {home:'account', appSession:'s1'}; }), 'not-read'],
+  ['requests:account', 'the status read was rejected', {hostFailure:'Chirality could not refresh', hostFailedAt:READ_AT + 5000}, 'failed'],
   ['requests', 'no status read yet', {host:null, hostReadAt:null}, 'not-read'],
   ['other-homes', 'overview not given', withHost(h => { delete h.waitingRequests; }), 'not-read'],
   ['other-homes', 'overview without the active home', withHost(h => { h.waitingRequests.sources = [{modeHomeClass:'api-key', state:'ready'}]; }), 'not-read'],
@@ -489,12 +492,12 @@ test('every state of every source, through the real adapters: no definite count 
   const claims = sources => {
     const readings = waitingReadings(sources);
     const shown = waitingView(readings);
-    const html = renderToStaticMarkup(React.createElement(WaitingOnYou, {readings, overview:null, openGroup:() => {}, go:() => {}}));
+    const html = renderToStaticMarkup(React.createElement(WaitingOnYou, {readings, openGroup:() => {}, go:() => {}}));
     return {readings, shown, line:waitingLine(shown.observed, shown.complete), html};
   };
   // The positive control: an established empty reading of every source (the reader's established empty census among them).
   const base = claims(emptySources());
-  assert.deepEqual(base.readings.map(r => [r.key, r.state]), [['requests', 'whole'], ['hot-runs', 'whole'], ['other-homes', 'whole'], ['home:api-key', 'whole'], ['reopened', 'whole'], ['returns', 'whole'], ['decisions', 'whole']]);
+  assert.deepEqual(base.readings.map(r => [r.key, r.state]), [['requests:account', 'whole'], ['hot-runs', 'whole'], ['other-homes', 'whole'], ['home:api-key', 'whole'], ['reopened', 'whole'], ['returns', 'whole'], ['decisions', 'whole']]);
   assert.equal(base.shown.complete, true);
   assert.equal(base.line, 'Waiting on you: 0');
   assert.match(base.html, /Nothing recorded is waiting on you\./);
@@ -518,6 +521,8 @@ test('every state of every source, through the real adapters: no definite count 
     assert.doesNotMatch(html, /Nothing recorded is waiting on you/, `${key} / ${name}: never "nothing is waiting"`);
     assert.match(html, /status is incomplete:/, `${key} / ${name}`);
     assert.ok(shown.notes.length > 0, `${key} / ${name}: what is not read whole is named`);
+    if (reading.state !== 'whole' && reading.note !== 'reopened-run-not-read') assert.ok(shown.notes.includes(reading.note), `${key} / ${name}: its own row names it`);
+    if (reading.state === 'failed') assert.deepEqual(reading.entries, [], `${key} / ${name}: a failed reading observes nothing now`);
   }
   assert.deepEqual([...sources].sort(), ['decisions', 'home', 'hot-runs', 'other-homes', 'reopened', 'reopened-run', 'requests', 'returns', 'run'], 'every source is walked');
 });
@@ -546,75 +551,95 @@ test('the reopened census: an established empty census is whole; null, an unknow
   assert.doesNotMatch(item[0], /checkpoint|CP-|disposition|waiting for your act/i, 'nothing of its checkpoints is drawn: the host gives none');
 });
 
-test('absence from a reading that is not whole retires nothing; a fresh disposition for that record does; an older whole reading never replaces a newer one', () => {
-  const {waitingReadings, foldWaiting} = waitingModule();
+test('the list keeps no memory: each reading replaces the one before, and what a limited reading leaves out simply is not shown', () => {
+  const {waitingReadings, waitingView} = waitingModule();
   const items = list => list.map(e => e.source + ':' + (e.concerns.package ?? e.concerns.item ?? e.concerns.run ?? e.concerns.threadId));
-  // Two returns and two packages read whole.
   const twoReturns = () => { const p = fleet(); p.workspace.undertakings[0].queue[1] = {...p.workspace.undertakings[0].queue[0], item:'I-9', returnRef:'ret-9'}; return p; };
-  let {memory, view} = foldWaiting({}, waitingReadings(allSources({fleet:twoReturns(), fleetReadAt:READ_AT})));
-  assert.equal(view.complete, true);
-  // Then a limited fleet read records ret-1 reviewed and does not list ret-9; a limited decision read records pkg-1 decided and does not list pkg-3.
+  const first = waitingView(waitingReadings(allSources({fleet:twoReturns(), fleetReadAt:READ_AT})));
+  assert.equal(first.complete, true);
+  assert.deepEqual(items(first.observed).filter(i => i.startsWith('return')), [`return-review:I-7${LOOK}`, 'return-review:I-9']);
+  // A limited fleet read that lists only ret-1, reviewed; a limited decision read that lists only pkg-1, decided.
   const limitedFleet = twoReturns(); limitedFleet.limits = [{source:{}, reason:'invented'}];
   limitedFleet.workspace.undertakings[0].queue = [{...limitedFleet.workspace.undertakings[0].queue[0], state:'reviewed — awaiting integration'}];
   const limitedDecisions = decisions(false); limitedDecisions.limits = ['invented']; limitedDecisions.rows = [decisionRow('pkg-1', 'decided')];
-  ({memory, view} = foldWaiting(memory, waitingReadings(allSources({fleet:limitedFleet, fleetReadAt:READ_AT + 10000, decisions:limitedDecisions, decisionsReadAt:READ_AT + 10000}))));
-  assert.equal(view.complete, false);
-  assert.deepEqual(items(view.lastSeen.map(s => s.entry)), [`return-review:I-9`, 'decision-package:pkg-3'], 'what the partial reading merely leaves out stays, as last seen');
-  assert.ok(!items(view.observed).includes(`return-review:I-7${LOOK}`) && !items(view.lastSeen.map(s => s.entry)).includes(`return-review:I-7${LOOK}`), 'the return the partial reading records reviewed has left');
-  assert.ok(!items(view.lastSeen.map(s => s.entry)).includes('decision-package:pkg-1'), 'the package it records decided has left');
-  assert.deepEqual(view.lastSeen.map(s => s.at), [READ_AT, READ_AT + 1000], 'each with when it was last seen');
-  // A whole fleet read started before the limited one is not taken over it.
-  const older = foldWaiting(memory, waitingReadings(allSources({fleet:twoReturns(), fleetReadAt:READ_AT + 5000, decisions:limitedDecisions, decisionsReadAt:READ_AT + 10000}))).view;
-  assert.equal(older.readings.find(r => r.key === 'returns').state, 'limited', 'the older whole reading does not replace the newer limited one');
-  assert.equal(older.complete, false);
-  // A whole read started later retires what it no longer lists.
-  const later = foldWaiting(memory, waitingReadings(allSources({fleet:emptyFleet(), fleetReadAt:READ_AT + 20000, decisions:emptyDecisions(), decisionsReadAt:READ_AT + 20000}))).view;
-  assert.deepEqual(later.lastSeen, []); assert.equal(later.complete, true);
+  const next = waitingView(waitingReadings(allSources({fleet:limitedFleet, fleetReadAt:READ_AT + 10000, decisions:limitedDecisions, decisionsReadAt:READ_AT + 10000})));
+  assert.equal(next.complete, false);
+  assert.deepEqual(items(next.observed).filter(i => /^(return|decision)/.test(i)), [], 'nothing of either source is observed now, and nothing from the earlier reading is carried');
+  assert.equal(Object.hasOwn(next, 'lastSeen'), false, 'there is no store of entries seen earlier');
+  assert.deepEqual(next.lastReads, [], 'no source failed, so no last-read block');
+  assert.deepEqual(next.coverage.map(row => [row.reading.key, row.reading.state]), [['returns', 'limited'], ['decisions', 'limited']], 'each limited source keeps its row');
+  // The module offers nothing that folds readings over time.
+  const module = waitingModule();
+  for (const gone of ['foldWaiting', 'WaitingMemory']) assert.equal(module[gone], undefined, `${gone} is gone`);
+  const source = readFileSync(new URL('../src/WaitingOnYou.tsx', import.meta.url), 'utf8');
+  for (const gone of ['lastWhole', 'lastSeen', 'settled: string', 'settled: []', 'settled.push', '.settled)', 'useRef', 'WaitingMemory', 'foldWaiting']) assert.ok(!source.includes(gone), `${gone} is gone from the source`);
 });
 
-test('a waiting arrival whose run turns busy stays, as last seen, uncounted, until the run is read again (the mounted App)', async () => {
+test('a waiting arrival whose run turns busy is not shown while the run is not read; the run keeps its row (the mounted App)', async () => {
   await mountApp(async ({c, run:timers, setSnapshot}) => {
     await timers(ms => ms > 1000);   // the fleet is read
     const line = () => nodes(place(c), 'summary')[0].textContent;
-    const lastSeen = () => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Last seen earlier, not counted')[0];
     assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)');
-    // The run's lock is busy: the host gives its placeholder, and no answer was recorded.
+    // The run's lock is busy: the host gives its placeholder.
     setSnapshot(hostView({workflowRoot:{...hostView().workflowRoot, runs:[busy]}})); await timers(ms => ms <= 1000);
     assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete', 'the arrival is not counted, and the count is not definite');
     assert.doesNotMatch(place(c).textContent, /Nothing recorded is waiting on you/);
-    assert.match(place(c).textContent, /The run run-1 could not be read just now \(an operation on it was in progress\), so whether one of its checkpoints waits for your act is not known\./);
-    assert.ok(lastSeen(), 'shown apart');
-    assert.match(lastSeen().textContent, /a checkpoint was reached; your act is not yet recorded[\s\S]*Last seen waiting at \d\d:\d\d:\d\d; current state unknown\.[\s\S]*Go to it \(it may already be settled\)/);
-    // The run is read again and its record shows the act performed: the arrival leaves, and the count is definite again.
+    assert.match(place(c).textContent, /The run run-1 could not be read just now \(an operation on it was in progress\), so whether one of its checkpoints waits for your act is not known\. Checked at \d\d:\d\d:\d\d\./);
+    assert.doesNotMatch(place(c).textContent, /a checkpoint was reached/, 'the arrival is not shown: the run\'s reading that showed it has been replaced');
+    assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'As last read, not counted').length, 0, 'not read is not a failed read: no last-read block');
+    // The run is read again and its record shows the act performed: the count is definite again.
     setSnapshot(hostView({workflowRoot:{...hostView().workflowRoot, runs:[run('performed')]}})); await timers(ms => ms <= 1000);
     assert.equal(line(), 'Waiting on you: 8 (5 requests from Codex)');
-    assert.equal(lastSeen(), undefined);
   });
 });
 
-test('a rejected status poll: requests and runs are last seen with their time and not counted; an older status reply does not stand over the failed read (the mounted App)', async () => {
-  await mountApp(async ({c, run, fire, setSnapshot}) => {
+const lastReadBlocks = c => c.querySelectorAll(n => n.getAttribute('aria-label') === 'As last read, not counted');
+const coverageRow = (c, key) => c.querySelectorAll(n => n.getAttribute('data-waiting-source-key') === key && n.localName === 'p')[0];
+
+test('the third reader\'s first finding: after a failed status read, the nested request overview is drawn as last read, never as waiting now (the mounted App)', async () => {
+  await mountApp(async ({c, calls, run, fire, setSnapshot}) => {
     await run(ms => ms > 1000);
     const line = () => nodes(place(c), 'summary')[0].textContent;
-    const lastSeen = () => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Last seen earlier, not counted')[0];
     assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)');
+    const overviewNow = () => c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests waiting for your answer')[0];
+    assert.match(overviewNow().textContent, /Requests from Codex waiting for your answer/, 'read whole: as now');
     setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);
     assert.equal(line(), 'Waiting on you: 3 observed now; status incomplete', 'only the return and the two decisions, read since, are observed now');
-    assert.match(place(c).textContent, /The App's last read of its own status failed: requests from Codex and workflow runs are shown as last seen, and their current state is unknown\./);
-    const seen = lastSeen().textContent;
-    assert.match(seen, /a question is waiting[\s\S]*Last seen waiting at \d\d:\d\d:\d\d; current state unknown\./);
-    assert.match(seen, /a checkpoint was reached/); assert.match(seen, /in another home/);
+    assert.equal(overviewNow(), undefined, 'nothing in the list says requests are waiting for your answer now');
+    const past = c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests from Codex as last read')[0];
+    assert.ok(past && place(c).contains(past));
+    assert.match(past.textContent, /^Requests from Codex by home and conversation, as last read at \d\d:\d\d:\d\d; the current state is unknown, and these counts may be out of date\./);
+    assert.doesNotMatch(past.textContent, /waiting for your answer|current waiting/);
+    const buttons = nodes(past, 'button').map(b => b.textContent);
+    assert.deepEqual(buttons, ['account · thread T1: 2 at that read', 'api-key · thread K1: 3 at that read'], 'its offers say the counts are from that read');
+    assert.match(past.textContent, /At that read: Invented overview\./);
+    assert.match(past.textContent, /Opening checks that home and conversation again and shows the original home's request cards as they are now/);
+    // Its buttons still revalidate on opening, through the existing navigation.
+    const before = calls.length;
+    await React.act(async () => { props(nodes(past, 'button')[0]).onClick(); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+    assert.deepEqual(calls.slice(before).filter(call => call.command === 'open_waiting_requests').map(call => call.args), [{modeHomeClass:'account', generation:g, threadId:'T1'}], 'opening goes through the navigation that checks the source again');
+    // The requests themselves are one block, as last read, uncounted, bound to the account home.
+    const block = [...lastReadBlocks(c)].find(b => b.getAttribute('data-waiting-source-key') === 'requests:account');
+    assert.ok(block, 'the active home\'s requests, as last read');
+    assert.match(block.textContent, /^Requests from Codex in the account home, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\./);
+    assert.match(block.textContent, /as last read: a question is waiting[\s\S]*Its request card takes an answer only while the request is still outstanding\./);
+    assert.match(coverageRow(c, 'requests:account').textContent, /^Requests from Codex in the account home could not be read at the last attempt: the App's last read of its own status failed\. The read started at \d\d:\d\d:\d\d failed\. Its last successful reading, at \d\d:\d\d:\d\d, is shown below/);
+    const runBlock = [...lastReadBlocks(c)].find(b => b.getAttribute('data-waiting-source-key') === 'run:run-1');
+    assert.match(runBlock.textContent, /as last read: a checkpoint was reached[\s\S]*It may already be settled: the checkpoint act there does not yet refuse an arrival that is no longer waiting\./);
+    const homeBlock = [...lastReadBlocks(c)].find(b => b.getAttribute('data-waiting-source-key') === 'home:api-key');
+    assert.match(homeBlock.textContent, /in another home \(3\)[\s\S]*Opening checks that home again/);
     // Order: a read started earlier and answered after a later read failed does not stand over the failure.
     const held = deferred();
     setSnapshot(held.promise); await fire(ms => ms <= 1000);   // read 1 starts and is held
     setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);   // read 2 fails
     await React.act(async () => { held.resolve(hostView()); for (let i = 0; i < 8; i++) await Promise.resolve(); });
     assert.match(line(), /status incomplete$/, 'the older reply does not make the status whole');
-    // A later read succeeds, with the question answered at its source: it leaves, and the count is definite again.
+    // A later read succeeds, with the question answered at its source: the count is definite again, and the overview is current.
     const answered = hostView(); answered.serverRequests = answered.serverRequests.map(r => r.requestIdentity === 'q1' ? {...r, state:'answered', replyWriteResult:'written'} : r);
     setSnapshot(answered); await run(ms => ms <= 1000);
     assert.equal(line(), 'Waiting on you: 8 (4 requests from Codex)');
-    assert.equal(lastSeen(), undefined);
+    assert.equal(lastReadBlocks(c).length, 0);
+    assert.ok(overviewNow());
   });
 });
 
@@ -635,4 +660,113 @@ test('fleet and decision reads: an older whole reply never replaces a newer fail
     assert.equal(line(), 'Waiting on you: 6 observed now (5 requests from Codex); status incomplete', 'the late whole replies A are not taken');
     assert.match(place(c).textContent, /Returns could not be read at the last attempt\.[\s\S]*Decisions could not be read at the last attempt\./);
   }, {fleetPacket, decisionView});
+});
+
+// ---- The third reader's other transitions, under the decided rule: no memory of entries ----
+const limitedFleetWith = (rows, over = {}) => { const p = fleet(); p.limits = [{source:{path:'fleet/protected'}, reason:'protected source unavailable: invented'}]; p.workspace.undertakings[0].queueComplete = false; p.workspace.undertakings[0].queue = rows; Object.assign(p, over); return p; };
+const unreadableFleet = () => { const p = fleet(); p.limits = [{source:{path:'fleet/coordination.fleet.jsonl'}, reason:'source unreadable: invented'}]; p.coordination.project = {status:'unreadable', complete:false}; p.workspace.undertakings = []; return p; };
+const returnsRow = c => coverageRow(c, 'returns');
+
+test('the third reader\'s second finding: a return first seen in a limited reading is counted as observed now, and leaves when the next limited reading does not hold it; the returns row stays and says the reading may omit items (the mounted App)', async () => {
+  const packets = [limitedFleetWith([fleet().workspace.undertakings[0].queue[0]]), unreadableFleet()]; let n = 0;
+  const fleetPacket = () => packets[Math.min(n++, packets.length - 1)];
+  await mountApp(async ({c, run}) => {
+    const line = () => nodes(place(c), 'summary')[0].textContent;
+    await run(ms => ms > 1000);   // the first, limited, fleet reading
+    assert.equal(line(), 'Waiting on you: 9 observed now (5 requests from Codex); status incomplete', 'the return observed in a limited reading is counted as observed now; the count is not definite');
+    assert.match(place(c).textContent, /a return is waiting for review/);
+    assert.match(returnsRow(c).textContent, /^Returns were read with limits, so more may be waiting for review\. Read at \d\d:\d\d:\d\d with limits: this reading may omit waiting items; what it shows is counted as observed now\. What its reader said it could not read: /);
+    assert.match(returnsRow(c).textContent, /protected source unavailable: invented/, 'the reader\'s limit is shown in the row');
+    await run(ms => ms > 1000);   // the next limited reading holds no rows
+    assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete');
+    assert.doesNotMatch(place(c).textContent, /a return is waiting for review/, 'nothing from the earlier reading is kept: the return has dropped from view');
+    assert.ok(returnsRow(c), 'the returns row stays when its entries disappear');
+    assert.match(returnsRow(c).textContent, /this reading may omit waiting items/);
+    assert.equal(lastReadBlocks(c).length, 0, 'a limited reading is not a failed one');
+  }, {fleetPacket});
+});
+
+test('the third reader\'s third finding: after a change of active home, the old home\'s register is never shown as the new home\'s, and the new home\'s requests are not read until they are (the mounted App)', async () => {
+  const switched = (state = 'ready') => hostView({state, generation:state === 'ready' ? other : null, homeRouting:{activeModeHomeClass:'api-key'}, serverRequests:[],
+    waitingRequests:{groups:[], sources:[{modeHomeClass:'account', state:'stopped'}, {modeHomeClass:'api-key', state:'ready'}], coverage:'Invented overview.'}});
+  await mountApp(async ({c, run, setSnapshot}) => {
+    await run(ms => ms > 1000);
+    const line = () => nodes(place(c), 'summary')[0].textContent;
+    const question = () => /a question is waiting/.test(place(c).textContent);
+    assert.ok(question(), 'the account home\'s question, read whole');
+    // The api-key home is now active and its Codex is not ready yet: its requests are not read, and account's register is not shown under it.
+    setSnapshot(switched('starting')); await run(ms => ms <= 1000);
+    assert.ok(!question(), 'the account home\'s question is not relabelled as the api-key home\'s');
+    assert.match(coverageRow(c, 'requests:api-key').textContent, /^Requests from Codex in the api-key home are not read while Codex is not running\. Checked at \d\d:\d\d:\d\d\./);
+    assert.match(coverageRow(c, 'home:account').textContent, /^Requests in the account home are not read \(stopped\)\./, 'the home left is named as not read');
+    assert.match(place(c).textContent, /The overview of requests from Codex by home is not shown: requests from Codex in the api-key home are not read while Codex is not running\./, 'the nested overview is withheld, with the reason');
+    assert.match(line(), /observed now.*; status incomplete$/);
+    // The api-key home is read whole: empty. Still nothing of account's register.
+    setSnapshot(switched()); await run(ms => ms <= 1000);
+    assert.ok(!question());
+    assert.equal(coverageRow(c, 'requests:api-key'), undefined, 'the api-key home\'s requests are read whole');
+    assert.match(line(), /; status incomplete$/, 'the account home is not read, so no definite count');
+    // The next status read fails: the retained reading is the api-key home's own, which showed nothing; account's question is never shown relabelled.
+    setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);
+    assert.ok(!question());
+    assert.match(coverageRow(c, 'requests:api-key').textContent, /Its last successful reading, at \d\d:\d\d:\d\d, showed nothing waiting; its current state is unknown\./);
+    assert.equal([...lastReadBlocks(c)].filter(b => /^requests/.test(b.getAttribute('data-waiting-source-key'))).length, 0);
+    assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests from Codex as last read')[0].textContent, /as last read at \d\d:\d\d:\d\d: no requests were observed then in configured homes; the current state is unknown\.[\s\S]*account: stopped at that read; no groups shown for it\./);
+  });
+});
+
+test('the third reader\'s fourth finding: a return a limited reading shows reviewed does not come back on the next limited reading (the mounted App)', async () => {
+  const reviewed = {...fleet().workspace.undertakings[0].queue[0], state:'reviewed — awaiting integration'};
+  const packets = [fleet(), limitedFleetWith([reviewed]), unreadableFleet()]; let n = 0;
+  const fleetPacket = () => packets[Math.min(n++, packets.length - 1)];
+  await mountApp(async ({c, run}) => {
+    const line = () => nodes(place(c), 'summary')[0].textContent;
+    const shown = () => /a return is waiting for review/.test(place(c).textContent);
+    await run(ms => ms > 1000);
+    assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)'); assert.ok(shown());
+    await run(ms => ms > 1000);   // limited: the return is recorded reviewed
+    assert.ok(!shown()); assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete');
+    await run(ms => ms > 1000);   // limited again, with no rows
+    assert.ok(!shown(), 'the reviewed return does not reappear: nothing is carried from an earlier reading');
+    assert.equal(lastReadBlocks(c).length, 0);
+    assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete');
+  }, {fleetPacket});
+});
+
+test('the third reader\'s fifth finding: a wrong-type generation makes the requests not read, and no definite count or "nothing is waiting" follows (the mounted App)', async () => {
+  const quiet = (generation) => hostView({generation, serverRequests:[request('q1', 'item/tool/requestUserInput', 'T1')], waitingRequests:{groups:[], sources:[{modeHomeClass:'account', state:'ready'}, {modeHomeClass:'api-key', state:'ready'}], coverage:'Invented overview.'},
+    workflowRoot:{context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:null, libraries:[], selections:[], runs:[], drafts:{drafts:[]}, reopened:emptyCensus()}});
+  let generation = g;
+  await mountApp(async ({c, run, setSnapshot}) => {
+    await run(ms => ms > 1000);
+    const line = () => nodes(place(c), 'summary')[0].textContent;
+    // The permitted case: a valid generation, every source whole: a definite count with the question in it.
+    assert.equal(line(), 'Waiting on you: 1 (1 request from Codex)');
+    // The same register with the generation replaced by `true`, through the status read.
+    generation = true; setSnapshot(quiet(generation)); await run(ms => ms <= 1000);
+    assert.equal(line(), 'Waiting on you: 0 observed now; status incomplete', 'no definite count');
+    assert.doesNotMatch(place(c).textContent, /Nothing recorded is waiting on you/);
+    assert.match(coverageRow(c, 'requests:account').textContent, /^Requests from Codex in the account home are not read: the App's status gave no register with a generation it can use\./);
+  }, {host:() => quiet(generation), fleetPacket:emptyFleet, decisionView:emptyDecisions});
+});
+
+test('a failed read whose last successful reading had limits: one block, uncounted, dated, with its limits, and its entries boxed (the mounted App)', async () => {
+  const packets = [limitedFleetWith([fleet().workspace.undertakings[0].queue[0]]), new Error('invented fleet read failure')]; let n = 0;
+  const fleetPacket = () => { const p = packets[Math.min(n++, packets.length - 1)]; return p instanceof Error ? Promise.reject(p) : p; };
+  await mountApp(async ({c, run}) => {
+    const line = () => nodes(place(c), 'summary')[0].textContent;
+    await run(ms => ms > 1000);
+    assert.equal(line(), 'Waiting on you: 9 observed now (5 requests from Codex); status incomplete');
+    await run(ms => ms > 1000);   // the read fails
+    assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete', 'the last-read return is not counted');
+    const [block] = lastReadBlocks(c);
+    assert.ok(block && block.getAttribute('data-waiting-source-key') === 'returns');
+    assert.match(block.textContent, /^Returns, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\. That reading had limits and may have omitted waiting items\./);
+    assert.match(returnsRow(c).textContent, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. Its last successful reading, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\. That reading had limits and may have omitted waiting items\. What its reader said it could not read: /);
+    // What a reader or a record supplied stays inside a box, never in a control.
+    for (const el of [block, returnsRow(c)]) for (const control of el.querySelectorAll(n => ['a', 'button', 'li', 'summary'].includes(n.localName)))
+      assert.doesNotMatch(control.textContent, /worker agent|U-pumps|protected source/, control.textContent);
+    const boxed = returnsRow(c).querySelectorAll(n => n.getAttribute('role') === 'group' && /agent-text/.test(n.getAttribute('class') ?? ''));
+    assert.ok(boxed.some(box => /protected source unavailable: invented/.test(box.textContent)), 'the limit is in a box');
+  }, {fleetPacket});
 });
