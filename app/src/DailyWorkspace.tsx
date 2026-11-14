@@ -65,29 +65,56 @@ function revealLink(event: MouseEvent<HTMLElement>): void {
 /** A reading of the host snapshot, never a start/admission or model selection. */
 /** Codex states in which no start is under way and Codex is not connected. */
 const NO_START_UNDER_WAY = new Set(["absent", "stopped", "refused", "exited-unexpectedly", "halted-after-repeated-failure"]);
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome }: {
+/**
+ * Why a start of Codex was refused, in the person's words, with what they can do, from the cause the
+ * host chose where it refused the start (`startRefusalCause`) and the build kind. `link` says whether
+ * Connection and access has something for the person to do about it.
+ */
+export function refusedStartWords(cause?: string | null, build?: string | null): { words: string; link: boolean } {
+  switch (cause) {
+    // A mismatch, or a read of the files that failed: the scan records both as a mismatch, so the
+    // words say both, and put a relaunch first.
+    case "changed": return { link: false, words: "The App found that its copy of Codex, or its own files, do not match what this App was built with, or could not read them, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download." };
+    case "unconfirmed": return build === "development"
+      // A version probe that failed once gives this too, so a later attempt can succeed.
+      ? { link: true, words: "This build of the App could not confirm a copy of Codex, so it did not start Codex. Use Start Codex under Connection and access to try again; if it happens again, this build may not include a usable copy of Codex." }
+      : { link: false, words: "The App could not confirm that its copy of Codex is the one it was built with, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download." };
+    case "busy": return { link: true, words: "The App was busy with another step when Codex was due to start, so it did not start it. Use Start Codex under Connection and access to try again." };
+    default: return { link: true, words: "The App did not record why. Connection and access shows Codex's controls." };
+  }
+}
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build }: {
   state?: string; setupRequired?: boolean; savedSetup?: boolean; generationClosed?: boolean;
   /** The host status's `lastStartRefusal`: why the last start of Codex was refused before it was spawned, and for which home. */
   startRefusal?: { reason?: string; home?: string } | null;
   /** The host status's `codexHome`: the home this status is for. */
   codexHome?: string | null;
+  /** The host status's `startRefusalCause` and `build`. */
+  refusalCause?: string | null; build?: string | null;
 }) {
   const ready = state === "ready" && generationClosed !== true;
+  const homeRefusal = !setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome;
+  // A start refused before anything connected is said as not started, never as a lost connection.
+  const refused = !setupRequired && (state === "refused" || homeRefusal);
+  const cause = state === "refused" && !setupRequired && !homeRefusal ? refusedStartWords(refusalCause, build) : null;
   const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
     : !state ? "Reading connection status…" : ready ? "Codex is connected"
     : state === "starting" ? "Codex is starting…" : state === "stopping" ? "Codex is stopping…"
-    : state === "refused" || state === "exited-unexpectedly" ? "Codex could not stay connected"
+    : refused ? "Codex was not started"
+    : state === "exited-unexpectedly" ? "Codex could not stay connected"
     : "Codex is not connected";
+  const linkUseful = !cause || cause.link;
   const guidance = setupRequired ? savedSetup ? "Your saved choices apply on the next launch." : "Choose shared settings and a project below."
     : ready ? "Choose a conversation, or select a model and access entry for a new one."
     : !state ? "Waiting for the App to report its current connection."
-    : "Open Connection & access to inspect the current status and available controls.";
+    : cause ? cause.words
+    : "Open Connection and access to inspect the current status and available controls.";
   return <section className="workspace-connection-status" aria-label="Workspace connection status">
     <p role="status" aria-live="polite"><strong>{title}</strong> <span>{guidance}</span></p>
     {/* Only while no start is under way, and only for the home being shown. */}
-    {!setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome
+    {homeRefusal && startRefusal?.reason
       && <p role="alert" aria-label="Why Codex was not started">{startRefusal.reason.startsWith("Codex was not started") ? startRefusal.reason : `Codex was not started: ${startRefusal.reason}`}</p>}
-    {!setupRequired && state && <a href={ready ? "#workspace-start" : "#workspace-connection"}>{ready ? "Choose a new conversation" : "Open connection controls"}</a>}
+    {!setupRequired && state && linkUseful && <a href={ready ? "#workspace-start" : "#workspace-connection"}>{ready ? "Choose a new conversation" : "Open connection controls"}</a>}
   </section>;
 }
 
