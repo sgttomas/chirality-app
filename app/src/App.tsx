@@ -3,7 +3,7 @@ import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, 
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
-import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, waitingEntries, type WaitingEntry } from "./WaitingOnYou";
+import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, waitingCoverage, waitingEntries, type WaitingEntry } from "./WaitingOnYou";
 import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
@@ -1488,17 +1488,19 @@ export function App() {
   const [fleet, setFleet] = useState<FleetPacket | null>(null);
   const [fleetError, setFleetError] = useState("");
   const [fleetBusy, setFleetBusy] = useState(false);
-  // When the fleet packet shown was read, and whether the last automatic read
-  // failed ("Waiting on you" shows returns "as of" that read). A read started
-  // later wins over one that answers late.
-  const [fleetReadAt, setFleetReadAt] = useState<number | null>(null);
+  // "Waiting on you" keeps its own last good fleet packet, with when it was
+  // read, and whether the last read of any route failed: a failed read never
+  // removes a return the list showed, it says the list is as of the earlier
+  // read. The panel keeps its own behaviour. A read started later wins over one
+  // that answers late.
+  const [waitingFleet, setWaitingFleet] = useState<{ packet: FleetPacket; at: number } | null>(null);
   const [fleetAutoFailure, setFleetAutoFailure] = useState<string | null>(null);
   const fleetSequence = useRef(0);
   const refreshFleet = async () => {
     const sequence = ++fleetSequence.current;
     setFleetBusy(true); setFleetError("");
-    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setFleetReadAt(Date.now()); setFleetAutoFailure(null); } }
-    catch (error) { if (sequence === fleetSequence.current) { setFleet(null); setFleetReadAt(null); setFleetError(String(error)); } }
+    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at: Date.now() }); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) { setFleet(null); setFleetError(String(error)); setFleetAutoFailure(String(error)); } }
     finally { setFleetBusy(false); }
   };
   // The return-review queue is read every WAITING_SOURCE_POLL_MS, each time the
@@ -1509,7 +1511,7 @@ export function App() {
   // fails keeps the packet shown, with its time, and says so.
   const readFleetForWaiting = async (route: (command: string) => Promise<FleetPacket>) => {
     const sequence = ++fleetSequence.current;
-    try { const packet = await readFleetPacket(route); if (sequence === fleetSequence.current) { setFleet(packet); setFleetReadAt(Date.now()); setFleetError(""); setFleetAutoFailure(null); } }
+    try { const packet = await readFleetPacket(route); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at: Date.now() }); setFleetError(""); setFleetAutoFailure(null); } }
     catch (error) { if (sequence === fleetSequence.current) setFleetAutoFailure(String(error)); }
   };
   const readFleetOnOpen = () => readFleetForWaiting(command => invoke<FleetPacket>(command));
@@ -1548,9 +1550,25 @@ export function App() {
     revealWorkspaceTarget("file-acts");
   };
   const [view, setView] = useState<Json>(null);
-  // When the decision packages shown were read ("Waiting on you" shows them "as of" that read).
-  const [decisionsReadAt, setDecisionsReadAt] = useState<number | null>(null);
-  useEffect(() => { if (view && !view.error) setDecisionsReadAt(Date.now()); }, [view]);
+  // "Waiting on you" keeps the last good decision view, with when it was read,
+  // and whether the last read failed. Every path reads decision_view through
+  // readDecisions, numbered when it starts: a reply applies only if no later read
+  // has started, so an older reply never restores a package a newer read showed
+  // decided. `apply` lets a caller drop a reply its own source no longer wants.
+  const [waitingDecisions, setWaitingDecisions] = useState<{ view: Json; at: number } | null>(null);
+  const [decisionsFailure, setDecisionsFailure] = useState<string | null>(null);
+  const decisionSequence = useRef(0);
+  const readDecisions = useCallback(async (apply: () => boolean = () => true) => {
+    const sequence = ++decisionSequence.current;
+    const latest = () => sequence === decisionSequence.current && apply();
+    try {
+      const decision: Json = await invoke("decision_view");
+      if (!latest()) return;
+      setView(decision);
+      if (decision && !decision.error) { setWaitingDecisions({ view: decision, at: Date.now() }); setDecisionsFailure(null); }
+      else setDecisionsFailure(String(decision?.error ?? "no decision view"));
+    } catch (e) { if (latest()) { setView({ error: String(e) }); setDecisionsFailure(String(e)); } }
+  }, []);
   const [offer, setOffer] = useState<Json>(null);
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
@@ -2008,13 +2026,9 @@ export function App() {
   const refresh = useCallback(async () => {
     const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     applyHost(snapshotRead);
-    try {
-      setView(await invoke("decision_view"));
-    } catch (e) {
-      setView({ error: String(e) });
-    }
+    await readDecisions();
     return snapshot;
-  }, []);
+  }, [readDecisions]);
 
   const refreshEffectiveAccessSettings = useCallback(async (isCurrent: () => boolean) => {
     const sourceAtRead = currentHost.current;
@@ -2063,10 +2077,7 @@ export function App() {
       // navigation's last-known source/intent. Shared refresh semantics stay put.
       const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       if (isCurrent()) applyHost(snapshotRead);
-      try {
-        const decision: Json = await invoke("decision_view");
-        if (isCurrent()) setView(decision);
-      } catch (e) { if (isCurrent()) setView({ error: String(e) }); }
+      await readDecisions(isCurrent);
       return snapshot;
     } };
   };
@@ -2089,7 +2100,7 @@ export function App() {
   // timed-read route. A read that fails keeps what is shown, with its time.
   useEffect(() => {
     const t = setInterval(() => {
-      invoke<Json>("decision_view").then(decisions => setView(decisions), () => undefined);
+      void readDecisions();
       void readFleetOnTimer.current();
     }, WAITING_SOURCE_POLL_MS);
     return () => clearInterval(t);
@@ -2526,7 +2537,9 @@ export function App() {
   };
 
   // "Waiting on you": every source's records waiting on the person, and the way to each one's control.
-  const waiting = waitingEntries({ host, fleet, fleetReadAt, decisions: view, decisionsReadAt });
+  const waitingSources = { host, fleet: waitingFleet?.packet ?? null, fleetReadAt: waitingFleet?.at ?? null, decisions: waitingDecisions?.view ?? null, decisionsReadAt: waitingDecisions?.at ?? null };
+  const waiting = waitingEntries(waitingSources);
+  const waitingCover = waitingCoverage({ ...waitingSources, fleetFailure: fleetAutoFailure, decisionsFailure });
   const goToWaiting = (entry: WaitingEntry) => {
     const target = entry.target;
     if (target.kind === "request") { void openRequests(target.group, target.anchor); return; }
@@ -2556,7 +2569,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WaitingOnYou entries={waiting} overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} fleetFailure={fleetAutoFailure} fleetEverRead={fleetReadAt !== null} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        <WaitingOnYou entries={waiting} overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} coverage={waitingCover} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <div hidden={setupRequired}>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>

@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from "react";
-import { AgentText } from "./AgentText";
+import { AgentText, plainId } from "./AgentText";
 import { AskedBy, WaitingRequestsIndicator, answerable, hostRequests, requestAsker, requestThread, type RequestAsker, type WaitingRequestGroup } from "./RequestCards";
 import { requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { runEvidenceAnchor } from "./RunJourney";
@@ -256,25 +256,56 @@ export function waitingGroups(entries: WaitingEntry[]): { group: WaitingGroup; e
   return groups;
 }
 
+/** What the list could not read, so that "nothing is waiting" is said only when every source was read and
+ * is complete. Each note is the App's sentence for one source. */
+export type WaitingCoverage = { complete: boolean; notes: string[] };
+export function waitingCoverage({ host, fleet = null, decisions = null, fleetFailure = null, decisionsFailure = null }: WaitingSources & { fleetFailure?: string | null; decisionsFailure?: string | null }): WaitingCoverage {
+  const notes: string[] = [];
+  if (host?.state !== "ready" || !host?.generation) notes.push("Requests from Codex are not read while Codex is not running.");
+  for (const source of list(host?.waitingRequests?.sources)) if (source?.state !== "ready") notes.push(`Requests in the ${text(source?.modeHomeClass) || "unreported"} home are not read (${text(source?.state) || "state not reported"}).`);
+  if (!host?.workflowRoot) notes.push("Workflow runs have not been read yet.");
+  // A run reopened after the App restarted is read from the project records, which the host gives without its
+  // checkpoints: whether one of its arrivals waits for the person's act is not shown anywhere in the App yet.
+  const reopened = list(host?.workflowRoot?.reopened?.runs).filter((run: Json) => text(run?.state).startsWith("open")
+    && !list(host?.workflowRoot?.runs).some((live: Json) => live?.reference === run?.run)).length;
+  if (reopened > 0) notes.push(`${reopened} run${reopened === 1 ? "" : "s"} reopened after the App restarted: the App does not show their checkpoints, so whether one waits for your act is not shown here or anywhere else in the App yet.`);
+  if (!fleet) notes.push(fleetFailure ? "Returns could not be read, so none are shown." : "Returns have not been read yet.");
+  else {
+    if (fleetFailure) notes.push("Returns could not be read at the last attempt; returns shown are as of the earlier read.");
+    const partial = list(fleet?.workspace?.undertakings).filter((view: Json) => view?.queueComplete !== true).length;
+    if (partial > 0) notes.push(`The return-review queue was read incomplete for ${partial} undertaking${partial === 1 ? "" : "s"}; more returns may be waiting.`);
+  }
+  if (!decisions) notes.push(decisionsFailure ? "Decisions could not be read, so none are shown." : "Decisions have not been read yet.");
+  else if (decisionsFailure) notes.push("Decisions could not be read at the last attempt; decisions shown are as of the earlier read.");
+  return { complete: notes.length === 0, notes };
+}
+
 export const waitingTotal = (entries: WaitingEntry[]) => entries.reduce((sum, entry) => sum + entry.count, 0);
 /** How many of them are requests from Codex, in every home: a part of the same count, never a second one. */
 export const waitingRequestCount = (entries: WaitingEntry[]) => waitingTotal(entries.filter(entry => entry.source === "supplier-request" || entry.source === "waiting-overview"));
-/** The one line: everything waiting, and how many of those are requests from Codex. */
-export function waitingLine(entries: WaitingEntry[]): string {
+/** The one line: everything waiting, and how many of those are requests from Codex. While any source is
+ * unread or incomplete the number carries "+": at least that many. */
+export function waitingLine(entries: WaitingEntry[], complete = true): string {
   const requests = waitingRequestCount(entries);
-  return `Waiting on you: ${waitingTotal(entries)}${requests > 0 ? ` (${requests} request${requests === 1 ? "" : "s"} from Codex)` : ""}`;
+  const parts = [requests > 0 ? `${requests} request${requests === 1 ? "" : "s"} from Codex` : "", complete ? "" : "not every source read"].filter(Boolean);
+  return `Waiting on you: ${waitingTotal(entries)}${complete ? "" : "+"}${parts.length ? ` (${parts.join("; ")})` : ""}`;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
 /** "as of ‹time›" in local hours, minutes and seconds. */
 export const asOfWords = (at: number) => { const d = new Date(at); return `as of ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
 
+/** A conversation's identity in the App's words: as written when it is a plain identifier, else boxed as Codex's text. */
+function Id({ value }: { value: string }) {
+  return plainId(value) !== null ? <code>{value}</code> : <AgentText value={value} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" />;
+}
+
 function GroupLabel({ group }: { group: WaitingGroup }) {
   const label = group.label;
   if (label.kind === "none") return <>No conversation or assignment recorded</>;
   if (label.kind === "assignment") return <>Assignment: undertaking <AgentText value={label.undertaking} label="Undertaking:" name="Undertaking as recorded, not the App's words" />, item <AgentText value={label.item} label="Item:" name="Work item as recorded, not the App's words" /></>;
   const where = label.otherHome ? ` in the ${label.home ?? "unreported"} home` : "";
-  return label.threadId ? <>Conversation <code>{label.threadId}</code>{where}</> : <>No conversation named{where}</>;
+  return label.threadId ? <>Conversation <Id value={label.threadId} />{where}</> : <>No conversation named{where}</>;
 }
 
 function Asker({ asker }: { asker: WaitingAsker }) {
@@ -288,8 +319,8 @@ function Asker({ asker }: { asker: WaitingAsker }) {
 
 function Concerns({ concerns }: { concerns: WaitingConcern }) {
   switch (concerns.kind) {
-    case "conversation": return concerns.threadId ? <>the conversation <code>{concerns.threadId}</code></> : <>no conversation named</>;
-    case "run": return <>the run <code>{concerns.run}</code>{concerns.conversation ? <> in the conversation <code>{concerns.conversation}</code></> : null}</>;
+    case "conversation": return concerns.threadId ? <>the conversation <Id value={concerns.threadId} /></> : <>no conversation named</>;
+    case "run": return <>the run <code>{concerns.run}</code>{concerns.conversation ? <> in the conversation <Id value={concerns.conversation} /></> : null}</>;
     case "assignment": return <>undertaking <AgentText value={concerns.undertaking} label="Undertaking:" name="Undertaking as recorded, not the App's words" />, item <AgentText value={concerns.item} label="Item:" name="Work item as recorded, not the App's words" /></>;
     case "decision-package": return <>the decision package <AgentText value={concerns.package} label="Package:" name="Decision package name as recorded, not the App's words" /></>;
   }
@@ -320,26 +351,24 @@ export function WaitingEntryRow({ entry, go }: { entry: WaitingEntry; go: (entry
 }
 
 /** The place: one line, "Waiting on you: N", that opens to the list. */
-export function WaitingOnYou({ entries, overview, view, busy = false, openGroup, go, onOpen, fleetFailure = null, fleetEverRead = false }: {
+export function WaitingOnYou({ entries, overview, view, busy = false, openGroup, go, onOpen, coverage = { complete: true, notes: [] } }: {
   entries: WaitingEntry[]; overview: Json; view?: Json; busy?: boolean; openGroup: (group: WaitingRequestGroup) => void; go: (entry: WaitingEntry) => void;
   /** Called each time the person opens the list: the App reads the return-review queue then. */
   onOpen?: () => void;
-  /** The last read of the return-review queue failed. */
-  fleetFailure?: string | null;
-  /** Whether any read of the return-review queue has succeeded, so that returns shown are as of it. */
-  fleetEverRead?: boolean;
+  /** What could not be read: "nothing is waiting" is said only when every source was read and is complete. */
+  coverage?: WaitingCoverage;
 }) {
   const total = waitingTotal(entries);
   return <section className="waiting-on-you" aria-label="Waiting on you">
     <details id="waiting-on-you" onToggle={event => { if ((event.currentTarget as HTMLDetailsElement).open) onOpen?.(); }}>
-      <summary><span role="status" aria-live="polite">{waitingLine(entries)}</span></summary>
+      <summary><span role="status" aria-live="polite">{waitingLine(entries, coverage.complete)}</span></summary>
       <div className="waiting-on-you-list">
-        {total === 0 && <p>Nothing recorded is waiting on you.</p>}
+        {total === 0 && (coverage.complete ? <p>Nothing recorded is waiting on you.</p> : <p>Nothing is listed, but not every source has been read:</p>)}
+        {coverage.notes.length > 0 && <ul aria-label="What this list could not read">{coverage.notes.map((note, i) => <li key={i}>{note}</li>)}</ul>}
         {waitingGroups(entries).map(({ group, entries }) => <div key={group.key} className="waiting-on-you-group" role="group" aria-label="Entries of one conversation or assignment">
           <p className="waiting-on-you-group-label"><GroupLabel group={group} /></p>
           {entries.map(entry => <WaitingEntryRow key={entry.key} entry={entry} go={go} />)}
         </div>)}
-        {fleetFailure && <p role="note">{fleetEverRead ? "Returns could not be read at the last attempt; returns shown are as of the earlier read." : "Returns could not be read, so none are shown."}</p>}
         <WaitingRequestsIndicator overview={overview} view={view} busy={busy} open={openGroup} />
         <p><small>Each entry is its source's own record and leaves when that source records the answer. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control, which checks that the record is still current. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>

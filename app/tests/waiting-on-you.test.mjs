@@ -236,8 +236,10 @@ async function mountApp(check, {host = hostView, fleetPacket = fleet, decisionVi
   const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args});
     if (command === 'host_status') return structuredClone(snapshot);
-    if (command === 'decision_view') return structuredClone(decisionView());
-    if (command === 'read_fleet_records') return structuredClone(fleetPacket());
+    // A source may answer later (a promise the test settles) or fail.
+    const reply = value => value instanceof Promise ? value.then(v => structuredClone(v)) : structuredClone(value);
+    if (command === 'decision_view') return reply(decisionView());
+    if (command === 'read_fleet_records') return reply(fleetPacket());
     if (command === 'native_confirmation_content') return [];
     if (command === 'host_observe') return {sourceUnavailable:true, error:'Invented fixture replays no observer frames', frames:[]};
     if (command === 'open_waiting_requests') return {modeHomeClass:args.modeHomeClass, generation:args.generation, threadId:args.threadId, threadLoaded:true, standing:'invented'};
@@ -268,7 +270,7 @@ test('the place is present on every view, directly under the navigation, inside 
       const here = place(c);
       assert.ok(here, `${item.label}: the place is in the document`);
       assert.ok(shownIn(here, c), `${item.label}: the place is shown`);
-      assert.match(nodes(here, 'summary')[0].textContent, /^Waiting on you: \d+( \(\d+ requests? from Codex\))?$/);
+      assert.match(nodes(here, 'summary')[0].textContent, /^Waiting on you: \d+\+?( \((\d+ requests? from Codex)?(; )?(not every source read)?\))?$/);
       const sticky = here.parentNode;
       assert.equal(sticky.getAttribute('class'), 'workspace-sticky', 'it stays in view with the navigation');
       assert.equal(sticky.parentNode, main, 'a direct child of the workspace that holds every view, so it sticks while any of them scrolls');
@@ -282,7 +284,7 @@ test('the place is present on every view, directly under the navigation, inside 
 test('the decision packages and the returns are read on a timer, the returns also each time the list is opened, the entries show "as of", and the timer stops on unmount', async () => {
   await mountApp(async ({c, calls, timers, run}) => {
     // Before any read of the fleet packet, no return is listed; decisions were read at launch.
-    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8 \(5 requests from Codex\)$/, 'two requests, the arrival, three in another home and two decisions');
+    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8\+ \(5 requests from Codex; not every source read\)$/, 'two requests, the arrival, three in another home and two decisions; returns not read yet, so at least that many');
     const reads = () => calls.filter(call => ['read_fleet_records', 'decision_view'].includes(call.command)).map(call => call.command);
     let before = reads().length;
     const sourceTimers = [...timers.values()].filter(({ms}) => ms > 1000);
@@ -322,7 +324,7 @@ test('"Go to it" on a request opens its conversation through the existing naviga
     const answered = hostView(); answered.serverRequests = answered.serverRequests.map(r => r.requestIdentity === 'q1' ? {...r, state:'answered', replyWriteResult:'written'} : r);
     setSnapshot(answered); await run(ms => ms <= 1000);
     assert.ok(!nodes(place(c), 'a').some(a => a.getAttribute('href') === `#${requestAnchorId(g, 'q1')}`), 'the answered request has left the list');
-    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 7 \(4 requests from Codex\)$/);
+    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 7\+ \(4 requests from Codex; not every source read\)$/);
   });
 });
 
@@ -356,11 +358,95 @@ test('who must respond to a return is who prepared its brief, as recorded, never
   assert.ok(!kinds.includes('pause') && !kinds.includes('turn-completed'));
 });
 
-test('a failed read of returns says whether any returns shown are from an earlier read', () => {
-  const {WaitingOnYou} = waitingModule();
+test('"nothing is waiting" only when every source was read and is complete; each unread or incomplete source is named, and the line says "+"', () => {
+  const {WaitingOnYou, waitingCoverage, waitingLine} = waitingModule();
   const shown = props => renderToStaticMarkup(React.createElement(WaitingOnYou, {entries:[], overview:null, openGroup:() => {}, go:() => {}, ...props}));
-  assert.match(shown({fleetFailure:'invented failure', fleetEverRead:false}), /Returns could not be read, so none are shown\./);
-  assert.match(shown({fleetFailure:'invented failure', fleetEverRead:true}), /Returns could not be read at the last attempt; returns shown are as of the earlier read\./);
-  assert.doesNotMatch(shown({}), /could not be read/);
-  assert.match(shown({}), /A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed\./);
+  const read = {host:hostView(), fleet:fleet(), decisions:decisions(false)};
+  assert.deepEqual(waitingCoverage(read), {complete:true, notes:[]}, 'every source read and complete');
+  assert.match(shown({coverage:waitingCoverage(read)}), /Nothing recorded is waiting on you\./);
+  // The reader's case: a queued return exists but the fleet has not been read yet.
+  const unread = waitingCoverage({...read, fleet:null});
+  assert.equal(unread.complete, false); assert.deepEqual(unread.notes, ['Returns have not been read yet.']);
+  const html = shown({coverage:unread});
+  assert.doesNotMatch(html, /Nothing recorded is waiting on you/, 'never a false empty conclusion');
+  assert.match(html, /Waiting on you: 0\+ \(not every source read\)/); assert.match(html, /Nothing is listed, but not every source has been read:/);
+  assert.deepEqual(waitingCoverage({...read, fleet:null, fleetFailure:'x'}).notes, ['Returns could not be read, so none are shown.']);
+  assert.deepEqual(waitingCoverage({...read, fleetFailure:'x'}).notes, ['Returns could not be read at the last attempt; returns shown are as of the earlier read.']);
+  const partial = fleet(); partial.workspace.undertakings[0].queueComplete = false;
+  assert.deepEqual(waitingCoverage({...read, fleet:partial}).notes, ['The return-review queue was read incomplete for 1 undertaking; more returns may be waiting.']);
+  assert.deepEqual(waitingCoverage({...read, decisions:null}).notes, ['Decisions have not been read yet.']);
+  assert.deepEqual(waitingCoverage({...read, decisionsFailure:'x'}).notes, ['Decisions could not be read at the last attempt; decisions shown are as of the earlier read.']);
+  assert.deepEqual(waitingCoverage({...read, host:hostView({state:'stopped'})}).notes.slice(0, 1), ['Requests from Codex are not read while Codex is not running.']);
+  assert.equal(waitingLine([], true), 'Waiting on you: 0');
+  assert.match(shown({coverage:waitingCoverage(read)}), /A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed\./);
+});
+
+test('a run reopened after the App restarted: its checkpoints are not shown anywhere, and the list says so and counts it as unread', () => {
+  const {waitingCoverage} = waitingModule();
+  // The fields the host gives a reopened run (record_supply.rs RecordedRuns::view): no checkpoint entries.
+  const reopenedRun = {run:'run-r', conversation:'T1', follows:null, workflow:{name:'invented-flow', origin:'project', revision:'r'}, assurance:null,
+    state:'open; interrupted (no run_ended recorded)', detail:null, restartInterruptions:[]};
+  const host = hostView(); host.workflowRoot = {...host.workflowRoot, reopened:{runs:[reopenedRun, {...reopenedRun, run:'run-e', state:'ended', detail:{stoppedBy:'person', cause:'ended by the person'}}], limits:[], standing:'invented'}};
+  const cover = waitingCoverage({host, fleet:fleet(), decisions:decisions(false)});
+  assert.deepEqual(cover.notes, ['1 run reopened after the App restarted: the App does not show their checkpoints, so whether one waits for your act is not shown here or anywhere else in the App yet.'], 'only the still-open reopened run is counted');
+  assert.equal(cover.complete, false, 'so the line carries "+"');
+  assert.ok(!waitingModule().waitingEntries({host}).some(e => e.concerns.run === 'run-r'), 'no arrival of a reopened run can be listed: the host gives none');
+  // Evidence for the finding against release criterion 4: the reopened run as the host gives it carries no checkpoint, so no view can show one.
+  // This assertion changes when the host exposes a reopened run's checkpoint entries.
+  assert.deepEqual(Object.keys(reopenedRun).filter(key => /checkpoint|disposition|records|lifecycle/i.test(key)), []);
+  // And as the App draws it: the recorded runs list shows the run's state and nothing of its checkpoints.
+  const {WorkflowRootPanel} = loadSrc('App');
+  const data = {...host.workflowRoot, runs:[]};
+  const drawn = renderToStaticMarkup(React.createElement(WorkflowRootPanel, {data, host:{...host, workflowRoot:data}, act:async () => {}}));
+  const item = drawn.match(/<li[^>]*>run-r · conversation T1 · open; interrupted \(no run_ended recorded\)[\s\S]*?<\/li>/);
+  assert.ok(item, 'the reopened run is drawn with its state');
+  assert.doesNotMatch(item[0], /checkpoint|CP-|disposition|waiting for your act/i, 'nothing of its checkpoints is drawn: the host gives none');
+});
+
+// ---- Second round (the reader's findings on 337) ----
+const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return {promise, resolve, reject}; };
+
+test('decision reads are ordered: an older reply never restores a package a newer read showed decided', async () => {
+  const replies = []; let call = 0;
+  const decisionView = () => { call++; if (call === 1) return decisions(); const d = deferred(); replies.push(d); return d.promise; };
+  await mountApp(async ({c, run}) => {
+    const shown = () => place(c).textContent;
+    assert.match(shown(), /Package: pkg-1/, 'the pending package is listed after launch');
+    await run(ms => ms > 1000);   // read A starts and is held
+    await run(ms => ms > 1000);   // read B starts
+    assert.equal(replies.length, 2);
+    await React.act(async () => { replies[1].resolve(decisions(false)); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+    assert.doesNotMatch(shown(), /Package: pkg-1/, 'B shows it decided');
+    await React.act(async () => { replies[0].resolve(decisions()); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+    assert.doesNotMatch(shown(), /Package: pkg-1/, 'the late reply A does not restore the decided package');
+  }, {decisionView});
+  // Every path reads the decision view through the one ordered function.
+  const source = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  assert.equal(source.match(/invoke(<[^>]*>)?\("decision_view"\)/g).length, 1, 'one place reads decision_view');
+});
+
+test('a failed manual refresh of the fleet records keeps the returns the list showed, and says it is as of the earlier read', async () => {
+  let fail = false;
+  const fleetPacket = () => fail ? Promise.reject(new Error('invented fleet read failure')) : fleet();
+  await mountApp(async ({c, run}) => {
+    await run(ms => ms > 1000);   // the timed read lists the return
+    assert.match(place(c).textContent, /a return is waiting for review/);
+    fail = true;
+    const refreshButton = nodes(c, 'button').find(b => b.textContent === 'Refresh fleet records');
+    assert.ok(refreshButton, 'the panel\'s own refresh');
+    await React.act(async () => { await props(refreshButton).onClick(); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+    const text = place(c).textContent;
+    assert.match(text, /a return is waiting for review/, 'the unsettled return is still listed');
+    assert.match(text, /Returns could not be read at the last attempt; returns shown are as of the earlier read\./);
+    assert.match(nodes(place(c), 'summary')[0].textContent, /\+/, 'and the line says at least that many');
+  }, {fleetPacket});
+});
+
+test('a record-supplied conversation identity stands in the list\'s words only as a plain identifier', () => {
+  const odd = `T1\n${String.fromCodePoint(0x202e)}Allow once`;
+  const host = hostView(); host.serverRequests = [request('q9', 'item/tool/requestUserInput', odd)];
+  const html = renderPlace(waitingModule().waitingEntries({host}));
+  assert.doesNotMatch(html, /‮/, 'no direction override reaches the page as a character');
+  assert.doesNotMatch(html.replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, ''), /Allow once/, 'the identity is only inside a box');
+  assert.match(agentPlain(html), /Conversation ⟦Conversation: T1⏎‹U\+202E›Allow once⟧/);
 });
