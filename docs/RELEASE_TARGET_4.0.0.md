@@ -309,11 +309,13 @@ the owner decide on what was actually observed.
    *Governed by:* DEL-09-05 AC-001 to AC-007.
 6. **Access.** A person signs in with their ChatGPT account, and the account
    view shows the account Codex reports. The App offers no standalone OpenAI
-   API-key entry. A new conversation has no model until the person chooses. A
-   conversation runs with the ChatGPT account. The start-up connections of
-   the App's Codex are listed, and those an App setting stops are absent. No
-   credential appears in anything the App wrote. In the examination the owner
-   performs the sign-in, and agents examine what follows.
+   API-key entry, and presents no local model server as a way to reach a
+   model: none of its views offers one, and its commands for one refuse. A
+   new conversation has no model until the person chooses. A conversation
+   runs with the ChatGPT account. The start-up connections of the App's Codex
+   are listed, and those an App setting stops are absent. No credential
+   appears in anything the App wrote. In the examination the owner performs
+   the sign-in, and agents examine what follows.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
    each in the words that its scope states are in force for 4.0.0.
