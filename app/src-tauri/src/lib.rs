@@ -837,7 +837,6 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["recordsStore"]["placementChoice"] = records_store::choice_view(state.app_user_data_root.lock().unwrap().as_deref().map_err(Clone::clone), tauri::is_dev());
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
-    s["recordChain"]["historyNotices"] = json!(history_notices);
     s["currentAppProjectContext"] = state.project_context.view();
     s["configuredProviderReadRevision"] = if home.class() == home_resources::HomeClass::Account {
         home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())

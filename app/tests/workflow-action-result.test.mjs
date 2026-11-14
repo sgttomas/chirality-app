@@ -66,10 +66,7 @@ test('history notice: empty log-integrity reading retains notice outside reader 
   const container=await historyRender(t,loadSrc('RecordsStorePanel').RecordsStorePanel,{store:{state:'available',project:{reading:'records store',attachment:{projectId:'invented'},notes:[]}},invoke:async()=>({logs:[],limits:[HISTORY_LIMIT],notes:[],historyNotices:[HISTORY_NOTICE]}),refresh:async()=>{}});
   await pressHistory(container,'Check the logs now');visibleHistoryNotice(container);
 });
-test('history notice: cached log-integrity counts retain notice before an explicit fresh check',async t=>{
-  const container=await historyRender(t,loadSrc('RecordsStorePanel').RecordsStorePanel,{store:{state:'available',project:{reading:'records store',attachment:{projectId:'invented'},notes:[]}},chain:{state:'as the records index last read it',logs:0,broken:0,discoveryLimit:HISTORY_LIMIT,historyNotices:[HISTORY_NOTICE]},invoke:async()=>{},refresh:async()=>{}});
-  visibleHistoryNotice(container);
-});
+
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
 const labelled = (container,label) => container.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
