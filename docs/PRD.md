@@ -409,7 +409,7 @@ Shared access does not transfer decision rights (OD-05).
   shown. The App offers a level only once a fixture has shown that level at
   the pinned Codex version. The level is the person's own setting (V4-AUT-04):
   it is no reserved act and stands in for none. Only the person sets or
-  changes it, by a confirmation the App takes from the person alone, and the
+  changes it, by a choice the App takes from the person alone, and the
   change is recorded with its scope, its values and when it took effect;
   sending a level already chosen again is not a change. No agent, tool or
   App rule changes the level the person chose, and an agent never raises its
@@ -418,10 +418,10 @@ Shared access does not transfer decision rights (OD-05).
   level does not restrain a command already running, and the App does not
   imply that it does. At every level the harness's own requests are shown
   truthfully (V4-AUT-04). A
-  system password prompt is the person's to answer. A new person
-  chooses a level among those offered before the first conversation, and
-  none applies until they have chosen; a level marked as recommended is shown
-  as such beside the others.
+  system password prompt is the person's to answer. Until the person
+  chooses a level, the App's default level applies, which is full access; it
+  is shown as the App's default level, not chosen by the person, it can be
+  changed at any time, and it is never recorded as the person's choice.
 - **V4-AUT-07** A **point** is a place in the work where a named party is
   called to respond. The person's vocabulary has five kinds, and each point
   names the actual response or act it asks for: a **checkpoint** shows where

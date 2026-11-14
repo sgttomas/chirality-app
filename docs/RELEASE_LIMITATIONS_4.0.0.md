@@ -278,10 +278,15 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What is unavailable:** a permission level the App can keep in force
   against a command that has run outside Codex's sandbox. The App keeps the
   level you chose in its own data folder, and starts every conversation at
-  that level. A command that has run outside the sandbox has your account's
+  that level or, until you choose one, at the App's default level, full
+  access. A command that has run outside the sandbox has your account's
   access, so it can change that record, and the App's other records and
   settings. The next time the App opens, it would then start conversations at a
-  level you did not choose. A command runs outside the sandbox:
+  level you did not choose: a level written into the record is shown as your
+  choice, and nothing tells it apart from one you made; a record that was
+  deleted or emptied reads as if you had never chosen, so the App's default
+  level, full access, applies, shown as the App's default. A command runs
+  outside the sandbox:
   - at full access, always;
   - at any level, when you allow a command that Codex asked to run outside
     the sandbox;
@@ -291,18 +296,19 @@ An entry is added in the same pull request that makes the limitation standing.
     request card cannot tell you which;
   - at every level, for a command that a lasting rule allows (LIM-023).
   Choosing a narrower level later does not undo what was done, and does not
-  stop a command left running from then. A program that holds Accessibility
-  access on this Mac can also press the App's confirmation in your place.
-  Where the supplier's computer-use service is installed, it holds that
-  access.
+  stop a command left running from then (LIM-027). A program that holds
+  Accessibility access on this Mac can also operate the App, choosing a level
+  in your place. Where the supplier's computer-use service is installed, it
+  holds that access.
 - **Why:** the App's records are files in your own Library, and any program
   running with your access can write them. The App does not seal its record of
   the level. A seal would show that the App wrote a record, but not that the
   record is still your latest choice, and that part is not designed.
-- **What the person does instead:** keep full access for projects you would
-  trust with your whole account. After any command may have run outside the
-  sandbox, check the level the App shows when it opens before you start a
-  conversation, and choose it again if it is not yours.
+- **What the person does instead:** full access is the App's default; choose
+  a narrower level for any project you would not trust with your whole
+  account. After any command may have run outside the sandbox, check the level
+  the App shows when it opens before you start a conversation, and choose it
+  again if it is not yours.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level), DEL-01-02 (the
   App's records), DEL-01-01.
 
@@ -327,3 +333,39 @@ An entry is added in the same pull request that makes the limitation standing.
   may still hold the rule.
 - **Basis:** DEL-01-01 (the Host's reading of the rules), DEL-01-04 (request
   cards and the level).
+
+### LIM-027: A command an agent left running can keep running after Codex ends abruptly
+
+- **Id:** LIM-027
+- **Exit criteria:** 6
+- **What is unavailable:** a way in the App to end a command that an agent
+  left running in the background, other than closing Codex. Such a command
+  keeps running until it ends or until Codex closes normally, which is what
+  stopping Codex, restarting Codex or quitting the App ordinarily does.
+  Stopping a conversation does not end it. It keeps the access it was started
+  with, even if you choose a narrower level afterwards. When Codex closes
+  normally, it ends these commands as it closes. If Codex ends abruptly instead
+  (it stops unexpectedly, or, when you stop Codex, restart Codex or quit the
+  App, it does not answer and the App has to end it), such a command can keep
+  running after Codex and the App are gone, with the access it was started
+  with.
+- **Why:** Codex runs each such command apart from itself, so the command
+  does not end just because Codex does. The App does not yet offer a way to end
+  running commands on their own.
+- **What the person does instead:** stop Codex, restart Codex or quit the App
+  when you want commands an agent left running to end; this ends them when
+  Codex closes normally. If the App or Codex has ended abruptly, open Activity
+  Monitor, find the command by its name, and quit it.
+- **Basis:** DEL-01-02 (stop) and DEL-01-04 (the permission level). The level
+  fixtures show, at the pinned Codex version (`app/supplier_checks/level`):
+  - stopping a turn leaves running commands running;
+  - closing Codex's input, as the App's stop does first, ends them and what
+    they started;
+  - ending Codex at once can leave a command and what it started running;
+  - Codex's request to end a conversation's running commands ends them while
+    Codex runs. The App does not send it in this release.
+
+  Stop Codex, Restart Codex and Quit all close Codex this way: they close
+  Codex's input first, and end it at once only if it has not closed within
+  3 seconds. This is read from the App's code (`hosting.rs` `stop_inner`,
+  reached from `codex_stop.rs` and from the quit path), not shown by a test.

@@ -236,7 +236,8 @@ the owner decide on what was actually observed.
    supplies its inputs, runs it to completion and finds the results, with real
    execution doing useful work, every step taken through the App's shipped
    controls and the words it shows, and no control interpreted or operated by
-   any other means. During setup the person chooses the permission level
+   any other means. Setup has no step for the permission level: the level in
+   force is shown, as the App's default until the person chooses one
    (criterion 6). Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
@@ -365,10 +366,16 @@ the owner decide on what was actually observed.
    runs with the ChatGPT account. The start-up connections of the App's Codex
    are listed, and those an App setting stops are absent. No credential
    appears in anything the App wrote. In the examination the owner performs
-   the sign-in, and agents examine what follows. Before the first
-   conversation the person chooses a permission level among those offered,
-   and none applies until they have chosen; a level marked as recommended is
-   shown as such beside the others; every level offered was first shown at
+   the sign-in, and agents examine what follows. Until the person chooses a
+   permission level, the App's default level applies: full access, which the
+   owner chose on 14 November 2026 when asked "At first use, the App currently
+   will not start a conversation until the person has chosen a permission
+   level. Should 4.0.0 start with a default level instead, shown as the App's
+   default and changeable at any time?", selecting "Full access" ("As T3 Code
+   does: the agent can act anywhere on the machine with no sandbox, from the
+   first run."); wherever the level in force is shown it is described as the
+   App's default level, not chosen by the person, it can be changed at any
+   time, and it is never recorded as the person's choice; every level offered was first shown at
    the pin by a fixture; the
    level in force is always shown, with the statement that reading is not
    limited; the App sends it to Codex on each turn and on start, resume and
