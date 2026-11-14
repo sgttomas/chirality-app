@@ -571,6 +571,25 @@
       }
     }
   },
+  "sheet_records": {
+    "desktop-setup": {
+      "recorded_on": {
+        "candidate_key": "1023908b64-012ad5568eb2",
+        "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
+        "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
+      },
+      "from": {
+        "evidence": "launch R-b′, 14 November 2026 17:22 UTC (evidence rerecord-b2-20261114T1722Z)",
+        "step": "S5",
+        "view_sha256": "d09a2fec7ab7f458562f70eb5186e1c9ae32247997982860ccba4937b44a1da7"
+      },
+      "judged": {
+        "by": "record_state.mjs --sheet, with the walk's own sheetCheck",
+        "against": "the template of sheet desktop-setup in the scenario \"signed-out setup with a project, confirmed on the App's own sheet\", its statement held equal to the build's source by a test",
+        "result": "every line agreed with the template"
+      }
+    }
+  },
   "capture_forms": {
     "settings": "{app_data}/shared-settings/settings-{~uuid}",
     "account": "{app_data}/account-homes/account-{~uuid}",

@@ -367,8 +367,14 @@ the return.
 
 ## The operator's return
 
-It leads with the walk's summary as printed (the verdict, the four outcomes
-and any "caused by:" lines), or with "no walk" and why. Then:
+It leads with the walk's summary as printed (the verdict, the outcome lines
+and any "caused by:" lines), or with "no walk" and why. The words mean:
+"pass" and "shown", every step it rests on was judged equal, line for line,
+to a recorded state whose record is judged and bound to this build, and its
+expectations held; "captured, not judged", the view was captured and met its
+expectations but equals no usable recorded state, so it is NOT a pass and is
+never written as passed in any record; "not shown", an expectation failed or
+the step was not evaluated; "not reached", the walk stopped before it. Then:
 
 - its two recorded identities (the runtime and the host: number, start in
   UTC, executable), their relationship, and the host's parent; its Codex
@@ -378,7 +384,8 @@ and any "caused by:" lines), or with "no walk" and why. Then:
   whole; the walk call's time;
 - the evidence folder's path, the launch folder's path (or that none was
   made), and the launch record's outcome line;
-- the raw result or error, whole, for any step that did not pass;
+- the raw result or error, whole, for any step with an unmet expectation or
+  that was not judged;
 - every deviation from this method, however small, and every place it did
   not say what to do;
 - what it started (from the started files), what it ended, and how it
@@ -1199,45 +1206,79 @@ failure, the same scenario and acts.
   - **Its limit.** The anchor is relied on for the rehearsal tier only. It
     does not show that text cannot lead an agent to choose a real element it
     should not.
-- **No affirmative result rests on the anchor alone (App Agent 0, after the
-  second independent reading of PR 351).** An act (a click, a set-value, a
-  press) is made only when the latest view equals, line for line, the
-  recorded state the step acts from. A step may name the recorded state its
-  own view must equal (`state`), compared the same way (`stateCheck`,
-  `compareView`). The verdict is "pass" only when every step's view equalled
-  the state it names and every expectation held; expectations can only
-  fail. A view that passes the anchor but names no recorded state is
-  "captured, not judged", which is not a pass anywhere it is carried: it is
-  not one of REQ-007's five outcomes, so the examination table refuses to
-  print a record holding it. In page content an element's words, its depth,
-  its further lines and the window's title are accepted by recognition
-  without a comparison of their own; they are content, and every pass or act
-  compares them whole. Today `signed-out-setup.scenario.json` names a state
-  for every step (S1 to S5); `first-launch-view.scenario.json` and
-  `signed-out-relaunch.scenario.json` name none and are captured, not
+- **One admission for every effect and every affirmative output (App Agent 0,
+  after the third independent reading of PR 351).** The walk has four effects:
+  the click (an ordinary click, and a button pressed if offered), the
+  set-value, the click that opens the sheet, and the press. The first three
+  are made only when the latest view equals, line for line, the recorded
+  state the step acts from; the press only when the sheet equals, line for
+  line, the sheet template. Each rests also on `recordUsable`: the state's or
+  the template's record must be judged and bound to this build. It has two
+  affirmative outputs: the verdict is "pass" only when every step's view
+  equalled the recorded state it names (`state`), each admitted the same way,
+  and no expectation failed; an outcome line is "shown" only when every step
+  it rests on was so judged. Otherwise they say "captured, not judged", "not
+  shown" or "not reached". The result records expectations as failures only
+  (`unmet`), with each step's judgment (`judged`): no field says that an
+  expectation held. The records of an effect made (`pressed`,
+  `pressed_index`, `typed`, `offered`) are written only after its admission,
+  and a refused press leaves only its refusal (`sheet.refused`, with the
+  difference found, if any), never a comparison that reads as agreed.
+  "Captured, not judged" is not one of REQ-007's five outcomes, so the
+  examination table refuses to print a record holding it. In page content an
+  element's words, its depth, its further lines and the window's title are
+  accepted by recognition without a comparison of their own; they are
+  content, and every effect and pass compares them whole. Today
+  `signed-out-setup.scenario.json` names a state for every step (S1 to S5)
+  and holds the sheet template's record; `first-launch-view.scenario.json`
+  and `signed-out-relaunch.scenario.json` name none and are captured, not
   judged, until their states are recorded; `first-use-setup.scenario.json`
   names no state it acts from and is refused before any call.
 - **How a view becomes a recorded state.** A capture shows fidelity, not
-  correctness (the INTERLOCUTOR, on PR 351). `record_state.mjs` writes a
-  state only when the captured view, recognised as a whole view of the
-  launched build, meets every expectation the scenario states for that step,
+  correctness (the INTERLOCUTOR, on PR 351). `record_state.mjs` writes a state
+  only when the captured view, recognised as a whole view of the launched
+  build, meets every expectation the scenario states for that step,
   expectations written from the build's source and independently of any
-  capture; a step that states none cannot be recorded. A view that surprised
-  the walk is a finding, not a new state: the recorder refuses it and writes
-  nothing. Beside each state the scenario keeps its record (`state_records`):
-  the build it was recorded on (candidate key, bundle identifier, the App's
-  name), the evidence and the view's sha256, and the judgment (against which
-  expectations, by what, with what result). The walk uses a state only on
-  the build it was recorded on, and only when its record says every
-  expectation held; otherwise it stops, judging and acting on nothing. The
-  setup scenario's S1 to S5 are recorded from launch R-c on a build of main
-  1023908b, each judged against its step's expectations; S1 to S4 equal the
-  states the walk acted from, and S5, the view after the press, is a first
-  recording (R-c had judged that view by expectations only).
-
-  Whether a view came back as differences or as no change rests on the
-  supplier's two fixed openings for those; a whole view must also carry the
-  anchor above.
+  capture; a step that states none cannot be recorded, and a view that fails
+  its step's stated expectations is a finding, not a state: nothing is
+  written. With `--sheet <id>` it records the judgment of the sheet template
+  from a captured sheet, which must agree line for line with the template
+  filled for this build (the walk's own `sheetCheck`; the template's
+  statement is held equal to the build's source by a test). Beside each state
+  and template the scenario keeps its record (`state_records`,
+  `sheet_records`): the build it was recorded on (candidate key, bundle
+  identifier, the App's name), the evidence and the view's sha256, and the
+  judgment (against what, by what, with what result). The setup scenario's S1
+  to S5 are recorded from launch R-c and its sheet template from launch R-b′,
+  on a build of main 1023908b, each judged so; S1 to S4 equal the states the
+  walk acted from, and S5, the view after the press, is a first recording (R-c
+  had judged that view by expectations only).
+- **Three limits, stated and not engineered away.**
+  - *The recorder protects a step's stated expectations, not every
+    difference.* A difference the expectations do not state (a changed
+    button the step does not mention, say) is recorded with "every
+    expectation held". The control for it is review: each recorded state,
+    template and record is read line by line when it enters the repository,
+    by the independent reader of the pull request that adds it and by App
+    Agent 0 before merging. Where a step's expectations are few (S2 states
+    two), that review is most of the control; adding expectations from the
+    build's source means re-recording the state with them.
+  - *Records are not authenticated.* `recordUsable` checks a record's fields,
+    not who wrote them: a person or agent with write access to the checkout
+    could edit a state, its record, a template or the walk itself so that a
+    chosen view passes or is acted on, and nothing at run time would detect
+    it. Review before merge protects the committed files; the operator's
+    confirmation of the tool revision (`git rev-parse HEAD`) at the start of
+    each launch protects the files a walk loads.
+  - *Binding is to the bundle identifier and the App's name, not to the
+    binary's bytes.* Exact bundle identity rests on the method's conditions:
+    the operator's `identify.py check` against the candidate's
+    identification record and its `candidate_key` ("The candidate folder",
+    above); the lane keeping the bundle unchanged from identification through
+    recovery, with no rebuild, replacement, renaming or added link (checked
+    by the lane's pre-launch check: the bundle executable's link count and
+    the driver markers); and the walk's gate that the watched process's
+    executable is inside the bundle.
 - **The parser's limit, which stands.** Recognising a view line for line does
   not tell a real element from a line of text that imitates one. The fourth
   independent reading of PR 323 (14 November 2026) answered its two questions

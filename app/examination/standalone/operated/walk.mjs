@@ -307,15 +307,21 @@ export function stateCheck(text, lines, values, appName) {
 }
 
 /**
- * Whether a recorded state may be used on this walk: a state is bound to the build it was recorded on (its record's
- * recorded_on: the bundle identifier and the App's name, from record_state.mjs), and a walk on another build does not
- * use it. Returns null when it may, or why not.
+ * The one admission for what an effect or an affirmative output rests on: a recorded state (kind 'state', its record
+ * in state_records) or a sheet template (kind 'sheet', its record in sheet_records). Each is bound to the build it was
+ * recorded on (recorded_on: the bundle identifier and the App's name, from record_state.mjs) and must have been judged
+ * before it was recorded (judged.result). A walk on another build, or with a record missing or never judged, uses
+ * neither. Returns null when it may be used, or why not. Line-for-line equality with what the record names is the
+ * second requirement, checked where it is used (stateCheck, sheetCheck).
  */
-export function stateRecordedOn(scenario, id, app, appName) {
-  const on = scenario?.state_records?.[id]?.recorded_on;
-  if (!on) return `the recorded state ${id} has no record of the build it was recorded on`;
-  if (on.identifier !== app || on.app_name !== appName) return `the recorded state ${id} was recorded on another build (${on.app_name})`;
-  if (scenario.state_records[id].judged?.result !== 'every expectation held') return `the recorded state ${id} was not judged against its expectations before it was recorded`;
+export const JUDGED = { state: 'every expectation held', sheet: 'every line agreed with the template' };
+export function recordUsable(scenario, kind, id, app, appName) {
+  const records = kind === 'state' ? scenario?.state_records : kind === 'sheet' ? scenario?.sheet_records : undefined;
+  const what = kind === 'sheet' ? `sheet template ${id}` : `recorded state ${id}`;
+  const record = records?.[id];
+  if (!record?.recorded_on) return `the ${what} has no record of the build it was recorded on`;
+  if (record.recorded_on.identifier !== app || record.recorded_on.app_name !== appName) return `the ${what} was recorded on another build (${record.recorded_on.app_name})`;
+  if (record.judged?.result !== JUDGED[kind]) return `the ${what} was not judged before it was recorded`;
   return null;
 }
 
@@ -515,9 +521,12 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     report.verdict = verdict;
     report.finished = now();
     report.outcomes = Object.fromEntries(Object.entries(scenario.outcomes ?? {}).map(([name, ids]) => {
+      // An outcome is "shown" only when every step it rests on was judged equal to its recorded state and met its
+      // expectations: as for the verdict, no affirmative line rests on the anchor or on expectations alone.
       const steps = ids.map(id => report.steps.find(step => step.id === id));
-      const shown = steps.every(step => step && step.checks.length > 0 && step.checks.every(check => check.pass));
-      return [name, steps.some(step => !step) ? 'not reached' : shown ? 'shown' : 'not shown'];
+      if (steps.some(step => !step)) return [name, 'not reached'];
+      if (steps.some(step => !Array.isArray(step.unmet) || step.unmet.length)) return [name, 'not shown'];
+      return [name, steps.every(step => step.judged === true) ? 'shown' : 'captured, not judged'];
     }));
     return report;
   };
@@ -572,7 +581,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   const appName = bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length);
   // Before any act: the latest view must be the listed state the step acts from, line for line.
   const notListed = (step, act) => {
-    const unbound = stateRecordedOn(scenario, step.from_state, app, appName);
+    const unbound = recordUsable(scenario, 'state', step.from_state, app, appName);
     const differs = unbound ? [unbound] : latest === null ? ['the latest view was not recognised'] : stateCheck(latest, scenario.states[step.from_state], values, appName);
     return differs.length ? finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (${differs[0]}); nothing was ${act}`) : null;
   };
@@ -630,7 +639,9 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     if (afterView) return afterView;
   }
   for (const step of scenario.steps) {
-    const entry = { id: step.id, at: now(), act: step.act, says: step.says, checks: [] };
+    // A step's expectations are recorded as failures only (unmet), with its judgment (judged): no field of the result
+    // says that an expectation held. unmet is absent until the step's view has been evaluated.
+    const entry = { id: step.id, at: now(), act: step.act, says: step.says };
     report.steps.push(entry);
     const before = gate(`at ${step.id}`);
     if (before) return before;
@@ -652,7 +663,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
         && (found.length === 0 || (found.length === 1 && found[0].content.startsWith('button (disabled) ')));
       if (notOffered) entry.offered = found.length ? 'unavailable; not pressed' : 'absent; not pressed';
       else {
-      if (found.length !== 1) return finish(report.steps.some(s => s.checks.some(c => !c.pass)) ? 'fail' : 'inconclusive',
+      if (found.length !== 1) return finish(report.steps.some(s => s.unmet?.length) ? 'fail' : 'inconclusive',
         `stopped at ${step.id}: the control to click was found ${found.length} times in the latest view`);
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
       entry.element_index = found[0].index;
@@ -707,7 +718,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       // effect is not pressed again.
       const sheet = (scenario.sheets ?? []).find(named => named.id === step.sheet);
       if (!sheet || step.control?.kind !== 'button' || step.control?.label !== sheet.opener) return finish('inconclusive', `stopped at ${step.id}: the scenario names no such sheet`);
-      if (report.steps.some(earlier => earlier.checks.some(check => !check.pass))) {
+      if (report.steps.some(earlier => earlier.unmet?.length)) {
         return finish('fail', `stopped at ${step.id}: an earlier check failed, so the sheet is not opened`);
       }
       const unlistedOpener = notListed(step, 'clicked or pressed');
@@ -741,9 +752,20 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (step.press === false) return finish('inconclusive', `stopped at ${step.id}: the sheet is captured, and this step has no press`);
       if (!shown.whole) return finish('inconclusive', asDifferences(step.id));
       if (shown.refusal) return finish('inconclusive', `${unaddressed(step.id, shown.refusal)}; nothing was pressed`);
-      const checked = sheetCheck(shown.text, sheet, values, bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length));
-      entry.sheet = { ...checked.record, problems: checked.problems };
-      if (checked.problems.length) return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.problems.join('; ')}); nothing was pressed`);
+      // The press's admission: the sheet template's record, judged and bound to this build, then the sheet equal to it
+      // line for line. A refused press leaves only the refusal (and the difference found, if any): never a record that
+      // reads as a comparison that agreed.
+      const sheetUnusable = recordUsable(scenario, 'sheet', sheet.id, app, appName);
+      if (sheetUnusable) {
+        entry.sheet = { refused: sheetUnusable };
+        return finish('inconclusive', `stopped at ${step.id}: ${sheetUnusable}; nothing was pressed`);
+      }
+      const checked = sheetCheck(shown.text, sheet, values, appName);
+      if (checked.problems.length) {
+        entry.sheet = { refused: checked.problems.join('; '), ...(checked.record.first_difference ? { first_difference: checked.record.first_difference } : {}) };
+        return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.problems.join('; ')}); nothing was pressed`);
+      }
+      entry.sheet = checked.record;
       const beforePress = gate(`at ${step.id}, before the press`);
       if (beforePress) return beforePress;
       entry.pressed = sheet.press;
@@ -783,7 +805,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     const stray = notThePage(elements, scenario);
     if (stray && step.act === 'confirm_sheet') return finish('inconclusive', `stopped at ${step.id}: after the one press, ${stray}; it is not pressed again`);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
-    entry.checks = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values));
+    entry.unmet = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values))
+      .filter(check => !check.pass).map(({ expectation, found }) => ({ expectation, found }));
     // Paths the scenario captures for a later step (the sheet's statement names them): a named location's path.
     for (const [name, location] of Object.entries(step.capture ?? {})) {
       const named = elements.filter(element => element.content === `text ${location}`);
@@ -799,13 +822,13 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     // acts use. A step that names none is captured, not judged; a view that differs is a failed check.
     if (step.state !== undefined) {
       // A state recorded on another build, or never judged, says nothing of this one: the walk stops, judging nothing.
-      const unbound = Array.isArray(scenario.states?.[step.state]) ? stateRecordedOn(scenario, step.state, app, appName) : null;
+      const unbound = Array.isArray(scenario.states?.[step.state]) ? recordUsable(scenario, 'state', step.state, app, appName) : null;
       if (unbound) return finish('inconclusive', `stopped at ${step.id}: ${unbound}; its view is not judged`);
       const differs = !Array.isArray(scenario.states?.[step.state]) ? [`the scenario holds no recorded state ${step.state}`]
         : stateCheck(seen.text, scenario.states[step.state], values, appName);
       entry.state = step.state;
       entry.judged = differs.length === 0;
-      if (differs.length) entry.checks.push({ expectation: { state: step.state }, pass: false, found: differs[0] });
+      if (differs.length) entry.unmet.push({ expectation: { state: step.state }, found: differs[0] });
     } else {
       entry.judged = false;
     }
@@ -823,7 +846,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
  * recorded state is 'captured, not judged'. The anchor itself only refuses (recognise), and never grounds a pass.
  */
 export function verdictOf(steps) {
-  if (steps.some(step => (step.checks ?? []).some(check => !check.pass))) return 'fail';
+  if (steps.some(step => !Array.isArray(step.unmet) || step.unmet.length)) return steps.some(step => step.unmet?.length) ? 'fail' : 'captured, not judged';
   return steps.length > 0 && steps.every(step => step.judged === true) ? 'pass' : 'captured, not judged';
 }
 
@@ -834,7 +857,7 @@ export function summary(report) {
   if (report.stopped) lines.push(`  ${report.stopped}`);
   for (const cause of (report.view_error ?? report.click_error)?.causes ?? []) lines.push(`    caused by: ${cause}`);
   for (const step of report.steps) {
-    for (const check of step.checks.filter(check => !check.pass)) {
+    for (const check of step.unmet ?? []) {
       lines.push(`  ${step.id} expected ${JSON.stringify(check.expectation)}, found: ${JSON.stringify(check.found)}`);
     }
   }
