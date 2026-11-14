@@ -975,3 +975,37 @@ fn a_long_marked_own_recorded_alternative_moves_to_the_app_instead_of_refusing()
     assert_eq!(full.matches("\\u{202E}").count(), 700, "the whole marked value is in the App");
     assert!(native_statement::bounded("A16", moved.text).is_ok());
 }
+
+
+#[test]
+fn f2_a_summary_that_cannot_fit_neither_presents_nor_freezes_nor_captures() {
+    // The decided property, kept by a test-only seam now that no real input overflows the
+    // closed fallback summary: whatever the cause, a statement that cannot fit does nothing.
+    struct Reset;
+    impl Drop for Reset {
+        fn drop(&mut self) { native_statement::TEST_LIMIT.with(|limit| limit.set(None)); }
+    }
+    let actor = person(Some("Invented"), Some("invented"));
+    let f = Fixture::fallback();
+    let (mut c, id) = f.compose();
+    let log = storage::project_file(&f.root, LOG).unwrap();
+    let before = std::fs::read(&log).unwrap();
+    {
+        let _reset = Reset;
+        native_statement::TEST_LIMIT.with(|limit| limit.set(Some((3, 120))));
+        let error = c.confirmation_statement(&id, "ALT-1", &actor).err().expect("a summary that cannot fit is refused");
+        assert!(error.contains("exceeds the readable native confirmation (3 lines, 120 characters)"), "{error}");
+    }
+    let slot = &c.offers[&id];
+    assert!(slot.selected.is_none() && slot.frozen_offer.is_none() && slot.frozen_actor.is_none() && slot.frozen_statement.is_none());
+    assert!(c.confirm(&id, "ALT-1", InputSource::HostNativeConfirmation, actor.clone()).unwrap_err().contains("not presented"));
+    c.present(&id).unwrap();
+    assert!(c.confirm(&id, "ALT-1", InputSource::HostNativeConfirmation, actor.clone()).unwrap_err().contains("differs from the frozen native confirmation"));
+    assert!(c.native_captures.is_empty());
+    assert_eq!(std::fs::read(&log).unwrap(), before);
+    // Permitted half: with the real limit the same offer presents and captures.
+    let (mut c, id) = f.compose();
+    let statement = c.confirmation_statement(&id, "ALT-1", &actor).expect("the real limit presents");
+    c.present(&id).unwrap();
+    assert_eq!(c.confirm_shown(&id, "ALT-1", actor, &statement.text).unwrap()["state"], "AC-7 recorded");
+}

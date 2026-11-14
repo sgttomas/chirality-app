@@ -286,11 +286,22 @@ pub(crate) mod native_statement {
     pub(crate) const SHORT: usize = 12;
 
     /// Refuses a statement that would not fit a readable native alert.
+    #[cfg(test)]
+    thread_local! {
+        /// Test-only seam: a lower limit, so a test can reach the refusal that no real
+        /// input reaches once every unbounded value has moved to the App. Absent from
+        /// shipped builds.
+        pub(crate) static TEST_LIMIT: std::cell::Cell<Option<(usize, usize)>> = const { std::cell::Cell::new(None) };
+    }
     pub(crate) fn bounded(what: &str, text: String) -> Result<String, String> {
+        #[cfg(test)]
+        let (max_lines, max_chars) = TEST_LIMIT.with(|limit| limit.get()).unwrap_or((MAX_LINES, MAX_CHARS));
+        #[cfg(not(test))]
+        let (max_lines, max_chars) = (MAX_LINES, MAX_CHARS);
         let (lines, chars) = (text.lines().count(), text.chars().count());
-        if lines > MAX_LINES || chars > MAX_CHARS {
+        if lines > max_lines || chars > max_chars {
             return Err(format!(
-                "{what}: the statement ({lines} lines, {chars} characters) exceeds the readable native confirmation ({MAX_LINES} lines, {MAX_CHARS} characters); nothing presented, nothing captured or sent"
+                "{what}: the statement ({lines} lines, {chars} characters) exceeds the readable native confirmation ({max_lines} lines, {max_chars} characters); nothing presented, nothing captured or sent"
             ));
         }
         Ok(text)
