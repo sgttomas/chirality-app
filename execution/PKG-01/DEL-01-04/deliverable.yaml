@@ -15,7 +15,10 @@ needs:
   gating: true
 - from: DEL-01-03
   condition: The plan-mode element for a turn is offered as plan, default, not offered with its
-    reason, or no model selected, and a native item can be referred to by an item anchor.
+    reason, or no model selected, and a native item can be referred to by an item anchor. For a
+    request card to name who asks, the host's view of a Codex process gives its descendants, each
+    with its thread, its parent and, once its thread has been read, the role and nickname Codex
+    reports for it.
   gating: true
 - from: DEL-01-05
   condition: For a conversation, whether a model is selected, which, and the person's last explicit
@@ -55,11 +58,15 @@ needs:
     Where a project's records are read from is decided by the records store, which gives no
     location, in the store or in the project folder, while the project's link to the store is
     unresolved.
+    Pending standalone file-act lapse observations retain their admitted project identity and physical
+    project and records folders, and prove that binding again inside write admission before publication.
   gating: true
 - from: DEL-06-02
   condition: A decision package is a project file that states the exact act requested of the
     person, its subject, purpose and basis, and each alternative with its consequences, and a
-    pending package is shown as its file states them.
+    pending package is shown as its file states them, with who requested it where the package
+    records it. For "Waiting on you", the return-review queue gives each return awaiting review
+    with its reference, who returned it and who prepared its brief, as recorded.
   gating: false
 - from: DEL-01-06
   condition: The installed App is signed with the same Developer ID team and bundle identifier
@@ -119,6 +126,12 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
+# Every value the App did not write, drawn as the agent's (cards and the activity stream).
+- app/src/AgentText.tsx
+# "Waiting on you": one list, on every view, of the records waiting on the person in the
+# request register, run records, the return-review queue and the decision packages.
+- app/src/WaitingOnYou.tsx
+- app/src/nativeWords.ts
 - app/src/NativeWaitingBridge.tsx
 - app/src/CodexControls.tsx
 - app/src/ConversationRoles.tsx
@@ -163,6 +176,11 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/request-card-words.test.mjs
+- app/tests/agent-text.test.mjs
+- app/tests/waiting-on-you.test.mjs
+- app/tests/presentation-guard.test.mjs
+- app/tests/support/presentation-guard.mjs
+- app/tests/support/presentation-guard-exceptions.json
 - app/tests/request-activity-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs

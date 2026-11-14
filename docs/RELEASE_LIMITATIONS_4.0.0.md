@@ -238,3 +238,34 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** keep material the agent must not read out
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
+
+### LIM-020: A reopened run's end notice is not saved if the project stops being attached as the run ends
+
+- **Id:** LIM-020
+- **Exit criteria:** 4, 15
+- **What is unavailable:** saving the end-notice record of a run reopened after
+  a restart when, after the run's end is saved and the notice's basis is read,
+  the project stops being attached to its records before the notice's first
+  writer binding (for example, the records store's record of the project's
+  folder is removed from outside the App). The run's end and its earlier
+  entries are saved; the end-notice record is not. The App says so at once,
+  with the cause: the record was not saved, its contents are held only while
+  the App runs and are lost when it quits, and nothing in the App can save it
+  later. Resolving the cause afterwards (confirming the folder's project)
+  does not save it.
+- **Why:** the end-notice record does not carry the project identity it was
+  prepared for, and saving it later would need that. Publication already
+  requires the notice's basis, the run's start record, to be readable in the
+  destination with the same conversation and run. That stops a write to an
+  unrelated history, but it cannot tell apart two projects holding the same
+  history, so it does not replace the missing identity.
+- **What the person does instead:** nothing in the App can save this original
+  notice record. The run's end itself is saved. The held notice's text is not
+  exposed in the App for copying.
+- **What would remove it:** a record that carries the project identity it was
+  prepared for, so that a later save on the person's explicit act can be
+  checked against it. That is a change to what a record holds and is not
+  decided. The person's way out of this and other fenced states is designed
+  with the abandon and recovery work.
+- **Basis:** DEL-02-02 (end-notice text), DEL-02-03 (run end) and DEL-04-03
+  (records); DEL-04-03 REQ-007 and AC-008.

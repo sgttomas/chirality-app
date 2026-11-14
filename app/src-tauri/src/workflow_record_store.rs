@@ -209,6 +209,12 @@ pub struct ProjectRecords {
     /// The kept reader's binding to that store, project folder and records
     /// folder, proved before each read (`records_store::ReaderBinding`).
     reader: std::sync::Mutex<Option<crate::records_store::ReaderBinding>>,
+    writer: std::sync::Mutex<Option<std::sync::Arc<crate::records_store::WriterBinding>>>,
+}
+#[cfg(test)]
+thread_local! {
+    pub(crate) static BEFORE_INITIAL_WRITER_BINDING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
+    pub(crate) static AFTER_INITIAL_WRITER_BINDING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
 }
 impl ProjectRecords {
     pub fn open(explicit_root: &Path) -> Result<Self, String> {
@@ -237,6 +243,7 @@ impl ProjectRecords {
             identity: (m.dev(), m.ino()),
             store: std::sync::Mutex::new(None),
             reader: std::sync::Mutex::new(None),
+            writer: std::sync::Mutex::new(None),
         })
     }
     fn read_admission(&self)->Result<(Option<crate::storage::Ownership>,Admitted),String>{
@@ -327,6 +334,26 @@ impl ProjectRecords {
     /// The explicit opened-project path this handle was opened from.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+    fn writer_binding(&self) -> Result<std::sync::Arc<crate::records_store::WriterBinding>, String> {
+        let mut writer = self.writer.lock().unwrap_or_else(|p| p.into_inner());
+        if writer.is_none() {
+            let now = std::fs::symlink_metadata(&self.root).map_err(|e| format!("not known: the project folder could not be examined ({e}); nothing written"))?;
+            if !now.is_dir() || (now.dev(), now.ino()) != self.identity {
+                return Err("the project folder is not the folder this writer was opened for; nothing written".into());
+            }
+            #[cfg(test)]
+            if let Some(hook) = BEFORE_INITIAL_WRITER_BINDING.with(|slot| slot.borrow_mut().take()) { hook(); }
+            let binding = crate::records_store::bind_writer(&self.root);
+            #[cfg(test)]
+            if let Some(hook) = AFTER_INITIAL_WRITER_BINDING.with(|slot| slot.borrow_mut().take()) { hook(); }
+            let binding = binding?;
+            if binding.project_folder() != self.identity {
+                return Err("the project folder is not the folder this writer was opened for; nothing written".into());
+            }
+            *writer = Some(std::sync::Arc::new(binding));
+        }
+        Ok(writer.as_ref().unwrap().clone())
     }
     /// Original project descriptor versus the currently named physical project
     /// and read home. This never mints a store or writes a record. A previously
@@ -550,8 +577,18 @@ impl ProjectRecords {
     pub fn publish(&self, pending: &PendingRecord) -> Result<ResolvedRecord, String> {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("workflow_record_store::ProjectRecords::publish");
-        let owning=crate::records_store::write_dir(&self.root)?;
-        let _admission=crate::records_retention::write_path(&owning)?;
+        let binding = pending.binding.as_ref().map_err(Clone::clone)?;
+        // Preserve the attachment's own refusal before generic queued-write admission.
+        binding.check_attachment()?;
+        let _admission=crate::records_retention::write_path(binding.records_dir())?;
+        binding.prove_for_write()?;
+        // A handle that read in place must refuse an import before publishing,
+        // rather than first discovering it in a closing read after publication.
+        // Prove only a reader already kept by a read. A failed publication
+        // must not bind a new reader to an empty or obstructed records home.
+        if let Some(reader) = self.reader.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            binding.prove_reader(reader)?;
+        }
         if pending.project != self.identity {
             return Err("pending WR record belongs to another project".into());
         }
@@ -561,6 +598,11 @@ impl ProjectRecords {
         let reference = pending.reference();
         let k = key(reference).map_err(|e| format!("{e:?}"))?;
         let dir = self.records(true)?;
+        #[cfg(test)]
+        if let Some(hook) = WRITER_BEFORE_PUBLICATION.with(|h| h.borrow_mut().take()) { hook(); }
+        binding.prove_for_write()?;
+        let published = || ResolvedRecord { root: self.root.clone(), project: self.identity,
+            envelope: pending.envelope.clone(), bytes: pending.bytes.clone() };
         let final_name = format!("{k}.json");
         // A prior uncertain successful link is retried with the original bytes.
         if let Ok(mut f) = open_at(&dir, &final_name, libc::O_RDONLY) {
@@ -571,7 +613,7 @@ impl ProjectRecords {
             }
             f.sync_all().map_err(|e| e.to_string())?;
             dir.sync_all().map_err(|e| e.to_string())?;
-            return self.resolve(reference).map_err(|e| format!("{e:?}"));
+            return Ok(published());
         }
         let staging = crate::util::opaque_id(".pending-")?;
         let mut file = open_at(
@@ -602,15 +644,14 @@ impl ProjectRecords {
             }
             publication_boundary()?;
             dir.sync_all().map_err(|e| e.to_string())?;
-            Ok(())
+            Ok(published())
         })();
         if let Ok(n) = name(&staging) {
             unsafe { libc::unlinkat(dir.as_raw_fd(), n.as_ptr(), 0) };
         }
-        // Reader admission must see the completed publication after this
-        // operation's temporary alias is removed, never its two-link window.
-        result?;
-        self.resolve(reference).map_err(|e| format!("{e:?}"))
+        // Remove the temporary alias before returning the completed publication,
+        // so a later reader admission never sees this operation's two-link window.
+        result
     }
 }
 /// Durable historical evidence only. There is deliberately no deserializer or send API.
@@ -968,6 +1009,9 @@ fn map_observation(
 #[derive(Debug)]
 pub struct PendingRecord {
     project: (u64, u64),
+    // A refused admission stays with these pending bytes too. It cannot
+    // discard the pending record or silently obtain another binding on retry.
+    binding: Result<std::sync::Arc<crate::records_store::WriterBinding>, String>,
     envelope: Value,
     bytes: Vec<u8>,
 }
@@ -985,12 +1029,27 @@ impl PendingRecord {
         let bytes = serde_json::to_vec(&envelope).map_err(|e| e.to_string())?;
         Ok(Self {
             project: project.identity,
+            binding: project.writer_binding(),
             envelope,
             bytes,
         })
     }
     pub fn reference(&self) -> &str {
         self.envelope["record_id"].as_str().unwrap()
+    }
+    /// An initial refusal belongs to these immutable bytes. Their envelope
+    /// does not name the owning project identity/folder, so it cannot support
+    /// a fresh binding. A later failure of an admitted writer is different.
+    fn admission_refusal(&self) -> Option<String> {
+        let reason = self.binding.as_ref().err()?;
+        let action = match (self.envelope["body"]["record_kind"].as_str(), self.envelope["body"]["purpose"].as_str()) {
+            (Some("selection_record"), _) | (Some("run_text"), Some("run start")) =>
+                "Workflow start record not saved; nothing was sent; start again to record it. Resolve the refusal, then use Prepare exact selected workflow text to prepare a new start.",
+            (Some("run_text"), Some("run end notice")) =>
+                "End-notice record not saved. The run has already ended; this notice was not sent. After resolving the refusal, you can choose Send without the end notice (recorded as not supplied) to continue without it.",
+            _ => "Supply-check record not saved. The native send, refusal or history check already happened and is not repeated. You can read this check result here, but Retry cannot save this original check.",
+        };
+        Some(format!("{action} Its original bytes are held in this App process only and are lost on quit. This record does not name the project identity and folder it was prepared for, so it cannot be saved from within the App. Original admission refusal: {reason}"))
     }
     /// The owning native producer supplies its actual check; persistence adds no
     /// native authority. Schema-valid JSON is never sufficient for live send/check.
@@ -1036,6 +1095,9 @@ pub struct PublishedSupplyCheck {
     check: ResolvedRecord,
 }
 impl PendingSupplyCheck {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.record.admission_refusal()
+    }
     pub(crate) fn new(
         project: &ProjectRecords,
         completed: CompletedSupplyCheck,
@@ -1098,6 +1160,9 @@ pub struct PublishedRunText {
     text: ResolvedRecord,
 }
 impl PreparedRunPublication {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.selection.admission_refusal().or_else(|| self.text.admission_refusal())
+    }
     pub fn new(
         project: &ProjectRecords,
         selection: &Selection,
@@ -1219,6 +1284,8 @@ mod tests;
 
 #[cfg(test)]
 thread_local! { pub(crate) static FAIL_AFTER_LINK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+#[cfg(test)]
+thread_local! { static WRITER_BEFORE_PUBLICATION: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
 fn publication_boundary() -> Result<(), String> {
     #[cfg(test)]
     if FAIL_AFTER_LINK.with(|v| v.replace(false)) {
@@ -1244,6 +1311,9 @@ pub struct PublishedEndNotice {
     record: ResolvedRecord,
 }
 impl PreparedEndPublication {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.record.admission_refusal()
+    }
     pub fn new(
         project: &ProjectRecords,
         prepared: &PreparedRunText,

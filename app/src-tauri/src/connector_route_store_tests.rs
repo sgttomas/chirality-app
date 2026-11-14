@@ -39,6 +39,72 @@ fn account(id: &str) -> Value {
         "recorder":{"kind":"tool","identity":"invented fixture"},
         "written_at":"fixture-constant", "written_at_source":"build_constant"})
 }
+
+#[test]
+fn records_store_writer_binding_connector_pending_after_identity_adoption_is_refused() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let kept = ProjectRouteStore::open_for_write(&p).unwrap();
+    let pending = account("ra:pending-before-adoption");
+    let original = kept.accounts_directory();
+    let moved = scratch.0.join("moved-project");
+    fs::rename(&p, &moved).unwrap();
+    crate::records_store::adopt(&moved).unwrap();
+    fs::create_dir(&p).unwrap();
+    crate::records_store::new_identity(&p).unwrap();
+    let result = kept.write(&pending);
+    assert!(result.is_err(), "{result:?}");
+    assert!(!original.exists(), "nothing written into the adopted identity");
+    assert!(ProjectRouteStore::open(&p).unwrap().discover().accounts.is_empty());
+    assert!(ProjectRouteStore::open(&moved).unwrap().discover().accounts.is_empty());
+}
+
+#[test]
+fn records_store_writer_binding_f4_connector_write_is_refused_without_registration() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    store.write(&account("ra:f4-retained")).unwrap();
+    let target = store.accounts_directory();
+    let registry = crate::records_store::store_root().unwrap().join("roots.jsonl");
+    fs::write(&registry, b"").unwrap();
+    let reason = crate::records_store::attach(&p, false).unwrap().refusal.unwrap();
+    let waiting = account("ra:f4-unwritten");
+    let before: Vec<_> = fs::read_dir(&target).unwrap().map(|e| e.unwrap().path()).collect();
+    let fresh_error = ProjectRouteStore::open_for_write(&p).err().expect("first writer must refuse");
+    assert!(fresh_error.to_string().contains(&reason), "{fresh_error}");
+    let error = store.write(&waiting).err().expect("kept writer must refuse");
+    assert!(error.to_string().contains(&reason), "{error}");
+    assert_eq!(fs::read(&registry).unwrap(), b"");
+    assert_eq!(fs::read_dir(&target).unwrap().count(), before.len());
+    crate::records_store::adopt(&p).unwrap();
+    assert!(store.write(&waiting).is_ok(), "the original account can be explicitly resubmitted");
+}
+
+#[test]
+fn records_store_writer_binding_connector_link_swapped_before_publication_is_refused() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let kept = ProjectRouteStore::open_for_write(&p).unwrap();
+    let link = p.join(crate::records_store::PROJECT_LINK);
+    let original = fs::read(&link).unwrap();
+    let result = kept.write_inner(&account("ra:pending-link-swap"), KEY, |stage| {
+        if stage == Stage::TempChecked {
+            let mut value: Value = serde_json::from_slice(&original).unwrap();
+            value["projectId"] = json!("invented:hosted-agent-swap");
+            fs::write(&link, serde_json::to_vec(&value).unwrap()).unwrap();
+        }
+        Ok(())
+    });
+    fs::write(link, original).unwrap();
+    assert!(!kept.accounts_directory().join(format!("{KEY}.json")).exists(), "account published after its link changed: {result:?}");
+    assert!(result.is_err(), "{result:?}");
+}
+
+#[test]
+fn records_store_writer_binding_connector_new_identity_is_refused_during_admitted_write() {
+    a_new_identity_is_refused_while_an_account_writer_is_admitted();
+}
 fn failure() -> StoreError {
     StoreError::new(ErrorKind::Io, "injected interruption")
 }
@@ -367,7 +433,7 @@ fn unwritable_directory_is_definite_and_never_relocated() {
 }
 #[test]
 fn real_rename_race_retains_capability_reports_uncertainty_and_reconciles() {
-    for depth in 0..3 {
+    for depth in 1..3 {
         let scratch = Scratch::new();
         let p = scratch.project();
         let store = ProjectRouteStore::open_for_write(&p).unwrap();
@@ -407,6 +473,40 @@ fn real_rename_race_retains_capability_reports_uncertainty_and_reconciles() {
         );
         assert_eq!(cold.discover().accounts.len(), 2); // the first, and no automatic retry.
     }
+}
+#[test]
+fn records_store_writer_binding_connector_records_folder_replacement_keeps_pending_for_retry() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    store.write(&account("ra:before")).unwrap();
+    let accounts = store.accounts_directory();
+    let original = accounts.parent().unwrap().parent().unwrap().to_path_buf();
+    let moved = scratch.0.join("moved");
+    let pending = account("ra:race");
+    let pending_bytes = serde_json::to_vec(&pending).unwrap();
+    let err = store
+        .write_inner(&pending, KEY, |stage| {
+            if stage == Stage::TempSynced {
+                fs::rename(&original, &moved).unwrap();
+                fs::create_dir(&original).unwrap();
+            }
+            Ok(())
+        })
+        .unwrap_err();
+    assert!(!err.uncertain_commit);
+    assert_eq!(err.kind, ErrorKind::RecordingRefused);
+    assert_eq!(fs::read_dir(&original).unwrap().count(), 0);
+    let relative = accounts.strip_prefix(&original).unwrap().join(format!("{KEY}.json"));
+    assert!(!original.join(&relative).exists());
+    assert!(!moved.join(&relative).exists());
+    assert_eq!(serde_json::to_vec(&pending).unwrap(), pending_bytes);
+    fs::remove_dir(&original).unwrap();
+    fs::rename(&moved, &original).unwrap();
+    assert_eq!(store.discover().accounts.len(), 1);
+    let retried = store.write_inner(&pending, KEY, |_| Ok(())).unwrap();
+    assert_eq!(store.resolve(&retried).unwrap().account["account_id"], "ra:race");
+    assert_eq!(store.discover().accounts.len(), 2);
 }
 #[test]
 fn prewrite_substitution_aborts_and_transient_move_is_not_continuous_containment() {
