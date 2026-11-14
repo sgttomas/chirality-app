@@ -166,65 +166,8 @@ pub(crate) fn desktop_account_homes(app_data: &Path) -> PathBuf {
     app_data.join("account-homes")
 }
 
-/// DEL-01-01: the folder the App gives the Codex it hosts as its working
-/// folder when no project is open. Under Codex's workspace-write sandbox the
-/// working folder is an agent's writable root, so it is a folder of its own,
-/// set aside for this and holding nothing else of the App's: never the App
-/// data folder itself, whose other contents (the records store, the account
-/// homes, the saved setup request, the recovery ledger) stay outside it. This
-/// only calculates the path; [`ensure_no_project_folder`] creates it.
-pub(crate) fn no_project_folder(app_data: &Path) -> PathBuf {
-    app_data.join("conversations-without-project")
-}
-/// Where a working folder lies against the App data folder, compared on
-/// resolved locations (links and `..` resolved by the file system) so that no
-/// spelling turns the folder for conversations without a project into a way
-/// to admit the App's other data.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum WorkingFolder {
-    /// Resolves to a place neither inside nor containing the App data folder.
-    Outside,
-    /// Resolves to the folder set aside for conversations without a project,
-    /// or a folder inside it.
-    NoProject,
-    /// Resolves to the App data folder, a folder inside it other than the one
-    /// set aside, or a folder containing it.
-    AppData,
-    /// Cannot be resolved (missing, or a `..` that the file system could not
-    /// resolve) and is not established to lie outside the App data folder.
-    Unresolved,
-}
-pub(crate) fn working_folder_place(app_data: &Path, folder: &Path) -> WorkingFolder {
-    let resolve = |path: &Path| std::fs::canonicalize(path).ok();
-    let data = resolve(app_data).unwrap_or_else(|| crate::records_store::resolve_lexically(app_data));
-    let overlaps = |at: &Path| at.starts_with(&data) || data.starts_with(at);
-    if !folder.is_absolute() {
-        return WorkingFolder::Unresolved;
-    }
-    match resolve(folder) {
-        Some(at) if resolve(&no_project_folder(app_data)).is_some_and(|leaf| at.starts_with(leaf)) => WorkingFolder::NoProject,
-        Some(at) if overlaps(&at) => WorkingFolder::AppData,
-        Some(_) => WorkingFolder::Outside,
-        // Not resolvable: never admitted on its spelling. A `..` that the file
-        // system did not resolve has no established place; otherwise the
-        // existing part is resolved and the missing rest appended, and only a
-        // place established outside the App data folder is admitted.
-        None if folder.components().any(|c| matches!(c, Component::ParentDir | Component::CurDir)) => WorkingFolder::Unresolved,
-        None if overlaps(&crate::records_store::resolve_lexically(folder)) => WorkingFolder::Unresolved,
-        None => WorkingFolder::Outside,
-    }
-}
-/// Creates the folder for conversations without a project when it is
-/// missing (owner-only, 0700) and checks it: a link, a file or a folder that
-/// is not private refuses, so nothing is started there. Called before every
-/// Codex start whose working folder it is.
-pub(crate) fn ensure_no_project_folder(app_data: &Path) -> Result<PathBuf, String> {
-    let folder = no_project_folder(app_data);
-    protected_directory(&folder).map_err(|e| {
-        format!("Codex was not started: the folder Chirality sets aside for conversations without a project ({}) is not a private folder of its own: {e}", folder.display())
-    })?;
-    Ok(folder)
-}
+pub(crate) use crate::working_folder::{ensure_no_project_folder, no_project_folder, refuse_in_no_project_folder, valid_no_project_folder, working_folder_place, working_folder_refusal, WorkingFolder};
+use crate::working_folder::protected_directory;
 
 fn clean(path: &Path) -> Result<(), String> {
     if !path.is_absolute()
@@ -467,35 +410,6 @@ impl ReceivingSource {
     }
 }
 
-fn protected_directory(path: &Path) -> Result<(), String> {
-    storage::check_path(path)?;
-    if !path.exists() {
-        let mut missing = Vec::new();
-        let mut ancestor = path;
-        while !ancestor.exists() {
-            missing.push(ancestor.to_owned());
-            ancestor = ancestor
-                .parent()
-                .ok_or("private directory ancestor absent")?;
-        }
-        std::fs::DirBuilder::new()
-            .recursive(true)
-            .mode(0o700)
-            .create(path)
-            .map_err(|e| e.to_string())?;
-        for directory in missing {
-            storage::sync_dir(&directory)?;
-        }
-        storage::sync_dir(ancestor)?;
-    }
-    let meta = std::fs::symlink_metadata(path).map_err(|e| e.to_string())?;
-    if !meta.is_dir() || meta.uid() != unsafe { libc::geteuid() } || meta.mode() & 0o077 != 0 {
-        return Err(
-            "desktop profile directory must be private (0700) and owned by this user".into(),
-        );
-    }
-    Ok(())
-}
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ProfileBaseline {
     object: ObjectRef,
@@ -7219,9 +7133,16 @@ mod tests {
         let launch = f.resolve(&mut fresh);
         let RootInputs { launch, allow_operational, .. } = fresh.admit_root(launch, Ok(f.data.clone()));
         assert!(allow_operational);
-        let cfg = launch.host_config.as_ref().unwrap();
+        let cfg = launch.host_config.as_ref().unwrap().clone();
+        let cfg = &cfg;
         assert!(!cfg.records_project);
         assert_no_project_folder(&f.data, cfg);
+        // After the start's consumers are joined (records store placed and opened), the folder
+        // holds nothing: not by its name, by its contents.
+        let (state, home) = crate::freeze_startup_state(launch, Arc::new(Mutex::new(fresh)), Value::Null);
+        crate::initialize_startup_consumers(&state, &home, Ok(f.data.clone()), true, true, Some(f.data.join("records")), None, f.shared.clone().map(Some));
+        assert_eq!(std::fs::read_dir(&cfg.cwd).unwrap().count(), 0, "the folder set aside holds nothing of the App's");
+        drop((state, home));
         // Removed, it is made again before the next Codex start.
         std::fs::remove_dir(&cfg.cwd).unwrap();
         Host::check_working_folder(cfg).unwrap();
@@ -7299,6 +7220,10 @@ mod tests {
         };
         let sibling = f.data.join("records");
         std::fs::create_dir_all(&sibling).unwrap();
+        let mut setup = f.setup();
+        f.prepare(&mut setup, false);
+        drop(setup);
+        std::fs::remove_dir(&leaf).unwrap();
         for case in ["file", "link"] {
             match case {
                 "file" => std::fs::write(&leaf, b"invented").unwrap(),
@@ -7309,12 +7234,9 @@ mod tests {
             assert!(refused.contains("not a private folder of its own"), "{case}: {refused}");
             assert_eq!(host.snapshot()["state"], "absent", "{case}");
             assert!(host.snapshot()["lastStartRefusal"]["reason"].as_str().unwrap().contains("not a private folder of its own"));
-            // The saved route refuses its launch the same way.
-            let mut setup = f.setup();
-            if !f.data.join(PROFILE).exists() { f.prepare(&mut setup, false); }
-            drop(setup);
+            // The saved route (its setup saved before the folder was replaced) refuses its launch.
             let mut fresh = f.setup();
-            assert!(f.resolve(&mut fresh).host_config.unwrap_err().contains("not a private folder of its own"), "{case}");
+            assert!(f.resolve(&mut fresh).host_config.is_err(), "{case}");
             std::fs::remove_file(&leaf).unwrap();
         }
         let host = Arc::new(Host::new());
@@ -7322,8 +7244,8 @@ mod tests {
         assert!(host.start(&config(sibling.clone(), home.clone()), "test").unwrap_err().contains("Chirality's own data folder"));
         protected_directory(&leaf).unwrap();
         std::fs::create_dir(leaf.join("home")).unwrap();
-        assert!(host.start(&config(leaf.clone(), leaf.join("home")), "test").unwrap_err().contains("Codex home would be inside"));
-        assert!(host.start(&config(leaf.clone(), PathBuf::from("relative-home")), "test").unwrap_err().contains("Codex home would be inside"));
+        assert!(host.start(&config(leaf.clone(), leaf.join("home")), "test").unwrap_err().contains("Codex home"));
+        assert!(host.start(&config(leaf.clone(), PathBuf::from("relative-home")), "test").unwrap_err().contains("may not be in, or contain, the folder Chirality sets aside"));
         assert_eq!(host.snapshot()["state"], "absent");
         assert!(!marker.exists(), "nothing was spawned");
     }
@@ -7359,8 +7281,101 @@ mod tests {
         std::fs::create_dir(&lookalike).unwrap();
         assert_eq!(place(lookalike), WorkingFolder::AppData);
         assert_eq!(place(f.data.clone()), WorkingFolder::AppData);
-        assert_eq!(place(f.root.clone()), WorkingFolder::AppData, "a folder containing the App data");
+        assert_eq!(place(f.root.clone()), WorkingFolder::Outside, "a folder containing the App data is admitted, as before this change");
         assert_eq!(place(f.project.clone()), WorkingFolder::Outside);
         assert_eq!(place(f.root.join("moved-project")), WorkingFolder::Outside, "missing, but established outside");
+    }
+
+
+    /// DEL-01-01 (reader's control F2): the folder set aside is only its literal place, a real
+    /// private directory checked without following a link. Replaced by a link to the records
+    /// folder, neither it nor the link's target is the folder set aside; a start in either refuses.
+    #[test]
+    fn a_redirected_no_project_folder_is_never_the_no_project_folder() {
+        let f = Fixture::new();
+        let leaf = no_project_folder(&f.data);
+        let records = f.data.join("records");
+        std::fs::create_dir_all(&records).unwrap();
+        std::os::unix::fs::symlink(&records, &leaf).unwrap();
+        for folder in [records.clone(), leaf.clone()] {
+            assert!(!matches!(working_folder_place(&f.data, &folder), WorkingFolder::Outside | WorkingFolder::NoProject), "{folder:?}");
+            let mut cfg = HostConfig::new(f.root.join("never-run"), f.root.join("home"), f.root.join("probe"), folder.clone());
+            cfg.app_data = Some(f.data.clone());
+            assert!(Host::check_working_folder(&cfg).is_err(), "{folder:?}");
+        }
+        // A real folder that is not private is not the folder set aside either.
+        std::fs::remove_file(&leaf).unwrap();
+        std::fs::create_dir(&leaf).unwrap();
+        std::fs::set_permissions(&leaf, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(working_folder_place(&f.data, &leaf), WorkingFolder::AppData);
+    }
+
+    /// DEL-01-01 (reader's control F5): a link in the existing part of a path whose target cannot
+    /// be resolved never establishes the path as outside the App data folder. A missing folder
+    /// beside the App data folder is not inside it and is admitted.
+    #[test]
+    fn a_dangling_link_never_establishes_a_folder_outside_the_app_data_folder() {
+        let f = Fixture::new();
+        let alias = f.root.join("outside-alias");
+        std::os::unix::fs::symlink(f.data.join("missing"), &alias).unwrap();
+        for folder in [alias.clone(), alias.join("child")] {
+            assert!(!matches!(working_folder_place(&f.data, &folder), WorkingFolder::Outside | WorkingFolder::NoProject), "{folder:?}");
+        }
+        assert_eq!(working_folder_place(&f.data, &f.root.join("missing").join("child")), WorkingFolder::Outside);
+    }
+
+    fn account_for_link(f: &Fixture) -> PathBuf {
+        let account = f.root.join("environment-home-for-link");
+        std::fs::create_dir_all(&account).unwrap();
+        account
+    }
+    /// DEL-01-01 (reader's control F4): no Codex home and no source of its settings is planned in
+    /// the folder set aside, by any spelling, before anything is created; on the environment
+    /// route's descriptors and in every owned home plan.
+    #[test]
+    fn no_codex_home_is_planned_in_the_no_project_folder() {
+        let f = Fixture::new();
+        let leaf = no_project_folder(&f.data);
+        let account = f.root.join("environment-home");
+        std::fs::create_dir(&account).unwrap();
+        let probe = f.probe().unwrap();
+        let cfg = HostConfig::new(f.root.join("never-run"), account.clone(), probe, f.project.clone());
+        let shared = f.shared.clone().map(Some);
+        const SET_ASIDE: &str = "the folder Chirality sets aside for conversations without a project";
+        // A source behind a link to a missing place in the folder set aside is refused too.
+        let behind = f.root.join("source-link");
+        std::os::unix::fs::symlink(leaf.join("not-yet"), &behind).unwrap();
+        let mut linked = f.shared.clone().map(Some);
+        linked[1] = Some(behind.clone());
+        let probe_cfg = HostConfig::new(f.root.join("never-run"), account_for_link(&f), f.probe().unwrap(), f.project.clone());
+        assert!(runtime_session::freeze_root_home_descriptors(&f.data, &probe_cfg, None, linked).err().is_some_and(|e| e.contains(SET_ASIDE)));
+        for key in [leaf.join("key"), f.data.join("CONVERSATIONS-WITHOUT-PROJECT").join("key")] {
+            let refused = runtime_session::freeze_root_home_descriptors(&f.data, &cfg, Some(key.clone()), shared.clone()).err();
+            assert!(refused.as_deref().is_some_and(|e| e.contains(SET_ASIDE)), "{key:?}: {refused:?}");
+            let plan = OwnedHomePlan::new(f.data.clone(), key.clone(), HomeClass::ApiKey, Some(SharedResourceTargets { config_toml: f.shared[0].clone(), global_agents_md: f.shared[1].clone(), skills: f.shared[2].clone() })).err();
+            assert!(plan.as_deref().is_some_and(|e| e.contains(SET_ASIDE)), "{key:?}: {plan:?}");
+            assert!(!key.exists(), "nothing was created");
+        }
+        let mut in_leaf = cfg.clone();
+        in_leaf.codex_home = leaf.join("account");
+        assert!(runtime_session::freeze_root_home_descriptors(&f.data, &in_leaf, None, shared.clone()).err().is_some_and(|e| e.contains(SET_ASIDE)));
+        let mut targets = shared.clone();
+        targets[0] = Some(leaf.join("config.toml"));
+        assert!(runtime_session::freeze_root_home_descriptors(&f.data, &cfg, None, targets).err().is_some_and(|e| e.contains(SET_ASIDE)));
+        // Beside it, the key home is planned as before.
+        assert!(runtime_session::freeze_root_home_descriptors(&f.data, &cfg, Some(f.data.join("key-homes").join("key")), shared).is_ok());
+        assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0);
+    }
+
+    /// DEL-01-01: a project folder that contains the App data folder (the home folder, for
+    /// example) is admitted as the working folder, as before this change; this change does not
+    /// address it.
+    #[test]
+    fn a_project_that_contains_the_app_data_folder_is_admitted_as_before() {
+        let f = Fixture::new();
+        assert_eq!(working_folder_place(&f.data, &f.root), WorkingFolder::Outside);
+        let mut cfg = HostConfig::new(f.root.join("never-run"), f.root.join("home"), f.root.join("probe"), f.root.clone());
+        cfg.app_data = Some(f.data.clone());
+        assert!(Host::check_working_folder(&cfg).is_ok());
     }
 }

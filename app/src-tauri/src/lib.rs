@@ -115,6 +115,7 @@ pub(crate) mod a15_native;
 pub mod schema_validation;
 pub mod standing;
 pub mod storage;
+pub mod working_folder;
 pub mod stop_records;
 pub mod util;
 
@@ -1018,6 +1019,7 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
+    desktop_startup::ensure_no_project_folder(&data)?;
     records_store::choose_location_beside(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), &working_folders(configs.iter()))
 }
 /// DEL-01-01: the working folders the App gives its Codex, which the records
@@ -3081,6 +3083,10 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     // its identity once (`.chirality/project.json`).
     {
         let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
+        // DEL-01-01: the folder set aside for conversations without a project exists (empty)
+        // before any placement is decided, on every start, so that every spelling of it
+        // resolves through the real directory.
+        if allow_operational { if let Ok(data) = &data { if let Err(e) = desktop_startup::ensure_no_project_folder(data) { eprintln!("chirality: {e}"); } } }
 
         records_store::configure(if allow_operational { records_store::for_app_beside(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes, &working_folders(home.host_config.as_ref().ok().into_iter())) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
         // The store is created here, once, when the App starts: no reader

@@ -323,10 +323,6 @@ pub struct HostConfig {
     pub(crate) process_lock: Option<PathBuf>,
 }
 
-/// DEL-01-01: a saved conversation that works in Chirality's own data folder is not continued.
-pub(crate) const SAVED_IN_APP_DATA_RESUME: &str = "This conversation was started in Chirality's own data folder, which Chirality no longer gives Codex as a working folder, so it was not continued. Nothing was sent to it. Start a new conversation instead.";
-/// The same for a copy of the conversation.
-pub(crate) const SAVED_IN_APP_DATA_FORK: &str = "This conversation works in Chirality's own data folder, which Chirality no longer gives Codex as a working folder, so it was not copied. Nothing was sent to it. Start a new conversation instead.";
 /// Its working folder could not be established, so it is not taken to be outside Chirality's data.
 pub(crate) const SAVED_IN_APP_DATA_UNKNOWN: &str = "Chirality could not establish where this conversation works, so it was not continued or copied: it might be Chirality's own data folder. Nothing was sent to it.";
 /// The account home's provider, as a session setting (see `HostConfig::new`).
@@ -2057,20 +2053,44 @@ impl Host {
         }
         found
     }
-    pub(crate) fn check_working_folder(cfg: &HostConfig) -> Result<(), String> {
-        use crate::desktop_startup::{ensure_no_project_folder, no_project_folder, working_folder_place, WorkingFolder};
+    /// DEL-01-01: the working folder Codex is started in, decided by what it is. The folder set
+    /// aside for conversations without a project is made if missing and opened at its literal
+    /// place without following a link; any other folder is opened as given. The opened directory
+    /// is then placed by its identity ([`desktop_startup::working_folder_place`]) and must be
+    /// the one its path names now. The child is started in that opened directory
+    /// ([`Self::check_working_folder_again`], `fchdir` in the child), never by its path again.
+    /// A Codex home or probe home that would be in the folder set aside refuses.
+    pub(crate) fn check_working_folder(cfg: &HostConfig) -> Result<Option<std::fs::File>, String> {
+        use crate::desktop_startup::{ensure_no_project_folder, no_project_folder, refuse_in_no_project_folder, working_folder_refusal};
+        use std::os::unix::fs::OpenOptionsExt;
+        let Some(data) = &cfg.app_data else { return Ok(None) };
+        const NOT_STARTED: &str = "Codex was not started";
+        let literal = cfg.cwd == no_project_folder(data);
+        let path = if literal { ensure_no_project_folder(data)? } else { cfg.cwd.clone() };
+        let flags = libc::O_DIRECTORY | libc::O_CLOEXEC | if literal { libc::O_NOFOLLOW } else { 0 };
+        let opened = std::fs::OpenOptions::new().read(true).custom_flags(flags).open(&path)
+            .map_err(|e| format!("{NOT_STARTED}: its working folder {} could not be opened as a folder: {e}", path.display()))?;
+        Self::check_working_folder_again(cfg, &opened)?;
+        if let Some(reason) = working_folder_refusal(data, &cfg.cwd, NOT_STARTED) { return Err(reason); }
+        refuse_in_no_project_folder(data, &cfg.cwd.join(&cfg.codex_home), "Codex was not started: its Codex home")?;
+        refuse_in_no_project_folder(data, &cfg.probe_home, "Codex was not started: its probe home")?;
+        Ok(Some(opened))
+    }
+    /// The opened working folder is still the directory its path names, and that path is still
+    /// a place Codex may be given: run at the check and again immediately before the spawn.
+    fn check_working_folder_again(cfg: &HostConfig, opened: &std::fs::File) -> Result<(), String> {
+        use crate::desktop_startup::{no_project_folder, valid_no_project_folder, working_folder_refusal};
+        use std::os::unix::fs::MetadataExt;
         let Some(data) = &cfg.app_data else { return Ok(()) };
-        if cfg.cwd == no_project_folder(data) {
-            ensure_no_project_folder(data)?;
-        }
-        if !matches!(working_folder_place(data, &cfg.cwd), WorkingFolder::Outside | WorkingFolder::NoProject) {
-            return Err("Codex was not started: its working folder would be Chirality's own data folder, a folder in it or one containing it, or a folder whose place could not be established".into());
-        }
-        let home = cfg.cwd.join(&cfg.codex_home);
-        let lexical = crate::records_store::resolve_lexically;
-        if working_folder_place(data, &home) == WorkingFolder::NoProject || lexical(&home).starts_with(lexical(&no_project_folder(data))) {
-            return Err("Codex was not started: its Codex home would be inside the folder set aside for conversations without a project".into());
-        }
+        const CHANGED: &str = "Codex was not started: its working folder changed while it was being checked";
+        let held = opened.metadata().map_err(|e| format!("{CHANGED}: {e}"))?;
+        let named = if cfg.cwd == no_project_folder(data) {
+            valid_no_project_folder(data).map(|(_, id)| id)
+        } else {
+            std::fs::metadata(&cfg.cwd).ok().map(|meta| (meta.dev(), meta.ino()))
+        };
+        if named != Some((held.dev(), held.ino())) { return Err(CHANGED.into()); }
+        if let Some(reason) = working_folder_refusal(data, &cfg.cwd, "Codex was not started") { return Err(reason); }
         Ok(())
     }
     fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
@@ -2085,10 +2105,10 @@ impl Host {
         // DEL-01-01: the working folder is never the App data folder or another folder of the
         // App's in it; with no project it is the folder set aside for that, created here when
         // missing, and no Codex home may resolve into it. Refused before anything is spawned.
-        if let Err(reason) = Self::check_working_folder(cfg) {
-            self.note_start_refusal(actor, &cfg.codex_home, &reason);
-            return Err(reason);
-        }
+        let working_folder = match Self::check_working_folder(cfg) {
+            Ok(opened) => opened,
+            Err(reason) => { self.note_start_refusal(actor, &cfg.codex_home, &reason); return Err(reason); }
+        };
         // A state that admits no start refuses as admission would, before the home is claimed or
         // its lock tried, so a home that cannot be opened is not reported in its place. Admission
         // checks the state again under its lock.
@@ -2342,8 +2362,10 @@ impl Host {
         args.push("app-server".into());
         let executable = prepared.as_ref().map(|p| &p.plan.executable).unwrap_or(&cfg.codex_bin);
         let mut cmd = Command::new(executable);
+        // With the App data folder known, the child's working folder is set from the checked
+        // open directory below, never from the path.
+        if working_folder.is_none() { cmd.current_dir(&cfg.cwd); }
         cmd.args(&args)
-            .current_dir(&cfg.cwd)
             .env("CODEX_HOME", &cfg.codex_home)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -2383,7 +2405,28 @@ impl Host {
                 });
             }
         }
+        // DEL-01-01: the child is started in the directory that was checked, by its open handle,
+        // after checking once more that its path still names it; never in whatever the path
+        // names at the moment of creation. The standard library starts a child only in a
+        // directory named by a path, so this is the one place the App changes a child's working
+        // folder by a descriptor: in the child, before exec, one `fchdir` on the descriptor the
+        // check opened (async-signal-safe). It must do nothing else: no allocation, no lock, no
+        // path lookup, and it must not run without that check having passed on that descriptor.
+        if let Some(opened) = &working_folder {
+            if let Err(reason) = Self::check_working_folder_again(cfg, opened) {
+                drop(process_lock);
+                let mut i = self.inner.0.lock().unwrap();
+                self.lt(&mut i, "LT-08", "spawn-failed", "halted-after-repeated-failure", json!({"failure": reason, "failureCount": 1}));
+                return Err(reason);
+            }
+            use std::os::fd::AsRawFd;
+            let fd = opened.as_raw_fd();
+            unsafe {
+                cmd.pre_exec(move || if libc::fchdir(fd) == -1 { Err(std::io::Error::last_os_error()) } else { Ok(()) });
+            }
+        }
         let spawned = process_group_custody::OwnedProcess::spawn_accounted(&mut cmd);
+        drop(working_folder);
         // The App's copy is closed at once, spawned or not: the child's copy is what holds the
         // lock, for as long as that Codex or anything it passed the descriptor to keeps it open.
         drop(process_lock);
@@ -2812,6 +2855,12 @@ impl Host {
         if endpoint_write.is_some() && (method!="config/batchWrite" || !private_config) {return Err("Private endpoint method context differs".into());}
         if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
         #[cfg(test)] let cce_selected=cce_intent.is_some();
+        // DEL-01-01: a working folder sent to a running Codex is checked again by what it is now,
+        // just before the request is registered: the folder set aside may have been replaced.
+        if let Some(cwd)=params.get("cwd").and_then(Value::as_str) {
+            let data=self.inner.0.lock().unwrap().app_data.clone();
+            if let Some(reason)=data.and_then(|data|crate::desktop_startup::working_folder_refusal(&data,std::path::Path::new(cwd),&format!("refused-not-sent: {method} was not sent"))) {return Err(reason);}
+        }
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
         // The dedicated local home's files are read again for every request that can reach a model.
         if !handshake { self.check_local_files(method)?; }
@@ -3199,7 +3248,7 @@ impl Host {
         if e["outcome"] != "response-observed-result" || e["response"]["result"]["thread"]["id"] != thread {
             return Err(SAVED_IN_APP_DATA_UNKNOWN.into());
         }
-        Self::saved_folder_admitted(&data, &e["response"]["result"]["thread"]["cwd"], SAVED_IN_APP_DATA_RESUME)
+        Self::saved_folder_admitted(&data, &e["response"]["result"]["thread"]["cwd"], "continued")
     }
     /// As [`Self::saved_thread_outside_app_data`] for a fork, on the folder the current
     /// conversation's own row reports; nothing is read or sent.
@@ -3207,14 +3256,18 @@ impl Host {
         let i = self.inner.0.lock().unwrap();
         let (None, Some(data)) = (&i.local_provider, &i.app_data) else { return Ok(()) };
         let row = i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread);
-        Self::saved_folder_admitted(data, row.map_or(&Value::Null, |t| &t["cwd"]), SAVED_IN_APP_DATA_FORK)
+        Self::saved_folder_admitted(data, row.map_or(&Value::Null, |t| &t["cwd"]), "copied")
     }
-    fn saved_folder_admitted(data: &std::path::Path, cwd: &Value, refusal: &str) -> Result<(), String> {
+    /// The reason is what is so of the folder Codex reports: in Chirality's data, or not
+    /// established. A folder that contains Chirality's data is admitted, as before this change.
+    fn saved_folder_admitted(data: &std::path::Path, cwd: &Value, act: &str) -> Result<(), String> {
         use crate::desktop_startup::{working_folder_place, WorkingFolder};
-        match cwd.as_str().map(|cwd| working_folder_place(data, std::path::Path::new(cwd))) {
-            Some(WorkingFolder::Outside | WorkingFolder::NoProject) => Ok(()),
-            Some(WorkingFolder::AppData) => Err(refusal.into()),
-            Some(WorkingFolder::Unresolved) | None => Err(SAVED_IN_APP_DATA_UNKNOWN.into()),
+        let Some(cwd) = cwd.as_str() else { return Err(SAVED_IN_APP_DATA_UNKNOWN.into()) };
+        let shown = std::fs::canonicalize(data).unwrap_or_else(|_| data.to_path_buf());
+        match working_folder_place(data, std::path::Path::new(cwd)) {
+            WorkingFolder::Outside | WorkingFolder::NoProject => Ok(()),
+            WorkingFolder::AppData => Err(format!("This conversation works in {cwd}, which is in Chirality's own data folder ({}). Chirality no longer gives Codex that folder, because a conversation working there could change Chirality's records and settings, so it was not {act}. Nothing was sent to it. Start a new conversation instead.", shown.display())),
+            WorkingFolder::Unresolved => Err(SAVED_IN_APP_DATA_UNKNOWN.into()),
         }
     }
     pub fn history_dispatch(&self, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
@@ -6477,54 +6530,121 @@ mod conversation_transport_tests {
             assert_eq!(host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored"),admitted);
         }
     }
+    /// A disposable App data folder with its folder set aside, a records folder and a project
+    /// beside it; removed when dropped.
+    struct SavedFolders { root:PathBuf, data:PathBuf, leaf:PathBuf, project:PathBuf }
+    impl SavedFolders {
+        fn new()->Self{
+            let root=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("saved-folder-").unwrap());
+            let data=root.join("app-data");std::fs::create_dir_all(data.join("records")).unwrap();
+            let leaf=crate::desktop_startup::ensure_no_project_folder(&data).unwrap();
+            let project=root.join("project");std::fs::create_dir(&project).unwrap();
+            Self{root,data,leaf,project}
+        }
+        fn host(&self)->Arc<Host>{let h=host();{let mut i=h.inner.0.lock().unwrap();i.server_cwd=Some("/invented".into());i.app_data=Some(self.data.clone());}h}
+        /// The folder set aside replaced by a link to the records folder, as a command run outside
+        /// the sandbox could leave it.
+        fn redirect_leaf(&self){std::fs::remove_dir(&self.leaf).unwrap();std::os::unix::fs::symlink(self.data.join("records"),&self.leaf).unwrap();}
+    }
+    impl Drop for SavedFolders { fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);} }
+    fn cloud_reading()->Value{json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})}
+    /// Resumes and forks a saved conversation that reports `saved_cwd`; returns each result and
+    /// the methods written.
+    fn resume_and_fork(f:&SavedFolders,saved_cwd:&str)->((Result<(),String>,Vec<String>),(Result<(),String>,Vec<String>)){
+        let methods=|frames:Vec<Value>|frames.iter().map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect::<Vec<_>>();
+        let h=f.host();let mut view=history_selected();let query=view.continue_query().unwrap();
+        let (resumed,frames)=local_peer_exchange(&h,cloud_reading(),saved_cwd,history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
+        let h=f.host();h.inner.0.lock().unwrap().threads[0]["cwd"]=json!(saved_cwd);
+        let (forked,fork_frames)=local_peer_exchange(&h,cloud_reading(),saved_cwd,json!({}),||h.thread_fork_dispatch(&g(),"thread").map(|_|()));
+        ((resumed,methods(frames)),(forked,methods(fork_frames)))
+    }
     /// DEL-01-01 (T7): on the account and key routes a saved conversation whose reported working
-    /// folder resolves to the App data folder, a folder in it other than the folder set aside for
-    /// conversations without a project, or one that cannot be resolved, is not resumed or forked:
-    /// no resume or fork frame is written (a resume first reads the saved conversation's folder).
-    /// The comparison is on resolved locations.
+    /// folder is, by what it resolves to, the App data folder or a folder in it other than the
+    /// folder set aside, or whose place cannot be established, is not resumed or forked: no resume
+    /// or fork frame is written (a resume first reads the saved conversation's folder). A folder
+    /// that contains the App data folder is admitted, as before this change.
     #[test]
-    fn a_saved_conversation_in_the_app_data_folder_is_not_resumed_or_forked(){
-        use crate::desktop_startup::ensure_no_project_folder;
-        let root=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("saved-folder-").unwrap());
-        let data=root.join("app-data");std::fs::create_dir_all(data.join("records")).unwrap();
-        let leaf=ensure_no_project_folder(&data).unwrap();
-        std::os::unix::fs::symlink(data.join("records"),leaf.join("to-records")).unwrap();
-        let project=root.join("project");std::fs::create_dir(&project).unwrap();
-        let reading=json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}});
+    fn saved_working_folder_in_the_app_data_folder_is_not_resumed_or_forked(){
+        let f=SavedFolders::new();
+        std::os::unix::fs::symlink(f.data.join("records"),f.leaf.join("to-records")).unwrap();
         let s=|p:&std::path::Path|p.to_str().unwrap().to_owned();
+        const IN_DATA:&str="is in Chirality's own data folder";
         let cases=[
-            (s(&data),Some(SAVED_IN_APP_DATA_RESUME)),(s(&data.join("records")),Some(SAVED_IN_APP_DATA_RESUME)),
-            (format!("{}/../records",s(&leaf)),Some(SAVED_IN_APP_DATA_RESUME)),(s(&leaf.join("to-records")),Some(SAVED_IN_APP_DATA_RESUME)),
-            (s(&leaf.join("gone")),Some(SAVED_IN_APP_DATA_UNKNOWN)),(s(&root),Some(SAVED_IN_APP_DATA_RESUME)),
-            (s(&leaf),None),(s(&project),None),
+            (s(&f.data),Some(IN_DATA)),(s(&f.data.join("records")),Some(IN_DATA)),
+            (format!("{}/../records",s(&f.leaf)),Some(IN_DATA)),(s(&f.leaf.join("to-records")),Some(IN_DATA)),
+            (s(&f.leaf.join("gone")),Some(SAVED_IN_APP_DATA_UNKNOWN)),
+            (s(&f.leaf),None),(s(&f.project),None),(s(&f.root),None),
         ];
         for (saved_cwd,refusal) in &cases {
-            let h=host();{let mut i=h.inner.0.lock().unwrap();i.server_cwd=Some("/invented".into());i.app_data=Some(data.clone());}
-            let mut view=history_selected();let query=view.continue_query().unwrap();
-            let (result,frames)=local_peer_exchange(&h,reading.clone(),saved_cwd,history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
-            let methods:Vec<&str>=frames.iter().map(|f|f["method"].as_str().unwrap_or("")).collect();
+            let ((resumed,resume_frames),(forked,fork_frames))=resume_and_fork(&f,saved_cwd);
             match refusal {
-                Some(refusal)=>{assert_eq!(result.unwrap_err(),*refusal,"{saved_cwd}");assert_eq!(methods,vec!["thread/read"],"{saved_cwd}: nothing but the reading of its folder");}
-                None=>{assert!(result.is_ok(),"{saved_cwd}: {result:?}");assert_eq!(methods,vec!["thread/read","config/read","thread/resume"],"{saved_cwd}");
-                    assert_eq!(frames[2]["params"],json!({"threadId":"stored","excludeTurns":true}),"no cwd is added on the account route");}
-            }
-            // A fork rests on the current conversation's own row; nothing at all is written when it is refused.
-            let h=host();{let mut i=h.inner.0.lock().unwrap();i.server_cwd=Some("/invented".into());i.app_data=Some(data.clone());i.threads[0]["cwd"]=json!(saved_cwd);}
-            let (result,frames)=local_peer_exchange(&h,reading.clone(),saved_cwd,json!({}),||h.thread_fork_dispatch(&g(),"thread").map(|_|()));
-            match refusal {
-                Some(refusal)=>{let expected=if *refusal==SAVED_IN_APP_DATA_RESUME{SAVED_IN_APP_DATA_FORK}else{refusal};assert_eq!(result.unwrap_err(),expected,"{saved_cwd}");assert!(frames.is_empty(),"{saved_cwd}: {frames:?}");}
-                None=>{assert!(result.is_ok(),"{saved_cwd}: {result:?}");assert!(frames.iter().any(|f|f["method"]=="thread/fork"),"{saved_cwd}");}
+                Some(refusal)=>{
+                    let (resumed,forked)=(resumed.unwrap_err(),forked.unwrap_err());
+                    assert!(resumed.contains(refusal)&&forked.contains(refusal),"{saved_cwd}: {resumed} / {forked}");
+                    if *refusal==IN_DATA {assert!(resumed.contains("not continued")&&forked.contains("not copied")&&resumed.contains(&s(&f.data)));}
+                    assert_eq!(resume_frames,vec!["thread/read"],"{saved_cwd}: nothing but the reading of its folder");
+                    assert!(fork_frames.is_empty(),"{saved_cwd}: {fork_frames:?}");
+                }
+                None=>{
+                    assert!(resumed.is_ok()&&forked.is_ok(),"{saved_cwd}: {resumed:?} {forked:?}");
+                    assert_eq!(resume_frames,vec!["thread/read","config/read","thread/resume"],"{saved_cwd}");
+                    assert!(fork_frames.iter().any(|m|m=="thread/fork"),"{saved_cwd}");
+                }
             }
         }
         // A row that reports no folder is not taken to be outside the App data.
-        let h=host();h.inner.0.lock().unwrap().app_data=Some(data.clone());
+        let h=f.host();
         assert_eq!(h.thread_fork_dispatch(&g(),"thread").err().unwrap(),SAVED_IN_APP_DATA_UNKNOWN);
         // Without a known App data folder nothing is read first, as before.
         let h=host();h.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut view=history_selected();let query=view.continue_query().unwrap();
-        let (result,frames)=local_peer_exchange(&h,reading.clone(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
+        let (result,frames)=local_peer_exchange(&h,cloud_reading(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
         assert!(result.is_ok());assert!(!frames.iter().any(|f|f["method"]=="thread/read"));
-        std::fs::remove_dir_all(&root).unwrap();
+    }
+    /// DEL-01-01 (reader's control F2): the folder set aside replaced by a link to the records
+    /// folder is never the folder set aside: neither it nor its target is resumed or forked.
+    #[test]
+    fn saved_working_folder_behind_a_redirected_set_aside_folder_is_not_resumed_or_forked(){
+        let f=SavedFolders::new();f.redirect_leaf();
+        for saved_cwd in [f.data.join("records"),f.leaf.clone()] {
+            let ((resumed,resume_frames),(forked,fork_frames))=resume_and_fork(&f,saved_cwd.to_str().unwrap());
+            assert!(resumed.is_err()&&forked.is_err(),"{saved_cwd:?}: {resumed:?} {forked:?}");
+            assert_eq!(resume_frames,vec!["thread/read"]);assert!(fork_frames.is_empty());
+        }
+    }
+    /// DEL-01-01 (T7, the unread path): when Codex never answers the reading of a saved
+    /// conversation's folder, it is not resumed and the person is told why.
+    #[test]
+    fn saved_working_folder_that_cannot_be_read_is_not_resumed(){
+        let f=SavedFolders::new();let h=f.host();
+        let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+        *h.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
+        let reader=std::thread::spawn(move||BufReader::new(stdout).lines().map_while(Result::ok).map(|l|serde_json::from_str::<Value>(&l).unwrap()["method"].as_str().unwrap_or("").to_owned()).collect::<Vec<_>>());
+        let mut view=history_selected();let query=view.continue_query().unwrap();
+        let refused=h.history_dispatch(&query).err().unwrap();
+        *h.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+        assert_eq!(refused,SAVED_IN_APP_DATA_UNKNOWN);assert!(refused.contains("could not establish where this conversation works"));
+        assert_eq!(reader.join().unwrap(),vec!["thread/read"],"no resume is written");
+    }
+    /// DEL-01-01 (reader's control F3, later sends): a working folder sent to a running Codex is
+    /// checked again when sent. The folder set aside replaced by a file or by a link to App data
+    /// refuses the start of a conversation there, with nothing written.
+    #[test]
+    fn sent_working_folder_is_checked_again_when_sent(){
+        for case in ["kept","file","link"] {
+            let f=SavedFolders::new();let h=f.host();
+            match case {"file"=>{std::fs::remove_dir(&f.leaf).unwrap();std::fs::write(&f.leaf,b"invented").unwrap();},"link"=>{std::fs::remove_dir(&f.leaf).unwrap();std::os::unix::fs::symlink(&f.data,&f.leaf).unwrap();},_=>{}}
+            let leaf=f.leaf.to_str().unwrap().to_owned();
+            let (result,frames)=local_peer_exchange(&h,cloud_reading(),"/unused",json!({}),||h.thread_start_with_guidance_dispatch(&g(),&leaf,"invented-model","invented-provider","invented guidance").map(|_|()));
+            if case=="kept" {
+                assert!(result.is_ok(),"{result:?}");
+                assert_eq!(frames.iter().find(|f|f["method"]=="thread/start").unwrap()["params"]["cwd"],json!(leaf));
+            } else {
+                let refused=result.unwrap_err();
+                assert!(refused.starts_with("refused-not-sent")&&refused.contains("no longer a private folder of its own"),"{case}: {refused}");
+                assert!(frames.is_empty(),"{case}: {frames:?}");
+            }
+        }
     }
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
     /// An account or key-home host whose Codex answers each configuration reading as `reading` says
@@ -8046,6 +8166,41 @@ mod local_process_lock_tests {
         until("the stand-in Codex has ended", || !alive(pid));
     }
 
+    /// DEL-01-01 (reader's control F3): Codex starts in the directory that was checked, not in
+    /// whatever its path names later. The stand-in's label probe (`--version`, run after the
+    /// check and before the spawn) replaces the folder set aside with a link to the App data
+    /// folder: the start refuses with a plain reason and nothing is spawned. Unchanged, the
+    /// child's own working folder is the folder set aside, and that folder is empty.
+    #[test]
+    fn codex_starts_in_the_checked_no_project_folder_not_what_its_path_names_later() {
+        for swap in [false, true] {
+            let f = Fixture::new(false, false);
+            let data = f.root.join("app-data");
+            std::fs::create_dir(&data).unwrap();
+            std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let leaf = crate::desktop_startup::no_project_folder(&data);
+            let swap_line = if swap { format!(" import shutil; os.rename('{leaf}', '{leaf}-moved'); os.symlink('{data}', '{leaf}')\n", leaf = leaf.display(), data = data.display()) } else { String::new() };
+            std::fs::write(&f.cfg.codex_bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n{swap_line} print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/cwd','w').write(os.getcwd())\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)\n")).unwrap();
+            let mut cfg = f.cfg.clone();
+            cfg.distribution = Some(successor::Distribution::development_from_binary(&cfg.codex_bin).unwrap());
+            cfg.cwd = leaf.clone();
+            cfg.app_data = Some(data.clone());
+            let host = Arc::new(Host::new());
+            let started = host.start(&cfg, "fixture");
+            let reported = f.root.join("home/cwd");
+            if swap {
+                let refused = started.unwrap_err();
+                assert!(refused.contains("working folder changed while it was being checked"), "{refused}");
+                assert!(!reported.exists(), "nothing was spawned");
+            } else {
+                assert_eq!(started.unwrap()["state"], "ready");
+                until("the stand-in reported its working folder", || reported.exists());
+                assert_eq!(PathBuf::from(std::fs::read_to_string(&reported).unwrap()), leaf);
+                assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0, "the folder set aside is empty after a start");
+                stop_and_wait(&host);
+            }
+        }
+    }
     /// A state that admits no start refuses as admission would, before a home that cannot be
     /// opened is reported by the home's claim or its lock.
     #[test]

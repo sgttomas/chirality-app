@@ -397,16 +397,25 @@ fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[Pat
     }
     if let Some(data) = app_data {
         inside(&crate::desktop_startup::desktop_account_homes(data), "the folder reserved for the App's account homes");
-        inside(&crate::desktop_startup::no_project_folder(data), "the folder set aside for conversations without a project");
-    }
-    for folder in working_folders {
-        inside(folder, "the working folder Codex is given");
     }
     for home in codex_homes {
         inside(home, "the Codex home");
     }
     if let Some(home) = std::env::var_os("HOME") {
         inside(&PathBuf::from(home).join(".codex"), "the Codex home");
+    }
+    // DEL-01-01: decided by the identity of what exists (the folder set aside is made to exist
+    // first), so that no spelling the file system would resolve into these folders passes.
+    if let Some(data) = app_data {
+        let set_aside = crate::desktop_startup::no_project_folder(data);
+        if crate::working_folder::may_be_in_no_project_folder(data, root) {
+            problems.push(format!("{} overlaps the folder set aside for conversations without a project {}, or its place relative to it cannot be established", root.display(), set_aside.display()));
+        }
+    }
+    for folder in working_folders {
+        if crate::working_folder::may_overlap(root, folder) {
+            problems.push(format!("{} overlaps the working folder Codex is given {}, or its place relative to it cannot be established", root.display(), folder.display()));
+        }
     }
     if !allow_temporary && is_temporary(root) {
         problems.push(format!("{} is in a temporary folder (an agent under Codex's workspace-write sandbox can write there)", root.display()));

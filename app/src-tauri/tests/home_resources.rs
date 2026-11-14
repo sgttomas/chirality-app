@@ -1,5 +1,5 @@
 #![cfg(unix)]
-use chirality_app_v4_lib::storage;
+use chirality_app_v4_lib::{storage, working_folder};
 #[path = "../src/home_resources.rs"]
 mod home_resources;
 use home_resources::*;

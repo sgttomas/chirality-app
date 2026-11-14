@@ -243,6 +243,15 @@ impl OwnedHomePlan {
     }
     fn check_owned_directory(&self) -> Result<(), String> {
         storage::check_path(&self.home_path)?;
+        // DEL-01-01: no owned home is planned, inspected or prepared in the folder set aside for
+        // conversations without a project, nor a source of its settings there. Run when the plan
+        // is made and again before each step that creates anything.
+        crate::working_folder::refuse_in_no_project_folder(&self.app_data_root, &self.home_path, "a Codex home")?;
+        if let Some(s) = &self.shared {
+            for p in [&s.config_toml, &s.global_agents_md, &s.skills] {
+                crate::working_folder::refuse_source_in_no_project_folder(&self.app_data_root, p, "a source of Codex settings")?;
+            }
+        }
         if !self.home_path.starts_with(&self.app_data_root) {
             return Err("owning location changed".into());
         }

@@ -137,7 +137,7 @@ jobs:
           recovery_root_cold_ waiting_requests_tests::
           runtime_session::workflow_root_tests::library_entries_tests
           stop_bound_tests home_hold::tests session_liveness::tests local_process_lock_tests
-          prepared_turn_refusal_is_typed_only_for_a_correlated_native_error a_saved_conversation_in_the_app_data_folder
+          prepared_turn_refusal_is_typed_only_for_a_correlated_native_error saved_working_folder_ sent_working_folder_
           isolation_resolves_a_relative_home_where_the_child_does
           act_control::a15::tests::listed_a15_
           runtime_session::workflow_root_tests::proposal_disclosure_tests

@@ -357,7 +357,8 @@ fn the_no_project_folder_and_every_codex_working_folder_are_reserved() {
         let chosen = records_store::choose_location(&data, &store, None, &[]);
         assert!(chosen.as_ref().is_err_and(|e| e.contains(SET_ASIDE)), "{store:?}: {chosen:?}");
     }
-    assert!(!leaf.exists(), "reserved while it does not exist");
+    assert!(leaf.is_dir(), "placement makes the folder set aside exist (empty) before it decides");
+    assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0);
     assert!(records_store::for_app(Some(data.join("records")), Ok(&data), true, None, &[]).is_ok(), "beside it is accepted");
     const WORKING: &str = "the working folder Codex is given";
     let outer = folder("placement-outer-");
@@ -370,4 +371,26 @@ fn the_no_project_folder_and_every_codex_working_folder_are_reserved() {
         assert!(chosen.as_ref().is_err_and(|e| e.contains(WORKING)), "{store:?}: {chosen:?}");
     }
     assert!(records_store::for_app_beside(Some(outer.join("beside")), Ok(&data), true, None, &[], &[working]).is_ok());
+}
+
+/// DEL-01-01 (reader's control F1): no spelling the file system would resolve into the folder set
+/// aside passes placement, whether or not that folder exists yet: placement makes it exist first,
+/// so another spelling resolves through the real directory, and decides by identity.
+#[test]
+fn a_case_alias_of_the_no_project_folder_is_never_a_records_store() {
+    let data = folder("placement-data-");
+    let leaf = desktop_startup::no_project_folder(&data);
+    let alias = data.join("CONVERSATIONS-WITHOUT-PROJECT").join("records");
+    assert!(!leaf.exists());
+    let placed = records_store::for_app(Some(alias.clone()), Ok(&data), true, None, &[]);
+    assert!(placed.as_ref().is_err_and(|e| e.contains("the folder set aside for conversations without a project")), "{placed:?}");
+    assert!(!alias.exists(), "nothing created at the alias");
+    let chosen = records_store::choose_location(&data, &alias, None, &[]);
+    assert!(chosen.is_err(), "{chosen:?}");
+    // If the folder set aside cannot be made (a file is in its place), nothing under the App data
+    // folder can be established, and placement there refuses.
+    std::fs::remove_dir(&leaf).unwrap();
+    std::fs::write(&leaf, b"invented").unwrap();
+    assert!(records_store::for_app(Some(data.join("records")), Ok(&data), true, None, &[]).is_err());
+    assert!(records_store::for_app(Some(folder("placement-elsewhere-").join("records")), Ok(&data), true, None, &[]).is_ok());
 }
