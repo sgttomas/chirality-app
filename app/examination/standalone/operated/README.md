@@ -880,8 +880,12 @@ service act outside it on every call (see "What the route starts").
 ## Running a scenario
 
 A scenario is a file of steps and expected states, walked by a script the
-operator loads. There is one: `first-use-setup.scenario.json`, "first-use setup
-without a project, new settings". It is the opening of the first-use setup page
+operator loads. There are three. Two of them, `signed-out-setup.scenario.json`
+and `signed-out-relaunch.scenario.json`, type the project path and confirm
+setup, and see the launch after it. They are run only under "The App's own
+setup confirmation, and the typed path" below. What follows here is about the
+first, `first-use-setup.scenario.json`, "first-use setup without a project,
+new settings". It is the opening of the first-use setup page
 up to, and not including, the App's own confirmation. Its acts are views and
 clicks; nothing is typed, no file or folder is chosen, no confirmation is
 answered and no setup is confirmed. The App starts no Codex in it and it needs
@@ -1077,19 +1081,22 @@ failure, the same scenario and acts.
 - The script refuses, before any call, an application not named by a
   development build's bundle identifier, and a process the watch file does not
   show running, with its executable inside the bundle, within the last three
-  seconds. It reads the watch file again before every click and every view.
+  seconds. It reads the watch file again before every click, set-value, press
+  and view, and after every wait.
   It makes views and clicks, and only where a scenario names them one
   set-value and one press on the App's own setup confirmation ("The App's own
   setup confirmation, and the typed path" below), and nothing else. It clicks only a control a step
   names, found by its words whole: a control whose words merely begin the
   same way is not it, and a control whose words end with an ellipsis is never
-  clicked.
+  clicked by a click step. The one exception is the control that opens the App's
+  own setup confirmation, clicked only by the one sheet step that names it.
 - It stops, and says where, if a view holds anything that is not the
   scenario's page. The rule is what a view may hold, not a list of things it
   may not: the view must say it is of the bundle; at the top it holds the
   App's one window and the menu bar and nothing else; directly inside the
-  window it holds only what the scenario lists. A sheet, a dialog, an alert,
-  a second window, or a kind of thing nobody named, stops it; the one
+  window it holds only what the scenario lists, and nowhere below the window,
+  at any depth, a window, sheet, dialog, alert or popover. A sheet, a dialog,
+  an alert, a second window, or a kind of thing nobody named, stops it; the one
   exception is the sheet a scenario's one `confirm_sheet` step names, checked
   whole before its one press, and a sheet still there after that press stops
   it and is not pressed again. It also stops
@@ -1171,11 +1178,13 @@ either driver marker.
   `{project}`. Before any call, the walk refuses:
   - a scenario that types more than once, types anything else, or names a
     second field;
-  - a project that is not an absolute path beside the home (the walk's
-    `project`, the launch folder's `project`).
+  - a project that is not exactly the launch folder's own `project`, beside
+    its `home`: the home must end in `/home` with no empty, `.` or `..` part,
+    and the project must be the same path ending in `/project`.
 
   The walk sets the value once, by the field's element index from the latest
-  view. It judges by what the page then does, not by the value the field
+  view. The field is the one whose label is the named label whole, followed in
+  the view by nothing but its own value and placeholder. It judges by what the page then does, not by the value the field
   shows.
 - **The sheet.** The scenario names one sheet in `sheets`: the control that
   opens it, its title, its three buttons, the button to press, and the
@@ -1189,18 +1198,27 @@ either driver marker.
      - at the top it holds the one window and the menu bar;
      - directly inside the window it holds what the scenario lists and
        exactly one thing more, a sheet;
-     - the sheet holds exactly the named buttons and the named title once;
-     - the complete statement is in the sheet once, compared word for word,
-       with every run of white space made one space. That includes line
-       breaks, and a line break written as `\n`.
+     - below the window, at any depth, there is no other window, sheet,
+       dialog, alert or popover;
+     - directly inside the sheet, and nothing deeper, are exactly the named
+       buttons, the named title once, and the statement's text. An image (the
+       App's icon) is allowed and recorded. Anything else in the sheet is a
+       difference;
+     - the statement's text equals the complete statement. Line breaks, in
+       whatever form the view gives them (a new element, a new line, or
+       written as `\n`), become one space, and each line is trimmed at its
+       ends. Nothing else is changed, so every word and every path is
+       compared exactly, and nothing may be added.
 
-     So its paths are the exact locations the page named, and the previous
-     step checked that each lies under the App data folder in the home.
-     Anything different stops the walk, and nothing is pressed.
-  4. The App shows the statement whole within 30 lines and 1,500 characters,
+     So its paths are exactly the locations the page named, and the previous
+     step checked that each lies under the App data folder in the home. Any
+     of these differences stops the walk, and nothing is pressed.
+  4. It reads the watch file again just before the press. If the build is
+     not shown running, it stops without pressing.
+  5. The App shows the statement whole within 30 lines and 1,500 characters,
      and otherwise a digest of it. For the walk's paths it is whole. A
      statement too long for the captured paths, or a digest, stops the walk.
-  5. It presses the named button once, by its index, waits and views. If the
+  6. It presses the named button once, by its index, waits and views. If the
      sheet, or anything else that is not the page, is still there, the walk
      stops and does not press again.
 - **What the tree does not show.** The view is the development build's own
@@ -1218,8 +1236,12 @@ either driver marker.
     launch record each. It is refused 12 hours after the folder was made, or
     while a candidate process is running;
   - `launch.py keep-remove --folder <kept folder> --candidate <candidate
-    folder>` removes it whole, by exact path, after the same identity checks
-    and while no candidate process is running. It is not refused for age.
+    folder>` removes it whole. It first makes keep-launch's checks of the
+    candidate (admitted, identified, without the driver's markers, and the one
+    the kept record names) and of the folder, and refuses while a candidate
+    process is running. It is not refused for age. It empties the folder
+    through the handle it holds on the directory the record names, and then
+    removes the folder by name only while that name is still that directory.
 
   `keep-launch` is run through `detached.py`, as `launch` is.
 - **The record.** It says that an agent pressed the confirmation, by the

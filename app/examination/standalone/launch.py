@@ -1008,23 +1008,43 @@ def keep_launch(args):
 
 
 def keep_remove(args):
-    """Removes a kept folder whole, after the same identity checks (an expired folder may be removed) and when no
-    candidate process runs: entries are unlinked by name, a link is never followed, and no file is opened or read."""
+    """Removes a kept folder whole, after the checks keep-launch makes of the candidate and the folder (an expired
+    folder may be removed): the candidate admitted and identified, without the driver's markers, and the one the
+    kept record names; and no process of it running. The folder's contents are removed through the handle held on
+    the very directory its record names, entries unlinked by name, a link never followed and no file opened or read;
+    then the folder itself, by name, only while that name is still that directory."""
     root, root_fd = open_root()
+    fd = None
     try:
-        folder, fd, kept = kept_folder(root, root_fd, args.folder)
-        os.close(fd)
         if args.candidate is None:
             raise Refusal('keep-remove needs the candidate, to see that it is not running; refusing')
         candidate, record_path = find_candidate(args.candidate, _ident(root_fd))
-        app, executable_path, _ = find_bundle(candidate, read_record(record_path))
+        record_data = read_record(record_path)
+        app, executable_path, executable = find_bundle(candidate, record_data)
+        check_executable(executable)
+        check_not_a_test_build(app / executable_path)
+        identify_candidate(app, record_path)
+        folder, fd, kept = kept_folder(root, root_fd, args.folder)
+        if (kept.get('candidate_key'), kept.get('identifier')) != (record_data['candidate_key'], record_data['bundle']['identifier']):
+            raise Refusal('the kept folder was made for another candidate; refusing')
         if running_candidates(app / executable_path):
             raise Refusal('the candidate is still running; refusing to remove the kept folder')
         if not shutil.rmtree.avoids_symlink_attacks:
             raise Refusal('this platform cannot remove a tree without following links; refusing')
-        shutil.rmtree(folder.name, dir_fd=root_fd)
+        held = os.fstat(fd)
+        for name in os.listdir(fd):
+            if stat.S_ISDIR(os.stat(name, dir_fd=fd, follow_symlinks=False).st_mode):
+                shutil.rmtree(name, dir_fd=fd)
+            else:
+                os.unlink(name, dir_fd=fd)
+        now = os.stat(folder.name, dir_fd=root_fd, follow_symlinks=False)
+        if (now.st_dev, now.st_ino) != (held.st_dev, held.st_ino):
+            raise Refusal('the kept folder\'s name no longer names the directory that was emptied; it is left in place')
+        os.rmdir(folder.name, dir_fd=root_fd)
         gone = not os.path.lexists(folder)
     finally:
+        if fd is not None:
+            os.close(fd)
         os.close(root_fd)
     print(json.dumps({'removed': str(folder), 'gone': gone, 'made_at': kept.get('made_at')}, indent=2))
     return 0 if gone else 1

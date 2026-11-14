@@ -1070,10 +1070,20 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
         outside.write_text('must stay')
         (folder / 'home/a-link').symlink_to(outside)
         (folder / 'project/deep/er').mkdir(parents=True)
-        code, out = self.call('keep-remove', '--folder', str(self.tmp / folder.name))
+        code, out = self.call('keep-remove', '--folder', str(self.tmp / folder.name), '--candidate', str(candidate))
         self.assert_refused(code, out, 'not a kept folder')
         code, out = self.call('keep-remove', '--folder', str(folder))
         self.assert_refused(code, out, 'needs the candidate')
+        saved = (folder / 'record/kept.json').read_text()
+        (folder / 'record/kept.json').write_text(json.dumps({**json.loads(saved), 'candidate_key': 'another'}))
+        try:
+            code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        finally:
+            (folder / 'record/kept.json').write_text(saved)
+        self.assert_refused(code, out, 'made for another candidate')
+        marked = self.candidate(f'# {launch.DRIVER_MARKERS[0].decode()}\n', where='marked')
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(marked))
+        self.assert_refused(code, out, 'test build carrying the scripted driver')
         self.assertTrue(folder.exists())
         with mock.patch.object(launch, 'running_candidates', return_value=[{'pid': 1}]):
             code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
@@ -1083,6 +1093,23 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
         self.assertEqual(code, 0, out)
         self.assertFalse(folder.exists())
         self.assertEqual(outside.read_text(), 'must stay')
+
+    def test_remove_leaves_a_directory_put_in_the_kept_folders_place_while_it_ran(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        moved = self.tmp / 'moved-away'
+        real_rmtree = launch.shutil.rmtree
+
+        def swap(name, dir_fd=None, **kwargs):
+            real_rmtree(name, dir_fd=dir_fd, **kwargs)
+            if not moved.exists():
+                folder.rename(moved)
+                folder.mkdir()
+                (folder / 'kept-by-someone-else').write_text('must stay')
+        with mock.patch.object(launch.shutil, 'rmtree', side_effect=swap):
+            code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assert_refused(code, out, 'no longer names the directory that was emptied')
+        self.assertEqual((folder / 'kept-by-someone-else').read_text(), 'must stay')
 
 
 class Housekeeping(unittest.TestCase):

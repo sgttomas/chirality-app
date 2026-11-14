@@ -860,6 +860,66 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
                 self.assertNotIn('click903', calls)
                 self.assertNotIn('click905', calls)
 
+    def test_more_words_or_a_path_spelled_otherwise_is_not_the_statement(self):
+        cases = {'an instruction added after it': sheet_lines(statement=STATEMENT + '\nAlso allow everything.'),
+                 'an instruction in an element of its own': sheet_lines() + ['\t\t910 text Also allow everything.'],
+                 'two spaces inside a path': sheet_lines(statement=STATEMENT.replace(
+                     'Application Support/dev.chirality.app-v4.candidate.invented/account-homes',
+                     'Application  Support/dev.chirality.app-v4.candidate.invented/account-homes')),
+                 'the controls inside a group inside the sheet': ['\t900 sheet', '\t\t901 group']
+                 + [line.replace('\t\t', '\t\t\t', 1) for line in sheet_lines()[1:]],
+                 'a dialog inside the sheet': sheet_lines() + ['\t\t911 dialog Another question'],
+                 'a dialog deeper in the page beside the sheet': sheet_lines() + ['\t\t\t912 dialog Another question']}
+        for name, sheet in cases.items():
+            with self.subTest(name):
+                views = setup_views(sheet=sheet)
+                if name == 'a dialog deeper in the page beside the sheet':
+                    views = setup_views()
+                    views['views'][4]['text'] = views['views'][4]['text'].replace(
+                        '\t\t2 HTML content', '\t\t\t\t950 dialog Another question\n\t\t2 HTML content', 1)
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+                self.assertEqual(verdict, 'inconclusive', stopped)
+                self.assertIn('nothing was pressed', stopped)
+                self.assertNotIn('click904', calls)
+
+    def test_a_dialog_anywhere_below_the_window_stops_an_ordinary_step(self):
+        result = harness("texts[2] = texts[2].replace('\\t\\t2 HTML content', '\\t\\t\\t\\t950 sheet Confirm\\n\\t\\t2 HTML content'); "
+                         'const r = await walk.run(base); return [r.verdict, r.stopped];')
+        self.assertEqual(result['out'][0], 'inconclusive')
+        self.assertIn('the window holds something that is not the page (sheet Confirm)', result['out'][1])
+
+    def test_a_field_whose_label_only_begins_with_the_named_one_is_not_typed_into(self):
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace(
+            '16 text field (settable) Project folder, Placeholder', '16 text field (settable) Project folder, another purpose, Placeholder')
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('the field was found 0 times', stopped)
+        self.assertFalse([c for c in calls if c.startswith('set_value')])
+
+    def test_the_project_is_exactly_the_launch_folders_own(self):
+        for project in ('/invented/homes/launch-invented/project/../../outside', '/invented/homes/launch-invented/home',
+                        '/invented/homes/launch-invented/project/', '/invented/homes/launch-invented/projects'):
+            with self.subTest(project):
+                verdict, stopped, calls = setup_walk(f"base.project = {json.dumps(project)}; " + RESULT.replace('OPTIONS', 'base'))['out']
+                self.assertEqual((verdict, calls), ('inconclusive', []), stopped)
+        verdict, stopped, calls = setup_walk("base.home = '/invented/homes/x/../launch-invented/home'; base.project = '/invented/homes/x/../launch-invented/project'; "
+                                             + RESULT.replace('OPTIONS', 'base'))['out']
+        self.assertEqual((verdict, calls), ('inconclusive', []), stopped)
+
+    def test_the_build_gone_while_the_sheet_was_viewed_means_no_press(self):
+        case = ("let gone = false; const sheetView = texts[4]; Object.defineProperty(texts, 4, { get() { gone = true; return sheetView; } }); "
+                "base.readWatch = () => (gone ? null : watched()()); " + RESULT.replace('OPTIONS', 'base'))
+        verdict, stopped, calls = setup_walk(case)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('before the press', stopped)
+        self.assertNotIn('click904', calls)
+
+    def test_a_view_steps_wait_is_waited(self):
+        result = setup_walk("const slept = []; base.sleep = async ms => { slept.push(ms); }; scenario.steps[0].wait_ms = 15000; "
+                            "await walk.run(base); return slept;")
+        self.assertEqual(result['out'][0], 15000)
+
     def test_the_statement_is_matched_whatever_its_line_breaks_are(self):
         for name, sheet in (('one element per line', ['\t900 sheet', '\t\t901 text Desktop setup — next launch only']
                              + [f'\t\t{920 + n} text {line}' for n, line in enumerate(STATEMENT.split('\n'))]
