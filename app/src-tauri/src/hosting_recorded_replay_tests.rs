@@ -432,7 +432,7 @@ runpy.run_path({peer},run_name='__main__')
         let resume = self.history_action(&generation, 1, "continue");
         assert_eq!(
             resume.source().attempted_frame()["params"],
-            json!({"threadId":self.thread(),"excludeTurns":true})
+            crate::codex_level::with_test_level(&json!({"threadId":self.thread(),"excludeTurns":true}), "thread/resume")
         );
         self.until("recorded idle before resume reply", || {
             self.audit(2)
@@ -591,7 +591,11 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
         .unwrap();
     assert_eq!(
         adapted_resume["adaptations"],
-        json!(["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"])
+        // The double also declares the App's level it accepts on the resume, exactly (V4-AUT-06).
+        json!([
+            "thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged",
+            "thread/resume:add-exact-App-level-edits"
+        ])
     );
     assert_eq!(binding["outside_segment_frame_indices"], json!([]));
 }

@@ -153,6 +153,79 @@ pub fn merge(request: &mut Value, level: &Level, method: Method) -> Result<(), S
     Ok(())
 }
 
+/// The complete params a request of `method` must carry when `base` is what the App built for it and `level` the
+/// level bound to it when its frame was built: `base` with the level's fields added by `merge`, the same addition
+/// the frame builder made. A site comparing sent params with rebuilt or expected ones compares the whole sent params
+/// with this, so a missing, partial or extra level field, an unexpected field and a configuration key `merge` would
+/// refuse all still differ. It only adds; nothing is removed from what was sent. `None` (no level bound to the
+/// request) is `base` unchanged.
+pub fn expected_with_level(base: &Value, level: Option<&Level>, method: Method) -> Result<Value, String> {
+    let mut expected = base.clone();
+    if let Some(level) = level {
+        merge(&mut expected, level, method)?;
+    }
+    Ok(expected)
+}
+
+/// The post-condition of the frame builder, checked independently of `merge`: `sent` is exactly `built` with
+/// `params(level, method)` added and nothing else. Every field of `built` is in `sent` unchanged, every level field
+/// is in `sent` with the level's value and was not in `built`, and `config` is `built`'s configuration (or none)
+/// with the level's configuration keys added, none of which it already had.
+pub fn carries_exactly(built: &Value, sent: &Value, level: &Level, method: Method) -> bool {
+    let (Some(b), Some(s)) = (built.as_object(), sent.as_object()) else { return false };
+    let fields = params(level, method);
+    let keys: std::collections::BTreeSet<&String> = b.keys().chain(s.keys()).chain(fields.keys()).collect();
+    for key in keys {
+        let ok = match (b.get(key), s.get(key), fields.get(key)) {
+            (built_config, Some(sent_config), Some(level_config)) if key == "config" => {
+                let base = match built_config {
+                    None => Map::new(),
+                    Some(Value::Object(c)) => c.clone(),
+                    Some(_) => return false,
+                };
+                let Some(level_config) = level_config.as_object() else { return false };
+                if level_config.keys().any(|k| base.contains_key(k)) {
+                    return false;
+                }
+                let mut want = base;
+                want.extend(level_config.clone());
+                *sent_config == Value::Object(want)
+            }
+            (None, Some(sent), Some(field)) => sent == field,
+            (Some(built), Some(sent), None) => built == sent,
+            _ => false,
+        };
+        if !ok {
+            return false;
+        }
+    }
+    true
+}
+
+/// The conversation a level was taken for when a frame was built.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Target {
+    /// An existing conversation: a turn or a Continue names it.
+    Conversation(String),
+    /// The conversation a start creates; its id is learned from the reply.
+    New,
+    /// The conversation a fork creates from the named source; its id is learned from the reply.
+    ForkOf(String),
+}
+
+/// The level bound to one request when its frame was built: what was checked, written and is recorded as sent.
+/// Every later comparison for that request uses this value, never the level in force at that later moment.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Bound {
+    pub level: &'static Level,
+    pub method: Method,
+    /// Exactly `params(level, method)`: the fields the frame carries for the level.
+    pub fields: Map<String, Value>,
+    /// The Host's level revision when the frame was built; a frame built under an older revision is not written.
+    pub revision: u64,
+    pub target: Target,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Agreement {
     Agrees,
@@ -268,6 +341,17 @@ fn same_folder(a: &Path, b: &Path) -> bool {
     match (std::fs::metadata(a), std::fs::metadata(b)) {
         (Ok(x), Ok(y)) => x.dev() == y.dev() && x.ino() == y.ino(),
         _ => false,
+    }
+}
+
+/// What the unit tests' Host sends for `params` built for `method`: the params plus exactly the "edits" level, the
+/// default a `cfg(test)` Host is made with (V4-AUT-06); a method that carries no level, the params unchanged. Test
+/// material only.
+#[cfg(test)]
+pub(crate) fn with_test_level(params: &Value, method: &str) -> Value {
+    match Method::of(method) {
+        Some(method) => expected_with_level(params, level("edits"), method).expect("the test level merges"),
+        None => params.clone(),
     }
 }
 

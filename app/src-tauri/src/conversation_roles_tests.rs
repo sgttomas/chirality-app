@@ -171,13 +171,17 @@ fn fork_is_a_same_role_copy_and_leaves_the_source_unchanged() {
     assert_eq!(role_before["role"], "WORKING_ITEMS");
     let out = fork_conversation(&f.home, &f.generation, &source, Duration::from_secs(5)).unwrap();
     let sent = f.wire().into_iter().find(|frame| frame["method"] == "thread/fork").expect("thread/fork written");
-    assert_eq!(sent["params"], json!({"threadId":source,"deferGoalContinuation":true}),
-        "the thread id and no instructions, model or settings; no automatic goal continuation turn");
+    // V4-AUT-06: the packet as built, plus exactly the level in force (the test Host's "edits").
+    let packet = json!({"threadId":source,"deferGoalContinuation":true});
+    let level = crate::codex_level::level("edits");
+    assert_eq!(sent["params"], crate::codex_level::expected_with_level(&packet, level, crate::codex_level::Method::ThreadFork).unwrap(),
+        "the thread id, no instructions, model or other settings, and exactly the level; no automatic goal continuation turn");
     // The exact params are valid 0.167.0 ThreadForkParams.
     let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();
     schema["$ref"] = json!("#/definitions/v2/ThreadForkParams");
     jsonschema::options().with_draft(jsonschema::Draft::Draft7).offline().build(&schema).unwrap().validate(&sent["params"]).unwrap();
-    assert!(crate::role_supply::check_role_inputs("thread/fork", &sent["params"]).is_ok(), "carries no role input");
+    // The role check is made on the packet as built: the level's fields are the person's setting, never a role input.
+    assert!(crate::role_supply::check_role_inputs("thread/fork", &packet).is_ok(), "carries no role input");
     let fork = out["thread"]["threadId"].as_str().unwrap().to_owned();
     assert_eq!(fork, "fork-1");
     assert_eq!(out["thread"]["forkedFrom"]["threadId"], source);

@@ -318,7 +318,7 @@ fn core() -> (Host, Core) {
     let p = Pipe::new();
     let r = reserve(&p.h).unwrap();
     let f = json!({"id":1,"method":"turn/start","params":{"threadId":"thread","input":[{"type":"text","text":"x","text_elements":[]}]}});
-    let c = Core::bind(r, &p.h.inner, 1, &g(), "ref", &f, Some((4, (5, 6))));
+    let c = Core::bind(r, &p.h.inner, 1, &g(), "ref", &f, None, Some((4, (5, 6))));
     (p.h, c)
 }
 #[test]
@@ -349,7 +349,7 @@ fn aa_cap_cut_binding_epoch_pipe_noattempt_and_counter_controls() {
     let other = Host::new();
     let r = reserve(&h).unwrap();
     let f = json!({});
-    let c = Core::bind(r, &other.inner, 2, &g(), "ref", &f, None);
+    let c = Core::bind(r, &other.inner, 2, &g(), "ref", &f, None, None);
     assert_eq!(c.standing, Standing::Refused(Reason::Foreign));
     h.inner.0.lock().unwrap().aa_epoch = u64::MAX;
     assert!(matches!(reserve(&h), Err(Reason::Exhausted)));
@@ -660,7 +660,7 @@ fn aa_cap_measured_stream_and_retained_allocations() {
     let r = reserve(&h).unwrap();
     let epoch = h.inner.0.lock().unwrap().aa_epoch;
     let (c, owned) =
-        measured(|| Core::bind(r, &h.inner, epoch, &gen, "ref", &frame, Some((4, (5, 6)))));
+        measured(|| Core::bind(r, &h.inner, epoch, &gen, "ref", &frame, None, Some((4, (5, 6)))));
     assert_eq!(c.standing, Standing::Pending);
     assert_eq!(owned, 0);
     println!("AA-CAP measured maxPF1 allocation={n}, rejected PF1 allocation={error}, bind allocation={owned}; inline={}, scratch={}",std::mem::size_of::<Core>(),SORT_SCRATCH);
@@ -697,6 +697,7 @@ fn aa_cap_bound_id_text_caps_and_early_ambiguity() {
                 &gen,
                 &reference,
                 &frame,
+                None,
                 Some((4, (5, 6))),
             );
             assert_eq!(

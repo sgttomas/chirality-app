@@ -519,7 +519,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let run_text = records.resolve(&text_ref).unwrap();
     let client_id = {
         let run = run_a.lock().unwrap();
-        assert_eq!(starts[0]["params"], run.prepared().turn_params(person, &run.client_id).unwrap(), "exact wire frame");
+        assert_eq!(starts[0]["params"], crate::codex_level::with_test_level(&run.prepared().turn_params(person, &run.client_id).unwrap(), "turn/start"), "exact wire frame: the prepared turn plus exactly the level (V4-AUT-06)");
         assert_eq!(run.lifecycle, RunLifecycle::Open, "a failed native turn does not end the run");
         assert_eq!(run.turn_id.as_deref(), Some("turn"));
         let occasions: Vec<Value> = run.view(&a)["compatibility"].as_array().unwrap().iter().map(|c| c["occasionLabel"].clone()).collect();
@@ -800,7 +800,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         let run = root.lock().unwrap().runs[&b].clone();
         let run = run.lock().unwrap();
         assert_eq!(run.lifecycle, RunLifecycle::Open);
-        assert_eq!(starts[3]["params"], run.prepared().turn_params("second run", &run.client_id).unwrap());
+        assert_eq!(starts[3]["params"], crate::codex_level::with_test_level(&run.prepared().turn_params("second run", &run.client_id).unwrap(), "turn/start"));
         let view = run.view(&b);
         (view["publication"]["selection"].as_str().unwrap().to_owned(), view["publication"]["runText"].as_str().unwrap().to_owned())
     };

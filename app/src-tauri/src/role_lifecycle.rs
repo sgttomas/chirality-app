@@ -476,8 +476,15 @@ pub struct PreparedStart {
     /// From the same composition as `guidance`, at the same moment.
     limits: Result<Value, String>,
     continued_from: Option<Value>,
+    /// The level the start's frame carried, bound when it was built (V4-AUT-06).
+    sent_level: Option<&'static crate::codex_level::Level>,
 }
 impl PreparedStart {
+    /// The level bound to this start's frame when it was built: the observed frame must carry exactly it.
+    pub(crate) fn with_sent_level(mut self, level: Option<&'static crate::codex_level::Level>) -> Self {
+        self.sent_level = level;
+        self
+    }
     /// CA-3: this start continues another conversation. The relation names the
     /// source thread and its start record (or that none is established); the
     /// supplied guidance is still this start's own composition.
@@ -509,6 +516,7 @@ impl PreparedStart {
             limits: crate::conversation_roles::frozen_limit_account(composition),
             native_children: composition.children.clone(),
             continued_from: None,
+            sent_level: None,
         })
     }
     /// Additive role-owned fragment only; the owner supplies selected destination.
@@ -529,8 +537,12 @@ impl PreparedStart {
         }
         let mut expected=json!({});for child in &self.native_children {for(k,v)in child.config().as_object().unwrap(){expected[k]=v.clone();}}
         let config=actual_sent["params"].get("config").cloned().unwrap_or(json!({}));
-        if !expected.as_object().unwrap().is_empty() && config!=expected {return Err("actual native start child keys differ from frozen supply".into())}
-        if expected.as_object().unwrap().is_empty() && config.as_object().is_some_and(|c|c.keys().any(|k|k.starts_with("agents."))){return Err("unaccounted native child keys".into())}
+        // The children's keys plus exactly the configuration of the level bound to the frame (V4-AUT-06).
+        let children=!expected.as_object().unwrap().is_empty();
+        let mut base=json!({});if children {base["config"]=expected;}
+        let expected=crate::codex_level::expected_with_level(&base,self.sent_level,crate::codex_level::Method::ThreadStart)?.get("config").cloned().unwrap_or(json!({}));
+        if (children || self.sent_level.is_some()) && config!=expected {return Err("actual native start child keys differ from frozen supply".into())}
+        if !children && config.as_object().is_some_and(|c|c.keys().any(|k|k.starts_with("agents."))){return Err("unaccounted native child keys".into())}
         native_validate("ThreadStartParams", &actual_sent["params"])?;
         let mut observation = observation(
             &self.id,
@@ -577,8 +589,15 @@ pub struct MetadataRequest {
     is_fork: bool,
     fork_supply_ref: Option<String>,
     classified_cwd: Option<String>,
+    /// The level the resume's or fork's frame carried, bound when it was built (V4-AUT-06).
+    sent_level: Option<&'static crate::codex_level::Level>,
 }
 impl MetadataRequest {
+    /// The level bound to this request's frame when it was built: the observed frame must carry exactly it.
+    pub(crate) fn with_sent_level(mut self, level: Option<&'static crate::codex_level::Level>) -> Self {
+        self.sent_level = level;
+        self
+    }
     fn new(
         source: &RoleBinding,
         home: &str,
@@ -601,6 +620,7 @@ impl MetadataRequest {
             is_fork,
             fork_supply_ref: None,
             classified_cwd: None,
+            sent_level: None,
         })
     }
     pub fn method(&self) -> &str {
@@ -650,9 +670,12 @@ impl MetadataRequest {
         actual_sent: &Value,
         frame: &Value,
     ) -> Result<RoleBinding, String> {
+        let method = if self.is_fork { crate::codex_level::Method::ThreadFork } else { crate::codex_level::Method::ThreadResume };
+        // The metadata-only packet plus exactly the level bound to the frame (V4-AUT-06), compared whole.
+        let expected = crate::codex_level::expected_with_level(&self.params(), self.sent_level, method)?;
         if actual_sent["id"] != self.id
             || actual_sent["method"] != self.method()
-            || actual_sent["params"] != self.params()
+            || actual_sent["params"] != expected
         {
             return Err("resume/fork actual request is not the bound metadata-only packet".into());
         }

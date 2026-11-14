@@ -60,6 +60,10 @@ PROVIDER_READING_STANDING = ("constructed-provider-reading; no such frame was ca
 PROVIDER_READING_RESULT = {"config": {"model_provider": "openai", "model_providers": {}}, "origins": {}}
 
 
+# The level the App's test Host is built with (hosting.rs, cfg(test)); every App request the replay adapts
+# carries exactly its fields.
+LEVEL_UNDER_TEST = "edits"
+
 class ReplayError(Exception):
     """Only fixed, non-payload-bearing codes cross the CLI/audit boundary."""
 
@@ -407,6 +411,24 @@ class Replay:
         write_protocol_frame(writer, {"id": actual["id"], "result": copy.deepcopy(PROVIDER_READING_RESULT)})
         self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
 
+    @staticmethod
+    def level_fields(method):
+        """The exact fields of the level the App's test Host sends ("edits"), built from the App's own level table
+        as codex_level.rs builds them: start, resume and fork carry the mode name and the workspace options in
+        config; a turn carries the structured policy. The person answers at every level."""
+        table = json.loads((Path(__file__).resolve().parent.parent / "src-tauri" / "src" / "codex_levels.json").read_text())
+        rows = [row for row in table["levels"] if row["id"] == LEVEL_UNDER_TEST]
+        require(len(rows) == 1, "unknown-level-under-test")
+        level = rows[0]
+        fields = {"approvalPolicy": level["approvalPolicy"], "approvalsReviewer": "user"}
+        if method == "turn/start":
+            fields["sandboxPolicy"] = level["sandboxPolicy"]
+        else:
+            fields["sandbox"] = level["sandbox"]
+            if level["workspaceWrite"] is not None:
+                fields["config"] = {"sandbox_workspace_write": level["workspaceWrite"]}
+        return fields
+
     def adapted_params(self, expected, actual):
         """Return only declared, exact App alternatives; never wildcard fields."""
         require(isinstance(expected, dict), "invalid-captured-adaptation-request")
@@ -434,7 +456,9 @@ class Replay:
             require(isinstance(adapted["model"], str) and bool(adapted["model"])
                     and isinstance(adapted["modelProvider"], str) and bool(adapted["modelProvider"]),
                     "missing-captured-model-selection")
-            return adapted, ["thread/start:omit-captured-approvalPolicy-and-sandbox", "thread/start:add-exact-captured-model-and-modelProvider"]
+            adapted.update(self.level_fields("thread/start"))
+            return adapted, ["thread/start:omit-captured-approvalPolicy-and-sandbox", "thread/start:add-exact-captured-model-and-modelProvider",
+                             "thread/start:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         if self.profile == "app" and method == "turn/start":
             require(isinstance(params, dict) and set(params) == {"threadId", "input"}
                     and isinstance(params["threadId"], str) and bool(params["threadId"]),
@@ -446,7 +470,8 @@ class Replay:
                     "unsupported-captured-text-input")
             adapted = copy.deepcopy(params)
             adapted["input"][0]["text_elements"] = []
-            return adapted, ["turn/start.input[0].text_elements:add-empty-array"]
+            adapted.update(self.level_fields("turn/start"))
+            return adapted, ["turn/start.input[0].text_elements:add-empty-array", "turn/start:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         if self.profile in ("app-recovery", "app-continue") and method == "thread/read":
             require(isinstance(params, dict) and set(params) == {"threadId", "includeTurns"}
                     and isinstance(params["threadId"], str) and bool(params["threadId"])
@@ -465,7 +490,9 @@ class Replay:
             # ThreadResumeParams.excludeTurns at the pinned 0.160.0 changes
             # response coverage only, without instructions/model/settings.
             # Supplier replies remain original recorded payloads in this peer.
-            return {**params, "excludeTurns": True}, ["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"]
+            return {**params, "excludeTurns": True, **self.level_fields("thread/resume")}, [
+                "thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged",
+                "thread/resume:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         return params, changes
 
     def accept(self, expected, actual):

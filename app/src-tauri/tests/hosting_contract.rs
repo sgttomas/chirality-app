@@ -6,6 +6,11 @@ use serde_json::json;
 use std::os::unix::fs::PermissionsExt;
 use std::sync::Arc;
 
+/// V4-AUT-06: a Host starts with no level; these hosts' conversations are sent under "edits".
+fn leveled(host: Host) -> Arc<Host> {
+    host.set_default_level("edits").unwrap();
+    Arc::new(host)
+}
 fn config(root: &ScratchDirectory) -> HostConfig {
     let bin = root.join("codex-double");
     // Synthetic double: its version label and handshake userAgent follow the
@@ -36,7 +41,7 @@ fn matching_binary_is_only_development_and_mismatch_cannot_be_bypassed() {
     let root = ScratchDirectory::new("hostcontract");
     let mut cfg = config(&root);
     cfg.expected_sha256 = Some(chirality_app_v4_lib::util::sha256_hex(&std::fs::read(&cfg.codex_bin).unwrap()));
-    let host = Arc::new(Host::new());
+    let host = leveled(Host::new());
     let ready = host.start(&cfg, "test").unwrap();
     assert_eq!(ready["verification"]["result"], "unverifiable");
     assert_eq!(ready["supplierStanding"], "unverified-development");
@@ -54,8 +59,8 @@ fn matching_binary_is_only_development_and_mismatch_cannot_be_bypassed() {
 fn identity_separates_instances_homes_and_spawns_and_frames_stay_native() {
     let root = ScratchDirectory::new("hostidentity");
     let cfg = config(&root);
-    let first = Arc::new(Host::new());
-    let second = Arc::new(Host::new());
+    let first = leveled(Host::new());
+    let second = leveled(Host::new());
     assert!(first.snapshot()["generation"].is_null());
     let g1 = first.start(&cfg, "test").unwrap()["generation"].clone();
     // One Host at a time on a Codex home (DEL-01-02 REQ-010): a second instance is refused the
@@ -146,7 +151,7 @@ fn generation_is_unique_per_session_home_and_advances_through_real_app_custody()
     let mut other_home = cfg.clone();
     other_home.codex_home = root.join("other-home");
     std::fs::create_dir(&other_home.codex_home).unwrap();
-    let original = Arc::new(Host::new());
+    let original = leveled(Host::new());
     let g1 = original.start(&cfg, "test").unwrap()["generation"].clone();
     let custody = original.app_runtime_custody().unwrap();
     assert!(Arc::ptr_eq(&custody, &original.app_runtime_custody().unwrap()));
@@ -175,8 +180,8 @@ fn generation_is_unique_per_session_home_and_advances_through_real_app_custody()
     drop(original);
 
     // Recreate both Host sources using the actual App capability, not JSON.
-    let recreated = Arc::new(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
-    let independent_home = Arc::new(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
+    let recreated = leveled(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
+    let independent_home = leveled(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
     let g5 = start_when_free(&recreated, &cfg);
     let g6 = independent_home.start(&other_home, "test").unwrap()["generation"].clone();
     assert_eq!(g5["appSession"], g4["appSession"]);
@@ -204,7 +209,7 @@ fn generation_is_unique_per_session_home_and_advances_through_real_app_custody()
 
     // Same stable home in an independent App session cannot alias prior G. It is refused the
     // home while `recreated` has Codex there, and takes it once that Codex has ended.
-    let fresh = Arc::new(Host::new());
+    let fresh = leveled(Host::new());
     assert!(fresh.start(&cfg, "test").unwrap_err().contains("already using it"));
     recreated.stop_scoped(&g5, "test", "codex-stop").unwrap();
     let g7 = start_when_free(&fresh, &cfg);
@@ -247,7 +252,7 @@ fn unqualified_start_requires_explicit_development_option() {
     let root = ScratchDirectory::new("hostrefusal");
     let mut cfg = config(&root);
     cfg.allow_unverified_dev = false;
-    let host = Arc::new(Host::new());
+    let host = leveled(Host::new());
     assert!(host.start(&cfg, "test").is_err());
     assert!(host.child_pid().is_none());
     assert_eq!(host.snapshot()["generation"], serde_json::Value::Null);
@@ -259,7 +264,7 @@ fn version_label_and_handshake_mismatches_refuse_readiness() {
     let cfg = config(&root);
     let original = std::fs::read_to_string(&cfg.codex_bin).unwrap();
     std::fs::write(&cfg.codex_bin, original.replace(&format!("codex-cli {DECLARED_PIN}"), "codex-cli 0.159.0")).unwrap();
-    let host = Arc::new(Host::new());
+    let host = leveled(Host::new());
     assert!(host.start(&cfg, "test").is_err());
     assert_eq!(host.state(), "refused");
     assert!(host.child_pid().is_none());
@@ -299,7 +304,7 @@ import os,sys
 os.unlink(sys.argv[0])
 print('codex-cli 0.159.0')
 "#).unwrap();
-    let host = Arc::new(Host::new());
+    let host = leveled(Host::new());
     assert!(host.start(&cfg, "test").is_err());
     assert!(!cfg.codex_bin.exists());
     assert_eq!(host.snapshot()["verification"]["result"], "mismatch");

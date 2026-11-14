@@ -515,7 +515,7 @@ fn records_access_fork_inherits_only_known_offer_and_keeps_project_scope() {
         assert_eq!(fork["threadId"], "fork");
         let wire = || -> Vec<Value> { std::fs::read_to_string(project.join("wire.jsonl")).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect() };
         let outbound = wire().into_iter().find(|w| w["method"] == "thread/fork").unwrap();
-        assert_eq!(outbound["params"], json!({"threadId":"thread","deferGoalContinuation":true}));
+        assert_eq!(outbound["params"], crate::codex_level::with_test_level(&json!({"threadId":"thread","deferGoalContinuation":true}), "thread/fork"));
         host.turn_start_text(&generation, "fork", "Read the records in this project.").unwrap();
         let deadline = Instant::now() + Duration::from_secs(10);
         let reply = |id: &str| wire().into_iter().find(|w| w["id"] == id && w.get("method").is_none());

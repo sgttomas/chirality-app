@@ -2295,7 +2295,7 @@ fn native_children_actual_private_start_has_exact_published_role_keys() {
         .unwrap();
     let sent = peer.frame();
     assert_eq!(sent, receipt.evidence()["sentFrame"]);
-    assert_eq!(sent["params"]["config"], composition.native_config());
+    assert_eq!(sent["params"]["config"], crate::codex_level::with_test_level(&json!({"config":composition.native_config()}), "thread/start")["config"]);
     assert_eq!(sent["params"]["developerInstructions"], composition.text);
     for child in &composition.children {
         let parsed: toml::Value =
@@ -2427,7 +2427,8 @@ fn native_children_current_raw_alias_cannot_hide_behind_older_native_layer() {
         .host
         .thread_start_with_role_dispatch(&proof, &composition)
         .unwrap();
-    assert!(peer.frame()["params"].get("config").is_none());
+    // No children keys: exactly the level's configuration (V4-AUT-06).
+    assert_eq!(peer.frame()["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap()}));
     assert_eq!(receipt.evidence()["writeResult"], "written");
     assert!(!peer
         .host
@@ -2474,7 +2475,8 @@ fn native_children_new_native_read_cannot_promote_changed_trust() {
     peer.host
         .thread_start_with_role_dispatch(&proof, &composition)
         .unwrap();
-    assert!(peer.frame()["params"].get("config").is_none());
+    // No children keys: exactly the level's configuration (V4-AUT-06).
+    assert_eq!(peer.frame()["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap()}));
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
@@ -2619,6 +2621,7 @@ fn child_parent_edited(
         &c,
     )
     .unwrap()
+    .with_sent_level(receipt.level_sent().map(|b| b.level))
     .observe(&peer.g, &sent, &response)
     .unwrap();
     let mut roles = crate::role_lifecycle::RoleBindings::default();
@@ -2814,7 +2817,8 @@ fn native_children_absent_or_different_acting_supplier_identity_withholds_only_c
             .unwrap();
         let frame = peer.frame();
         assert_eq!(frame["method"], "thread/start");
-        assert!(frame["params"].get("config").is_none());
+        // No children keys: exactly the level's configuration (V4-AUT-06).
+        assert_eq!(frame["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap()}));
         assert_eq!(frame["params"]["developerInstructions"], c.text);
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -3138,7 +3142,7 @@ fn native_children_167_requires_canonical_whole_source_and_does_not_rebind_after
             assert_eq!(result.is_ok(), case == "positive");
             if case == "positive" {
                 let frame = peer.frame();
-                assert_eq!(frame["params"]["config"], c.native_config());
+                assert_eq!(frame["params"]["config"], crate::codex_level::with_test_level(&json!({"config":c.native_config()}), "thread/start")["config"]);
             }
         }
         std::fs::remove_dir_all(root).unwrap();
@@ -3413,7 +3417,7 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
             Some(&peer.g),
         )
         .unwrap();
-    assert_eq!(peer.frame()["params"], good);
+    assert_eq!(peer.frame()["params"], crate::codex_level::with_test_level(&good, "turn/start"));
     assert_eq!(sent.evidence()["writeResult"], "written");
     // A newer contradictory report must not inherit an earlier matching row.
     peer.host.inner.0.lock().unwrap().threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":"openai","model":MODEL}));
@@ -3476,7 +3480,7 @@ fn native_local_provider_resume_and_fork_name_only_the_classified_cwd_even_with_
         ("thread/fork", json!({"threadId":"local-thread","deferGoalContinuation":true,"cwd":"/invented/work"})),
     ] {
         peer.host.request_begin_with_access_offer(method, params.clone(), json!({"kind":"synthetic"}), false, Some(&peer.g), false, None, None, None, None, false, Some(&proof)).unwrap();
-        assert_eq!(peer.frame()["params"], params, "{method}");
+        assert_eq!(peer.frame()["params"], crate::codex_level::with_test_level(&params, method), "{method}");
     }
     peer.safe();
 }

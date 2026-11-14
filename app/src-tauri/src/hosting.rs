@@ -97,6 +97,7 @@ use crate::recovery::RecoveryLedger;
 #[path="hosting_child_roles.rs"]
 mod child_role_receiving;
 pub(crate) use child_role_receiving::NativeChildStart;
+use crate::codex_level;
 use crate::util::{now_rfc3339, opaque_id, sha256_hex};
 use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
@@ -412,6 +413,19 @@ impl HostConfig {
 
 #[derive(Default)]
 struct Inner {
+    /// DEL-01-01, PRD V4-AUT-06: the permission level in force for new conversations. None until the person
+    /// has chosen: a production Host starts with none, and every start, resume, fork and turn start is then
+    /// refused before anything is reserved or written.
+    default_level: Option<&'static codex_level::Level>,
+    /// The person's choice per conversation (thread id to level), which beats the default for that
+    /// conversation's turns, resumes and forks. A conversation a start or fork created takes the level its
+    /// frame carried, recorded when its id is learned from the reply.
+    thread_levels: HashMap<String, &'static codex_level::Level>,
+    /// The person's choice for the conversation the next start or fork creates; taken by the frame it binds to.
+    new_conversation_level: Option<&'static codex_level::Level>,
+    /// Advanced by every change the person makes to the levels. A frame built under an older revision is
+    /// refused at its final admission and nothing is written.
+    level_revision: u64,
     /// The last start of Codex refused before its app-server was spawned: its
     /// reason, actor, time, home (`app-home:` identity) and attempt (null when
     /// it was refused before it was admitted as an attempt). Host status
@@ -551,11 +565,21 @@ pub(crate) mod provider_endpoint;
 pub(crate) mod provider_create;
 
 // Non-deserializable capabilities issued only by the actual Host sender.
+/// The params a start's reply is checked against: the frame's own params as sent, or the params as built
+/// before the level (V4-AUT-06), which the check augments with the frame's bound level.
+#[derive(Clone, Copy)]
+enum StartParams<'a> {
+    Sent(&'a Value),
+    Built(&'a Value),
+}
 #[derive(Clone)]
 pub struct SourceRequest {
     source: Weak<(Mutex<Inner>, Condvar)>,
     generation: Value,
     frame: Value,
+    /// The level this frame carries, bound when the frame was built (start, resume, fork and turn start
+    /// only). Immutable with the frame: every later comparison for this request uses it.
+    level: Option<codex_level::Bound>,
     request_ref: String,
     receiver: Arc<Mutex<Receiver<Value>>>,
 }
@@ -594,6 +618,10 @@ impl SourceRequest {
     pub fn request_id(&self) -> &Value { &self.frame["id"] }
     pub fn request_ref(&self) -> &str { &self.request_ref }
     pub fn attempted_frame(&self) -> &Value { &self.frame }
+    /// The level the frame carries, as bound when it was built; None for a method that carries no level.
+    pub fn level_sent(&self) -> Option<&codex_level::Bound> { self.level.as_ref() }
+    /// The id of the level the frame carries and the method it was sent with, for the ledger's `level_sent`.
+    pub fn level_sent_id(&self) -> Option<(&str, codex_level::Method)> { self.level.as_ref().map(|b| (b.level.id.as_str(), b.method)) }
     /// Whether an actual write attempt of this frame was observed, read without
     /// panicking (a poisoned Host lock is read through). `None` when the source
     /// Host or its record is gone. Safe to call while unwinding.
@@ -704,6 +732,8 @@ struct AttachmentLink { custody: Arc<AttachmentCustody>, records: Vec<Value>, or
 /// One-shot transient packet. No deserialization or durable native inputs.
 pub struct PreparedAttachmentDispatch {
     source: SourceRequest,
+    /// The params as built, before the level: what the dispatch's final checks run on.
+    built: Value,
     custody: Arc<AttachmentCustody>,
     list: PreparedAttachmentList,
     selections: Vec<SelectedTextAttachment>,
@@ -1135,6 +1165,9 @@ pub struct Host {
     /// Runs once after any request's final admission, frame writer held, before its write.
     #[cfg(test)]
     pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Changes a leveled frame's params after the level is merged and before the post-condition is checked.
+    #[cfg(test)]
+    pub(crate) after_level_merge: Mutex<Option<Box<dyn FnOnce(&mut Value) + Send>>>,
     /// A `turn/start`'s write fails with this error after it has begun.
     #[cfg(test)]
     pub(crate) turn_start_simulated_write: Mutex<Option<&'static str>>,
@@ -1212,7 +1245,18 @@ impl Default for Host {
 }
 
 impl Host {
+    /// A Host with no level chosen (V4-AUT-06): the production constructor. Under `cfg(test)` only, the
+    /// default for new conversations is "edits" so the unit tests' conversations can be sent; no production
+    /// build sets a level for the person.
     pub fn new() -> Self {
+        let host = Self::new_without_level();
+        #[cfg(test)]
+        {
+            host.inner.0.lock().unwrap().default_level = codex_level::level("edits");
+        }
+        host
+    }
+    fn new_without_level() -> Self {
         let inner = Inner {
             state: "absent".into(),
             generation: Value::Null,
@@ -1299,6 +1343,7 @@ impl Host {
             #[cfg(test)] reading_after_reserve: Mutex::new(None),
             #[cfg(test)] reading_after_register: Mutex::new(None),
             #[cfg(test)] before_request_write: Mutex::new(None),
+            #[cfg(test)] after_level_merge: Mutex::new(None),
             #[cfg(test)] turn_start_simulated_write: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
@@ -2958,6 +3003,101 @@ impl Host {
         }));
         self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None, None, None)
     }
+    /// The person sets the level for new conversations (V4-AUT-06). It applies to frames admitted after it:
+    /// a frame already built under the previous level is refused at its final admission, nothing written.
+    ///
+    /// `pub` only because the integration tests (`tests/`) build Hosts without `cfg(test)` and must give them a
+    /// level. In production it is called only from the App's level command and, at start, from the ledger's
+    /// record of the person's choice; no other production code calls it.
+    pub fn set_default_level(&self, id: &str) -> Result<(), String> {
+        let level = codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))?;
+        let mut i = self.inner.0.lock().unwrap();
+        i.default_level = Some(level);
+        i.level_revision += 1;
+        Ok(())
+    }
+    /// The person sets the level of one conversation; it beats the default for its turns, resumes and forks.
+    /// In production called only from the App's level command and, at start, from the ledger.
+    pub(crate) fn set_thread_level(&self, thread: &str, id: &str) -> Result<(), String> {
+        if thread.is_empty() { return Err("a conversation's level needs its thread id".into()); }
+        let level = codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))?;
+        let mut i = self.inner.0.lock().unwrap();
+        i.thread_levels.insert(thread.to_owned(), level);
+        i.level_revision += 1;
+        Ok(())
+    }
+    /// The person names the level of the conversation the next start or fork creates (None withdraws the
+    /// choice). It beats the default for a start and the source conversation's level for a fork, and is
+    /// taken by the frame it is bound to. In production called only from the App's level command.
+    pub(crate) fn choose_new_conversation_level(&self, id: Option<&str>) -> Result<(), String> {
+        let level = id.map(|id| codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))).transpose()?;
+        let mut i = self.inner.0.lock().unwrap();
+        i.new_conversation_level = level;
+        i.level_revision += 1;
+        Ok(())
+    }
+    pub(crate) fn default_level(&self) -> Option<&'static codex_level::Level> { self.inner.0.lock().unwrap().default_level }
+    pub(crate) fn thread_level(&self, thread: &str) -> Option<&'static codex_level::Level> { self.inner.0.lock().unwrap().thread_levels.get(thread).copied() }
+    /// The level a frame of `method` with `params` would carry now; None for a method that carries no level
+    /// or when no level applies.
+    pub(crate) fn level_for(&self, method: &str, params: &Value) -> Option<&'static codex_level::Level> {
+        let i = self.inner.0.lock().unwrap();
+        Self::resolve_level(&i, method, params).and_then(|(level, _, _)| level)
+    }
+    /// The level in force for a frame of `method`, the conversation it is for, and whether it is the choice
+    /// made for a new conversation. None when `method` carries no level.
+    fn resolve_level(i: &Inner, method: &str, params: &Value) -> Option<(Option<&'static codex_level::Level>, codex_level::Target, bool)> {
+        let kind = codex_level::Method::of(method)?;
+        let thread = params["threadId"].as_str().unwrap_or_default().to_owned();
+        let own = i.thread_levels.get(&thread).copied();
+        Some(match kind {
+            codex_level::Method::ThreadStart => match i.new_conversation_level {
+                Some(level) => (Some(level), codex_level::Target::New, true),
+                None => (i.default_level, codex_level::Target::New, false),
+            },
+            codex_level::Method::ThreadFork => match i.new_conversation_level {
+                Some(level) => (Some(level), codex_level::Target::ForkOf(thread), true),
+                None => (own.or(i.default_level), codex_level::Target::ForkOf(thread), false),
+            },
+            codex_level::Method::ThreadResume | codex_level::Method::TurnStart => (own.or(i.default_level), codex_level::Target::Conversation(thread), false),
+        })
+    }
+    /// DEL-01-01, V4-AUT-06: the one place a level enters a frame. Called by each frame builder after every
+    /// existing check has run on `built` (the params as built) and before anything is reserved, recorded or
+    /// written. The level in force is read once, under the same lock as the frame's registration; none refuses.
+    /// The level is merged, and the frame's params must then be `built` plus exactly the level's fields, or the
+    /// frame is refused. Returns the params to write and the level bound to the request; None for a method
+    /// that carries no level (every method but start, resume, fork and turn start).
+    fn level_frame(&self, i: &mut Inner, method: &str, built: &Value) -> Result<Option<(Value, codex_level::Bound)>, String> {
+        let Some((level, target, chosen_for_new)) = Self::resolve_level(i, method, built) else { return Ok(None) };
+        let kind = codex_level::Method::of(method).expect("resolved methods carry a level");
+        let level = level.ok_or_else(|| format!("refused-not-sent: no level chosen; {method} was not sent"))?;
+        let mut params = built.clone();
+        codex_level::merge(&mut params, level, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
+        #[cfg(test)] {let hook=self.after_level_merge.lock().unwrap().take();if let Some(h)=hook{h(&mut params);}}
+        if !codex_level::carries_exactly(built, &params, level, kind) {
+            return Err(format!("refused-not-sent: {method} would carry other than exactly its level; nothing written"));
+        }
+        if chosen_for_new { i.new_conversation_level = None; }
+        let fields = codex_level::params(level, kind);
+        Ok(Some((params, codex_level::Bound { level, method: kind, fields, revision: i.level_revision, target })))
+    }
+    /// A frame is written only under the level revision it was built under.
+    fn check_level_current(i: &Inner, bound: &codex_level::Bound) -> Result<(), String> {
+        if i.level_revision != bound.revision {
+            return Err("refused-not-sent: the level changed after this request was built; nothing written".into());
+        }
+        Ok(())
+    }
+    /// A start's or fork's reply names the conversation it created: that conversation takes the level the
+    /// frame carried, unless the person has already chosen one for it.
+    fn record_created_level(i: &mut Inner, key: &str, frame: &Value) {
+        let Some(bound) = i.source_requests.get(key).and_then(|e| e.request.level.clone()) else { return };
+        if !matches!(bound.target, codex_level::Target::New | codex_level::Target::ForkOf(_)) || frame.get("error").is_some() { return; }
+        if let Some(thread) = frame["result"]["thread"]["id"].as_str().filter(|t| !t.is_empty()) {
+            i.thread_levels.entry(thread.to_owned()).or_insert(bound.level);
+        }
+    }
     fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>,write_bound:Option<&WriteBound>)->Result<SourceRequest,String>{
         // A configuration reading and a bounded interrupt are exclusive by construction: each has
         // its own withdrawal at the write-start point, and one request never carries both.
@@ -3014,12 +3154,17 @@ impl Host {
             let state=Self::oauth_scope(&i,original)?;
             if state.controller.observation().phase!=oauth_control::Phase::Cancelling||state.cancel_request.is_some(){return Err("original cancel already attempted/unavailable".into());}
         }
+        // The level (V4-AUT-06), after every check above has run on the params as built and before an id is
+        // reserved. `built` keeps the params as built for the final admission's checks, which run on them,
+        // never on the level's fields; the frame below is the one recorded and written.
+        let (params,level,built)=match self.level_frame(&mut i,method,&params)? {Some((sent,bound))=>(sent,Some(bound),Some(params)),None=>(params,None,None)};
         i.next_id+=1;let id=i.next_id;
         let raw_frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
         let(frame,auth_projection)=if endpoint_write.is_some(){(json!({"jsonrpc":"2.0","id":id,"method":method,"params":endpoint_write.unwrap().public_params()}),true)}else{auth_rpc::project_frame(&raw_frame,Some(method))};
         let bytes=Self::frame_bytes(&raw_frame)?;drop(raw_frame);drop(params);
+        let checked=built.as_ref().unwrap_or(&frame["params"]);
         if auth_rpc::account_method(method)&&!i.account_channels.contains(&i.generation){let g=i.generation.clone();i.account_channels.push(g);}
-        let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
+        let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),level:level.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
         // Reserved to Registered: this reading becomes the newest of its generation.
         if let Some(hold)=&hold {Self::reading_register_locked(&mut i,hold,&request,method)?;}
         if method=="config/read"&&private_config {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
@@ -3047,7 +3192,7 @@ impl Host {
         if let Some(offer)=cce_bound{i.cce_offer=Some(offer);}
         #[cfg(test)] let aa_selected=aa_reservation.is_some();
         if let Some(reservation)=aa_reservation {
-            let core=request_event_join::Core::bind(reservation,&self.inner,i.aa_epoch,&i.generation,request.request_ref(),&request.frame,captured.as_ref().ok().map(|b|(b.epoch,b.identity)));
+            let core=request_event_join::Core::bind(reservation,&self.inner,i.aa_epoch,&i.generation,request.request_ref(),&request.frame,request.level.as_ref(),captured.as_ref().ok().map(|b|(b.epoch,b.identity)));
             i.aa_capture=Some(core);
         }
         drop(i);
@@ -3068,14 +3213,15 @@ impl Host {
             // establish the address in force, or nothing is written.
             if !handshake { self.check_local_files(method)?; }
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
-                Self::check_local_request(&i,method,&frame["params"],expected_generation,handshake,private_credential,private_config,provider_admission)?;
+                Self::check_local_request(&i,method,checked,expected_generation,handshake,private_credential,private_config,provider_admission)?;
+                if let Some(bound)=&level {Self::check_level_current(&i,bound)?;}
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
-                if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
+                if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,checked)?;}}
                 // A confirmed provider write's attempt: no reading of this generation is current, for
                 // any folder, and an earlier reading's reply arriving later restores nothing.
                 if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.reading_current=None;i.provider_observation_revisions.remove(write.cwd());}
-                if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
+                if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,checked,Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
                     if state.controller.observation().phase!=oauth_control::Phase::Cancelling||state.cancel_request.as_ref()!=Some(&json!(id)){return Err("original OAuth cancel control ended before final dispatch; no replacement write".into());}
@@ -3568,7 +3714,7 @@ impl Host {
             return Err("start response envelope is uncorrelated or failed; raw native evidence retained, no operational admission".into());
         }
         Self::validate_native_result("ThreadStartResponse",&response["result"])?;
-        self.insert_start_response(request.generation(),&request.frame["params"],&response,true)?;
+        self.insert_start_response(request.generation(),StartParams::Sent(&request.frame["params"]),&response,true)?;
         {let mut i=self.inner.0.lock().unwrap();if i.generation==request.generation&&!i.server_requests.is_closed(&request.generation){if let Some(offer)=i.cce_offer.as_mut(){if let Some(thread)=response["result"]["thread"]["id"].as_str(){offer.native_admitted(request,thread);}}}}
         Ok(response)
     }
@@ -3847,8 +3993,10 @@ impl Host {
             let mut i=self.inner.0.lock().unwrap();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation){return Err("attachment preparation scope is stale/closed/non-ready".into());}
             Self::check_local_request(&i,method,&params,Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,method)?;Self::check_conversation_request(&i,method,&params)?;let pipe=self.stdin.lock().unwrap();let identity=Self::pipe_identity(pipe.as_ref().ok_or("actual source pipe unavailable; nothing reserved")?)?;drop(pipe);
-            i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
-            let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
+            // The level (V4-AUT-06): after every check above on the params as built, before an id is reserved.
+            let (sent,level)=match self.level_frame(&mut i,method,&params)? {Some((sent,bound))=>(sent,Some(bound)),None=>(params.clone(),None)};
+            i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":sent});
+            let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,level,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
@@ -3857,7 +4005,7 @@ impl Host {
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
         if let Err(error)=custody.publish_prepared(&list.supply_records(),&client){self.attachment_limit(&source,error.clone());return Err(format!("attachment metadata unavailable; nothing sent: {error}"));}
-        Ok(PreparedAttachmentDispatch{source,custody,list,selections:selections.to_vec(),client,pipe_identity,pipe_epoch,state:Mutex::new("prepared")})
+        Ok(PreparedAttachmentDispatch{source,built:params,custody,list,selections:selections.to_vec(),client,pipe_identity,pipe_epoch,state:Mutex::new("prepared")})
     }
     fn attachment_limit(&self,source:&SourceRequest,error:String){let mut i=self.inner.0.lock().unwrap();if let Some(e)=i.source_requests.get_mut(&source.request_id().to_string()){if let Some(a)=e.attachment.as_mut(){a.limit=Some(error);}}}
     pub fn dispatch_attachment_turn(&self,prepared:&PreparedAttachmentDispatch)->Result<SourceRequest,String>{
@@ -3888,9 +4036,10 @@ impl Host {
             Self::recheck_attachment_sources(prepared)?;
             let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
-            Self::check_local_request(&i,frame["method"].as_str().unwrap(),&frame["params"],Some(generation),false,false,false,None)?;
+            Self::check_local_request(&i,frame["method"].as_str().unwrap(),&prepared.built,Some(generation),false,false,false,None)?;
+            if let Some(bound)=&prepared.source.level {Self::check_level_current(&i,bound)?;}
             Self::check_send_admitted(&i,frame["method"].as_str().unwrap())?;
-            Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
+            Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&prepared.built)?;
             let mut bound=self.capture_pipe(&i)?;if bound.identity!=prepared.pipe_identity{return Err("actual source pipe changed; nothing sent".into());}
             let key=prepared.source.request_id().to_string();let index=i.source_requests[&key].index;let sender=i.source_requests.get_mut(&key).unwrap().reserved_sender.take().ok_or("reserved RPC already consumed")?;
             let cut = i.receipt_position;
@@ -4112,10 +4261,11 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let r = self.wait_source_response(&source,Duration::from_secs(20))?;
         #[cfg(test)]
         if let Some(hook) = self.before_thread_insert.lock().unwrap().take() { hook(); }
-        self.insert_start_response(&sent_generation,&params,&r,false)?;
+        self.insert_start_response(&sent_generation,StartParams::Built(&params),&r,false)?;
         Ok(r)
     }
-    fn insert_start_response(&self, generation: &Value, params: &Value, response: &Value, no_duplicate: bool) -> Result<(),String> {
+    fn insert_start_response(&self, generation: &Value, start: StartParams<'_>, response: &Value, no_duplicate: bool) -> Result<(),String> {
+        let params = match start { StartParams::Sent(p) | StartParams::Built(p) => p };
         let t=response.get("result").and_then(|x|x.get("thread")).ok_or_else(||format!("thread/start answered with an error: {}",response.get("error").cloned().unwrap_or(Value::Null)))?;
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation||i.server_requests.is_closed(generation) {return Err("thread/start response belongs to a closed or replaced generation; native response retained in journal".into());}
@@ -4129,7 +4279,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             &&matches!(t["status"]["type"].as_str(),Some("idle"|"active"))&&t["canAcceptDirectInput"]!=false {
             let original = i.source_requests.get(&response["id"].to_string()).filter(|source| {
                 source.request.generation == *generation && source.request.frame["method"] == "thread/start"
-                    && source.request.frame["params"] == *params && source.written && !source.write_attempt_in_progress
+                    && match start {
+                        // The params as sent: the very frame, compared as it is.
+                        StartParams::Sent(sent) => source.request.frame["params"] == *sent,
+                        // The params as built: augmented by the level bound to the frame, compared whole.
+                        StartParams::Built(built) => codex_level::expected_with_level(built, source.request.level.as_ref().map(|b| b.level), codex_level::Method::ThreadStart).is_ok_and(|expected| source.request.frame["params"] == expected),
+                    }
+                    && source.written && !source.write_attempt_in_progress
                     && source.write_error.is_none() && source.source_limit.is_none()
                     && source.response.as_ref() == Some(response)
                     && i.client_requests[source.index]["outcome"] == "response-observed-result"
@@ -4184,7 +4340,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let i = self.inner.0.lock().unwrap();
         if client.is_empty() || elements.is_empty() || elements.iter().any(|text| text.is_empty())
             || i.generation != *generation || i.state != "ready" || i.server_requests.is_closed(generation)
-            || source.frame["method"] != "turn/start" || source.frame["params"] != expected {
+            || source.frame["method"] != "turn/start"
+            || codex_level::expected_with_level(&expected, source.level.as_ref().map(|b| b.level), codex_level::Method::TurnStart).map_or(true, |sent| source.frame["params"] != sent) {
             return Err("clean trial original current ordered text sender differs".into());
         }
         Self::check_conversation_request(&i, "turn/start", &expected)?;
@@ -4263,6 +4420,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.check_source(source)?;
         let mut expected=Self::prepared_run_turn_params_model(source.generation(),prepared,person_text,client_id,mode,model)?;
         Self::apply_ordinary_effort(&mut expected, mode, model, effort)?;
+        let expected=codex_level::expected_with_level(&expected,source.level.as_ref().map(|b|b.level),codex_level::Method::TurnStart)?;
         if source.frame["method"]!="turn/start"||source.frame["params"]!=expected{return Err("original prepared turn sender/ordered text/client identity differs".into());}
         self.wait_source_response(source,wait)?;
         let i=self.inner.0.lock().unwrap();
@@ -5557,6 +5715,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     self.capture_pipe(&i).ok().map(|bound|(bound.epoch,bound.identity))
                 } else { None };
                 if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.native_settlement=native_settlement; e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
+                Self::record_created_level(&mut i, &key, &frame);
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
@@ -6100,7 +6259,7 @@ mod additive_guidance_transport_tests {
     fn both_public_wrappers_use_the_same_stdio_correlation_and_thread_snapshot_path() {
         for guidance in [None,Some("Exact role bytes\n\né / 家\n")] {
             let run=mock_thread_start(guidance,None);let response=run.result.unwrap();
-            assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(response,run.native_response);
+            assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap(),"thread/start"));assert_eq!(response,run.native_response);
             let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
     }
@@ -6140,7 +6299,7 @@ mod additive_guidance_transport_tests {
             for successor in [json!({"appSession":"mock-session","home":"mock-home","spawnCounter":2}),json!({"appSession":"next-session","home":"mock-home","spawnCounter":1}),json!({"appSession":"mock-session","home":"next-home","spawnCounter":1})] {
                 let run=mock_thread_start(guidance,Some(successor.clone()));
                 assert!(run.result.unwrap_err().contains("closed or replaced generation"));assert_eq!(run.snapshot["generation"],successor);assert_eq!(run.snapshot["threads"],json!([]));
-                assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(run.snapshot["clientRequests"][0]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["generation"],run.generation);assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
+                assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap(),"thread/start"));assert_eq!(run.snapshot["clientRequests"][0]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["generation"],run.generation);assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
             }
         }
     }
@@ -6594,7 +6753,7 @@ mod conversation_transport_tests {
     #[test]
     fn actual_text_pipe_response_and_interrupt_ack_do_not_invent_turn_end_or_model_witness() {
         let host=host();let text="exact text\n\né / 家";
-        let (result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread",text));assert_eq!(result.unwrap()["result"]["turn"],turn("inProgress"));assert_eq!(outbound["method"],"turn/start");assert_eq!(outbound["params"],Host::text_turn_params("thread",text).unwrap());let snapshot=host.snapshot();assert_eq!(snapshot["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert_eq!(snapshot["modelTurnExercised"],Value::Null);assert_eq!(snapshot["modelTurnEvidence"]["protocolRequests"][0]["outcome"],"response-observed-result");
+        let (result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread",text));assert_eq!(result.unwrap()["result"]["turn"],turn("inProgress"));assert_eq!(outbound["method"],"turn/start");assert_eq!(outbound["params"],crate::codex_level::with_test_level(&Host::text_turn_params("thread",text).unwrap(),"turn/start"));let snapshot=host.snapshot();assert_eq!(snapshot["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert_eq!(snapshot["modelTurnExercised"],Value::Null);assert_eq!(snapshot["modelTurnEvidence"]["protocolRequests"][0]["outcome"],"response-observed-result");
         let (ack,outbound)=exchange(&host,Some(json!({"result":{}})),vec![],||host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")));assert_eq!(ack.unwrap()["result"],json!({}));assert_eq!(outbound["params"],json!({"threadId":"thread","turnId":"turn"}));assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
         let count=host.client_requests().len();assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"stop-already-requested");assert_eq!(host.client_requests().len(),count);event(&host,"interrupted");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"interrupted");assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");
     }
@@ -6747,7 +6906,7 @@ mod conversation_transport_tests {
                 "source-cwd-elsewhere" => {assert_eq!((config_reads,forks.len()),(0,0),"no classification of the wrong cwd and no fork");}
                 "superseded-before-write" => {assert_eq!((config_reads,forks.len()),(2,0),"a superseded reading carries no fork write");}
                 "superseded-before-finish" => {assert_eq!((config_reads,forks.len()),(2,1));}
-                _ => {assert_eq!((config_reads,forks.len()),(1,1),"{case}");assert_eq!(forks[0]["params"],json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}),"fork names the classified cwd");}
+                _ => {assert_eq!((config_reads,forks.len()),(1,1),"{case}");assert_eq!(forks[0]["params"],crate::codex_level::with_test_level(&json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}),"thread/fork"),"fork names the classified cwd");}
             }
             assert!(!host.snapshot().to_string().contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));
         }
@@ -6799,7 +6958,7 @@ mod conversation_transport_tests {
                 assert!(dispatch.is_err());assert!(!frames.iter().any(|f|f["method"]=="thread/resume"),"no resume written on credential drift");
                 assert!(!host.snapshot().to_string().contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));continue;
             }
-            let receipt=dispatch.unwrap();assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"],json!({"threadId":"stored","excludeTurns":true,"cwd":"/invented"}),"resume names the classified cwd");
+            let receipt=dispatch.unwrap();assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"],crate::codex_level::with_test_level(&json!({"threadId":"stored","excludeTurns":true,"cwd":"/invented"}),"thread/resume"),"resume names the classified cwd");
             view.receive(&query,"conversation-home",&g(),&receipt.evidence()["response"]["result"]).unwrap();
             let admitted=host.history_admit_resume(&view,&receipt).is_ok();
             assert_eq!(admitted,case=="positive","{case}");
@@ -7296,7 +7455,7 @@ mod conversation_transport_tests {
     }
     #[test]
     fn history_bridge_continue_actual_receive_admit_once_and_text_control() {
-        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();let native=history_resume("idle",true);let(receipt,evidence,outbound)=history_exchange(&host,&query,Some(json!({"result":native})));assert_eq!(outbound["method"],"thread/resume");assert_eq!(outbound["params"],json!({"threadId":"stored","excludeTurns":true}));assert!(view.resumed_thread().is_none());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
+        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();let native=history_resume("idle",true);let(receipt,evidence,outbound)=history_exchange(&host,&query,Some(json!({"result":native})));assert_eq!(outbound["method"],"thread/resume");assert_eq!(outbound["params"],crate::codex_level::with_test_level(&json!({"threadId":"stored","excludeTurns":true}),"thread/resume"));assert!(view.resumed_thread().is_none());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
         view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let admitted=host.history_admit_resume(&view,&receipt).unwrap();assert_eq!(admitted["threadId"],"stored");assert_eq!(admitted["generation"],g());assert_eq!(admitted["resumeRequestRef"],receipt.source().request_ref());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);
         let(result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"stored","continued exact text"));assert!(result.is_ok());assert_eq!(outbound["params"]["threadId"],"stored");assert!(outbound["params"].get("developerInstructions").is_none());
     }
@@ -7449,7 +7608,7 @@ mod conversation_transport_tests {
     }
     #[test]
     fn history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup() {
-        let host=host();let text="Frozen guidance\n\né / 家";let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(outbound["params"],Host::thread_start_params("/invented","selected","configured",Some(text)).unwrap());assert_eq!(evidence["sentFrame"],outbound);assert_eq!(receipt.attempted_frame(),&outbound);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(host.source_request(&g(),receipt.request_id()).unwrap().request_ref(),receipt.request_ref());assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
+        let host=host();let text="Frozen guidance\n\né / 家";let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented","selected","configured",Some(text)).unwrap(),"thread/start"));assert_eq!(evidence["sentFrame"],outbound);assert_eq!(receipt.attempted_frame(),&outbound);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(host.source_request(&g(),receipt.request_id()).unwrap().request_ref(),receipt.request_ref());assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
         assert!(host.thread_start_dispatch_finish(&receipt).is_ok());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);assert!(host.thread_start_dispatch_finish(&receipt).is_err());assert!(host.source_request(&json!({"appSession":"foreign","home":"conversation-home","spawnCounter":1}),receipt.request_id()).is_err());
         let mut bad_receipt=None;let(result,_)=exchange(&host,Some(json!({"result":{"thread":{"id":"malformed"}}})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;bad_receipt=Some(r);Ok(e)});assert_eq!(result.unwrap()["outcome"],"response-observed-result");assert!(host.thread_start_dispatch_finish(&bad_receipt.unwrap()).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);
     }
@@ -7460,7 +7619,7 @@ mod conversation_transport_tests {
         use crate::role_supply::{Composition,Guidance,Role};
         let host=host();host.inner.0.lock().unwrap().threads.clear();let mut session=crate::runtime_session::HistorySession::default();session.synchronize(&host.snapshot());
         let query=session.prepare(&host.snapshot(),&g(),0,"list",None,Direction::Desc,None).unwrap();let(receipt,_,_)=history_exchange(&host,&query,Some(json!({"result":{"data":[history_thread("notLoaded")],"nextCursor":null}})));session.dispatched(receipt);session.reconcile(&host);assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.select(&host.snapshot(),&g(),0,"stored").unwrap();assert_eq!(session.snapshot(None)["selectionEpoch"],1);
-        let query=session.prepare(&host.snapshot(),&g(),1,"continue",None,Direction::Desc,None).unwrap();let(receipt,_,outbound)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));assert_eq!(outbound["params"],json!({"threadId":"stored","excludeTurns":true}));assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.dispatched(receipt);session.reconcile(&host);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(session.snapshot(None)["selected"]["resumeEligibilityCurrent"],true);assert_eq!(session.role("conversation-home","stored")["standing"],"unknown");
+        let query=session.prepare(&host.snapshot(),&g(),1,"continue",None,Direction::Desc,None).unwrap();let(receipt,_,outbound)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));assert_eq!(outbound["params"],crate::codex_level::with_test_level(&json!({"threadId":"stored","excludeTurns":true}),"thread/resume"));assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.dispatched(receipt);session.reconcile(&host);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(session.snapshot(None)["selected"]["resumeEligibilityCurrent"],true);assert_eq!(session.role("conversation-home","stored")["standing"],"unknown");
         let common=Guidance::seeded("AGENTS.md","test-release",b"Frozen common bytes\r\n".to_vec(),b"default common").unwrap();let role=Guidance::seeded("agents/AGENT_TASK.md","test-release",b"Frozen TASK bytes\r\n".to_vec(),b"default role").unwrap();let composition=Composition::new(&common,Some((Role::TASK,&role)),true).unwrap();let original=composition.text.clone();let mut native=history_resume("idle",true);native["thread"]["id"]=json!("role-thread");let mut start=None;
         let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let receipt=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",&composition.text)?;session.start_dispatched(receipt.clone(),&composition,"sup:fixture")?;let evidence=host.source_request_wait(&receipt,Duration::from_millis(15))?;start=Some(receipt);Ok(evidence)});assert_eq!(result.unwrap()["writeResult"],"written");assert_eq!(outbound["params"]["developerInstructions"],original);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);session.reconcile(&host);assert!(session.start_admitted(&start.unwrap()));assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);let role=session.role("conversation-home","role-thread");assert_eq!(role["standing"],"app-observed");assert_eq!(role["role"],"TASK");assert!(session.snapshot(None)["receivingLimits"].as_array().unwrap().is_empty());
         // Role preparation is local and occurs after a genuine native send.
@@ -8377,7 +8536,7 @@ mod conversation_transport_tests {
         }
         fn reply(&mut self,dispatch:&HistoryDispatch,result:&Value){
             let actual=next_operation_frame(&mut self.reader).unwrap();
-            assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],*dispatch.query().params());
+            assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],crate::codex_level::with_test_level(dispatch.query().params(),dispatch.query().method()));
             self.host.on_line(&serde_json::to_vec(&json!({"id":actual["id"],"result":result})).unwrap(),&g());
         }
         fn dispatch(&mut self,query:&HistoryQuery,result:&Value)->HistoryDispatch {
@@ -8493,7 +8652,8 @@ mod conversation_transport_tests {
             {let received=host.turn_start_prepared_finish(&r,&f.prepared,"person exact\r\ntext","client:original",Duration::from_millis(50))?;assert!(std::ptr::eq(received.source(),&r));assert_eq!(received.turn_id(),"turn");assert_eq!(received.reply_status(),"failed");assert_eq!(received.observed_status(),"failed");}
             let e=r.evidence();source=Some(r);Ok(e)
         });
-        assert_eq!(outbound["params"],f.prepared.turn_params("person exact\r\ntext","client:original").unwrap());assert_eq!(outbound["params"]["input"][0]["text"],f.prepared.text());assert_eq!(outbound["params"]["input"][1]["text"],"person exact\r\ntext");assert_eq!(outbound["params"]["clientUserMessageId"],"client:original");assert!(outbound["params"].get("approvalPolicy").is_none());assert_eq!(result.unwrap()["writeResult"],"written");assert!(source.is_some());
+        // V4-AUT-06: the prepared turn plus exactly the level in force (the test Host's "edits").
+        assert_eq!(outbound["params"],codex_level::expected_with_level(&f.prepared.turn_params("person exact\r\ntext","client:original").unwrap(),codex_level::level("edits"),codex_level::Method::TurnStart).unwrap());assert_eq!(outbound["params"]["input"][0]["text"],f.prepared.text());assert_eq!(outbound["params"]["input"][1]["text"],"person exact\r\ntext");assert_eq!(outbound["params"]["clientUserMessageId"],"client:original");assert_eq!(outbound["params"]["approvalPolicy"],"on-request");assert_eq!(result.unwrap()["writeResult"],"written");assert!(source.is_some());
     }
     #[test]
     fn prepared_turn_finish_preserves_prior_terminal_and_refuses_changed_original_input(){
@@ -8537,6 +8697,10 @@ mod conversation_transport_tests {
 #[cfg(test)]
 #[path = "execution_custody_tests.rs"]
 mod execution_custody_tests;
+
+#[cfg(all(test, unix))]
+#[path = "codex_level_host_tests.rs"]
+mod codex_level_host_tests;
 
 #[cfg(all(test, unix))]
 #[path = "hosting_reading_gate_tests.rs"]

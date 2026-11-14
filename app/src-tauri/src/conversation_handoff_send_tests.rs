@@ -136,9 +136,15 @@ fn producer_receipts_preserve_native_ack_refusal_error_unknown_and_late_response
             .filter(|frame| frame["method"] == "turn/start")
             .last()
             .unwrap();
+    // V4-AUT-06: the turn as built plus exactly the level in force (the test Host's "edits").
     assert_eq!(
         frame["params"],
-        json!({"threadId":j.target,"input":[{"type":"text","text":EDITED,"text_elements":[]}]})
+        crate::codex_level::expected_with_level(
+            &json!({"threadId":j.target,"input":[{"type":"text","text":EDITED,"text_elements":[]}]}),
+            crate::codex_level::level("edits"),
+            crate::codex_level::Method::TurnStart
+        )
+        .unwrap()
     );
     j.f.home
         .host

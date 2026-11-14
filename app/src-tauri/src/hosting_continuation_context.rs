@@ -315,7 +315,12 @@ impl Host {
             || e.request.request_ref != dispatch.source.request_ref
             || e.request.generation != *dispatch.query.generation()
             || dispatch.source.frame["method"] != dispatch.query.method()
-            || dispatch.source.frame["params"] != *dispatch.query.params()
+            || crate::codex_level::expected_with_level(
+                dispatch.query.params(),
+                dispatch.source.level.as_ref().map(|b| b.level),
+                crate::codex_level::Method::ThreadResume,
+            )
+            .map_or(true, |expected| dispatch.source.frame["params"] != expected)
             || !e.written
             || e.write_attempt_in_progress
             || e.write_error.is_some()

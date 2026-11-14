@@ -136,7 +136,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
     assert_eq!(result.unwrap()["writeResult"], "written");
     assert_eq!(
         outbound["params"],
-        json!({"threadId":"role-origin","deferGoalContinuation":true})
+        crate::codex_level::with_test_level(&json!({"threadId":"role-origin","deferGoalContinuation":true}), "thread/fork")
     );
     let fork = fork.unwrap();
     hot.reconcile(&host);
@@ -338,7 +338,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
         },
     );
     assert_eq!(result.unwrap()["writeResult"], "written");
-    assert_eq!(outbound["params"], json!({"threadId":"role-origin","excludeTurns":true}));
+    assert_eq!(outbound["params"], crate::codex_level::with_test_level(&json!({"threadId":"role-origin","excludeTurns":true}), "thread/resume"));
     cold.dispatched(receipt.unwrap());
     cold.reconcile(&cold_host);
     assert!(cold_host.snapshot()["threads"]
@@ -617,7 +617,7 @@ fn actual_late_fork_and_cold_source_unknown_never_assume_role_from_file_or_metad
     assert_eq!(result.unwrap()["writeResult"], "written");
     assert_eq!(
         outbound["params"],
-        json!({"threadId":"source","deferGoalContinuation":true})
+        crate::codex_level::with_test_level(&json!({"threadId":"source","deferGoalContinuation":true}), "thread/fork")
     );
     f.history.reconcile(&f.host);
     let fork = fork.unwrap();

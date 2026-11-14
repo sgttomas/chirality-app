@@ -1377,7 +1377,7 @@ impl HistorySession {
             let Some(prepared) = pending.prepared.take() else {
                 continue;
             };
-            match prepared.observe(
+            match prepared.with_sent_level(pending.receipt.level_sent().map(|b| b.level)).observe(
                 &status["generation"],
                 &status["sentFrame"],
                 &status["response"],
@@ -8400,7 +8400,7 @@ for line in sys.stdin:
         let peer=Peer::new();let mut root=peer.registered();let reference=root.prepare_run(peer.home.clone(),&peer.generation,"thread","person exact\r\ntext".into(),peer.project()).unwrap();
         let run=root.runs[&reference].clone();let mut run=run.lock().unwrap();
         run.send().unwrap();assert_eq!(run.turn_id.as_deref(),Some("turn"));assert_eq!(run.status["observedStatus"],"failed");
-        let attempted=peer.wire().into_iter().find(|f|f["method"]=="turn/start").unwrap();assert_eq!(attempted["params"],run.prepared().turn_params("person exact\r\ntext",&run.client_id).unwrap());
+        let attempted=peer.wire().into_iter().find(|f|f["method"]=="turn/start").unwrap();assert_eq!(attempted["params"],crate::codex_level::with_test_level(&run.prepared().turn_params("person exact\r\ntext",&run.client_id).unwrap(),"turn/start"));
         assert!(run.send().is_err());assert_eq!(peer.wire().iter().filter(|f|f["method"]=="turn/start").count(),1);
         peer.select_history();let supply=run.check_native_supply().unwrap();assert_eq!(supply["pageCount"],1);assert_eq!(supply["comparison"]["state"],"equal_claimed_text");assert_eq!(supply["adoption"],"unknown");assert_eq!(supply["sourceReceipts"].as_array().unwrap().len(),1);
     }
@@ -10930,8 +10930,12 @@ for line in sys.stdin:
                         assert_eq!(frame["params"].get("model").and_then(Value::as_str), explicit);
                     }
                     assert_eq!(peer.home.host.snapshot()["threads"], before, "a native acknowledgment never changes reported model/provider/role");
-                    for field in ["modelProvider", "developerInstructions", "effort", "approvalPolicy", "sandboxPolicy", "config"] {
+                    for field in ["modelProvider", "developerInstructions", "effort", "sandbox", "config"] {
                         assert!(frame["params"].get(field).is_none(), "no unrelated override {field}");
+                    }
+                    // V4-AUT-06: exactly the level in force (the test Host's "edits"), nothing else of it.
+                    for (field, value) in crate::codex_level::params(crate::codex_level::level("edits").unwrap(), crate::codex_level::Method::TurnStart) {
+                        assert_eq!(frame["params"].get(&field), Some(&value), "the level's {field}");
                     }
                 }
             }
@@ -10961,8 +10965,12 @@ for line in sys.stdin:
                     assert_eq!(notice_frames(&peer), 1);
                     assert!(send_with_pending_notice(&root, &peer.generation, "thread", "later").is_none());
                 }
-                for field in ["config", "approvalPolicy", "sandboxPolicy", "modelProvider"] {
+                for field in ["config", "sandbox", "modelProvider"] {
                     assert!(frame["params"].get(field).is_none());
+                }
+                // V4-AUT-06: exactly the level in force (the test Host's "edits").
+                for (field, value) in crate::codex_level::params(crate::codex_level::level("edits").unwrap(), crate::codex_level::Method::TurnStart) {
+                    assert_eq!(frame["params"].get(&field), Some(&value), "the level's {field}");
                 }
             }
         }

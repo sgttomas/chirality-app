@@ -20,6 +20,23 @@ HERE = Path(__file__).resolve().parent
 RECORDINGS = HERE / "recordings"
 
 
+# The exact fields of the level the App's test Host sends ("edits", the cfg(test) default in hosting.rs), written
+# out here independently of the double: start, resume and fork carry the mode name and the workspace options in
+# config, a turn carries the structured policy, and the person answers (codex_levels.json, codex_level.rs).
+EDITS_WORKSPACE = {"network_access": False, "exclude_slash_tmp": True, "exclude_tmpdir_env_var": True, "writable_roots": []}
+APP_LEVEL = {
+    "thread": {"approvalPolicy": "on-request", "approvalsReviewer": "user", "sandbox": "workspace-write",
+               "config": {"sandbox_workspace_write": EDITS_WORKSPACE}},
+    "turn": {"approvalPolicy": "on-request", "approvalsReviewer": "user",
+             "sandboxPolicy": {"type": "workspaceWrite", "writableRoots": [], "networkAccess": False,
+                               "excludeTmpdirEnvVar": True, "excludeSlashTmp": True}},
+}
+
+
+def app_level(method):
+    return copy.deepcopy(APP_LEVEL["turn" if method == "turn/start" else "thread"])
+
+
 def capture(scenario="st5"):
     path = RECORDINGS / (scenario + ".recording.json")
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -39,9 +56,11 @@ def inputs(recording, generation, profile="strict", remap=False):
             frame["params"] = {"clientInfo": peer.APP_CLIENT,
                                "capabilities": {**peer.CAPABILITIES, "explicitGatewayOauth": True}}
         if profile == "app" and frame.get("method") == "thread/start":
-            frame["params"] = {"cwd": "<WORKSPACE>", "model": "st5-stub-model", "modelProvider": "st5_stub"}
+            frame["params"] = {"cwd": "<WORKSPACE>", "model": "st5-stub-model", "modelProvider": "st5_stub",
+                               **app_level("thread/start")}
         if profile == "app" and frame.get("method") == "turn/start":
             frame["params"]["input"][0]["text_elements"] = []
+            frame["params"].update(app_level("turn/start"))
         if profile in ("app-recovery", "app-continue") and frame.get("method") == "thread/read":
             frame["params"]["includeTurns"] = False
         if profile in ("app-recovery", "app-continue") and frame.get("method") == "thread/turns/list":
@@ -53,6 +72,7 @@ def inputs(recording, generation, profile="strict", remap=False):
             frames.append({"jsonrpc": "2.0", "id": "constructed-reading", "method": "config/read",
                            "params": {"cwd": os.getcwd(), "includeLayers": True}})
             frame["params"]["excludeTurns"] = True
+            frame["params"].update(app_level("thread/resume"))
         frames.append(frame)
         if profile == "app-recovery" and frame.get("method") == "thread/turns/list":
             break
@@ -238,8 +258,10 @@ class AppProfiles(unittest.TestCase):
             adaptations = [change for row in audit for change in row.get("adaptations", [])]
             self.assertIn("thread/start:add-exact-captured-model-and-modelProvider", adaptations)
             self.assertIn("turn/start.input[0].text_elements:add-empty-array", adaptations)
+            self.assertIn("thread/start:add-exact-App-level-edits", adaptations)
+            self.assertIn("turn/start:add-exact-App-level-edits", adaptations)
         for index, key, value in ((2, "model", "different"), (2, "modelProvider", "different"),
-                                  (2, "approvalPolicy", "on-request"), (2, "cwd", "/changed")):
+                                  (2, "approvalPolicy", "never"), (2, "cwd", "/changed")):
             supplied = inputs(recording, 1, "app")
             supplied[index]["params"][key] = value
             with self.assertRaises(peer.ReplayError):
@@ -250,6 +272,35 @@ class AppProfiles(unittest.TestCase):
             run_memory(recording, profile="app", supplied=supplied)
         with self.assertRaises(peer.ReplayError):
             run_memory(recording, profile="strict", supplied=inputs(recording, 1, "app"))
+
+    def test_an_app_frame_with_another_level_or_missing_a_level_field_is_refused(self):
+        _, _, recording = capture()
+        run_memory(recording, profile="app")  # the frames as the App sends them pass
+        cases = [
+            ("start-other-policy", lambda f: f[2]["params"].update(approvalPolicy="never")),
+            ("start-other-mode", lambda f: f[2]["params"].update(sandbox="danger-full-access")),
+            ("start-missing-reviewer", lambda f: f[2]["params"].pop("approvalsReviewer")),
+            ("start-missing-workspace-options", lambda f: f[2]["params"].pop("config")),
+            ("start-other-network", lambda f: f[2]["params"]["config"]["sandbox_workspace_write"].update(network_access=True)),
+            ("start-no-level", lambda f: [f[2]["params"].pop(k) for k in APP_LEVEL["thread"]]),
+            ("turn-other-policy", lambda f: f[3]["params"].update(approvalPolicy="never")),
+            ("turn-missing-sandbox-policy", lambda f: f[3]["params"].pop("sandboxPolicy")),
+            ("turn-other-sandbox-policy", lambda f: f[3]["params"].update(sandboxPolicy={"type": "dangerFullAccess"})),
+        ]
+        for name, mutate in cases:
+            with self.subTest(case=name):
+                supplied = inputs(recording, 1, "app")
+                mutate(supplied)
+                with self.assertRaisesRegex(peer.ReplayError, "request-method-or-params-mismatch"):
+                    run_memory(recording, profile="app", supplied=supplied)
+        self.assertEqual(run_memory(recording, 2, "app-continue")[1][-1]["event"], "finish")  # the resume as sent passes
+        for name, mutate in (("resume-other-policy", lambda p: p.update(approvalPolicy="never")),
+                             ("resume-missing-mode", lambda p: p.pop("sandbox"))):
+            with self.subTest(case=name):
+                supplied = inputs(recording, 2, "app-continue")
+                mutate(next(frame for frame in supplied if frame.get("method") == "thread/resume")["params"])
+                with self.assertRaisesRegex(peer.ReplayError, "request-method-or-params-mismatch"):
+                    run_memory(recording, 2, "app-continue", supplied)
 
     def test_recovery_changes_only_queries_and_ends_before_loaded_list_resume(self):
         _, _, recording = capture()
@@ -379,12 +430,14 @@ class SubprocessReplay(unittest.TestCase):
         self.assertIn("metadata and live-resume state", field["description"])
         supplied = inputs(recording, 2, "app-continue")
         actual = next(frame for frame in supplied if frame.get("method") == "thread/resume")
-        self.assertEqual(actual["params"], {"threadId": recording["frames"][30]["frame"]["params"]["threadId"], "excludeTurns": True})
+        self.assertEqual(actual["params"], {"threadId": recording["frames"][30]["frame"]["params"]["threadId"], "excludeTurns": True,
+                                            **app_level("thread/resume")})
         result = self.invoke(path, digest, self.audit, "app-continue", 2, supplied)
         self.assertEqual((result.returncode, result.stderr), (0, b""))
         rows = [json.loads(line) for line in self.audit.read_text().splitlines()]
         resume = next(row for row in rows if row.get("frame_index") == 30 and row["event"] == "frame")
-        self.assertEqual(resume["adaptations"], ["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"])
+        self.assertEqual(resume["adaptations"], ["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged",
+                                                 "thread/resume:add-exact-App-level-edits"])
         output = [json.loads(line) for line in result.stdout.splitlines()]
         recorded_reply = recording["frames"][33]["frame"]
         self.assertTrue(recorded_reply["result"]["thread"]["turns"], "captured full reply is not rewritten as metadata-only")
