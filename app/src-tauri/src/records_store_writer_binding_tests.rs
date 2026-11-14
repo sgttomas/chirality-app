@@ -3,6 +3,11 @@ use super::*;
 const UNKNOWN_FOLDER: &str = "not known which project this folder belongs to in this process; nothing written";
 
 #[test]
+fn records_store_writer_binding_moved_identity_is_not_adopted_while_activity_is_held() {
+    a_moved_project_is_not_adopted_while_its_activity_is_held();
+}
+
+#[test]
 fn records_store_writer_binding_first_attachment_still_registers() {
     let own = OwnStore::new();
     let root = folder("writer-first-");
@@ -83,6 +88,27 @@ fn records_store_writer_binding_registration_does_not_admit_another_thread() {
             crate::records_retention::write_path(&dir).err()
         }).join().unwrap();
         assert_eq!(error.as_deref(), Some(UNKNOWN_FOLDER));
+    })));
+    attach(&root, true).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_writer_binding_registration_does_not_admit_another_or_replaced_folder() {
+    let _own = OwnStore::new();
+    let root = folder("writer-registration-physical-");
+    REGISTER_BEFORE_PUBLICATION.with(|slot| *slot.borrow_mut() = Some(Box::new(|dir| {
+        let other = dir.parent().unwrap().join(storage::key("invented:other-registration"));
+        std::fs::create_dir(&other).unwrap();
+        let other_error = crate::records_retention::write_path(&other).err();
+        let aside = dir.with_extension("held");
+        std::fs::rename(dir, &aside).unwrap();
+        std::fs::create_dir(dir).unwrap();
+        let replaced_error = crate::records_retention::write_path(dir).err();
+        std::fs::remove_dir(dir).unwrap();
+        std::fs::rename(aside, dir).unwrap();
+        assert_eq!(other_error.as_deref(), Some(UNKNOWN_FOLDER));
+        assert_eq!(replaced_error.as_deref(), Some(UNKNOWN_FOLDER));
     })));
     attach(&root, true).unwrap();
     std::fs::remove_dir_all(root).unwrap();

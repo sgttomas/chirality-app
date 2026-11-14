@@ -196,6 +196,8 @@ pub struct RoleLog {
     project_directory: File,
     project_identity: (u64, u64),
     writer: std::sync::Mutex<()>,
+    binding: std::sync::Mutex<Result<Option<records_store::WriterBinding>, String>>,
+    origin: Result<records_store::ReaderBinding, String>,
 }
 impl RoleLog {
     pub fn open(project: &Path) -> Result<Self, String> {
@@ -206,6 +208,8 @@ impl RoleLog {
             project_directory,
             project_identity,
             writer: std::sync::Mutex::new(()),
+            binding: std::sync::Mutex::new(records_store::bind_writer_if_attached(project)),
+            origin: records_store::bind_reader(project, records_store::ReaderDecision::Records),
         })
     }
     fn check_project(&self) -> Result<(), String> {
@@ -221,6 +225,22 @@ impl RoleLog {
             Ok(())
         }
     }
+    fn writer_dir(&self) -> Result<PathBuf, String> {
+        let mut held = self.binding.lock().unwrap_or_else(|p| p.into_inner());
+        let binding = held.as_mut().map_err(|e| e.clone())?;
+        if binding.is_none() {
+            self.origin.as_ref().map_err(Clone::clone)?.prove()?;
+            if records_store::bind_writer_if_attached(&self.project)?.is_some() {
+                return Err("the project acquired a records identity since this role observation handle was opened; reopen; nothing written".into());
+            }
+            *binding = Some(records_store::bind_writer(&self.project)?);
+        }
+        Ok(binding.as_ref().unwrap().records_dir().to_path_buf())
+    }
+    fn prove_writer(&self) -> Result<(), String> {
+        self.binding.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map_err(Clone::clone)?
+            .as_ref().ok_or("role observation writer binding unavailable")?.prove_for_write()
+    }
     fn location(
         &self,
         write: bool,
@@ -233,9 +253,9 @@ impl RoleLog {
         )>,
         String,
     > {
-        self.check_project()?;
+        if !write { self.check_project()?; }
         let dir = if write {
-            records_store::write_dir(&self.project)?
+            self.writer_dir()?
         } else {
             let home = records_store::readable_home(&self.project)?;
             let Some(dir) = home.attachment.dir else {
@@ -252,11 +272,13 @@ impl RoleLog {
         } else {
             crate::records_retention::read_path(&dir)?
         };
+        if write { self.prove_writer()?; }
         let writer = if write {
             Some(records_store::writer_lock(&dir, true)?)
         } else {
             None
         };
+        if write { self.prove_writer()?; }
         let parent = directory(&dir)?;
         let Some(folder) = child(&parent, FOLDER, write)? else {
             return Ok(None);
@@ -619,9 +641,8 @@ impl RoleLog {
             };
             content = Some(payloads);
         }
-        let project = records_store::attach(&self.project, false)?
-            .project
-            .ok_or("record store project identity absent")?;
+        let project = self.binding.lock().unwrap_or_else(|p| p.into_inner()).as_ref().map_err(Clone::clone)?
+            .as_ref().ok_or("record store project identity absent")?.project_id().to_owned();
         row["project"] = json!({"projectId":project,"sourceRoot":crate::attachments::native_path_identity(&self.project),"device":self.project_identity.0,"inode":self.project_identity.1});
         row["seq"] = json!(chain.lines + 1);
         row["prevLine"] = record_lines::link(chain.last.as_deref());
@@ -633,6 +654,7 @@ impl RoleLog {
         if let Some(hook) = BEFORE_APPEND.with(|slot| slot.borrow_mut().take()) {
             hook();
         }
+        self.prove_writer()?;
         self.check_project()?;
         verify_directory(&path, &folder)?;
         if let Some(content) = &content {

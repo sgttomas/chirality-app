@@ -19,6 +19,8 @@ needs:
   condition: The records store keeps one subtree for each project, outside every project working tree
     and every Codex home; a project is attached by its stable identity and never on its path alone;
     and where the store cannot be written, recording is refused visibly and nothing is written elsewhere.
+    Kept connector account writers retain their admitted project identity and physical
+    project and records folders, and prove that binding again inside write admission before publication.
   gating: true
 - from: doc:The project's source records for the affected question
   condition: The project's graphs, decisions, revisions and other records that bear on the affected question

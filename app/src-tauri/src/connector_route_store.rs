@@ -539,6 +539,7 @@ mod platform {
         /// accounts' records folder it was opened for, proved before each
         /// operation (`records_store::ReaderBinding`).
         reader: crate::records_store::ReaderBinding,
+        writer: Option<crate::records_store::WriterBinding>,
     }
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub(super) enum Stage {
@@ -614,6 +615,10 @@ mod platform {
                 return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's accounts place changed while it was opened; reopen"));
             }
             let store = Self {
+                writer: if place.store_dir.is_some() {
+                    crate::records_store::bind_writer_if_attached(&root)
+                        .map_err(|e| StoreError::new(ErrorKind::RecordingRefused, e))?
+                } else { None },
                 reader,
                 root,
                 project_identity,
@@ -683,14 +688,15 @@ mod platform {
             let Some(dir) = &self.store_dir else {
                 return Err(refused(format!("the accounts are read in place from the project ({}); nothing is written there", self.location)));
             };
-            let current = crate::records_store::write_dir(&self.root).map_err(refused)?;
-            if &current != dir {
-                return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's records store folder changed since its accounts were opened; reopen"));
-            }
+            let _admission = crate::records_retention::write_path(dir).map_err(refused)?;
+            let binding = self.writer.as_ref().ok_or_else(|| refused("the writer's original binding is unavailable; reopen".into()))?;
+            binding.prove_for_write().map_err(refused)?;
             // Shared: account writers do not wait on each other (distinct
             // storage keys), only on an import, which holds the lock
             // exclusively; the permission is checked again once it is held.
-            crate::records_store::writer_lock(dir, true).map_err(refused)
+            let writer = crate::records_store::writer_lock(dir, true).map_err(refused)?;
+            binding.prove_for_write().map_err(refused)?;
+            Ok(writer)
         }
         pub fn resolved_project(&self) -> &Path {
             &self.root
@@ -1096,6 +1102,8 @@ mod platform {
                         "temporary identity/hash changed before publication; no publication attempted"));
                 }
                 hook(Stage::TempChecked)?;
+                self.writer.as_ref().ok_or_else(|| StoreError::new(ErrorKind::RecordingRefused, "original writer binding unavailable"))?
+                    .prove_for_write().map_err(|e| StoreError::new(ErrorKind::RecordingRefused, e))?;
                 if let Err(e) = publisher(chain.last(), &temporary, &name) {
                     let code = e.raw_os_error();
                     let unsupported = matches!(

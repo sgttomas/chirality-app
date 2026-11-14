@@ -39,6 +39,50 @@ fn account(id: &str) -> Value {
         "recorder":{"kind":"tool","identity":"invented fixture"},
         "written_at":"fixture-constant", "written_at_source":"build_constant"})
 }
+
+#[test]
+fn records_store_writer_binding_connector_pending_after_identity_adoption_is_refused() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let kept = ProjectRouteStore::open_for_write(&p).unwrap();
+    let pending = account("ra:pending-before-adoption");
+    let original = kept.accounts_directory();
+    let moved = scratch.0.join("moved-project");
+    fs::rename(&p, &moved).unwrap();
+    crate::records_store::adopt(&moved).unwrap();
+    fs::create_dir(&p).unwrap();
+    crate::records_store::new_identity(&p).unwrap();
+    let result = kept.write(&pending);
+    assert!(result.is_err(), "{result:?}");
+    assert!(!original.exists(), "nothing written into the adopted identity");
+    assert!(ProjectRouteStore::open(&p).unwrap().discover().accounts.is_empty());
+    assert!(ProjectRouteStore::open(&moved).unwrap().discover().accounts.is_empty());
+}
+
+#[test]
+fn records_store_writer_binding_connector_link_swapped_before_publication_is_refused() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let kept = ProjectRouteStore::open_for_write(&p).unwrap();
+    let link = p.join(crate::records_store::PROJECT_LINK);
+    let original = fs::read(&link).unwrap();
+    let result = kept.write_inner(&account("ra:pending-link-swap"), KEY, |stage| {
+        if stage == Stage::TempChecked {
+            let mut value: Value = serde_json::from_slice(&original).unwrap();
+            value["projectId"] = json!("invented:hosted-agent-swap");
+            fs::write(&link, serde_json::to_vec(&value).unwrap()).unwrap();
+        }
+        Ok(())
+    });
+    fs::write(link, original).unwrap();
+    assert!(!kept.accounts_directory().join(format!("{KEY}.json")).exists(), "account published after its link changed: {result:?}");
+    assert!(result.is_err(), "{result:?}");
+}
+
+#[test]
+fn records_store_writer_binding_connector_new_identity_is_refused_during_admitted_write() {
+    a_new_identity_is_refused_while_an_account_writer_is_admitted();
+}
 fn failure() -> StoreError {
     StoreError::new(ErrorKind::Io, "injected interruption")
 }

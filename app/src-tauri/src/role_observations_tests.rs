@@ -72,6 +72,32 @@ fn observation(supply: &str, outcome: &str) -> Value {
     row(supply,"thread-start",Some("thread"),json!({"home":"home","generation":{"appSession":"fixture","home":"home","spawnCounter":1},"requestIdentity":1,"requestRef":"private-fixture-receipt","method":"thread/start","writeResult":"written","outcome":if outcome=="supplied"{"response-observed-result"}else{"pending"},"sourceCurrent":true}),json!({"role":"HELP_HUMAN","preselected":null,"roleSet":c.role_set_identity()}),outcome,Some(c.carried),json!({"instructionSources":null,"agentRole":null,"forkedFromId":null}),json!({}),None).unwrap()
 }
 #[test]
+fn records_store_writer_binding_pending_role_observation_under_a_is_not_written_under_b() {
+    let f = Fixture::new();
+    let a = records_store::write_dir(&f.project).unwrap();
+    let log = f.log();
+    let waiting = observation("sup:waiting-under-a", "unknown");
+    let composition = composition();
+    records_store::new_identity(&f.project).unwrap();
+    let b = records_store::write_dir(&f.project).unwrap();
+    let result = log.append(waiting.clone(), Some(&composition));
+    assert!(!a.join(RELATIVE_LOG).exists() && !b.join(RELATIVE_LOG).exists(), "pending observation written into another identity: {result:?}");
+    assert!(result.is_err(), "{result:?}");
+    assert!(log.append(waiting, Some(&composition)).is_err(), "retry does not rebind");
+}
+
+#[test]
+fn records_store_writer_binding_unattached_role_handle_does_not_acquire_a_later_identity() {
+    let f = Fixture::new();
+    let log = f.log();
+    let waiting = observation("sup:waiting-without-identity", "unknown");
+    records_store::new_identity(&f.project).unwrap();
+    let dir = records_store::write_dir(&f.project).unwrap();
+    let result = log.append(waiting, Some(&composition()));
+    assert!(result.is_err(), "{result:?}");
+    assert!(!dir.join(RELATIVE_LOG).exists());
+}
+#[test]
 fn fresh_reader_keeps_exact_app_sources_without_role_authority() {
     let f = Fixture::new();
     let log = f.log();
