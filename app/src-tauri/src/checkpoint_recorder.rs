@@ -1721,7 +1721,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         } else if state.identity_resolution == "conflicting identity" {
             Err("conflicting record identity".into())
         } else if record["recorder"]["role"] != crate::records::APP_INTERFACE.role || record["recorder"]["identity"] != crate::records::APP_INTERFACE.identity {
-            Err("not written by the App's capturing surface (PH-4)".into())
+            Err("the record's recorder claim does not name the App's capturing surface (PH-4)".into())
         } else {
             let observed = crate::file_act_view::observe_capture(&root, b);
             reusable &= observed.reusable;

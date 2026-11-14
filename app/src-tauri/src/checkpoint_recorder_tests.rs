@@ -453,7 +453,7 @@ fn records_not_verified_against_their_capture_count_nothing() {
     let reason = |id: &str| read.unresolved.iter().find(|u| u["record"]["recordId"] == id).unwrap()["reason"].as_str().unwrap().to_owned();
     assert!(reason(&missing).starts_with("capture evidence not resolved"), "{}", reason(&missing));
     assert_eq!(reason(&mismatched), "the record differs from the capture it cites");
-    assert_eq!(reason(&agent), "not written by the App's capturing surface (PH-4)");
+    assert_eq!(reason(&agent), "the record's recorder claim does not name the App's capturing surface (PH-4)");
     assert_eq!(reason(&first), "several records cite one capture (RS R-8)");
     assert_eq!(waiting_arrivals(&all), vec![json!({"checkpoint":"CP-rely","arrivalOrdinal":1})]);
     assert!(count_acts(&all, &read, &root).is_empty(), "each limit is written once");

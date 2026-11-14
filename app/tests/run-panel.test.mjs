@@ -50,7 +50,7 @@ test('a checkpoint is guidance: never a hold or block, governed changes nothing,
   assert.ok(html.includes('this checkpoint is missing in record (no checkpoint_listed entry for it)'),'PD-7: what the record lacks is shown');
   assert.ok(html.includes('not listed: the run record lists only the checkpoints the App recognizes (CE-1)'),'an invalid checkpoint is not listed');
   assert.ok(!html.includes('No arrival recorded in this run'),'no arrival reading without a listing');
-  assert.ok(html.includes('the act is recorded only when you perform it'));
+  assert.ok(html.includes('the App records the act only from your own confirmation at its act control'));
   assert.ok(html.includes('present, currently unavailable: host reported unavailable'),'a runtime unavailability is a requirement outcome, not a hold');
   assert.ok(!FORBIDDEN.test(html),html.match(FORBIDDEN)?.[0]);
   assert.equal(arrivalLabel('waiting'),'reached; act not yet recorded');
@@ -116,7 +116,7 @@ test('counted and not-counted acts, requests, declines and declaration findings 
   assert.ok(html.includes('Act not counted: A7 rec:app:old, captured 2026-09-21T13:00:00.000Z: content no longer current (prior act not counted).'));
   assert.ok(html.includes('Act counted from recorded capture claim: A7 rec:app:rely, capture time 2026-09-21T15:00:00.000Z, after the arrival.'));
   const declined=h(ArrivalRecord,{arrival:a,all:[a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]});
-  assert.ok(declined.includes('Arrival 1: resolved negatively.')&&declined.includes('Declined by the person (rec:app:no).'));
+  assert.ok(declined.includes('Arrival 1: resolved negatively.')&&declined.includes('Recorded decline claim (rec:app:no).'));
   const element={value:{...raw.checkpoints[0],name:'CP-bad',required_act:'A3'},reading:'invalid',findings:['FB-03: recognized act not permitted as checkpoint']};
   const finding=entry('declaration_finding',{checkpoint:'CP-bad',finding:'invalid',code:'FB-03'});
   const guidance=h(CheckpointGuidance,{element,run:run({lifecycle:{state:'open',records:[entry('run_opened',{}),finding]}})});

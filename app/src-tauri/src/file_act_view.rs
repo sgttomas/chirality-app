@@ -294,8 +294,9 @@ pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
             return Err("Capture identity mismatch".into());
         }
         no_seal = capture.get("seal").is_none();
-        // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
-        // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
+        // AAC §6.3 SEAL-C: only a capture whose seal verifies under a key this
+        // installation holds is read here (AAC §6.3 / EXEC §2.4–2.5, R-1). The seal
+        // shows possession of that key over the covered facts, not who wrote them.
         crate::capture_seal::verify(root, &capture)?;
         Ok(capture)
     })();
