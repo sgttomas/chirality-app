@@ -1079,7 +1079,7 @@ pub(crate) mod not_answering {
     pub(crate) const ACTS_NOT_READ: &str = "The project's act records could not be read completely, so whether an act here would answer this arrival cannot be established, and no act is offered for it here. The same act on this file can still be made from the standing file selection; while the records cannot be read, its record may wait until they can. Review again once they can be read.";
     /// An act already confirmed whose record is not yet written is an answer no record shows; the
     /// next recording writes it ahead of any new one.
-    pub(crate) const EARLIER_CAPTURE_HELD: &str = "An earlier act is captured and its record is not yet written, so no act is offered for this arrival here. Continue that act's recording first, then review again.";
+    pub(crate) const EARLIER_CAPTURE_HELD: &str = "An act confirmed earlier in the App, on this arrival or on anything else, has no record written yet, so no act is offered for this arrival here. Continue that act's recording first, then review again.";
     /// On a performed arrival answered again only by an act on its current content (RC-8), a
     /// decline answers nothing: said on its sheet, and the reason a decline there is refused.
     pub(crate) const DECLINE_DOES_NOT_ANSWER: &str = "This arrival is performed and its file has changed since: only an act on its current content answers it. A decline here would not answer it and is not recorded; a decline of this kind stays available outside the arrival.";

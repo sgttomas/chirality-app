@@ -1109,7 +1109,6 @@ fn confirm_holding(state: &crate::AppState, reference: &str, log: &std::path::Pa
             Ok(result)
         }, |_, kind| MessageDialogResult::Custom(kind.wording().into()))
     }).unwrap();
-    std::fs::remove_dir(log).unwrap();
     held
 }
 fn captures(peer: &Peer) -> std::collections::BTreeMap<std::path::PathBuf, Option<Vec<u8>>> {
@@ -1136,6 +1135,12 @@ fn an_answer_held_without_its_record_withholds_the_arrival_offer_until_its_recor
         };
         let held = confirm_holding(&state, &first, &log);
         assert_eq!(held["state"], "AC-8 record pending", "{held}");
+        // While the cause stays, continuing does not clear the hold, and the standing act of the
+        // same kind is still offered and captured, its record waiting behind the held one.
+        assert_eq!(crate::file_act_continue_result(&state, &first).unwrap()["state"], "AC-8 record pending");
+        let behind = standing(&state, &peer, crate::act_control::FileActKind::Rely);
+        assert_eq!(confirm_plain(&state, &behind).unwrap()["state"], "AC-8 record pending");
+        std::fs::remove_dir(&log).unwrap();
         assert!(acts(&peer).is_empty(), "the held answer has no record yet");
         assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), EARLIER_CAPTURE_HELD, "standing first: {first_is_standing}");
         let before = (acts(&peer).len(), captures(&peer));
@@ -1143,12 +1148,42 @@ fn an_answer_held_without_its_record_withholds_the_arrival_offer_until_its_recor
         let refused = confirm_watching(&state, earlier["reference"].as_str().unwrap(), "act", &mut asked);
         assert!(asked.is_none() && refused["error"] == EARLIER_CAPTURE_HELD, "{refused}");
         assert_eq!((acts(&peer).len(), captures(&peer)), before, "nothing captured or recorded");
-        // The person continues the held record, from the panel.
+        // The cause gone, continuing the held record alone, with no new act, clears the hold; the
+        // standing act behind it is written after it.
         assert_eq!(crate::file_act_continue_result(&state, &first).unwrap()["state"], "AC-7 recorded");
+        assert!(!state.act.lock().unwrap().as_ref().unwrap().answer_held());
+        assert_eq!(acts(&peer).len(), 2);
         assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ANSWER_PENDING);
         observe(&state, &peer, &run);
         let counted: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
         assert_eq!(counted.len(), 1);
         assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), PERFORMED);
     }
+}
+
+// The ground the held-answer check rests on (App Agent 0, round 3): a capture with no native
+// custody and no matching record is never appended, not by a contextual act's flush and not by
+// recovery (act_control.rs recover_capture_recording: without native custody it returns "record
+// pending" with the origin hold, and only reconciles a record that already exists). So the check
+// need not count such a capture. Were recovery ever to replay it, this test fails.
+#[test]
+fn a_capture_without_native_custody_or_record_is_never_appended_by_a_flush_or_by_recovery() {
+    let (peer, state, run, arrival) = fixture("A7");
+    let capture = invented_capture(&peer);
+    crate::checkpoint_recorder::tests::store(&peer.fixture.root, &capture);
+    let id = capture["captureId"].clone();
+    let cited = || acts(&peer).iter().any(|e| e["body"]["captureEvidence"].as_array().is_some_and(|refs| refs.iter().any(|r| r["ref"] == id)));
+    assert!(!state.act.lock().unwrap().as_ref().unwrap().answer_held(), "not held: no native custody");
+    let offered = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let recorded = confirm(&state, offered["reference"].as_str().unwrap(), "act");
+    assert_eq!(recorded["state"], "AC-7 recorded");
+    assert!(!cited(), "a contextual act's flush appended a capture it had no custody of");
+    // Recovery, as at start-up and by the explicit continuation.
+    let status = crate::runtime_session::continue_decision_writer(&peer.fixture.root, state.act.lock().unwrap().as_mut(), "test");
+    assert!(!cited(), "recovery appended a capture it had no custody of: {status}");
+    assert!(status["captureRecovery"].as_array().unwrap().iter().any(|r| r["capture"]["captureId"] == id && r["state"] == "AC-8 record pending"), "{status}");
+    observe(&state, &peer, &run);
+    let counted: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
+    assert_eq!(counted.len(), 1);
+    assert_eq!(counted[0]["body"]["act"]["recordId"], recorded["record"]["recordId"]);
 }
