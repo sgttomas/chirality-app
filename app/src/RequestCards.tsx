@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { itemAnchorId, requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { EXACT_TEXT } from "./exactText";
-import { AgentText, agentTextShown, plainId, idWords, wordOf, numberWords, SuppliedId, Word } from "./AgentText";
+import { AgentText, agentTextShown, plainId, idWords, wordOf, numberWords, SuppliedId, Word, clockWords } from "./AgentText";
 import { CHANGE_KIND, ITEM_KIND } from "./nativeWords";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type RequestActivityLink = (request: Json) => { open: () => void } | null;
@@ -597,21 +597,35 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
 const REGISTER = "A register value, as recorded; the App does not vouch for its words";
 export type WaitingRequestGroup = { modeHomeClass: string; generation: Json; threadId: string | null; count: number };
 
-/** WI-1…WI-3: local all-home metadata only; opening revalidates its native source. */
-export function WaitingRequestsIndicator({ overview, view, busy = false, open }: { overview: Json; view?: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void }) {
+/** WI-1…WI-3: local all-home metadata only; opening revalidates its native
+ * source. It sits inside "Waiting on you" (WaitingOnYou.tsx), whose line holds
+ * the one count; this part gives no total of its own, only each group's count. */
+/** The waiting overview by home and conversation. With `lastRead` (the time of the read that gave it, in
+ * the App's words), the overview is a failed read's last successful one: everything in it, its heading,
+ * its counts and its offers, is presented as last read, with its current state unknown, never as waiting now. */
+export function WaitingRequestsIndicator({ overview, view, busy = false, open, lastReadAt }: { overview: Json; view?: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void; lastReadAt?: number | null }) {
   const available = Array.isArray(overview?.groups);
   const waiting: WaitingRequestGroup[] = available ? overview.groups : [];
   const total = waiting.reduce((sum, row) => sum + row.count, 0);
-  return <section aria-label="Requests waiting for your answer" style={{ border: "1px solid #888", padding: "4px 8px", margin: "8px 0" }}>
-    <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : `${numberWords(total) ?? "Some"} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
+  // With lastReadAt (when the read that gave it started), the overview is a failed read's last successful one: its
+  // heading, counts and offers are presented as last read, with its current state unknown, never as waiting now.
+  const past = lastReadAt !== undefined;
+  const at = past ? clockWords(lastReadAt) ?? "an earlier time" : "";
+  return <section aria-label={past ? "Requests from Codex as last read" : "Requests waiting for your answer"} style={{ border: "1px solid #888", padding: "4px 8px", margin: "8px 0" }}>
+    <b>{past
+      ? !available ? `Request overview as last read at ${at}: unavailable then.`
+        : total === 0 ? `Request overview as last read at ${at}: no requests were observed then in configured homes; the current state is unknown.`
+        : `Requests from Codex by home and conversation, as last read at ${at}; the current state is unknown, and these counts may be out of date.`
+      : !available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : "Requests from Codex waiting for your answer, by home and conversation"}</b>
     {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
       {/* A control carries only the App's words: a thread id stands in it only when it is a plain identifier. */}
-      <button disabled={busy} onClick={() => open(row)}>{idWords(row.modeHomeClass)} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${idWords(row.threadId)}` : "a conversation (its identity is shown beside)"}: {numberWords(row.count) ?? "a count the App does not recognise"}</button>
+      <button disabled={busy} onClick={() => open(row)}>{idWords(row.modeHomeClass)} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${idWords(row.threadId)}` : "a conversation (its identity is shown beside)"}: {numberWords(row.count) ?? "a count the App does not recognise"}{past ? " at that read" : ""}</button>
       {row.threadId && !plainId(row.threadId) && <> <AgentText value={row.threadId} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>}
       {" "}<AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.
       <small> Source: <AgentText value={JSON.stringify(row.generation)} source="codex" label="Source:" name="The Codex process this was read from, as recorded; the App does not vouch for its words" />.</small>
     </div>)}
-    {available && <p><small><AgentText value={text(overview.coverage)} source="codex" label="Coverage:" name="What the overview covers, as recorded; the App does not vouch for its words" /> {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json, i: number) => <span key={i}><SuppliedId value={source.modeHomeClass} label="Home:" name={REGISTER} />: <SuppliedId value={source.state} label="State:" name={REGISTER} />; no current waiting groups shown. </span>)}</small></p>}
-    {total > 0 && <small> Opening shows the original home's request cards; it answers nothing and resumes no conversation.</small>}
+    {available && <p><small>{past ? "At that read: " : ""}<AgentText value={text(overview.coverage)} source="codex" label="Coverage:" name="What the overview covers, as recorded; the App does not vouch for its words" /> {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json, i: number) => <span key={i}><SuppliedId value={source.modeHomeClass} label="Home:" name={REGISTER} />: <SuppliedId value={source.state} label="State:" name={REGISTER} />{past ? " at that read; no groups shown for it. " : "; no current waiting groups shown. "}</span>)}</small></p>}
+    {total > 0 && <small>{past ? " Opening checks that home and conversation again and shows the original home's request cards as they are now; it answers nothing and resumes no conversation."
+      : " Opening shows the original home's request cards; it answers nothing and resumes no conversation."}</small>}
   </section>;
 }
