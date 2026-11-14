@@ -244,7 +244,21 @@ these from its own shell, in this order, and keeps each output in the new
 evidence folder under a name beginning `lane-`. Each opens nothing under
 `~/.codex` and signals nothing.
 
-1. **The provider check, first.** The provider is the Codex the operators'
+1. **The screen lock, first.** `screen_lock.py` reads the login session's own
+   state (the key `CGSSessionScreenIsLocked`, read only) and changes nothing:
+
+   ```sh
+   <python> -B app/examination/standalone/operated/screen_lock.py > <evidence folder>/lane-screen-lock.txt
+   ```
+
+   Exit 0 means not locked. Anything else, locked (3) or could not be
+   established (2), means no walk, and nothing else is done. The lane tells App
+   Agent 0. The window service cannot see a window behind the lock screen: on
+   14 November 2026 a walk's first view failed with "cgWindowNotFound" while
+   the screen was locked. No agent dismisses the lock screen or runs anything
+   to hold it off; unlocking it is the owner's act. It is one look, and the
+   screen can lock after it.
+2. **The provider check.** The provider is the Codex the operators'
    sessions run under: the process whose command is a `codex` executable
    with the one argument `app-server`, and whose parent is the process of the
    application that runs the delegates (on this host,
@@ -273,15 +287,15 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
    running an executable replaced on disk; see "What the route starts").
    When it passes, that condition is absent, and nothing more: it does not
    show that the service will accept the call.
-2. **`stray.py`** on the candidate's bundle (step 11 shows the command): it
+3. **`stray.py`** on the candidate's bundle (step 11 shows the command): it
    exits 0 with no remaining candidate process, or no walk is made.
-3. **The lane's look**: the first `ps` command of step 10, kept whole in
+4. **The lane's look**: the first `ps` command of step 10, kept whole in
    `lane-look.txt`. A running window service, or a running process whose
    command contains `app-server --listen`, whatever its parent, means no
    walk, and the lane tells App Agent 0. An exited entry (state `Z`,
    `<defunct>`) is recorded with its number, parent and state and is not a
    bar: it has exited and can do nothing.
-4. **The sample of the service's socket folder** ("Running a scenario"),
+5. **The sample of the service's socket folder** ("Running a scenario"),
    started so that it outlives the shell call that starts it: through
    `detached.py` with the name `lane-socket`, running the loop with
    `/bin/sh -c '<the loop>'`. It ends by itself at its stated stop; step 11

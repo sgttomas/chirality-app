@@ -658,6 +658,30 @@ class StrayStart(unittest.TestCase):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
 
 
+class ScreenLock(unittest.TestCase):
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('screen_lock', OPERATED / 'screen_lock.py')
+        self.lock = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.lock)
+
+    def test_the_session_key_says_locked_or_not_and_anything_else_is_not_established(self):
+        self.assertIs(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = 1; }'), True)
+        self.assertIs(self.lock.locked_from('{ CGSSessionScreenIsLocked = 0; kCGSessionLoginDoneKey = 1; }'), False)
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; }'))
+        self.assertIsNone(self.lock.locked_from('{ CGSSessionScreenIsLocked = 1; CGSSessionScreenIsLocked = 0; }'))
+
+    def test_its_exit_status_refuses_a_walk_unless_the_screen_is_not_locked(self):
+        for description, code in (('{ CGSSessionScreenIsLocked = 0; }', 0), ('{ CGSSessionScreenIsLocked = 1; }', 3),
+                                  ('{ }', 2)):
+            with self.subTest(description), mock.patch.object(self.lock, 'session_description', return_value=description), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(self.lock.main(), code)
+        with mock.patch.object(self.lock, 'session_description', side_effect=OSError('not macOS')), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(self.lock.main(), 2)
+        self.assertIn('could not be established (not macOS)', out.getvalue())
+
+
 class SessionEnvironment(unittest.TestCase):
     """session_env.py: whether a start by the launch service would be given any of the App's configuration variables."""
     def setUp(self):
