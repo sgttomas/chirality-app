@@ -17,7 +17,7 @@ export function packageStandingLine(value?: Standing): string {
   switch (value?.form) {
     case "decided": return `A decision on this request is already recorded: alternative ${identifier(value.alternative)}, recorded at ${time(value.recordedAt)}. Deciding again records another decision; both are kept.`;
     case "several-unordered": return "Several decisions on this request are recorded, and the records do not establish which stands. Deciding again records another decision; all are kept.";
-    case "none-recorded": return "No decision on this request is recorded.";
+    case "none-recorded": return "No decision on this request is in the records as read; the log is not signed, so a removed entry would not show.";
     default: return `Whether a decision on this request is already recorded is not known: ${cause(value?.cause)}.`;
   }
 }

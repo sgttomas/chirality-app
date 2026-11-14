@@ -11,7 +11,7 @@ const at='2026-11-14T12:00:00Z';
 test('the four request standing forms give closed App sentences',()=>{
   assert.equal(packageStandingLine({form:'decided',alternative:'ALT-1',recordedAt:at}),`A decision on this request is already recorded: alternative ALT-1, recorded at ${at}. Deciding again records another decision; both are kept.`);
   assert.match(packageStandingLine({form:'several-unordered'}),/^Several decisions on this request are recorded/);
-  assert.equal(packageStandingLine({form:'none-recorded'}),'No decision on this request is recorded.');
+  assert.equal(packageStandingLine({form:'none-recorded'}),'No decision on this request is in the records as read; the log is not signed, so a removed entry would not show.');
   assert.match(packageStandingLine({form:'unknown',cause:'The decision records could not all be read'}),/not known: The decision records could not all be read\.$/);
   assert.match(packageStandingLine(),/not known/);
 });

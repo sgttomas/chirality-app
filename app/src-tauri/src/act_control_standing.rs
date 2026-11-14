@@ -211,7 +211,7 @@ fn standing_line(standing: &Value, whole: bool) -> Vec<String> {
     let words = match standing["form"].as_str() {
         Some("decided") => format!("A decision on this request is already recorded: alternative {}, recorded at {}. Deciding again records another decision; both are kept.", id(&standing["alternative"], "Recorded alternative", &mut extra, whole), time(&standing["recordedAt"])),
         Some("several-unordered") => "Several decisions on this request are recorded, and the records do not establish which stands. Deciding again records another decision; all are kept.".into(),
-        Some("none-recorded") => "No decision on this request is recorded.".into(),
+        Some("none-recorded") => "No decision on this request is in the records as read; the log is not signed, so a removed entry would not show.".into(),
         _ => {
             let cause = standing["cause"].as_str().filter(|c| CAUSES.contains(c)).unwrap_or(CAUSES[4]);
             format!("Whether a decision on this request is already recorded is not known: {cause}.")
@@ -266,7 +266,9 @@ fn limited_other_lines(other: &Value, limit: usize, whole: bool) -> Vec<String> 
         out.extend(other_line(row, whole));
     }
     let left = rows.len() - selected.len();
-    if left > 0 {
+    if left > 0 && selected.is_empty() {
+        out.push(format!("{left} other {} for the file at this path: shown in the App", if left == 1 { "request" } else { "requests" }));
+    } else if left > 0 {
         out.push(format!("and {left} more, shown in the App"));
     }
     out

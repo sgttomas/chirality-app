@@ -121,7 +121,8 @@ fn a16_statement(offer: &Value, alternative: &str, actor: &Value) -> Result<nati
     let content = json!({"markedStatement":a16_lines(offer, alternative, actor, true, true)?});
     let digest = native_statement::content_digest("A16 native confirmation", &content)?;
     let mut failure = String::new();
-    for limit in (1..=3).rev() {
+    // Down to no rows: a long recorded value never refuses the act; every row is whole in the App.
+    for limit in (0..=3).rev() {
         let mut summary = vec!["Decide (A16)".into(), String::new(),
             "Package file, content identity, purpose and scope: shown in the App.".into()];
         summary.extend(package_standing::line(&offer["packageStanding"]));

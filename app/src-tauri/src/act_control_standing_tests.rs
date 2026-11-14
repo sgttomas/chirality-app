@@ -765,7 +765,7 @@ fn f2_complete_standing_loses_its_claim_when_history_or_own_row_evidence_is_spoi
         let (mut c, id) = f.compose();
         assert_eq!(c.offers[&id].offer["packageStanding"], json!({"form":"none-recorded"}), "history pair: permitted");
         assert_eq!(c.offers[&id].offer["otherRequestsForPath"], json!({"state":"read-whole","rows":[]}));
-        assert!(c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("No decision on this request is recorded."));
+        assert!(c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("No decision on this request is in the records as read; the log is not signed, so a removed entry would not show."));
         // A real legacy project log is outside the selected store's read set.
         records::append(&f.root.join(".chirality/records/acts/unimported.jsonl"), "evidence_limit", &records::APP_WRITER,
             json!({"label":"unresolvable reference","subjectRef":"invented","detail":"invented unimported history"})).unwrap();
@@ -777,14 +777,14 @@ fn f2_complete_standing_loses_its_claim_when_history_or_own_row_evidence_is_spoi
         assert_eq!(c.offers[&id].offer["otherRequestsForPath"], json!({"state":"not-read-whole","rows":[]}));
         let statement = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
         assert!(statement.text.contains("The record history may be incomplete"));
-        assert!(!statement.text.contains("No decision on this request is recorded."));
+        assert!(!statement.text.contains("No decision on this request is in the records as read; the log is not signed, so a removed entry would not show."));
     }
     {
         let mut f = Fixture::new();
         let (mut c, id) = f.compose();
         assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "none-recorded", "own-row pair: permitted");
         assert_eq!(c.offers[&id].offer["otherRequestsForPath"], json!({"state":"read-whole","rows":[]}));
-        assert!(c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("No decision on this request is recorded."));
+        assert!(c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("No decision on this request is in the records as read; the log is not signed, so a removed entry would not show."));
         // Still schema-valid, but one alternative has no recorded consequence.
         let mut body = f.request["body"].clone();
         body["consequences"].as_array_mut().unwrap().retain(|value| value["alternative"] == "ALT-1");
@@ -793,7 +793,7 @@ fn f2_complete_standing_loses_its_claim_when_history_or_own_row_evidence_is_spoi
         assert_eq!(c.offers[&id].offer["packageStanding"], json!({"form":"unknown","cause":"The request's recorded standing could not be resolved"}), "own-row pair: withdrawn");
         let statement = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
         assert!(statement.text.contains("The request's recorded standing could not be resolved"));
-        assert!(!statement.text.contains("No decision on this request is recorded."));
+        assert!(!statement.text.contains("No decision on this request is in the records as read; the log is not signed, so a removed entry would not show."));
     }
 }
 
