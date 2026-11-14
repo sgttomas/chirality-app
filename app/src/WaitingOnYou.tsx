@@ -19,6 +19,11 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type WaitingKind =
   | "question"
   | "tool-permission"
+  // A checkpoint arrival whose act is not yet recorded: the run reached a
+  // declared checkpoint. Nothing records that the agent was asked to pause there.
+  | "checkpoint-reached"
+  // Named for the point call, when one exists: a point that asked the agent to
+  // pause. Nothing feeds it yet; an arrival is never said to be one.
   | "pause"
   // Named for a checkpoint arrival that is a completed turn. The checkpoint
   // recorder records arrivals only from a completed agent message, a completed
@@ -37,6 +42,7 @@ export type WaitingKind =
 export const WAITING_WORDS: Record<WaitingKind, string> = {
   question: "a question is waiting",
   "tool-permission": "a tool permission is waiting",
+  "checkpoint-reached": "a checkpoint was reached; your act is not yet recorded",
   pause: "the agent was asked to pause",
   "turn-completed": "a turn completed",
   return: "a return is waiting for review",
@@ -76,8 +82,8 @@ export type WaitingEntry = {
   /** 1 for a record; a group's count for requests read only as a count in another home. */
   count: number;
   asker: WaitingAsker;
-  /** Who must respond. */
-  responder: string;
+  /** Who must respond: the App's words, or, for a return, who prepared its brief as the record names them. */
+  responder: string | { kind: "brief-preparer"; who: string | null };
   concerns: WaitingConcern;
   /** No source records who integrates the result. */
   integrator: "not recorded";
@@ -87,11 +93,11 @@ export type WaitingEntry = {
   target: WaitingTarget;
 };
 
-/** How often the decision packages are read again while the App is open
- * (Journeys' own number: frequent enough that an entry appears soon, light
- * enough for a file read). The return-review queue is read when the list is
- * opened. The host status read that carries requests and run records keeps its
- * own POLL_MS. */
+/** How often the decision packages and the return-review queue are read again
+ * while the App is open. The Journeys lane's own number, not a requirement:
+ * frequent enough that an entry appears soon, light enough for a file read. The
+ * return-review queue is also read when the list is opened. The host status
+ * read that carries requests and run records keeps its own POLL_MS. */
 export const WAITING_SOURCE_POLL_MS = 15_000;
 
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -184,7 +190,7 @@ function arrivalEntries(host: Json): WaitingEntry[] {
       const actor = declared.find((e: Json) => text(e?.value?.name) === b.checkpoint)?.value?.actor;
       entries.push({
         key: JSON.stringify(["checkpoint-arrival", run.reference, arrival.recordId ?? [b.checkpoint, b.arrivalOrdinal], latest.recordId ?? changes.length]),
-        source: "checkpoint-arrival", kind: "pause", count: 1,
+        source: "checkpoint-arrival", kind: "checkpoint-reached", count: 1,
         asker: { kind: "checkpoint", checkpoint: b.checkpoint, requester: request ? text(request.body?.requester?.kind) || null : null },
         responder: ACTOR[text(actor)] ?? "you",
         concerns: { kind: "run", run: text(run.reference), conversation }, integrator: "not recorded",
@@ -196,6 +202,9 @@ function arrivalEntries(host: Json): WaitingEntry[] {
   return entries;
 }
 
+const NO_REQUESTER = "requester identity not established";
+const NO_EXAMINER = "examiner not established";
+
 /** Returns awaiting review in the fleet packet's return-review queues. */
 function returnEntries(fleet: Json, readAt: number | null): WaitingEntry[] {
   const entries: WaitingEntry[] = [];
@@ -205,7 +214,10 @@ function returnEntries(fleet: Json, readAt: number | null): WaitingEntry[] {
       const undertaking = text(view.undertaking), item = text(row.item);
       entries.push({
         key: JSON.stringify(["return-review", undertaking, row.returnRef, row.state]),
-        source: "return-review", kind: "return", count: 1, asker: { kind: "returned-by", who: text(row.returnedBy) }, responder: "you",
+        source: "return-review", kind: "return", count: 1, asker: { kind: "returned-by", who: text(row.returnedBy) },
+        // The queue's examiner is whoever prepared the brief, as recorded; the host drops whether that is a person
+        // or an agent, so every return is listed, and none is said to be the person's unless the record says so.
+        responder: { kind: "brief-preparer", who: typeof row.examines === "string" && row.examines && row.examines !== NO_EXAMINER ? row.examines.replace(/ \(prepared the brief\)$/, "") : null },
         concerns: { kind: "assignment", undertaking, item }, integrator: "not recorded",
         group: { key: JSON.stringify(["assignment", undertaking, item]), label: { kind: "assignment", undertaking, item } },
         asOf: readAt, target: { kind: "return", anchor: returnReviewAnchor(row.returnRef) },
@@ -215,7 +227,6 @@ function returnEntries(fleet: Json, readAt: number | null): WaitingEntry[] {
   return entries;
 }
 
-const NO_REQUESTER = "requester identity not established";
 
 /** Decision packages pending the person's decision. */
 function decisionEntries(decisions: Json, readAt: number | null): WaitingEntry[] {
@@ -284,6 +295,12 @@ function Concerns({ concerns }: { concerns: WaitingConcern }) {
   }
 }
 
+function Responder({ responder }: { responder: WaitingEntry["responder"] }) {
+  if (typeof responder === "string") return <>Who must respond: {responder}</>;
+  return responder.who === null ? <>Who must respond: not established</>
+    : <>Who must respond: <AgentText value={responder.who} label="Examiner:" name="Who prepared the brief, as recorded, not the App's words" />, who prepared the brief, as recorded</>;
+}
+
 /** One entry: what waits, who asks, who must respond, what it concerns, who integrates, and the way to its control. */
 export function WaitingEntryRow({ entry, go }: { entry: WaitingEntry; go: (entry: WaitingEntry) => void }) {
   const href = entry.target.kind === "request" ? entry.target.anchor ? `#${entry.target.anchor}` : "#other-requests" : `#${entry.target.anchor}`;
@@ -291,7 +308,7 @@ export function WaitingEntryRow({ entry, go }: { entry: WaitingEntry; go: (entry
   const parts: ReactNode[] = [
     <strong key="what">{WAITING_WORDS[entry.kind]}{entry.count > 1 ? ` (${entry.count})` : ""}</strong>,
     <span key="asks"><Asker asker={entry.asker} /></span>,
-    <span key="responds">Who must respond: {entry.responder}</span>,
+    <span key="responds"><Responder responder={entry.responder} /></span>,
     <span key="concerns">Concerns: <Concerns concerns={entry.concerns} /></span>,
     <span key="integrates">Who integrates the result: {entry.integrator}</span>,
   ];
@@ -303,12 +320,14 @@ export function WaitingEntryRow({ entry, go }: { entry: WaitingEntry; go: (entry
 }
 
 /** The place: one line, "Waiting on you: N", that opens to the list. */
-export function WaitingOnYou({ entries, overview, view, busy = false, openGroup, go, onOpen, fleetFailure = null }: {
+export function WaitingOnYou({ entries, overview, view, busy = false, openGroup, go, onOpen, fleetFailure = null, fleetEverRead = false }: {
   entries: WaitingEntry[]; overview: Json; view?: Json; busy?: boolean; openGroup: (group: WaitingRequestGroup) => void; go: (entry: WaitingEntry) => void;
   /** Called each time the person opens the list: the App reads the return-review queue then. */
   onOpen?: () => void;
-  /** The last read of the return-review queue on opening failed; returns shown are as of the earlier read. */
+  /** The last read of the return-review queue failed. */
   fleetFailure?: string | null;
+  /** Whether any read of the return-review queue has succeeded, so that returns shown are as of it. */
+  fleetEverRead?: boolean;
 }) {
   const total = waitingTotal(entries);
   return <section className="waiting-on-you" aria-label="Waiting on you">
@@ -320,9 +339,9 @@ export function WaitingOnYou({ entries, overview, view, busy = false, openGroup,
           <p className="waiting-on-you-group-label"><GroupLabel group={group} /></p>
           {entries.map(entry => <WaitingEntryRow key={entry.key} entry={entry} go={go} />)}
         </div>)}
-        {fleetFailure && <p role="note">Returns could not be read when this list was opened; returns shown are as of the earlier read.</p>}
+        {fleetFailure && <p role="note">{fleetEverRead ? "Returns could not be read at the last attempt; returns shown are as of the earlier read." : "Returns could not be read, so none are shown."}</p>}
         <WaitingRequestsIndicator overview={overview} view={view} busy={busy} open={openGroup} />
-        <p><small>Each entry is its source's own record and leaves when that source records the answer. Returns are read each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control, which checks that the record is still current. Returns have no review control in the App yet: Go to it shows the return's record.</small></p>
+        <p><small>Each entry is its source's own record and leaves when that source records the answer. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control, which checks that the record is still current. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>
     </details>
   </section>;

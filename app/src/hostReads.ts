@@ -47,6 +47,30 @@ export const SELF_ISSUED_QUIET: Readonly<Record<string, string>> = {
   workflow_review_digest: "none",
 };
 
+/**
+ * Reads a person can press that the App also issues on a timer ("Waiting on
+ * you" keeps its sources current with them). A press goes through `invoke` and
+ * marks like any pressed command, since it is the person's act; the timer goes
+ * through `invokeTimedRead`, which marks nothing, so a read the App issues by
+ * itself is never taken for something the person did, and the guides are not
+ * withheld with nobody having acted.
+ *
+ * The list is closed, and grows only one way: a command is added only when its
+ * host function writes nothing, and its value names the host tests that show
+ * that its read leaves every file it could touch unchanged. A command that
+ * writes anything, or whose writing nothing no test shows, is not added,
+ * however convenient a timer would be (App Agent 0's decision).
+ */
+export const PRESSED_AND_TIMED_READS: Readonly<Record<string, string>> = {
+  read_fleet_records: "writes nothing; shown by fleet_records::tests::fleet_reader_never_initializes_an_absent_empty_or_unlinked_store and fleet_records::tests::fleet_reader_preserves_an_already_opened_store_identity_without_repairing_it",
+};
+
+/** The timer's route for a command on PRESSED_AND_TIMED_READS: it marks nothing. Any other command is refused, unsent. */
+export function invokeTimedRead<T = Json>(command: string, args?: InvokeArgs): Promise<T> {
+  if (!Object.hasOwn(PRESSED_AND_TIMED_READS, command)) return Promise.reject(new Error(`${command} is not on the timed-read list; it was not sent`));
+  return platformInvoke<T>(command, args);
+}
+
 const settleListeners = new Set<() => void>();
 
 /**

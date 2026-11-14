@@ -137,15 +137,15 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
         <br/><small>{brought.length ? <>Brought back {brought.length === 1 ? "once" : `${brought.length} times`}, to {brought.map((b: Json, i: number) => <span key={i}>{i ? ", " : ""}<ConversationRef host={host} refValue={b?.to} none="a conversation not recorded"/></span>)}.</> : "Not brought back yet."}</small>
         {mine.map(doubt => <div key={doubt.preparedId} role={doubt.acknowledged ? "note" : "alert"} aria-label={`Trial ${n} results may have been sent`}>
           <p><strong>Trial {n}'s results may already have been sent</strong> to <ConversationRef host={host} refValue={doubt.target} none="its conversation"/>: the App couldn't confirm the send{feedback.some(item => item.pending?.id === doubt.preparedId) ? ". Its prepared message is still listed, but that copy is not sent again" : ", and the prepared message was withdrawn"}.{doubt.acknowledged ? " You said you checked that conversation." : " Bringing it back there again could send the transcript twice."}</p>
-          {target && doubtDestination(doubt, target) === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation chosen now has the same ID ({text(target.threadId)}), so bringing trial {n} back to it {doubt.acknowledged ? "is allowed again" : "is held until you've checked"}. That doesn't make the earlier destination this one.</small></p>}
+          {target && doubtDestination(doubt, target) === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation chosen now has the same ID ({text(target.threadId)}), so {doubt.acknowledged ? <>bringing trial {n} back to it is allowed again</> : <>the App won't bring trial {n} back to it until you've said you checked</>}. That doesn't make the earlier destination this one.</small></p>}
           {!doubt.acknowledged && <p><button disabled={!canAct} onClick={() => acknowledgeBringBackDoubt(doubt)}>I've checked — let me bring it back again</button></p>}
           <details><summary>Your message and what was reported</summary><p><small>Your message: {doubt.personText || "(empty)"}</small></p><p><small>Reported: {doubt.message}</small></p>
             <p><small>Original destination: conversation <code>{text(doubt.target.threadId)}</code> in Codex session {text(doubt.target.generation?.spawnCounter)} of the {text(doubt.source.modeHomeClass)} home.</small></p></details>
         </div>)}
         <br/>{existing && !held
           ? (existingBlock
-            // The results line below already offers this held copy; the row only says where it is.
-            ? <small>Its results are prepared for this conversation but held, so they aren't sent again; see below.</small>
+            // The results line below already offers this copy and says why it isn't sent; the row only says where it is.
+            ? <small>Its results are prepared for this conversation; the App won't send them again yet, and the results line below says why.</small>
             : <><button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button><small> Its results are already prepared for this conversation.</small></>)
           : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}{limit === COLD_TRIAL && <details><summary>Why</summary><p><small>{text(trial.sourceLimit)}</small></p></details>}</>}
       </li>;

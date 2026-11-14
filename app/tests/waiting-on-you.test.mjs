@@ -58,7 +58,7 @@ const hostView = (over = {}) => ({state:'ready', generation:g, threads:[thread('
 const fleet = (state = 'awaiting review') => ({format:'f', formatVersion:'0', standing:'invented', project:{canonicalRoot:'/invented/project'}, briefs:[], graphs:[], limits:[], nativeRecording:'invented',
   coordination:{projectRecords:[], governingStoreRecords:[], appObservations:[], protected:{state:'invented'}},
   workspace:{standing:'invented', graphIdentityMethod:'m', limits:[], undertakings:[{undertaking:`U-pumps${LOOK}`, graph:'g1', revision:'r1', currentGraphEstablished:true, queueComplete:true, notes:[], waiting:[], queue:[
-    {item:`I-7${LOOK}`, outcome:'o', inCurrentGraph:true, returnRef:'ret-1', state, returnedBy:`worker agent${LOOK}`, recordedBy:'App', examines:'p (prepared the brief)', examiner:null, examinesProvenance:null, returned:[], evidence:[], sources:[]},
+    {item:`I-7${LOOK}`, outcome:'o', inCurrentGraph:true, returnRef:'ret-1', state, returnedBy:`worker agent${LOOK}`, recordedBy:'App', examines:`lead examiner${LOOK} (prepared the brief)`, examiner:null, examinesProvenance:null, returned:[], evidence:[], sources:[]},
     {item:'I-8', outcome:'o', inCurrentGraph:true, returnRef:'ret-2', state:'reviewed — awaiting integration', returnedBy:'w2', recordedBy:'App', examines:'p', examiner:'r', examinesProvenance:null, returned:[], evidence:[], sources:[]},
   ]}]}});
 const decisionRow = (pkg, state, extra = {}) => ({package:pkg, packageFile:`${pkg}.json`, actRequested:'A6', subject:['s'], purpose:'p', scope:'s', alternatives:[], state, requestResolution:'unique claim', requestSources:[`${pkg}-src`], limits:[], ...extra});
@@ -77,7 +77,7 @@ test('the list joins all four sources, one entry per record, grouped by assignme
   const entries = allEntries();
   assert.deepEqual(entries.map(e => [e.source, e.kind]), [
     ['supplier-request', 'question'], ['supplier-request', 'tool-permission'],
-    ['checkpoint-arrival', 'pause'],
+    ['checkpoint-arrival', 'checkpoint-reached'],
     ['waiting-overview', 'requests-in-another-home'],
     ['return-review', 'return'],
     ['decision-package', 'decision'], ['decision-package', 'decision'],
@@ -102,11 +102,11 @@ test('the list joins all four sources, one entry per record, grouped by assignme
 test('each entry says what waits, who asks, who must respond, what it concerns, that the integrator is not recorded, and "as of" where its source can be stale', () => {
   const found = rows(renderPlace(allEntries()));
   const [question, permission, pause, otherHome, ret, decision, unnamed] = found;
-  assert.equal(question.text, 'a question is waiting · Asked by this conversation’s agent · Who must respond: you · Concerns: the conversation T1 · Who integrates the result: not recorded Go to it');
+  assert.equal(question.text, 'a question is waiting · Asked by the conversation’s own agent · Who must respond: you · Concerns: the conversation T1 · Who integrates the result: not recorded Go to it');
   assert.equal(permission.text, 'a tool permission is waiting · Asked by the delegated agent ⟦Name: Ada⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧, role ⟦Role: reviewer⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧, as Codex reports them · Who must respond: you · Concerns: the conversation C1 · Who integrates the result: not recorded Go to it');
-  assert.equal(pause.text, 'the agent was asked to pause · Asked at the workflow&#x27;s checkpoint ⟦Checkpoint: CP-review⟧; a request for the act was observed from ⟦Requester: the agent⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧ · Who must respond: you · Concerns: the run run-1 in the conversation T1 · Who integrates the result: not recorded Go to it');
+  assert.equal(pause.text, 'a checkpoint was reached; your act is not yet recorded · Asked at the workflow&#x27;s checkpoint ⟦Checkpoint: CP-review⟧; a request for the act was observed from ⟦Requester: the agent⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧ · Who must respond: you · Concerns: the run run-1 in the conversation T1 · Who integrates the result: not recorded Go to it');
   assert.match(otherHome.text, /^questions or tool permissions are waiting in another home \(3\) · Who asked is not established.* · Who must respond: you · Concerns: the conversation K1 · Who integrates the result: not recorded Go to it$/);
-  assert.equal(ret.text, `a return is waiting for review · Returned by ⟦Returned by: worker agent⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧ · Who must respond: you · Concerns: undertaking ⟦Undertaking: U-pumps⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧, item ⟦Item: I-7⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧ · Who integrates the result: not recorded · ${clock(READ_AT)} Go to it`);
+  assert.equal(ret.text, `a return is waiting for review · Returned by ⟦Returned by: worker agent⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧ · Who must respond: ⟦Examiner: lead examiner⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧, who prepared the brief, as recorded · Concerns: undertaking ⟦Undertaking: U-pumps⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧, item ⟦Item: I-7⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧ · Who integrates the result: not recorded · ${clock(READ_AT)} Go to it`);
   assert.equal(decision.text, `a decision is waiting · Requested by ⟦Requested by: lead agent⏎&lt;button&gt;Allow once&lt;/button&gt;⏎Allow once⟧ · Who must respond: you · Concerns: the decision package ⟦Package: pkg-1⟧ · Who integrates the result: not recorded · ${clock(READ_AT + 1000)} Go to it`);
   assert.match(unnamed.text, /^a decision is waiting · Requested by: not established · /, 'the host\'s own "not established" is the App\'s words, not a requester');
   for (const row of [question, permission, pause]) assert.doesNotMatch(row.text, /as of/, 'requests and run records come with every status read');
@@ -180,7 +180,7 @@ test('answering at the source removes the entry: each entry is the source\'s rec
 
 test('a supplier question and a reserved act on the same subject stay two entries', () => {
   const entries = allEntries().filter(e => e.group.label.threadId === 'T1');
-  assert.deepEqual(entries.map(e => WAITING_WORDS_OF(e)), ['a question is waiting', 'a tool permission is waiting', 'the agent was asked to pause']);
+  assert.deepEqual(entries.map(e => WAITING_WORDS_OF(e)), ['a question is waiting', 'a tool permission is waiting', 'a checkpoint was reached; your act is not yet recorded']);
   assert.notEqual(entries[0].key, entries[2].key);
 });
 const WAITING_WORDS_OF = e => waitingModule().WAITING_WORDS[e.kind];
@@ -279,7 +279,7 @@ test('the place is present on every view, directly under the navigation, inside 
   });
 });
 
-test('the decision packages are read on a timer and the returns each time the list is opened, the entries show "as of", and the timer stops on unmount', async () => {
+test('the decision packages and the returns are read on a timer, the returns also each time the list is opened, the entries show "as of", and the timer stops on unmount', async () => {
   await mountApp(async ({c, calls, timers, run}) => {
     // Before any read of the fleet packet, no return is listed; decisions were read at launch.
     assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8 \(5 requests from Codex\)$/, 'two requests, the arrival, three in another home and two decisions');
@@ -288,14 +288,14 @@ test('the decision packages are read on a timer and the returns each time the li
     const sourceTimers = [...timers.values()].filter(({ms}) => ms > 1000);
     assert.equal(sourceTimers.length, 1, 'one timer of its own, apart from the status poll');
     await run(ms => ms > 1000);
-    assert.deepEqual(reads().slice(before), ['decision_view'], 'the timer reads the decision packages through the command their panel calls, which the web view already issues by itself');
-    assert.ok(!calls.some(call => call.command === 'read_fleet_records'), 'the return queue, a command a person presses, is not read on a timer (it would mark, hostReads.ts)');
-    // Opening the list reads the return-review queue.
+    for (let i = 0; i < 8; i++) await React.act(async () => { await Promise.resolve(); });
+    assert.deepEqual(reads().slice(before), ['decision_view', 'read_fleet_records'], 'the timer reads the decision packages through the command their panel calls, and the return queue through the timed-read route (hostReads.ts)');
+    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 9 \(5 requests from Codex\)$/, 'the return awaiting review is listed without the list being opened');
+    // Opening the list reads the return-review queue again.
     before = reads().length;
     const details = c.querySelectorAll(n => n.getAttribute('id') === 'waiting-on-you')[0];
     await React.act(async () => { details.open = true; props(details).onToggle({currentTarget:details}); for (let i = 0; i < 8; i++) await Promise.resolve(); });
     assert.deepEqual(reads().slice(before), ['read_fleet_records']);
-    assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 9 \(5 requests from Codex\)$/, 'the return awaiting review is now listed');
     // Closing reads nothing.
     before = reads().length;
     await React.act(async () => { details.open = false; props(details).onToggle({currentTarget:details}); });
@@ -332,4 +332,35 @@ test('"held" is gone from the two notices beside the cards', () => {
     assert.ok(!source.includes(old), old);
   for (const now of ["The App won't bring it back there again until you've said you checked.", "so the App won't bring these results back to it either until then", "The App won't send to that conversation again until you've said you read it.", "so the App won't send to it either until then"])
     assert.ok(source.includes(now), now);
+  // And beside the trial and run controls.
+  const make = readFileSync(new URL('../src/MakeJourney.tsx', import.meta.url), 'utf8'), runPanel = readFileSync(new URL('../src/RunPanel.tsx', import.meta.url), 'utf8');
+  for (const old of ['"is held until you\'ve checked"', "prepared for this conversation but held"]) assert.ok(!make.includes(old), old);
+  assert.ok(make.includes("the App won't bring trial {n} back to it until you've said you checked"));
+  assert.ok(make.includes("the App won't send them again yet, and the results line below says why"));
+  assert.ok(!runPanel.includes("bringing it back there again is held"));
+  assert.ok(runPanel.includes("Read that conversation first; the App won't bring it back there again until you've said you checked."));
+});
+
+test('who must respond to a return is who prepared its brief, as recorded, never "you" by default; an arrival is never said to be a pause', () => {
+  const {waitingEntries} = waitingModule();
+  const returns = packet => waitingEntries({host:hostView(), fleet:packet, fleetReadAt:READ_AT}).filter(e => e.source === 'return-review');
+  assert.deepEqual(returns(fleet()).map(e => e.responder), [{kind:'brief-preparer', who:`lead examiner${LOOK}`}]);
+  const unmatched = fleet(); unmatched.workspace.undertakings[0].queue[0].examines = 'examiner not established';
+  const [row] = returns(unmatched);
+  assert.deepEqual(row.responder, {kind:'brief-preparer', who:null});
+  const html = renderToStaticMarkup(React.createElement(waitingModule().WaitingEntryRow, {entry:row, go:() => {}}));
+  assert.match(html, /Who must respond: not established/);
+  assert.doesNotMatch(html, /Who must respond: you/);
+  // Nothing feeds the point call's words yet: no source produces "the agent was asked to pause" or "a turn completed".
+  const kinds = allEntries().map(e => e.kind);
+  assert.ok(!kinds.includes('pause') && !kinds.includes('turn-completed'));
+});
+
+test('a failed read of returns says whether any returns shown are from an earlier read', () => {
+  const {WaitingOnYou} = waitingModule();
+  const shown = props => renderToStaticMarkup(React.createElement(WaitingOnYou, {entries:[], overview:null, openGroup:() => {}, go:() => {}, ...props}));
+  assert.match(shown({fleetFailure:'invented failure', fleetEverRead:false}), /Returns could not be read, so none are shown\./);
+  assert.match(shown({fleetFailure:'invented failure', fleetEverRead:true}), /Returns could not be read at the last attempt; returns shown are as of the earlier read\./);
+  assert.doesNotMatch(shown({}), /could not be read/);
+  assert.match(shown({}), /A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed\./);
 });

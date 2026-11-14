@@ -33,7 +33,7 @@ import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealW
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
-import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
+import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
@@ -1493,16 +1493,19 @@ export function App() {
     catch (error) { if (sequence === fleetSequence.current) { setFleet(null); setFleetReadAt(null); setFleetError(String(error)); } }
     finally { setFleetBusy(false); }
   };
-  // The return-review queue is read each time the person opens "Waiting on you",
-  // as well as by hand in its panel. Not on a timer: read_fleet_records is a
-  // command a person presses, so it marks (hostReads.ts), and a timer issuing it
-  // would withhold the guides with nobody having done anything. A read on
-  // opening that fails keeps the packet shown, with its time, and says so.
-  const readFleetOnOpen = async () => {
+  // The return-review queue is read every WAITING_SOURCE_POLL_MS, each time the
+  // person opens "Waiting on you", and by hand in its panel. Opening the list and
+  // the panel's button are the person's presses and go through `invoke`, so they
+  // mark; the timer goes through `invokeTimedRead` (PRESSED_AND_TIMED_READS in
+  // hostReads.ts), so a read the App issues by itself never marks. A read that
+  // fails keeps the packet shown, with its time, and says so.
+  const readFleetForWaiting = async (route: (command: string) => Promise<FleetPacket>) => {
     const sequence = ++fleetSequence.current;
-    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setFleetReadAt(Date.now()); setFleetError(""); setFleetAutoFailure(null); } }
+    try { const packet = await readFleetPacket(route); if (sequence === fleetSequence.current) { setFleet(packet); setFleetReadAt(Date.now()); setFleetError(""); setFleetAutoFailure(null); } }
     catch (error) { if (sequence === fleetSequence.current) setFleetAutoFailure(String(error)); }
   };
+  const readFleetOnOpen = () => readFleetForWaiting(command => invoke<FleetPacket>(command));
+  const readFleetOnTimer = useRef(() => readFleetForWaiting(command => invokeTimedRead<FleetPacket>(command)));
   const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
   const readRoutes = async () => {
     setRouteRead(s => routeReadTransition(s, {type: "start"}));
@@ -2072,13 +2075,14 @@ export function App() {
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
   }, [refresh]);
 
-  // "Waiting on you": the decision packages are read again every
-  // WAITING_SOURCE_POLL_MS through the command their panel uses, a read the web
-  // view already issues by itself (SELF_ISSUED_QUIET). A read that fails keeps
-  // the packages shown, with the time they were read.
+  // "Waiting on you": every WAITING_SOURCE_POLL_MS the decision packages are read
+  // again through the command their panel uses, a read the web view already
+  // issues by itself (SELF_ISSUED_QUIET), and the return-review queue through the
+  // timed-read route. A read that fails keeps what is shown, with its time.
   useEffect(() => {
     const t = setInterval(() => {
       invoke<Json>("decision_view").then(decisions => setView(decisions), () => undefined);
+      void readFleetOnTimer.current();
     }, WAITING_SOURCE_POLL_MS);
     return () => clearInterval(t);
   }, []);
@@ -2544,7 +2548,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WaitingOnYou entries={waiting} overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} fleetFailure={fleetAutoFailure} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        <WaitingOnYou entries={waiting} overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} fleetFailure={fleetAutoFailure} fleetEverRead={fleetReadAt !== null} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <div hidden={setupRequired}>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>
