@@ -22,6 +22,7 @@
         "declared_on": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}" }
       }
     },
+    "release": { "type": "string", "minLength": 1, "description": "The release the candidate is examined for, as the step map's out_of_release decisions name it (\"4.0.0\"). Only a decision for exactly this release takes steps out (SQ-R3, SQ-R4, SQ-R8); without it no step is taken out and every step counts." },
     "examination_opened": {
       "type": "string",
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}",
@@ -98,7 +99,7 @@
         "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } },
         "access_modes": {
           "type": "array",
-          "description": "The access modes run B is defined to exercise, each in the home the scope defines for it (the account home H-acct for the ChatGPT account, the dedicated local home H-omlx for the local model server), with the conversation assigned to each (SQ-R3). A declaration, not an observation: this field asserts nothing about what was observed on the candidate. A home, mode or conversation observed to differ on the candidate is recorded as the failed outcome of the M12 step that observed it, in that step's result record, never by altering this declaration.",
+          "description": "The access modes run B is defined to exercise, each in the home the scope defines for it (the account home H-acct for the ChatGPT account, the dedicated local home H-omlx for the local model server), with the conversation assigned to each (SQ-R3). With the local model server's steps out of the release in the step map's out_of_release entry, as for 4.0.0, the one mode is the ChatGPT account, and its conversation is the one observed in run A on the same candidate whose result names the account as the access used (DEL-09-02). A declaration, not an observation: this field asserts nothing about what was observed on the candidate. A home, mode or conversation observed to differ on the candidate is recorded as the failed outcome of the M12 step that observed it, in that step's result record, never by altering this declaration.",
           "items": {
             "type": "object",
             "required": ["kind", "home", "conversation_ref"],

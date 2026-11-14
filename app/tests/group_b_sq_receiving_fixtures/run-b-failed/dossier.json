@@ -13,6 +13,7 @@
     "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
     "codex_pin": "0.160.0"
   },
+  "release": "4.0.0",
   "integration_owner": "INVENTED integration owner",
   "examiner": {
     "identity": "INVENTED examiner",
@@ -494,18 +495,16 @@
         },
         {
           "step": "M12-2",
-          "state": "recorded",
+          "state": "planned",
           "counts": true,
           "supplier_cases": [],
           "core_loop_element": "model access",
           "v3_reference": "none (v3 had no local model server)",
-          "result_record": "INVENTED-SQ-RUN-B-M12-2",
-          "outcome": "fail",
           "stimuli": []
         },
         {
           "step": "M12-3",
-          "state": "recorded",
+          "state": "planned",
           "counts": true,
           "supplier_cases": [
             {
@@ -516,8 +515,6 @@
           ],
           "core_loop_element": "model access",
           "v3_reference": "none",
-          "result_record": "INVENTED-SQ-RUN-B-M12-3",
-          "outcome": "pass",
           "stimuli": []
         },
         {
@@ -539,18 +536,16 @@
           "core_loop_element": "model access",
           "v3_reference": "none",
           "result_record": "INVENTED-SQ-RUN-B-M12-4",
-          "outcome": "pass",
+          "outcome": "fail",
           "stimuli": []
         },
         {
           "step": "M12-5",
-          "state": "recorded",
+          "state": "planned",
           "counts": true,
           "supplier_cases": [],
           "core_loop_element": "model access",
           "v3_reference": "none",
-          "result_record": "INVENTED-SQ-RUN-B-M12-5",
-          "outcome": "fail",
           "stimuli": []
         },
         {
@@ -576,11 +571,6 @@
           "kind": "chatgpt_account",
           "home": "H-acct",
           "conversation_ref": "ILLUSTRATIVE conv A"
-        },
-        {
-          "kind": "local_provider",
-          "home": "H-omlx",
-          "conversation_ref": "ILLUSTRATIVE conv B"
         }
       ],
       "outcome": "fail"

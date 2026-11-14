@@ -52,10 +52,10 @@
     "value": "2026-10-08",
     "source": "record_timestamp"
   },
-  "outcome": "pass",
+  "outcome": "fail",
   "evidence": [
     {
-      "ref": "INVENTED native form row M12-4",
+      "ref": "INVENTED native form row M12-4: a new conversation showed a model selected before the person chose",
       "provenance": "live_observation"
     }
   ],
