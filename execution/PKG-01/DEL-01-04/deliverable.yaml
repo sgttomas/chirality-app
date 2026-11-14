@@ -119,6 +119,8 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
+# Every value the App did not write, drawn as the agent's (cards and the activity stream).
+- app/src/AgentText.tsx
 - app/src/NativeWaitingBridge.tsx
 - app/src/CodexControls.tsx
 - app/src/ConversationRoles.tsx
@@ -163,6 +165,7 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/request-card-words.test.mjs
+- app/tests/agent-text.test.mjs
 - app/tests/request-activity-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs
