@@ -358,5 +358,47 @@
   "where": "@value",
   "expr": "value.reason",
   "reason": "a text field holding only what the person typed: set only by a nested-spread updater on the duties map from this field's typing."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"history-guidance\"",
+  "reason": "its target's text is only the App's words: guidance (App.tsx, `const guidance`) is a choice of literal sentences or `progress`, which is set only from the literal table of history actions (App.tsx `setProgress({ list: …, metadata: …, … })`) and its literal fallback. The guard does not follow a state set through a lookup."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"history-search-count\"",
+  "reason": "its target's text is only the App's words: two counts (`matches.length`, `received.length`) and a literal sentence. The guard does not trace a reference target's content through a filtered array's length."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"workflow-draft-next-step\"",
+  "reason": "its target's text is only the App's words: draftReason (App.tsx, `const draftReason`) is a choice of literal sentences or `progress`, which the workflow operations set only from literal sentences (App.tsx `setProgress(command === \"workflow_create_draft\" ? …)`)."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "{startBlocked ? \"start-conversation-blocked\" : undefined}",
+  "reason": "its target's text is only the App's words: startBlocked (App.tsx, `const startBlocked`) is a choice of literal sentences or rowChoiceNote, itself only literal sentences (the provider is named as \"the provider chosen in step 1\"). The reference is conditional so that no description is named when Start is available; the guard takes only a literal reference."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"desktop-setup-next-step\"",
+  "reason": "its target's text is only the App's words: nextStep (`const nextStep`) is a choice of literal sentences or `progress`, which `begin()` sets only from the literal sentences its three callers pass (DesktopSetupPanel.tsx, the system dialog, checking and confirmation steps)."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@aria-describedby",
+  "expr": "{projectProblem ? \"first-use-project-problem first-use-project-help\" : \"first-use-project-help\"}",
+  "reason": "its target's text is only the App's words: projectProblem comes only from typedProblem's literal sentences, and first-use-project-help is a literal paragraph. The reference is a choice between two literal id lists, which the guard does not take as a literal."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"first-use-next\"",
+  "reason": "its target's text is only the App's words: next (`const next`) is a choice of literal sentences or `progress`, which `begin()` sets only from the literal sentences its three callers pass (FirstUse.tsx, the system dialog, checking and confirmation steps)."
  }
 ]

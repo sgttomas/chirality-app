@@ -176,7 +176,7 @@ export function LocalModelSettings({ disabled, changed }: { disabled: boolean; c
       </>}
     </>}
     {busy && <p role="status">Working…</p>}
-    {note && <p role={note.kind}>{note.text}</p>}
+    {note && <p role={note.kind === "alert" ? "alert" : "status"}>{note.text}</p>}
   </div>;
 }
 
@@ -206,6 +206,6 @@ export function LocalProviderAccess({ host, view, attempted, pending, message, n
     {entry && !active && <p><button disabled={pending || navigating} onClick={useHome}>Use local oMLX home</button>{" "}
       <small>Switching homes never transfers an existing conversation.</small></p>}
     {entry && active && <p>The local oMLX home is in use. Start a new oMLX conversation under New conversation.</p>}
-    {message && <p role={message.kind}>{message.text}</p>}
+    {message && <p role={message.kind === "alert" ? "alert" : "status"}>{message.text}</p>}
   </div>;
 }

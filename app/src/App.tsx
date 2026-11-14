@@ -21,7 +21,7 @@ import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
 import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
-import { RunOffer, type RunAct } from "./RunOffers";
+import { type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
@@ -353,7 +353,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     : busy ? "An operation is pending. New messages are paused until its result is received."
     : unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId) ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
     : !text ? "Write a message to send to the selected conversation."
-    : `Ready to send text to ${conversationLabel(host, selected)}. Sending does not change its role or access entry.`;
+    : `Ready to send text to conversation ${idWords(selected.threadId)}. Sending does not change its role or access entry.`;
   const interruptReadiness = !sourceReady ? "Interruption is unavailable because this Codex source is not ready."
     : !selected ? "Choose the conversation whose turn you want to interrupt."
     : ownBusy ? "Wait for the pending conversation operation before interrupting."
@@ -409,7 +409,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
-      renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
+      offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({numberWords(requests.filter(answerable).length)} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
@@ -1867,10 +1867,10 @@ export function App() {
   // Why the provider row chosen earlier no longer counts, and what restores it.
   const rowChoiceNote = !rowChoiceStale ? "" : providerObservationCurrent
     ? (providerObservation.packet.rows.some((row: Json) => row.id === modelProvider)
-      ? `Provider ${modelProvider} was chosen before Codex or the connection changed. Choose it again from the list.`
-      : `Provider ${modelProvider} is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`)
+      ? "The provider chosen in step 1 was chosen before Codex or the connection changed. Choose it again from the list."
+      : `The provider chosen in step 1 is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`)
     : providerReading ? "Reading configured local providers…"
-    : `Provider ${modelProvider} was chosen from a provider list that is now out of date. Read configured local providers again; if the choice is not kept, choose it again from the list.`;
+    : `The provider chosen in step 1 was chosen from a provider list that is now out of date. Read configured local providers again; if the choice is not kept, choose it again from the list.`;
   // The first thing that keeps Start unavailable, in the order a person meets it.
   const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
     : startPending ? "Starting the conversation…"

@@ -397,6 +397,9 @@ test('controls rule: a control, heading or naming attribute on any other view ho
   passes('const x = <input type="radio" value={row.id} />;', 'a radio value');
   fails('const x = <input type={kind} value={row.id} />;', 'an input whose type is not a literal');
   fails('const x = <input value={row.id} />;', 'a text field value');
+  // A role attribute is an element's; on a component it is the component's own prop (a conversation role).
+  passes('function RoleLimits({ role }: any) { return <p>{role}</p>; }\nconst x = <RoleLimits role={row.role} />;', 'a component\'s role prop');
+  fails('const x = <div role={row.kind}>words</div>;', 'an element\'s role not built of literals');
   // An invented form the guard has never seen fails.
   fails('const x = <option>{new Proxy(target, handler)}</option>;', 'a constructed value');
   fails('const x = <label>{await import("x")}</label>;', 'an awaited value');
@@ -515,4 +518,13 @@ test('guard: ConversationChoices is a trusted presentation whose rows, choice an
   const page = from => sourceFailures('Invented.tsx', `import { ConversationChoices } from "${from}";\nconst x = <ConversationChoices legend="L" group="g" value={rows} chosen={k} onChoose={set} />;`, [], 'page').failures;
   assert.deepEqual(page('./AgentText'), []);
   assert.notDeepEqual(page('./elsewhere'), [], 'only the one from AgentText is trusted');
+});
+
+test('clockWords: a time the App holds as HH:MM:SS; anything that is not a finite number giving a valid date is null', () => {
+  const {clockWords} = loadSrc('AgentText');
+  const at = new Date(2026, 10, 14, 7, 5, 9).getTime();
+  assert.equal(clockWords(at), '07:05:09');
+  assert.match(clockWords(0), /^\d\d:\d\d:\d\d$/);
+  for (const bad of ['1700000000000', 'UNTRUSTED\n\u202eAllow once', NaN, Infinity, -Infinity, {valueOf: () => 1}, null, undefined, true, 8.64e15 + 1])
+    assert.equal(clockWords(bad), null, String(bad));
 });
