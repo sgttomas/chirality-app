@@ -587,3 +587,97 @@ test('a refused start at launch is shown in the connection status with its reaso
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 });
 const guidance2=c=>c.querySelectorAll(n=>n.getAttribute('id')==='first-use-next')[0];
+
+// Before the App's first host read: neither the welcome nor the workspace is in the document, only a
+// line that says the App is starting; a failed first read says so and offers to try again.
+async function mountedBeforeFirstRead(check) {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
+  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
+  const reads=[],calls=[];
+  const idle=installIdleNativeWaiting(async(command)=>{
+    calls.push(command);
+    if(command==='host_status')return new Promise((resolve,reject)=>reads.push({resolve,reject}));
+    if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  const poll=()=>React.act(async()=>{for(const t of timers.values())t.fn();});
+  const settle=(outcome)=>React.act(async()=>{const read=reads.at(-1);if(outcome instanceof Error)read.reject(outcome);else read.resolve(structuredClone(outcome));});
+  try { await React.act(()=>root.render(React.createElement(App))); await check({c,reads,calls,poll,settle}); idle.assertClean(c); }
+  finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
+}
+const starting=c=>c.querySelectorAll(n=>n.getAttribute('role')==='status'&&n.textContent==='Starting Chirality…');
+const workspaceAbsent=(c,state)=>{
+  assert.ok(!nodes(c,'h1').some(n=>n.textContent==='Chirality'),`${state}: the workspace heading is not in the document`);
+  for(const label of ['Workspace navigation','Workspace connection status','Run a workflow','Workspace tools','Welcome'])assert.ok(!region(c,label),`${state}: ${label}`);
+  assert.equal(c.querySelectorAll(n=>n.getAttribute('id')==='view-conversation').length,0,`${state}: no workspace view, hidden or not`);
+};
+const readyHost=()=>({state:'ready',generation:{appSession:'s',home:'h',spawnCounter:1},threads:[],desktopSetup:{...packet.retained.initial},roleLimits:{account:{roles:[]}}});
+
+test('before the first host read, only the starting line is shown: no workspace heading or control, and no welcome',async()=>{
+  await mountedBeforeFirstRead(async({c,reads})=>{
+    assert.equal(reads.length,1,'the first read is under way');
+    workspaceAbsent(c,'not yet read');
+    assert.equal(nodes(c,'button').length,0,'no control can be reached or counted');
+    assert.equal(starting(c).length,1,'one status line says the App is starting');
+    const shown=nodes(c,'main')[0].childNodes.filter(n=>n.localName!=='style').map(n=>n.textContent).join('');
+    assert.equal(shown,'Starting Chirality…','nothing else is shown');
+  });
+});
+
+test('the first read decides: setup required shows the welcome with the workspace hidden, as before',async()=>{
+  await mountedBeforeFirstRead(async({c,settle})=>{
+    await settle({state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}});
+    assert.equal(starting(c).length,0);
+    assert.ok(!!region(c,'Welcome'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Welcome to Chirality'));
+    const hiddenUp=node=>{for(let n=node;n;n=n.parentNode)if(props(n)?.hidden)return true;return false;};
+    for(const label of ['Workspace navigation','Workspace connection status','Run a workflow'])assert.equal(hiddenUp(region(c,label)),true,label);
+  });
+});
+
+test('the first read decides: setup not required shows the workspace and no welcome',async()=>{
+  await mountedBeforeFirstRead(async({c,settle})=>{
+    await settle(readyHost());
+    assert.equal(starting(c).length,0);
+    assert.ok(!region(c,'Welcome'));
+    const heading=nodes(c,'h1').find(n=>n.textContent==='Chirality');
+    assert.ok(!!heading);
+    for(let n=heading;n;n=n.parentNode)assert.notEqual(props(n)?.hidden,true,'the workspace is not hidden');
+    assert.ok(!!region(c,'Workspace navigation'));
+  });
+});
+
+test('a failed first read says so and offers to try again; loading never conceals it, and a later success shows the workspace',async()=>{
+  await mountedBeforeFirstRead(async({c,reads,calls,poll,settle})=>{
+    await settle(new Error('invented raw diagnostic'));
+    workspaceAbsent(c,'failed');
+    assert.equal(starting(c).length,0,'the starting line does not stand in for a failure');
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0]?.textContent,'Chirality could not read its own state.');
+    assert.doesNotMatch(c.textContent,/invented raw diagnostic/,'the raw diagnostic is not shown');
+    assert.deepEqual(nodes(c,'button').map(n=>n.textContent),['Try again']);
+    // A scheduled read that is still under way leaves the failure shown.
+    await poll();
+    assert.equal(reads.length,2);
+    assert.ok(!!button(c,'Try again'),'still failed while a later read is under way');
+    await settle(new Error('invented again'));
+    assert.ok(!!button(c,'Try again'));
+    const before=calls.filter(command=>command==='host_status').length;
+    await React.act(async()=>{props(button(c,'Try again')).onClick();});
+    assert.equal(calls.filter(command=>command==='host_status').length,before+1,'Try again makes the read again');
+    await settle(readyHost());
+    assert.ok(!button(c,'Try again'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));
+  });
+});
+
+test('a read that fails after one succeeded leaves the workspace shown, as before',async()=>{
+  await mountedBeforeFirstRead(async({c,poll,settle})=>{
+    await settle(readyHost());
+    await poll();await settle(new Error('invented later failure'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));
+    assert.ok(!button(c,'Try again'));
+  });
+});
