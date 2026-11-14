@@ -340,15 +340,19 @@ pub enum TrustCase {
 }
 
 /// The status's closed sentences for the trust entry.
-pub const TRUST_TRUSTED_PREFIX: &str = "This project is marked trusted in your Codex settings (read at ";
+// "The Codex settings the App uses" are the account home's settings: the person's own Codex settings where the home
+// shares them, the App's own new settings where the person chose new settings at setup. The mark is read from them by
+// `config/read` (cwd set, layers included), in the user layer.
+pub const TRUST_TRUSTED_PREFIX: &str = "This project is marked trusted in the Codex settings the App uses (read at ";
 pub const TRUST_TRUSTED_SUFFIX: &str = "). Its own Codex folder (.codex) applies to conversations here.";
 pub const TRUST_NOT_USED: &str = "This project's own Codex folder (.codex) is not used in the App.";
-pub const TRUST_MARKED_UNTRUSTED: &str = "This project is marked untrusted in your Codex settings.";
-pub const TRUST_NOT_READ: &str = "The App could not read your Codex settings for this project, so its own Codex folder (.codex) is not used here, even if your settings mark it trusted.";
+pub const TRUST_MARKED_UNTRUSTED: &str = "This project is marked untrusted in the Codex settings the App uses.";
+pub const TRUST_NOT_READ: &str = "The App could not read the Codex settings it uses for this project, so its own Codex folder (.codex) is not used here, even if those settings mark it trusted.";
 /// The reasons a reading is not whole and current (`TrustCase::NotRead`), in the App's own words.
-pub const TRUST_READ_FAILED: &str = "The App's reading of your Codex settings did not complete.";
-pub const TRUST_READ_LIMITED: &str = "The App's reading of your Codex settings did not include the settings files.";
-pub const TRUST_READ_STALE: &str = "The App's reading of your Codex settings was no longer the latest when the request was built.";
+pub const TRUST_READ_FAILED: &str = "The App's reading of the Codex settings it uses did not complete.";
+pub const TRUST_READ_LIMITED: &str = "The App's reading of the Codex settings it uses did not include the settings files.";
+pub const TRUST_READ_TIMED_OUT: &str = "The App's reading of the Codex settings it uses did not complete in time.";
+pub const TRUST_READ_STALE: &str = "The App's reading of the Codex settings it uses was no longer the latest when the request was built.";
 
 /// The project trust the App sends on one start, resume or fork, and why.
 #[derive(Clone, Debug, PartialEq, Eq)]

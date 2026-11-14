@@ -124,6 +124,9 @@ pub(crate) struct LevelState {
     pub(crate) record_missing: bool,
     /// Advanced by every attempted configuration write; a trust reading made before one is not current.
     pub(crate) config_writes: u64,
+    /// A test's own budget for the trust reading, in place of the reading default.
+    #[cfg(test)]
+    pub(crate) trust_budget: Option<std::time::Duration>,
     /// The unit tests' Host makes no trust reading (its peers answer no `config/read`); a test turns it on.
     #[cfg(test)]
     pub(crate) trust_reads: bool,
@@ -693,15 +696,35 @@ impl Host {
             if !i.level.trust_reads { return cwd.map(|cwd| cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, None)); }
             (cwd?, generation.cloned().unwrap_or_else(|| i.generation.clone()), i.level.config_writes)
         };
-        let deadline = std::time::Instant::now() + reading_gate::READING_DEFAULT_BUDGET;
-        let params = json!({"cwd": cwd.to_string_lossy(), "includeLayers": true});
-        let request = match self.request_reading("config/read", params, json!({"kind":"person-directed","name":TRUST_READING_INITIATOR}), &generation, true, deadline) {
-            Ok(request) => request,
-            Err(error) => return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, Some(error))),
+        #[cfg(test)]
+        let budget = self.inner.0.lock().unwrap().level.trust_budget.unwrap_or(reading_gate::READING_DEFAULT_BUDGET);
+        #[cfg(not(test))]
+        let budget = reading_gate::READING_DEFAULT_BUDGET;
+        let deadline = std::time::Instant::now() + budget;
+        // The reading's write and its reply wait run on a worker, so that the start waits for them only until the one
+        // deadline, even when the write itself is blocked; a reading that has not completed by then is not used (the
+        // entry goes untrusted), and its late completion changes nothing. Without the Host's own handle (some unit
+        // tests' Hosts), it runs here under the same deadline for each phase.
+        let round = {
+            let host = self.this.lock().unwrap().upgrade();
+            let (cwd_text, generation_for) = (cwd.to_string_lossy().into_owned(), generation.clone());
+            match host {
+                Some(host) => {
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    std::thread::Builder::new().name("chirality-trust-reading".into()).spawn(move || {
+                        let _ = tx.send(host.trust_reading_round(&cwd_text, &generation_for, deadline));
+                    }).map_err(|e| format!("the trust reading could not start: {e}"))
+                        .and_then(|_| rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()))
+                            .map_err(|_| cl::TRUST_READ_TIMED_OUT.to_string())
+                            .and_then(|round| round))
+                }
+                None => self.trust_reading_round(&cwd_text, &generation_for, deadline),
+            }
         };
-        let response = match self.wait_source_response(&request, deadline.saturating_duration_since(std::time::Instant::now())) {
-            Ok(response) => response,
-            Err(error) => { self.delegation_wait_ended(&request); return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, Some(error))); }
+        let (request_ref, response) = match round {
+            Ok(round) => round,
+            Err(error) if error == cl::TRUST_READ_TIMED_OUT => return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_TIMED_OUT, None)),
+            Err(error) => return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, Some(error))),
         };
         // A native error or a schema finding can quote configuration: neither is passed on, only an error's code.
         if let Some(error) = response.get("error") {
@@ -717,12 +740,23 @@ impl Host {
             Ok(case) => {
                 reading.case = case;
                 reading.generation = Some(json!({"generation": generation, "configWrites": epoch}));
-                reading.request_ref = Some(request.request_ref.clone());
+                reading.request_ref = Some(request_ref);
                 reading.read_at = Some(now_rfc3339());
             }
             Err(reason) => reading.case = cl::TrustCase::NotRead { reason, detail: None },
         }
         Some(reading)
+    }
+
+    /// One trust reading's request and reply, each phase within `deadline`. Returns the request's reference and the
+    /// reply.
+    fn trust_reading_round(&self, cwd: &str, generation: &Value, deadline: std::time::Instant) -> Result<(String, Value), String> {
+        let params = json!({"cwd": cwd, "includeLayers": true});
+        let request = self.request_reading("config/read", params, json!({"kind":"person-directed","name":TRUST_READING_INITIATOR}), generation, true, deadline)?;
+        match self.wait_source_response(&request, deadline.saturating_duration_since(std::time::Instant::now())) {
+            Ok(response) => Ok((request.request_ref.clone(), response)),
+            Err(error) => { self.delegation_wait_ended(&request); Err(error) }
+        }
     }
 
     /// The reading as the frame relies on it: still of this generation with no configuration write since, or else

@@ -1080,3 +1080,35 @@ fn the_home_probe_is_presence_only_in_this_home() {
     assert!(cl::home_has_codex_state(&home));
     std::fs::remove_dir_all(base).unwrap();
 }
+
+
+/// The trust reading is on the start path, so it is held to one deadline even when its write is blocked: with
+/// Codex's input full and not being read, the reading returns at the deadline as not read in time, and the entry
+/// would go untrusted. (The start's own frame then waits for the writer, as any frame does while Codex is not reading.)
+#[test]
+fn a_blocked_trust_reading_write_ends_at_the_one_deadline_as_not_read() {
+    use std::os::fd::{FromRawFd, OwnedFd};
+    let (base, project, _, _) = git_project("trust-blocked");
+    let host = trusting_host(&base, &project, "full");
+    *host.this.lock().unwrap() = Arc::downgrade(&host);
+    host.inner.0.lock().unwrap().level.trust_budget = Some(Duration::from_millis(300));
+    let mut fds = [0; 2];
+    assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0);
+    let read = unsafe { std::fs::File::from_raw_fd(fds[0]) };
+    let write = unsafe { OwnedFd::from_raw_fd(fds[1]) };
+    let flags = unsafe { libc::fcntl(fds[1], libc::F_GETFL) };
+    assert_eq!(unsafe { libc::fcntl(fds[1], libc::F_SETFL, flags | libc::O_NONBLOCK) }, 0);
+    let filler = [b'\n'; 4096];
+    while unsafe { libc::write(fds[1], filler.as_ptr().cast(), filler.len()) } >= 0 {}
+    assert_eq!(unsafe { libc::fcntl(fds[1], libc::F_SETFL, flags) }, 0);
+    *host.stdin.lock().unwrap() = Some(ChildStdin::from(write));
+    let began = std::time::Instant::now();
+    let reading = host.trust_reading("thread/start", &json!({"cwd": key(&project)}), None).unwrap();
+    let elapsed = began.elapsed();
+    assert!(elapsed < Duration::from_millis(1500), "returned at the deadline, not when the pipe drains: {elapsed:?}");
+    assert!(matches!(&reading.case, cl::TrustCase::NotRead { reason, .. } if reason == cl::TRUST_READ_TIMED_OUT), "{:?}", reading.case);
+    // Release the blocked write so the worker ends.
+    drop(read);
+    *host.stdin.lock().unwrap() = None;
+    std::fs::remove_dir_all(&base).unwrap();
+}
