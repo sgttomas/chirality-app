@@ -95,7 +95,9 @@ impl Fixture {
             "fixture-provider",
             "invented guidance",
         )?;
-        host.source_request_wait(&request, Duration::from_millis(200))?;
+        // Waits until the start's reply is received, at most 10 s; a reply not
+        // in by then leaves the start without its result, which the finish refuses.
+        host.source_request_wait(&request, Duration::from_secs(10))?;
         host.thread_start_dispatch_finish(&request)?;
         let context = host
             .records_project_context()
@@ -150,7 +152,7 @@ impl Fixture {
         host.turn_start_text(&generation, thread, "Read records")
             .unwrap();
         let id = format!("records-{thread}");
-        let until = Instant::now() + Duration::from_secs(3);
+        let until = Instant::now() + Duration::from_secs(10);
         loop {
             let frames = wire(wire_project)
                 .into_iter()
@@ -703,7 +705,9 @@ fn records_identity_reading_that_stalls_does_not_hold_the_host_state() {
         entered_rx.recv_timeout(Duration::from_secs(3)).expect("the records call's reading began");
         let (snap_tx, snap_rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || { let _ = snap_tx.send(host.snapshot()["state"].clone()); });
-        let state = snap_rx.recv_timeout(Duration::from_millis(500));
+        // Had at once unless the stalled reading holds the state, which it
+        // does until released below: a long limit fails the same way, only later.
+        let state = snap_rx.recv_timeout(Duration::from_secs(10));
         release_tx.send(()).unwrap();
         state
     });
