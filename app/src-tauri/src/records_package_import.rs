@@ -1297,7 +1297,7 @@ fn checkpoint(_: &str) -> Result<(), String> {
     Ok(())
 }
 #[cfg(test)]
-thread_local! {static STOP:RefCell<Option<&'static str>>=const{RefCell::new(None)}; static BEFORE_LINK:RefCell<Option<Box<dyn FnOnce()>>>=const{RefCell::new(None)};}
+thread_local! {pub(crate) static STOP:RefCell<Option<&'static str>>=const{RefCell::new(None)}; static BEFORE_LINK:RefCell<Option<Box<dyn FnOnce()>>>=const{RefCell::new(None)};}
 #[cfg(test)]
 fn checkpoint(at: &str) -> Result<(), String> {
     STOP.with(|s| {

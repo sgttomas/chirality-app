@@ -15,6 +15,7 @@ mod publication { include!("records_store_publication_tests.rs"); }
 mod safe_append { include!("records_store_lines_tests.rs"); }
 mod legacy_witness { include!("records_store_witness_tests.rs"); }
 mod sync { include!("records_store_sync_tests.rs"); }
+mod status_gate { include!("records_store_status_tests.rs"); }
 
 fn folder(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
@@ -2343,7 +2344,7 @@ fn probe_r16_interrupted_import() {
     let refused = write_dir(&root).unwrap_err();
     assert!(refused.starts_with("import incomplete"), "{refused}");
     assert!(records::append_project(&root, None, "writer:x", "evidence_limit", &APP_WRITER, body("x")).unwrap_err().contains("import incomplete"));
-    assert_eq!(status(Some(&root))["project"]["reading"], "records in place in the project (import needed)");
+    assert_eq!(status(Some(&root))["project"]["reading"], "records in place in the project");
     // The census changes before the rerun: reported, and the rerun resumes.
     let acts = root.join(".chirality/records").join(crate::recorder::LOG);
     records::append(&acts, "evidence_limit", &APP_WRITER, body("written before the rerun")).unwrap();
@@ -3259,7 +3260,7 @@ fn records_store_import_gate_helper_keeps_the_gates_order() {
         let state = imports(&dir).unwrap();
         for census in [Ok(false), Ok(true), Err("injected census failure".to_owned())] {
             let calls = std::cell::Cell::new(0);
-            let actual = import_needed_from(&dir, &state, || { calls.set(calls.get()+1); census.clone() });
+            let actual = import_needed_from(&dir, &state, || { calls.set(calls.get()+1); census.clone() }).map_err(String::from);
             let authority = store_write_authority_from_imports(&dir, &state);
             let expected = (|| -> Result<bool, String> {
                 if !matches!(authority, Ok(true)) {

@@ -180,6 +180,8 @@ pub(crate) fn read_lock(path:&Path)->Result<Ownership,String>{flock(path,libc::L
 /// Nonblocking read ownership, including closed retained payloads.
 pub(crate) fn try_read_lock(path:&Path)->Result<Option<Ownership>,String>{flock(path,libc::LOCK_EX|libc::LOCK_NB,true)}
 fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Ownership>, String> {
+    #[cfg(test)]
+    mutation_for_test("write-capable lock acquisition");
     let admission=if read {crate::records_retention::read_path(path)?}else{crate::records_retention::write_path(path)?};
     check_path(path)?;
     ensure_directory_impl(path.parent().ok_or("lock has no parent")?)?;
@@ -198,6 +200,24 @@ fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Owner
         return Err(format!("owning lock: {error}"));
     }
     Ok(Some(Ownership(file,admission.map(Box::new))))
+}
+// A read-only examination must fail even when an attempted sync or lock
+// would leave identical bytes. Thread-local, so unrelated fixture setup and
+// other tests cannot supply or consume the proof.
+#[cfg(test)]
+thread_local! { static FORBID_MUTATIONS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+#[cfg(test)]
+pub(crate) fn mutation_for_test(operation: &str) {
+    FORBID_MUTATIONS.with(|forbidden| assert!(!forbidden.get(), "read-only inspection attempted {operation}"));
+}
+#[cfg(test)]
+pub(crate) fn without_mutations_for_test<T>(read: impl FnOnce() -> T) -> T {
+    struct Reset(bool);
+    impl Drop for Reset {
+        fn drop(&mut self) { FORBID_MUTATIONS.with(|slot| slot.set(self.0)); }
+    }
+    let _reset = Reset(FORBID_MUTATIONS.with(|slot| slot.replace(true)));
+    read()
 }
 #[cfg(test)]
 thread_local! { static FAIL_DIRECTORY: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) }; }
@@ -352,6 +372,8 @@ pub(crate) fn assert_publication_order_for_test(
 }
 pub fn sync_dir(path: &Path) -> Result<(), String> {
     #[cfg(test)]
+    mutation_for_test("directory sync");
+    #[cfg(test)]
     if FAIL_DIRECTORY.with(|p| p.borrow().as_deref() == Some(path)) {
         return Err("directory sync: injected failure".into());
     }
@@ -364,10 +386,14 @@ pub fn sync_dir(path: &Path) -> Result<(), String> {
 }
 /// Persist each newly created directory and its link in the pre-existing ancestor.
 pub fn ensure_directory(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("ensure_directory");
     let _admission=crate::records_retention::write_path(path)?;
     ensure_directory_impl(path)
 }
 fn ensure_directory_impl(path:&Path)->Result<(),String>{
+    #[cfg(test)]
+    mutation_for_test("directory creation");
     check_path(path)?;
     let mut missing = vec![];
     let mut ancestor = path;
@@ -388,6 +414,8 @@ fn ensure_directory_impl(path:&Path)->Result<(),String>{
 }
 /// Re-establish complete publication durability up through the owning project/library root.
 pub fn sync_publication(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("publication sync");
     check_path(path)?;
     #[cfg(test)]
     publication_sync_for_test(path, PublicationSyncStage::File)?;
@@ -432,6 +460,8 @@ fn publish_json_observed(
     attempted_publication: &mut bool,
     write: impl FnOnce(&mut File, &[u8]) -> Result<(), String>,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("JSON publication");
     let _admission=crate::records_retention::write_path(path)?;
     check_path(path)?;
     let parent = path.parent().ok_or("evidence has no parent")?;
@@ -521,6 +551,8 @@ pub(crate) fn create_capture_json(path: &Path, value: &Value) -> Result<(), Capt
 /// Publishes exact `bytes` once (an import's byte-identical copy): temporary
 /// file in the same folder, written and synced, renamed without replacing.
 pub(crate) fn create_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("create_bytes");
     let _admission=crate::records_retention::write_path(path)?;
     check_path(path)?;
     let parent = path.parent().ok_or("copy has no parent")?;
@@ -549,6 +581,8 @@ pub(crate) fn create_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
     result
 }
 pub fn create_json(path: &Path, value: &Value) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("create_json");
     publish_json(path, value, false, |file, bytes| {
         file.write_all(bytes)
             .map_err(|e| format!("temporary evidence write: {e}"))
@@ -564,6 +598,8 @@ pub(crate) fn create_json_staged(path: &Path, value: &Value, staging: &Path) -> 
 }
 /// Atomic mutable writer metadata/sole backlink annotation; caller holds owning lock.
 pub(crate) fn replace_json(path: &Path, value: &Value) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("replace_json");
     publish_json(path, value, true, |file, bytes| {
         file.write_all(bytes)
             .map_err(|e| format!("temporary annotation write: {e}"))
