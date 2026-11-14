@@ -887,6 +887,7 @@ class QuitEnds(unittest.TestCase):
             run.stub.scripts[key] = script
         client = run.start()
         thread = client.start_thread()['thread']['id']
+        self.thread = thread
         for key in commands:
             client.turn(thread, 'LEVEL[%s] go' % key, **FULL)
         return client, target
@@ -914,6 +915,18 @@ class QuitEnds(unittest.TestCase):
             client.proc.wait(3)  # the App waits up to 3 s before it forces the server's group
             time.sleep(1)
             after = self.alive(target)
+            self.end_survivors(after)
+            self.assertEqual(after, {'7771': [], '7772': [], '7773': [], 'cat': []})
+
+    def test_with_codex_answering_cleaning_ends_a_command_without_a_terminal_and_what_it_started(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client, target = self.start_two(run)
+            before = self.alive(target)
+            self.assertTrue(all(before.values()), before)
+            client.result('thread/backgroundTerminals/clean', {'threadId': self.thread})
+            time.sleep(2)
+            after = self.alive(target)
+            self.assertIsNone(client.proc.poll())  # Codex is still running
             self.end_survivors(after)
             self.assertEqual(after, {'7771': [], '7772': [], '7773': [], 'cat': []})
 
