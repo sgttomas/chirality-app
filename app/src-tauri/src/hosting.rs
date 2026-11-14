@@ -1878,7 +1878,25 @@ impl Host {
     }
 
     fn successor_prospective(&self, i: &Inner, cfg: &HostConfig) -> Result<Value, String> {
-        if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c| c.end_observation.lock().unwrap().is_some()) {
+        // Called with the Host state held, so neither custody lock is waited
+        // for: the session-end write holds its observation while it drains
+        // into every home's Host state, and custody adoption holds its cache
+        // while it takes this one. Waiting here would lock in the opposite
+        // order. A lock found busy refuses the successor, which is never
+        // spawned.
+        let ended = match self.runtime_custody.try_lock() {
+            Ok(cached) => match cached.as_ref() {
+                None => false,
+                Some(custody) => match custody.end_observation.try_lock() {
+                    Ok(observed) => observed.is_some(),
+                    Err(std::sync::TryLockError::WouldBlock) => return Err("App session end being recorded; successor start refused".into()),
+                    Err(std::sync::TryLockError::Poisoned(_)) => return Err("App session end observation unavailable; successor start refused".into()),
+                },
+            },
+            Err(std::sync::TryLockError::WouldBlock) => return Err("App custody being adopted; successor start refused".into()),
+            Err(std::sync::TryLockError::Poisoned(_)) => return Err("App custody unavailable; successor start refused".into()),
+        };
+        if ended {
             return Err("App session ended; successor start refused".into());
         }
         let home = home_reference(cfg);

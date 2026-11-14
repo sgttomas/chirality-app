@@ -1617,3 +1617,28 @@ fn the_exits_delegation_ending_never_holds_the_exit_past_its_deadline() {
     assert_eq!(crate::app_quit::end_delegation_within(Instant::now() + Duration::from_secs(5), |_| false).as_deref(),
         Some("delegation observation not ended: the App's conversation links were held by another App activity for 5 seconds"));
 }
+
+/// The system path's lock-order inversion: a successor start checks the session
+/// end with the Host state held, while the session-end write holds its
+/// observation and drains into each home's Host state (and custody adoption
+/// holds its cache while it takes the Host state). The check takes neither
+/// lock with a wait: busy, it refuses the successor at once.
+#[test]
+fn a_successor_check_under_the_host_state_never_waits_on_the_session_end_or_custody() {
+    let f = Fixture::new();
+    let host = Arc::clone(f.host());
+    let custody = host.app_runtime_custody().unwrap();
+    let cfg = f.home.host_config.as_ref().unwrap().clone();
+    let check = |host: &Host| { let i = host.inner.0.lock().unwrap(); host.successor_prospective(&i, &cfg) };
+    assert!(check(&host).is_ok(), "nothing busy: the prospective generation");
+    let begin = Instant::now();
+    let held = custody.end_observation.lock().unwrap();
+    assert_eq!(check(&host).unwrap_err(), "App session end being recorded; successor start refused");
+    drop(held);
+    let cache = host.runtime_custody.lock().unwrap();
+    assert_eq!(check(&host).unwrap_err(), "App custody being adopted; successor start refused");
+    drop(cache);
+    assert!(begin.elapsed() < Duration::from_secs(1), "{:?}", begin.elapsed());
+    *custody.end_observation.lock().unwrap() = Some(json!({"ended":"invented"}));
+    assert_eq!(check(&host).unwrap_err(), "App session ended; successor start refused");
+}
