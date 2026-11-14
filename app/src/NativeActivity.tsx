@@ -1,5 +1,6 @@
 import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { AgentText, type AgentTextSource, plainId, SuppliedId, Word, Num, Flag, wordOf, numberWords } from "./AgentText";
+import { RunOffer, type RunAct } from "./RunOffers";
 import { AGENT_STATUS, AGENT_TOOL, CHANGE_KIND, CHILD_STATUS, COMMAND_SOURCE, ITEM_KIND, ITEM_STATUS, MESSAGE_PHASE, REASONING_EFFORT, STEP_STATUS, SUBAGENT_ACTIVITY, TURN_STATUS } from "./nativeWords";
 type Json = any;
 
@@ -547,7 +548,10 @@ export function TurnErrors({ errors, unreadable, turn }: { errors: Json[]; unrea
   </div>;
 }
 
-export function NativeActivityView({ view, threadId, offers, renderOffer, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; renderOffer?: (offer: Json) => ReactNode; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
+// RN-3…RN-7: the run offers beneath an agent message are drawn by RunOffer (a guarded view) with what the App
+// supplies for its buttons; the activity takes no other renderer for them.
+export type OfferControls = { generation: Json; ready: boolean; busy: boolean; act: RunAct };
+export function NativeActivityView({ view, threadId, offers, offerControls, runs, stopLabelFor, trialTurns, trialChildren, delegation, navigationRef }: { view: Json; threadId: string | null | undefined; offers?: Json[]; offerControls?: OfferControls; runs?: Json[]; stopLabelFor?: (threadId: string, turnId: string) => Json | null; trialTurns?: Json[]; trialChildren?: Json[]; delegation?: Json; navigationRef?: Ref<NativeActivityHandle> }) {
   const [shown, setShown] = useState<string>("");
   const [pending, setPending] = useState<(ActivityReveal & { revision: number }) | null>(null);
   const revision = useRef(0);
@@ -591,7 +595,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
   const shownTurns = new Set(model.turns.map(turn => turn.turnId));
   const turnIds = model.turns.map(turn => text(turn.turnId));
   const unplaced = ownRuns.filter((run: Json) => !shownTurns.has(run.turn) || (run.lifecycle?.end && !shownTurns.has(run.endedAfterTurn)));
-  const offersFor = (row: Json) => target === threadId && renderOffer ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
+  const offersFor = (row: Json) => target === threadId && offerControls ? list(offers).filter((offer: Json) => offer?.message?.threadId === row.threadId && offer?.message?.turnId === row.turnId && offer?.message?.itemId === row.native?.id) : [];
   return <div ref={container} aria-label="Native activity">
     <h3>Activity</h3>
     <details><summary>Activity source and limits</summary><p>Codex types {view?.typesPin ? <SuppliedId value={view.typesPin} label="Types:" name="The pinned Codex types, as recorded; the App does not vouch for its words" /> : "not reported"} · supplier standing {view?.supplierStanding === undefined || view?.supplierStanding === null ? "not established" : <AgentText value={text(view.supplierStanding)} source="codex" label="Standing:" name="The supplier's standing, as recorded; the App does not vouch for its words" />}.</p>{list(view?.limits).length > 0 && <AgentText block value={list(view?.limits).map(text).join("\n")} source="codex" label="Limits:" name="The activity view's limits, as recorded; the App does not vouch for its words" />}</details>
@@ -616,7 +620,7 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       <StopLabel stop={stopLabelFor?.(target, text(turn.turnId)) ?? null} />
       {turn.native?.error?.message && <p role="alert">Turn error: <AgentText value={text(turn.native.error.message)} source="codex" /></p>}
       <TurnErrors errors={turn.errors} unreadable={turn.unreadableErrors} turn={turn.native} />
-      {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{renderOffer?.(offer)}</div>)}>
+      {turn.items.map((row, i) => <NativeItemCard key={text(row.native?.id) || `row-${i}`} row={row} plans={plans} runStart={ownRuns.some((run: Json) => run.turn === row.turnId)} after={offersFor(row).map((offer: Json, k: number) => <div key={k}>{offerControls && <RunOffer offer={offer} generation={offerControls.generation} ready={offerControls.ready} busy={offerControls.busy} act={offerControls.act} />}</div>)}>
         {!UNLABELLED.has(text(row.native?.type)) && <RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} />}
       </NativeItemCard>)}
       {turn.checklists.length > 0 && <RowBoundary value={turn.checklists} row={`${turn.checklists.length}:${text(turn.checklists[turn.checklists.length - 1]?.revisionId)}`} label="checklist"><Checklist revisions={turn.checklists} /><RunLabel run={runInForce(ownRuns, turnIds, text(turn.turnId))} /></RowBoundary>}

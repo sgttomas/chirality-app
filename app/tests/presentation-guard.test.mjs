@@ -15,8 +15,8 @@ import {guardFailures, sourceFailures, wordTableFailures, GUARDED_VIEWS} from '.
 const SRC = new URL('../src/', import.meta.url);
 const exceptions = JSON.parse(readFileSync(new URL('./support/presentation-guard-exceptions.json', import.meta.url), 'utf8'));
 
-test('presentation guard: every drawn expression on the three covered views takes an approved form, and each listed exception gives its reason', () => {
-  assert.deepEqual([...GUARDED_VIEWS].sort(), ['NativeActivity.tsx', 'NativeHistory.tsx', 'RequestCards.tsx']);
+test('presentation guard: every drawn expression on the four covered views takes an approved form, and each listed exception gives its reason', () => {
+  assert.deepEqual([...GUARDED_VIEWS].sort(), ['NativeActivity.tsx', 'NativeHistory.tsx', 'RequestCards.tsx', 'RunOffers.tsx']);
   assert.deepEqual(guardFailures(SRC, exceptions), []);
   assert.deepEqual(wordTableFailures(SRC), [], 'the vocabulary module holds only tables of literal words');
   for (const e of exceptions) assert.ok(typeof e.reason === 'string' && e.reason.length > 40, `${e.file} ${e.expr}: a reason that says why`);

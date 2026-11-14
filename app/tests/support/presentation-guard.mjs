@@ -24,15 +24,19 @@ import {readFileSync} from 'node:fs';
 /** The approved presentations, by the module they must be imported from under these names. */
 export const TRUSTED = {
   './AgentText': {
-    // Functions whose result is the App's words, a checked identifier or a checked number.
-    functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds'],
+    // Functions whose result is the App's words, a checked identifier or a checked number: plainId and idWords (an
+    // identifier checked against PLAIN_ID, else fixed App words); wordOf (the App's word for a key of the App's own
+    // table, else null); numberWords (a finite number, else null); isoSeconds (a valid time in seconds, as ISO 8601);
+    // clockWords (a time the App holds, as HH:MM:SS; non-finite or invalid gives null).
+    functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds', 'clockWords'],
     // Components that draw a supplied value: boxed, or as the App's words only for a value they check at run time.
     components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag'],
   },
 };
-/** Anchor builders: an element id made from a supplied identity by hex encoding, never shown as text. Trusted only in
- * attributes that hold an id or a link target. */
-export const ANCHOR_FUNCTIONS = {'./NativeActivity': ['itemAnchorId', 'requestAnchorId', 'runEvidenceAnchor']};
+/** Anchor builders: an element id made from a supplied identity as a 32-bit FNV-style hash of its serialized form
+ * plus that form's length, both in base 36 (letters and digits only), never shown as text. Trusted only in attributes
+ * that hold an id or a link target. */
+export const ANCHOR_FUNCTIONS = {'./NativeActivity': ['itemAnchorId', 'requestAnchorId']};
 const ID_ATTRIBUTES = new Set(['id', 'href', 'htmlFor', 'aria-labelledby', 'aria-describedby', 'aria-controls', 'aria-owns', 'aria-activedescendant', 'aria-details', 'aria-errormessage', 'aria-flowto']);
 const VALUE_ATTRIBUTES = new Set(['title', 'alt', 'placeholder', 'label']);
 /** A value attribute is drawn only by a text field; an option's, a select's or a button's value is not shown. */
@@ -41,13 +45,21 @@ const shownAttribute = (name, tag) => VALUE_ATTRIBUTES.has(name) || name.startsW
 /** Attributes of an approved presentation that only style or key it. */
 const STYLE_ATTRIBUTES = new Set(['style', 'key', 'className', 'block']);
 /** Property writes and calls that put text or markup on the page outside React's rendering. */
-const FORBIDDEN_PROPERTIES = new Set(['innerHTML', 'outerHTML', 'textContent', 'innerText', 'outerText', 'nodeValue', 'value', 'defaultValue', 'placeholder', 'title', 'data']);
+const FORBIDDEN_PROPERTIES = new Set(['innerHTML', 'outerHTML', 'textContent', 'innerText', 'outerText', 'nodeValue', 'value', 'defaultValue', 'placeholder', 'title', 'data', 'id']);
+/** Attributes that name or describe an element by another's id: only a literal id of an App-only element passes. */
+const REFERENCE_ATTRIBUTES = new Set(['aria-labelledby', 'aria-describedby', 'aria-details', 'aria-errormessage']);
+/** The only keys a spread of attributes may carry; any other key (children, a ref, an event handler, a value, raw
+ * HTML) fails, and raw HTML cannot be listed. */
+const SPREAD_KEYS = new Set(['id', 'key', 'className', 'style', 'hidden', 'disabled', 'tabIndex', 'title', 'alt', 'placeholder', 'aria-label', 'aria-hidden']);
 const FORBIDDEN_CALLS = new Set(['insertAdjacentHTML', 'insertAdjacentText', 'insertAdjacentElement', 'write', 'writeln', 'setAttribute', 'setAttributeNS', 'createTextNode', 'append', 'prepend', 'appendChild', 'insertBefore', 'replaceChildren', 'replaceWith', 'before', 'after', 'execCommand', 'setHTMLUnsafe', 'createContextualFragment']);
 
 const normal = text => text.replace(/\s+/g, ' ').trim();
 /** Elements whose content is a control's or a heading's name: they hold only the App's words, never a box, so an
  * approved presentation that can draw a supplied value boxed is not allowed inside them. */
-export const APP_ONLY = new Set(['button', 'a', 'summary', 'label', 'legend', 'option', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+export const APP_ONLY = new Set(['button', 'a', 'summary', 'label', 'legend', 'option', 'select', 'textarea', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+/** Roles that make any element a control or a heading: such an element holds only the App's words, as the tags do. */
+export const APP_ONLY_ROLES = new Set(['heading', 'button', 'link', 'checkbox', 'radio', 'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'tab', 'switch',
+  'textbox', 'searchbox', 'combobox', 'slider', 'spinbutton', 'treeitem', 'columnheader', 'rowheader']);
 
 /** One file's program, so that an identifier resolves to its own declaration. */
 export function parsed(name, text) {
@@ -61,26 +73,31 @@ export function parsed(name, text) {
   return {sf: program.getSourceFile(name), checker: program.getTypeChecker()};
 }
 
-/** The names a file imports, by local name: { module, imported }. */
-function importsOf(sf) {
-  const out = new Map();
-  for (const statement of sf.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
-    const bindings = statement.importClause?.namedBindings;
-    if (bindings && ts.isNamedImports(bindings)) for (const element of bindings.elements)
-      out.set(element.name.text, {module: statement.moduleSpecifier.text, imported: (element.propertyName ?? element.name).text});
-  }
-  return out;
+/** The import an identifier is bound to, by its declaration: { module, imported } when the identifier resolves to an
+ * import specifier of this file, else null. A local, a parameter or a destructured prop that shadows an imported
+ * name resolves to its own declaration, so it is never taken for the import, whatever its name. */
+function importOf(node, context) {
+  node = node && unwrap(node);
+  if (!node || !ts.isIdentifier(node)) return null;
+  const declaration = context.checker.getSymbolAtLocation(node)?.declarations?.[0];
+  if (!declaration || !ts.isImportSpecifier(declaration) || declaration.isTypeOnly) return null;
+  const statement = declaration.parent?.parent?.parent;
+  if (!statement || !ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || statement.importClause?.isTypeOnly) return null;
+  return {module: statement.moduleSpecifier.text, imported: (declaration.propertyName ?? declaration.name).text};
 }
-const isTrusted = (context, local, kind) => {
-  const from = context.imports.get(local);
-  return !!from && from.imported === local && (TRUSTED[from.module]?.[kind] ?? []).includes(local);
+/** Whether an identifier is bound to the import of an approved presentation under its own name. */
+const isTrusted = (context, node, kind) => {
+  const from = importOf(node, context);
+  return !!from && from.imported === node.text && (TRUSTED[from.module]?.[kind] ?? []).includes(node.text);
 };
-const isAnchor = (context, local) => {
-  const from = context.imports.get(local);
-  if (from) return from.imported === local && (ANCHOR_FUNCTIONS[from.module] ?? []).includes(local);
-  // In the module that defines them.
-  return Object.entries(ANCHOR_FUNCTIONS).some(([module, names]) => `${module.replace(/^\.\//, '')}.tsx` === context.name && names.includes(local));
+const isAnchor = (context, node) => {
+  if (!ts.isIdentifier(node)) return false;
+  const from = importOf(node, context);
+  if (from) return from.imported === node.text && (ANCHOR_FUNCTIONS[from.module] ?? []).includes(node.text);
+  // In the module that defines them: the identifier must resolve to that module's own top-level const.
+  const declaration = declarationOf(node, context);
+  return !!declaration && isConst(declaration) && declaration.parent.parent?.parent === context.sf
+    && Object.entries(ANCHOR_FUNCTIONS).some(([module, names]) => `${module.replace(/^\.\//, '')}.tsx` === context.name && names.includes(node.text));
 };
 
 /** The declaration an identifier resolves to, in this file only. */
@@ -99,7 +116,7 @@ export const WORD_TABLE_MODULE = './nativeWords';
 function isWordTable(node, context) {
   node = unwrap(node);
   if (ts.isPropertyAccessExpression(node) || !ts.isIdentifier(node)) return false;
-  const from = context.imports.get(node.text);
+  const from = importOf(node, context);
   if (from) return from.module === WORD_TABLE_MODULE && from.imported === node.text;
   const declaration = declarationOf(node, context);
   if (!declaration || !isConst(declaration) || !declaration.initializer) return false;
@@ -158,7 +175,7 @@ export function appMade(node, context) {
   }
   if (ts.isCallExpression(node)) {
     const callee = unwrap(node.expression);
-    if (ts.isIdentifier(callee) && isTrusted(context, callee.text, 'functions')) {
+    if (ts.isIdentifier(callee) && isTrusted(context, callee, 'functions')) {
       // A word table must be the App's own.
       return callee.text !== 'wordOf' || isWordTable(node.arguments[0], context);
     }
@@ -269,7 +286,7 @@ const hasJsx = node => { let found = false; const walk = n => { if (found) retur
 /** Every expression the guard judges in one view: { line, where, expr, node, context, forbidden? }. */
 export function findings(name, text) {
   const {sf, checker} = parsed(name, text);
-  const context = {name, sf, checker, imports: importsOf(sf), seen: new Set()};
+  const context = {name, sf, checker, seen: new Set()};
   const out = [];
   const at = node => sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
   const record = (node, where, extra = {}) => out.push({line: at(node), where, expr: normal(node.getText()), node, context, ...extra});
@@ -313,9 +330,17 @@ export function findings(name, text) {
   };
   const attributes = (tag, props, trustedComponent) => {
     for (const a of props) {
-      if (ts.isJsxSpreadAttribute(a)) { if (!spreadMade(a.expression, tag)) record(a.expression, '{...}'); continue; }
+      if (ts.isJsxSpreadAttribute(a)) {
+        const verdict = spreadVerdict(a.expression, tag);
+        if (verdict === 'forbidden') record(a.expression, '{...} with dangerouslySetInnerHTML', {forbidden: true});
+        else if (verdict !== 'ok') record(a.expression, '{...}');
+        continue;
+      }
       const attribute = a.name.getText();
       if (attribute === 'dangerouslySetInnerHTML') { record(a, '@dangerouslySetInnerHTML', {forbidden: true}); continue; }
+      // A reference that names or describes an element: only a literal id of an element in this file that holds
+      // only the App's words.
+      if (REFERENCE_ATTRIBUTES.has(attribute)) { if (!referenceMade(a.initializer)) record(a.initializer ?? a.name, `@${attribute}`); continue; }
       if (!a.initializer || ts.isStringLiteral(a.initializer) || !ts.isJsxExpression(a.initializer) || !a.initializer.expression) continue;
       const expr = a.initializer.expression;
       // An approved presentation takes any value to present; its other attributes (label, name, words…) are the App's.
@@ -388,23 +413,79 @@ export function findings(name, text) {
     walk(context.sf);
     return ok;
   };
-  // A spread of attributes: object literals (or a choice between them) whose shown attributes are App-made.
-  const spreadMade = (expr, tag) => {
+  // A spread of attributes: object literals (or a choice between them) whose every key is on SPREAD_KEYS and whose
+  // shown attributes are App-made: 'ok'; raw HTML anywhere in it: 'forbidden'; anything else: 'fail'.
+  const spreadVerdict = (expr, tag) => {
     expr = unwrap(expr);
-    if (ts.isConditionalExpression(expr)) return spreadMade(expr.whenTrue, tag) && spreadMade(expr.whenFalse, tag);
-    if (!ts.isObjectLiteralExpression(expr)) return false;
-    return expr.properties.every(p => {
-      if (!ts.isPropertyAssignment(p) || ts.isComputedPropertyName(p.name)) return false;
-      const key = p.name.getText().replace(/^["']|["']$/g, '');
-      if (!shownAttribute(key, tag)) return true;
-      if (ID_ATTRIBUTES.has(key)) return idValue(p.initializer);
-      return appMade(p.initializer, context);
-    });
+    if (ts.isConditionalExpression(expr)) {
+      const both = [spreadVerdict(expr.whenTrue, tag), spreadVerdict(expr.whenFalse, tag)];
+      return both.includes('forbidden') ? 'forbidden' : both.every(v => v === 'ok') ? 'ok' : 'fail';
+    }
+    if (!ts.isObjectLiteralExpression(expr)) return 'fail';
+    let verdict = 'ok';
+    for (const p of expr.properties) {
+      const key = p.name && !ts.isComputedPropertyName(p.name) ? p.name.getText().replace(/^["']|["']$/g, '') : null;
+      if (key === 'dangerouslySetInnerHTML') return 'forbidden';
+      if (!ts.isPropertyAssignment(p) || key === null || !SPREAD_KEYS.has(key)) { verdict = 'fail'; continue; }
+      if (!shownAttribute(key, tag)) continue;
+      if (!(ID_ATTRIBUTES.has(key) ? idValue(p.initializer) : appMade(p.initializer, context))) verdict = 'fail';
+    }
+    return verdict;
+  };
+  // Elements by the literal id they carry, for the reference attributes.
+  const literalIds = new Map();
+  const literalText = initializer => {
+    if (!initializer) return null;
+    if (ts.isStringLiteral(initializer)) return initializer.text;
+    const e = ts.isJsxExpression(initializer) && initializer.expression ? unwrap(initializer.expression) : null;
+    return e && (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) ? e.text : null;
+  };
+  const openingOf = node => ts.isJsxElement(node) ? node.openingElement : node;
+  (function index(node) {
+    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const id = openingOf(node).attributes.properties.find(a => ts.isJsxAttribute(a) && a.name.getText() === 'id');
+      const value = id ? literalText(id.initializer) : null;
+      if (value !== null) literalIds.set(value, [...(literalIds.get(value) ?? []), node]);
+    }
+    ts.forEachChild(node, index);
+  })(sf);
+  // An element whose content is only the App's words: plain elements, App-made text, no component (an approved
+  // presentation may draw a box), no ref, no spread and no raw HTML anywhere in it.
+  const appOnlyContent = node => {
+    const opening = openingOf(node);
+    if (/^[A-Z]/.test(opening.tagName.getText()) || opening.tagName.getText().includes('.')) return false;
+    if (opening.attributes.properties.some(a => ts.isJsxSpreadAttribute(a) || ['ref', 'dangerouslySetInnerHTML', 'children'].includes(a.name.getText()))) return false;
+    if (!ts.isJsxElement(node)) return true;
+    return node.children.every(child => ts.isJsxText(child)
+      || (ts.isJsxExpression(child) ? !child.expression || (!hasJsx(child.expression) && appMade(child.expression, context))
+        : (ts.isJsxElement(child) || ts.isJsxSelfClosingElement(child)) && appOnlyContent(child)));
+  };
+  // aria-labelledby, aria-describedby…: a literal list of ids, each naming exactly one element in this file whose
+  // content is only the App's words. Anything else fails.
+  const referenceMade = initializer => {
+    const value = literalText(initializer);
+    const ids = value === null ? [] : value.trim().split(/\s+/).filter(Boolean);
+    return ids.length > 0 && ids.every(id => (literalIds.get(id) ?? []).length === 1 && appOnlyContent(literalIds.get(id)[0]));
+  };
+  // The roles an element's role attribute can take: its literal values; null when it is not built of literals.
+  const rolesOf = opening => {
+    const attribute = opening.attributes.properties.find(a => ts.isJsxAttribute(a) && a.name.getText() === 'role');
+    if (!attribute) return [];
+    if (attribute.initializer && ts.isStringLiteral(attribute.initializer)) return [attribute.initializer.text];
+    const literals = e => {
+      e = unwrap(e);
+      if (ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e)) return [e.text];
+      if (ts.isConditionalExpression(e)) { const a = literals(e.whenTrue), b = literals(e.whenFalse); return a && b ? [...a, ...b] : null; }
+      if (ts.isBinaryExpression(e) && e.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) return literals(e.right);
+      if (e.kind === ts.SyntaxKind.UndefinedKeyword || (ts.isIdentifier(e) && e.text === 'undefined')) return [];
+      return null;
+    };
+    return attribute.initializer && ts.isJsxExpression(attribute.initializer) && attribute.initializer.expression ? literals(attribute.initializer.expression) : null;
   };
   // An id or link target: App-made, an anchor builder, or a template of those.
   const idValue = expr => {
     const node = unwrap(expr);
-    const anchorCall = n => { n = unwrap(n); return ts.isCallExpression(n) && ts.isIdentifier(unwrap(n.expression)) && isAnchor(context, unwrap(n.expression).text); };
+    const anchorCall = n => { n = unwrap(n); return ts.isCallExpression(n) && ts.isIdentifier(unwrap(n.expression)) && isAnchor(context, unwrap(n.expression)); };
     return anchorCall(node) || appMade(node, context) || (ts.isTemplateExpression(node) && node.templateSpans.every(span => anchorCall(span.expression) || appMade(span.expression, context)));
   };
   const visit = (node, inside = null) => {
@@ -412,7 +493,7 @@ export function findings(name, text) {
       const opening = ts.isJsxElement(node) ? node.openingElement : node;
       const tag = opening.tagName.getText();
       const component = /^[A-Z]/.test(tag) || tag.includes('.');
-      const trustedComponent = component && isTrusted(context, tag, 'components');
+      const trustedComponent = component && ts.isIdentifier(opening.tagName) && isTrusted(context, opening.tagName, 'components');
       attributes(tag, opening.attributes.properties, trustedComponent);
       // Inside a control or a heading, no presentation that may draw a box; a same-file component drawn there is
       // judged where its JSX is written, which the guard does not follow into this place, so it is listed or fails.
@@ -420,12 +501,27 @@ export function findings(name, text) {
       if (component && !trustedComponent) {
         const declared = ts.isIdentifier(opening.tagName) ? declarationOf(opening.tagName, context) : null;
         const local = functionOf(opening.tagName, context) ?? (declared && ts.isClassDeclaration(declared) ? declared : null);
-        const from = context.imports.get(tag);
+        const from = importOf(opening.tagName, context);
         // A component in this file is judged where its JSX is written; one from another guarded view is judged
         // there. Any other component draws what it is given unseen: it is listed, with its reason, or it fails.
         if (!local && !(from && GUARDED_VIEWS.has(`${from.module.replace(/^\.\//, '')}.tsx`) && from.imported === tag)) record(opening.tagName, `<${tag}>`, {component: true});
       }
-      const within = APP_ONLY.has(tag) ? tag : inside;
+      // A role that makes the element a control or a heading counts as that element; a role not built of literals
+      // cannot be judged and fails.
+      const roles = rolesOf(opening);
+      if (roles === null) record(opening.tagName, `<${tag}> with a role not built of literals`);
+      const role = (roles ?? []).find(r => APP_ONLY_ROLES.has(r));
+      const within = APP_ONLY.has(tag) ? tag : role ? `role="${role}"` : inside;
+      // Attribute contents are visited as children are: an element written in an attribute (a children attribute, a
+      // render prop) is judged where it is written, and a function in an attribute (an event handler, a ref
+      // callback) is searched for writes to the page. A children attribute is drawn.
+      for (const a of opening.attributes.properties) {
+        const init = ts.isJsxSpreadAttribute(a) ? a.expression : a.initializer;
+        const expr = !init || ts.isStringLiteral(init) ? null : ts.isJsxExpression(init) ? init.expression : init;
+        if (!expr) continue;
+        if (ts.isJsxAttribute(a) && a.name.getText() === 'children' && !trustedComponent) drawn(expr);
+        visit(expr, within);
+      }
       if (ts.isJsxElement(node)) for (const child of node.children) visitChild(child, within);
       return;
     }
@@ -447,7 +543,7 @@ export function findings(name, text) {
 }
 
 /** The views on which every supplied value takes an approved presentation. */
-export const GUARDED_VIEWS = new Set(['RequestCards.tsx', 'NativeActivity.tsx', 'NativeHistory.tsx']);
+export const GUARDED_VIEWS = new Set(['RequestCards.tsx', 'NativeActivity.tsx', 'NativeHistory.tsx', 'RunOffers.tsx']);
 
 /** One view's failures, given its source: each finding neither App-made nor listed, each forbidden write (never
  * listable), and the listed keys it used. */

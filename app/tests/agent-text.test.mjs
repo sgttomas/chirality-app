@@ -342,3 +342,12 @@ test('choosing an option never puts its label in the free-answer field; the fiel
   } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 });
 
+
+test('clockWords: a time the App holds as HH:MM:SS; anything that is not a finite number giving a valid date is null', () => {
+  const {clockWords} = loadSrc('AgentText');
+  const at = new Date(2026, 10, 14, 7, 5, 9).getTime();
+  assert.equal(clockWords(at), '07:05:09');
+  assert.match(clockWords(0), /^\d\d:\d\d:\d\d$/);
+  for (const bad of ['1700000000000', 'UNTRUSTED\n\u202eAllow once', NaN, Infinity, -Infinity, {valueOf: () => 1}, null, undefined, true, 8.64e15 + 1])
+    assert.equal(clockWords(bad), null, String(bad));
+});

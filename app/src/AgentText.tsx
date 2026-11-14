@@ -54,6 +54,14 @@ export const isoSeconds = (value: unknown): string | null => {
   const date = new Date(value * 1000);
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
 };
+const pad2 = (n: number) => String(n).padStart(2, "0");
+/** A time the App holds (milliseconds since the epoch), as local HH:MM:SS in the App's words; null for anything
+ * that is not a finite number giving a valid date. */
+export const clockWords = (at: unknown): string | null => {
+  if (typeof at !== "number" || !Number.isFinite(at)) return null;
+  const d = new Date(at);
+  return Number.isFinite(d.getTime()) ? `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}` : null;
+};
 /** A supplied number in the App's words: a finite number as written, else null. */
 export const numberWords = (value: unknown): string | null => typeof value === "number" && Number.isFinite(value) ? String(value) : null;
 
