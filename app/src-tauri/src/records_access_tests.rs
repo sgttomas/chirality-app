@@ -923,11 +923,14 @@ fn records_continuity_physical_project_changed_during_source_read_is_a_logged_re
 }
 
 fn alias_read_log(kind: &str) {
+    // Setup is outside the timed refusal: schema/index setup is unrelated to
+    // whether opening the read log blocks on a FIFO.
+    let f = Scratch::new();
+    let project = f.project("project");
+    write_run(&project, "run:alias", 1, "secret-invented-record-content", false);
+    let cap = capability(&f, &project);
     crate::storage::append_alias_fixture(kind, b"", |path| {
-        let f = Scratch::new();
-        let project = f.project("project");
-        write_run(&project, "run:alias", 1, "secret-invented-record-content", false);
-        let cap = RecordsCapability::at(&project, path.to_path_buf()).unwrap();
+        cap.log.lock().unwrap().place = LogPlace::Fixed(path.to_path_buf());
         let request = call(1, json!({"operation":"read_run","run":"run:alias"}));
         let answer = cap.answer(&request, project.to_str());
         assert_eq!(answer["success"], false, "{answer}");
