@@ -62,6 +62,7 @@ enum Folder {
     Records(WriteFolder),
     ConnectorEvidence,
     Auxiliary(&'static str),
+    RoleContent,
 }
 
 fn child(folder: Folder, name: &str) -> Option<Folder> {
@@ -84,12 +85,23 @@ fn child(folder: Folder, name: &str) -> Option<Folder> {
             matches!(kind, WriteFolder::Runs | WriteFolder::Logs).then_some(Folder::Records(kind))
         }),
         Folder::ConnectorEvidence => Some(Folder::ConnectorEvidence),
-        Folder::Auxiliary(_) => None,
+        Folder::Auxiliary("observations.jsonl") if name == "content" => Some(Folder::RoleContent),
+        Folder::Auxiliary(_) | Folder::RoleContent => None,
     }
 }
 
-fn control(rel: &str) -> bool {
-    matches!(rel, ".writer.lock" | "captures/.capture.lock")
+pub(crate) const CONTROLS: &[&str] = &[
+    ".writer.lock",
+    "captures/.capture.lock",
+    "role-supply/.writer.lock",
+];
+
+pub(crate) fn control(rel: &str) -> bool {
+    CONTROLS.contains(&rel)
+}
+
+fn role_content(name: &str) -> bool {
+    name.strip_suffix(".utf8").is_some_and(record_key)
 }
 
 // The exact spelling shared by storage::create_json/create_bytes and package
@@ -127,7 +139,9 @@ fn expects_directory(folder: Folder, name: &str) -> bool {
         Folder::Root => child(folder, name).is_some(),
         Folder::Records(kind) => kind.child(name).is_some(),
         Folder::ConnectorEvidence => name == "route-accounts",
+        Folder::Auxiliary("observations.jsonl") => name == "content",
         Folder::Auxiliary(_) => false,
+        Folder::RoleContent => false,
     }
 }
 fn expects_file(folder: Folder, path: &Path, name: &str, rel: &str) -> bool {
@@ -140,6 +154,7 @@ fn expects_file(folder: Folder, path: &Path, name: &str, rel: &str) -> bool {
                 name.strip_suffix(".json").is_some_and(record_key)
             }
             Folder::Auxiliary(expected) => name == expected,
+            Folder::RoleContent => role_content(name),
         }
 }
 
@@ -175,7 +190,12 @@ fn member(
     let final_control = control(rel);
     let temporary_control = publication_name(name).is_some_and(|final_name| {
         let parent = path.parent().unwrap().strip_prefix(root).unwrap();
-        control(&parent.join(final_name).to_string_lossy())
+        // Only the package publisher stages owning controls with this name.
+        // The role-observation writer opens its final lock directly.
+        matches!(
+            parent.join(final_name).to_str(),
+            Some(".writer.lock" | "captures/.capture.lock")
+        )
     });
     if final_control || temporary_control {
         let bytes = crate::records_retention::read_plain(path)
@@ -211,6 +231,7 @@ fn member(
         Folder::Root => matches!(name, "project.json" | "imports.jsonl"),
         Folder::Auxiliary("package-imports") => name.strip_suffix(".json").is_some_and(record_key),
         Folder::Auxiliary(expected) => name == expected,
+        Folder::RoleContent => role_content(name),
         _ => false,
     };
     if record || auxiliary {

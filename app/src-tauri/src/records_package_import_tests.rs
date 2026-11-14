@@ -37,7 +37,7 @@ fn records_store_routing_package_preparation_interrupts_outside_live_payload() {
         temporary_files(&f.dir(), &mut live);
         assert!(live.is_empty(), "live payload has unpublished temporary: {live:?}");
         let mut staged = vec![];
-        temporary_files(&controls(&f.dir()).unwrap(), &mut staged);
+        temporary_files(&f.destination.join("package-preparation").join(storage::key(&f.project)), &mut staged);
         assert_eq!(staged.len(), 1, "interruption must retain its actual temporary outside payload");
         assert_eq!(std::fs::metadata(&staged[0]).unwrap().dev(), std::fs::metadata(&f.dir()).unwrap().dev());
     }

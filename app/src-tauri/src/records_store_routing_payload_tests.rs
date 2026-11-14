@@ -169,6 +169,7 @@ fn records_store_routing_only_validated_controls_and_each_exact_preparation_keep
     for name in [
         ".writer.lock",
         "captures/.capture.lock",
+        "role-supply/.writer.lock",
         "..writer.lock.11111111-1111-4111-8111-111111111111.tmp",
         "captures/..capture.lock.11111111-1111-4111-8111-111111111111.tmp",
     ] {

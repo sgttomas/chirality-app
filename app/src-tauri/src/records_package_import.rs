@@ -61,6 +61,16 @@ fn controls(dir: &Path) -> Result<PathBuf, String> {
         .join("administration")
         .join(dir.file_name().ok_or("project has no key")?))
 }
+/// Unpublished lock preparation must not become payload or administrative
+/// history, including while a prior unused identity is being examined.
+fn preparation(dir: &Path) -> Result<PathBuf, String> {
+    Ok(dir
+        .parent()
+        .and_then(Path::parent)
+        .ok_or("project has no store")?
+        .join("package-preparation")
+        .join(dir.file_name().ok_or("project has no key")?))
+}
 fn journal(dir: &Path) -> Result<PathBuf, String> {
     Ok(controls(dir)?.join("package-imports"))
 }
@@ -399,10 +409,10 @@ fn lock_for(store: &Path, dir: &Path, prior: Option<&Path>) -> Result<Guards, St
         leases.push(exclusive(&controls(dir)?.join(".activity.lock"), None)?);
     }
     for dir in &dirs {
-        leases.push(exclusive(&dir.join("captures/.capture.lock"), Some(&controls(dir)?.join("package-preparation")))?);
+        leases.push(exclusive(&dir.join("captures/.capture.lock"), Some(&preparation(dir)?))?);
     }
     for dir in &dirs {
-        leases.push(exclusive(&dir.join(".writer.lock"), Some(&controls(dir)?.join("package-preparation")))?);
+        leases.push(exclusive(&dir.join(".writer.lock"), Some(&preparation(dir)?))?);
     }
     Ok(Guards {
         _owner: owner,

@@ -47,7 +47,7 @@ fn decode(path: &str) -> Result<String, String> {
 }
 // Disposal validates these controls separately before removing any bytes.
 fn excluded(rel: &Path) -> bool {
-    rel == Path::new(".writer.lock") || rel == Path::new("captures/.capture.lock")
+    rel.to_str().is_some_and(crate::records_store::payload::control)
 }
 fn files(root: &Path, omit_controls: bool) -> Result<BTreeMap<String, crate::records_index::Stamp>, String> {
     if omit_controls { return Ok(crate::records_store::payload::census(root)?.members); }
@@ -551,7 +551,7 @@ pub(crate) fn dispose_members(
     staged_payload(stage, bag)?;
     crate::storage::ensure_directory(stage)?;
     let mut expected: Vec<String> = exported.keys().cloned().collect();
-    expected.extend([".writer.lock".into(), "captures/.capture.lock".into()]);
+    expected.extend(crate::records_store::payload::CONTROLS.iter().map(|name| (*name).into()));
     for rel in expected {
         let input = source.join(&rel);
         let staged = stage.join(&rel);
