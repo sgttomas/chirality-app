@@ -331,7 +331,7 @@ fn acts_after_the_arrival_are_counted_against_the_files_content() {
     assert_eq!(kinds(&outputs), ["checkpoint_arrival", "disposition_change", "act_not_counted", "disposition_change", "act_not_counted", "disposition_change", "act_counted", "disposition_change"], "{outputs:#?}");
     assert_eq!(outputs[0].1["referents"][0], json!({"subject":RELY,"content":{"method":EXACT_BYTES,"value":crate::util::sha256_hex(b"v1"),"scope":"the file's bytes as the App read them after observing the completed change"}}));
     assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l == FILE_READ_LIMIT));
-    assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("A seal shows a holder of this installation's key wrote the capture, not that a person acted or who")), "the run record states the seal's limit");
+    assert!(outputs[0].1["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("A valid seal shows consistency with possession of the key over the covered facts")), "the run record states the seal's limit");
     let arrival = json!({"checkpoint":"CP-rely","arrivalOrdinal":1});
     assert_eq!(outputs[2].1, json!({"arrival":arrival,"act":{"recordId":a4,"actKind":"A4","capturedAt":AFTER,"capturingSurface":"app_act_control"},"reason":"another act kind","capturedBeforeArrival":false}));
     assert_eq!(outputs[3].1["disposition"], "waiting");
@@ -506,7 +506,7 @@ fn forged_legacy_and_foreign_captures_count_nothing() {
     assert_eq!(read.acts[0]["record"]["recordId"], genuine_id.as_str());
     let reason = |id: &str| read.unresolved.iter().find(|u| u["record"]["recordId"] == id).unwrap()["reason"].as_str().unwrap().to_owned();
     assert!(reason(&forged_id).contains("capture seal does not verify under this installation's key"), "{}", reason(&forged_id));
-    assert!(reason(&legacy_id).contains("capture has no App seal"), "{}", reason(&legacy_id));
+    assert!(reason(&legacy_id).contains("capture has no seal"), "{}", reason(&legacy_id));
     assert!(reason(&foreign_id).contains("which this App installation does not hold") && reason(&foreign_id).contains("not verified here"), "{}", reason(&foreign_id));
     assert!(!reason(&foreign_id).contains("forg"), "a foreign seal is never called forged");
     assert_eq!(reason(&relinked_id), "the record differs from the capture it cites");

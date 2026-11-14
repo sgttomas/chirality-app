@@ -154,6 +154,9 @@ code_paths:
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css
 checks:
+- app/src-tauri/src/capture_seal.rs
+- app/src-tauri/src/seal_c_enrollment_tests.rs
+- app/src-tauri/src/file_act_consumer_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 - app/tests/prepared-message-navigation.test.mjs

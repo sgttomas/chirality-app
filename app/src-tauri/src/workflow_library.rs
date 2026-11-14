@@ -37,7 +37,7 @@ impl Evidence {
     pub(crate) fn display(self) -> &'static str {
         match self {
             Self::InProcess => "Approved in this App session (native A15)",
-            Self::Keychain => "Approval verified by keychain seal",
+            Self::Keychain => "Registration capture seal verified using your keychain; who wrote the capture, a person's presence and judgment are not established",
             Self::Disk => "Disk consistency checked; approval authenticity unverified",
         }
     }

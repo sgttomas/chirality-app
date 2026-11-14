@@ -496,7 +496,7 @@ pub(crate) fn read(root: &Path) -> Value {
         {
             continue;
         }
-        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin; a verified capture seal shows only that a holder of this App installation's key wrote the capture (AAC §6.3 SEAL-C); no professional certification".into()];
+        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin. A valid capture seal shows consistency with possession of the key over the covered facts (AAC §6.3 SEAL-C). Any process running as the same user can read a file key. Keychain verification shows consistency with possession of a key held in the person's keychain under the keychain's protection. The capture does not record which provider held its key. No seal establishes who wrote the capture, that a person was present, or that they judged; no professional certification.".into()];
         let found = capture(root, b);
         let captured = found.as_ref().ok();
         if let Err(e) = &found {

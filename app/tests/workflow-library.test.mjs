@@ -326,6 +326,9 @@ test('approval setting shows the policy, verification availability and the discl
   assert.match(html,/Session confirmation required; persistent verification unavailable/);
   assert.match(html,/an agent able to write that file could change this setting/);
   assert.match(html,/Allow disk records \(native confirmation\)/);
+  assert.match(html,/after its registration capture&#x27;s keychain seal and its record, ledger entry and stored bytes pass their checks/);
+  assert.match(html,/The seal shows consistency with possession of a key held/);
+  assert.match(html,/it does not establish who wrote the capture, that a person was present, or that they judged/);
   assert.match(html,/Protect registered workflows with your keychain: unavailable\. This is an unsigned or development build/);
   assert.doesNotMatch(html,/Protect registered workflows with your keychain…/);
 });
@@ -334,6 +337,8 @@ test('approval setting offers keychain protection and recovery only where they a
   const {WorkflowAssuranceSetting}=loadSrc('App');
   const offered=renderToStaticMarkup(React.createElement(WorkflowAssuranceSetting,{setting:setting({verification:{state:'not set up',available:false,detail:'Keychain protection is not set up.'},protect:{offered:true}}),act:()=>{}}));
   assert.match(offered,/Protect registered workflows with your keychain…/);
+  assert.match(offered,/Your keychain then holds the sealing key and this setting/);
+  assert.match(offered,/Later sessions can check registration capture seals; they do not establish who wrote the capture, that a person was present, or that they judged/);
   const recovery=renderToStaticMarkup(React.createElement(WorkflowAssuranceSetting,{setting:setting({verification:{state:'recovery required',available:false,detail:'keychain locked. Verified approval is required until recovered; nothing is relaxed automatically.'},storage:'Stored in your keychain.',protect:{offered:false,reason:'Recover the protected policy first.'}}),act:()=>{}}));
   assert.match(recovery,/Restore verified approval in your keychain/);
   assert.match(recovery,/Check keychain again/);
@@ -346,7 +351,7 @@ test('approval setting offers keychain protection and recovery only where they a
 test('approval evidence labels never infer evidence from registered standing',()=>{
   const {workflowAssurance}=loadSrc('workflowSelection');
   assert.equal(workflowAssurance({requested_policy:'relaxed',admission_evidence:'disk-consistency'}),'Disk consistency checked; approval authenticity unverified. Policy: Allow disk records.');
-  assert.equal(workflowAssurance({requested_policy:'robust',admission_evidence:'keychain-verified approval'}),'Approval verified by keychain seal. Policy: Require verified approval.');
+  assert.equal(workflowAssurance({requested_policy:'robust',admission_evidence:'keychain-verified approval'}),"Registration capture seal verified using your keychain; who wrote the capture, a person's presence and judgment are not established. Policy: Require verified approval.");
   assert.equal(workflowAssurance({requested_policy:'robust',admission_evidence:'in-process A15'}),'Approved in this App session (native A15). Policy: Require verified approval.');
   assert.equal(workflowAssurance(undefined),'Approval evidence unknown (not recorded).');
   assert.equal(workflowAssurance('in-process A15'),'Approval evidence unknown (not recorded).');
