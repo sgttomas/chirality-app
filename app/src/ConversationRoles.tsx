@@ -529,8 +529,8 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     } catch (error) { if (epoch === sendEpoch.current) setSending(previous => retainHandoffOutcome(previous, unknownHandoff(String(error)))); }
     finally { setReading(false); }
   };
-  // The draft is seeded once when the summary arrives. It cannot be edited while
-  // the summary is still awaited, so the seed never replaces the person's edits.
+  // The draft is seeded from handoff.draftText each time the draft's state changes, unless the person has already
+  // pressed; the field is disabled while the summary is awaited, so a seed never replaces the person's edits.
   useEffect(() => {
     const state = text(handoff?.draft?.state);
     if (state !== seededFrom && state !== "waiting") { if (!pressed.current) setDraft(text(handoff?.draftText)); setSeededFrom(state); }
@@ -544,7 +544,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     {!started && <div>
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
       <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} local={local} />
-      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {idWords(target)}</button>{" "}
+      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {handoff?.targetRole ? idWords(handoff.targetRole) : "no role"}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
       {startRefusal && <p role="alert">{startRefusal}</p>}

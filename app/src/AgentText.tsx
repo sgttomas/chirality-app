@@ -183,13 +183,16 @@ export function Flag({ value, yes, no, source = "codex", label = "Codex sent:", 
   return value === true ? <>{yes}</> : value === false ? <>{no}</> : <AgentText value={value} source={source} label={label} name={name} />;
 }
 
-// A choice among conversations (the controls rule: a control's name holds only the App's words). A conversation's
-// title is text Codex supplied and an <option> cannot hold a box, so a choice is a list of native radio buttons: each
-// radio button is named by the App's words alone ("Conversation" and a shortened plain identifier), and only that
-// radio button and its words are clickable. The title, model and provider stand outside the label, boxed. The
-// radio button's accessible description is the one place supplied text is attached to the control: as a description,
-// never its name, beginning with the App's attribution ("Title supplied by Codex: …") and with every line break,
-// control or direction character shown as a mark, as in a box.
+// A choice among conversations (the controls rule: a control's name holds only the App's words, except a
+// conversation's title in the form adopted here). An <option> cannot hold a box, so a choice is a list of native
+// radio buttons, each with its label. The label begins with the App's words ("Conversation" and an identifier that
+// tells it apart in the list, or its entry number), then the title as Codex supplied it, marked inside the label
+// (dotted outline, every line break, control or direction character shown as a mark, a long title shortened with
+// how much is shown said). The list says once, under its legend, that its titles are supplied by Codex; each label
+// also carries, hidden from sight, the per-item attribution before its title, so its accessible name reads the App's
+// words, then who supplied the title, then the title. Only the radio button and its label are clickable. The model
+// and provider stand beside the label, outside it, boxed, and reach the radio button only as its accessible
+// description, after the App's words saying who supplied them.
 
 /** One conversation offered: `key` is what choosing it submits; every other field is shown as Codex reported it. */
 export type ConversationChoice = {

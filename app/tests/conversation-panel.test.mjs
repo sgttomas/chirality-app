@@ -1290,3 +1290,28 @@ test('delayed effort replies cannot populate another source and readiness disabl
     await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;
   }
 });
+
+// Each conversation choice carries its model and provider, boxed beside the label: the stored-conversation adapter
+// (History) and the current-conversation adapter, each from its own source row.
+test('the History and current-conversation choices show the model and provider their rows report, boxed outside the label', async () => {
+  const {HistoryPanel} = loadSrc('App');
+  const {choiceList, rowOf} = await import('./support/choices.mjs');
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const boxes = row => row.querySelectorAll(n => n.getAttribute?.('role') === 'group' && /agent-text/.test(n.getAttribute('class') ?? '')).map(n => n.textContent);
+  const label = row => row.querySelectorAll(n => n.localName === 'label')[0];
+  try {
+    await React.act(() => root.render(React.createElement(HistoryPanel, {host: {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, nativeHistory: {listPage: {data: []}, threads: [
+      {native: {id: 'stored-A', name: 'Stored title', model: 'stored-model', modelProvider: 'stored-provider', status: {type: 'idle'}}},
+      {native: {id: 'stored-B', name: 'Other title', status: {type: 'idle'}}}]}}, refresh: noop, threadKey: '', setThreadKey: () => {}, captureContinueContext: () => {}})));
+    const stored = choiceList(c, 'Stored conversation');
+    const a = rowOf(stored, 'stored-A'), b = rowOf(stored, 'stored-B');
+    assert.ok(boxes(a).includes('Model: stored-model') && boxes(a).includes('Provider: stored-provider'), boxes(a).join(' | '));
+    assert.doesNotMatch(label(a).textContent, /stored-model|stored-provider/, 'outside the label');
+    assert.match(b.textContent, /model not reported/); assert.match(b.textContent, /provider not reported/);
+    const thread = {generation: g, threadId: 'T-current', model: 'current-model', modelProvider: 'current-provider'};
+    await React.act(() => root.render(React.createElement(ConversationPanel, {host: {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, threads: [thread]}, threadKey: '', setThreadKey: () => {}, answer: noop, runAct: noop, send: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false})));
+    const current = rowOf(choiceList(c, 'Current-generation conversation'), JSON.stringify([g, 'T-current']));
+    assert.ok(boxes(current).includes('Model: current-model') && boxes(current).includes('Provider: current-provider'), boxes(current).join(' | '));
+    assert.doesNotMatch(label(current).textContent, /current-model|current-provider/);
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
+});

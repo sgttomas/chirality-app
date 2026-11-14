@@ -468,8 +468,9 @@ test('controls rule: a control, heading or naming attribute on any other view ho
   fails('const x = <a>{tagged`words`}</a>;', 'a tagged template');
 });
 
-// Conversation choices (ConversationChoices, AgentText.tsx): radio buttons named by the App's words alone; the title,
-// model and provider beside, boxed; the accessible description carries supplied text after the App's attribution.
+// Conversation choices (ConversationChoices, AgentText.tsx): each radio button's label holds the App's words, then the
+// title marked inside the label; the attribution is said once per list and, in each name, before the title; the model
+// and provider stand beside, boxed, and reach the control only as its description, after the App's attribution.
 // Invented identities and titles only.
 const choices = loadSrc('AgentText');
 const {threadChoices, storedRelation} = loadSrc('presentation');

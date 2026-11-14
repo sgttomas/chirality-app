@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
-import { AgentText, idWords, plainId } from "./AgentText";
+import { AgentText, SuppliedId, idWords, plainId } from "./AgentText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -9,6 +9,8 @@ const text = (value: Json): string => value === null || value === undefined ? ""
  * entry requires the reported built-in `openai` provider). */
 export const BUILT_IN_PROVIDER = "openai";
 export const CLOUD_ENTRIES = ["chatgpt-account"];
+/** The built-in route's control, in the App's words. */
+const BUILT_IN_ROUTE_LABEL = "Use my ChatGPT account (built-in OpenAI)";
 /** The entries that reach a local model server (LocalProviderAccess LOCAL_ENTRY is the keyed one). */
 export const LOCAL_ENTRIES = ["local-provider", "local-provider-keyed"];
 const LOCAL_HOME = "local-provider";
@@ -44,11 +46,11 @@ export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "
   choose: (route: { modelProvider: string; entryId: string; model?: string }) => void; localHint?: string;
   local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
 }) {
-  const builtIn = homeClass === "account" ? { entryId: "chatgpt-account", label: "Use my ChatGPT account (built-in OpenAI)" } : null;
+  const builtIn = homeClass === "account" ? { entryId: "chatgpt-account" } : null;
   const chosen = builtIn && modelProvider === BUILT_IN_PROVIDER && entryId === builtIn.entryId;
   const localChosen = !!local && entryId === local.entryId && modelProvider === local.providerId && model === local.model;
   return <div aria-label="How this conversation connects">
-    {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
+    {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{BUILT_IN_ROUTE_LABEL}</button>{chosen ? " — chosen" : ""}</p>
       : homeClass === "local-provider" ? (local
         ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use the oMLX model shown</button>{localChosen ? " — chosen" : ""} <AgentText value={local.model} source="record" label="Model:" />
           <br/><small>Local server <code>{local.endpoint}</code>; the key stays with Codex in the local home.</small>
@@ -100,10 +102,12 @@ export function AvailableModels({ packet, current, reading, message, model, mode
         : match === "none" ? <p role="note">This list isn't for this conversation's provider (<code>{modelProvider}</code>{server ? <>; the list is for <code>{server}</code></> : ""}). Enter a model ID under “Advanced: enter a model ID yourself”.</p>
         : match === "unconfirmed" ? <p role="note">Codex's configuration doesn't name its provider, so the App can't confirm these models are for the built-in OpenAI route. You can still choose one. Start re-checks that the built-in OpenAI route is configured; it doesn't confirm this model is offered on it — if it isn't, Codex reports an error when the conversation starts or its first turn runs.</p> : null}
       {rows.length === 0 ? <p>{packet.complete ? "Codex reported no models." : "No models could be read."}</p>
-        : <ul aria-label="Models Codex reports">{rows.map((row: Json) => <li key={row.id}>
-          <strong>{text(row.displayName)}</strong> <code>{text(row.model)}</code>{row.isDefault ? " · Codex's default" : ""}{row.model === model ? " · chosen" : ""}
-          {row.description && <><br/><small>{text(row.description)}</small></>}
-          {match !== "none" && row.model !== model && <><br/><button disabled={disabled} onClick={() => choose(row)}>{match === "confirmed" ? `Use ${text(row.displayName)}` : `Use ${text(row.displayName)} (provider not confirmed)`}</button></>}
+        : <ul aria-label="Models Codex reports">{rows.map((row: Json, i: number) => <li key={row.id}>
+          {/* The control is named by the App's words: the model's plain ID, else its place in this list. Codex's
+              display name and description stand beside it, boxed. */}
+          Model {i + 1}: <AgentText value={row.displayName} source="codex" label="Model name:" name="The model's name as Codex reports it, not the App's words" /> <SuppliedId value={row.model} label="Model ID:" name="The model ID as Codex reports it, not the App's words" />{row.isDefault ? " · Codex's default" : ""}{row.model === model ? " · chosen" : ""}
+          {row.description && <><br/><small><AgentText value={row.description} source="codex" label="Codex's description:" name="The model's description as Codex reports it, not the App's words" /></small></>}
+          {match !== "none" && row.model !== model && <><br/><button disabled={disabled} onClick={() => choose(row)}>{match === "confirmed" ? `Use model ${plainId(row.model) ?? `${i + 1}`}` : `Use model ${plainId(row.model) ?? `${i + 1}`} (provider not confirmed)`}</button></>}
         </li>)}</ul>}
       {!packet.complete && <p role="note">The list may be incomplete: {list(packet.limits).map(text).join("; ")}.</p>}
       {packet.complete && list(packet.limits).length > 0 && <p role="note"><small>{list(packet.limits).map(text).join("; ")}.</small></p>}
@@ -231,7 +235,7 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
     <button disabled={disabled || reading || !owner} onClick={() => { void read(); }}>Read effort choices for this model</button>
     {reading && <p role="status">Reading model effort choices…</p>}
     {current?.message && <p role="alert">{current.message}</p>}
-    <p><label>Reasoning effort for {row?.displayName || (model ? plainId(model) ?? "the chosen model" : "the current conversation model")}{" "}
+    <p><label>Reasoning effort for {model ? (plainId(model) ? `model ${plainId(model)}` : "the chosen model") : "the current conversation model"}{" "}
       <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => {
         const value = event.target.value;
         if (live() && current && resultRef.current === current && current.sequence === sequence.current && !pending.current
@@ -240,7 +244,7 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
         <option value="">Use current Codex setting</option>
         {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{idWords(effort)} · selected</option>}
         {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{idWords(option.reasoningEffort)}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}</option>)}
-      </select></label></p>
+      </select></label>{row?.displayName ? <>{" "}<AgentText value={row.displayName} source="codex" label="Model name:" name="The model's name as Codex reports it, not the App's words" /></> : null}</p>
     {/* Codex's description of each effort stands beside the list, boxed: an option cannot hold a box. */}
     {options.some(option => option.description) && <ul aria-label="What Codex says each effort does">{options.filter(option => option.description).map(option => <li key={option.reasoningEffort}>{idWords(option.reasoningEffort)}: <AgentText value={option.description} source="codex" /></li>)}</ul>}
     {current?.packet && !row && <p>No effort choices could be matched to this model and provider. Choose an explicit model ID or read the choices again.</p>}

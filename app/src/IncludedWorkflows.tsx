@@ -1,4 +1,4 @@
-import { safeName, idWords, numberWords } from "./AgentText";
+import { safeName, idWords, numberWords, wordOf } from "./AgentText";
 import { useState, type ReactNode } from "react";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -19,6 +19,14 @@ const byPlace = (a: Json, b: Json) => tierRank(a) - tierRank(b) || orderOf(a) - 
  * then the ones it marks superseded. Each heading says only what the index
  * says; nothing here is the App's judgment of a workflow or advice to use one.
  */
+/** The Library's workflow groups in the edition the App ships (resources/production_workflows/MANIFEST.json), as the
+ * App's own table: a section is named from it only when an entry's group key and label are both in it. Any other
+ * group is shown under "Other workflows", so a section heading holds only the App's words. */
+export const LIBRARY_GROUPS = {
+  "plan-organize": "Plan & organize", "research-understand": "Research & understand", "extract-documents": "Extract from documents",
+  "build-maintain-software": "Build & maintain software", "estimate-cost": "Estimate & cost", "review-check": "Review & check",
+  "manage-changes": "Manage changes", "author-publish": "Author & publish",
+} as const;
 export function includedSections(entries: Json[]): Section[] {
   const sections = new Map<string, Section>();
   const place = (key: string, label: string, order: number, entry: Json) => {
@@ -30,7 +38,7 @@ export function includedSections(entries: Json[]): Section[] {
     const group = navigation.group;
     if (navigation.category === "superseded") place(REPLACED, "Marked superseded by the Library", Number.MAX_SAFE_INTEGER, entry);
     else if (navigation.category === "core") place(START, "The Library's core workflows", -1, entry);
-    else if (group && typeof group.key === "string" && typeof group.label === "string") place(`group:${group.key}`, group.label, Number.isFinite(group.order) ? group.order : Number.MAX_SAFE_INTEGER - 2, entry);
+    else if (group && wordOf(LIBRARY_GROUPS, group.key) !== null && wordOf(LIBRARY_GROUPS, group.key) === group.label) place(`group:${group.key}`, wordOf(LIBRARY_GROUPS, group.key) ?? "", Number.isFinite(group.order) ? group.order : Number.MAX_SAFE_INTEGER - 2, entry);
     else place(OTHER, "Other workflows", Number.MAX_SAFE_INTEGER - 1, entry);
   }
   return [...sections.values()].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label)).map(section => ({ ...section, entries: [...section.entries].sort(byPlace) }));

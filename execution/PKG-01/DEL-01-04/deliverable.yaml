@@ -124,6 +124,7 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
+- app/src/presentation.ts
 # Every value the App did not write, drawn as the agent's (cards and the activity stream).
 - app/src/AgentText.tsx
 # "Waiting on you": one list, on every view, of the records waiting on the person in the

@@ -202,7 +202,7 @@ export function conversationLabel(host: Json, row: Json): string {
 }
 
 /** A conversation's title as Codex supplied it: its name, else its first message (a blank one is skipped). Shown
- * only boxed (AgentText, ConversationChoices). */
+ * only marked: boxed by AgentText, or marked inside a choice's label after the App's words by ConversationChoices. */
 export const suppliedTitle = (row: Json): string | null => [row?.name, row?.preview].find(value => typeof value === "string" && value.trim() !== "") ?? null;
 
 /** The App's started conversations (the host's thread rows) offered as choices (ConversationChoices): model and

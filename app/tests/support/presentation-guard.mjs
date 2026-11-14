@@ -340,9 +340,19 @@ export function findings(name, text, mode = 'page') {
   const page = mode === 'page';
   const {sf, checker} = parsed(name, text);
   const context = {name, sf, checker, seen: new Set()};
-  const out = [];
+  let out = [];
   const at = node => sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
   const record = (node, where, extra = {}) => out.push({line: at(node), where, expr: normal(node.getText()), component: enclosingName(node), node, context, ...extra});
+  // JSX that a same-file function returns, or a const holds, drawn inside a control or a heading: judged again here,
+  // with that control's context, however and wherever else it is used. Only what the control context adds is kept
+  // (what the control draws, and a component inside it); the rest is judged where the JSX is written.
+  const judgeInside = (node, inside) => {
+    const saved = out; out = [];
+    try { visit(node, inside); } finally {
+      const found = out; out = saved;
+      for (const f of found) if (f.forbidden ? false : (!page && f.where.startsWith('<') && !f.rule) || f.where.includes(' inside <')) out.push(f);
+    }
+  };
 
   // What a child expression can draw: its JSX parts are elements, visited where written; the rest is judged.
   const drawn = (expr, sink = record, inside = null) => {
@@ -361,13 +371,16 @@ export function findings(name, text, mode = 'page') {
       const fn = unwrap(expr.arguments[0]);
       if (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) { for (const r of returnsOf(fn)) if (r) again(r); return; }
     }
-    // A same-file function drawn by call: each value it returns is drawn (its JSX is visited where written).
+    // A same-file function drawn by call: each value it returns is drawn. Its JSX is visited where written, and,
+    // when the call is inside a control or a heading, judged again with that control's context (judgeInside). A call
+    // the guard cannot follow (an imported helper that is not trusted, a method, a call through a variable) is not
+    // App-made, so it fails below.
     if (ts.isCallExpression(expr) && ts.isIdentifier(unwrap(expr.expression))) {
       // Judged at the call: it fails here when anything it returns would fail.
       const fn = functionOf(unwrap(expr.expression), context);
       if (fn) {
         let failed = false;
-        const ok = guarded(context, fn, () => { returnsOf(fn).forEach(r => { if (r) drawn(r, () => { failed = true; }, inside); }); return true; });
+        const ok = guarded(context, fn, () => { returnsOf(fn).forEach(r => { if (!r) return; if (inside && hasJsx(r)) judgeInside(r, inside); drawn(r, () => { failed = true; }, inside); }); return true; });
         if (ok && !failed) return;
         return sink(expr, where);
       }
@@ -375,11 +388,12 @@ export function findings(name, text, mode = 'page') {
     if (ts.isIdentifier(expr)) {
       const declaration = declarationOf(expr, context);
       // A component's children, or a prop declared as ReactNode, is drawn where its caller writes it, and judged
-      // there when the caller is a guarded view (a caller elsewhere is outside this boundary).
-      if (declaration && ts.isBindingElement(declaration) && nodeProp(declaration)) return;
+      // there when the caller is a guarded view (a caller elsewhere is outside this boundary). Drawn inside a control
+      // or a heading it fails: its callers write it outside that control, where the control's context is not seen.
+      if (declaration && ts.isBindingElement(declaration) && nodeProp(declaration)) { if (inside) record(expr, `children or a ReactNode prop inside <${inside}>`, {rule: true}); return; }
       // A const is drawn as its own value.
       if (declaration && isConst(declaration) && declaration.initializer && hasJsx(declaration.initializer)) {
-        if (guarded(context, declaration, () => (again(declaration.initializer), true))) return;
+        if (guarded(context, declaration, () => { if (inside) judgeInside(declaration.initializer, inside); again(declaration.initializer); return true; })) return;
       }
     }
     if (!appMade(expr, context)) sink(expr, where);

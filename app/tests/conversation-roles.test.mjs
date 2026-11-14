@@ -188,6 +188,9 @@ test('Continue as: an editable unsent draft, no model chosen, nothing sent until
   assert.ok(html.includes('it keeps its role'));
   assert.ok(html.includes('The new conversation starts with no model selected; choose how it connects and its model.')&&html.includes('Not started — no model selected.'));
   assert.ok(/<button disabled="">Start new conversation as WORKING_ITEMS<\/button>/.test(html),'no start without a model');
+  const noRole=h(ContinueAsPanel,{handoff:{...handoff,targetRole:null},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
+  assert.ok(/<button disabled="">Start new conversation as no role<\/button>/.test(noRole),'continuing as no role says so on its Start button');
+  assert.ok(/<h3>Continue as no role from conversation thread<\/h3>/.test(noRole),'as the heading does');
   assert.ok(!html.includes('Send this message'),'nothing can be sent before the new conversation exists');
   const started=h(ContinueAsPanel,{handoff:{...handoff,started:{threadId:'thread-2',generation:g}},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
   assert.ok(started.includes('New conversation thread-2 started with WORKING_ITEMS. Nothing has been sent to it.'));
