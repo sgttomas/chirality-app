@@ -101,16 +101,22 @@ rendered state, primary-turn completion from active descendants, and request
 settlement from received acknowledgment. An unavailable outcome stays
 unknown rather than being reconstructed as success.
 
-**V4-EXM-12 Account and oMLX/local model access.** With ChatGPT account and
-oMLX/local access configured together, the person runs one conversation with
-each and switches between them, preserving the other configuration. Examine
-the local credential requirement and Codex custody in the adopted dedicated
-local home separately from account sign-in. Standalone OpenAI API-key access
-and its qualification commitment are omitted from this increment; historical
-API-key fixtures retain their subjects and supply no current pass.
-*Verifies* V4-APP-02. The adopted authentication design and anonymous-provider
-fixtures do not establish keyed oMLX implementation or actual compatibility;
-candidate-bound use remains owed.
+**V4-EXM-12 ChatGPT account access.** The person signs in with their ChatGPT
+account and the App shows the account Codex reports; a new conversation shows
+no model selected until the person chooses; a conversation runs with the
+account; and no credential appears in any record or log the App wrote. Standalone OpenAI API-key access and its
+qualification commitment are omitted from this increment; historical API-key
+fixtures retain their subjects and supply no current pass.
+*Verifies* V4-APP-02. The steps with a local model server (ChatGPT account and
+oMLX/local access configured together, one conversation with each and a switch
+between them preserving the other configuration, and the local credential's
+custody by Codex in the dedicated local home, examined separately from account
+sign-in) are out of 4.0.0 by the owner's decision of 14 November 2026, which
+the [release target](RELEASE_TARGET_4.0.0.md) quotes, and stay defined for the
+later update that brings local model providers back. For those steps the
+adopted authentication design and anonymous-provider fixtures do not establish
+keyed oMLX implementation or actual compatibility; candidate-bound use remains
+owed.
 
 **V4-EXM-13 Coordinating an agent fleet.** The person delegates two bounded
 pieces of work with briefs, follows them on the undertaking's work graph,

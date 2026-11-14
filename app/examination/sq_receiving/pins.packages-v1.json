@@ -24,7 +24,7 @@
     "app/examination/support_identity/publication-declaration.v1.json": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
     "app/examination/sq_receiving/sq_dossier_rules.py": "af18fcb8f71222819f77ca2a0e47f658bc4db3029c781ea2b3f1d1ac3f47529a",
     "app/examination/sq_receiving/sq.dossier.schema.json": "4d2819cb23a8069b01693c330a0092f84f0f838ac7c31c676f196e4acdacb671",
-    "app/examination/sq_receiving/sq.step-map.json": "ee3f9f43c5d76457bfbb2ada81043259ec9ea22c5391d95ee21b41876bc7be78",
+    "app/examination/sq_receiving/sq.step-map.json": "a17b8e210e9e1e3198f356b5c559426b8cc3bda29a4e552d2124816e9f5d2636",
     "app/packaging/static_distribution/check.py": "745ef83c395c89c61ed87e3536129a7399f50565b5281caf93192462916e673a",
     "app/packaging/static_distribution/sources.json": "e419a89fbc5456e0aa2ad66c33b950d77e9e2a600ea58dd9835a1961a2a9a7dc",
     "app/packaging/successor/check.py": "368c0f556cba998c970148c4a7ad31ddd558aae621e190036a2cfd322d243ba3",
@@ -61,7 +61,7 @@
   },
   "predecessor": {
     "path": "app/examination/sq_receiving/pins.terms-v1.json",
-    "sha256": "09e0a707bc3f83898812a07b4f9698451cc891e3165dc5a2ca93b8573eabf1fb"
+    "sha256": "e3e50a453b8974ad1892e473df1fdba4b67b50c9c2e62919339a0cb0a6748a9c"
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",

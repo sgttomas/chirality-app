@@ -42,6 +42,19 @@
    "replay_counterpart": "A recording, captured with HOSTING §9.1's method on the candidate's pin before RUN-A, in X-09's form with this condition in it: an answer written to a server request and the process ended before any acknowledgment arrives; replayed on the supplier double with X-10's recovery read. RECOVERY VC-R-04's stub run is not the counterpart (its frames are constructed, not recorded). Owner and point of need: U-SQ-6"
   }
  ],
+ "out_of_release": {
+  "V4-EXM-12": {
+   "steps": [
+    "M12-2",
+    "M12-3",
+    "M12-5"
+   ],
+   "release": "4.0.0",
+   "decided": "2026-11-14",
+   "by": "the owner",
+   "stated_in": "docs/RELEASE_TARGET_4.0.0.md"
+  }
+ },
  "scenarios": {
   "V4-EXM-10": [
    {

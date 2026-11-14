@@ -24,6 +24,6 @@
     "app/examination/support_identity/publication-declaration.v1.json": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
     "app/examination/sq_receiving/sq_dossier_rules.py": "af18fcb8f71222819f77ca2a0e47f658bc4db3029c781ea2b3f1d1ac3f47529a",
     "app/examination/sq_receiving/sq.dossier.schema.json": "4d2819cb23a8069b01693c330a0092f84f0f838ac7c31c676f196e4acdacb671",
-    "app/examination/sq_receiving/sq.step-map.json": "ee3f9f43c5d76457bfbb2ada81043259ec9ea22c5391d95ee21b41876bc7be78"
+    "app/examination/sq_receiving/sq.step-map.json": "a17b8e210e9e1e3198f356b5c559426b8cc3bda29a4e552d2124816e9f5d2636"
   }
 }

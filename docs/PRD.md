@@ -107,12 +107,17 @@ embedding interface, with native sign-in (D-19; [architecture](ARCHITECTURE.md))
   and plan revision, substantive tool use, approvals and questions,
   delegation to subagents, interruption, and continuation after restart.
 - **V4-APP-02** The App offers sign-in with the user's Codex (ChatGPT)
-  account and oMLX/local model providers, configured together and chosen per
-  conversation without a default (D-06; current owner scope correction).
-  Standalone OpenAI API-key access and its qualification commitment are omitted
-  from this increment; existing native plumbing and saved homes are retained.
-  Local-provider credentials remain required; the keyed local-provider route,
-  its pending implementation and unestablished oMLX compatibility are owned by
+  account, chosen for each conversation without a default (D-06; current
+  owner scope correction). Standalone OpenAI API-key access and its
+  qualification commitment are omitted from this increment; existing native
+  plumbing and saved homes are retained. oMLX/local model providers are
+  deferred to a later update by the owner's decision of 14 November 2026:
+  "For v4 I'm really focused on the Codex path. To simplify this I can forego
+  the local model entirely for 4.0.0 and it can come in a later update." When
+  they return they are configured together with the account and chosen per
+  conversation without a default, and local-provider credentials remain
+  required; the keyed local-provider route and its unestablished oMLX
+  compatibility are owned by
   [DEL-01-05](../execution/PKG-01/DEL-01-05/ScopeOfWork.md).
 - **V4-APP-03** The App offers HELP_HUMAN, HELPS_HUMANS and WORKING_ITEMS as
   the conversation roles a person can choose among, or no role (D-10). TASK

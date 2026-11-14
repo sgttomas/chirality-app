@@ -11,7 +11,7 @@ package_objective_refs: [OBJ-002, OBJ-004]
 
 ## Purpose and Objective Traceability
 
-This deliverable gives the person their model. Through Codex's own account and provider methods the App lets the person sign in with their ChatGPT account, use a local model server, keep both configured together, and choose between them for each conversation, with nothing chosen for them. Credentials stay with Codex. The App also shows and records what its Codex connects to at start-up, and turns off what Codex's settings allow.
+This deliverable gives the person their model. Through Codex's own account and provider methods the App lets the person sign in with their ChatGPT account, use a local model server, keep both configured together, and choose between them for each conversation, with nothing chosen for them. In 4.0.0 the App offers the ChatGPT account only (see For 4.0.0). Credentials stay with Codex. The App also shows and records what its Codex connects to at start-up, and turns off what Codex's settings allow.
 
 It is the BACKEND_FEATURE_SLICE `DEL-01-05` of PKG-01 in the accepted decomposition, serving OBJ-002 (user-selectable Codex access) and OBJ-004 (qualified provider interfaces and the local-server requirements a host receives).
 
@@ -26,7 +26,42 @@ It is the BACKEND_FEATURE_SLICE `DEL-01-05` of PKG-01 in the accepted decomposit
 | SOW-149 | Account, provider and local-server interfaces qualified against the pin; the embedding protocol is `DEL-01-01`'s share | ARCHITECTURE §6 |
 | SOW-150 | A compliant local server can be substituted | ARCHITECTURE §6 |
 
-Its examination scenario is EXAMINATION V4-EXM-12. The access modes are two, as PRD V4-APP-02 has them: ChatGPT account and local provider. The decomposition row and OI-010 record three as accepted history.
+Its examination scenario is EXAMINATION V4-EXM-12. The access modes are two, as PRD V4-APP-02 has them: ChatGPT account and local provider; 4.0.0 offers the ChatGPT account only, as the next section states. The decomposition row and OI-010 record three as accepted history.
+
+## For 4.0.0
+
+The owner decided on 14 November 2026: "For v4 I'm really focused on the Codex path. To simplify this I can forego the local model entirely for 4.0.0 and it can come in a later update."
+
+Every requirement, criterion and verification of this scope, or clause of one, that concerns the local model server, the dedicated local home, both kinds of access configured together, or switching between them, is not in force for 4.0.0, and 4.0.0 neither meets nor fails it. It stays written for the later update that brings the local model server back. The clauses that concern the ChatGPT account, the account home and the probe home stand for 4.0.0 as written.
+
+What 4.0.0 ships, following CLM-002's precedent for API-key access: the App does not present the local route at all, neither its settings, its access entry nor the entry of its key; its host commands for the local route refuse in this release with a plain reason; and its code, and any dedicated local home made by an earlier build, are kept, neither offered nor deleted.
+
+The items affected, by identifier. An item not listed stands as written. Rows of the Output and Evaluation Matrix follow their items.
+
+- **OUT-002** — Not in force: "Local model server access and its settings". The rest stands.
+- **OUT-003** — Not in force: "the dedicated local home". The rest stands.
+- **OUT-004** — Not in force: "and local-server" in "the account, provider and local-server interfaces", and "the substitution of a compliant local server, and the local-server capability requirements handed to the host loop contract". Stands: "Qualification of the account, provider […] interfaces on an identified candidate".
+- **Terms** — "Dedicated local home" and "Local model settings" stay defined for the later update and name nothing 4.0.0 presents. In "Access entry", the words "or the local model server, in the dedicated local home" are not in force; in 4.0.0 the one access entry is the ChatGPT account, in the account home.
+- **REQ-003** — Not in force, except two passages that stand: "an address the person's own Codex settings give the built-in provider stays in effect in the account home like their other settings"; and "A local provider defined in the person's own Codex settings is not offered for a conversation: the App says that it cannot run one in the account home", where the closing words "and where local servers are set up" are not in force.
+- **REQ-004** — Not in force: "keep ChatGPT account and local access configured together and" and the sentence "Choosing one leaves the other configured." Stands: "The person can […] choose the access entry for each conversation", and every sentence from "No access entry or model is applied to a new conversation until the person chooses" to the end.
+- **REQ-005** — Not in force: "the dedicated local home shares nothing with the account home;". The rest stands.
+- **REQ-007** — Not in force: "and local-server" in its first sentence, and the whole second sentence, "A compliant local server can be substituted through the local model settings and runs the intended conversation." Stands: "The account, provider […] interfaces are qualified against the pin on an identified candidate, naming the server, the interface and the observed result, with failures and unverified capabilities stated."
+- **REQ-008** — Not in force.
+- **REQ-010** — Not in force: "and is always off in the dedicated local home". "analytics is off in both homes" stands for the account home. The rest stands.
+- **AC-003** — Not in force, except its final clause, which stands: "a local provider defined in the person's own Codex settings is not offered for a conversation".
+- **AC-004** — Not in force: "With both kinds of access configured, the person runs one conversation with each and switches between them with the other still configured;". Stands: "a new conversation has no model until the person chooses; an offered last choice is not applied without the person's act; both not-started wordings appear where they apply; and for each conversation the reported selection state names no model, or the selected model and provider, and the last explicit choice for the project, and agrees with the provider Codex reports."
+- **AC-005** — Not in force: the sentence "The dedicated local home shows none of the account home's settings or sign-in." The rest stands, including the account home's behaviour "with a local provider named as the default in the person's settings".
+- **AC-008** — Not in force.
+- **AC-009** — Not in force.
+- **AC-011** — Not in force: "and in the dedicated local home it is absent with either". The rest stands.
+- **Praxeology, opening paragraph** — Not in force: "a local conversation and substitution". Stands: "sign-in […] need[s] the actual candidate, an actual account […] and the person's own act".
+- **VER-003** — Not in force, except: "Read the access entries offered with a local provider defined in the person's Codex settings." and "No credential is reproduced in the evidence.", which stand.
+- **VER-004** — Stands, with EXAMINATION V4-EXM-12 in its 4.0.0 form.
+- **VER-005** — Not in force: "read the dedicated local home;". The rest stands; "sign in and out on each side" means the account home and the person's own Codex.
+- **VER-008** — Not in force.
+- **VER-009** — Not in force.
+- **VER-011** — "in each home" means the account home only. The rest stands.
+- **AX-003** — Has no occasion in 4.0.0 and stands for the later update.
 
 ## Deliverable Definition — Ontology
 
