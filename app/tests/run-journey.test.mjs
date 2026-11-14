@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 
 // J1 guided path over the workflow studio's existing state and commands.
 // Controlled host views only: no native App, supplier, model or person act.
@@ -112,7 +113,7 @@ test('an existing registered workflow is found, chosen for a conversation and pr
   assert.equal(props(button(ui.c, 'Use resolve-spacing')).disabled, true, 'a selection needs the conversation that keeps it');
   assert.equal(button(ui.c, 'Use old-method'), undefined, 'a non-selectable revision offers no Use');
   assert.match(region(ui.c, 'Workflows ready to use').textContent, /store copy missing/);
-  const select = all(ui.c, 'select')[0]; await React.act(async () => props(select).onChange({target:{value:'T1'}}));
+  const select = choiceLists(ui.c)[0]; await React.act(async () => chooseIn(select, 'T1'));
   await ui.press('Use resolve-spacing');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_listed', args:{libraryRef:'lib:project', name:'resolve-spacing', revision:'rev-2-abcdef0123456789'}});
   await ui.rerender({data:data({selections:selected()})});
@@ -196,7 +197,7 @@ test('a stale workflow source disables every guide command', async () => {
   await clickAll(labels);
   await ui.rerender({host:stale, data:data({selections:selected(), runs:[prepared]})}); await clickAll(['Start the run']);
   await ui.rerender({host:stale, data:data({selections:selected(), runs:[open], offers:[{message:{threadId:'T1'}, finished:{run:'run-o', statement:'s'}}]})}); await clickAll(['End this run', 'End as completed, on the agent\'s report']);
-  assert.equal(props(all(ui.c, 'select')[0]).disabled, true, 'the conversation choice follows the same guard');
+  assert.equal(props(choiceLists(ui.c)[0]).disabled, true, 'the conversation choice follows the same guard');
   assert.deepEqual(ui.calls, [], 'a retained click on a stale control dispatches nothing');
 });
 

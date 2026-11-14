@@ -293,7 +293,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     {readFailure && <p role="alert" aria-label="Last status read failed">The App's last read of its state failed ({readFailure}). What is shown here was read before that.</p>}
     <ol className="run-journey-steps">
       <li><h3>Where you did the work</h3>
-        {conversations.length ? <ConversationChoices legend="Conversation with the work" group="make-conversation" chosen={conversation} disabled={!canAct} onChoose={setConversation}
+        {conversations.length ? <ConversationChoices legend="Conversation with the work" group="make-conversation" chosen={conversation} disabled={!canAct} onChoose={setConversation} none="No conversation chosen"
           value={threadChoices(conversations, (row: Json) => JSON.stringify([row.generation, row.threadId]))} /> : <p>No conversation in this session yet. <a href="#workspace-start">Start one</a> and do the work there first.</p>}
         {chosen && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{chosen.threadId}</code></details>}
       </li>

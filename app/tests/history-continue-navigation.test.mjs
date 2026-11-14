@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {choiceList, choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
@@ -78,8 +79,8 @@ async function mounted(options,check){
   unexpected.push({command,args});throw Error(`Unexpected original command: ${command}`);
  });
  const track=call=>{if(call?.then){actions.add(call);call.then(()=>actions.delete(call),()=>actions.delete(call));}};
- const selected=()=>props(elements(conversation(c),'select')[0]).value;
- const change=async(e,value)=>React.act(()=>{if(e===labelled(c,'select','Stored conversation '))selects++;track(props(e).onChange({target:{value}}));});
+ const selected=()=>chosenIn(choiceLists(conversation(c))[0]);
+ const change=async(e,value)=>React.act(()=>{if(e===choiceList(c,'Stored conversation'))selects++;track(e.localName==='fieldset'?chooseIn(e,value):props(e).onChange({target:{value}}));});
  const press=async label=>React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Start thread')starts++;if(label==='Use account home')homes++;track(props(e).onClick());});
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  const routeChosen=()=>{const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
@@ -87,9 +88,9 @@ async function mounted(options,check){
  const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  const context=()=>conversation(c).querySelectorAll(e=>e.getAttribute('aria-label')==='Prior work in continued conversation')[0];
  try{
-  await React.act(async()=>root.render(React.createElement(App)));await change(elements(conversation(c),'select')[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
-  await change(labelled(c,'select','Stored conversation '),'stored');for(let n=0;n<(options.metadataReads??1);n++)await press('Read metadata');assert.equal(selected(),key('existing'));assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,0);
-  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},failStatus:()=>{fail=true;},failSelect:failure=>{selectFailure=failure;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>elements(conversation(c),'select')[0],browser:()=>labelled(c,'select','Stored conversation ')});
+  await React.act(async()=>root.render(React.createElement(App)));await change(choiceLists(conversation(c))[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
+  await change(choiceList(c,'Stored conversation'),'stored');for(let n=0;n<(options.metadataReads??1);n++)await press('Read metadata');assert.equal(selected(),key('existing'));assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,0);
+  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},failStatus:()=>{fail=true;},failSelect:failure=>{selectFailure=failure;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>choiceLists(conversation(c))[0],browser:()=>choiceList(c,'Stored conversation')});
   assert.deepEqual(unexpected,[]);assert.equal(calls.filter(x=>x.command==='thread_start').length,starts,'only explicit Start presses');assert.equal(calls.filter(x=>x.command==='select_home').length,homes);assert.equal(calls.filter(x=>x.command==='history_select').length,selects);
   assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,1,'one original explicit Continue, never a retry on read');
   assert.equal(props(elements(conversation(c),'textarea')[0]).value,draft,'Continue never clears or replaces the unsent draft');
@@ -195,7 +196,9 @@ test('home away-and-back intent cancels Continue despite identical final source/
  const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.deepEqual(ui.values(),choice);});
 });
 for(const change of ['closure','generation','epoch','query'])test(`pending Continue is cancelled by original ${change} replacement`,async()=>{
- const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');if(change==='closure'){ui.account.state='exited';ui.account.generationClosed=true;}if(change==='generation')ui.account.generation={...g,spawnCounter:2};if(change==='epoch')ui.account.nativeHistory.selectionEpoch=2;if(change==='query')ui.account.nativeHistory.selected.streamResolutions['thread-state']={query:{...query,query_id:4},revision:3,outcome:'native-result-observed'};await ui.poll();await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);});
+ const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');if(change==='closure'){ui.account.state='exited';ui.account.generationClosed=true;}if(change==='generation')ui.account.generation={...g,spawnCounter:2};if(change==='epoch')ui.account.nativeHistory.selectionEpoch=2;if(change==='query')ui.account.nativeHistory.selected.streamResolutions['thread-state']={query:{...query,query_id:4},revision:3,outcome:'native-result-observed'};await ui.poll();await React.act(async()=>{commandGate.resolve();});
+  // A replaced generation no longer offers the kept choice, so no radio button shows it; the App says it is kept and unavailable.
+  if(change==='generation'){assert.equal(ui.selected(),'');assert.match(ui.c.querySelectorAll(n=>n.getAttribute('id')==='conversation')[0].textContent,/Selected conversation is no longer available in this generation/);}else assert.equal(ui.selected(),key('existing'));assert.equal(ui.context(),undefined);});
 });
 test('new browser selection cancels pending navigation without retargeting the original prior context',async()=>{
  await mounted({failObserver:true},async ui=>{await ui.press('Continue selected conversation');ui.recover();await ui.change(ui.browser(),'stored-other');await ui.poll();assert.equal(ui.selected(),key('existing'));assert.equal(ui.account.continuationContexts[0].threadId,'stored');assert.equal(ui.account.continuationContexts[0].resumeRequestRef,ref);assert.equal(ui.context(),undefined);});

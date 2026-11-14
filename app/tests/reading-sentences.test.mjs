@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {loadSrc} from './support/load-src.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
@@ -27,7 +28,7 @@ const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
 const labelled = (c, tag, label) => nodes(c, tag).find(node => node.parentNode.textContent.startsWith(label));
-const change = (node, value) => React.act(() => props(node).onChange({target:{value}}));
+const change = (node, value) => React.act(() => node.localName === 'fieldset' ? chooseIn(node, value) : props(node).onChange({target:{value}}));
 const press = (c, label) => React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); });
 
 test('the web strings equal the Rust constants they stand for', () => {
@@ -234,7 +235,7 @@ async function conversationWriter(operation, commandFails, check) {
   try {
     await React.act(async () => root.render(React.createElement(App)));
     const panel = () => c.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
-    await change(nodes(panel(), 'select')[0], JSON.stringify([g, 'thread-a']));
+    await change(choiceLists(panel())[0], JSON.stringify([g, 'thread-a']));
     // The account start's one route (the built-in provider with the ChatGPT account entry), then its model.
     await tap('Use my ChatGPT account (built-in OpenAI)'); await change(labelled(c, 'input', 'Model '), 'r4-model');
     await tap('Start thread');

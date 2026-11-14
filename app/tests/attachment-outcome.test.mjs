@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import React from 'react';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
@@ -97,7 +98,7 @@ async function mountApp(sample,{refreshFails = false,deferView = false,observerS
     async start() {
       const row = sample.beforeHostStatus.threads.find(row => row.threadId === sample.args.threadId && JSON.stringify(row.generation) === JSON.stringify(sample.args.generation));
       assert.ok(row);
-      await React.act(() => props(nodes(conversation(container),'select')[0]).onChange({target:{value:JSON.stringify([row.generation,row.threadId])}}));
+      await React.act(() => chooseIn(choiceLists(conversation(container))[0],JSON.stringify([row.generation,row.threadId])));
       await React.act(() => props(composer(container)).onChange({target:{value:sample.args.text}}));
       assert.deepEqual(selectionView(container).refs,sample.args.selectionRefs);
       assert.equal(calls.filter(([command]) => command === sample.command).length,0,'mount/select/type has no attachment effect');
@@ -106,7 +107,7 @@ async function mountApp(sample,{refreshFails = false,deferView = false,observerS
       this.actionStart = calls.length;
       await React.act(() => {pending = props(target).onClick();});
       assert.equal(props(composer(container)).value,sample.args.text);
-      for (const control of [composer(container),nodes(conversation(container),'select')[0],button(container,sendLabel),button(container,steerLabel)]) assert.equal(!!props(control).disabled,true);
+      for (const control of [composer(container),choiceLists(conversation(container))[0],button(container,sendLabel),button(container,steerLabel)]) assert.equal(!!props(control).disabled,true);
     },
     async releaseNative() {await React.act(async () => {nativeGate.settled = true;nativeGate.resolve();if (!deferView) this.returned = await pending;});},
     async releaseView() {await React.act(async () => {viewGate.resolve();this.returned = await pending;});},

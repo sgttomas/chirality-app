@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -470,7 +471,7 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
   const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    await React.act(async () => { props(nodes(byId('conversation'), 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
+    await React.act(async () => { chooseIn(choiceLists(byId('conversation'))[0], JSON.stringify([g, 'T1'])); });
     const composer = region(c, 'Bring back composer');
     assert.ok(composer, 'the prepared results composer is in its conversation');
     await React.act(async () => { props(button(composer, 'Send')).onClick(); }); await settle();
@@ -480,8 +481,8 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
     assert.ok(notice, 'the conversation names the unconfirmed send');
     assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*held until you've checked.*Your message: Here is how trial 2 went.*Reported: .*not established/);
     const guide = region(c, 'Make a workflow from your work');
-    await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
-    await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
+    await React.act(async () => { chooseIn(choiceLists(guide)[0], JSON.stringify([g, 'T1'])); });
+    await React.act(async () => { props(nodes(guide, 'input').find(node => node.parentNode.textContent.startsWith('Workflow name'))).onChange({target:{value:'spacing-check'}}); });
     assert.ok(region(c, 'Trial 2 results may have been sent'), 'the guide names it too');
     const bring = nodes(guide, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'));
     assert.equal(!!props(bring).disabled, true, 'no blind second bring-back');
@@ -512,7 +513,7 @@ async function mountBringBacks(initialRoot, handler, check) {
   document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
   const settle = () => React.act(async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); });
   const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
-  const ui = {c, calls, state, settle, select:async id => React.act(async () => { props(nodes(byId('conversation'), 'select')[0]).onChange({target:{value:JSON.stringify([g, id])}}); })};
+  const ui = {c, calls, state, settle, select:async id => React.act(async () => { chooseIn(choiceLists(byId('conversation'))[0], JSON.stringify([g, id])); })};
   try { await React.act(async () => root.render(React.createElement(App))); await check(ui); }
   finally {
     const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
@@ -562,8 +563,8 @@ test('in the App, a retained guide Bring after its preparation was published iss
     throw Error(`unexpected ${command}`);
   }, async ui => {
     const guide = region(ui.c, 'Make a workflow from your work');
-    await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
-    await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
+    await React.act(async () => { chooseIn(choiceLists(guide)[0], JSON.stringify([g, 'T1'])); });
+    await React.act(async () => { props(nodes(guide, 'input').find(node => node.parentNode.textContent.startsWith('Workflow name'))).onChange({target:{value:'spacing-check'}}); });
     const retained = props(nodes(guide, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'))).onClick;
     await React.act(async () => { retained(); }); await ui.settle();
     assert.equal(ui.calls.filter(call => call.command === 'workflow_trial_bring_back').length, 1);

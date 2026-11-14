@@ -8,6 +8,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 import {agentPlain,agentBoxNames} from './support/agent-text.mjs';
+import {choiceList, chooseIn} from './support/choices.mjs';
 
 // Each module is transpiled alone; a local import is served from the modules already loaded.
 const load=(name,local={})=>{
@@ -253,7 +254,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
       async choose(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());},
       async answer(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());await React.act(async()=>props(send()).onClick());},
       async read(){await React.act(async()=>props(button('Read current request state')).onClick());},
-      async selectConversation(threadId){const select=container.querySelectorAll(node=>node.localName==='select'&&node.parentNode.textContent.startsWith('Current-generation conversation '))[0];await React.act(()=>props(select).onChange({target:{value:threadId?JSON.stringify([g,threadId]):''}}));},
+      async selectConversation(threadId){const select=choiceList(container,'Current-generation conversation');await React.act(()=>chooseIn(select,threadId?JSON.stringify([g,threadId]):''));},
       allowRefresh(){refreshUnavailable=false;},replyAs(next){currentOutcome=next;},
       staleSnapshot(){stale=structuredClone(original);},canonicalSnapshot(){stale=null;},
       async swapSource(next){other=next;await React.act(async()=>props(button('Check account status')).onClick());},

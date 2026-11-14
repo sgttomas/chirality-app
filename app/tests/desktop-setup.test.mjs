@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {choiceList, choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
@@ -30,7 +31,7 @@ const region = (c,label)=>c.querySelectorAll(node=>node.getAttribute('aria-label
 const button = (c,label)=>nodes(c,'button').find(node=>node.textContent===label);
 const field = (c,label)=>region(c,label);
 const labelled = (c,tag,label)=>nodes(c,tag).find(node=>node.parentNode.textContent.startsWith(label));
-const change = (node,value)=>React.act(()=>props(node).onChange({target:{value}}));
+const change = (node,value)=>React.act(()=>node.localName==='fieldset'?chooseIn(node,value):props(node).onChange({target:{value}}));
 const press = (c,label)=>React.act(async()=>{ const node=button(c,label); assert.ok(node,label); assert.equal(!!props(node).disabled,false,label); await props(node).onClick(); });
 const textPath = path=>new TextDecoder().decode(new Uint8Array(path.bytes));
 async function explicitInputs(c, project='none') {
@@ -198,18 +199,18 @@ test('setup save in the mounted App preserves operational A, Workflow C, unsent 
     assert.fail(`Unexpected IPC: ${command}`);
   });
   const conversation=()=>c.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0];
-  const choose=id=>change(nodes(conversation(),'select')[0],key(id));
+  const choose=id=>change(choiceLists(conversation())[0],key(id));
   try {
     await React.act(()=>root.render(React.createElement(App)));
     await choose('A');await change(labelled(conversation(),'textarea','Text '),'Global unsent TEXT é / 家');
-    await change(labelled(c,'select','Workflow chat '),'C');await change(labelled(c,'select','Authoring conversation '),key('B'));
+    await change(choiceList(c,'Workflow chat'),'C');await change(choiceList(c,'Authoring conversation'),key('B'));
     await change(labelled(c,'input','Model '),'explicit-model-stays');
     await choose('B');const original=region(c,'Trial composer');assert.ok(original);
-    await change(nodes(original,'textarea')[0],'Edited original B');await change(labelled(original,'select','Send to '),key('D'));
+    await change(nodes(original,'textarea')[0],'Edited original B');await change(choiceList(original,'Send to'),key('D'));
     await choose('A');const setup=region(c,'Desktop setup');
     await change(field(setup,'Desktop setup action'),'retain');await change(field(setup,'Project on next launch'),'chosen');await change(field(setup,'Next project directory'),textPath(packet.retained.project));await press(setup,'Review setup effects');await press(setup,'Save project for next launch');
-    assert.equal(props(nodes(conversation(),'select')[0]).value,key('A'));
-    assert.equal(props(labelled(c,'select','Workflow chat ')).value,'C');assert.equal(props(labelled(c,'select','Authoring conversation ')).value,key('B'));
+    assert.equal(chosenIn(choiceLists(conversation())[0]),key('A'));
+    assert.equal(chosenIn(choiceList(c,'Workflow chat')),'C');assert.equal(chosenIn(choiceList(c,'Authoring conversation')),key('B'));
     assert.equal(props(labelled(conversation(),'textarea','Text ')).value,'Global unsent TEXT é / 家');
     assert.equal(props(labelled(c,'input','Model ')).value,'explicit-model-stays');
     assert.equal(host.currentAppProjectContext.reference,textPath(packet.retained.currentProject));
@@ -217,7 +218,7 @@ test('setup save in the mounted App preserves operational A, Workflow C, unsent 
     assert.match(setup.textContent,/Current launch: saved-request/,'pending save must not replace active source status');
     await press(c,'View prepared message in conversation B');
     assert.equal(region(c,'Trial composer'),original,'same mounted composer owner');
-    assert.equal(props(nodes(original,'textarea')[0]).value,'Edited original B');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
+    assert.equal(props(nodes(original,'textarea')[0]).value,'Edited original B');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));
     assert.ok(calls.every(c=>['host_status','decision_view','native_confirmation_content','desktop_setup_project_preview','desktop_setup_prepare'].includes(c.command)));
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous);assert.equal(timers.size,0); }
