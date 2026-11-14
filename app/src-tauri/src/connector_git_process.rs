@@ -62,8 +62,6 @@ pub struct Engine {
     pub version: String,
     identity: serde_json::Value,
     helper_identity: (u64, u64),
-    /// The Working Files folder it was made in, and as what: removed only as that.
-    made: Option<(crate::working_files::WorkingFiles, crate::working_files::Made)>,
 }
 impl Engine {
     pub fn create(objects: &Path, format: &str, control: &Control) -> Result<Self> {
@@ -80,7 +78,6 @@ impl Engine {
             version: String::new(),
             identity: serde_json::Value::Null,
             helper_identity: (0, 0),
-            made: Some((working, made)),
         };
         {
             use std::os::unix::fs::MetadataExt;
@@ -338,13 +335,7 @@ impl Drop for Engine {
     fn drop(&mut self) {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("connector_git_process::Engine::drop");
-        // What is in the folder made for this engine is removed through the descriptor held
-        // since it was made, never through its name; the folder itself is kept. Anything kept
-        // is reported.
-        if let Some((working, made)) = self.made.take() {
-            for (path, why) in working.empty(&made).kept {
-                eprintln!("chirality: a working folder was kept: {} ({why})", path.display());
-            }
-        }
+        // DEL-01-01, LIM-021: the folder made for this engine is kept with what is in it; this
+        // version removes nothing from the App's Working Files.
     }
 }

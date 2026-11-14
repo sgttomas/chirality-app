@@ -201,7 +201,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
       <p>Launch: {shown.launch.state}. {shown.launch.reason ?? shown.launch.standing}</p>
       <p>App data: {shown.appData ?? shown.appDataProblem ?? "unavailable"}</p>
       <p>Conversations without a project work in: {shown.noProjectFolder ?? "unavailable"}</p>
-      <p>Working files (the version check's folders, the connector's folder and Codex's temporary folders): {shown.workingFiles ?? "unavailable"}{typeof shown.workingFilesKept === "number" ? `. ${shown.workingFilesKept} folders are there now: Chirality empties the folders it makes when it quits, and removes none of them. While Chirality is not running, they can be removed.` : ""}</p>
+      <p>Working files (the version check's folders, the connector's folder and Codex's temporary folders): {shown.workingFiles ?? "unavailable"}{typeof shown.workingFilesKept === "number" ? `. ${shown.workingFilesKept} folders are there now, with what is in them: Chirality removes none of them. While Chirality is not running, they can be removed.` : ""}</p>
       <p>Codex: the copy included with this App ({shown.supplier.path ?? "location unavailable"}). {shown.supplier.standing}</p>
       {!keepAvailable && shown.retainProject?.reason && <p>Keeping an existing sign-in isn't available: {shown.retainProject.reason}</p>}
       {shown.activeResourceProblem && <p>Shared settings could not be checked: {shown.activeResourceProblem}</p>}

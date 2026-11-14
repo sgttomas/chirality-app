@@ -350,8 +350,8 @@ fn connector_git_hostile_configuration_promised_miss_and_transport_sentinels() {
         .unwrap()
         .contains("remote"));
     drop(e);
-    // Emptied through the descriptor held since it was made; the folder itself is kept.
-    assert!(fs::read_dir(&helper).unwrap().next().is_none());
+    // DEL-01-01, LIM-021: the folder made for the engine is kept with what is in it.
+    assert!(helper.join("config").exists());
     assert_eq!(snapshot(&r.root), before);
 }
 #[test]
@@ -599,4 +599,25 @@ fn connector_git_actual_inherited_environment_is_not_authority() {
         .env("GIT_EXEC_PATH","/unavailable-injected-helpers").env("GIT_CONFIG_GLOBAL","/unavailable-injected-config")
         .output().unwrap();
     assert!(output.status.success(),"sanitized child failed: {}",String::from_utf8_lossy(&output.stderr));
+}
+
+/// DEL-01-01, LIM-021: the connector's working folder is kept with what is in it when its
+/// engine ends normally and when the engine is dropped by a panic. Nothing removes it.
+#[test]
+fn the_connectors_working_folder_is_kept_with_its_contents_however_the_engine_ends() {
+    let r = Repo::new("sha1");
+    let a = Association::open(&r.root, Path::new("literal [*].txt"), &Repo::control()).unwrap();
+    let e = Engine::create(&a.objects, "sha1", &Repo::control()).unwrap();
+    let ended = e.helper.clone();
+    drop(e);
+    assert!(ended.join("config").exists() && ended.join("HEAD").exists());
+    let helper = std::sync::Mutex::new(None);
+    let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let e = Engine::create(&a.objects, "sha1", &Repo::control()).unwrap();
+        *helper.lock().unwrap() = Some(e.helper.clone());
+        panic!("invented failure while the engine is in use");
+    }));
+    assert!(panicked.is_err());
+    let helper = helper.into_inner().unwrap().unwrap();
+    assert!(helper.join("config").exists() && helper.join("HEAD").exists());
 }
