@@ -619,9 +619,33 @@ pub(crate) const RECORDING_WAIT_LIMIT: Duration = Duration::from_secs(10);
 /// How long the exit waits, across every home, for a Codex start under way to
 /// let go of its home's source gate so that the home can be fenced.
 pub(crate) const QUIT_FENCE_WAIT_LIMIT: Duration = Duration::from_secs(10);
-/// The person's quit refused because a start under way kept a home unfenced.
-pub(crate) fn start_under_way(class: crate::home_resources::HomeClass) -> String {
-    format!("A Codex start for the {} home is under way and did not finish within {} seconds, so quitting did not begin. The App is still running.", home_name(class), QUIT_FENCE_WAIT_LIMIT.as_secs())
+/// What this quit had done before a refusal at fencing or settlement, from
+/// the phases it completed: the interrupts it asked for (the quit stop
+/// requests), which are not withdrawn. Empty when it asked for none.
+fn interrupts_before(interrupted: usize) -> String {
+    match interrupted {
+        0 => String::new(),
+        1 => "This quit had already asked Codex to interrupt 1 running turn; that request is not withdrawn. ".into(),
+        n => format!("This quit had already asked Codex to interrupt {n} running turns; those requests are not withdrawn. "),
+    }
+}
+/// The person's quit refused at fencing: a home's request gate (which a Codex
+/// start and the App's other requests to that Codex take) was not free within
+/// the bound. It says what the quit had done and what it then did not do; it
+/// does not say what held the gate, which is not established.
+pub(crate) fn gate_not_free(class: crate::home_resources::HomeClass, interrupted: usize) -> String {
+    format!("{}Another App activity held the request gate of Codex for the {} home for {} seconds, so this quit stopped there: it stopped no Codex process and recorded no end of this session. The App is still running.",
+        interrupts_before(interrupted), home_name(class), QUIT_FENCE_WAIT_LIMIT.as_secs())
+}
+/// The person's quit refused at settlement: what this quit had done, which
+/// homes it stopped Codex for before the failure, and that it recorded no end.
+pub(crate) fn settlement_unavailable(interrupted: usize, settled: &[crate::home_resources::HomeClass], failures: &[String]) -> String {
+    let stopped = match settled {
+        [] => String::new(),
+        homes => format!("It stopped Codex for the {} {}. ", homes.iter().map(|class| home_name(*class)).collect::<Vec<_>>().join(" and "), if homes.len() == 1 { "home" } else { "homes" }),
+    };
+    format!("{}{stopped}The App is still running: owned supplier settlement is unavailable ({}). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.",
+        interrupts_before(interrupted), failures.join("; "))
 }
 /// What every notice before the person's quit exits says first: settlement
 /// established that each home's original owned process group is empty.
@@ -709,21 +733,24 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
     // Fence every home before settling any one of them, one deadline for all.
     // Retain these fences through session-end publication and the native exit.
     let fence_by = Instant::now() + QUIT_FENCE_WAIT_LIMIT;
+    let interrupted = proceeding.as_ref().map_or(0, Vec::len);
     let mut failures = Vec::new();
     for home in homes {
         if let Err(error) = home.host.begin_quit_by(fence_by) {
             if proceeding.is_some() {
                 for home in homes { home.host.cancel_quit(); }
-                return Err(start_under_way(home.class()));
+                return Err(gate_not_free(home.class(), interrupted));
             }
             failures.push(format!("{}: {error}", home.class().as_str()));
         }
     }
+    let mut settled = Vec::new();
     for home in homes {
         // A home the system's exit could not fence is not settled: its own
         // settlement refuses without the fence, and is reported as a limit.
-        if let Err(error) = home.host.settle_for_quit(actor, reason) {
-            failures.push(format!("{}: {error}", home.class().as_str()));
+        match home.host.settle_for_quit(actor, reason) {
+            Ok(_) => settled.push(home.class()),
+            Err(error) => failures.push(format!("{}: {error}", home.class().as_str())),
         }
     }
     let records: Vec<Value> = homes.iter().flat_map(|home| home.host.snapshot_without_records()["stopRequests"]["records"].as_array().cloned().unwrap_or_default()).collect();
@@ -752,7 +779,7 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
         if homes.iter().any(|home| home.host.has_unestablishable_process()) {
             return Err(QUIT_CANNOT_ESTABLISH.into());
         }
-        return Err(format!("The App is still running: owned supplier settlement is unavailable ({}). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.", failures.join("; ")));
+        return Err(settlement_unavailable(interrupted, &settled, &failures));
     }
     let (how, stops) = session_end(proceeding, &records);
     // Q-7: a ledger limit is a recording limit, not grounds to fabricate an
