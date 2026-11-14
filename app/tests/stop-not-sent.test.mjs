@@ -6,6 +6,7 @@ import ts from 'typescript';
 import {localRequire} from './support/load-src.mjs';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {agentPlain} from './support/agent-text.mjs';
 // DEL-01-02: an interrupt that was not written (not sent within the stop
 // limit, or its write's outcome unknown), and an earlier build's write-failure
 // row, carry no Stop label. Each is shown by its reading, never as Codex not
@@ -71,7 +72,8 @@ test('each row is shown by its reading in the recorded stop requests and the act
     const found=stopLabel({outcomes:[]},'thread','t1',{records:[record]},'H-acct');
     assert.equal(found,record,name);
     const note=shown(React.createElement(StopLabel,{stop:found}));
-    assert.ok(note.includes(`Stop request: ${record.reading}`),`${name}: ${note}`);
+    // The reading can carry Codex's refusal, so it stands boxed beside the App's words.
+    assert.ok(agentPlain(note).includes(`Stop request: ⟦Reading: ${record.reading}⟧`),`${name}: ${note}`);
     assert.ok(!note.includes('App label'),`${name}: ${note}`);
     claimsNothing(note,name,{notSent});
   }

@@ -612,7 +612,7 @@ test('the third reader\'s first finding: after a failed status read, the nested 
     assert.doesNotMatch(past.textContent, /waiting for your answer|current waiting/);
     const buttons = nodes(past, 'button').map(b => b.textContent);
     assert.deepEqual(buttons, ['account · thread T1: 2 at that read', 'api-key · thread K1: 3 at that read'], 'its offers say the counts are from that read');
-    assert.match(past.textContent, /At that read: Invented overview\./);
+    assert.match(past.textContent, /At that read: Coverage: Invented overview\./);
     assert.match(past.textContent, /Opening checks that home and conversation again and shows the original home's request cards as they are now/);
     // Its buttons still revalidate on opening, through the existing navigation.
     const before = calls.length;

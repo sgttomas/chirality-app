@@ -101,7 +101,8 @@ test('the list has not arrived: no count, the new sentence, and the answers stay
   assert.match(words(html),/The App has not received the list of files, so it cannot show where these changes go\. You can refuse, or wait for the list to appear, before allowing a change you cannot see\./);
   assert.doesNotMatch(words(html),/The changes are not shown here/);
   assert.doesNotMatch(words(html),/Codex writes these files where they are shown/);
-  for(const value of ['accept','acceptForSession','decline','cancel']) assert.match(html,new RegExp(`<button>[^<]*<code>&quot;${value}&quot;</code></button>`),value);
+  // The button holds only the App's words; the familiar native token stands beside it.
+  for(const value of ['accept','acceptForSession','decline','cancel']) assert.match(html,new RegExp(`<button>[^<]*</button> <code>${value}</code>`),value);
 });
 
 test('the command card says the command runs outside the sandbox under a built-in profile, and with more access otherwise',()=>{
@@ -117,7 +118,7 @@ test('the command card says the command runs outside the sandbox under a built-i
 test('the rule answer: its label and the line beside it, with the rule words beside the App\'s sentence',()=>{
   const html=render(recorded(),null,project);
   // The button carries the App's words and the form's name; the value it sends, which holds the agent's words, stands beside it.
-  assert.match(html,/<button>Allow, and add a lasting rule \(see below\) <code>&quot;acceptWithExecpolicyAmendment&quot;<\/code><\/button> <small>Sends:<\/small> ⟦Native value with the agent&#x27;s words: \{&quot;acceptWithExecpolicyAmendment&quot;:\{&quot;execpolicy_amendment&quot;:\[&quot;mkdir&quot;,&quot;st5-marker-pump-skid&quot;\]\}\}⟧/);
+  assert.match(html,/<button>Allow, and add a lasting rule \(see below\)<\/button> <small>Sends:<\/small> ⟦Native value: \{&quot;acceptWithExecpolicyAmendment&quot;:\{&quot;execpolicy_amendment&quot;:\[&quot;mkdir&quot;,&quot;st5-marker-pump-skid&quot;\]\}\}⟧/);
   assert.match(html,/<small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, any command beginning with the words shown runs with more access than Codex’s sandbox gives, with no request to you\. It stays until it is removed from that file\.<\/small> <small>The words shown:<\/small> ⟦Rule words: mkdir st5-marker-pump-skid⟧/);
   assert.match(render(recorded(),null,{...project,permissionProfile:':read-only'}),/beginning with the words shown runs outside Codex’s sandbox, with no request to you\. It stays until it is removed from that file\.<\/small> <small>The words shown:<\/small> ⟦Rule words: mkdir st5-marker-pump-skid⟧/);
   // A bare rule value takes its words from the proposed rule.
@@ -136,9 +137,9 @@ test('with no decline-type answer but cancel offered, the card says refusing int
 
 test('"Allow for this session" says what it covers on both kinds of card',()=>{
   const files=render(fileChange(),viewWith([change('/invented/pump-skid/a')]),project);
-  assert.match(files,/<button>Allow for this session <code>&quot;acceptForSession&quot;<\/code><\/button><small> This answer also covers later changes to only these same files, until Codex stops\. Nothing is saved\.<\/small>/);
+  assert.match(files,/<button>Allow for this session<\/button> <code>acceptForSession<\/code><\/span><small> This answer also covers later changes to only these same files, until Codex stops\. Nothing is saved\.<\/small>/);
   const command=render(request('item/commandExecution/requestApproval',{command:'ls',cwd:'/w',availableDecisions:['accept','acceptForSession','decline','cancel']}),null,project);
-  assert.match(command,/<button>Allow for this session <code>&quot;acceptForSession&quot;<\/code><\/button><small> This answer also covers this same command, in this folder, until Codex stops\. Nothing is saved\.<\/small>/);
+  assert.match(command,/<button>Allow for this session<\/button> <code>acceptForSession<\/code><\/span><small> This answer also covers this same command, in this folder, until Codex stops\. Nothing is saved\.<\/small>/);
 });
 
 test('none of the words accept, approve or approval appear as the card’s own words',()=>{

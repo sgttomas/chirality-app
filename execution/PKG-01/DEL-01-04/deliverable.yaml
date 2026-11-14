@@ -129,6 +129,7 @@ code_paths:
 # "Waiting on you": one list, on every view, of the records waiting on the person in the
 # request register, run records, the return-review queue and the decision packages.
 - app/src/WaitingOnYou.tsx
+- app/src/nativeWords.ts
 - app/src/NativeWaitingBridge.tsx
 - app/src/CodexControls.tsx
 - app/src/ConversationRoles.tsx
@@ -175,6 +176,9 @@ checks:
 - app/tests/request-card-words.test.mjs
 - app/tests/agent-text.test.mjs
 - app/tests/waiting-on-you.test.mjs
+- app/tests/presentation-guard.test.mjs
+- app/tests/support/presentation-guard.mjs
+- app/tests/support/presentation-guard-exceptions.json
 - app/tests/request-activity-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs

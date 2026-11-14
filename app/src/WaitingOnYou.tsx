@@ -636,7 +636,7 @@ function ReadTime({ reading }: { reading: SourceReading }) {
 function RequestsOverview({ reading, view, busy, open }: { reading: SourceReading | undefined; view: Json; busy: boolean; open: (group: WaitingRequestGroup) => void }) {
   if (reading && (reading.state === "whole" || reading.state === "limited")) return <WaitingRequestsIndicator overview={reading.overview} view={view} busy={busy} open={open} />;
   if (reading?.state === "failed" && reading.lastRead) return <WaitingRequestsIndicator overview={reading.lastRead.overview} view={view} busy={busy} open={open}
-    lastRead={reading.lastRead.at === null ? "an earlier read" : clockWords(reading.lastRead.at)} />;
+    lastReadAt={reading.lastRead.at} />;
   return <p className="waiting-requests-withheld">The overview of requests from Codex by home is not shown: {reading?.note ? reading.note.charAt(0).toLowerCase() + reading.note.slice(1) : "requests from Codex have not been read."}</p>;
 }
 
