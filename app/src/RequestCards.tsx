@@ -39,8 +39,11 @@ export function requestThread(request: Json): string | null {
 }
 
 /** Who asked a request, from the host's descendants in the same Codex
- * process. Codex delivers a delegated child's request on the child's own
- * thread, so a request whose thread is a descendant was asked by that child.
+ * process, read from the thread the request names: a request on a descendant's
+ * thread is named as that descendant's, and any other as the agent's of the
+ * conversation it belongs to, which need not be the selected one, since the
+ * view covers the whole process. That a delegated child's requests always
+ * arrive on its own thread is not established here.
  * The role and nickname are Codex's `agentRole` and `agentNickname` on the
  * child's `thread/read` result, which the host keeps as the descendant's
  * `nativeThread`. Limit: the host's thread rows carry neither field, and the
@@ -61,7 +64,7 @@ export function requestAsker(threadId: string | null, generation: Json, view: Js
 
 /** The App's words naming who asked; a nickname and role are the agent's text. */
 export function AskedBy({ asker }: { asker: RequestAsker }) {
-  if (asker.kind === "conversation") return <>Asked by this conversation’s agent</>;
+  if (asker.kind === "conversation") return <>Asked by the conversation’s own agent</>;
   if (asker.kind === "not-established") return <>Who asked is not established: this view holds no delegation record from the Codex process that asked</>;
   const { role, nickname } = asker;
   const roleText = (value: string) => <AgentText value={value} label="Role:" name="Agent role as Codex reports it, not the App's words" />;
