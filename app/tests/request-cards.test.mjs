@@ -60,7 +60,7 @@ test('LB-1/LB-2/LB-3: App words never say accept or approve; the native value is
   const html=render(command());
   assert.match(html,/Allow once <code>&quot;accept&quot;<\/code>/);
   assert.match(html,/Don&#x27;t allow, and interrupt the turn <code>&quot;cancel&quot;<\/code>/);
-  assert.match(html,/Allow, and add the proposed rule to your Codex exec policy <code>/);
+  assert.match(html,/Allow, and add a lasting rule \(see below\) <code>/);
   assert.equal(decisionWords('decline'),"Don't allow; the agent continues the turn");
   assert.equal(decisionWords({mystery:1}),'Codex option','an unknown form gets neutral words and keeps its value');
 });
