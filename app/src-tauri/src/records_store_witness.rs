@@ -159,6 +159,53 @@ pub(crate) fn record(store: &Path, project: &str, import: &str, files: &[Witness
         "at":now_rfc3339(),"files":files,"basis":BEFORE_COPIES}))
 }
 
+/// A before-copy witness with no line in this project's account is the same
+/// pending import, not permission to mint another identity. Read settled bytes
+/// without changing them. Multiple orphan lines cannot identify one attempt.
+pub(crate) fn unaccounted_import(
+    store: &Path, project: &str, accounted: &std::collections::BTreeSet<String>,
+) -> Result<Option<WitnessedImport>, String> {
+    let path = store.join(WITNESS_FILE);
+    let unknown = |why: String| format!("import continuation is not known: {}: {why}; nothing imported", path.display());
+    let bytes = match std::fs::symlink_metadata(&path) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(unknown(e.to_string())),
+        Ok(_) => crate::records_retention::read_plain(&path).map_err(unknown)?,
+    };
+    let shared = lines::read(&bytes, &path);
+    let set_aside = shared.set_aside.clone();
+    shared.require_settled(&bytes, &path).map_err(unknown)?;
+    let mut orphans = Vec::new();
+    for (index, raw) in bytes.strip_suffix(b"\n").unwrap_or(&bytes).split(|b| *b == b'\n').enumerate() {
+        if set_aside.contains(&(index + 1)) { continue; }
+        let line = std::str::from_utf8(raw).ok()
+            .filter(|_| raw.first() == Some(&b'{') && raw.last() == Some(&b'}'))
+            .and_then(|text| crate::workflow_declaration::parse_unique(text).ok())
+            .ok_or_else(|| unknown(format!("line {} is not one unambiguous JSON object", index + 1)))?;
+        if line["format"] == lines::UNREAD_FORMAT { continue; }
+        if line["formatVersion"] != VERSION { return Err(unknown(format!("line {} has an unknown version", index + 1))); }
+        if line["format"] == BEGAN_FORMAT { continue; }
+        if line["format"] != WITNESS_FORMAT || line["projectId"].as_str().is_none_or(str::is_empty) {
+            return Err(unknown(format!("line {} is not an identified import witness", index + 1)));
+        }
+        if line["projectId"] != project { continue; }
+        let witnessed = witnessed_import(&line)
+            .filter(|w| !w.import_id.is_empty() && line["at"].is_string())
+            .ok_or_else(|| unknown(format!("line {} is not a complete import witness", index + 1)))?;
+        if !accounted.contains(&witnessed.import_id) { orphans.push(witnessed); }
+    }
+    if orphans.len() > 1 {
+        return Err(unknown(format!("multiple witness attempts have no account line for project {project}: {}",
+            orphans.iter().map(|w| w.import_id.as_str()).collect::<Vec<_>>().join(", "))));
+    }
+    if let Some(orphan) = orphans.first() {
+        if orphan.basis != BEFORE_COPIES {
+            return Err(unknown(format!("attempt {} has no account line and is not a before-copy witness", orphan.import_id)));
+        }
+    }
+    Ok(orphans.pop())
+}
+
 #[cfg_attr(not(test), allow(dead_code))]
 /// For `project` in `store`: whether a legacy import of the project is
 /// established, with each imported file's copy path, length and digest.

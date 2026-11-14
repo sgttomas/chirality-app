@@ -208,6 +208,29 @@ pub(crate) fn fail_directory_for_test(path: Option<PathBuf>) {
 // Existing capture fixtures use this hook at the create-once publication
 // boundary; its historical name predates exclusive rename publication.
 #[cfg(test)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum PublicationSyncStage { File, Directory }
+#[cfg(test)]
+thread_local! {
+    static FAIL_PUBLICATION_SYNC: std::cell::RefCell<Option<(PathBuf, u64, PublicationSyncStage)>> = const { std::cell::RefCell::new(None) };
+}
+/// A continuing fault on this publication, activated only after its file grows
+/// beyond the durable prefix. Directory faults target this file's publication,
+/// not an earlier copy's sync of the same ancestor directory.
+#[cfg(test)]
+pub(crate) fn fail_publication_sync_after_for_test(fault: Option<(PathBuf, u64, PublicationSyncStage)>) {
+    FAIL_PUBLICATION_SYNC.with(|slot| *slot.borrow_mut() = fault);
+}
+#[cfg(test)]
+pub(crate) fn publication_sync_for_test(path: &Path, stage: PublicationSyncStage) -> Result<(), String> {
+    if FAIL_PUBLICATION_SYNC.with(|slot| slot.borrow().as_ref().is_some_and(|(target, prefix, fault_stage)| {
+        target == path && *fault_stage == stage && std::fs::metadata(path).is_ok_and(|m| m.len() > *prefix)
+    })) {
+        return Err(format!("{stage:?} publication sync: injected failure: {}", path.display()));
+    }
+    Ok(())
+}
+#[cfg(test)]
 thread_local! { static AFTER_CREATE_LINK: std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
 pub(crate) fn after_create_link_for_test(hook: Option<Box<dyn FnOnce(&Path)>>) {
@@ -366,6 +389,8 @@ fn ensure_directory_impl(path:&Path)->Result<(),String>{
 /// Re-establish complete publication durability up through the owning project/library root.
 pub fn sync_publication(path: &Path) -> Result<(), String> {
     check_path(path)?;
+    #[cfg(test)]
+    publication_sync_for_test(path, PublicationSyncStage::File)?;
     File::open(path)
         .and_then(|f| f.sync_all())
         .map_err(|e| format!("file sync uncertain: {e}"))?;
@@ -390,6 +415,8 @@ pub fn sync_publication(path: &Path) -> Result<(), String> {
         .flatten()
     });
     for dir in parent.ancestors() {
+        #[cfg(test)]
+        if dir == parent { publication_sync_for_test(path, PublicationSyncStage::Directory)?; }
         sync_dir(dir)?;
         if Some(dir) == boundary || boundary.is_none() {
             break;

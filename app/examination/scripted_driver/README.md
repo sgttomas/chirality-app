@@ -30,6 +30,15 @@ hosted runs of the scenario are regression runs, not attempts (App Agent 0,
 stated before attempt 1's result). The first, run 43520740915 on 13 November
 2026, also passed.
 
+The second regression run, 43528759059 on 13 November 2026, failed in the
+proof step and passed the scenario. At its second try the proof's script read
+the first heading as "Chirality", with 52 buttons: the App had not yet had its
+first host read, so the page still showed the workspace, and the script then
+stopped at the first heading present. That was a false fail. A wrong heading
+could not make it pass, the scenario passed in the same run, and the counted
+pass stands. Since then the proof waits for the expected heading itself
+("The hosted proof", above).
+
 ## How it is kept out of the shipped App
 
 - **A cfg, not a feature.** `build.rs` compiles this crate alone with cfg
@@ -68,8 +77,17 @@ happens, so a run that stops says where:
 4. script evaluated.
 
 The script reads the page title, the first heading, the number of buttons and
-any open in-page dialog. It clicks, types and changes nothing. The build then
-ends its own process. **Shown** means all of these:
+any open in-page dialog. It clicks, types and changes nothing. It is read
+again every half second, at most sixty times, until the first heading is the
+expected one, "Welcome to Chirality". What the page shows before that depends
+on when the App's first host read arrives: until it does, the page has shown
+the workspace, whose own heading is "Chirality" (run 43528759059, below), and
+it may show another heading or none. So the build waits for the expected
+heading itself, never for whichever heading comes first. If it never comes,
+the build ends itself with status 5 after the last try, and the report's
+`heading_wait` says how many tries were made, every distinct heading read in
+order, and the last: a wrong page and a slow one read differently. The build
+then ends its own process. **Shown** means all of these:
 
 - the script ran, and the heading is "Welcome to Chirality";
 - exactly one window and one web view were created, and one window is open;
@@ -91,7 +109,7 @@ maintained scenario file
 (`app/examination/standalone/operated/first-use-setup.scenario.json`,
 unchanged) and its values (the identifier, the home and the App data folder
 under it) beside the stages, as `scenario.json`. Once the first heading is
-present, the build evaluates `judge.js` and `page.js` in the page, and reads
+the expected one (as above), the build evaluates `judge.js` and `page.js` in the page, and reads
 the walk's progress until it is done:
 
 - **`page.js`** walks the steps. For each click it finds the step's one
