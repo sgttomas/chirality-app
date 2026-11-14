@@ -1742,8 +1742,8 @@ fn refused_role_entry(role: Option<role_supply::Role>, reason: &str) -> Value {
 
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-fn thread_start(
-    app: tauri::AppHandle,
+fn thread_start<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
     state: State<'_, AppState>,
     model: String,
     model_provider: String,
@@ -1769,8 +1769,8 @@ fn thread_start(
 fn established_preselection(claimed: Option<bool>, role: Option<role_supply::Role>, default: Option<role_supply::Role>) -> Option<bool> {
     claimed.map(|claimed| claimed && role.is_some() && role == default)
 }
-fn start_conversation(
-    app: &tauri::AppHandle,
+fn start_conversation<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
     state: &AppState,
     generation: &Value,
     model: String,
@@ -1815,7 +1815,7 @@ pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Dis
     if hosting::reading_gate::carries_reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
 }
 #[allow(clippy::too_many_arguments)]
-fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
+fn start_conversation_inner<R: tauri::Runtime>(app:&tauri::AppHandle<R>,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
     invalidate_endpoint_edits(state)?;
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
