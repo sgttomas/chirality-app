@@ -980,7 +980,7 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertEqual((verdict, stopped), ('pass', None))
         self.assertEqual(set(result['touched']), {'get_app_state', 'click', 'set_value'})
         self.assertEqual([c for c in calls if not c.startswith('get_app_state')],
-                         [f'set_value16={PROJECT}', 'click37', 'click57', 'click69', 'click4'])
+                         [f'set_value16={PROJECT}', 'click37', 'click57', 'click76', 'click4'])
 
     def test_a_sheet_step_with_no_press_captures_the_sheet_and_presses_nothing(self):
         # The re-recording's capture: the sheet is opened from S4, captured whole and not pressed, whatever it says.
@@ -994,8 +994,19 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
                                     setup_views(sheet=sheet), path)
                 verdict, stopped, calls, captured = result['out']
                 self.assertEqual((verdict, stopped), ('inconclusive', 'stopped at S5: the sheet is captured, and this step has no press'))
-                self.assertEqual([c for c in calls if not c.startswith('get_app_state')], ['set_value16', 'click37', 'click57', 'click69'])
+                self.assertEqual([c for c in calls if not c.startswith('get_app_state')], ['set_value16', 'click37', 'click57', 'click76'])
                 self.assertEqual(captured, sheet or SHEET_ON_ITS_OWN)
+
+    def test_the_sheet_capture_scenario_is_the_setup_scenario_with_no_press(self):
+        # The re-recording's capture differs from the setup walk only in its name, its own sentence and the one
+        # sheet step marked "press": false, so it captures exactly the views the setup walk acts from, and presses nothing.
+        setup = json.loads(SETUP.read_text())
+        capture = json.loads((OPERATED / 'signed-out-setup-sheet-capture.scenario.json').read_text())
+        sheet_step = next(s for s in capture['steps'] if s['act'] == 'confirm_sheet')
+        self.assertIs(sheet_step.pop('press'), False)
+        for field in ('scenario', 'what_it_is'):
+            self.assertNotEqual(capture.pop(field), setup.pop(field))
+        self.assertEqual(capture, setup)
 
     def test_a_dialog_anywhere_below_the_window_stops_an_ordinary_step(self):
         result = harness("texts[2] = inOrder(texts[2].replace('\\t\\t2 HTML content', '\\t\\t\\t\\t950 sheet Confirm\\n\\t\\t2 HTML content')); "
@@ -1103,7 +1114,7 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertEqual(verdict, 'inconclusive', stopped)
         self.assertIn('not in index order from 0', stopped)
         self.assertNotIn('click4', calls[-1:])
-        self.assertEqual([c for c in calls if not c.startswith('get_app_state')], ['set_value16=' + PROJECT, 'click37', 'click57', 'click69'])
+        self.assertEqual([c for c in calls if not c.startswith('get_app_state')], ['set_value16=' + PROJECT, 'click37', 'click57', 'click76'])
 
     def test_the_sheet_on_its_own_differing_in_any_way_is_not_pressed(self):
         own = SHEET_ON_ITS_OWN
@@ -1181,12 +1192,12 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
         self.assertEqual(verdict, 'inconclusive')
         self.assertIn('stopped at S4: the location "Settings folder" is not of the form the App makes', stopped)
-        self.assertNotIn('click69', calls)
+        self.assertNotIn('click76', calls)
         # A path of the App's form whose check failed still keeps the sheet closed.
         verdict, stopped, calls = setup_walk("scenario.steps[3].expect.push({ text: 'Invented absent words' }); " + RESULT.replace('OPTIONS', 'base'))['out']
         self.assertEqual(verdict, 'fail')
         self.assertIn('an earlier check failed, so the sheet is not opened', stopped)
-        self.assertNotIn('click69', calls)
+        self.assertNotIn('click76', calls)
 
     def test_only_the_project_is_typed_only_into_the_named_field_and_only_once(self):
         cases = {
@@ -1236,7 +1247,7 @@ class AViewThatCannotBeAddressed(unittest.TestCase):
         for name, at, text, acts in (
                 ('the first view', 0, welcome.replace('\n\t\t\t\t38 summary', twice + '\n\t\t\t\t38 summary'), []),
                 ("a step's view (the second reader's input)", 1, typed.replace('\n\t\t\t\t38 summary', twice + '\n\t\t\t\t38 summary'), [f'set_value16={PROJECT}']),
-                ("the sheet's view", 4, SHEET_ON_ITS_OWN.replace('\t3 button Cancel', '\t4 button Cancel'), [f'set_value16={PROJECT}', 'click37', 'click57', 'click69'])):
+                ("the sheet's view", 4, SHEET_ON_ITS_OWN.replace('\t3 button Cancel', '\t4 button Cancel'), [f'set_value16={PROJECT}', 'click37', 'click57', 'click76'])):
             with self.subTest(name):
                 views = setup_views()
                 views['views'][at]['text'] = text
