@@ -1190,3 +1190,148 @@ fn j2_design_examples_classify() {
     assert!(validate_report(&invalid).is_err());
     assert_design_valid(&valid);
 }
+
+/// The App's own inventory for a conversation (no host application, so no
+/// catalog, edition or channel), with the given delegation signals.
+fn app_inventory(signals: Option<Value>) -> Inventory {
+    Inventory {
+        origin: InventoryOrigin::CallerSupplied {
+            source: "test: the App host's own observations".into(),
+        },
+        host_id: None,
+        observations: Observations {
+            harness_signals: signals,
+            ..Default::default()
+        },
+    }
+}
+/// Delegation signals as `delegation_availability::signals` builds them.
+fn delegation_signals(version: &str, multi_agent: Option<bool>) -> Value {
+    let conversation = json!({"generation":{"home":"h"},"threadId":"t","model":"m","modelProvider":"p","cwd":"/w"});
+    let mut config = json!({"config":{"model_provider":"p"}});
+    if let Some(v) = multi_agent {
+        config["config"]["features"] = json!({"multi_agent":v});
+    }
+    crate::delegation_availability::signals(
+        &conversation,
+        Ok(json!({"id":"m","model":"m","multiAgentVersion":version})),
+        Ok(config),
+        Ok(json!("p")),
+        Ok(json!({"imageGeneration":false,"webSearch":false})),
+    )
+}
+fn app_view(selection: &Selection, signals: Option<Value>) -> Value {
+    evaluate(request(
+        selection,
+        no_role(),
+        basis(),
+        Occasion::Selection,
+        app_inventory(signals),
+    ))
+    .unwrap()
+    .view(&basis())
+}
+
+#[test]
+fn declared_delegation_reads_available_missing_and_not_established_at_the_current_pin() {
+    assert_eq!(basis().acting_pin, format!("App Codex {}", crate::hosting::DECLARED_PIN));
+    let selection = selection_of(wd(
+        vec![harness_tool("delegate", "agent-delegation")],
+        Value::Null,
+        vec![],
+    ));
+    let row = |signals: Option<Value>| {
+        let view = app_view(&selection, signals);
+        let row = view["preparation"]["requirements"][0].clone();
+        (row["outcome"].as_str().unwrap().to_owned(), row["reason"].as_str().unwrap().to_owned(), view)
+    };
+    let (outcome, reason, view) = row(Some(delegation_signals("v2", None)));
+    assert_eq!(outcome, "present", "{view:#}");
+    assert!(reason.is_empty());
+    assert_eq!(view["preparation"]["requirements"][0]["purpose"], "use delegate");
+    // Present on its basis only: the result names a passed requirement check,
+    // never "compatible" or "will run".
+    assert_eq!(view["preparation"]["check"]["result"], "compatible");
+    let statement = view["statement"].as_str().unwrap();
+    assert!(statement.starts_with("requirement check passes against"), "{statement}");
+    assert!(!statement.contains("will run"));
+    let (outcome, reason, view) = row(Some(delegation_signals("disabled", None)));
+    assert_eq!(outcome, "missing", "{view:#}");
+    assert!(reason.contains("multiAgentVersion disabled"), "{reason}");
+    assert_eq!(view["preparation"]["check"]["result"], "unsupported");
+    assert!(view["statement"].as_str().unwrap().contains("the person may still start"));
+    let (outcome, reason, _) = row(Some(delegation_signals("v1", Some(false))));
+    assert_eq!(outcome, "missing");
+    assert!(reason.contains("features.multi_agent = false"), "{reason}");
+    let (outcome, reason, view) = row(None);
+    assert_eq!(outcome, "not_established", "{view:#}");
+    assert!(reason.contains("delegation signals not read"), "{reason}");
+    assert_eq!(view["preparation"]["check"]["result"], "not_established");
+    let mut unread = delegation_signals("v2", None);
+    unread["effective_config"] = Value::Null;
+    unread["limits"] = json!(["effective configuration not read: no response"]);
+    let (outcome, reason, _) = row(Some(unread));
+    assert_eq!(outcome, "not_established");
+    assert!(reason.contains("effective configuration not read"), "{reason}");
+    // The 0.158.0 account still governs only its own pin, and no other pin
+    // borrows the 0.167.0 delegation rule.
+    let env = |pin: &str| Environment {
+        harness_pin: Some(pin.into()),
+        harness_signals: Some(delegation_signals("v2", None)),
+        ..Default::default()
+    };
+    assert_eq!(super::super::harness_presence("agent-delegation", &env("App Codex 0.160.0")).0, Outcome::NotEstablished);
+    // Other capabilities at the current pin stay not established, whatever is read.
+    let mut signals = delegation_signals("v2", None);
+    signals["thread_start"] = json!({"approvalPolicy":"never","sandbox":{"type":"readOnly"}});
+    signals["provider_capabilities"] = json!({"webSearch":true,"imageGeneration":true});
+    signals["web_search_mode"] = json!("live");
+    for name in ["shell-command", "file-change", "web-search", "image-generation", "mcp-tool-call", "dynamic-tool-call", "person-input-request", "image-view", "plan-update"] {
+        let e = Environment { harness_signals: Some(signals.clone()), ..env("App Codex 0.167.0") };
+        let (outcome, reason) = super::super::harness_presence(name, &e);
+        assert_eq!(outcome, Outcome::NotEstablished, "{name}");
+        assert!(reason.contains("no adopted supplier availability account"), "{name}: {reason}");
+    }
+}
+
+#[test]
+fn an_undeclared_workflow_reads_undeclared_never_as_needing_none() {
+    let snapshot = crate::workflow_workspace::Snapshot::from_files(BTreeMap::from([(
+        "WORKFLOW.md".to_string(),
+        b"# Prose only\n\nRun shell commands and write files.\n".to_vec(),
+    )]))
+    .unwrap();
+    let identity = snapshot
+        .identity("bundled", "synthetic-bundled-root", "prose-only", None)
+        .unwrap();
+    let prose = Selection::synthetic_shipped(snapshot, identity).unwrap();
+    for signals in [None, Some(delegation_signals("v2", None))] {
+        let view = app_view(&prose, signals);
+        let preparation = &view["preparation"];
+        assert_eq!(preparation["declaration"]["reading"], "undeclared", "{view:#}");
+        assert_eq!(preparation["check"]["result"], "not_established");
+        // Nothing is inferred from the prose: no requirement rows at all.
+        assert_eq!(preparation["requirements"], json!([]));
+        assert_eq!(preparation["check"]["tools"], json!([]));
+        assert!(view["statement"].as_str().unwrap().starts_with("requirement check not established"));
+    }
+    // An empty declared list is the only "declares none", and it is distinct.
+    let empty = app_view(&selection_of(wd(vec![], Value::Null, vec![])), None);
+    assert_eq!(empty["preparation"]["declaration"]["categories"]["required_tools"], "declared_empty");
+}
+
+#[test]
+fn a_host_operation_without_a_connected_host_never_reads_available() {
+    let selection = selection_of(wd(
+        vec![host_tool("read", "example.read", "required")],
+        Value::Null,
+        vec![],
+    ));
+    for signals in [None, Some(delegation_signals("v2", None))] {
+        let view = app_view(&selection, signals);
+        let row = &view["preparation"]["requirements"][0];
+        assert_eq!(row["outcome"], "not_established", "{view:#}");
+        assert!(row["reason"].as_str().unwrap().contains("catalog"), "{row}");
+        assert_eq!(view["preparation"]["check"]["result"], "not_established");
+    }
+}
