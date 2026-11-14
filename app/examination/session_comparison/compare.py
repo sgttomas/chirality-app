@@ -5,7 +5,7 @@ selected workflow's bytes, compared with what Codex's record shows it was given.
 
 Codex's record is the session file Codex writes under its home
 (`sessions/YYYY/MM/DD/rollout-<UTC time>-<threadId>.jsonl`). It is read only
-inside an examination root (a folder `standalone/launch.py` made: `home/`,
+inside an examination root (a folder the examination launcher made: `home/`,
 `project/`, `record/`), never the owner's Codex home or any other. It is never
 copied: each output row carries only identifiers, statuses, line numbers and
 digests, so a lane acts on the rows without opening the record.
