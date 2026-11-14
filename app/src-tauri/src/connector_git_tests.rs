@@ -350,7 +350,8 @@ fn connector_git_hostile_configuration_promised_miss_and_transport_sentinels() {
         .unwrap()
         .contains("remote"));
     drop(e);
-    assert!(!helper.exists());
+    // Emptied through the descriptor held since it was made; the folder itself is kept.
+    assert!(fs::read_dir(&helper).unwrap().next().is_none());
     assert_eq!(snapshot(&r.root), before);
 }
 #[test]

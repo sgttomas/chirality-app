@@ -8,38 +8,56 @@
 //! **The claim** (with its boundary in the pull request that made this): the
 //! App allocates no working state at a location a sandboxed Codex can write.
 //! These folders are outside the App data folder and outside every temporary
-//! folder. Codex's TMPDIR is made writable to Codex on purpose; it is its own
-//! subtree, never one of the others or above them.
+//! folder. Codex's TMPDIR is made writable to Codex on purpose; it is one
+//! folder inside its subtree, never the subtree, its record or another folder.
 //!
-//! **What may be removed.** A folder here is removed only if all of these hold:
-//! - its record, written before it was used, names it;
-//! - it is a real folder of this user, not a link;
-//! - its device, inode and creation time are the ones recorded;
-//! - it is not, and does not contain, a folder the caller protects (checked by
-//!   identity);
-//! - no file under it, looked for by name and never opened, is named as Codex
-//!   names its sign-in file. A probe home or temporary folder holding one is
-//!   kept and reported: it is a finding, not rubbish.
+//! **Allocation.** The Working Files folder and each subtree are opened with no
+//! link followed and must be the folders established; a folder is made inside
+//! the subtree's descriptor, opened from it with no link followed, checked to
+//! be new, empty and private, recorded, and its descriptor held for the rest of
+//! the launch.
 //!
-//! Anything else is kept and reported: a planted folder of a recorded name, a
-//! link in its place, a folder whose identity has changed, and every entry when
-//! the record cannot be read. The removal itself follows no link
-//! (`std::fs::remove_dir_all` removes a link, not what it points to).
+//! **What authorises disposal.** Only a verified allocation of this launch, and
+//! only its contents: what is in a folder the App made and still holds is
+//! removed through that held descriptor, never by looking its name up again,
+//! and the folder itself is kept. Excluded whatever contains them, and keeping
+//! everything still in that folder when found:
+//! - the protected folders (the App data folder and the person's own Codex
+//!   home, by identity, following links);
+//! - an entry named as Codex names a file in its home (looked for by name, never
+//!   opened);
+//! - a folder, or a file with a single name, whose creation time is earlier
+//!   than the made folder's recorded creation time: it was moved in from
+//!   elsewhere;
+//! - anything on another device: a volume mounted there.
 //!
-//! **The record.** One file per subtree (`.made.json`), in the App's own
-//! subtree, which is not a writable root of Codex. It is written whole to a new
-//! file and renamed into place, so a reader sees the old or the new one. A record
-//! that cannot be read or does not parse means nothing in that subtree is
-//! removed, and the state is reported. It never means "remove everything that
-//! looks like ours".
-use std::os::unix::fs::{DirBuilderExt, MetadataExt};
+//! Nothing is opened but folders, from their parent's descriptor with no link
+//! followed.
+//!
+//! **Reach.** The disposal removes nothing that whoever may write in that folder
+//! could not remove themselves. An entry made there is one its writer can
+//! unlink. An entry moved in took write on the folder it came from, which is the
+//! right to remove it there. A link is removed as a link, never followed. A file
+//! with another name elsewhere loses only this name.
+//!
+//! **Not removed in this version.** The emptied folders, and whatever an
+//! earlier launch left (one that ended without emptying its folders): they are
+//! kept and reported at the next start. No record is trusted to authorise a
+//! removal; the record is written before each folder is used, for the later
+//! unit that reclaims them.
+use std::ffi::{CString, OsStr, OsString};
+use std::fs::File;
+use std::os::fd::{AsRawFd, FromRawFd};
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 
 /// What the Working Files folder's name adds to the App data folder's name.
 pub const SUFFIX: &str = " Working Files";
-/// The file under which Codex keeps a sign-in (HOSTING, DEL-01-05). It is
-/// looked for by name only; it is never opened here.
-const SIGN_IN_FILE: &str = "auth.json";
+/// The names under which Codex keeps files in its home: its sign-in, its
+/// settings and its history (HOSTING, DEL-01-05). Looked for by name only;
+/// never opened here.
+const CODEX_HOME_FILES: [&str; 3] = ["auth.json", "config.toml", "history.jsonl"];
 const RECORD: &str = ".made.json";
 /// One writer of the records at a time in this process; the App's process lock
 /// keeps other processes out of this App data folder's working files.
@@ -58,6 +76,27 @@ pub fn folder_for(app_data: &Path) -> Result<PathBuf, String> {
     let mut leaf = name.to_os_string();
     leaf.push(SUFFIX);
     Ok(parent.join(leaf))
+}
+
+/// How many folders are in the Working Files subtrees of `app_data` now,
+/// listed by name only: what this and earlier launches made, which this
+/// version keeps. `None` when a subtree cannot be listed.
+pub fn kept_count(app_data: &Path) -> Option<usize> {
+    let root = folder_for(app_data).ok()?;
+    let mut count = 0;
+    for kind in Kind::ALL {
+        match std::fs::read_dir(root.join(kind.subtree())) {
+            Ok(entries) => {
+                count += entries.flatten().filter(|e| {
+                    let name = e.file_name().to_string_lossy().into_owned();
+                    name != RECORD && !name.starts_with(&format!("{RECORD}."))
+                }).count();
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(_) => return None,
+        }
+    }
+    Some(count)
 }
 
 /// The kinds of folder the App makes here, each in its own subtree.
@@ -83,6 +122,9 @@ impl Kind {
             Kind::CodexTmp => "tmp-",
         }
     }
+    fn index(self) -> usize {
+        self as usize
+    }
 }
 
 /// A folder's identity as recorded: device, inode and creation time. An inode
@@ -96,14 +138,30 @@ pub struct Stamp {
     created_nanos: i64,
 }
 impl Stamp {
+    /// The creation (birth) time where the system keeps one (macOS does);
+    /// otherwise the status-change time, which a later folder with a reused
+    /// inode also fails to match.
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    fn of_stat(st: &libc::stat) -> Stamp {
+        Stamp { dev: st.st_dev as u64, ino: st.st_ino, created_secs: st.st_birthtime, created_nanos: st.st_birthtime_nsec }
+    }
+    #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+    fn of_stat(st: &libc::stat) -> Stamp {
+        Stamp { dev: st.st_dev as u64, ino: st.st_ino as u64, created_secs: st.st_ctime as i64, created_nanos: st.st_ctime_nsec as i64 }
+    }
+    #[cfg(test)]
     fn of(meta: &std::fs::Metadata) -> Stamp {
-        // The creation (birth) time where the system keeps one (macOS does); otherwise the
-        // status-change time, which a later folder with a reused inode also fails to match.
-        let (created_secs, created_nanos) = match meta.created().ok().and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok()) {
-            Some(d) => (d.as_secs() as i64, d.subsec_nanos() as i64),
-            None => (meta.ctime(), meta.ctime_nsec()),
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        let (created_secs, created_nanos) = {
+            let d = meta.created().unwrap().duration_since(std::time::UNIX_EPOCH).unwrap();
+            (d.as_secs() as i64, d.subsec_nanos() as i64)
         };
+        #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+        let (created_secs, created_nanos) = (meta.ctime(), meta.ctime_nsec());
         Stamp { dev: meta.dev(), ino: meta.ino(), created_secs, created_nanos }
+    }
+    fn made_before(self, other: Stamp) -> bool {
+        (self.created_secs, self.created_nanos) < (other.created_secs, other.created_nanos)
     }
     fn to_json(self, name: &str) -> serde_json::Value {
         serde_json::json!({"name": name, "dev": self.dev.to_string(), "ino": self.ino.to_string(),
@@ -125,8 +183,13 @@ impl Stamp {
 pub struct Made {
     pub path: PathBuf,
     pub kind: Kind,
+    /// The name it was recorded under, beside its identity.
+    #[cfg_attr(not(test), allow(dead_code))]
     name: String,
     stamp: Stamp,
+    /// The folder as made, held open: its contents are removed through this,
+    /// never through its name.
+    folder: std::sync::Arc<File>,
 }
 
 /// What a cleaning did: what it removed, and what it kept and why.
@@ -136,11 +199,23 @@ pub struct Cleaning {
     pub kept: Vec<(PathBuf, String)>,
 }
 
+/// A folder's device and inode.
+type Id = (u64, u64);
+
 /// The Working Files folder, established: a real private folder of this user
-/// beside the App data folder, with its three subtrees.
+/// beside the App data folder, with its three subtrees, and the folders no
+/// cleaning may remove.
 #[derive(Clone, Debug)]
 pub struct WorkingFiles {
     root: PathBuf,
+    root_id: Id,
+    subtrees: [Id; 3],
+    /// The App data folder and the person's own Codex home: their identities
+    /// are taken, following links, when established and again at each use.
+    protected: Vec<PathBuf>,
+    protected_ids: Vec<Id>,
+    /// The folders this launch made and holds, until each is emptied.
+    held: std::sync::Arc<std::sync::Mutex<Vec<Made>>>,
 }
 
 fn euid() -> u32 {
@@ -167,7 +242,7 @@ fn private_folder(path: &Path, meta: &std::fs::Metadata) -> Result<(), String> {
 /// Makes `path` (0700) only where it is established to be absent, then checks
 /// it is a real private folder of this user. Never removes or replaces what is
 /// there. The error is what the person is told.
-fn establish_folder(path: &Path, what: &str) -> Result<(), String> {
+fn establish_folder(path: &Path, what: &str) -> Result<Id, String> {
     let refused = |why: String| format!("Chirality keeps {what} at {}. {why} Move it aside (do not delete what a link points to) and start Chirality again.", path.display());
     match std::fs::symlink_metadata(path) {
         Ok(_) => {}
@@ -185,7 +260,17 @@ fn establish_folder(path: &Path, what: &str) -> Result<(), String> {
         Err(e) => return Err(refused(format!("It could not be examined: {e}."))),
     }
     let meta = std::fs::symlink_metadata(path).map_err(|e| refused(format!("It could not be examined: {e}.")))?;
-    private_folder(path, &meta).map_err(|what| refused(format!("Something else is there now: {what}.")))
+    private_folder(path, &meta).map_err(|what| refused(format!("Something else is there now: {what}.")))?;
+    Ok((meta.dev(), meta.ino()))
+}
+/// The folders a cleaning protects for `app_data`: the App data folder and the
+/// person's own Codex home.
+fn protected_for(app_data: &Path) -> Vec<PathBuf> {
+    let mut protected = vec![app_data.to_path_buf()];
+    if let Some(home) = std::env::var_os("HOME") {
+        protected.push(PathBuf::from(home).join(".codex"));
+    }
+    protected
 }
 
 /// The start's step that makes the Working Files folder and its subtrees. The
@@ -194,16 +279,66 @@ fn establish_folder(path: &Path, what: &str) -> Result<(), String> {
 /// there is no fall-back to a temporary folder.
 pub fn establish(app_data: &Path) -> Result<WorkingFiles, String> {
     let root = folder_for(app_data)?;
-    establish_folder(&root, "its working files")?;
+    let root_id = establish_folder(&root, "its working files")?;
     let data = std::fs::metadata(app_data).map_err(|e| format!("Chirality's data folder {} could not be examined: {e}", app_data.display()))?;
-    let held = std::fs::metadata(&root).map_err(|e| format!("Chirality's working files {} could not be examined: {e}", root.display()))?;
-    if (data.dev(), data.ino()) == (held.dev(), held.ino()) {
+    if (data.dev(), data.ino()) == root_id {
         return Err(format!("Chirality's working files {} are its data folder under another name; move one of them aside and start Chirality again.", root.display()));
     }
+    let mut subtrees = [(0, 0); 3];
     for kind in Kind::ALL {
-        establish_folder(&root.join(kind.subtree()), "a working folder")?;
+        subtrees[kind.index()] = establish_folder(&root.join(kind.subtree()), "a working folder")?;
     }
-    Ok(WorkingFiles { root })
+    let mut working = WorkingFiles { root, root_id, subtrees, protected: Vec::new(), protected_ids: Vec::new(), held: Default::default() };
+    working.protect(&protected_for(app_data))?;
+    Ok(working)
+}
+
+// Descriptor steps. Every open here follows no link at its last name, and every
+// name is a single entry of the folder whose descriptor is given.
+const DIR_FLAGS: libc::c_int = libc::O_RDONLY | libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC;
+fn c_name(name: &OsStr) -> std::io::Result<CString> {
+    CString::new(name.as_bytes()).map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "a name holding a NUL"))
+}
+fn last_error<T>() -> std::io::Result<T> {
+    Err(std::io::Error::last_os_error())
+}
+fn open_dir(path: &Path) -> std::io::Result<File> {
+    std::fs::OpenOptions::new().read(true).custom_flags(libc::O_DIRECTORY | libc::O_NOFOLLOW | libc::O_CLOEXEC).open(path)
+}
+fn open_dir_at(dir: &File, name: &OsStr) -> std::io::Result<File> {
+    let name = c_name(name)?;
+    // SAFETY: a valid descriptor and NUL-terminated name; on success the new descriptor is ours.
+    let fd = unsafe { libc::openat(dir.as_raw_fd(), name.as_ptr(), DIR_FLAGS) };
+    if fd < 0 { last_error() } else { Ok(unsafe { File::from_raw_fd(fd) }) }
+}
+fn stat_of(file: &File) -> std::io::Result<libc::stat> {
+    // SAFETY: a valid descriptor; `st` is written by the system.
+    let mut st: libc::stat = unsafe { std::mem::zeroed() };
+    if unsafe { libc::fstat(file.as_raw_fd(), &mut st) } != 0 { last_error() } else { Ok(st) }
+}
+fn stat_at(dir: &File, name: &OsStr) -> std::io::Result<libc::stat> {
+    let name = c_name(name)?;
+    // SAFETY: as above; the entry itself is examined, never what a link names.
+    let mut st: libc::stat = unsafe { std::mem::zeroed() };
+    if unsafe { libc::fstatat(dir.as_raw_fd(), name.as_ptr(), &mut st, libc::AT_SYMLINK_NOFOLLOW) } != 0 { last_error() } else { Ok(st) }
+}
+fn unlink_at(dir: &File, name: &OsStr, folder: bool) -> std::io::Result<()> {
+    let name = c_name(name)?;
+    let flags = if folder { libc::AT_REMOVEDIR } else { 0 };
+    // SAFETY: as above. A folder is removed only when empty.
+    if unsafe { libc::unlinkat(dir.as_raw_fd(), name.as_ptr(), flags) } != 0 { last_error() } else { Ok(()) }
+}
+fn is_dir(st: &libc::stat) -> bool {
+    st.st_mode & libc::S_IFMT == libc::S_IFDIR
+}
+fn is_link(st: &libc::stat) -> bool {
+    st.st_mode & libc::S_IFMT == libc::S_IFLNK
+}
+fn is_file(st: &libc::stat) -> bool {
+    st.st_mode & libc::S_IFMT == libc::S_IFREG
+}
+fn id_of(st: &libc::stat) -> Id {
+    (st.st_dev as u64, st.st_ino as u64)
 }
 
 impl WorkingFiles {
@@ -213,15 +348,74 @@ impl WorkingFiles {
     fn subtree(&self, kind: Kind) -> PathBuf {
         self.root.join(kind.subtree())
     }
-    /// The record of `kind`'s subtree: `Ok(empty)` when there is none yet,
-    /// `Err` when it cannot be read or does not parse.
-    fn read_record(&self, kind: Kind) -> Result<Vec<(String, Stamp)>, String> {
-        let path = self.subtree(kind).join(RECORD);
-        let bytes = match std::fs::read(&path) {
-            Ok(bytes) => bytes,
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
-            Err(e) => return Err(format!("the record {} could not be read ({e})", path.display())),
+    /// Adds folders no cleaning may remove, by identity following links.
+    fn protect(&mut self, paths: &[PathBuf]) -> Result<(), String> {
+        for path in paths {
+            match std::fs::metadata(path) {
+                Ok(meta) => self.protected_ids.push((meta.dev(), meta.ino())),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(format!("{} could not be examined ({e})", path.display())),
+            }
+            self.protected.push(path.clone());
+        }
+        Ok(())
+    }
+    #[cfg(test)]
+    fn protecting(mut self, paths: &[PathBuf]) -> WorkingFiles {
+        self.protect(paths).unwrap();
+        self
+    }
+    /// The protected identities now: those taken when established, and each
+    /// protected folder's as it is found now, following links. A protected
+    /// folder that cannot be examined stops the cleaning.
+    fn protected_now(&self) -> Result<Vec<Id>, String> {
+        let mut ids = self.protected_ids.clone();
+        for path in &self.protected {
+            match std::fs::metadata(path) {
+                Ok(meta) => ids.push((meta.dev(), meta.ino())),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => return Err(format!("{} could not be examined ({e}), so nothing was removed", path.display())),
+            }
+        }
+        Ok(ids)
+    }
+    /// `kind`'s subtree, opened through the Working Files folder, each with no
+    /// link followed and each the folder established.
+    fn open_subtree(&self, kind: Kind) -> Result<File, String> {
+        let changed = |what: &Path, why: String| format!("Chirality's working folder {} {why}; move it aside and start Chirality again.", what.display());
+        let check = |file: &File, path: &Path, id: Id| -> Result<(), String> {
+            let st = stat_of(file).map_err(|e| changed(path, format!("could not be examined ({e})")))?;
+            if id_of(&st) != id || st.st_uid != euid() || st.st_mode & 0o077 != 0 {
+                return Err(changed(path, "is no longer the folder Chirality made".into()));
+            }
+            Ok(())
         };
+        let root = open_dir(&self.root).map_err(|e| changed(&self.root, format!("could not be opened as a folder ({e})")))?;
+        check(&root, &self.root, self.root_id)?;
+        let path = self.subtree(kind);
+        let subtree = open_dir_at(&root, OsStr::new(kind.subtree())).map_err(|e| changed(&path, format!("could not be opened as a folder ({e})")))?;
+        check(&subtree, &path, self.subtrees[kind.index()])?;
+        Ok(subtree)
+    }
+    /// The record of the subtree: `Ok(empty)` when there is none yet, `Err`
+    /// when it cannot be read, is not a regular file, or does not parse.
+    fn read_record_in(subtree: &File, path: &Path) -> Result<Vec<(String, Stamp)>, String> {
+        use std::io::Read;
+        let name = c_name(OsStr::new(RECORD)).map_err(|e| e.to_string())?;
+        // SAFETY: as in the descriptor steps; a link in the record's place is refused (ELOOP).
+        let fd = unsafe { libc::openat(subtree.as_raw_fd(), name.as_ptr(), libc::O_RDONLY | libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK) };
+        if fd < 0 {
+            let e = std::io::Error::last_os_error();
+            return if e.kind() == std::io::ErrorKind::NotFound { Ok(Vec::new()) } else { Err(format!("the record {} could not be read ({e})", path.display())) };
+        }
+        let mut file = unsafe { File::from_raw_fd(fd) };
+        match stat_of(&file) {
+            // One name only: a record that is also another file's name is not read.
+            Ok(st) if is_file(&st) && st.st_uid == euid() && st.st_nlink == 1 => {}
+            _ => return Err(format!("the record {} is not a file Chirality wrote", path.display())),
+        }
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).map_err(|e| format!("the record {} could not be read ({e})", path.display()))?;
         let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(|_| format!("the record {} does not parse", path.display()))?;
         value.get("made").and_then(serde_json::Value::as_array)
             .ok_or_else(|| format!("the record {} does not parse", path.display()))?
@@ -229,180 +423,174 @@ impl WorkingFiles {
             .map(|entry| Stamp::from_json(entry).ok_or_else(|| format!("the record {} does not parse", path.display())))
             .collect()
     }
-    /// Writes `kind`'s record whole to a new file and renames it into place.
-    fn write_record(&self, kind: Kind, made: &[(String, Stamp)]) -> Result<(), String> {
-        let subtree = self.subtree(kind);
+    #[cfg(test)]
+    fn read_record(&self, kind: Kind) -> Result<Vec<(String, Stamp)>, String> {
+        Self::read_record_in(&self.open_subtree(kind)?, &self.subtree(kind).join(RECORD))
+    }
+    /// Writes the subtree's record whole to a new file and renames it into place.
+    fn write_record_in(subtree: &File, path: &Path, made: &[(String, Stamp)]) -> Result<(), String> {
+        use std::io::Write;
+        let failed = |e: std::io::Error| format!("the record in {} could not be written: {e}", path.display());
         let bytes = serde_json::to_vec(&serde_json::json!({"made": made.iter().map(|(name, stamp)| stamp.to_json(name)).collect::<Vec<_>>()}))
             .map_err(|e| e.to_string())?;
-        let temporary = subtree.join(format!("{RECORD}.{}", crate::util::opaque_id("new-")?));
-        {
-            use std::io::Write;
-            let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&temporary)
-                .map_err(|e| format!("the record in {} could not be written: {e}", subtree.display()))?;
-            file.write_all(&bytes).and_then(|()| file.sync_all())
-                .map_err(|e| format!("the record in {} could not be written: {e}", subtree.display()))?;
+        let temporary = OsString::from(format!("{RECORD}.{}", crate::util::opaque_id("new-")?));
+        let c_temporary = c_name(&temporary).map_err(failed)?;
+        // SAFETY: as in the descriptor steps; made new, never through a link.
+        let fd = unsafe { libc::openat(subtree.as_raw_fd(), c_temporary.as_ptr(), libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC, 0o600 as libc::c_uint) };
+        if fd < 0 {
+            return Err(failed(std::io::Error::last_os_error()));
         }
-        std::fs::rename(&temporary, subtree.join(RECORD)).map_err(|e| {
-            let _ = std::fs::remove_file(&temporary);
-            format!("the record in {} could not be written: {e}", subtree.display())
-        })?;
-        crate::storage::sync_dir(&subtree)
+        let mut file = unsafe { File::from_raw_fd(fd) };
+        if let Err(e) = file.write_all(&bytes).and_then(|()| file.sync_all()) {
+            let _ = unlink_at(subtree, &temporary, false);
+            return Err(failed(e));
+        }
+        let record = c_name(OsStr::new(RECORD)).map_err(failed)?;
+        // SAFETY: both names are entries of the same subtree descriptor.
+        if unsafe { libc::renameat(subtree.as_raw_fd(), c_temporary.as_ptr(), subtree.as_raw_fd(), record.as_ptr()) } != 0 {
+            let e = std::io::Error::last_os_error();
+            let _ = unlink_at(subtree, &temporary, false);
+            return Err(failed(e));
+        }
+        subtree.sync_all().map_err(failed)
     }
-    /// Makes a new folder of `kind`, exclusively and private (0700), and
-    /// records its identity before it is returned for use.
+    #[cfg(test)]
+    fn write_record(&self, kind: Kind, made: &[(String, Stamp)]) -> Result<(), String> {
+        Self::write_record_in(&self.open_subtree(kind)?, &self.subtree(kind).join(RECORD), made)
+    }
+    /// Makes a new folder of `kind`, exclusively and private (0700), in the
+    /// subtree as established, and records its identity before it is returned
+    /// for use.
     pub fn allocate(&self, kind: Kind) -> Result<Made, String> {
         let _records = records_lock();
-        let subtree = self.subtree(kind);
-        let meta = std::fs::symlink_metadata(&subtree).map_err(|e| format!("Chirality's working folder {} could not be examined: {e}", subtree.display()))?;
-        private_folder(&subtree, &meta).map_err(|what| format!("Chirality's working folder {} is now {what}; move it aside and start Chirality again.", subtree.display()))?;
-        let mut record = self.read_record(kind).map_err(|why| format!("Chirality could not make a working folder: {why}; nothing was made."))?;
+        let subtree = self.open_subtree(kind)?;
+        let record_path = self.subtree(kind).join(RECORD);
+        let mut record = Self::read_record_in(&subtree, &record_path).map_err(|why| format!("Chirality could not make a working folder: {why}; nothing was made."))?;
         let name = crate::util::opaque_id(kind.prefix())?;
-        let path = subtree.join(&name);
-        std::fs::DirBuilder::new().mode(0o700).create(&path).map_err(|e| format!("Chirality could not make the working folder {}: {e}", path.display()))?;
-        let stamp = match std::fs::symlink_metadata(&path) {
-            Ok(meta) if meta.is_dir() => Stamp::of(&meta),
-            _ => return Err(format!("Chirality could not examine the working folder it made at {}", path.display())),
-        };
+        let path = self.subtree(kind).join(&name);
+        let c = c_name(OsStr::new(&name)).map_err(|e| e.to_string())?;
+        // SAFETY: as in the descriptor steps; fails if anything has the name.
+        if unsafe { libc::mkdirat(subtree.as_raw_fd(), c.as_ptr(), 0o700) } != 0 {
+            return Err(format!("Chirality could not make the working folder {}: {}", path.display(), std::io::Error::last_os_error()));
+        }
+        let unexamined = || format!("Chirality could not examine the working folder it made at {}; it was kept and is not used", path.display());
+        let folder = open_dir_at(&subtree, OsStr::new(&name)).map_err(|_| unexamined())?;
+        let st = stat_of(&folder).map_err(|_| unexamined())?;
+        let empty = crate::workflow_workspace::names_in(&folder).map(|n| n.is_empty()).unwrap_or(false);
+        if st.st_uid != euid() || st.st_mode & 0o077 != 0 || !empty {
+            return Err(unexamined());
+        }
+        let stamp = Stamp::of_stat(&st);
         record.push((name.clone(), stamp));
-        if let Err(why) = self.write_record(kind, &record) {
-            // Not recorded, so never used: the folder just made (still empty) is taken back.
-            let _ = std::fs::remove_dir(&path);
+        if let Err(why) = Self::write_record_in(&subtree, &record_path, &record) {
+            // Not recorded, so never used; it is left empty and reported at the next start.
             return Err(format!("Chirality could not make a working folder: {why}; nothing was made."));
         }
-        Ok(Made { path, kind, name, stamp })
+        let made = Made { path, kind, name, stamp, folder: std::sync::Arc::new(folder) };
+        self.held.lock().unwrap_or_else(|e| e.into_inner()).push(made.clone());
+        Ok(made)
     }
-    /// Why `path` (recorded as `stamp`) may not be removed, or `None` when it may.
-    fn keep_reason(path: &Path, stamp: Stamp, protected: &[PathBuf]) -> Option<String> {
-        let meta = match std::fs::symlink_metadata(path) {
-            Ok(meta) => meta,
-            Err(e) => return Some(format!("it could not be examined ({e})")),
-        };
-        if meta.file_type().is_symlink() || !meta.is_dir() {
-            return Some("it is not a folder (a link or a file is in its place)".into());
-        }
-        if meta.uid() != euid() {
-            return Some("it belongs to another account".into());
-        }
-        if Stamp::of(&meta) != stamp {
-            return Some("a different folder now has its name".into());
-        }
-        let id = (meta.dev(), meta.ino());
-        for keep in protected {
-            match std::fs::metadata(keep) {
-                Ok(_) => match keep.ancestors().map(std::fs::metadata).collect::<Result<Vec<_>, _>>() {
-                    Ok(chain) if chain.iter().any(|m| (m.dev(), m.ino()) == id) => {
-                        return Some(format!("it is, or contains, {}", keep.display()));
-                    }
-                    Ok(_) => {}
-                    Err(e) => return Some(format!("where {} lies could not be established ({e})", keep.display())),
-                },
-                Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
-                Err(e) => return Some(format!("{} could not be examined ({e})", keep.display())),
-            }
-        }
-        match holds_sign_in(path) {
-            Ok(false) => None,
-            Ok(true) => Some(format!("it holds a file named {SIGN_IN_FILE}, as Codex names its sign-in; nothing in it was read")),
-            Err(e) => Some(format!("what it holds could not be examined ({e})")),
-        }
-    }
-    fn take(&self, kind: Kind, name: &str, stamp: Stamp, protected: &[PathBuf], cleaning: &mut Cleaning) -> bool {
-        let path = self.subtree(kind).join(name);
-        if name.contains('/') || !name.starts_with(kind.prefix()) {
-            cleaning.kept.push((path, "its recorded name is not one the App gives".into()));
-            return false;
-        }
-        match std::fs::symlink_metadata(&path) {
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return true,
-            _ => {}
-        }
-        if let Some(why) = Self::keep_reason(&path, stamp, protected) {
-            cleaning.kept.push((path, why));
-            return false;
-        }
-        match std::fs::remove_dir_all(&path) {
-            Ok(()) => {
-                cleaning.removed.push(path);
-                true
-            }
-            Err(e) => {
-                cleaning.kept.push((path, format!("it could not be removed ({e})")));
-                false
-            }
-        }
-    }
-    /// Removes one folder the App made, if it is still exactly that folder.
-    pub fn remove(&self, made: &Made, protected: &[PathBuf]) -> Cleaning {
-        let _records = records_lock();
+    /// Removes what is in a folder this launch made and still holds, through
+    /// its held descriptor; the folder itself is kept. Nothing is removed from
+    /// a folder this value did not make.
+    pub fn empty(&self, made: &Made) -> Cleaning {
         let mut cleaning = Cleaning::default();
-        let Ok(mut record) = self.read_record(made.kind) else {
-            cleaning.kept.push((made.path.clone(), "the record could not be read, so nothing was removed".into()));
+        let held = {
+            let mut held = self.held.lock().unwrap_or_else(|e| e.into_inner());
+            let at = held.iter().position(|h| std::sync::Arc::ptr_eq(&h.folder, &made.folder));
+            at.map(|at| held.remove(at))
+        };
+        let Some(held) = held else {
+            cleaning.kept.push((made.path.clone(), "this launch does not hold it, so nothing in it was removed".into()));
             return cleaning;
         };
-        if !record.iter().any(|(name, stamp)| *name == made.name && *stamp == made.stamp) {
-            cleaning.kept.push((made.path.clone(), "it is not in the record".into()));
-            return cleaning;
-        }
-        if self.take(made.kind, &made.name, made.stamp, protected, &mut cleaning) {
-            record.retain(|(name, _)| *name != made.name);
-            if let Err(why) = self.write_record(made.kind, &record) {
-                cleaning.kept.push((self.subtree(made.kind), why));
-            }
+        let outcome = self.protected_now().and_then(|protected| {
+            walk(&held.folder, held.stamp, &protected, false)?;
+            walk(&held.folder, held.stamp, &protected, true).map_err(|why| format!("{why}; part of what it held may have been removed before that was found"))
+        });
+        match outcome {
+            Ok(()) => cleaning.removed.push(held.path.clone()),
+            Err(why) => cleaning.kept.push((held.path.clone(), why)),
         }
         cleaning
     }
-    /// Removes what the record names and still is what it was, in every
-    /// subtree; to be called only under the App's process lock (one App per App
-    /// data folder). Entries the record does not name are reported, never removed.
-    pub fn clean(&self, protected: &[PathBuf]) -> Cleaning {
-        let _records = records_lock();
+    /// Empties every folder this launch made and still holds.
+    pub fn empty_all(&self) -> Cleaning {
+        let held: Vec<Made> = self.held.lock().unwrap_or_else(|e| e.into_inner()).clone();
         let mut cleaning = Cleaning::default();
+        for made in held {
+            let one = self.empty(&made);
+            cleaning.removed.extend(one.removed);
+            cleaning.kept.extend(one.kept);
+        }
+        cleaning
+    }
+    /// What is in the subtrees beside the records: the folders this and
+    /// earlier launches made, which this version keeps. Reported, never removed.
+    pub fn kept_folders(&self) -> Vec<PathBuf> {
+        let mut kept = Vec::new();
         for kind in Kind::ALL {
-            let subtree = self.subtree(kind);
-            let record = match self.read_record(kind) {
-                Ok(record) => record,
-                Err(why) => {
-                    cleaning.kept.push((subtree, format!("{why}, so nothing in it was removed")));
-                    continue;
-                }
-            };
-            let mut left = Vec::new();
-            for (name, stamp) in record {
-                if !self.take(kind, &name, stamp, protected, &mut cleaning) {
-                    left.push((name, stamp));
-                }
-            }
-            if let Err(why) = self.write_record(kind, &left) {
-                cleaning.kept.push((subtree.clone(), why));
-            }
-            let named: std::collections::HashSet<String> = left.iter().map(|(name, _)| name.clone()).collect();
-            if let Ok(entries) = std::fs::read_dir(&subtree) {
-                for entry in entries.flatten() {
-                    let name = entry.file_name().to_string_lossy().into_owned();
-                    if name == RECORD || name.starts_with(&format!("{RECORD}.")) || named.contains(&name) {
-                        continue;
-                    }
-                    cleaning.kept.push((entry.path(), "the App did not record making it, so it was not removed".into()));
+            let Ok(subtree) = self.open_subtree(kind) else { continue };
+            for entry in crate::workflow_workspace::names_in(&subtree).unwrap_or_default() {
+                let name = entry.to_string_lossy();
+                if name != RECORD && !name.starts_with(&format!("{RECORD}.")) {
+                    kept.push(self.subtree(kind).join(&entry));
                 }
             }
         }
-        cleaning
+        kept
     }
 }
 
-/// The Working Files of the App data folder this launch holds, established
-/// once at its first use. The first use in the process also cleans what
-/// earlier launches left, under the App's process lock (one App per App data
-/// folder, held before any start), protecting the App data folder and the
-/// person's own Codex home.
-static LAUNCH: std::sync::Mutex<Option<(PathBuf, WorkingFiles)>> = std::sync::Mutex::new(None);
-fn protected_for(app_data: &Path) -> Vec<PathBuf> {
-    let mut protected = vec![app_data.to_path_buf()];
-    if let Some(home) = std::env::var_os("HOME") {
-        protected.push(PathBuf::from(home).join(".codex"));
+/// Everything beneath the opened `folder`, made at `made`: checked, or (with
+/// `remove`) checked again folder by folder and removed. Nothing is opened but
+/// folders, from their parent's descriptor with no link followed; no file is
+/// opened and nothing in a file is read.
+fn walk(folder: &File, made: Stamp, protected: &[Id], remove: bool) -> Result<(), String> {
+    let here = stat_of(folder).map_err(|e| format!("what it holds could not be examined ({e})"))?;
+    if protected.contains(&id_of(&here)) {
+        return Err("it is, or contains, a folder Chirality protects (its data folder or the person's own Codex home)".into());
     }
-    protected
+    let names = crate::workflow_workspace::names_in(folder).map_err(|e| format!("what it holds could not be examined ({e})"))?;
+    let mut entries = Vec::with_capacity(names.len());
+    for name in names {
+        if CODEX_HOME_FILES.iter().any(|n| OsStr::new(n) == name) {
+            return Err(format!("it holds an entry named {}, as Codex names a file in its home; nothing in it was read", name.to_string_lossy()));
+        }
+        let st = stat_at(folder, &name).map_err(|e| format!("what it holds could not be examined ({e})"))?;
+        if is_dir(&st) && protected.contains(&id_of(&st)) {
+            return Err("it is, or contains, a folder Chirality protects (its data folder or the person's own Codex home)".into());
+        }
+        // Another device beneath it is a volume mounted there, whose writer is not this
+        // folder's: kept.
+        if st.st_dev as u64 != made.dev {
+            return Err(format!("it holds {}, which is on another volume, so kept", name.to_string_lossy()));
+        }
+        // A folder, or a file with a single name, made before this folder was
+        // moved in from elsewhere. A link, or a file with other names, loses
+        // nothing when this name of it goes.
+        let moved_in = !is_link(&st) && (is_dir(&st) || st.st_nlink == 1) && Stamp::of_stat(&st).made_before(made);
+        if moved_in {
+            return Err(format!("it holds {}, made before this folder was: moved in from elsewhere, so kept", name.to_string_lossy()));
+        }
+        entries.push((name, is_dir(&st)));
+    }
+    for (name, folder_entry) in entries {
+        if folder_entry {
+            let child = open_dir_at(folder, &name).map_err(|e| format!("what it holds could not be opened ({e})"))?;
+            walk(&child, made, protected, remove)?;
+        }
+        if remove {
+            unlink_at(folder, &name, folder_entry).map_err(|e| format!("{} could not be removed ({e})", name.to_string_lossy()))?;
+        }
+    }
+    Ok(())
 }
+
+/// The Working Files of the App data folder this launch holds, established
+/// once at its first use, which also reports the folders earlier launches
+/// left.
+static LAUNCH: std::sync::Mutex<Option<(PathBuf, WorkingFiles)>> = std::sync::Mutex::new(None);
 fn report(cleaning: &Cleaning) {
     for (path, why) in &cleaning.kept {
         eprintln!("chirality: a working folder was kept: {} ({why})", path.display());
@@ -418,7 +606,10 @@ pub fn for_launch(app_data: &Path) -> Result<WorkingFiles, String> {
     }
     let working = establish(app_data)?;
     if launch.is_none() {
-        report(&working.clean(&protected_for(app_data)));
+        let kept = working.kept_folders();
+        if !kept.is_empty() {
+            eprintln!("chirality: {} working folder(s) from earlier starts are kept in {} (this version empties the folders a launch makes at its exit, and removes none); they can be removed while Chirality is not running", kept.len(), working.root().display());
+        }
     }
     *launch = Some((app_data.to_path_buf(), working.clone()));
     Ok(working)
@@ -446,30 +637,12 @@ pub fn launch() -> Result<WorkingFiles, String> {
     #[allow(unreachable_code)]
     Err("Chirality's working files are not set up for this launch, so nothing was made".into())
 }
-/// At the App's exit: removes what this launch made and still is what it was.
+/// At the App's exit: empties the folders this launch made and still holds.
 pub fn clean_at_exit() {
     let launch = LAUNCH.lock().unwrap_or_else(|e| e.into_inner()).clone();
-    if let Some((data, working)) = launch {
-        report(&working.clean(&protected_for(&data)));
+    if let Some((_, working)) = launch {
+        report(&working.empty_all());
     }
-}
-
-/// Whether any entry under `path` is named [`SIGN_IN_FILE`], looked for by
-/// name and never opened, and never through a link.
-fn holds_sign_in(path: &Path) -> std::io::Result<bool> {
-    let mut pending = vec![path.to_path_buf()];
-    while let Some(folder) = pending.pop() {
-        for entry in std::fs::read_dir(&folder)? {
-            let entry = entry?;
-            if entry.file_name() == SIGN_IN_FILE {
-                return Ok(true);
-            }
-            if entry.file_type()?.is_dir() {
-                pending.push(entry.path());
-            }
-        }
-    }
-    Ok(false)
 }
 
 #[cfg(test)]

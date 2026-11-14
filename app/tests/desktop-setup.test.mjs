@@ -365,7 +365,9 @@ test('first use: no project, existing settings route, cancel and change keep cho
     assert.ok(said.includes('Conversations without a project work in: '+packet.initial.noProjectFolder));
     // DEL-01-01: the App's working files, beside App data and named from it, in the same form.
     assert.equal(packet.initial.workingFiles,packet.initial.appData+' Working Files');
-    assert.ok(said.includes("Working files (the version check's folders, the connector's folder and Codex's temporary folders): "+packet.initial.workingFiles));
+    assert.equal(typeof packet.initial.workingFilesKept,'number');
+    assert.ok(said.includes("Working files (the version check's folders, the connector's folder and Codex's temporary folders): "+packet.initial.workingFiles
+      +". "+packet.initial.workingFilesKept+" folders are there now: Chirality empties the folders it makes when it quits, and removes none of them. While Chirality is not running, they can be removed."));
     assert.ok(said.includes('App data: '+packet.initial.appData),'the App data line is unchanged');
     const existing=nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(' Use my existing Codex settings'));
     await React.act(()=>props(existing).onChange());

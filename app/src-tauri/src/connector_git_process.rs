@@ -338,10 +338,11 @@ impl Drop for Engine {
     fn drop(&mut self) {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("connector_git_process::Engine::drop");
-        // Removed only if it is still the folder made and recorded (device, inode and creation
-        // time); anything else in its place is kept and reported.
+        // What is in the folder made for this engine is removed through the descriptor held
+        // since it was made, never through its name; the folder itself is kept. Anything kept
+        // is reported.
         if let Some((working, made)) = self.made.take() {
-            for (path, why) in working.remove(&made, &[]).kept {
+            for (path, why) in working.empty(&made).kept {
                 eprintln!("chirality: a working folder was kept: {} ({why})", path.display());
             }
         }
