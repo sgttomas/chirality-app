@@ -118,6 +118,7 @@ pub mod schema_validation;
 pub mod standing;
 pub mod storage;
 pub mod working_folder;
+pub mod working_files;
 pub mod stop_records;
 pub mod util;
 
@@ -297,9 +298,11 @@ fn complete_config_resource_continuation(
     )
 }
 
-/// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
-fn probe_home() -> Result<PathBuf,String> {
-    runtime_session::allocate_fresh_probe(&runtime_session::temporary_root("The version probe's home")?)
+/// A fresh probe home for the label probe (HOSTING §7.2 H-probe), made in the
+/// App's Working Files beside the App data folder (DEL-01-01), never in a
+/// temporary folder. The App data folder is already held.
+fn probe_home(app_data: &std::path::Path) -> Result<PathBuf,String> {
+    working_files::for_launch(app_data)?.allocate(working_files::Kind::ProbeHome).map(|made| made.path)
 }
 
 /// Whether this build admits development startup inputs. The release
@@ -316,7 +319,7 @@ pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
 pub fn host_config_from_env(workspace: Option<&PathBuf>, app_data: &std::path::Path) -> Result<HostConfig, String> {
     let established = working_folder::established(app_data).map_err(|blocked| blocked.sentence())?;
     let project = workspace.map(|project| established.admit_project(project)).transpose()?;
-    host_config_from_inputs(project.as_ref(), Ok(&established), |key|std::env::var_os(key), probe_home)
+    host_config_from_inputs(project.as_ref(), Ok(&established), |key|std::env::var_os(key), || probe_home(app_data))
 }
 
 /// `project` has passed admission; with none, the working folder is the
@@ -2978,10 +2981,12 @@ fn build_input<'a>(input: &'a impl Fn(&str)->Option<std::ffi::OsString>, is_dev:
 /// operational starts and the actual reason is shown.
 pub(crate) fn admitted_startup(
     input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
-    probe: impl Fn()->Result<PathBuf,String>,
+    probe: impl Fn(&std::path::Path)->Result<PathBuf,String>,
 ) -> (desktop_startup::DesktopSetup, desktop_startup::RootInputs) {
     let input = build_input(&input, is_dev);
     let data = environment_app_data(&input).unwrap_or(platform_data);
+    // The probe home is made against the App data folder this start holds.
+    let probe = || data.as_ref().map_err(Clone::clone).and_then(|data| probe(data));
     let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
     if environment_selected(&input) {
         if let Err(reason) = data.as_ref().map_err(Clone::clone).and_then(|data| desktop.hold_environment_data(data)) {

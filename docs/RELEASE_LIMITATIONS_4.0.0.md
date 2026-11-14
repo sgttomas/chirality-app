@@ -238,3 +238,56 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** keep material the agent must not read out
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
+
+### LIM-021: The App's working folders are never removed
+
+- **Id:** LIM-021
+- **Exit criteria:** 4, 6
+- **What is unavailable:** removal of the folders the App makes for its own
+  work, and of what is in them. They are in the folder named after Chirality's
+  data folder with " Working Files" added, beside it. For 4.0.0 that is
+  `~/Library/Application Support/com.chirality.app Working Files`. The
+  first-use page's Technical details names it and says how many folders are
+  there. They accumulate with use, by kind:
+  - **Codex's temporary folders**, one for each start of Codex. Each holds
+    whatever the commands Codex ran wrote to their temporary folder, which can
+    be the person's own material. The App does not establish that none of
+    them wrote sign-in material there. Before, these files went to the
+    shared temporary folder, which macOS may clear by itself; now they stay
+    until the person removes them.
+  - **The connector's folders**, one for each use of the connector. Each
+    holds what git writes while reading: its settings, and folders for
+    objects and references. Git reads the project's own repository in place,
+    with every network protocol refused, and the App puts no sign-in there.
+  - **The version check's folders**, one each time Chirality prepares to start
+    Codex; later version checks of that start reuse it. The App never puts a
+    sign-in there: it runs Codex in one only to read its version label.
+
+  Each folder is checked when it is made, and the Working Files folder and the
+  folder holding it when they are established; nothing is checked afterwards.
+  The check is that each is the person's own, private by mode, and carries no
+  access-list entry that allows access (a list of deny entries only passes),
+  and that the folder holding the Working Files folder is writable by the
+  person's account alone. A start is refused where one of these does not hold.
+  A folder changed after it was made is not checked again. The App does not
+  defend these folders against a process that can write in that place while
+  it makes them: any process with the person's own rights outside a sandbox
+  can, and Codex can where its writable roots include that place.
+  Signing out in Chirality acts on Codex's own home, as before. It does not
+  reach these folders, as it never reached the shared temporary folder.
+- **Why:** removing a folder safely needs the App to show that nothing which
+  can write in the Working Files folder could have put something else in its
+  place. The App can show that only once it decides every folder it gives
+  Codex to write in, which follows in a later version.
+- **What the person does instead:** remove the Working Files folder, or the
+  folders in it, when neither Chirality nor any Codex it started is running.
+  Nothing in it is needed between launches.
+  - If Chirality could not stop its Codex when it quit, a process named
+    `codex` can still be running after Chirality has gone. Activity Monitor
+    shows it by that name. Quit it there, or restart the Mac, before removing
+    the folder.
+  - Removing the folder while Chirality is running harms no conversation's
+    record. But a command of a running conversation that needs its temporary
+    folder fails, a connector read in progress fails, and no new start of
+    Codex or version check is made until Chirality is started again.
+- **Basis:** DEL-01-01 (CLM-006).

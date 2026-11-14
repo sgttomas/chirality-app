@@ -2510,6 +2510,16 @@ impl Host {
         // With the App data folder known, the child's working folder is set from the checked
         // open directory below, never from the path.
         if working_folder.is_none() { cmd.current_dir(&cfg.cwd); }
+        // DEL-01-01: with the App data folder known, Codex is given a temporary folder of its
+        // own, made for this start in the App's Working Files (never the person's shared one),
+        // and the start is refused if it cannot be made: there is no fall-back.
+        let codex_tmp = match &cfg.app_data {
+            Some(data) => Some(crate::working_files::for_launch(data)
+                .and_then(|working| working.allocate(crate::working_files::Kind::CodexTmp))
+                .map_err(|why| format!("Codex was not started. {why}"))?),
+            None => None,
+        };
+        if let Some(tmp) = &codex_tmp { cmd.env("TMPDIR", &tmp.path); }
         cmd.args(&args)
             .env("CODEX_HOME", &cfg.codex_home)
             .stdin(Stdio::piped())
@@ -2664,7 +2674,12 @@ impl Host {
             let conf = json!({
                 "launcher": executable.display().to_string(),
                 "arguments": args,
-                "environment": {"CODEX_HOME": "App-owned home (path recorded by the App, not here)"},
+                "environment": if codex_tmp.is_some() {
+                    json!({"CODEX_HOME": "App-owned home (path recorded by the App, not here)",
+                           "TMPDIR": "a temporary folder the App made for this start in its Working Files, in place of the person's (path recorded by the App, not here)"})
+                } else {
+                    json!({"CODEX_HOME": "App-owned home (path recorded by the App, not here)"})
+                },
                 "removedEnvironment": removed_names,
                 "removedEnvironmentClasses": removed_classes,
                 "inheritedEnvironmentPresence": presence_only_record(presence_only),
@@ -8695,6 +8710,37 @@ mod local_process_lock_tests {
                 assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0, "the folder set aside is empty after a start");
                 stop_and_wait(&host);
             }
+        }
+    }
+    /// DEL-01-01, LIM-021: Codex's temporary folder, made for its start in the Working Files, is
+    /// kept with what Codex wrote in it after the start ends normally and after a start whose
+    /// Codex exits at once. Nothing removes it.
+    #[test]
+    fn codexs_temporary_folder_is_kept_with_its_contents_however_the_start_ends() {
+        for serve in [true, false] {
+            let f = Fixture::new(false, false);
+            let data = f.root.join("app-data");
+            std::fs::create_dir(&data).unwrap();
+            std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o700)).unwrap();
+            let rest = if serve { "for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\n" } else { "sys.exit(3)\n" };
+            std::fs::write(&f.cfg.codex_bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['TMPDIR']+'/invented-temporary','w').write('x')\nopen(os.environ['CODEX_HOME']+'/tmpdir','w').write(os.environ['TMPDIR'])\n{rest}")).unwrap();
+            let mut cfg = f.cfg.clone();
+            cfg.distribution = Some(successor::Distribution::development_from_binary(&cfg.codex_bin).unwrap());
+            cfg.cwd = crate::desktop_startup::no_project_folder(&data);
+            cfg.app_data = Some(data.clone());
+            let host = Arc::new(Host::new());
+            let started = host.start(&cfg, "fixture");
+            let reported = f.root.join("home/tmpdir");
+            until("the stand-in reported its temporary folder", || reported.exists());
+            let tmp = PathBuf::from(std::fs::read_to_string(&reported).unwrap());
+            assert!(tmp.starts_with(crate::working_files::folder_for(&data).unwrap().join("codex-tmp")), "{}", tmp.display());
+            if serve {
+                assert_eq!(started.unwrap()["state"], "ready");
+                stop_and_wait(&host);
+            } else {
+                until("the stand-in exited", || host.snapshot()["state"] != "starting");
+            }
+            assert!(tmp.join("invented-temporary").exists(), "serve={serve}: kept with what Codex wrote");
         }
     }
     /// A state that admits no start refuses as admission would, before a home that cannot be
