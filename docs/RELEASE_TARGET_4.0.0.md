@@ -319,6 +319,11 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
    each in the words that its scope states are in force for 4.0.0.
+   That no local model server is presented is governed by the "For 4.0.0"
+   section of DEL-01-05, and is examined on the candidate by inspecting every
+   view met in the journeys and examinations of criteria 1 to 6 for an offer
+   of one, and by an executable check that the App's commands for that route
+   refuse.
 7. **Visual design.** A person meeting the App's views in the journeys and
    examinations of criteria 1 to 6 and 15 finds that they share one visual form,
    drawn from v3.0.1 as installed, that they are consistent with one another,
