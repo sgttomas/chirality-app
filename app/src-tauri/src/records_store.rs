@@ -2151,9 +2151,7 @@ fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     let current=attach(root,false)?;
     if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err("project root association changed; stale queued writer refused".into());}
     let state = imports(dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
-    if let Some(started) = &state.incomplete {
-        return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
-    }
+    if let Some(refusal) = import_incomplete(&state) { return Err(refusal); }
     // A completion admits a write only once its durability is proved again
     // (pull request 300), and authority is read from the same account
     // snapshot, so a completion cannot enter through a second read.
@@ -2165,6 +2163,11 @@ fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
         return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
     }
     Ok(())
+}
+/// The write gate's first refusal, also said by status: an import that
+/// started and did not complete.
+fn import_incomplete(state: &Imports) -> Option<String> {
+    state.incomplete.as_ref().map(|started| format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")))
 }
 /// Whether a write would be refused as "import needed": in-place records wait
 /// and the store has no positive write authority. The write gate and status
@@ -3030,13 +3033,20 @@ pub fn status(project: Option<&Path>) -> Value {
             // reports, it admits nothing). Where authority is uncertain, the
             // gate says "not known", and so does a note here; never "import needed".
             let mut gate_notes = Vec::new();
-            let store_import_needed = match (&read, home.attachment.dir.as_ref(), account.as_ref()) {
-                (Ok(read), Some(dir), Some(account)) if read.in_store().is_some() => {
-                    match import_needed_from(dir, account, || Ok(!census.is_empty())) {
+            // Wherever the project has a store folder, read in place or from
+            // the store, status asks the gate's own two questions in the gate's
+            // order: an incomplete import first, then import_needed_from.
+            let import_needed = match (&read, home.attachment.dir.as_ref(), account.as_ref()) {
+                (Ok(_), Some(dir), Some(account)) => match import_incomplete(account) {
+                    Some(refusal) => { gate_notes.push(refusal); false }
+                    None => match import_needed_from(dir, account, || Ok(!census.is_empty())) {
                         Ok(needed) => needed,
                         Err(e) => { gate_notes.push(e); false }
-                    }
-                }
+                    },
+                },
+                // No store folder yet: a first write would make an empty one,
+                // whose authority is false, so the in-place answer is the gate's.
+                (Ok(read), None, _) => read.import_needed(!census.is_empty()),
                 _ => false,
             };
             Ok(json!({"attachment":home.attachment.view(),
@@ -3047,7 +3057,7 @@ pub fn status(project: Option<&Path>) -> Value {
                 "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
                     else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
                     else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty())}},
-                "importNeeded":store_import_needed || read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
+                "importNeeded":import_needed,
                 "legacyFiles":census.len(),"notImported":to_import,
                 "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home(home.clone()).into_iter().chain(gate_notes).collect::<Vec<_>>()}))
         }) {

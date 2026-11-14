@@ -3182,3 +3182,94 @@ fn records_store_import_gate_authority_reads_only_its_admission_snapshot() {
     assert_eq!(unchanged, bytes);
     assert!(matches!(authority, Ok(false)), "a later completion entered through authority without acceptance: {authority:?}");
 }
+
+
+// Status's importNeeded and notes against the write gate, case by case
+// (pull request 313's narrow reading, its probes taken as maintained tests).
+
+#[test]
+fn records_store_import_gate_status_store_read_can_need_import() {
+    for bytes in [b"".as_slice(), b"unclosed first append".as_slice()] {
+        let (_own, root, dir) = import_gate_project();
+        let path = dir.join("acts").join(format!("{}.jsonl", storage::key("unpublished")));
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, bytes).unwrap();
+        assert!(store_holds(&dir).unwrap());
+        assert!(!store_write_authority_from_imports(&dir, &imports(&dir).unwrap()).unwrap());
+        let gate = write_dir(&root).unwrap_err();
+        let shown = status(Some(&root));
+        std::fs::remove_dir_all(&root).unwrap();
+        assert!(gate.starts_with("import needed:"), "{gate}");
+        assert_eq!(shown["project"]["reading"], "records store", "{shown}");
+        assert_eq!(shown["project"]["importNeeded"], true, "{shown}");
+    }
+}
+
+#[test]
+fn records_store_import_gate_status_in_place_uncertain_offers_no_import() {
+    let (_own, root, dir) = import_gate_project();
+    std::fs::create_dir_all(dir.join("connectors")).unwrap();
+    std::fs::write(dir.join("connectors/opaque-evidence"), b"retained opaque connector evidence").unwrap();
+    assert!(!store_holds(&dir).unwrap());
+    let gate = write_dir(&root).unwrap_err();
+    assert!(gate.contains("governs this project's records is unknown"), "{gate}");
+    let shown = status(Some(&root));
+    std::fs::remove_dir_all(&root).unwrap();
+    assert_eq!(shown["project"]["importNeeded"], false, "gate={gate}; status={shown}");
+    assert!(shown["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str() == Some(gate.as_str())), "{shown}");
+}
+
+#[test]
+fn records_store_import_gate_status_incomplete_import_says_the_gates_refusal() {
+    let (_own, root, dir) = import_gate_project();
+    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":"import:review","at":"now","storeHeld":false,"census":[]})).unwrap();
+    assert!(!store_holds(&dir).unwrap());
+    let gate = write_dir(&root).unwrap_err();
+    assert!(gate.starts_with("import incomplete:"), "{gate}");
+    let shown = status(Some(&root));
+    std::fs::remove_dir_all(&root).unwrap();
+    assert_eq!(shown["project"]["importNeeded"], false, "gate={gate}; status={shown}");
+    assert!(shown["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str() == Some(gate.as_str())), "status carries the gate's own refusal: {shown}");
+}
+
+#[test]
+fn records_store_import_gate_status_refused_attachment_offers_no_import() {
+    let (_own, root, _dir) = import_gate_project();
+    std::fs::remove_file(root.join(PROJECT_LINK)).unwrap();
+    let gate = write_dir(&root).unwrap_err();
+    let shown = status(Some(&root));
+    std::fs::remove_dir_all(&root).unwrap();
+    assert!(!gate.starts_with("import needed:"), "{gate}");
+    assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    assert!(shown["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str().is_some_and(|n| n.contains("link missing"))), "{shown}");
+}
+
+#[test]
+fn records_store_import_gate_helper_keeps_the_gates_order() {
+    for evidence in ["true", "false", "unknown"] {
+        let (_own, root, dir) = import_gate_project();
+        if evidence == "true" {
+            let path = dir.join(storage::log_rel(None, "writer:store"));
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::copy(root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy")), path).unwrap();
+        } else if evidence == "unknown" {
+            std::fs::create_dir_all(dir.join("acts")).unwrap();
+            std::fs::write(dir.join("acts/unfamiliar"), b"unknown").unwrap();
+        }
+        let state = imports(&dir).unwrap();
+        for census in [Ok(false), Ok(true), Err("injected census failure".to_owned())] {
+            let calls = std::cell::Cell::new(0);
+            let actual = import_needed_from(&dir, &state, || { calls.set(calls.get()+1); census.clone() });
+            let authority = store_write_authority_from_imports(&dir, &state);
+            let expected = (|| -> Result<bool, String> {
+                if !matches!(authority, Ok(true)) {
+                    if census.clone()? { authority?; return Ok(true); }
+                }
+                Ok(false)
+            })();
+            assert_eq!(actual, expected, "evidence={evidence}; census={census:?}");
+            assert_eq!(calls.get(), if evidence == "true" { 0 } else { 1 });
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
