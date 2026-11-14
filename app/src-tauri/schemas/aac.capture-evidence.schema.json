@@ -389,6 +389,10 @@
         "minLength": 1
       }
     },
+    "sealProvider": {
+      "description": "Provider recorded among the seal-covered facts. Absence preserves legacy captures; a label alone is not verification.",
+      "enum": ["file-key", "keychain"]
+    },
     "seal": {
       "$ref": "#/$defs/contentIdentity"
     },
@@ -419,6 +423,7 @@
       }
     }
   },
+  "dependentRequired": {"sealProvider": ["seal"]},
   "allOf": [
     {
       "description": "A decline exists only where ACT §2.3 defines an act-declined event.",

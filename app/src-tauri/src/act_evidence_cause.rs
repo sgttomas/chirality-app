@@ -200,6 +200,14 @@ impl From<EvidenceFailure> for String {
 mod tests {
     use super::*;
     #[test]
+    fn schema_enum_equals_the_shared_cause_enum() {
+        let schema: serde_json::Value = serde_json::from_str(include_str!("../schemas/RS_RECORD.schema.json")).unwrap();
+        let encoded: std::collections::BTreeSet<_> = ActEvidenceCause::ALL.iter().map(|cause| serde_json::to_value(cause).unwrap().as_str().unwrap().to_owned()).collect();
+        let declared: std::collections::BTreeSet<_> = schema["$defs"]["evidenceLimit"]["properties"]["cause"]["enum"].as_array().unwrap().iter().map(|v| v.as_str().unwrap().to_owned()).collect();
+        assert_eq!(encoded, declared);
+        assert_eq!(encoded.len(), ActEvidenceCause::ALL.len());
+    }
+    #[test]
     fn every_cause_has_a_standing_and_only_seal_causes_have_sentences() {
         for cause in ActEvidenceCause::ALL {
             let _ = cause.standing();

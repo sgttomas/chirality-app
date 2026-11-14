@@ -309,7 +309,14 @@ fn person_decides_a_package_and_the_view_shows_it() {
         fx_act["body"]["boundContent"],
         json!([{"method":LEGACY_FILE_IDENTITY_METHOD,"value":format!("sha256:{exact_digest}")}])
     );
+    // This integration harness has no installation sealing root. A16 now
+    // attempts sealing, keeps the confirmed act and records that failure.
+    assert!(cap.get("seal").is_none());
+    assert_eq!(rec["body"]["evidenceLimits"][0], fx_act["body"]["evidenceLimits"][0]);
+    assert_eq!(rec["body"]["evidenceLimits"].as_array().unwrap().len(), 2);
+    assert_eq!(rec["body"]["evidenceLimits"][1], "A16 capture unsealed: this App installation's capture-seal key folder is not known; recorded decision selection is unchanged. This capture will never be sealed later.");
     let bskip = [
+        "evidenceLimits",
         "boundContent",
         "captureEvidence",
         "captureTime",
@@ -331,7 +338,7 @@ fn person_decides_a_package_and_the_view_shows_it() {
     assert_eq!(
         without(&rec["body"], &bskip),
         without(&fx_act["body"], &bskip),
-        "remaining human_act body equals Pass 4's; selected and historical boundContent were checked separately"
+        "remaining human_act body equals Pass 4's; content identity and new A16 sealing-failure evidence were checked separately"
     );
     assert_eq!(rec["recorder"], fx_act["recorder"]);
     // A second capture from the same offer is refused.
