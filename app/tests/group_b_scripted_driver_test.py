@@ -4,7 +4,9 @@ What is checked here runs everywhere: the sources and the release recipe, and th
 The build itself, its window and the release-features build are checked by the hosted job
 (.github/workflows/app-scripted-driver.yml, proof.py release-free).
 """
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import re
@@ -457,7 +459,7 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
 
 
 SETUP_STAND_IN = """#!{python}
-import json, os, subprocess, sys, time
+import json, os, subprocess, sys, time, uuid
 from pathlib import Path
 home = Path(os.environ['HOME'])
 knobs = json.loads((home.parent.parent / 'knobs.json').read_text()) if (home.parent.parent / 'knobs.json').exists() else {{}}
@@ -472,17 +474,39 @@ stage('script evaluated', {{'attempt': 1, 'tries': 60, 'expected_heading': given
                            'headings_seen': [given['expected_heading']], 'returned': {{'heading': given['expected_heading']}}}})
 app_data = Path(values['app_data'])
 for index, answer in enumerate(answers):
-    statement = (f"Create NEW App-owned settings folder: {{app_data}}/settings\\nRead, import or change no other Codex settings, home or credential."
-                 f"\\nProject for next launch: {{values['project']}}")
+    settings = app_data / f'shared-settings/settings-{{uuid.uuid4()}}'
+    account = app_data / f'account-homes/account-{{uuid.uuid4()}}'
+    lines = [f'Create NEW App-owned settings folder: {{settings}}',
+             'with an empty config.toml, an empty AGENTS.md and an empty skills folder.',
+             f'Create NEW App-owned account directory: {{account}}',
+             'Link its config.toml, AGENTS.md and skills to those new settings.',
+             'Read, import or change no other Codex settings, home or credential.',
+             f"Project for next launch: {{values['project']}}",
+             f"Save a private pending request in {{app_data / 'desktop-startup/request.json'}}.",
+             'Codex: the copy included with this App (bundled-owner-use-development).',
+             'The current workspace, homes, account/model choices, records and prepared messages stay unchanged. '
+             'No automatic quit/restart/login/conversation.']
+    if knobs.get('drop_line') is not None:
+        del lines[knobs['drop_line']]
     stage('setup confirmation stand-in', {{'index': index, 'title': knobs.get('title', 'Desktop setup — next launch only'),
-          'statement': statement, 'buttons': ['Leave setup unchanged', 'Create settings and save for next launch', 'Cancel'],
+          'statement': '\\n'.join(lines), 'buttons': ['Leave setup unchanged', 'Create settings and save for next launch', 'Cancel'],
           'answer': answer}})
+    if knobs.get('settings_on_leave') and answer == 'leave':
+        settings.mkdir(parents=True)
     if answer == 'create' or knobs.get('save_on_leave'):
+        if knobs.get('save_other_ids'):
+            settings, account = settings.with_name(f'settings-{{uuid.uuid4()}}'), account.with_name(f'account-{{uuid.uuid4()}}')
         (app_data / 'desktop-startup').mkdir(parents=True, exist_ok=True)
         (app_data / 'desktop-startup/request.json').write_text('{{}}')
-        (app_data / 'account-homes/account-1').mkdir(parents=True, exist_ok=True)
+        settings.mkdir(parents=True, exist_ok=True)
+        account.mkdir(parents=True, exist_ok=True)
 if knobs.get('write_outside'):
     (home / 'Elsewhere').mkdir(exist_ok=True)
+if knobs.get('unreadable'):
+    hidden = home / f"Library/Caches/{{values['identifier']}}/hidden"
+    hidden.mkdir(parents=True, exist_ok=True)
+    (hidden / 'unexpected-file').write_text('')
+    hidden.chmod(0)
 steps = [{{'id': s['id'], 'checks': [{{'pass': True}}]}} for s in given['scenario']['steps']]
 if not answers:
     steps[-1]['app_state'] = {{'launch_state': 'saved-request'}}
@@ -524,7 +548,11 @@ class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
             shutil.rmtree(out)
         out.mkdir()
         (out / 'knobs.json').write_text(json.dumps(knobs))
-        code = self.proof.setup(self.app, out, 30, APP / 'examination/scripted_driver/setup-complete.scenario.json', hold_awake=False)
+        try:
+            code = self.proof.setup(self.app, out, 30, APP / 'examination/scripted_driver/setup-complete.scenario.json', hold_awake=False)
+        finally:
+            for hidden in out.glob('setup-run/home/Library/Caches/*/hidden'):
+                hidden.chmod(0o700)
         return code, json.loads((out / 'setup-report.json').read_text())
 
     def test_three_right_launches_pass_and_each_kind_is_reported_apart(self):
@@ -539,7 +567,12 @@ class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
 
     def test_anything_less_does_not_pass(self):
         for name, knobs, failed in (('saved although the answer was leave', {'save_on_leave': True}, 'L1'),
+                                    ('settings left behind although the answer was leave', {'settings_on_leave': True}, 'L1'),
                                     ('a sheet with other words', {'title': 'Another title'}, 'L1'),
+                                    ('a statement missing its account-directory line', {'drop_line': 2}, 'L1'),
+                                    ('a statement missing its last line', {'drop_line': 8}, 'L1'),
+                                    ('saved under other names than the sheet said', {'save_other_ids': True}, 'L2'),
+                                    ('a folder the inventory could not list', {'unreadable': True}, 'L1'),
                                     ('something written outside the App data and the project', {'write_outside': True}, 'L1'),
                                     ('another process below the App on the relaunch', {'child': 'other'}, 'L3')):
             with self.subTest(name):
@@ -547,6 +580,24 @@ class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
                 self.assertEqual((code, report['verdict']), (1, 'not passed'))
                 self.assertEqual(report['launches'][-1]['id'], failed)
                 self.assertEqual(report['launches'][-1]['verdict'], 'not passed')
+
+    def test_the_console_result_says_the_native_confirmation_was_not_exercised(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code, report = self.verdict()
+        self.assertEqual(code, 0)
+        self.assertIn("The App's native confirmation was not exercised", out.getvalue())
+
+    def test_the_scenarios_statement_is_the_apps_new_settings_statement_line_for_line(self):
+        source = (APP / 'src-tauri/src/desktop_startup.rs').read_text()
+        branch = source[source.index('if let PreviewKind::NewSettings { settings } = &preview.kind {'):]
+        statement = re.search(r'format!\("((?:[^"\\]|\\.)*)"', branch).group(1)
+        supplier = re.search(r'const SUPPLIER: &str = "([^"]+)";', source).group(1)
+        named = iter(['{settings}', '{account}', '{project}', '{app_data}/desktop-startup/request.json'])
+        expected = re.sub(r'\{\}', lambda _: next(named), statement.replace('{SUPPLIER}', supplier)).split('\\n')
+        sheet = json.loads((APP / 'examination/scripted_driver/setup-complete.scenario.json').read_text())['sheet']
+        self.assertEqual(sheet['statement'], expected)
+        self.assertIn('const PROFILE: &str = "desktop-startup/request.json";', source)
 
     @unittest.skipUnless(sys.platform == 'darwin', 'the executable is asked of macOS')
     def test_the_relaunch_allows_the_bundles_own_codex_by_file_and_records_it(self):

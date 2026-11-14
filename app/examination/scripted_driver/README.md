@@ -52,7 +52,10 @@ criteria 1 and 2. Its conditions:
 
 - the stand-in is for desktop setup's confirmation and no other; needing a
   second one stops the work;
-- it records the sheet's exact words, and the scenario judges them;
+- it records the sheet's exact words, and the scenario judges them: the
+  title, the buttons and the complete statement, line for line, with its two
+  generated paths in the form the scenario gives and, after the create
+  answer, equal to the settings folder and account directory saved;
 - both answers are run, each with its own inventory;
 - it is compiled only with the driver's flag, and release-free proves it
   absent from the release-features build on every run;
@@ -225,11 +228,21 @@ differences:
   ended.
 - After each launch, the inventory lists every name under the home without
   opening anything. It judges three things:
-  - the saved request and the account homes, as the scenario says for that
-    launch;
+  - the saved request, the account homes and the settings folders, as the
+    scenario says for that launch (none of either after the leave answer);
+  - after the create answer, that the settings folder and account directory
+    saved are the ones the sheet named;
   - on L3, the account home's sign-in file absent by name;
-  - nothing outside the App data folder, the project and the system's own
-    folders named for this bundle.
+  - that every name under the home was listed: a folder that could not be
+    read stops a pass;
+  - no name under the throwaway home outside the allowed places: the App data
+    folder, the project, the driver's own folder (`scripted-driver`), the
+    system's WebKit, Caches and HTTP storage folders named for this bundle's
+    identifier or executable, its preferences file and its saved window
+    state, and the folders above them. Anything inside an allowed place is
+    allowed. The inventory sees names left under the home after each launch.
+    It does not see transient writes, writes elsewhere on the runner, or
+    changes to a file's content.
 
 **The stand-in.** In this test build only, `desktop_setup_prepare` answers
 desktop setup's confirmation through `scripted_driver::setup_confirmation_stand_in`

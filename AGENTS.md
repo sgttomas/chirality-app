@@ -486,10 +486,14 @@ by the Inter-Project Agent 0 under the owner's instruction of 13 November 2026
 at 21:46 UTC, and taken up by App Agent 0; it is recorded as that agent's
 decision, not the owner's own word: a second scripted-driver scenario on a
 hosted runner, in a test build with a throwaway home and no credential, that
-types a project path, confirms setup through a test-build stand-in for the
-App's native confirmation, and reads the state the next launch reaches; two
-built attempts to reach its pass; development evidence only, satisfying
-nothing in criteria 1 and 2. Nothing beyond those words is approved. Build offline by default;
+types a project path, confirms setup through a test-build stand-in for
+desktop setup's native confirmation and no other, and reads the state the next
+launch reaches; two built attempts to reach its pass; development evidence
+only, satisfying nothing in criteria 1 and 2; under the conditions listed with
+it in `app/examination/scripted_driver/README.md`, including that no build
+carrying the driver's flag is ever the candidate for the operator rehearsal,
+the owner's sign-in or the owner's sitting. Nothing beyond those words is
+approved. Build offline by default;
 downloads, including binaries and archives, require explicit permission
 identifying the file, source and size. Routine read-only inspection of public
 source code and documentation text is authorized.

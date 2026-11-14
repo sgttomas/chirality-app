@@ -9,8 +9,16 @@
   "sheet": {
     "title": "Desktop setup — next launch only",
     "buttons": ["Leave setup unchanged", "Create settings and save for next launch", "Cancel"],
-    "statement_starts": "Create NEW App-owned settings folder: {app_data}/",
-    "statement_lines": ["Read, import or change no other Codex settings, home or credential.", "Project for next launch: {project}"]
+    "statement": ["Create NEW App-owned settings folder: {settings}",
+                  "with an empty config.toml, an empty AGENTS.md and an empty skills folder.",
+                  "Create NEW App-owned account directory: {account}",
+                  "Link its config.toml, AGENTS.md and skills to those new settings.",
+                  "Read, import or change no other Codex settings, home or credential.",
+                  "Project for next launch: {project}",
+                  "Save a private pending request in {app_data}/desktop-startup/request.json.",
+                  "Codex: the copy included with this App (bundled-owner-use-development).",
+                  "The current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation."],
+    "generated": {"settings": "{app_data}/shared-settings/settings-<uuid>", "account": "{app_data}/account-homes/account-<uuid>"}
   },
   "launches": [
     {
@@ -19,7 +27,7 @@
       "expected_heading": "Welcome to Chirality",
       "setup_answers": ["leave"],
       "children": "none",
-      "inventory": {"saved_request": false, "account_homes": 0},
+      "inventory": {"saved_request": false, "account_homes": 0, "settings_folders": 0},
       "steps": [
         {"id": "S1", "act": "view", "says": "the welcome, with nothing chosen yet",
          "expect": [{"heading": "Welcome to Chirality"}, {"button": "Review setup", "is": "unavailable"}, {"textbox": "Project folder", "is": ""}]},
@@ -47,7 +55,7 @@
       "expected_heading": "Welcome to Chirality",
       "setup_answers": ["create"],
       "children": "none",
-      "inventory": {"saved_request": true, "account_homes": 1},
+      "inventory": {"saved_request": true, "account_homes": 1, "settings_folders": 1, "settings_named_in_the_sheet": true},
       "steps": [
         {"id": "S1", "act": "view", "says": "the welcome again: the first launch saved nothing",
          "expect": [{"heading": "Welcome to Chirality"}, {"button": "Review setup", "is": "unavailable"}, {"textbox": "Project folder", "is": ""}]},
@@ -69,7 +77,7 @@
       "expected_heading": "Chirality",
       "setup_answers": [],
       "children": "the bundle's own codex",
-      "inventory": {"saved_request": true, "account_homes": 1, "sign_in_file_absent": "auth.json"},
+      "inventory": {"saved_request": true, "account_homes": 1, "settings_folders": 1, "sign_in_file_absent": "auth.json"},
       "steps": [
         {"id": "S1", "act": "view", "wait_ms": 15000, "says": "the workspace, not the welcome; the connection line says whether Codex started",
          "expect": [{"heading": "Chirality"}, {"no_text": "Welcome to Chirality"}, {"text_starts_one_of": ["Codex is connected", "Codex could not stay connected", "Codex is starting…"]}]},

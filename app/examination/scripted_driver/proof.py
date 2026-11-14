@@ -358,8 +358,8 @@ def inventory(home, app_data, project):
     the App and the system may write for this build: the App data folder, the project folder, the driver's own folder
     and the system's folders named for this bundle (its WebKit, Caches and HTTP storage, its preferences and saved
     window state)."""
-    names = []
-    for root, dirs, files in os.walk(home, followlinks=False):
+    names, errors = [], []
+    for root, dirs, files in os.walk(home, followlinks=False, onerror=lambda error: errors.append(f'{error.filename}: {error.strerror}')):
         for name in dirs + files:
             names.append(str((Path(root) / name).relative_to(home)))
     names.sort()
@@ -369,23 +369,36 @@ def inventory(home, app_data, project):
     allowed_roots += [f'{lib}/Preferences/{IDENTIFIER}.plist', f'{lib}/Saved Application State/{IDENTIFIER}.savedState']
     def allowed(name):
         return any(name == root or name.startswith(root + '/') or root.startswith(name + '/') for root in allowed_roots)
-    return {'names': names, 'outside': [name for name in names if not allowed(name)], 'allowed_roots': allowed_roots}
+    return {'names': names, 'outside': [name for name in names if not allowed(name)], 'allowed_roots': allowed_roots,
+            'errors': errors}
+
+
+UUID = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
 
 def judge_sheet(stage, sheet, values, answer):
-    """The stand-in's record of desktop setup's sheet against the scenario's words."""
+    """The stand-in's record of desktop setup's sheet against the scenario's words: the title, the buttons, the answer,
+    and the complete statement, line for line, equal to the scenario's statement with its values filled in. The two
+    generated paths (the new settings folder and account directory) must each have the form the scenario gives, a
+    fresh identity under the App data folder; the paths found are returned so that the inventory can bind them to
+    what was saved."""
     detail = stage.get('detail') or {}
     statement = detail.get('statement') or ''
-    lines = statement.split('\n')
-    fill = lambda text: re.sub(r'\{(\w+)\}', lambda m: values.get(m.group(1), m.group(0)), text)
+    fill = lambda text, given: re.sub(r'\{(\w+)\}', lambda m: given.get(m.group(1), m.group(0)), text)
+    generated = {}
+    for name, form in sheet['generated'].items():
+        pattern = re.escape(fill(form, values)).replace(re.escape('<uuid>'), UUID)
+        found = re.findall(f'(?m)(?<=: )({pattern})$', statement)
+        generated[name] = found[0] if len(found) == 1 else None
+    wanted = fill('\n'.join(sheet['statement']), {**values, **{k: v for k, v in generated.items() if v}})
     checks = [
         ('title', detail.get('title') == sheet['title'], detail.get('title')),
         ('buttons', detail.get('buttons') == sheet['buttons'], detail.get('buttons')),
-        ('statement starts', statement.startswith(fill(sheet['statement_starts'])), lines[0] if lines else None),
-        *[(f'statement line: {fill(line)}', fill(line) in lines, None) for line in sheet['statement_lines']],
+        *[(f'generated path: {name}', path is not None, path) for name, path in generated.items()],
+        ('the complete statement', statement == wanted, statement if statement != wanted else None),
         ('answer', detail.get('answer') == answer, detail.get('answer')),
     ]
-    return [{'check': name, 'pass': ok, 'found': found} for name, ok, found in checks]
+    return [{'check': name, 'pass': ok, 'found': found} for name, ok, found in checks], generated
 
 
 def setup(bundle, out, timeout, scenario_path, hold_awake=None):
@@ -421,16 +434,28 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
         one = ((finished or {}).get('detail', {}).get('exactly_one_each') is True and created.get('windows_ever_created') == 1
                and created.get('webviews_ever_created') == 1 and (finished or {}).get('detail', {}).get('most_windows') == 1)
         sheets = [s for s in stages if s.get('stage') == 'setup confirmation stand-in']
-        sheet_checks = [judge_sheet(s, walked['sheet'], values, answer) for s, answer in zip(sheets, spec['setup_answers'])]
+        judged = [judge_sheet(s, walked['sheet'], values, answer) for s, answer in zip(sheets, spec['setup_answers'])]
+        sheet_checks = [checks for checks, _ in judged]
         sheets_right = len(sheets) == len(spec['setup_answers']) and all(c['pass'] for checks in sheet_checks for c in checks)
         listed = inventory(home, app_data, project)
         want = spec['inventory']
         request = (app_data / 'desktop-startup/request.json').exists()
         homes = sorted(p.name for p in (app_data / 'account-homes').iterdir()) if (app_data / 'account-homes').is_dir() else []
+        settings = sorted(p.name for p in (app_data / 'shared-settings').iterdir()) if (app_data / 'shared-settings').is_dir() else []
         inventory_checks = [{'check': 'saved request', 'pass': request == want['saved_request'], 'found': request},
                             {'check': 'account homes', 'pass': len(homes) == want['account_homes'], 'found': len(homes)},
-                            {'check': 'nothing written outside the App data folder and the project', 'pass': not listed['outside'],
-                             'found': listed['outside']}]
+                            {'check': 'settings folders', 'pass': len(settings) == want['settings_folders'], 'found': settings},
+                            {'check': 'every name under the throwaway home was listed', 'pass': not listed['errors'],
+                             'found': listed['errors']},
+                            {'check': 'no name under the throwaway home outside the allowed places (allowed_roots: the App '
+                                      'data folder, the project, the driver\'s folder and the system\'s folders named for '
+                                      'this bundle)', 'pass': not listed['outside'], 'found': listed['outside']}]
+        if want.get('settings_named_in_the_sheet'):
+            named = judged[-1][1] if judged else {}
+            saved = {'settings': [str(app_data / 'shared-settings' / s) for s in settings],
+                     'account': [str(app_data / 'account-homes' / h) for h in homes]}
+            inventory_checks.append({'check': 'the settings folder and account directory saved are the ones the sheet named',
+                                     'pass': all(saved[k] == [named.get(k)] for k in saved), 'found': saved})
         if 'sign_in_file_absent' in want:
             present = [h for h in homes if (app_data / 'account-homes' / h / want['sign_in_file_absent']).exists()]
             inventory_checks.append({'check': f"no {want['sign_in_file_absent']} in the account home (by name, never opened)",
@@ -472,10 +497,13 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
                         'and whether they are signed in, as read in the App\'s source for this revision',
             'seen_without_pressing': 'the workspace heading "Chirality" and its connection line ("Codex is connected", '
                                      '"Codex is starting…" or "Codex could not stay connected", with guidance)',
-            'project': 'shown as "Project folder: …" inside a task view that may be hidden: at least one press (the task view)',
-            'signed_in': 'shown only after "Check account status", inside "Connection and access", which is open or closed '
-                         'depending on Codex\'s state: one or two presses',
-            'launch_state': '"Current launch: saved-request. …" is two closed disclosures deep: two presses'},
+            'project': 'shown as "Project folder: …" under "Project" in "Run a workflow", the task view shown first: no '
+                       'press, unless that guide is withheld',
+            'signed_in': 'shown only after "Check account status", inside "Connection and access" in the "Settings & tools" '
+                         'view: the view\'s link, then the disclosure when Codex is ready (it is open otherwise), then the '
+                         'button: two or three presses',
+            'launch_state': '"Current launch: saved-request. …" is in "Setup details and source status", inside "Desktop '
+                            'setup" (closed after setup), in the "Settings & tools" view: three presses'},
         'limits': LIMITS + [
             'The App\'s native confirmation for desktop setup is not exercised by this scenario: the test build\'s stand-in '
             'records the sheet\'s words and answers it. The real sheet is exercised by the operator rehearsal and by the '
@@ -493,6 +521,8 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
     }
     (out / 'setup-report.json').write_text(json.dumps(report, indent=1) + '\n')
     print(f"{walked['scenario']} (version {walked['version']}): {overall.upper()}")
+    print('  The App\'s native confirmation was not exercised: the test build\'s stand-in answered it. Development '
+          'evidence only; it satisfies nothing in release criteria 1 and 2.')
     for entry in launches:
         print(f"  {entry['id']}: {entry['verdict']} (walk {entry['walk_verdict']}; exit {entry['exit_code']}; "
               f"other processes {len(entry['other_processes_seen'])}; codex seen {len(entry['allowed_codex_seen'])}; {entry['census']})")
