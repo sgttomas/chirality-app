@@ -1435,6 +1435,20 @@ impl Host {
         {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}*host.session_liveness.lock().unwrap()=custody.liveness.clone();
         custody.sources.lock().unwrap().push(AppRecoverySource{inner:Arc::downgrade(&host.inner),queue:Arc::clone(&host.inner.0.lock().unwrap().pending_recovery)});*host.runtime_custody.lock().unwrap()=Some(Arc::clone(&custody));Ok(host)
     }
+    /// This App session and the earlier sessions its start established as
+    /// ended in the App ledger ([`crate::recovery::established_ended_sessions`]),
+    /// from the ledger's retained observation: memory only, no ledger lock or
+    /// file work under the state.
+    pub(crate) fn established_ended_sessions(&self)->Result<(String,std::collections::BTreeSet<String>),String>{
+        let (session,rows,limit)={let i=self.inner.0.lock().unwrap();
+            let limit=i.recovery_initialization_error.clone().or_else(||i.recovery_error.clone())
+                .or_else(||i.recovery_snapshot.as_ref().is_none().then(||"App ledger unavailable".to_owned()))
+                .or_else(||i.recovery_snapshot.as_ref().filter(|o|o.summary["historyLimits"].as_array().is_some_and(|l|!l.is_empty())).map(|_|"App ledger history incomplete".to_owned()));
+            (i.app_session.clone(),i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)),limit)};
+        if let Some(limit)=limit{return Err(limit);}
+        let rows=rows.ok_or("App ledger unavailable")?;
+        Ok((session.clone(),crate::recovery::established_ended_sessions(&rows,&session)?))
+    }
     /// Safely retained source observation; no ledger lock/IO under Inner.
     pub fn shared_recovery_observation(&self)->Value{
         let i=self.inner.0.lock().unwrap();json!({"appSession":i.app_session,"recovery":i.recovery_snapshot.as_ref().map(|o|&o.summary),"limit":i.recovery_initialization_error.as_ref().or(i.recovery_error.as_ref()),"configured":i.recovery.is_some(),"standing":"actual App custody; last observed pointer ledger metadata, not live native reconstruction"})
