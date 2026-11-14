@@ -1,9 +1,16 @@
-import { AgentText, RecordedData, idWords } from "./AgentText";
+import { AgentText, RecordedData, idWords, plainId, wordOf } from "./AgentText";
 import { ReconstructionFields, ReconstructionView, emptyReconstruction, reconstructionPayload } from "./ConnectorReconstruction";
 import { EXACT_TEXT } from "./exactText";
 import { useEffect, useRef, useState } from "react";
 import type { RouteAvailability } from "./ConnectorRoutePanel";
 type Json = any;
+// The host's words for its own vocabularies (connector_source.rs, connector_git.rs, connector_materialization.rs).
+// A heading holds the App's word for a value in these tables; any other value is shown beside it, boxed.
+const GAP_KIND={Revision:"Revision","Selection/read":"Selection/read",Excerpt:"Excerpt"};
+const GIT_RESULT_STATUS={complete:"complete",partial:"partial","gaps-only":"gaps-only"};
+const GIT_SIDE_STATUS={"Git-object-verified":"Git-object-verified",gap:"gap"};
+const DRAFT_STATUS={prepared:"prepared",cancelled:"cancelled",superseded:"superseded",publishing:"publishing",published:"published",uncertain:"uncertain",refused:"refused"};
+const UNRECOGNISED="A value the App does not recognise, as the host recorded it; the App does not vouch for its words";
 export type SourceUiState = {view: Json; busy: boolean; error: string | null; draftChanged: boolean};
 export const emptySourceUi: SourceUiState = {view:null,busy:false,error:null,draftChanged:true};
 export function sourceUiTransition(state:SourceUiState,event:{type:"edit"|"start"|"prepare"}|{type:"success";view:Json}|{type:"failure";error:string}):SourceUiState {
@@ -27,7 +34,7 @@ export function SourceObservationView({state}:{state:SourceUiState}) {
       <p>Trigger: {view.trigger?.kind} — {view.trigger?.standing}</p>
       <p>Latest selection/read operation: {view.operation}</p>
       <h3>Gaps and responsibility</h3>
-      {view.gaps?.map((gap:Json,i:number)=><div key={i}>{gap.kind && <h4>{gap.kind} gap</h4>}<p>{gap.reason}</p><p>Effect: {gap.effect}</p><p>Responsible route: {gap.responsible ?? "Unassigned"} (caller assignment, not performed responsibility)</p></div>)}
+      {view.gaps?.map((gap:Json,i:number)=><div key={i}>{gap.kind && <><h4>{wordOf(GAP_KIND,gap.kind) ?? "Unrecognised"} gap</h4>{wordOf(GAP_KIND,gap.kind)===null&&<p>Recorded gap kind: <AgentText value={gap.kind} source="record" name={UNRECOGNISED}/></p>}</>}<p>{gap.reason}</p><p>Effect: {gap.effect}</p><p>Responsible route: {gap.responsible ?? "Unassigned"} (caller assignment, not performed responsibility)</p></div>)}
       <p>{view.dutiesStanding}</p>
       {view.limits?.map((limit:string)=><p key={limit}>{limit}</p>)}
     </>}
@@ -60,11 +67,11 @@ export function GitObservationView({git,historical=false}:{git:Json;historical?:
     {git.error && <p role="alert">Git request gap: {git.error}. No new result from this failed or cancelled request.</p>}
     {!result && <p>No Git object result is retained.</p>}
     {result && <>
-      <h4>{result.historical || historical ? "Prior/historical Git result" : "Frozen Git result"}: {observation.status}</h4>
+      <h4>{result.historical || historical ? "Prior/historical Git result" : "Frozen Git result"}: {wordOf(GIT_RESULT_STATUS,observation.status) ?? "status shown below"}</h4>{wordOf(GIT_RESULT_STATUS,observation.status)===null&&<p>Recorded status: <AgentText value={observation.status} source="record" name={UNRECOGNISED}/></p>}
       <p>Requested at: {observation.request?.at}; since: {observation.request?.since ?? "not requested"}.</p>
       <p>Local preview stays separate. This result concerns exact requested commits and stored object bytes.</p>
       {(["at","since"] as const).map(side=>observation[side] && <article key={side}>
-        <h4>{side === "at" ? "At requested commit" : "Since requested commit"}: {observation[side].status}</h4>
+        <h4>{side === "at" ? "At requested commit" : "Since requested commit"}: {wordOf(GIT_SIDE_STATUS,observation[side].status) ?? "status shown below"}</h4>{wordOf(GIT_SIDE_STATUS,observation[side].status)===null&&<p>Recorded status: <AgentText value={observation[side].status} source="record" name={UNRECOGNISED}/></p>}
         {observation[side].status === "gap" ? <p>{observation[side].kind}: {observation[side].reason}. This side has no verified text.</p> : <>
           <p>Commit: {observation[side].object.readCommit}</p><p>Blob: {observation[side].object.blob}</p>
           <p>Content SHA-256: {observation[side].object.sha256}; bytes: {observation[side].object.byteLength}</p>
@@ -209,7 +216,7 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  {error&&<p role="alert">Draft operation: {error}. Actual retained outcomes remain below.</p>}{busy&&<p>Operation pending. Cancellation after publication starts cannot guarantee rollback.</p>}
  <button onClick={()=>action("inspect_connector_drafts",{})}>Refresh retained draft outcomes</button>
  {registry&&<p>{registry.used} of {registry.capacity} App-instance identities retained. {registry.limit}</p>}
- {registry?.entries?.map((entry:Json)=><article key={entry.token}><h3>{entry.accountId}: {entry.status}</h3>
+ {registry?.entries?.map((entry:Json)=><article key={entry.token}><h3>{`Account ${idWords(entry.accountId)}: ${wordOf(DRAFT_STATUS,entry.status) ?? "status shown below"}`}</h3>{plainId(entry.accountId)===null&&<p>Account ID: <AgentText value={entry.accountId} source="record" name="The account ID, as the host recorded it; the App does not vouch for its words"/></p>}{wordOf(DRAFT_STATUS,entry.status)===null&&<p>Recorded status: <AgentText value={entry.status} source="record" name={UNRECOGNISED}/></p>}
  {entry.draft&&<><h4>Frozen question</h4><p>{entry.draft.account.question.text}</p><p>At: {entry.draft.account.question.at_revision}; since: {entry.draft.account.question.since_revision??"not requested"}</p><p>Exact serialized draft: {entry.draft.byteLength} bytes; SHA-256 {entry.draft.sha256}</p>
  <h4>Selected source evidence</h4>{entry.draft.account.sources.map((s:Json)=><div key={s.source_id}><p>{s.path} — {s.revision}; {s.role} (caller assertion)</p><p>Blob: {s.provenance.blob}; content hash: {s.sha256}</p>{s.excerpts.map((e:Json)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end})</p><AgentText block value={e.text} source="record" /></div>)}</div>)}
  <h4>Unreviewed caller interpretations</h4>{entry.draft.account.interpretations?.map((i:Json)=><p key={i.interpretation_id}>{i.statement} — {i.asserted_by} (caller asserted identity)</p>)}
