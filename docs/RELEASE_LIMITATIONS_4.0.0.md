@@ -254,13 +254,14 @@ An entry is added in the same pull request that makes the limitation standing.
   App, it does not answer and the App has to end it), such a command can keep
   running after Codex and the App are gone, with the access it was started
   with.
-- **Why:** Codex runs each such command apart from itself, so the command
-  does not end just because Codex does. The App does not yet offer a way to end
-  running commands on their own.
+- **Why:** Codex runs some such commands apart from itself, so they do not
+  end just because Codex does. The App does not yet offer a way to end running
+  commands on their own.
 - **What the person does instead:** stop Codex, restart Codex or quit the App
   when you want commands an agent left running to end; this ends them when
-  Codex closes normally. If the App or Codex has ended abruptly, open Activity
-  Monitor, find the command by its name, and quit it.
+  Codex closes normally. If the App or Codex may have ended abruptly, open
+  Activity Monitor, look for the program that command ran (the conversation
+  shows the command the agent ran), and quit it.
 - **Basis:** DEL-01-02 (stop) and DEL-01-04 (the permission level). The level
   fixtures show, at the pinned Codex version (`app/supplier_checks/level`):
   - stopping a turn leaves running commands running;
@@ -268,9 +269,10 @@ An entry is added in the same pull request that makes the limitation standing.
     they started;
   - ending Codex at once can leave a command and what it started running;
   - Codex's request to end a conversation's running commands ends them while
-    Codex runs. The App does not send it in this release.
+    Codex runs.
 
-  Stop Codex, Restart Codex and Quit all close Codex this way: they close
+  That the App does not send that request in this release is read from the
+  App's code. Stop Codex, Restart Codex and Quit all close Codex this way: they close
   Codex's input first, and end it at once only if it has not closed within
   3 seconds. This is read from the App's code (`hosting.rs` `stop_inner`,
   reached from `codex_stop.rs` and from the quit path), not shown by a test.

@@ -660,12 +660,19 @@ class RunningProcess(unittest.TestCase):
                                                     **FULL))['turn']['id']
             time.sleep(3)
             client.result('turn/interrupt', {'threadId': thread, 'turnId': turn})
-            self.assertTrue(client.wait(lambda: client.notes_for('turn/completed', thread, turn), 20))
+            completed = client.wait(lambda: client.notes_for('turn/completed', thread, turn), 20)
+            self.assertTrue(completed)
+            self.assertEqual(completed[0]['params']['turn']['status'], 'interrupted')  # the interrupt took effect
             listed = {t['command'] for t in client.result('thread/backgroundTerminals/list', {'threadId': thread})['data']}
             self.assertIn('sleep 20', listed)  # the interrupted turn's own command is still running
             self.send(run, client, thread, session, 'after_interrupt', 'after the interrupt', **FULL)
             self.assertEqual(self.written(target), 'after the interrupt\n')
+            holding = lambda: subprocess.run(['/usr/sbin/lsof', '-t', str(target)], capture_output=True, text=True,
+                                             timeout=20).stdout.split()
+            self.assertTrue(holding())  # the held command is running before cleaning
             client.result('thread/backgroundTerminals/clean', {'threadId': thread})
+            time.sleep(2)
+            self.assertEqual(holding(), [])  # cleaning ended it: nothing holds its file any more
             output = self.send(run, client, thread, session, 'after_clean', 'after cleaning', **FULL)
             self.assertIn('Unknown process id', output)
             self.assertEqual(self.written(target), 'after the interrupt\n')
@@ -691,9 +698,16 @@ class QuitEnds(unittest.TestCase):
         client = run.start()
         thread = client.start_thread()['thread']['id']
         self.thread = thread
+        # Whatever happens next, every process found by these commands is ended when the test ends.
+        self.addCleanup(lambda: self.end_survivors(self.alive(target)))
         for key in commands:
             client.turn(thread, 'LEVEL[%s] go' % key, **FULL)
-        return client, target
+        before = self.alive(target)
+        self.assertTrue(all(before.values()), before)
+        for pids in before.values():
+            for pid in pids:
+                self.assertNotEqual(os.getpgid(pid), client.pgid, 'each runs in a process group of its own')
+        return client, target, before
 
     def alive(self, target):
         found = {n: [p for p, _ in L.processes_naming('sleep ' + n)] for n in ('7771', '7772', '7773')}
@@ -711,11 +725,13 @@ class QuitEnds(unittest.TestCase):
 
     def test_closing_codexs_input_ends_background_commands_and_what_they_started(self):
         with L.Run(SCRATCH, BINARY) as run:
-            client, target = self.start_two(run)
-            before = self.alive(target)
-            self.assertTrue(all(before.values()), before)
+            client, target, before = self.start_two(run)
             client.proc.stdin.close()  # as the App's stop does first
-            client.proc.wait(3)  # the App waits up to 3 s before it forces the server's group
+            deadline = time.monotonic() + 3  # the App waits up to 3 s for the server's group to empty
+            client.proc.wait(3)  # reaped, as the App reaps its child, so the server itself is no longer counted
+            while L.group_members(client.pgid) and time.monotonic() < deadline:
+                time.sleep(0.05)
+            self.assertEqual(L.group_members(client.pgid), 0, "the server's group emptied within 3 s")
             time.sleep(1)
             after = self.alive(target)
             self.end_survivors(after)
@@ -723,9 +739,7 @@ class QuitEnds(unittest.TestCase):
 
     def test_with_codex_answering_cleaning_ends_a_command_without_a_terminal_and_what_it_started(self):
         with L.Run(SCRATCH, BINARY) as run:
-            client, target = self.start_two(run)
-            before = self.alive(target)
-            self.assertTrue(all(before.values()), before)
+            client, target, before = self.start_two(run)
             client.result('thread/backgroundTerminals/clean', {'threadId': self.thread})
             time.sleep(2)
             after = self.alive(target)
@@ -735,9 +749,7 @@ class QuitEnds(unittest.TestCase):
 
     def test_when_codex_is_ended_at_once_a_background_command_without_a_terminal_outlives_it(self):
         with L.Run(SCRATCH, BINARY) as run:
-            client, target = self.start_two(run)
-            before = self.alive(target)
-            self.assertTrue(all(before.values()), before)
+            client, target, before = self.start_two(run)
             client.kill()  # the server's whole process group, at once, as a crash or a forced end
             time.sleep(2)
             after = self.alive(target)
