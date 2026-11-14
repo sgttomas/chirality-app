@@ -192,6 +192,8 @@ impl Store {
     /// `legacy_present`: whether a JSON Lines ledger exists beside it now; a
     /// database created without one never imports a file that appears later.
     pub(crate) fn open(path: &Path, create: bool, legacy_present: bool) -> Result<Self, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::open");
         preflight(path)?;
         let existed = std::fs::symlink_metadata(path).is_ok();
         if !existed && !create {
@@ -238,6 +240,8 @@ impl Store {
         Ok(store)
     }
     fn ensure_schema(&mut self, legacy_present: bool) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::ensure_schema");
         // An established database is only read: no write lock is taken to open it.
         let established: Option<String> = self.connection
             .query_row("SELECT value FROM ledger_meta WHERE key = 'schema'", [], |r| r.get(0))
@@ -493,6 +497,8 @@ impl Store {
     /// is given and the ledger's [`Self::high_water`] is no longer it (checked
     /// inside the write transaction). Returns the high water after the batch.
     pub(crate) fn insert_batch_after(&mut self, entries: &[Value], expected: Option<i64>) -> Result<i64, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::insert_batch_after");
         self.guard()?;
         let tx = self.connection.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_error("recovery ledger append not confirmed"))?;
         if let Some(expected) = expected {
@@ -532,6 +538,8 @@ impl Store {
         file: &mut std::fs::File,
         validate: &dyn Fn(&Value) -> Result<(), String>,
     ) -> Result<Value, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::import_legacy");
         let source = legacy.to_string_lossy().into_owned();
         // The file as last imported, unchanged (same file, length and
         // modification time): its content identity is not read again.
@@ -738,6 +746,8 @@ fn next_batch(tx: &rusqlite::Transaction) -> rusqlite::Result<i64> {
     tx.query_row("SELECT COALESCE(MAX(batch), 0) + 1 FROM ledger_entry", [], |r| r.get(0))
 }
 fn insert(tx: &rusqlite::Transaction, entry: &Value, text: &str, origin: &str, batch: i64) -> rusqlite::Result<i64> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("recovery_store::insert");
     let column = |key: &str| entry.get(key).and_then(Value::as_str).map(str::to_owned);
     let generation = column("generation").or_else(|| column("lastLoadedGeneration"));
     tx.execute(

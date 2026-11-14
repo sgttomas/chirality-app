@@ -41,11 +41,11 @@ fn names(folder: &Path) -> Result<BTreeSet<String>, String> {
 pub(super) fn entries(dir: &Path) -> Result<Vec<Entry>, String> {
     let folder = journal(dir)?;
     let original_names = names(&folder)?;
-    let before = bag::payload_inventory(&folder)?;
+    let before = bag::plain_inventory(&folder)?;
     let original_stamp = stamp(&folder)?;
     let receipts = dir.join("package-imports");
     let receipt_names = names(&receipts)?;
-    let receipt_before = bag::payload_inventory(&receipts)?;
+    let receipt_before = bag::plain_inventory(&receipts)?;
     let receipt_stamp = stamp(&receipts)?;
     let intent_names: BTreeSet<_> = original_names
         .iter()
@@ -171,10 +171,10 @@ pub(super) fn entries(dir: &Path) -> Result<Vec<Entry>, String> {
         }
     }
     if names(&folder)? != original_names
-        || bag::payload_inventory(&folder)? != before
+        || bag::plain_inventory(&folder)? != before
         || stamp(&folder)? != original_stamp
         || names(&receipts)? != receipt_names
-        || bag::payload_inventory(&receipts)? != receipt_before
+        || bag::plain_inventory(&receipts)? != receipt_before
         || stamp(&receipts)? != receipt_stamp
     {
         return Err("package import journal changed while reading".into());

@@ -174,7 +174,7 @@ pub(super) fn entry_bytes(intent: &Intent, original_raw: &[u8]) -> Result<Vec<u8
 }
 fn referenced_intents(store: &Path, root: &Path) -> Result<Vec<Intent>, String> {
     let folder = root_locators(store, root)?;
-    let before = bag::payload_inventory(&folder)?;
+    let before = bag::plain_inventory(&folder)?;
     let before_stamp = stamp(&folder)?;
     let mut result = Vec::new();
     for name in before.keys() {
@@ -195,7 +195,7 @@ fn referenced_intents(store: &Path, root: &Path) -> Result<Vec<Intent>, String> 
         }
         result.push(intent);
     }
-    if bag::payload_inventory(&folder)? != before || stamp(&folder)? != before_stamp {
+    if bag::plain_inventory(&folder)? != before || stamp(&folder)? != before_stamp {
         return Err("root association locators changed during lookup".into());
     }
     Ok(result)
@@ -572,6 +572,8 @@ pub(super) fn validate_prior(intent: &Intent) -> Result<(), String> {
     Ok(())
 }
 pub(super) fn move_directory(from: &Path, to: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_identity::move_directory");
     let parent = to.parent().ok_or("association publication has no parent")?;
     bag::create_or_match(&parent.join(".directory.lock"), b"")?;
     let from_parent = from.parent().unwrap();
