@@ -13,7 +13,7 @@ qualify no App candidate.
 - `test_level_live.py`: one fact per test. It needs `CHIRALITY_CODEX_BIN` set to
   the pinned binary, whose digest is checked against `GENERATION.json` before
   every start, and is skipped otherwise. It runs in the full suite's product
-  job (`.github/workflows/app-v4.yml`). `LEVEL_SCRATCH` names where the roots
+  job (`.github/workflows/app-v4.yml`). The CI step sets `LEVEL_REQUIRE_LIVE=1`, under which a missing binary fails the suite instead of skipping it; an unpinned binary fails either way. `LEVEL_SCRATCH` names where the roots
   are made; `LEVEL_HOLD_SECONDS` sets how long a call to an App-supplied tool is
   left unanswered (default 120).
 - `test_level_stub.py`: the stub, the run's folders and the fixed commands, with

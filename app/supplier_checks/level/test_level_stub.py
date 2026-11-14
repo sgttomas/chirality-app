@@ -152,5 +152,29 @@ class Runs(unittest.TestCase):
             L.admitted_binary('relative/codex')
 
 
+class LiveRequirement(unittest.TestCase):
+    """The live suite's skip condition, without starting Codex."""
+
+    def setUp(self):
+        import test_level_live
+        self.live = test_level_live
+
+    def test_without_a_binary_it_skips_unless_required(self):
+        with self.assertRaises(unittest.SkipTest):
+            self.live.live_binary(None, required=False)
+        with self.assertRaises(L.Refused):
+            self.live.live_binary(None, required=True)
+        with self.assertRaises(L.Refused):
+            self.live.live_binary('', required=True)
+
+    def test_an_unpinned_binary_fails_whether_or_not_required(self):
+        with tempfile.NamedTemporaryFile() as fake:
+            fake.write(b'not codex')
+            fake.flush()
+            for required in (False, True):
+                with self.assertRaises(L.Refused):
+                    self.live.live_binary(fake.name, required=required)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

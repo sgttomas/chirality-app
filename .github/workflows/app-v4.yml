@@ -345,6 +345,7 @@ jobs:
       - name: Sandbox and approval settings at the pin (pinned supplier, loopback stub, no model)
         env:
           LEVEL_SCRATCH: ${{ runner.temp }}
+          LEVEL_REQUIRE_LIVE: '1'
         run: python3 supplier_checks/level/test_level_live.py
       - name: Full Rust suite
         run: cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1

@@ -36,10 +36,19 @@ APP_TOOL_SPEC = [{'type': 'function', 'name': L.APP_TOOL, 'description': 'Invent
                   'inputSchema': {'type': 'object', 'properties': {}, 'additionalProperties': False}}]
 
 
-def setUpModule():
-    if not BINARY:
+def live_binary(binary, required):
+    """The admitted binary. Without one, skip; but where the live tests are required (LEVEL_REQUIRE_LIVE=1, set
+    by the CI step meant to run them), a missing or unpinned binary fails instead, so the step cannot pass with
+    every test skipped."""
+    if not binary:
+        if required:
+            raise L.Refused('LEVEL_REQUIRE_LIVE is set but CHIRALITY_CODEX_BIN is not')
         raise unittest.SkipTest('CHIRALITY_CODEX_BIN is not set; the live level fixtures need the pinned Codex')
-    L.admitted_binary(BINARY)
+    return L.admitted_binary(binary)  # an unpinned binary refuses whether or not the tests are required
+
+
+def setUpModule():
+    live_binary(BINARY, os.environ.get('LEVEL_REQUIRE_LIVE') == '1')
 
 
 def reported(reply):
