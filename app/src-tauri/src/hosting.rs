@@ -994,6 +994,9 @@ pub struct Host {
     this: Mutex<std::sync::Weak<Host>>,
     #[cfg(test)]
     after_attachment_namespace_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch just before it waits for the frame writer.
+    #[cfg(test)]
+    before_attachment_writer:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     #[cfg(test)]
     before_attachment_hot_join:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
@@ -1188,6 +1191,8 @@ impl Host {
             this: Mutex::new(std::sync::Weak::new()),
             #[cfg(test)]
             after_attachment_namespace_write:Mutex::new(None),
+            #[cfg(test)]
+            before_attachment_writer:Mutex::new(None),
             #[cfg(test)]
             before_attachment_hot_join:Mutex::new(None),
             distribution_store: Mutex::new(None),
@@ -3638,6 +3643,7 @@ impl Host {
             let recheck=attachments::prepare_ordered(&prepared.selections,prepared.submission_ref(),&now_rfc3339()).map_err(|e|e.message)?;
             if recheck.native_inputs()!=prepared.list.native_inputs(){return Err("attachment source/input changed after durable preparation; nothing sent".into());}
             let frame=prepared.source.attempted_frame();let bytes=Self::frame_bytes(frame)?;
+            #[cfg(test)] {let hook=self.before_attachment_writer.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let serial=self.frame_write.lock().unwrap();
             let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
@@ -7251,6 +7257,24 @@ mod conversation_transport_tests {
     fn attachment_host_cancel_source_generation_pipe_target_and_metadata_drift_send_no_bytes(){
         for change in ["cancel","file","session","home","counter","pipe","target","metadata"]{let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");let mut replacement=None;no_attachment_write(&host,||{let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();match change{"cancel"=>{assert!(packet.cancel());},"file"=>std::fs::write(root.join("first.txt"),"changed").unwrap(),"session"|"home"|"counter"=>{let mut i=host.inner.0.lock().unwrap();let field=match change{"session"=>"appSession","home"=>"home",_=>"spawnCounter"};i.generation[field]=if field=="spawnCounter"{json!(2)}else{json!("other")};},"pipe"=>{let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();host.inner.0.lock().unwrap().attachment_pipe_epoch+=1;replacement=Some(child);},"target"=>event(&host,"completed"),_=>{let mut records=packet.supply_records();records[0]["displayName"]=json!("changed metadata");std::fs::write(owner.supplies_path(packet.submission_ref()).unwrap(),serde_json::to_vec(&records).unwrap()).unwrap();}}
             assert!(host.dispatch_attachment_turn(&packet).is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");assert_eq!(packet.source().evidence()["writeAttemptInProgress"],false);assert!(packet.source().evidence()["sentFrame"].is_null());assert!(host.dispatch_attachment_turn(&packet).is_err());});if let Some(mut child)=replacement{assert!(child.wait().unwrap().success());let mut bytes=vec![];child.stdout.take().unwrap().read_to_end(&mut bytes).unwrap();assert!(bytes.is_empty());}std::fs::remove_dir_all(root).unwrap();}
+    }
+    // DEL-01-04 AC-003: a file changed between selection and sending is held and not sent. The change
+    // here is made while the sender waits for the frame writer, after its earlier reread of the files.
+    #[test]
+    fn attachment_host_file_changed_while_waiting_for_the_writer_is_held_and_not_sent(){
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            let path=root.join("first.txt");
+            *host.before_attachment_writer.lock().unwrap()=Some(Box::new(move||std::fs::write(&path,"Changed while the sender waited for the writer\n").unwrap()));
+            let refused=host.dispatch_attachment_turn(&packet).err().expect("a file changed while the sender waits for the writer is held and not sent");
+            assert!(refused.contains("nothing sent"),"{refused}");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0,"no frame was written");
+            assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");
+            assert!(packet.source().evidence()["sentFrame"].is_null());
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"and it is not sent on a second press of the same packet");
+        });
+        std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
     fn attachment_host_actual_partial_and_sync_publication_failures_never_send(){
