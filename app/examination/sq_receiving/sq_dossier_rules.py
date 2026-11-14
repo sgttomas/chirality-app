@@ -1,13 +1,30 @@
 """SQ-v0.2 dossier rules a schema cannot express (SQ-R1 to SQ-R13 and SQ-R18; SQ-R14 to SQ-R17 retired into SQ-R18).
 
 Call after schema validation, with the step map the dossier is read against.
-These inspect declared facts, not their truth.
+These inspect declared facts, not their truth. Steps the step map takes out of its release
+("out_of_release") stay listed and are never counted (SQ-R3, SQ-R4, SQ-R8).
 """
 SCENARIOS = ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12"]
 JOURNEYS = ["J1", "J2"]
 NATIVE = {"native_development", "native_packaged"}
 NOT_CLAIMED = {"joined_host_witness", "replacement", "public_release", "retirement",
                "professional_reliance", "practitioner_validation"}
+# Run B's steps for the local model server (DEL-09-02's scope): the local key, its configuration, and
+# one conversation with each mode with the switch between them.
+LOCAL_STEPS = {"M12-2", "M12-3", "M12-5"}
+
+
+def out_of_release(step_map):
+    """The steps the step map takes out of its release, by scenario, from its "out_of_release" entry.
+
+    The step map is the one for the release the dossier's candidate is examined for. A taken step stays
+    listed in its scenario and is never counted: it is not aggregated and need not be recorded.
+    """
+    taken = {}
+    for scenario, decision in step_map.get("out_of_release", {}).items():
+        named = decision.get("steps")
+        taken[scenario] = set(named) if named else {s["step"] for s in step_map["scenarios"].get(scenario, [])}
+    return taken
 
 
 def known_cases(step_map):
@@ -35,6 +52,10 @@ def map_steps(step_map):
 def violations(d, step_map):
     v = []
     ms = map_steps(step_map)
+    taken = out_of_release(step_map)
+
+    def counted(scenario, step):
+        return step.get("counts", True) and step["step"] not in taken.get(scenario["scenario"], ())
     names = [s["scenario"] for s in d["scenarios"]]
     if sorted(n for n in names if n not in JOURNEYS) != SCENARIOS:
         v.append("SQ-R1")
@@ -50,17 +71,25 @@ def violations(d, step_map):
         kinds = sorted(m["kind"] for m in modes)
         homes = {m["kind"]: m["home"] for m in modes}
         convs = [m["conversation_ref"] for m in modes]
-        # SQ-R3 the declared access modes (not observations): exactly the two modes, each in the
-        # home the scope defines for it, with distinct conversations. An observed difference is a
-        # failed M12 step in its result record, not a changed declaration.
-        if (kinds != ["chatgpt_account", "local_provider"] or homes.get("chatgpt_account") != "H-acct"
-                or homes.get("local_provider") != "H-omlx" or len(set(convs)) != 2):
+        # SQ-R3 the declared access modes (not observations), each in the home the scope defines for it,
+        # with distinct conversations. With the local model server's steps out of the release, the one
+        # mode is the ChatGPT account; with none of them out, the two modes; a map taking only some of
+        # them out declares no mode that can be met. An observed difference is a failed M12 step in its
+        # result record, not a changed declaration.
+        local_out = LOCAL_STEPS & taken.get("V4-EXM-12", set())
+        if local_out == LOCAL_STEPS:
+            wrong = kinds != ["chatgpt_account"] or homes.get("chatgpt_account") != "H-acct" or len(convs) != 1
+        else:
+            wrong = (bool(local_out) or kinds != ["chatgpt_account", "local_provider"]
+                     or homes.get("chatgpt_account") != "H-acct" or homes.get("local_provider") != "H-omlx"
+                     or len(set(convs)) != 2)
+        if wrong:
             v.append("SQ-R3")
     # SQ-R4 a scenario outcome only once every counted step is recorded; it is their aggregate
     for s in d["scenarios"]:
-        counted = [st for st in s["steps"] if st.get("counts", True)]
+        steps = [st for st in s["steps"] if counted(s, st)]
         if "outcome" in s:
-            if any(st["state"] != "recorded" for st in counted) or aggregate([st["outcome"] for st in counted]) != s["outcome"]:
+            if any(st["state"] != "recorded" for st in steps) or aggregate([st["outcome"] for st in steps]) != s["outcome"]:
                 v.append("SQ-R4")
                 break
     if not NOT_CLAIMED <= set(d["handoff"]["not_claimed"]):
@@ -80,7 +109,7 @@ def violations(d, step_map):
     # SQ-R8 handover as qualification, and independence
     h = d["handoff"]
     if h["handed_over"]:
-        all_recorded = all(st["state"] == "recorded" for s in d["scenarios"] for st in s["steps"] if st.get("counts", True))
+        all_recorded = all(st["state"] == "recorded" for s in d["scenarios"] for st in s["steps"] if counted(s, st))
         if not all_recorded or any("outcome" not in s for s in d["scenarios"]) or not d["examiner"].get("review_record"):
             v.append("SQ-R8")
     if h["reported_as_independent"] and (d["examiner"]["separation"] == "not_separate" or not d["examiner"].get("review_record")):

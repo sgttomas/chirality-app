@@ -91,3 +91,13 @@ A result record's structured home field (`configuration.model_server.home`)
 admits only `H-acct`, `H-key` and `not_applicable`, so it cannot name the App's
 dedicated local home: a result for the local model server leaves `home` out and
 states the dedicated local home `H-omlx` in its label and evidence.
+
+Steps out of the release. The step map's `out_of_release` entry names the steps
+a recorded decision takes out of the release the candidate is examined for; for
+4.0.0 they are run B's local model server steps, M12-2, M12-3 and M12-5
+(DEL-09-02). Such a step stays listed in its scenario and is never counted:
+it is not aggregated into the scenario's outcome, it need not be recorded
+before an outcome or a handover, and the receivers do not report it as an
+outstanding obligation. With those three steps out, SQ-R3 admits one declared
+mode, the ChatGPT account in `H-acct`; with none of them out, the two modes; a
+map that takes only some of them out admits no declaration.

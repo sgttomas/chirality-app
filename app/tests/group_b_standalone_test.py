@@ -76,23 +76,37 @@ class StandalonePreparationTest(unittest.TestCase):
             self.rejects(lambda p: p['scenarios'][index].update(candidate_slot='another-candidate'))
         self.assertEqual({s['candidate_slot'] for s in self.plan['scenarios']}, {'one_same_candidate'})
         self.rejects(lambda p: p['candidate_slot'].update(build_identity='INVENTED-BUILD'))
-        self.rejects(lambda p: p['access_mode_requirements'].update(distinct_conversations=1))
-        self.rejects(lambda p: p['access_mode_requirements']['kinds'].remove('local_provider'))
+        self.rejects(lambda p: p['access_mode_requirements'].update(distinct_conversations=2))
+        self.rejects(lambda p: p['access_mode_requirements']['kinds'].append('local_provider'))
 
-    def test_run_b_has_the_two_access_modes_in_their_homes(self):
+    def test_run_b_for_4_0_0_has_the_account_mode_alone(self):
+        # The step map takes the local model server's steps out of 4.0.0, so run B declares the ChatGPT
+        # account in H-acct alone, its conversation observed in run A (DEL-09-02).
         modes = self.plan['access_mode_requirements']
-        self.assertEqual(modes['kinds'], ['chatgpt_account', 'local_provider'])
-        self.assertEqual(modes['homes'], {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'})
-        self.assertEqual(modes['distinct_conversations'], 2)
-        self.assertIn('two_modes', [item['id'] for item in self.plan['missing_inputs']])
-        # Standalone API-key access is outside 4.0.0: a third mode or its key home is refused.
+        self.assertEqual(modes['kinds'], ['chatgpt_account'])
+        self.assertEqual(modes['homes'], {'chatgpt_account': 'H-acct'})
+        self.assertEqual(modes['out_of_release'], ['M12-2', 'M12-3', 'M12-5'])
+        self.assertIn('run A on the same candidate', modes['conversation'])
+        self.assertIs(modes['substitute_mode_satisfies'], False)
+        self.assertIn('account_mode', [item['id'] for item in self.plan['missing_inputs']])
+        self.assertNotIn('two_modes', [item['id'] for item in self.plan['missing_inputs']])
+        # Standalone API-key access is outside 4.0.0: a further mode or its key home is refused.
         self.rejects(lambda p: p['access_mode_requirements']['kinds'].insert(1, 'api_key'))
         self.rejects(lambda p: p['access_mode_requirements']['homes'].update(api_key='H-key'))
-        self.rejects(lambda p: p['access_mode_requirements'].update(distinct_conversations=3))
-        self.rejects(lambda p: p['access_mode_requirements']['homes'].update(local_provider='H-acct'))
+        self.rejects(lambda p: p['access_mode_requirements']['homes'].update(local_provider='H-omlx'))
+        self.rejects(lambda p: p['access_mode_requirements']['homes'].update(chatgpt_account='H-omlx'))
+        # The local key step stays defined for the later update, as the step map keeps it.
         key_step = self.plan['scenarios'][2]['steps'][1]
         self.assertEqual(key_step['step'], 'M12-2')
         self.assertIn('dedicated local home H-omlx', key_step['source_action_observation'][0])
+
+    def test_the_two_modes_return_with_the_local_steps(self):
+        step_map = json.loads((APP / 'examination/sq_receiving/sq.step-map.json').read_text())
+        later = {key: value for key, value in step_map.items() if key != 'out_of_release'}
+        modes = prep.access_mode_requirements(later)
+        self.assertEqual(modes['kinds'], ['chatgpt_account', 'local_provider'])
+        self.assertEqual(modes['homes'], {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'})
+        self.assertEqual(modes['distinct_conversations'], 2)
 
     def test_step_operations_and_insertion_points(self):
         self.assertIn('delegates one bounded sub-task', self.plan['scenarios'][0]['steps'][1]['source_action_observation'][0])

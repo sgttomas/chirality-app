@@ -22,8 +22,8 @@
     "app/examination/admission/exam.review-record.schema.json": "b3294a402197ffa67ba1beb85847b60a7cf8d7bf1edf0006703f94faf7344508",
     "app/examination/support_identity/binding.canonical.v1.schema.json": "95ab4a2e79d49d2a269fa20c4be2d385b8693c1c3de18c40416dcfd433b8ea27",
     "app/examination/support_identity/publication-declaration.v1.json": "2bffb100f0836125303009a224881aa89bf840918145a699e617dd7762dacf47",
-    "app/examination/sq_receiving/sq_dossier_rules.py": "af18fcb8f71222819f77ca2a0e47f658bc4db3029c781ea2b3f1d1ac3f47529a",
-    "app/examination/sq_receiving/sq.dossier.schema.json": "4d2819cb23a8069b01693c330a0092f84f0f838ac7c31c676f196e4acdacb671",
+    "app/examination/sq_receiving/sq_dossier_rules.py": "8de433d5765dcb94d657c7d753842cba8ff748490d41f5629610da1a16252626",
+    "app/examination/sq_receiving/sq.dossier.schema.json": "80048dd10921abfaa285c401fc1ae08d0541a711dfa7e0a97fd9c069b83315e7",
     "app/examination/sq_receiving/sq.step-map.json": "8f6641c56323da1ee11044059835db262c99d1814269c8cea129effc8339c564",
     "app/packaging/static_distribution/check.py": "745ef83c395c89c61ed87e3536129a7399f50565b5281caf93192462916e673a",
     "app/packaging/static_distribution/sources.json": "e419a89fbc5456e0aa2ad66c33b950d77e9e2a600ea58dd9835a1961a2a9a7dc",
@@ -56,12 +56,12 @@
     "app/packaging/terms/terms-position.v1.schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
     "app/examination/package_receiving/sources.package-v1.json": "ba067ff5f6b31399a5fb3b4f0cdf007677a8791635c6d2c989dfe4f16a78f050",
     "app/examination/package_receiving/adapter.py": "dd32097f5979c8eb11b7a3dc2baad120c31f5997f7eb2ecdcc959a1b9a721107",
-    "app/examination/sq_receiving/worker_packages.py": "c3a9c80b277314247f45e054fdeb0d2e78328ba6df2328c34112e8db379c8262",
+    "app/examination/sq_receiving/worker_packages.py": "c0325ed878e07c64df0b5167e30d7383f4ee274a0dcb25d9f74db7dda16c5de5",
     "app/src-tauri/resources/distribution-successor/lifecycle-transitions.s1.json": "3059098e3c4dff664629bee5221f7fbc5fd9dea147e69b03d893d5095c137c14"
   },
   "predecessor": {
     "path": "app/examination/sq_receiving/pins.terms-v1.json",
-    "sha256": "e6d3842dc960a2bb9492771f1cd0ae234b087daee5c64cf7da17bbc16e70dc8b"
+    "sha256": "fc0e577410b7bf30d99c8dbc11f7e92d9db6dca298b1c04bd22ef1bb46736ab4"
   },
   "package_source_profile": {
     "path": "app/examination/package_receiving/sources.package-v1.json",

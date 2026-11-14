@@ -89,6 +89,28 @@ def verified_sources(root=ROOT, captured=None):
     return lock
 
 
+LOCAL_STEPS = {'M12-2', 'M12-3', 'M12-5'}
+
+
+def access_mode_requirements(step_map):
+    """Run B's declared access modes, as the dossier rules' SQ-R3 reads them from the step map.
+
+    With the local model server's steps out of the release (the step map's out_of_release entry, as for
+    4.0.0), the one mode is the ChatGPT account, whose conversation is observed in run A on the same
+    candidate; otherwise the two modes, configured together, with a conversation each.
+    """
+    decision = step_map.get('out_of_release', {}).get('V4-EXM-12')
+    taken = set(decision.get('steps') or (s['step'] for s in step_map['scenarios']['V4-EXM-12'])) if decision else set()
+    if LOCAL_STEPS <= taken:
+        return {'kinds': ['chatgpt_account'], 'homes': {'chatgpt_account': 'H-acct'},
+                'conversation': 'observed in run A on the same candidate, its result naming the account as the access used',
+                'out_of_release': sorted(LOCAL_STEPS), 'substitute_mode_satisfies': False}
+    return {'kinds': ['chatgpt_account', 'local_provider'],
+            'homes': {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'},
+            'distinct_conversations': 2, 'configured_together': True,
+            'substitute_mode_satisfies': False}
+
+
 def prepare(root=ROOT):
     captured = {}
     lock = verified_sources(root, captured)
@@ -111,18 +133,14 @@ def prepare(root=ROOT):
                           'candidate_slot': 'one_same_candidate', 'steps': prepared})
     return {
         'artifact_kind': 'standalone_case_preparation',
-        'preparation_version': 4,
+        'preparation_version': 5,
         'standing': 'test_definition_only',
         'sources': lock['sources'],
         'candidate_slot': {'id': 'one_same_candidate', 'revision': None,
                            'build_identity': None, 'codex_pin': None, 'configuration': None},
         'scenarios': scenarios,
         'stimuli': step_map['stimuli'],
-        'access_mode_requirements': {
-            'kinds': ['chatgpt_account', 'local_provider'],
-            'homes': {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'},
-            'distinct_conversations': 2, 'configured_together': True,
-            'substitute_mode_satisfies': False},
+        'access_mode_requirements': access_mode_requirements(step_map),
         'journey_record_requirements': JOURNEY_RECORD_REQUIREMENTS,
         'missing_inputs': parse_json(captured['missing-inputs.json']),
         'invented_material': parse_json(captured['invented-inputs.json']),

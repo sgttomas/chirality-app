@@ -682,11 +682,6 @@
           "kind": "chatgpt_account",
           "home": "H-acct",
           "conversation_ref": "ILLUSTRATIVE conv A"
-        },
-        {
-          "kind": "local_provider",
-          "home": "H-omlx",
-          "conversation_ref": "ILLUSTRATIVE conv B"
         }
       ],
       "outcome": "blocked"

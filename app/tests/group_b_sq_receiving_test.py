@@ -69,9 +69,9 @@ class SQReceivingTests(unittest.TestCase):
 
     def schema_valid(self, value): self.assertEqual(list(self.result_validator.iter_errors(value)),[])
 
-    def test_run_b_failure_against_the_declared_modes_is_received_with_its_failed_outcomes(self):
-        # Run B recorded truthfully: the modes stay as declared, the local server seen in the
-        # account home is stated in the failed steps' own result records.
+    def test_run_b_failure_is_received_with_its_failed_outcome(self):
+        # Run B for 4.0.0, recorded truthfully: the one declared mode is the ChatGPT account in H-acct,
+        # the local model server's steps are listed and planned, and M12-4's failure decides the outcome.
         case = APP / 'tests/group_b_sq_receiving_fixtures/run-b-failed'
         dossier = json.loads((case / 'dossier.json').read_bytes())
         spec = importlib.util.spec_from_file_location('sq_rules_run_b', APP / 'examination/sq_receiving/sq_dossier_rules.py')
@@ -84,25 +84,20 @@ class SQReceivingTests(unittest.TestCase):
         self.assertEqual([s['scenario'] for s in dossier['scenarios']], ['V4-EXM-10', 'V4-EXM-11', 'V4-EXM-12', 'J1', 'J2'])
         self.assertEqual({s['basis'] for s in dossier['scenarios'] if s['scenario'] in ('J1', 'J2')}, {'not_established'})
         run_b = next(s for s in dossier['scenarios'] if s['scenario'] == 'V4-EXM-12')
-        self.assertEqual([(m['kind'], m['home']) for m in run_b['access_modes']],
-                         [('chatgpt_account', 'H-acct'), ('local_provider', 'H-omlx')])
+        self.assertEqual([(m['kind'], m['home']) for m in run_b['access_modes']], [('chatgpt_account', 'H-acct')])
+        self.assertEqual({s['step']: s['state'] for s in run_b['steps'] if s['state'] != 'recorded'},
+                         {'M12-2': 'planned', 'M12-3': 'planned', 'M12-5': 'planned'})
         self.assertEqual(run_b['outcome'], 'fail')
-        for step in ('M12-2', 'M12-5'):
-            record = json.loads((case / f'result-{step}.json').read_bytes())
-            self.schema_valid(record)
-            self.assertEqual(record['outcome'], 'fail')
-            self.assertEqual(record['configuration']['model_server']['home'], 'H-acct')
-            self.assertIn('observed', record['limits'][0]['detail'].lower())
-            self.assertIn('account home H-acct', record['limits'][0]['detail'])
-            self.assertIn('dedicated local home H-omlx', record['limits'][0]['detail'])
-            self.assertIn('declared', record['limits'][0]['detail'])
+        record = json.loads((case / 'result-M12-4.json').read_bytes())
+        self.schema_valid(record)
+        self.assertEqual(record['outcome'], 'fail')
         result = self.consumer.check(case / 'selection.json', (case / 'selection.sha256').read_text().strip())
         self.assertTrue(result['selection_consistent'], result)
         self.assertEqual(result['errors'], [])
         self.assertEqual(result['reported_outcomes'],
-                         {'result-M12-1': 'pass', 'result-M12-2': 'fail', 'result-M12-3': 'pass',
-                          'result-M12-4': 'pass', 'result-M12-5': 'fail', 'result-M12-6': 'pass'})
-        # Run A not yet run and no review: truthfully incomplete, never complete.
+                         {'result-M12-1': 'pass', 'result-M12-4': 'fail', 'result-M12-6': 'pass'})
+        # Run A not yet run and no review: truthfully incomplete, never complete. The planned local
+        # steps are out of 4.0.0, so they are not among the outstanding obligations; run A's are.
         self.assertEqual(result['coverage'], 'incomplete')
         self.assertEqual(result['missing_selected_inputs'],
                          ['non-recorded steps: examination obligations outstanding',
@@ -111,6 +106,34 @@ class SQReceivingTests(unittest.TestCase):
         self.assertNotIn('access_modes', json.dumps(result))
         self.assertNotIn('H-omlx', json.dumps(result))
         self.assertIs(result['native_observation_verified'], False)
+
+    def plan_run_b_steps(self, *names):
+        """Return run B's named steps to planned, with their results taken out of the selection."""
+        run_b = next(s for s in self.dossier['scenarios'] if s['scenario'] == 'V4-EXM-12')
+        for step in run_b['steps']:
+            if step['step'] in names:
+                step['state'] = 'planned'; step.pop('result_record'); step.pop('outcome')
+        slots = {'result-' + name for name in names}
+        self.selected['steps'] = [x for x in self.selected['steps'] if x['result_slot'] not in slots]
+        self.selected['artifacts'] = [a for a in self.selected['artifacts'] if a['slot'] not in slots]
+        for slot in slots:
+            self.selected['review']['results'].pop(slot)
+        self.selected['review']['evidence'] = [e for e in self.selected['review']['evidence']
+                                               if e['target'].get('slot') not in slots]
+
+    def test_steps_out_of_the_release_are_not_outstanding(self):
+        # The step map takes M12-2, M12-3 and M12-5 out of 4.0.0: left planned, they are not outstanding.
+        # A counted step left planned is.
+        self.plan_run_b_steps('M12-2', 'M12-3', 'M12-5')
+        result = self.check()
+        self.assertTrue(result['selection_consistent'], result)
+        self.assertEqual(result['errors'], [])
+        self.assertNotIn('non-recorded steps: examination obligations outstanding', result['missing_selected_inputs'])
+        self.plan_run_b_steps('M12-6')
+        result = self.check()
+        self.assertIn('non-recorded steps: examination obligations outstanding', result['missing_selected_inputs'])
+        # Run B's outcome no longer rests on every counted step.
+        self.assertIn({'scope': 'SQ', 'code': 'SQ-R4'}, result['errors'])
 
     def test_connected_development_full_source_validation_no_package_change(self):
         result=self.check();self.assertTrue(result['selection_consistent']);self.assertEqual(result['coverage'],'complete')
