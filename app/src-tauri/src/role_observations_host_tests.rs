@@ -136,7 +136,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
     assert_eq!(result.unwrap()["writeResult"], "written");
     assert_eq!(
         outbound["params"],
-        crate::codex_level::with_test_level(&json!({"threadId":"role-origin","deferGoalContinuation":true}), "thread/fork")
+        crate::codex_level::with_test_level_at(&json!({"threadId":"role-origin","deferGoalContinuation":true}), "thread/fork", std::path::Path::new(&project))
     );
     let fork = fork.unwrap();
     hot.reconcile(&host);

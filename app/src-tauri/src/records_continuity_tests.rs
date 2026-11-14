@@ -227,7 +227,7 @@ fn records_continuity_original_start_to_fresh_host_explicit_cold_resume_and_logg
         .into_iter()
         .find(|frame| frame["method"] == "thread/resume")
         .unwrap();
-    assert_eq!(resumed["params"], crate::codex_level::with_test_level(&json!({"threadId":"thread","excludeTurns":true}), "thread/resume"));
+    assert_eq!(resumed["params"], crate::codex_level::with_test_level_at(&json!({"threadId":"thread","excludeTurns":true}), "thread/resume", &f.0.join("project")));
     let fork = cold.thread_fork_dispatch(&generation, "thread").unwrap();
     cold.source_request_wait(&fork, Duration::from_secs(2))
         .unwrap();
@@ -246,7 +246,7 @@ fn records_continuity_original_start_to_fresh_host_explicit_cold_resume_and_logg
     assert_eq!(child_receipt.admitted.request, fork.request_ref());
     assert_eq!(
         fork.attempted_frame()["params"],
-        crate::codex_level::with_test_level(&json!({"threadId":"thread","deferGoalContinuation":true}), "thread/fork")
+        crate::codex_level::with_test_level_at(&json!({"threadId":"thread","deferGoalContinuation":true}), "thread/fork", &f.0.join("project"))
     );
     stop(&cold);
     drop(cold);

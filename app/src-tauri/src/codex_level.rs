@@ -657,14 +657,21 @@ fn same_folder(a: &Path, b: &Path) -> bool {
 /// material only.
 #[cfg(test)]
 pub(crate) fn with_test_level(params: &Value, method: &str) -> Value {
+    let cwd = PathBuf::from(params["cwd"].as_str().unwrap_or("/invented"));
+    let cwd = if cwd.is_relative() { PathBuf::from("/invented").join(cwd) } else { cwd };
+    with_test_level_at(params, method, &cwd)
+}
+
+/// [`with_test_level`] for a conversation whose folder is `cwd` (the folder the test Host resolves for it: as sent,
+/// else the conversation's, else the folder Codex was started in). Test material only.
+#[cfg(test)]
+pub(crate) fn with_test_level_at(params: &Value, method: &str, cwd: &Path) -> Value {
     match Method::of(method) {
         Some(Method::TurnStart) => expected_with_level(params, level("edits"), Method::TurnStart).expect("the test level merges"),
         Some(method) => {
             // The unit tests' Host makes no settings reading, so its trust entry is untrusted, for the project root of
-            // the conversation's folder (as sent, else the test Host's working folder).
-            let cwd = PathBuf::from(params["cwd"].as_str().unwrap_or("/invented"));
-            let cwd = if cwd.is_relative() { PathBuf::from("/invented").join(cwd) } else { cwd };
-            let trust = TrustReading::not_read(cwd, TRUST_READ_FAILED, None);
+            // the conversation's folder.
+            let trust = TrustReading::not_read(cwd.to_path_buf(), TRUST_READ_FAILED, None);
             let mut out = params.clone();
             merge_fields(&mut out, &additions(level("edits").unwrap(), method, Some(&trust.projects()))).expect("the test level merges");
             out

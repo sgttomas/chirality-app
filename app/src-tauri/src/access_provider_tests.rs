@@ -2295,7 +2295,7 @@ fn native_children_actual_private_start_has_exact_published_role_keys() {
         .unwrap();
     let sent = peer.frame();
     assert_eq!(sent, receipt.evidence()["sentFrame"]);
-    assert_eq!(sent["params"]["config"], crate::codex_level::with_test_level(&json!({"config":composition.native_config()}), "thread/start")["config"]);
+    assert_eq!(sent["params"]["config"], crate::codex_level::with_test_level(&json!({"config":composition.native_config(),"cwd":"/invented/work"}), "thread/start")["config"]);
     assert_eq!(sent["params"]["developerInstructions"], composition.text);
     for child in &composition.children {
         let parsed: toml::Value =
@@ -2428,7 +2428,7 @@ fn native_children_current_raw_alias_cannot_hide_behind_older_native_layer() {
         .thread_start_with_role_dispatch(&proof, &composition)
         .unwrap();
     // No children keys: exactly the level's configuration (V4-AUT-06).
-    assert_eq!(peer.frame()["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap()}));
+    assert_eq!(peer.frame()["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap(), "projects": {"/invented/work": {"trust_level": "untrusted"}}}));
     assert_eq!(receipt.evidence()["writeResult"], "written");
     assert!(!peer
         .host
@@ -2476,7 +2476,7 @@ fn native_children_new_native_read_cannot_promote_changed_trust() {
         .thread_start_with_role_dispatch(&proof, &composition)
         .unwrap();
     // No children keys: exactly the level's configuration (V4-AUT-06).
-    assert_eq!(peer.frame()["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap()}));
+    assert_eq!(peer.frame()["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap(), "projects": {"/invented/work": {"trust_level": "untrusted"}}}));
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
@@ -2818,7 +2818,7 @@ fn native_children_absent_or_different_acting_supplier_identity_withholds_only_c
         let frame = peer.frame();
         assert_eq!(frame["method"], "thread/start");
         // No children keys: exactly the level's configuration (V4-AUT-06).
-        assert_eq!(frame["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap()}));
+        assert_eq!(frame["params"]["config"], json!({"sandbox_workspace_write": crate::codex_level::level("edits").unwrap().workspace_write.clone().unwrap(), "projects": {"/invented/work": {"trust_level": "untrusted"}}}));
         assert_eq!(frame["params"]["developerInstructions"], c.text);
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -3142,7 +3142,7 @@ fn native_children_167_requires_canonical_whole_source_and_does_not_rebind_after
             assert_eq!(result.is_ok(), case == "positive");
             if case == "positive" {
                 let frame = peer.frame();
-                assert_eq!(frame["params"]["config"], crate::codex_level::with_test_level(&json!({"config":c.native_config()}), "thread/start")["config"]);
+                assert_eq!(frame["params"]["config"], crate::codex_level::with_test_level(&json!({"config":c.native_config(),"cwd":"/invented/work"}), "thread/start")["config"]);
             }
         }
         std::fs::remove_dir_all(root).unwrap();

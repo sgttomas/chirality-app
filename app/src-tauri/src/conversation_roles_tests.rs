@@ -172,9 +172,11 @@ fn fork_is_a_same_role_copy_and_leaves_the_source_unchanged() {
     let out = fork_conversation(&f.home, &f.generation, &source, Duration::from_secs(5)).unwrap();
     let sent = f.wire().into_iter().find(|frame| frame["method"] == "thread/fork").expect("thread/fork written");
     // V4-AUT-06: the packet as built, plus exactly the level in force (the test Host's "edits").
+    // The source conversation's folder is the project, so the one trust entry (untrusted: the test Host reads no
+    // settings) is for it.
     let packet = json!({"threadId":source,"deferGoalContinuation":true});
-    let level = crate::codex_level::level("edits");
-    assert_eq!(sent["params"], crate::codex_level::expected_with_level(&packet, level, crate::codex_level::Method::ThreadFork).unwrap(),
+    let project = f.home.host.snapshot()["threads"].as_array().unwrap().iter().find(|t| t["threadId"] == source.as_str()).unwrap()["cwd"].as_str().unwrap().to_owned();
+    assert_eq!(sent["params"], crate::codex_level::with_test_level_at(&packet, "thread/fork", std::path::Path::new(&project)),
         "the thread id, no instructions, model or other settings, and exactly the level; no automatic goal continuation turn");
     // The exact params are valid 0.167.0 ThreadForkParams.
     let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();
