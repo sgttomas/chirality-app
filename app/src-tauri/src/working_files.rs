@@ -428,6 +428,9 @@ pub fn for_launch(app_data: &Path) -> Result<WorkingFiles, String> {
 /// fall-back to a temporary folder. Tests that make none get their own, under
 /// a temporary folder of the test run.
 pub fn launch() -> Result<WorkingFiles, String> {
+    // Tests share one process: a fixture's Working Files may be gone by the time another test
+    // asks, so tests always use their own.
+    #[cfg(not(test))]
     if let Some((_, working)) = LAUNCH.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
         return Ok(working.clone());
     }

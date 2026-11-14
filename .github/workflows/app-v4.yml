@@ -147,6 +147,7 @@ jobs:
           isolation_resolves_a_relative_home_where_the_child_does
           act_control::a15::tests::listed_a15_
           act_control::native_statement::worst_case_fallbacks
+          working_files::tests
           runtime_session::workflow_root_tests::proposal_disclosure_tests
           model_catalog
           handoff_send_tests

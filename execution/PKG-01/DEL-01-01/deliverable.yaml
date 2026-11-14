@@ -46,6 +46,8 @@ code_paths:
 # The folder Codex works in when no project is open, and the rules that place a folder against
 # the App data folder by what it is; also applied by the Codex home plans (DEL-01-05's).
 - app/src-tauri/src/working_folder.rs
+- app/src-tauri/src/working_files.rs
+- app/src-tauri/src/working_files_tests.rs
 # The reading gate: configuration readings of one Codex generation are made one at a time.
 - app/src-tauri/src/hosting_reading_gate.rs
 - app/src-tauri/src/hosting_reading_gate_tests.rs

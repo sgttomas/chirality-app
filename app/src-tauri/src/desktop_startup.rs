@@ -1206,7 +1206,7 @@ impl DesktopSetup {
             }
             Err(reason) => json!({"available":false,"reason":reason}),
         };
-        json!({"retainProject":retain,"launch":self.launch_state,"appData":self.data.as_ref().ok().map(|p|p.display().to_string()),"noProjectFolder":self.data.as_ref().ok().map(|p|no_project_folder(p).display().to_string()),"appDataProblem":self.data.as_ref().err(),"supplier":{"selection":SUPPLIER,"path":self.resources.as_ref().ok().map(|p|p.join("codex/bin/codex").display().to_string()),"standing":"Explicit owner-use development only. Label/generated-reference/binary assertion checks still apply; derived byte identity is not authenticated qualification. A compiled production successor still refuses without installed custody."},"pending":self.pending,"activeResources":active_resources.as_ref().ok().and_then(|r|r.as_ref()),"activeResourceProblem":active_resources.as_ref().err(),"custodyProblem":self.recheck().err(),"nextLaunch":"Preparation/save changes only a pending request. Quit normally when ready and launch again; no automatic quit, restart, login, conversation or model selection."})
+        json!({"retainProject":retain,"launch":self.launch_state,"appData":self.data.as_ref().ok().map(|p|p.display().to_string()),"noProjectFolder":self.data.as_ref().ok().map(|p|no_project_folder(p).display().to_string()),"workingFiles":self.data.as_ref().ok().and_then(|p|crate::working_files::folder_for(p).ok()).map(|p|p.display().to_string()),"appDataProblem":self.data.as_ref().err(),"supplier":{"selection":SUPPLIER,"path":self.resources.as_ref().ok().map(|p|p.join("codex/bin/codex").display().to_string()),"standing":"Explicit owner-use development only. Label/generated-reference/binary assertion checks still apply; derived byte identity is not authenticated qualification. A compiled production successor still refuses without installed custody."},"pending":self.pending,"activeResources":active_resources.as_ref().ok().and_then(|r|r.as_ref()),"activeResourceProblem":active_resources.as_ref().err(),"custodyProblem":self.recheck().err(),"nextLaunch":"Preparation/save changes only a pending request. Quit normally when ready and launch again; no automatic quit, restart, login, conversation or model selection."})
     }
     fn retained_source(&self) -> Result<Arc<AdmittedDesktop>, String> {
         let admission = self.admitted.as_ref().ok_or("Retaining an account requires this process's admitted saved-desktop source; no environment, pending or setup-only adoption")?;
@@ -7713,8 +7713,9 @@ mod tests {
     }
     /// DEL-01-01 (round 3, finding 1): the App's own probe allocation, with the temporary root
     /// pointed at the folder set aside, makes nothing there: on the saved and environment routes,
-    /// in development and built configurations. The place is checked by identity before anything
-    /// is allocated, and the start is refused with a plain reason naming it.
+    /// in development and built configurations. Since the App's working folders moved beside the
+    /// App data folder, the probe home is made in the App's Working Files whatever TMPDIR names,
+    /// never in a temporary folder, so the start goes on and the folder set aside stays empty.
     #[test]
     fn the_version_probe_is_never_made_in_the_no_project_folder() {
         for (route, is_dev) in [("saved", true), ("saved", false), ("environment", true), ("environment", false)] {
@@ -7733,8 +7734,10 @@ mod tests {
                 let _temporary = TemporaryRoot::at(&leaf);
                 start_with_probe(&f, &data, environment(input), is_dev, crate::probe_home)
             };
-            let refused = started.config.unwrap_err();
-            assert!(refused.contains("The version probe's home was not made") && refused.contains(&leaf.display().to_string()), "{route} {is_dev}: {refused}");
+            let config = started.config.unwrap_or_else(|e| panic!("{route} {is_dev}: {e}"));
+            let working = crate::working_files::folder_for(&f.root.canonicalize().unwrap().join(data.file_name().unwrap())).unwrap();
+            assert!(config.probe_home.starts_with(working.join("probe-homes")), "{route} {is_dev}: {}", config.probe_home.display());
+            assert!(!config.probe_home.starts_with(&leaf), "{route} {is_dev}: not in the folder set aside");
             assert_eq!(started.leaf_entries, Some(vec![]), "{route} {is_dev}: nothing was made in the folder set aside");
         }
     }
