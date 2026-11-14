@@ -57,6 +57,8 @@ code_paths:
 - app/src-tauri/src/lib.rs
 - app/src/App.tsx
 checks:
+# History notices on the person-facing RS readings, including empty results.
+- app/tests/workflow-action-result.test.mjs
 # fleet_views_tests.rs is shared with DEL-06-01. Here: the queue, waiting and decision-wait cases.
 - app/src-tauri/src/fleet_views_tests.rs
 - app/tests/fleet-records.test.mjs

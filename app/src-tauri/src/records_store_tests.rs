@@ -493,12 +493,12 @@ fn records_store_import_gate_completed_import_waives_census_but_incomplete_still
 fn records_store_import_gate_controls_and_exact_staging_names_never_waive_census() {
     let nonce = "12345678-1234-4234-8234-123456789abc";
     let hash = storage::key("cap:fixture");
-    for relative in [".writer.lock".into(), "captures/.capture.lock".into(), "captures/pending".into(),
+    for relative in payload::CONTROLS.iter().map(|name| (*name).to_owned()).chain(["captures/pending".into(),
         format!("captures/.{hash}.json.{nonce}.tmp"),
         format!("captures/pending/.{hash}.json.{nonce}.tmp"),
         format!("workflow/.pending-{nonce}"),
         format!("workflow/.{nonce}.json.{nonce}.tmp"),
-        format!("connectors/route-accounts/.route-{nonce}.tmp")] {
+        format!("connectors/route-accounts/.route-{nonce}.tmp")]) {
         let (_own, root, dir) = import_gate_project();
         let path = dir.join(&relative);
         if relative == "captures/pending" { std::fs::create_dir_all(&path).unwrap(); }
@@ -529,8 +529,13 @@ fn records_store_import_gate_recognised_capture_during_create_link_waives_census
 
 #[test]
 fn placement_uses_the_override_or_app_data_and_never_falls_back() {
-    // The App data folder as a release build sees it (never created here; outside every temporary folder).
-    let data = PathBuf::from(format!("/nonexistent-app-data-for-test/{}", crate::util::opaque_id("").unwrap()));
+    // The App data folder as a release build sees it, outside every temporary folder, and
+    // established as a start establishes it before any store is placed against it (DEL-01-01:
+    // a store is never placed against an App data folder that does not exist).
+    let made = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target").join(format!("placement-app-data-for-test-{}", crate::util::opaque_id("").unwrap()));
+    std::fs::create_dir_all(&made).unwrap();
+    let data = std::fs::canonicalize(&made).unwrap();
+    crate::working_folder::establish(&data).unwrap();
     let project = folder("placement-project-");
     // A development build without the override has no store, and says why.
     let dev = for_app(None, Ok(&data), true, Some(&project), &[]).unwrap_err();
@@ -557,6 +562,7 @@ fn placement_uses_the_override_or_app_data_and_never_falls_back() {
     assert!(matches!(test_store.placement, Placement::Test | Placement::Override));
     assert!(test_store.root.starts_with(std::env::temp_dir()) || test_store.placement == Placement::Override);
     let _ = std::fs::remove_dir_all(&project);
+    let _ = std::fs::remove_dir_all(&data);
 }
 
 #[test]

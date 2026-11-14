@@ -1751,6 +1751,20 @@ pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
     view
 }
 
+pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let reading = crate::records_store::HistoryRead::begin(project);
+    let (view, generation) = {
+        let mut root = workflows.lock().unwrap();
+        root.reopened_generation += 1;
+        (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
+    };
+    let view = reading.attach(project, view);
+    let mut root = workflows.lock().unwrap();
+    if root.reopened_generation == generation { root.reopened = Some(view.clone()); }
+    Ok(view)
+}
+
 /// Separately invoked writer responsibility, preserving native pending-before-
 /// ordinary-recorder ordering. Reading a view never invokes this continuation.
 pub fn continue_decision_writer(
@@ -2908,6 +2922,17 @@ pub fn freeze_root_home_descriptors(
     use crate::home_resources::{
         ExistingHomeReference, HomeClass, OwnedHomePlan, SharedResourceTargets,
     };
+    // DEL-01-01: on every route, a Codex home or a source of its settings in the folder set aside
+    // for conversations without a project is refused here, before any home is prepared.
+    // Freezing creates nothing: with the folder established (as every start establishes it
+    // first) this decides by identity; established absent, nothing is decided here and each home
+    // is decided again before anything is prepared or started on it.
+    for (path, what) in [(Some(&config.codex_home), "the account Codex home"), (Some(&config.probe_home), "the probe home"), (key_path.as_ref(), "the API-key Codex home")] {
+        if let Some(path) = path { crate::working_folder::refuse_in_no_project_folder(app_data, path, what, false)?; }
+    }
+    for path in targets.iter().flatten() {
+        crate::working_folder::refuse_source_in_no_project_folder(app_data, path, "a source of Codex settings", false)?;
+    }
     let account = ExistingHomeReference::new(config.codex_home.clone(), HomeClass::Account)?;
     let probe = ExistingHomeReference::new(config.probe_home.clone(), HomeClass::Probe)?;
     let shared_root_targets = match &targets {
@@ -3085,6 +3110,17 @@ pub fn assess_native_home_work(
     }
     let mut requests = requests;
     requests.sort_by_key(Value::to_string);
+    // A turn start written, or being written, that the Host has not yet
+    // associated with a turn is live work: Codex may be starting a turn the
+    // App cannot yet interrupt. It is listed beside the turns observed, and
+    // may be one of them: only the reply to its request associates it with a
+    // turn, and the Host then drops it from its list. The row carries no
+    // write state: it is not a change the person decides on, so a write
+    // that completes during a confirmation does not make the act ask again.
+    let starts: Vec<Value> = snapshot["unansweredTurnStarts"].as_array().into_iter().flatten()
+        .filter(|start| start["generation"] == *generation)
+        .map(|start| json!({"generation":generation,"threadId":start["threadId"],"requestIdentity":start["requestIdentity"],"limit":"turn start not yet associated with a turn; it may be one of the turns listed; no interrupt can be sent for it"}))
+        .collect();
     let coverage = json!({"turns":{"scope":"current selected-home source","available":snapshot["conversationTurns"].is_array(),"complete":false,"unresolved":unresolved_turns},"requests":{"scope":"current received register","available":snapshot["serverRequests"].is_array(),"complete":false},"children":{"receivingViewAvailable":valid_view,"complete":false,"limit":"child visibility/completeness not established; additional work may exist"},"receivingLimits":received["nativeViewLimits"]});
     let namespace_revision = &snapshot["accountNamespaceRevision"];
     if namespace_revision["generation"] != *generation {
@@ -3123,8 +3159,8 @@ pub fn assess_native_home_work(
         Some(_)=>json!({"state":"redacted/unavailable account; unknown","nativeType":null}),
     }).unwrap_or_else(||json!({"state":"current native report unavailable; previous read is only last observed","nativeType":null}));
     let account = json!({"state":received["accountObservation"]["state"],"nativeType":received["accountObservation"]["nativeAccount"]["type"],"readAvailability":read_availability,"currentReport":current_account,"namespaceRevision":namespace_revision,"operations":operations,"identityVerified":false,"unchangedIdentityProven":false,"limit":"redacted/unavailable equality does not prove unchanged identity; another identical read/clock tick alone is not a namespace change"});
-    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
-    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
+    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
+    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
     Ok(HomeLogoutAssessment {
         generation: generation.clone(),
         material,
@@ -3196,6 +3232,15 @@ pub fn logout_native_home<F: FnOnce(&Value) -> bool>(
 
 /// Allocate a new probe using the physical OS temp parent and mktemp -d. This
 /// resolves an allocation source, never relocates an existing received home.
+/// DEL-01-01: the temporary root (`TMPDIR`) to allocate in, after checking by identity that it is
+/// not inside an App data folder this process holds (`working_folder::check_temporary_root`).
+/// Every production allocation the App makes in the temporary folder asks for it here first.
+/// The check is made when this is called: the allocation resolves the path again, so a folder
+/// replaced in between is outside what it guarantees.
+pub(crate) fn temporary_root(what: &str) -> Result<std::path::PathBuf, String> {
+    let held = crate::session_liveness::held_app_data_identities()?;
+    crate::working_folder::check_temporary_root(&std::env::temp_dir(), &held, what)
+}
 pub fn allocate_fresh_probe(temp_parent: &std::path::Path) -> Result<std::path::PathBuf, String> {
     let parent = std::fs::canonicalize(temp_parent)
         .map_err(|_| "OS scratch parent unavailable; no probe default")?;
@@ -4482,6 +4527,7 @@ pub(crate) struct WorkflowRootSession {
     conversations: std::collections::HashMap<(String, String), Vec<String>>,
     /// Last durable reopen of the explicit project's records (display only).
     reopened: Option<Value>,
+    reopened_generation: u64,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4534,6 +4580,7 @@ impl Default for WorkflowRootSession {
             runs: Default::default(),
             conversations: Default::default(),
             reopened: None,
+            reopened_generation: 0,
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -4634,7 +4681,12 @@ impl WorkflowRootSession {
         result["choiceChat"] = chat.map(|c|json!({"sourceRef":c.source,"threadId":c.thread})).unwrap_or(Value::Null);
         result
     }
+    /// Row refresh only; host_tick::observe_project_history publishes its paired notice.
     pub(crate) fn observe_ended_runs(&mut self,project:&std::path::Path){self.after_run_end.observe(project);}
+    pub(crate) fn ended_history_reading(&self) -> (u64, Value) { self.after_run_end.reading() }
+    #[cfg(test)]
+    pub(crate) fn ended_cached_logs_for_test(&self) -> usize { self.after_run_end.cached_logs_for_test() }
+    pub(crate) fn publish_ended_history(&mut self, generation: u64, view: Value, changed: bool) { self.after_run_end.publish(generation, view, changed); }
     pub fn snapshot(&self) -> Value {
         // Inventory describes verified build inputs, never release registration.
         let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
@@ -5745,7 +5797,6 @@ impl WorkflowRootSession {
             },
         };
         let view = json!({"run":run,"state":"ended by the person","cause":cause,"endNotice":notice});
-        self.reopen(project, &[]).ok();
         Ok(view)
     }
     /// WR TX-5 / SQ-END: compose and hold the end notice of a run the person just ended
@@ -6023,14 +6074,14 @@ impl WorkflowRootSession {
         }
         prepared
     }
-    /// Durable reopen for display: the explicit project's records only.
+    /// Durable reopened rows. `read_reopened_history` publishes them with the
+    /// completed notice after releasing this workflow owner.
     pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
         let mut view = crate::records::supply::read_project_runs(&records, restart_events).view();
         // EXEC §2.7 / RECOVERY §4.1: what the host's startup writer did with this session's restart facts.
         view["restartLimits"] = self.restart_limits.clone();
         view["endedAfterRelaunch"] = self.reopened_ends_view();
-        self.reopened = Some(view.clone());
         Ok(view)
     }
     /// Person-directed learning readiness from current records and recovery
@@ -6046,7 +6097,6 @@ impl WorkflowRootSession {
                 }
             }
         }
-        self.reopened = Some(view.clone());
         Ok(view)
     }
 }
@@ -7198,13 +7248,12 @@ impl WorkflowRun {
             basis: basis.clone(),
             occasion,
             evaluated_at: crate::util::now_rfc3339(),
-            inventory: report::Inventory {
-                origin: report::InventoryOrigin::CallerSupplied {
-                    source: "App Root: no environment collector; nothing observed".into(),
-                },
-                host_id: None,
-                observations: report::Observations::default(),
-            },
+            inventory: proposal_advisory::conversation_inventory(
+                &self.home,
+                &self.home.host.snapshot()["threads"],
+                &scope.generation,
+                &scope.conversation,
+            ),
             model_destination: None,
         });
         self.compatibility.push(CompatibilitySlot {
@@ -8026,6 +8075,7 @@ mod workflow_root_tests {
     mod start_source_binding_tests { use super::*; include!("start_source_binding_tests.rs"); }
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
     mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
+    mod records_store_controls_lifecycle_tests { use super::*; include!("records_store_controls_lifecycle_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
@@ -10070,6 +10120,27 @@ for line in sys.stdin:
         let kept=peer.home.host.delegation_readings();
         assert_eq!(kept.len(),1,"{kept:?}");assert_eq!(kept[0]["key"]["generation"],current);
     }
+    // The requirement check is given the host's own reading for the
+    // conversation's model, provider and folder, and nothing it did not observe.
+    #[test]
+    fn the_requirement_check_inventory_carries_the_conversations_own_delegation_reading(){
+        use crate::execution_compatibility::report::CatalogCoverage;
+        let peer=Peer::new();
+        let threads=||peer.home.host.snapshot()["threads"].clone();
+        let before=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        assert!(before.observations.harness_signals.is_none(),"nothing read yet");
+        assert!(matches!(before.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(before.observations.channel_enabled,None,"no host channel is observed");
+        assert!(before.host_id.is_none());
+        assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),1);
+        let after=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        let signals=after.observations.harness_signals.expect("the host's reading for this conversation");
+        assert_eq!(crate::delegation_availability::evaluate(Some(&signals))["reading"],"present");
+        assert!(matches!(after.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(after.observations.channel_enabled,None);
+        // Another conversation does not take this one's reading.
+        assert!(proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"another").observations.harness_signals.is_none());
+    }
     // ---- #1247 review leftovers H-2, H-5 and the send refusals' prefillKept ----
     fn pending_refs(root:&Mutex<WorkflowRootSession>)->Vec<String>{
         let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
@@ -11737,7 +11808,7 @@ for line in sys.stdin:
         let before = std::fs::read(&log).unwrap();
         std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
         for _ in 0..2 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         let dto = root.lock().unwrap().snapshot();
         assert_eq!(std::fs::read(&log).unwrap(), before);
@@ -11755,9 +11826,10 @@ for line in sys.stdin:
             .any(|r| r["kind"] == "run_ended"));
         let mut cold = WorkflowRootSession::default();
         cold.reopen(&peer.fixture.root, &[]).unwrap();
-        cold.observe_ended_runs(&peer.fixture.root);
-        assert_eq!(cold.snapshot()["afterRunEnd"]["pending"], false);
-        assert!(cold.snapshot()["afterRunEnd"]["runs"][0]["records"]
+        let cold = Mutex::new(cold);
+        crate::host_tick::observe_project_history(&cold, &peer.fixture.root);
+        assert_eq!(cold.lock().unwrap().snapshot()["afterRunEnd"]["pending"], false);
+        assert!(cold.lock().unwrap().snapshot()["afterRunEnd"]["runs"][0]["records"]
             .as_array()
             .unwrap()
             .iter()
@@ -11773,7 +11845,7 @@ for line in sys.stdin:
         .unwrap();
         crate::records_retention::apply(plan, &actor, &observed).unwrap();
         for _ in 0..3 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         let rows = own_log(&peer, &a);
         assert_eq!(rows.iter().filter(|r| r["kind"] == "act_lapsed").count(), 1);
@@ -11819,7 +11891,7 @@ for line in sys.stdin:
             .unwrap();
         synthetic_ended_retention_action(&peer, "close");
         let before = std::fs::read(&log).unwrap();
-        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         assert_eq!(std::fs::read(&log).unwrap(), before);
         assert_eq!(
             root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
@@ -11827,7 +11899,7 @@ for line in sys.stdin:
         );
         assert!(root.lock().unwrap().retention_ready().is_ok());
         synthetic_ended_retention_action(&peer, "reopen");
-        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         let rows = own_log(&peer, &a);
         assert_eq!(
             rows.iter()
@@ -11942,7 +12014,7 @@ for line in sys.stdin:
         std::fs::remove_dir_all(export).unwrap();
         std::fs::write(peer.fixture.root.join("out/summary.md"), b"v3").unwrap();
         for _ in 0..3 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         assert_eq!(
             external(&activity).code(),

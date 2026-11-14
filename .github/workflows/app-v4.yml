@@ -126,6 +126,10 @@ jobs:
     env:
       LIB_COHORTS: >-
           supplier_0167_tests delegation_availability::tests
+          execution_compatibility::report::tests::declared_delegation_reads_
+          execution_compatibility::report::tests::an_undeclared_workflow_reads_undeclared_
+          execution_compatibility::report::tests::a_host_operation_without_a_connected_host_
+          runtime_session::workflow_root_tests::the_requirement_check_inventory_
           continuation_context::tests history_bridge conversation_roles::tests
           workflow_role_tests desktop_startup instruction_seed_tests
           workflow_catalog_tests recorded_replay_tests native_delivery::tests
@@ -139,9 +143,10 @@ jobs:
           recovery_root_cold_ waiting_requests_tests::
           runtime_session::workflow_root_tests::library_entries_tests
           stop_bound_tests home_hold::tests session_liveness::tests local_process_lock_tests
-          prepared_turn_refusal_is_typed_only_for_a_correlated_native_error
+          prepared_turn_refusal_is_typed_only_for_a_correlated_native_error saved_working_folder_ sent_working_folder_
           isolation_resolves_a_relative_home_where_the_child_does
           act_control::a15::tests::listed_a15_
+          act_control::native_statement::worst_case_fallbacks
           runtime_session::workflow_root_tests::proposal_disclosure_tests
           model_catalog
           handoff_send_tests
@@ -177,7 +182,7 @@ jobs:
       - name: Role history and portable export verification
         run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs tests/records-retention.test.mjs
       - name: Workflow and fleet presentation
-        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs tests/workflow-text.test.mjs tests/run-offers.test.mjs tests/trials.test.mjs tests/clean-trial-restart.test.mjs tests/workflow-drafts.test.mjs tests/workflow-supply-dispatch.test.mjs
+        run: node --test tests/workflow-selection.test.mjs tests/requirement-check.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs tests/workflow-text.test.mjs tests/run-offers.test.mjs tests/trials.test.mjs tests/clean-trial-restart.test.mjs tests/workflow-drafts.test.mjs tests/workflow-supply-dispatch.test.mjs
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs tests/reading-sentences.test.mjs tests/host-reads.test.mjs tests/request-cards.test.mjs tests/request-card-words.test.mjs tests/prepared-message-navigation.test.mjs tests/codex-controls.test.mjs tests/plan-mode.test.mjs tests/presentation.test.mjs tests/recorded-replay.test.mjs tests/stop-not-sent.test.mjs tests/local-model-settings.test.mjs
       - name: File-act arrival presentation
@@ -352,7 +357,7 @@ jobs:
       - name: Role history and portable export verification
         run: node --test tests/conversation-roles.test.mjs tests/verify-records-bag.test.mjs tests/process-group-custody.test.mjs tests/access-provider.test.mjs tests/fork-admission.test.mjs tests/continue-as-send.test.mjs tests/records-retention.test.mjs
       - name: Workflow and fleet presentation
-        run: node --test tests/workflow-selection.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs tests/workflow-text.test.mjs tests/run-offers.test.mjs tests/trials.test.mjs tests/clean-trial-restart.test.mjs tests/workflow-drafts.test.mjs tests/workflow-supply-dispatch.test.mjs
+        run: node --test tests/workflow-selection.test.mjs tests/requirement-check.test.mjs tests/run-panel.test.mjs tests/workflow-library.test.mjs tests/library-entries.test.mjs tests/registration-review.test.mjs tests/proposed-run-disclosure.test.mjs tests/selected-chain-disclosure.test.mjs tests/workflow-action-result.test.mjs tests/attachment-outcome.test.mjs tests/fleet-records.test.mjs tests/observer-attachment.test.mjs tests/run-journey.test.mjs tests/make-journey.test.mjs tests/journey-navigation.test.mjs tests/included-workflows.test.mjs tests/workflow-text.test.mjs tests/run-offers.test.mjs tests/trials.test.mjs tests/clean-trial-restart.test.mjs tests/workflow-drafts.test.mjs tests/workflow-supply-dispatch.test.mjs
       - name: Native history and conversation presentation
         run: node --test tests/native-history.test.mjs tests/native-activity.test.mjs tests/conversation-panel.test.mjs tests/recovery-custody.test.mjs tests/waiting-requests.test.mjs tests/native-waiting.test.mjs tests/history-continue-navigation.test.mjs tests/request-activity-navigation.test.mjs tests/model-choice.test.mjs tests/trial-continue-model-choice.test.mjs tests/ordinary-send-hold.test.mjs tests/reading-sentences.test.mjs tests/host-reads.test.mjs tests/request-cards.test.mjs tests/request-card-words.test.mjs tests/prepared-message-navigation.test.mjs tests/codex-controls.test.mjs tests/plan-mode.test.mjs tests/presentation.test.mjs tests/recorded-replay.test.mjs tests/stop-not-sent.test.mjs tests/local-model-settings.test.mjs
       - name: Node schemas and presentation with mandatory supplier

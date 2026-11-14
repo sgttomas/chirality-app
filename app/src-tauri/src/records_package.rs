@@ -600,19 +600,19 @@ fn validate(stage: Custody) -> Result<Snapshot, String> {
     {
         return Err("package inventory differs from manifests".into());
     }
-    if ["data/.writer.lock", "data/captures/.capture.lock"]
-        .iter()
-        .any(|path| stage.census.contains_key(*path))
-    {
-        return Err("package payload contains an active owning control".into());
+    if let Some(path) = stage.census.keys().find(|path| {
+        path.strip_prefix("data/")
+            .is_some_and(crate::records_store::payload::control)
+    }) {
+        return Err(format!("package payload contains an active owning control: {path}"));
     }
     let mut payload = BTreeMap::new();
     for path in payload_manifest.keys() {
         let relative = path
             .strip_prefix("data/")
             .ok_or("payload member outside data")?;
-        if matches!(relative, ".writer.lock" | "captures/.capture.lock") {
-            return Err("package payload contains an active owning control".into());
+        if crate::records_store::payload::control(relative) {
+            return Err(format!("package payload contains an active owning control: {path}"));
         }
         payload.insert(relative.to_owned(), stage.members[path].clone());
     }
