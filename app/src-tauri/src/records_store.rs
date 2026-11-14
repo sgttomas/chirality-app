@@ -270,6 +270,12 @@ pub(crate) fn fresh_test_store_name(pid: u32) -> String {
 /// function, still admits an explicit override; the App's start never gives
 /// it that input.
 pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Store, String> {
+    for_app_beside(override_root, app_data, development, project, codex_homes, &[])
+}
+/// As [`for_app`], and the store also stays out of every working folder the
+/// App gives its Codex (`working_folders`), whatever folder that is
+/// (DEL-01-01).
+pub fn for_app_beside(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf]) -> Result<Store, String> {
     // The App data folder as placement needs it (its reserved folders),
     // taken before the branches below consume it.
     let data_for_placement: Option<&Path> = app_data.as_ref().ok().copied();
@@ -298,7 +304,7 @@ pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, 
     }
     // Refused in every build; only the development override may name a
     // temporary folder (a test store).
-    let problems = placement_problems_in(&root, project, codex_homes, placement == Placement::Override, data_for_placement);
+    let problems = placement_problems_in(&root, project, codex_homes, working_folders, placement == Placement::Override, data_for_placement);
     if !problems.is_empty() {
         return Err(format!("records store refused: {}", problems.join("; ")));
     }
@@ -325,10 +331,15 @@ pub fn chosen_location(app_data: &Path) -> Result<Option<PathBuf>, String> {
 /// Records the person's chosen location for the next start. Records already
 /// in the current store are not moved or copied.
 pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Value, String> {
+    choose_location_beside(app_data, location, project, codex_homes, &[])
+}
+/// As [`choose_location`], and the store also stays out of every working
+/// folder the App gives its Codex (DEL-01-01).
+pub fn choose_location_beside(app_data: &Path, location: &Path, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf]) -> Result<Value, String> {
     if !location.is_absolute() {
         return Err("choose an absolute folder for the records store".into());
     }
-    let problems = placement_problems_in(location, project, codex_homes, false, Some(app_data));
+    let problems = placement_problems_in(location, project, codex_homes, working_folders, false, Some(app_data));
     if !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -343,13 +354,16 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
 pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool) -> Vec<String> {
-    placement_problems_in(root, project, codex_homes, allow_temporary, None)
+    placement_problems_in(root, project, codex_homes, &[], allow_temporary, None)
 }
 /// As `placement_problems`, with the App data folder known: the folder where
 /// the App allocates its account homes (`desktop_startup::desktop_account_homes`)
 /// is reserved, whether or not any home has been planned or created in it,
-/// so a store equal to it, inside it or containing it is refused.
-fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
+/// so a store equal to it, inside it or containing it is refused. The folder
+/// set aside for conversations without a project
+/// (`desktop_startup::no_project_folder`) is reserved the same way, and so is
+/// every folder in `working_folders` (DEL-01-01).
+fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
@@ -383,6 +397,10 @@ fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[Pat
     }
     if let Some(data) = app_data {
         inside(&crate::desktop_startup::desktop_account_homes(data), "the folder reserved for the App's account homes");
+        inside(&crate::desktop_startup::no_project_folder(data), "the folder set aside for conversations without a project");
+    }
+    for folder in working_folders {
+        inside(folder, "the working folder Codex is given");
     }
     for home in codex_homes {
         inside(home, "the Codex home");

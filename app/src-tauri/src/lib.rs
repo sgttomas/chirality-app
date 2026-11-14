@@ -304,20 +304,25 @@ pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
 
 /// Complete explicit environment route; no private supplier/home path is built in.
 /// Desktop requests are a separate exclusive source, resolved before Root binding.
-pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
-    host_config_from_inputs(workspace, |key|std::env::var_os(key), probe_home)
+pub fn host_config_from_env(workspace: Option<&PathBuf>, app_data: &std::path::Path) -> Result<HostConfig, String> {
+    host_config_from_inputs(workspace, Ok(app_data), |key|std::env::var_os(key), probe_home)
 }
 
-fn host_config_from_inputs(workspace: Option<&PathBuf>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
+fn host_config_from_inputs(workspace: Option<&PathBuf>, app_data: Result<&std::path::Path,&String>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
     let bin = input("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()
     })?;
     let home = input("CHIRALITY_CODEX_HOME").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string()
     })?;
-    let cwd = workspace.cloned().unwrap_or_else(std::env::temp_dir);
+    // DEL-01-01: with no project, the folder set aside for conversations without a project.
+    let cwd = match workspace {
+        Some(project) => project.clone(),
+        None => desktop_startup::no_project_folder(app_data.map_err(|e| format!("App data folder unavailable, so there is no working folder for a conversation without a project: {e}"))?),
+    };
     let mut cfg = HostConfig::new(bin.into(), home.into(), probe()?, cwd);
     cfg.records_project=workspace.is_some();
+    cfg.app_data=app_data.ok().map(std::path::Path::to_path_buf);
     cfg.expected_sha256 = input("CHIRALITY_CODEX_EXPECTED_SHA256").and_then(|v|v.into_string().ok());
     cfg.allow_unverified_dev = input("CHIRALITY_ALLOW_UNVERIFIED").is_some_and(|v|v == "1");
     Ok(cfg)
@@ -1013,7 +1018,12 @@ fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
-    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)))
+    records_store::choose_location_beside(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), &working_folders(configs.iter()))
+}
+/// DEL-01-01: the working folders the App gives its Codex, which the records
+/// store may never overlap, whatever folder that is.
+fn working_folders<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
+    configs.map(|cfg| cfg.cwd.clone()).collect()
 }
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
@@ -2978,7 +2988,7 @@ fn explicit_environment_launch(
         return Some(desktop_startup::Launch::environment(workspace, Err(reason), key, shared));
     }
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
-        host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
+        host_config_from_inputs(workspace.as_ref(), data.as_deref(), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
                 cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
             }
@@ -2989,7 +2999,10 @@ fn explicit_environment_launch(
             let resources = resources.as_ref().map_err(Clone::clone)?.clone();
             let data = data.as_ref().map_err(Clone::clone)?.clone();
             let home = input("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
-            Ok(hosting::successor::production_config(resources, home, probe()?, workspace.clone().unwrap_or(data)))
+            let cwd = workspace.clone().unwrap_or_else(|| desktop_startup::no_project_folder(&data));
+            let mut cfg = hosting::successor::production_config(resources, home, probe()?, cwd);
+            cfg.app_data = Some(data);
+            Ok(cfg)
         })()
     };
     let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
@@ -3067,7 +3080,7 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     {
         let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
 
-        records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        records_store::configure(if allow_operational { records_store::for_app_beside(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes, &working_folders(home.host_config.as_ref().ok().into_iter())) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
         // The store is created here, once, when the App starts: no reader
         // creates it (a read writes nothing). A failure is shown by the
         // store's status and refuses recording; there is no fallback.

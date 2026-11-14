@@ -341,3 +341,33 @@ fn a_start_without_app_data_places_no_records_store() {
     assert_eq!(after_read, [Some(std::io::ErrorKind::NotFound); 2], "no store placed, opened or created");
     let _ = std::fs::remove_dir_all(&root);
 }
+
+/// DEL-01-01 (T4): the folder set aside for conversations without a project is
+/// reserved whether or not it exists: a store equal to it, inside it or
+/// containing it (the App data folder itself) is refused. Every working folder
+/// the App gives its Codex is reserved the same way, whatever folder that is.
+#[test]
+fn the_no_project_folder_and_every_codex_working_folder_are_reserved() {
+    let data = folder("placement-data-");
+    let leaf = desktop_startup::no_project_folder(&data);
+    const SET_ASIDE: &str = "the folder set aside for conversations without a project";
+    for store in [leaf.clone(), leaf.join("records"), data.clone()] {
+        let placed = records_store::for_app(Some(store.clone()), Ok(&data), true, None, &[]);
+        assert!(placed.as_ref().is_err_and(|e| e.contains(SET_ASIDE)), "{store:?}: {placed:?}");
+        let chosen = records_store::choose_location(&data, &store, None, &[]);
+        assert!(chosen.as_ref().is_err_and(|e| e.contains(SET_ASIDE)), "{store:?}: {chosen:?}");
+    }
+    assert!(!leaf.exists(), "reserved while it does not exist");
+    assert!(records_store::for_app(Some(data.join("records")), Ok(&data), true, None, &[]).is_ok(), "beside it is accepted");
+    const WORKING: &str = "the working folder Codex is given";
+    let outer = folder("placement-outer-");
+    let working = outer.join("work");
+    std::fs::create_dir(&working).unwrap();
+    for store in [working.clone(), working.join("records"), outer.clone()] {
+        let placed = records_store::for_app_beside(Some(store.clone()), Ok(&data), true, None, &[], std::slice::from_ref(&working));
+        assert!(placed.as_ref().is_err_and(|e| e.contains(WORKING)), "{store:?}: {placed:?}");
+        let chosen = records_store::choose_location_beside(&data, &store, None, &[], std::slice::from_ref(&working));
+        assert!(chosen.as_ref().is_err_and(|e| e.contains(WORKING)), "{store:?}: {chosen:?}");
+    }
+    assert!(records_store::for_app_beside(Some(outer.join("beside")), Ok(&data), true, None, &[], &[working]).is_ok());
+}

@@ -166,6 +166,66 @@ pub(crate) fn desktop_account_homes(app_data: &Path) -> PathBuf {
     app_data.join("account-homes")
 }
 
+/// DEL-01-01: the folder the App gives the Codex it hosts as its working
+/// folder when no project is open. Under Codex's workspace-write sandbox the
+/// working folder is an agent's writable root, so it is a folder of its own,
+/// set aside for this and holding nothing else of the App's: never the App
+/// data folder itself, whose other contents (the records store, the account
+/// homes, the saved setup request, the recovery ledger) stay outside it. This
+/// only calculates the path; [`ensure_no_project_folder`] creates it.
+pub(crate) fn no_project_folder(app_data: &Path) -> PathBuf {
+    app_data.join("conversations-without-project")
+}
+/// Where a working folder lies against the App data folder, compared on
+/// resolved locations (links and `..` resolved by the file system) so that no
+/// spelling turns the folder for conversations without a project into a way
+/// to admit the App's other data.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WorkingFolder {
+    /// Resolves to a place neither inside nor containing the App data folder.
+    Outside,
+    /// Resolves to the folder set aside for conversations without a project,
+    /// or a folder inside it.
+    NoProject,
+    /// Resolves to the App data folder, a folder inside it other than the one
+    /// set aside, or a folder containing it.
+    AppData,
+    /// Cannot be resolved (missing, or a `..` that the file system could not
+    /// resolve) and is not established to lie outside the App data folder.
+    Unresolved,
+}
+pub(crate) fn working_folder_place(app_data: &Path, folder: &Path) -> WorkingFolder {
+    let resolve = |path: &Path| std::fs::canonicalize(path).ok();
+    let data = resolve(app_data).unwrap_or_else(|| crate::records_store::resolve_lexically(app_data));
+    let overlaps = |at: &Path| at.starts_with(&data) || data.starts_with(at);
+    if !folder.is_absolute() {
+        return WorkingFolder::Unresolved;
+    }
+    match resolve(folder) {
+        Some(at) if resolve(&no_project_folder(app_data)).is_some_and(|leaf| at.starts_with(leaf)) => WorkingFolder::NoProject,
+        Some(at) if overlaps(&at) => WorkingFolder::AppData,
+        Some(_) => WorkingFolder::Outside,
+        // Not resolvable: never admitted on its spelling. A `..` that the file
+        // system did not resolve has no established place; otherwise the
+        // existing part is resolved and the missing rest appended, and only a
+        // place established outside the App data folder is admitted.
+        None if folder.components().any(|c| matches!(c, Component::ParentDir | Component::CurDir)) => WorkingFolder::Unresolved,
+        None if overlaps(&crate::records_store::resolve_lexically(folder)) => WorkingFolder::Unresolved,
+        None => WorkingFolder::Outside,
+    }
+}
+/// Creates the folder for conversations without a project when it is
+/// missing (owner-only, 0700) and checks it: a link, a file or a folder that
+/// is not private refuses, so nothing is started there. Called before every
+/// Codex start whose working folder it is.
+pub(crate) fn ensure_no_project_folder(app_data: &Path) -> Result<PathBuf, String> {
+    let folder = no_project_folder(app_data);
+    protected_directory(&folder).map_err(|e| {
+        format!("Codex was not started: the folder Chirality sets aside for conversations without a project ({}) is not a private folder of its own: {e}", folder.display())
+    })?;
+    Ok(folder)
+}
+
 fn clean(path: &Path) -> Result<(), String> {
     if !path.is_absolute()
         || path
@@ -1004,6 +1064,7 @@ impl DesktopSetup {
             data.join("capture-seal"),
             data.join("installation.json"),
             desktop_account_homes(&data),
+            no_project_folder(&data),
         ];
         for source in sources {
             clean(source)?;
@@ -1077,6 +1138,13 @@ impl DesktopSetup {
         ] {
             disjoint(&probe, target)?;
         }
+        // DEL-01-01: with no project open, the working folder is the folder
+        // set aside for conversations without a project, never the App data
+        // folder itself.
+        let cwd = match &workspace {
+            Some(project) => project.clone(),
+            None => ensure_no_project_folder(&data)?,
+        };
         let mut config = if !is_dev && cfg!(feature = "distribution-successor") {
             // A desktop development selection cannot weaken a compiled
             // production route. Existing installed-custody refusal is retained.
@@ -1084,7 +1152,7 @@ impl DesktopSetup {
                 resources,
                 account,
                 probe,
-                workspace.clone().unwrap_or(data.clone()),
+                cwd,
             )
         } else {
             if !cfg!(debug_assertions) {
@@ -1094,13 +1162,14 @@ impl DesktopSetup {
                 resources.join("codex/bin/codex"),
                 account,
                 probe,
-                workspace.clone().unwrap_or(data.clone()),
+                cwd,
             );
             cfg.expected_sha256 = Some(development_binary_assertion()?);
             cfg.allow_unverified_dev = true;
             cfg
         };
         config.records_project = workspace.is_some();
+        config.app_data = Some(data.clone());
         config.require_distribution_artifacts = config.distribution.is_some();
         let shared_paths = [
             Some(shared.config_toml),
@@ -1200,7 +1269,7 @@ impl DesktopSetup {
             }
             Err(reason) => json!({"available":false,"reason":reason}),
         };
-        json!({"retainProject":retain,"launch":self.launch_state,"appData":self.data.as_ref().ok().map(|p|p.display().to_string()),"appDataProblem":self.data.as_ref().err(),"supplier":{"selection":SUPPLIER,"path":self.resources.as_ref().ok().map(|p|p.join("codex/bin/codex").display().to_string()),"standing":"Explicit owner-use development only. Label/generated-reference/binary assertion checks still apply; derived byte identity is not authenticated qualification. A compiled production successor still refuses without installed custody."},"pending":self.pending,"activeResources":active_resources.as_ref().ok().and_then(|r|r.as_ref()),"activeResourceProblem":active_resources.as_ref().err(),"custodyProblem":self.recheck().err(),"nextLaunch":"Preparation/save changes only a pending request. Quit normally when ready and launch again; no automatic quit, restart, login, conversation or model selection."})
+        json!({"retainProject":retain,"launch":self.launch_state,"appData":self.data.as_ref().ok().map(|p|p.display().to_string()),"noProjectFolder":self.data.as_ref().ok().map(|p|no_project_folder(p).display().to_string()),"appDataProblem":self.data.as_ref().err(),"supplier":{"selection":SUPPLIER,"path":self.resources.as_ref().ok().map(|p|p.join("codex/bin/codex").display().to_string()),"standing":"Explicit owner-use development only. Label/generated-reference/binary assertion checks still apply; derived byte identity is not authenticated qualification. A compiled production successor still refuses without installed custody."},"pending":self.pending,"activeResources":active_resources.as_ref().ok().and_then(|r|r.as_ref()),"activeResourceProblem":active_resources.as_ref().err(),"custodyProblem":self.recheck().err(),"nextLaunch":"Preparation/save changes only a pending request. Quit normally when ready and launch again; no automatic quit, restart, login, conversation or model selection."})
     }
     fn retained_source(&self) -> Result<Arc<AdmittedDesktop>, String> {
         let admission = self.admitted.as_ref().ok_or("Retaining an account requires this process's admitted saved-desktop source; no environment, pending or setup-only adoption")?;
@@ -1250,7 +1319,7 @@ impl DesktopSetup {
             .as_ref()
             .map(|p| p.location.path())
             .transpose()?
-            .unwrap_or(self.data.as_ref().map_err(Clone::clone)?.clone());
+            .unwrap_or(no_project_folder(self.data.as_ref().map_err(Clone::clone)?));
         if config.codex_home != active.account.location.path()? || config.cwd != expected_cwd {
             return Err("Actual account/cwd differs from admitted desktop source".into());
         }
@@ -1301,7 +1370,7 @@ impl DesktopSetup {
                         .as_ref()
                         .map(|p| p.location.path())
                         .transpose()?
-                        .unwrap_or(self.data.as_ref().map_err(Clone::clone)?.clone())
+                        .unwrap_or(no_project_folder(self.data.as_ref().map_err(Clone::clone)?))
             {
                 return Err("Actual source differs".into());
             }
@@ -5195,7 +5264,7 @@ mod tests {
             assert!(allow_operational);
             let cfg = launch.host_config.as_ref().unwrap();
             assert_eq!(cfg.codex_home, h);
-            assert_eq!(cfg.cwd, target.clone().unwrap_or(f.data.clone()));
+            assert_eq!(cfg.cwd, target.clone().unwrap_or(no_project_folder(&f.data)));
             assert_eq!(cfg.records_project, with_project);
             let (next, next_home) =
                 crate::freeze_startup_state(launch, Arc::new(Mutex::new(fresh)), Value::Null);
@@ -5557,7 +5626,7 @@ mod tests {
         let launch = f.resolve(&mut fresh);
         let cfg = launch.host_config.as_ref().unwrap();
         assert!(!cfg.records_project);
-        assert_eq!(cfg.cwd, f.data);
+        assert_eq!(cfg.cwd, no_project_folder(&f.data));
         assert!(launch.workspace.is_none());
         assert!(launch.bootstrap.is_some());
         assert!(
@@ -5672,7 +5741,7 @@ mod tests {
         };
         let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), true, || Ok(probe.clone())).unwrap();
         let cfg = env.host_config.as_ref().unwrap();
-        assert_eq!((cfg.codex_home.as_path(), cfg.probe_home.as_path(), cfg.cwd.clone()), (home.as_path(), probe.as_path(), std::env::temp_dir()));
+        assert_eq!((cfg.codex_home.as_path(), cfg.probe_home.as_path(), cfg.cwd.clone()), (home.as_path(), probe.as_path(), no_project_folder(&f.data)));
         assert!(env.key_path.is_none() && env.shared_paths.iter().all(Option::is_none));
     }
 
@@ -5694,7 +5763,7 @@ mod tests {
         let input = |key: &str| (key == "CHIRALITY_CODEX_HOME").then(|| home.clone().into_os_string());
         let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), false, || Ok(f.root.join("probe-home"))).unwrap();
         let cfg = env.host_config.as_ref().unwrap();
-        assert_eq!((cfg.codex_home.as_path(), cfg.cwd.as_path()), (home.as_path(), f.data.as_path()));
+        assert_eq!((cfg.codex_home.as_path(), cfg.cwd.as_path(), cfg.app_data.as_deref()), (home.as_path(), no_project_folder(&f.data).as_path(), Some(f.data.as_path())));
     }
 
     #[test]
@@ -7121,5 +7190,177 @@ mod tests {
         assert!(!f.data.join(PROFILE).exists());
         let raw = f.root.join(std::ffi::OsString::from_vec(vec![b'x', 0xff]));
         assert_eq!(NativePath::new(&raw).path().unwrap(), raw);
+    }
+
+    /// The App-data names that must never lie under the working folder Codex
+    /// is given with no project open (DEL-01-01).
+    const APP_DATA_NAMES: [&str; 12] = ["records", "account-homes", "shared-settings", "runtime", "instructions", "capture-seal", "desktop-startup", "codex-omlx", "native-child-roles", "installation.json", "records-store.json", "workflow-approval-policy.json"];
+    fn assert_no_project_folder(data: &Path, cfg: &HostConfig) {
+        let leaf = data.join("conversations-without-project");
+        assert_eq!(cfg.cwd, leaf, "with no project, Codex works in the folder set aside for it, not the App data folder");
+        let meta = std::fs::symlink_metadata(&cfg.cwd).unwrap();
+        assert!(meta.is_dir() && meta.mode() & 0o777 == 0o700, "a private directory of its own");
+        for name in APP_DATA_NAMES {
+            assert!(!data.join(name).starts_with(&cfg.cwd), "{name} lies under Codex's working folder");
+        }
+        assert!(!cfg.codex_home.starts_with(&cfg.cwd), "the Codex home is not under the working folder");
+        assert_eq!(cfg.app_data.as_deref(), Some(data));
+    }
+
+    /// T1: the saved route, with no project, gives Codex the folder set aside
+    /// for conversations without a project; never the App data folder.
+    #[test]
+    fn no_project_saved_launch_works_in_a_folder_of_its_own() {
+        let f = Fixture::new();
+        let mut setup = f.setup();
+        f.prepare(&mut setup, false);
+        drop(setup);
+        let mut fresh = f.setup();
+        let launch = f.resolve(&mut fresh);
+        let RootInputs { launch, allow_operational, .. } = fresh.admit_root(launch, Ok(f.data.clone()));
+        assert!(allow_operational);
+        let cfg = launch.host_config.as_ref().unwrap();
+        assert!(!cfg.records_project);
+        assert_no_project_folder(&f.data, cfg);
+        // Removed, it is made again before the next Codex start.
+        std::fs::remove_dir(&cfg.cwd).unwrap();
+        Host::check_working_folder(cfg).unwrap();
+        assert_no_project_folder(&f.data, cfg);
+    }
+
+    /// T2: the environment route, development and (without the successor
+    /// feature) built, takes the same folder; neither the App data folder nor
+    /// the temporary folder.
+    #[test]
+    fn no_project_environment_route_works_in_the_same_folder() {
+        for is_dev in [true, false] {
+            let f = Fixture::new();
+            let home = f.root.join("environment-home");
+            let variables = json!({"CHIRALITY_APP_DATA":f.data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":home,"CHIRALITY_ALLOW_UNVERIFIED":"1"});
+            let input = |key: &str| variables[key].as_str().map(std::ffi::OsString::from);
+            let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), is_dev, || f.probe()).unwrap();
+            let cfg = env.host_config.as_ref().unwrap();
+            assert!(!cfg.records_project && cfg.cwd != std::env::temp_dir() && cfg.cwd != f.data);
+            Host::check_working_folder(cfg).unwrap();
+            assert_no_project_folder(&f.data, cfg);
+            if is_dev {
+                let (_desktop, inputs) = crate::admitted_startup(input, Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || f.probe());
+                assert_eq!(inputs.launch.host_config.as_ref().unwrap().cwd, f.data.join("conversations-without-project"));
+            }
+        }
+        // No App data, no project: no working folder, so no configuration.
+        let input = |key: &str| match key { "CHIRALITY_CODEX_BIN" => Some("/invented/bin/codex".into()), "CHIRALITY_CODEX_HOME" => Some("/invented/home".into()), _ => None };
+        assert!(crate::host_config_from_inputs(None, Err(&"no data".to_string()), input, || Ok(PathBuf::from("/invented/probe"))).unwrap_err().contains("no working folder for a conversation without a project"));
+    }
+
+    /// T5: configuration continuation and the endpoint source accept the
+    /// folder set aside and refuse the App data folder when no project is set;
+    /// the continuation's own reading names the folder set aside.
+    #[test]
+    fn no_project_continuation_and_endpoint_source_name_the_folder_set_aside() {
+        let f = Fixture::new();
+        let mut setup = f.setup();
+        f.prepare(&mut setup, false);
+        drop(setup);
+        let (desktop, state, home, mut peer) = f.admitted_continuation();
+        let cfg = home.host_config.as_ref().unwrap().clone();
+        assert_eq!(cfg.cwd, no_project_folder(&f.data));
+        let mut in_data = cfg.clone();
+        in_data.cwd = f.data.clone();
+        assert!(desktop.lock().unwrap().endpoint_source_available(&cfg));
+        assert!(!desktop.lock().unwrap().endpoint_source_available(&in_data));
+        assert!(desktop.lock().unwrap().begin_config_continuation(&in_data).err().unwrap().contains("Actual account/cwd differs"));
+        let pending = crate::begin_config_resource_continuation(&state).unwrap();
+        peer.answer(f.private_config());
+        let _ = crate::complete_config_resource_continuation(&state, pending, |candidate| Ok(Some(candidate.accept_checked_current_object())));
+        let wire = peer.continuation_frame();
+        assert_eq!(wire["method"], "config/read");
+        assert_eq!(wire["params"]["cwd"], no_project_folder(&f.data).to_str().unwrap());
+    }
+
+    /// T6: a folder set aside that is a file or a link refuses the start with
+    /// a plain reason and nothing is spawned; so does a working folder that is
+    /// the App data folder, and a Codex home inside the folder set aside.
+    #[test]
+    fn a_no_project_folder_that_is_not_a_private_folder_refuses_the_start() {
+        let f = Fixture::new();
+        let leaf = no_project_folder(&f.data);
+        let marker = f.root.join("spawned");
+        let bin = f.root.join("codex");
+        std::fs::write(&bin, format!("#!/bin/sh\ntouch '{}'\n", marker.display())).unwrap();
+        std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let home = f.root.join("home");
+        std::fs::create_dir(&home).unwrap();
+        let config = |cwd: PathBuf, home: PathBuf| {
+            let mut cfg = HostConfig::new(bin.clone(), home, f.root.join("probe"), cwd);
+            cfg.app_data = Some(f.data.clone());
+            cfg.allow_unverified_dev = true;
+            cfg
+        };
+        let sibling = f.data.join("records");
+        std::fs::create_dir_all(&sibling).unwrap();
+        for case in ["file", "link"] {
+            match case {
+                "file" => std::fs::write(&leaf, b"invented").unwrap(),
+                _ => std::os::unix::fs::symlink(&sibling, &leaf).unwrap(),
+            }
+            let host = Arc::new(Host::new());
+            let refused = host.start(&config(leaf.clone(), home.clone()), "test").unwrap_err();
+            assert!(refused.contains("not a private folder of its own"), "{case}: {refused}");
+            assert_eq!(host.snapshot()["state"], "absent", "{case}");
+            assert!(host.snapshot()["lastStartRefusal"]["reason"].as_str().unwrap().contains("not a private folder of its own"));
+            // The saved route refuses its launch the same way.
+            let mut setup = f.setup();
+            if !f.data.join(PROFILE).exists() { f.prepare(&mut setup, false); }
+            drop(setup);
+            let mut fresh = f.setup();
+            assert!(f.resolve(&mut fresh).host_config.unwrap_err().contains("not a private folder of its own"), "{case}");
+            std::fs::remove_file(&leaf).unwrap();
+        }
+        let host = Arc::new(Host::new());
+        assert!(host.start(&config(f.data.clone(), home.clone()), "test").unwrap_err().contains("Chirality's own data folder"));
+        assert!(host.start(&config(sibling.clone(), home.clone()), "test").unwrap_err().contains("Chirality's own data folder"));
+        protected_directory(&leaf).unwrap();
+        std::fs::create_dir(leaf.join("home")).unwrap();
+        assert!(host.start(&config(leaf.clone(), leaf.join("home")), "test").unwrap_err().contains("Codex home would be inside"));
+        assert!(host.start(&config(leaf.clone(), PathBuf::from("relative-home")), "test").unwrap_err().contains("Codex home would be inside"));
+        assert_eq!(host.snapshot()["state"], "absent");
+        assert!(!marker.exists(), "nothing was spawned");
+    }
+
+    /// The folder set aside is reserved by resolved location: `..`, a link
+    /// inside it, an unresolvable folder and another spelling of it.
+    #[test]
+    fn a_working_folder_is_placed_by_its_resolved_location() {
+        let f = Fixture::new();
+        let leaf = ensure_no_project_folder(&f.data).unwrap();
+        let records = f.data.join("records");
+        std::fs::create_dir_all(&records).unwrap();
+        let place = |path: PathBuf| working_folder_place(&f.data, &path);
+        assert_eq!(place(leaf.clone()), WorkingFolder::NoProject);
+        std::fs::create_dir(leaf.join("inside")).unwrap();
+        assert_eq!(place(leaf.join("inside")), WorkingFolder::NoProject);
+        // Another spelling of the folder set aside is that folder.
+        let alias = f.root.join("alias-of-leaf");
+        std::os::unix::fs::symlink(&leaf, &alias).unwrap();
+        assert_eq!(place(alias), WorkingFolder::NoProject);
+        // `..` out of it lands in the App's data.
+        assert_eq!(place(leaf.join("..").join("records")), WorkingFolder::AppData);
+        assert_eq!(place(leaf.join("..").join("missing-here")), WorkingFolder::Unresolved);
+        // A link inside it to a sibling is the sibling.
+        std::os::unix::fs::symlink(&records, leaf.join("to-records")).unwrap();
+        assert_eq!(place(leaf.join("to-records")), WorkingFolder::AppData);
+        // Unresolvable: never admitted on a spelling that starts with the folder's.
+        assert_eq!(place(leaf.join("gone")), WorkingFolder::Unresolved);
+        assert_eq!(place(leaf.join("to-records").join("gone")), WorkingFolder::Unresolved);
+        assert_eq!(place(PathBuf::from("relative")), WorkingFolder::Unresolved);
+        // A name that merely starts with the folder's text is another folder of the App data.
+        let lookalike = f.data.join("conversations-without-project-elsewhere");
+        std::fs::create_dir(&lookalike).unwrap();
+        assert_eq!(place(lookalike), WorkingFolder::AppData);
+        assert_eq!(place(f.data.clone()), WorkingFolder::AppData);
+        assert_eq!(place(f.root.clone()), WorkingFolder::AppData, "a folder containing the App data");
+        assert_eq!(place(f.project.clone()), WorkingFolder::Outside);
+        assert_eq!(place(f.root.join("moved-project")), WorkingFolder::Outside, "missing, but established outside");
     }
 }

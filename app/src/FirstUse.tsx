@@ -155,6 +155,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
         {projectProblem && <p id="first-use-project-problem" className="setup-guidance">{projectProblem}</p>}
         <p id="first-use-project-help"><small>Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.</small></p>
         {noProject && <p>No project for now. You can still have conversations, and choose a project later in Desktop setup.</p>}
+        {noProject && <p>Files a conversation creates without a project are kept in one folder that Chirality sets aside. They stay there between launches and are shared by every conversation without a project, including any instructions a conversation writes there.</p>}
         {!noProject && <p><button disabled={busy} onClick={() => { changed(); setProject({ kind: "none" }); }}>Continue without a project</button></p>}
       </li>
       <li><h2>Codex settings</h2>
@@ -191,6 +192,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     <details className="setup-diagnostics"><summary>Technical details</summary>
       <p>Launch: {shown.launch.state}. {shown.launch.reason ?? shown.launch.standing}</p>
       <p>App data: {shown.appData ?? shown.appDataProblem ?? "unavailable"}</p>
+      <p>Conversations without a project work in: {shown.noProjectFolder ?? "unavailable"}</p>
       <p>Codex: the copy included with this App ({shown.supplier.path ?? "location unavailable"}). {shown.supplier.standing}</p>
       {!keepAvailable && shown.retainProject?.reason && <p>Keeping an existing sign-in isn't available: {shown.retainProject.reason}</p>}
       {shown.activeResourceProblem && <p>Shared settings could not be checked: {shown.activeResourceProblem}</p>}

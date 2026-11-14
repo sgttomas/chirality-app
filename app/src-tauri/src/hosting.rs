@@ -295,6 +295,11 @@ pub struct HostConfig {
     pub cwd: PathBuf,
     /// App startup has an explicit project; a no-project supplier owns no records lease.
     pub(crate) records_project: bool,
+    /// DEL-01-01: the App data folder, when the start knows it. Codex is never
+    /// started with it, or a folder inside it other than the folder set aside
+    /// for conversations without a project, as its working folder; and a saved
+    /// conversation working there is not continued or copied.
+    pub(crate) app_data: Option<PathBuf>,
     /// Optional main-binary development assertion. A match cannot qualify the
     /// full executed distribution; a mismatch always refuses the start.
     pub expected_sha256: Option<String>,
@@ -318,6 +323,12 @@ pub struct HostConfig {
     pub(crate) process_lock: Option<PathBuf>,
 }
 
+/// DEL-01-01: a saved conversation that works in Chirality's own data folder is not continued.
+pub(crate) const SAVED_IN_APP_DATA_RESUME: &str = "This conversation was started in Chirality's own data folder, which Chirality no longer gives Codex as a working folder, so it was not continued. Nothing was sent to it. Start a new conversation instead.";
+/// The same for a copy of the conversation.
+pub(crate) const SAVED_IN_APP_DATA_FORK: &str = "This conversation works in Chirality's own data folder, which Chirality no longer gives Codex as a working folder, so it was not copied. Nothing was sent to it. Start a new conversation instead.";
+/// Its working folder could not be established, so it is not taken to be outside Chirality's data.
+pub(crate) const SAVED_IN_APP_DATA_UNKNOWN: &str = "Chirality could not establish where this conversation works, so it was not continued or copied: it might be Chirality's own data folder. Nothing was sent to it.";
 /// The account home's provider, as a session setting (see `HostConfig::new`).
 pub(crate) const ACCOUNT_PROVIDER_FLAG: &str = "model_provider=\"openai\"";
 /// DEL-01-05 REQ-010: every setting the App applies to its own Codex when it
@@ -350,6 +361,7 @@ impl HostConfig {
             probe_home,
             cwd,
             records_project: true,
+            app_data: None,
             expected_sha256: None,
             allow_unverified_dev: false,
             // ACCESS §9 K-12: analytics off in the session flags. Plugins follow the
@@ -466,6 +478,8 @@ struct Inner {
     /// The app-server process's own working folder (its `current_dir`), for
     /// the provider it resolves for the parameterless reads (NPTD §7.1).
     server_cwd: Option<String>,
+    /// The App data folder of the current start (`HostConfig::app_data`).
+    app_data: Option<PathBuf>,
     /// Collaboration modes this App requested on `turn/start`, per generation/thread.
     requested_modes: Vec<Value>,
     configuration_identity: Option<Value>,
@@ -2043,12 +2057,35 @@ impl Host {
         }
         found
     }
+    pub(crate) fn check_working_folder(cfg: &HostConfig) -> Result<(), String> {
+        use crate::desktop_startup::{ensure_no_project_folder, no_project_folder, working_folder_place, WorkingFolder};
+        let Some(data) = &cfg.app_data else { return Ok(()) };
+        if cfg.cwd == no_project_folder(data) {
+            ensure_no_project_folder(data)?;
+        }
+        if !matches!(working_folder_place(data, &cfg.cwd), WorkingFolder::Outside | WorkingFolder::NoProject) {
+            return Err("Codex was not started: its working folder would be Chirality's own data folder, a folder in it or one containing it, or a folder whose place could not be established".into());
+        }
+        let home = cfg.cwd.join(&cfg.codex_home);
+        let lexical = crate::records_store::resolve_lexically;
+        if working_folder_place(data, &home) == WorkingFolder::NoProject || lexical(&home).starts_with(lexical(&no_project_folder(data))) {
+            return Err("Codex was not started: its Codex home would be inside the folder set aside for conversations without a project".into());
+        }
+        Ok(())
+    }
     fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
         self.begin_start_request();
         // DEL-01-05: a home whose Codex would carry the development model address holds no sign-in
         // file. First, as on main, before the home is claimed; the reason is kept as the last
         // start refusal like the other refusals made before an attempt is admitted.
         if let Err(reason) = crate::dev_model_address::check_start(cfg) {
+            self.note_start_refusal(actor, &cfg.codex_home, &reason);
+            return Err(reason);
+        }
+        // DEL-01-01: the working folder is never the App data folder or another folder of the
+        // App's in it; with no project it is the folder set aside for that, created here when
+        // missing, and no Codex home may resolve into it. Refused before anything is spawned.
+        if let Err(reason) = Self::check_working_folder(cfg) {
             self.note_start_refusal(actor, &cfg.codex_home, &reason);
             return Err(reason);
         }
@@ -2434,6 +2471,7 @@ impl Host {
             i.child_pid = Some(pid);
             i.stop_record = None;
             i.server_cwd = Some(cfg.cwd.to_string_lossy().into_owned());
+            i.app_data = cfg.app_data.clone();
             let (removed_names, removed_classes) = removed_environment_record(prepared.as_ref().map(|p| &p.plan.removed[..]).unwrap_or(&[]));
             let conf = json!({
                 "launcher": executable.display().to_string(),
@@ -3143,6 +3181,42 @@ impl Host {
         if e.request.generation!=*generation {return Err("source request full generation differs".into());}Ok(e.request.clone())
     }
 
+    /// DEL-01-01: on the account and key routes, a saved conversation is not continued when the
+    /// working folder Codex reports for it resolves to the App data folder, a folder in it other
+    /// than the one set aside for conversations without a project, or one containing it, or when
+    /// its place cannot be established; nothing is resumed. Its folder is read first (the local
+    /// route reads it too, and already requires its own folder). Without a known App data folder
+    /// or on the local route, nothing is read here.
+    fn saved_thread_outside_app_data(&self, generation: &Value, thread: &Value) -> Result<(), String> {
+        let data = {
+            let i = self.inner.0.lock().unwrap();
+            match (&i.local_provider, &i.app_data) { (None, Some(data)) => data.clone(), _ => return Ok(()) }
+        };
+        let thread = thread.as_str().filter(|t| !t.is_empty()).ok_or(SAVED_IN_APP_DATA_UNKNOWN)?;
+        let read = self.request_begin_scoped("thread/read", json!({"threadId":thread,"includeTurns":false}), json!({"kind":"person-directed"}), false, Some(generation))?;
+        self.source_request_wait(&read, Duration::from_secs(10)).map_err(|_| SAVED_IN_APP_DATA_UNKNOWN)?;
+        let e = read.evidence();
+        if e["outcome"] != "response-observed-result" || e["response"]["result"]["thread"]["id"] != thread {
+            return Err(SAVED_IN_APP_DATA_UNKNOWN.into());
+        }
+        Self::saved_folder_admitted(&data, &e["response"]["result"]["thread"]["cwd"], SAVED_IN_APP_DATA_RESUME)
+    }
+    /// As [`Self::saved_thread_outside_app_data`] for a fork, on the folder the current
+    /// conversation's own row reports; nothing is read or sent.
+    fn forked_thread_outside_app_data(&self, generation: &Value, thread: &str) -> Result<(), String> {
+        let i = self.inner.0.lock().unwrap();
+        let (None, Some(data)) = (&i.local_provider, &i.app_data) else { return Ok(()) };
+        let row = i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread);
+        Self::saved_folder_admitted(data, row.map_or(&Value::Null, |t| &t["cwd"]), SAVED_IN_APP_DATA_FORK)
+    }
+    fn saved_folder_admitted(data: &std::path::Path, cwd: &Value, refusal: &str) -> Result<(), String> {
+        use crate::desktop_startup::{working_folder_place, WorkingFolder};
+        match cwd.as_str().map(|cwd| working_folder_place(data, std::path::Path::new(cwd))) {
+            Some(WorkingFolder::Outside | WorkingFolder::NoProject) => Ok(()),
+            Some(WorkingFolder::AppData) => Err(refusal.into()),
+            Some(WorkingFolder::Unresolved) | None => Err(SAVED_IN_APP_DATA_UNKNOWN.into()),
+        }
+    }
     pub fn history_dispatch(&self, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
         self.history_dispatch_by(query, json!({"kind":"person-directed"}))
     }
@@ -3153,6 +3227,7 @@ impl Host {
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
         // An account or key-home Continue rests on Codex reporting the built-in provider; nothing for a local home.
+        if query.method()=="thread/resume" {self.saved_thread_outside_app_data(query.generation(),&query.params()["threadId"])?;}
         let cloud=if query.method()=="thread/resume" {self.cloud_continuation_admission(query.generation(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME)?} else {None};
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
         if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
@@ -3328,6 +3403,7 @@ impl Host {
             if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("refused-not-sent: the conversation belongs to a closed, replaced or not-ready Codex generation".into());}
             if !i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==source_thread) {return Err("refused-not-sent: choose a current conversation of this Codex generation to fork".into());}
         }
+        self.forked_thread_outside_app_data(generation,source_thread)?;
         let params=json!({"threadId":source_thread,"deferGoalContinuation":true});
         crate::role_supply::check_role_inputs("thread/fork",&params)?;
         Self::validate_native_result("ThreadForkParams",&params)?;
@@ -6400,6 +6476,55 @@ mod conversation_transport_tests {
             assert_eq!(admitted,case=="positive","{case}");
             assert_eq!(host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored"),admitted);
         }
+    }
+    /// DEL-01-01 (T7): on the account and key routes a saved conversation whose reported working
+    /// folder resolves to the App data folder, a folder in it other than the folder set aside for
+    /// conversations without a project, or one that cannot be resolved, is not resumed or forked:
+    /// no resume or fork frame is written (a resume first reads the saved conversation's folder).
+    /// The comparison is on resolved locations.
+    #[test]
+    fn a_saved_conversation_in_the_app_data_folder_is_not_resumed_or_forked(){
+        use crate::desktop_startup::ensure_no_project_folder;
+        let root=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("saved-folder-").unwrap());
+        let data=root.join("app-data");std::fs::create_dir_all(data.join("records")).unwrap();
+        let leaf=ensure_no_project_folder(&data).unwrap();
+        std::os::unix::fs::symlink(data.join("records"),leaf.join("to-records")).unwrap();
+        let project=root.join("project");std::fs::create_dir(&project).unwrap();
+        let reading=json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}});
+        let s=|p:&std::path::Path|p.to_str().unwrap().to_owned();
+        let cases=[
+            (s(&data),Some(SAVED_IN_APP_DATA_RESUME)),(s(&data.join("records")),Some(SAVED_IN_APP_DATA_RESUME)),
+            (format!("{}/../records",s(&leaf)),Some(SAVED_IN_APP_DATA_RESUME)),(s(&leaf.join("to-records")),Some(SAVED_IN_APP_DATA_RESUME)),
+            (s(&leaf.join("gone")),Some(SAVED_IN_APP_DATA_UNKNOWN)),(s(&root),Some(SAVED_IN_APP_DATA_RESUME)),
+            (s(&leaf),None),(s(&project),None),
+        ];
+        for (saved_cwd,refusal) in &cases {
+            let h=host();{let mut i=h.inner.0.lock().unwrap();i.server_cwd=Some("/invented".into());i.app_data=Some(data.clone());}
+            let mut view=history_selected();let query=view.continue_query().unwrap();
+            let (result,frames)=local_peer_exchange(&h,reading.clone(),saved_cwd,history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
+            let methods:Vec<&str>=frames.iter().map(|f|f["method"].as_str().unwrap_or("")).collect();
+            match refusal {
+                Some(refusal)=>{assert_eq!(result.unwrap_err(),*refusal,"{saved_cwd}");assert_eq!(methods,vec!["thread/read"],"{saved_cwd}: nothing but the reading of its folder");}
+                None=>{assert!(result.is_ok(),"{saved_cwd}: {result:?}");assert_eq!(methods,vec!["thread/read","config/read","thread/resume"],"{saved_cwd}");
+                    assert_eq!(frames[2]["params"],json!({"threadId":"stored","excludeTurns":true}),"no cwd is added on the account route");}
+            }
+            // A fork rests on the current conversation's own row; nothing at all is written when it is refused.
+            let h=host();{let mut i=h.inner.0.lock().unwrap();i.server_cwd=Some("/invented".into());i.app_data=Some(data.clone());i.threads[0]["cwd"]=json!(saved_cwd);}
+            let (result,frames)=local_peer_exchange(&h,reading.clone(),saved_cwd,json!({}),||h.thread_fork_dispatch(&g(),"thread").map(|_|()));
+            match refusal {
+                Some(refusal)=>{let expected=if *refusal==SAVED_IN_APP_DATA_RESUME{SAVED_IN_APP_DATA_FORK}else{refusal};assert_eq!(result.unwrap_err(),expected,"{saved_cwd}");assert!(frames.is_empty(),"{saved_cwd}: {frames:?}");}
+                None=>{assert!(result.is_ok(),"{saved_cwd}: {result:?}");assert!(frames.iter().any(|f|f["method"]=="thread/fork"),"{saved_cwd}");}
+            }
+        }
+        // A row that reports no folder is not taken to be outside the App data.
+        let h=host();h.inner.0.lock().unwrap().app_data=Some(data.clone());
+        assert_eq!(h.thread_fork_dispatch(&g(),"thread").err().unwrap(),SAVED_IN_APP_DATA_UNKNOWN);
+        // Without a known App data folder nothing is read first, as before.
+        let h=host();h.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
+        let mut view=history_selected();let query=view.continue_query().unwrap();
+        let (result,frames)=local_peer_exchange(&h,reading.clone(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
+        assert!(result.is_ok());assert!(!frames.iter().any(|f|f["method"]=="thread/read"));
+        std::fs::remove_dir_all(&root).unwrap();
     }
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
     /// An account or key-home host whose Codex answers each configuration reading as `reading` says

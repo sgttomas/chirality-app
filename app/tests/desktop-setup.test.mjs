@@ -355,6 +355,15 @@ test('first use: no project, existing settings route, cancel and change keep cho
   },async(c,calls)=>{
     await press(c,'Continue without a project');
     assert.match(region(c,'Welcome').textContent,/No project for now/);
+    // DEL-01-01: where files of a conversation without a project are kept, said plainly, and the folder's path in the technical details.
+    const welcome=region(c,'Welcome');
+    const said=nodes(welcome,'p').map(p=>p.textContent);
+    const sentence='No project for now. You can still have conversations, and choose a project later in Desktop setup.';
+    const kept='Files a conversation creates without a project are kept in one folder that Chirality sets aside. They stay there between launches and are shared by every conversation without a project, including any instructions a conversation writes there.';
+    assert.equal(said[said.indexOf(sentence)+1],kept,'a separate paragraph after the unchanged sentence');
+    assert.equal(packet.initial.noProjectFolder,packet.initial.appData+'/conversations-without-project');
+    assert.ok(said.includes('Conversations without a project work in: '+packet.initial.noProjectFolder));
+    assert.ok(said.includes('App data: '+packet.initial.appData),'the App data line is unchanged');
     const existing=nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(' Use my existing Codex settings'));
     await React.act(()=>props(existing).onChange());
     assert.equal(props(button(c,'Review setup')).disabled,true,'existing settings need all three');
