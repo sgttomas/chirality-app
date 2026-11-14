@@ -116,3 +116,34 @@ test('the guide shows the check in the Workflow step, before Inputs, and never d
   assert.equal(!!props.disabled, false, 'a missing tool never blocks the start');
   await React.act(async () => root.unmount());
 });
+
+// LIM-008 beside the chosen workflow: the About disclosure's own sentence, for an
+// included workflow whose files name Library paths; nothing for one that names none.
+test('beside the chosen included workflow, the Library paths its files name are said in About\'s words, and nothing when it names none', async () => {
+  const g = {home:'account', appSession:'s1', spawnCounter:1};
+  const ROOT = 'synthetic-bundled-root', METHOD = 'synthetic-method';
+  const identity = name => ({kind:'workflow', origin:'bundled', source_root:ROOT, name, revision:`${name}-rev`, revision_method:METHOD});
+  const entry = (name, paths) => ({name, revision:`${name}-rev`, origin:'bundled', identity:identity(name), runnable:true, roles:[], libraryPathsNamed:paths,
+    navigation:{displayName:name, category:'core', tier:'primary', order:1, group:{id:'g', label:'Invented group'}}, description:`Invented ${name}.`});
+  const undeclared = {reading:'undeclared', findings:[], categories:{}, elements:{}};
+  const guide = async (name, paths) => {
+    const host = {state:'ready', generation:g, workflowRoot:{context:{sourceRef:'src', generation:g}}, threads:[{threadId:'T1', generation:g, status:{type:'idle'}}], serverRequests:[]};
+    const data = {context:{sourceRef:'src', generation:g}, projectLibraryAvailable:false, libraries:[], runs:[], reviews:[],
+      productionCatalog:{source:{tag:'library-v9.9.9'}, entries:[entry(name, paths)]},
+      selections:[{sourceRef:'src', threadId:'T1', selection:{state:'selected', reference:'sel', runnable:true, identity:identity(name), declaration:undeclared}}]};
+    const c = document.createElement('div'); const root = createRoot(c);
+    await React.act(async () => root.render(React.createElement(RunWorkflowGuide, {data, host, thread:'T1', busy:false, text:'', chooseThread:() => {}, setText:() => {}, act:async () => {}})));
+    const workflow = c.querySelectorAll(node => node.localName === 'li' && node.getAttribute('aria-labelledby') === 'run-workflow-heading')[0];
+    const beside = workflow.querySelectorAll(node => node.getAttribute('aria-label') === 'Library paths the workflow names');
+    return {workflow, beside, close:() => React.act(async () => root.unmount())};
+  };
+  const named = await guide('alpha-check', ['tools/validation/check_a.py', 'tools/validation/check_b.py']);
+  assert.equal(named.beside.length, 1);
+  assert.equal(named.beside[0].textContent, "This workflow's files name 2 paths of Chirality Library 9.9.9 that are not included in the App (for example tools/validation/check_a.py). The App has not checked whether a run uses them.");
+  assert.match(named.workflow.textContent, /required tools aren't declared/, 'beside the requirement check, which still reads as not declared');
+  await named.close();
+  const none = await guide('plain', []);
+  assert.equal(none.beside.length, 0, 'nothing for a workflow that names no Library path');
+  assert.doesNotMatch(none.workflow.textContent, /files name|not included in the App/);
+  await none.close();
+});

@@ -4,7 +4,7 @@ import { errorWords } from "./NativeActivity";
 import { chatWorkflow, workflowAssurance, workflowContext } from "./workflowSelection";
 import { WorkflowTextControl, useWorkflowTexts } from "./WorkflowText";
 import { ProjectFolderSummary, appProjectFolder } from "./WorkflowContext";
-import { IncludedWorkflows, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
+import { IncludedWorkflows, LibraryPathsBesideWorkflow, RoleBesideWorkflow, includedEntryOf, librarySourceWords } from "./IncludedWorkflows";
 import { RequirementCheck } from "./RequirementCheck";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
@@ -154,7 +154,7 @@ export function runReading(run: Json, host: Json): RunReading {
     // flag is Codex's word before any request has reached the App, and the
     // end of the App's observation is not a claim about Codex's process. A
     // status never reported, or not one the App can read, says nothing.
-    if (host?.generationClosed === true || thread?.statusObservationEnded === true) return { tone: "uncertain", title: "Open — the App is no longer receiving from Codex", detail: "The App is no longer receiving from the Codex process this run was in, so what the run was doing is not known. Start Codex again under Connection & access, then continue the conversation or end the run." };
+    if (host?.generationClosed === true || thread?.statusObservationEnded === true) return { tone: "uncertain", title: "Open — the App is no longer receiving from Codex", detail: "The App is no longer receiving from the Codex process this run was in, so what the run was doing is not known. Start Codex again under Connection and access, then continue the conversation or end the run." };
     if (thread?.status?.type === "active") {
       const flags = list(thread.status.activeFlags);
       if (flags.includes("waitingOnApproval") || flags.includes("waitingOnUserInput")) return { tone: "waiting", title: "Codex reports it is waiting for an approval or an answer", detail: "Codex reports this conversation is waiting for an approval or for your answer. The request appears in the conversation once the App has received it." };
@@ -372,7 +372,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
   const includedText = (entry: Json) => <WorkflowTextControl slot={includedSlot(entry)} identity={entry?.identity} source={includedSource} texts={workflowTexts} disabled={!canAct}
     target={{ kind: "included", name: entry?.name, revision: entry?.identity?.revision }} context={() => workflowContext(data, host, "")}/>;
   const chosenLimit = chosen?.runnable === true ? chosen?.currentLimit : chosen?.runLimit;
-  const step = !ready ? "Connect Codex first: open Connection & access and start Codex."
+  const step = !ready ? "Connect Codex first: open Connection and access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
     : !active ? projectAvailable ? "Show this project's workflows to begin." : "No project folder is set. Choose one in Desktop setup; it applies the next time you open the App."
     : !thread ? conversations.length ? "Choose the conversation that will run the workflow." : "Start a conversation first, then choose it here."
@@ -415,6 +415,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {chosen && <RoleBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} conversation={conversations.find((row: Json) => row.threadId === thread)}/>}
         {chosen && chosen.identity?.origin !== "bundled" && <p role="note" aria-label="Approval evidence">{workflowAssurance(chosen.assurance)}</p>}
         {chosen && <RequirementCheck selection={chosen}/>}
+        {chosen && <LibraryPathsBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} source={data?.productionCatalog?.source}/>}
         {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
             {newer.selectable === true ? <button disabled={!canAct} onClick={() => perform("workflow_follow_newer_revision", { selectionRef: chosen.reference, revision: newer.revision })}>{text(newer.offered)}</button> : <small>{text(newer.offered)}.</small>}</p>)}
