@@ -1,0 +1,92 @@
+{
+  "scenario": "first-use setup with a project, confirmed through the test-build stand-in, then relaunched",
+  "version": 1,
+  "what_it_is": "Development evidence about a test build on a hosted runner: the first-use page with a typed project path and new settings, desktop setup's confirmation answered by the test build's stand-in (once to leave setup unchanged, once to create), and a relaunch. The App's native confirmation is not exercised by this scenario. It satisfies nothing in release criteria 1 and 2.",
+  "starting_state": "A test build; a new throwaway home made for this run; an empty project folder made by the runner inside it; no App data; no credential.",
+  "acts": "views, clicks, one typed path per first-use launch, and desktop setup's confirmation answered by the stand-in; no file chooser, no sign-in, no model turn",
+  "never_clicked": ["Browse for project folder", "Choose…", "Continue without a project", "the window's own buttons", "the menu bar"],
+  "confirms": ["Create settings and save for next launch…"],
+  "sheet": {
+    "title": "Desktop setup — next launch only",
+    "buttons": ["Leave setup unchanged", "Create settings and save for next launch", "Cancel"],
+    "statement": ["Create NEW App-owned settings folder: {settings}",
+                  "with an empty config.toml, an empty AGENTS.md and an empty skills folder.",
+                  "Create NEW App-owned account directory: {account}",
+                  "Link its config.toml, AGENTS.md and skills to those new settings.",
+                  "Read, import or change no other Codex settings, home or credential.",
+                  "Project for next launch: {project}",
+                  "Save a private pending request in {app_data}/desktop-startup/request.json.",
+                  "Codex: the copy included with this App (bundled-owner-use-development).",
+                  "The current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation."],
+    "generated": {"settings": "{app_data}/shared-settings/settings-<uuid>", "account": "{app_data}/account-homes/account-<uuid>"}
+  },
+  "launches": [
+    {
+      "id": "L1",
+      "says": "first-use setup answered with Leave setup unchanged: nothing is saved",
+      "expected_heading": "Welcome to Chirality",
+      "setup_answers": ["leave"],
+      "children": "none",
+      "inventory": {"saved_request": false, "account_homes": 0, "settings_folders": 0},
+      "steps": [
+        {"id": "S1", "act": "view", "says": "the welcome, with nothing chosen yet",
+         "expect": [{"heading": "Welcome to Chirality"}, {"button": "Review setup", "is": "unavailable"}, {"textbox": "Project folder", "is": ""}]},
+        {"id": "S2", "act": "type", "control": {"kind": "textbox", "label": "Project folder"}, "value": "{project}",
+         "says": "the project path typed into the field",
+         "expect": [{"textbox": "Project folder", "is": "{project}"}, {"text": "Ready to review. Nothing is created or saved until you confirm."}, {"button": "Review setup", "is": "available"}]},
+        {"id": "S3", "act": "click", "control": {"kind": "button", "label": "Review setup"}, "wait_ms": 3000,
+         "says": "what setup will do, with the project",
+         "expect": [{"heading": "What setup will do"},
+                    {"texts_from": {"kind": "heading", "label": "What setup will do"}, "up_to": {"kind": "summary", "label": "Exact locations"},
+                     "are": ["What setup will do", "Create a new settings folder for this App, inside its data folder", "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder", "Create a new sign-in folder for this App, linked to those settings", "Project when you next open the App: {project}", "Save these choices privately for the next launch"]},
+                    {"button": "Create settings and save for next launch…", "is": "available"}]},
+        {"id": "S4", "act": "click", "control": {"kind": "summary", "label": "Exact locations"},
+         "says": "the exact locations, under the App data folder",
+         "expect": [{"summary": "Exact locations", "is": "on"}, {"location": "Settings folder", "under": "{app_data}"}, {"location": "Sign-in folder", "under": "{app_data}"}, {"location": "Saved choices", "under": "{app_data}"}]},
+        {"id": "S5", "act": "click", "control": {"kind": "button", "label": "Create settings and save for next launch…"}, "wait_ms": 3000,
+         "says": "the confirmation answered Leave setup unchanged: the page says nothing was saved",
+         "expect": [{"text": "Not saved — you cancelled in the dialog. Your choices are still here."}, {"no_text": "You're set up"}]}
+      ],
+      "outcomes": {"PROJECT TYPED AND REVIEWED": ["S2", "S3", "S4"], "LEAVE SETUP UNCHANGED: NOT SAVED": ["S5"]}
+    },
+    {
+      "id": "L2",
+      "says": "first-use setup answered with the create button: setup is saved for the next launch",
+      "expected_heading": "Welcome to Chirality",
+      "setup_answers": ["create"],
+      "children": "none",
+      "inventory": {"saved_request": true, "account_homes": 1, "settings_folders": 1, "settings_named_in_the_sheet": true},
+      "steps": [
+        {"id": "S1", "act": "view", "says": "the welcome again: the first launch saved nothing",
+         "expect": [{"heading": "Welcome to Chirality"}, {"button": "Review setup", "is": "unavailable"}, {"textbox": "Project folder", "is": ""}]},
+        {"id": "S2", "act": "type", "control": {"kind": "textbox", "label": "Project folder"}, "value": "{project}",
+         "says": "the project path typed into the field",
+         "expect": [{"textbox": "Project folder", "is": "{project}"}, {"button": "Review setup", "is": "available"}]},
+        {"id": "S3", "act": "click", "control": {"kind": "button", "label": "Review setup"}, "wait_ms": 3000,
+         "says": "what setup will do, with the project",
+         "expect": [{"heading": "What setup will do"}, {"text": "Project when you next open the App: {project}"}, {"button": "Create settings and save for next launch…", "is": "available"}]},
+        {"id": "S4", "act": "click", "control": {"kind": "button", "label": "Create settings and save for next launch…"}, "wait_ms": 3000,
+         "says": "the confirmation answered with the create button: setup is saved, with the project",
+         "expect": [{"heading": "You're set up"}, {"text": "Project: {project}"}, {"no_text": "Not saved — you cancelled in the dialog. Your choices are still here."}]}
+      ],
+      "outcomes": {"SETUP SAVED WITH THE PROJECT": ["S3", "S4"]}
+    },
+    {
+      "id": "L3",
+      "says": "the relaunch: what the App reaches with setup saved",
+      "expected_heading": "Chirality",
+      "setup_answers": [],
+      "children": "the bundle's own codex",
+      "inventory": {"saved_request": true, "account_homes": 1, "settings_folders": 1, "sign_in_file_absent": "auth.json"},
+      "steps": [
+        {"id": "S1", "act": "view", "wait_ms": 15000, "says": "the workspace, not the welcome; the connection line says whether Codex started",
+         "expect": [{"heading": "Chirality"}, {"no_text": "Welcome to Chirality"}, {"text_starts_one_of": ["Codex is connected", "Codex could not stay connected", "Codex is starting…"]}]},
+        {"id": "S2", "act": "read_state", "says": "the App's state as the page's own status read gave it (not a person-visible element)",
+         "expect_state": [["launch_state", "saved-request"], ["setup_required", false], ["project", "{project}"],
+                          ["project_source", "explicit saved desktop request, revalidated this launch"],
+                          ["codex_state", ["ready", "starting", "refused", "exited-unexpectedly"]]]}
+      ],
+      "outcomes": {"SETUP NO LONGER REQUIRED (VISIBLE)": ["S1"], "THE PROJECT AND LAUNCH STATE HELD (THE APP'S STATE)": ["S2"]}
+    }
+  ]
+}

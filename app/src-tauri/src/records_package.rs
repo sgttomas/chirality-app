@@ -190,6 +190,8 @@ fn name_c(name: &str) -> Result<CString, String> {
     CString::new(name).map_err(|_| "package path contains NUL".into())
 }
 fn open_at(dir: &File, name: &str, flags: i32) -> Result<File, String> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("records_package::open_at"); }
     let name = name_c(name)?;
     // SAFETY: the borrowed descriptor and NUL-terminated name remain live.
     let fd = unsafe { libc::openat(dir.as_raw_fd(), name.as_ptr(), flags) };
@@ -356,6 +358,8 @@ fn read_member(
     census: &Census,
     mut output: Option<&mut File>,
 ) -> Result<Member, String> {
+    #[cfg(test)]
+    if output.is_some() { crate::records_effect_guard::mutation_for_test("records_package::read_member"); }
     let (directory, name) = parent_at(root, path, Some(census))?;
     let expected = census
         .get(path)
@@ -689,6 +693,8 @@ pub(crate) fn inspect(snapshot_path: &Path) -> Result<Snapshot, String> {
 /// after creation, retain the private partial stage for the transaction owner;
 /// never clean up through a possibly replaced pathname or change the source.
 pub(crate) fn snapshot(source: &Path, destination: &Path) -> Result<Snapshot, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package::snapshot");
     let source = custody(source)?;
     let destination = absolute(destination)?;
     if destination.starts_with(&source.path) {
@@ -800,25 +806,27 @@ pub(crate) fn snapshot(source: &Path, destination: &Path) -> Result<Snapshot, St
     })
 }
 
-/// Complete coherent hashes for a retained payload. Only actual plain owning
-/// lock files are excluded; similarly named connector evidence stays present.
+/// Exact administrative inventory: these folders are not live payload and
+/// none of their native intents, completions or receipts may be omitted.
+pub(crate) fn plain_inventory(root: &Path) -> Result<BTreeMap<String, Member>, String> {
+    let root = absolute(root)?;
+    if optional_root(&root)?.is_none() {
+        return Ok(BTreeMap::new());
+    }
+    Ok(custody(&root)?.members)
+}
+
+/// Coherent retained-payload hashes after the shared live-payload census.
+/// Validated controls/preparation are omitted; unresolved publications refuse.
 pub(crate) fn payload_inventory(root: &Path) -> Result<BTreeMap<String, Member>, String> {
     let root = absolute(root)?;
     if optional_root(&root)?.is_none() {
         return Ok(BTreeMap::new());
     }
     let mut held = custody(&root)?;
-    for control in [".writer.lock", "captures/.capture.lock"] {
-        if held
-            .census
-            .get(control)
-            .is_some_and(|stamp| !stamp.regular() || stamp.links != 1)
-        {
-            return Err("owning control is not a regular single-link file".into());
-        }
-    }
-    held.members.remove(".writer.lock");
-    held.members.remove("captures/.capture.lock");
+    let classified = super::payload::census(&root)?;
+    held.members.retain(|name, _| classified.members.contains_key(name));
+    held.unchanged()?;
     Ok(held.members)
 }
 
@@ -852,6 +860,8 @@ fn optional_root(path: &Path) -> Result<Option<File>, String> {
 /// directories are never chmodded. Reflush every ancestor link on retries too:
 /// an existing folder may survive an earlier uncertain directory publication.
 fn ensure_root(path: &Path) -> Result<File, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package::ensure_root");
     let path = absolute(path)?;
     let mut directory = File::open("/").map_err(io)?;
     for part in path.components() {
@@ -973,6 +983,8 @@ fn one_member(directory: &File, name: &str) -> Result<(File, Stamp, Member), Str
     ))
 }
 fn exclusive_rename(from_dir: &File, from: &str, to_dir: &File, to: &str) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package::exclusive_rename");
     let from = name_c(from)?;
     let to = name_c(to)?;
     #[cfg(target_os = "macos")]
@@ -1006,6 +1018,8 @@ fn exclusive_rename(from_dir: &File, from: &str, to_dir: &File, to: &str) -> Res
     Ok(())
 }
 fn exact_existing(directory: &File, name: &str, expected: &Member) -> Result<bool, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package::exact_existing");
     if !exists_at(directory, name)? {
         return Ok(false);
     }
@@ -1028,6 +1042,8 @@ pub(crate) fn restore_member(
     scratch: &Path,
     expected: &Member,
 ) -> Result<bool, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package::restore_member");
     parts(relative)?;
     let source = absolute(source)?;
     let target_root = absolute(target_root)?;
@@ -1184,6 +1200,8 @@ pub(crate) fn create_or_match_staged(
 }
 
 fn create_control_in(path: &Path, bytes: &[u8], staging: Option<&Path>) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package::create_control_in");
     let path = absolute(path)?;
     let parent = path.parent().ok_or("control has no parent")?;
     let name = path
@@ -1211,6 +1229,9 @@ fn create_control_in(path: &Path, bytes: &[u8], staging: Option<&Path>) -> Resul
     let temporary_directory = ensure_root(&staging_path)?;
     if staging.is_some() {
         let metadata = temporary_directory.metadata().map_err(io)?;
+        if metadata.dev() != directory.metadata().map_err(io)?.dev() {
+            return Err("control staging is not on the final filesystem".into());
+        }
         if metadata.uid() != unsafe { libc::geteuid() } || metadata.mode() & 0o077 != 0 {
             return Err("control staging is not private to its owner".into());
         }
@@ -1309,6 +1330,8 @@ pub(crate) fn replace_control(
     expected: &[u8],
     replacement: &[u8],
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package::replace_control");
     let path = absolute(path)?;
     if !path.ends_with(Path::new(crate::records_store::PROJECT_LINK)) {
         return Err("mutable association replacement is limited to .chirality/project.json".into());

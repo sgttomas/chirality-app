@@ -630,6 +630,8 @@ fn tail_is_entry(existing: &[u8], validator: &crate::schema_validation::RecordVa
 }
 
 fn w0_write(log: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records::w0_write");
     let mut f = OpenOptions::new().append(true).open(log).map_err(|e| format!("open log: {e}"))?;
     f.write_all(bytes).map_err(|e| format!("W-0 repair write: {e}; nothing more written"))?;
     f.sync_all().map_err(|e| format!("W-0 repair sync uncertain: {e}; nothing more written"))?;
@@ -762,6 +764,8 @@ fn append_unit(
     set: RecordSet,
     validation: Result<&crate::schema_validation::RecordValidator, String>,
 ) -> Result<Vec<Value>, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records::append_unit");
     let validator =
         validation.map_err(|e| format!("RS W-1 validation unavailable; nothing written: {e}"))?;
     if specs.is_empty() {

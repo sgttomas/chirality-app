@@ -607,6 +607,8 @@ fn guard_mode(
     shared: bool,
     wait: bool,
 ) -> Result<Option<Guard>, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("capture_seal_keychain::guard_mode");
     crate::storage::check_path(directory)?;
     match fs::symlink_metadata(directory) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
@@ -746,6 +748,8 @@ fn load_snapshot(
     )))
 }
 fn publish(directory: &Path, m: &Marker) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("capture_seal_keychain::publish");
     let raw = serde_json::to_vec(m).map_err(|_| "SEAL-C continuity encoding failed")?;
     let temp = directory.join(format!(".continuity-{}.tmp", crate::util::opaque_id("")?));
     let mut file = OpenOptions::new()
@@ -855,6 +859,8 @@ fn operate_bound(
     entropy: &mut impl FnMut() -> Result<[u8; 32], String>,
     prepared: Option<&PreparedSealEnrollment>,
 ) -> Result<Material, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("capture_seal_keychain::operate_bound");
     #[cfg(not(test))]
     if matches!(operation, Operation::Enroll) && prepared.is_none() {
         return Err("SEAL-C prepared enrollment intent required".into());
@@ -1142,6 +1148,8 @@ pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity, head: Option
 /// Adds the next sequence after every present or recorded one. Never replaces
 /// or deletes an earlier item. Requires enrollment.
 pub(crate) fn write_policy(backend: &impl Backend, i: &ItemIdentity, level: &str, head: Option<&Path>) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("capture_seal_keychain::write_policy");
     if !["robust", "relaxed"].contains(&level) {
         return Err("unknown workflow approval policy".into());
     }
