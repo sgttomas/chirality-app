@@ -218,7 +218,8 @@ test('setup save in the mounted App preserves operational A, Workflow C, unsent 
     await press(c,'View prepared message in conversation B');
     assert.equal(region(c,'Trial composer'),original,'same mounted composer owner');
     assert.equal(props(nodes(original,'textarea')[0]).value,'Edited original B');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
-    assert.ok(calls.every(c=>['host_status','decision_view','native_confirmation_content','desktop_setup_project_preview','desktop_setup_prepare'].includes(c.command)));
+    // Plus the App's one automatic settings read when Codex is ready.
+    assert.ok(calls.every(c=>['host_status','decision_view','native_confirmation_content','desktop_setup_project_preview','desktop_setup_prepare','read_effective_access_settings'].includes(c.command)));
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous);assert.equal(timers.size,0); }
 });
