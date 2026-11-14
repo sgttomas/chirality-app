@@ -329,6 +329,9 @@ export type SourceReading = {
   subject: string | null;
   /** For a reopened run not read: the App's short reason, said beside its reference. */
   detail: string | null;
+  /** For a reopened run: when the records were last read for it, as the Host's reopened view states it (`readAt`,
+   * the time that reading of the records began); null where the view gives no well-formed time. */
+  recordsReadAt: number | null;
   state: ReadingState;
   /** When the read that gave this state was started (for a failed reading, the failed read), or null where none has been. */
   at: number | null;
@@ -348,7 +351,18 @@ type Scope = { home: string | null; generation: Json };
 type Found = { evidence: Omit<ReadEvidence, "call">; entries: WaitingEntry[]; overview?: Json };
 const nothing = (): Found => ({ evidence: { read: false, affirmedWhole: false, limits: [] }, entries: [] });
 
-type Named = { readCall: ReadCall; retained: boolean; subject?: string | null; detail?: string | null };
+type Named = { readCall: ReadCall; retained: boolean; subject?: string | null; detail?: string | null; recordsReadAt?: number | null };
+
+/** A time the Host states in RFC 3339 UTC ("2026-11-14T10:00:00Z", optional fraction), checked strictly: the exact
+ * shape, and a date that exists (the parsed date gives back the same calendar fields). Anything else is null. */
+const RFC3339_UTC = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(\.\d{1,9})?Z$/;
+export const hostUtcTime = (value: unknown): number | null => {
+  if (typeof value !== "string") return null;
+  const match = RFC3339_UTC.exec(value);
+  if (!match) return null;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) && new Date(ms).toISOString().slice(0, 19) === match[1] ? ms : null;
+};
 
 function finish(key: string, name: string, scope: Scope, call: ReadEvidence["call"], found: Found, notes: { limited: string; notRead: string; failed: string }, at: number | null, retainedAt: number | null, named: Named): SourceReading {
   const state = decideReading({ call, ...found.evidence });
@@ -360,7 +374,7 @@ function finish(key: string, name: string, scope: Scope, call: ReadEvidence["cal
       home: scope.home, generation: scope.generation, overview: held === "not-read" ? null : found.overview ?? null } : null;
   const observed = state === "whole" || state === "limited";
   return {
-    key, name, call: named.readCall, subject: named.subject ?? null, detail: named.detail ?? null, state, at,
+    key, name, call: named.readCall, subject: named.subject ?? null, detail: named.detail ?? null, recordsReadAt: named.recordsReadAt ?? null, state, at,
     entries: observed ? found.entries : [],
     limits: state === "limited" ? found.evidence.limits : [],
     note: state === "whole" ? null : state === "limited" ? notes.limited : state === "failed" ? notes.failed : notes.notRead,
@@ -387,8 +401,8 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
   const out: SourceReading[] = [];
   const active = text(host?.homeRouting?.activeModeHomeClass);
   const hostScope: Scope = { home: active || null, generation: host?.generation ?? null };
-  const push = (key: string, name: string, found: Found, limited: string, notRead: string, scope: Scope = hostScope, subject: string | null = null, detail: string | null = null) =>
-    out.push(finish(key, name, scope, call, found, { limited, notRead, failed: statusFailed(name) }, at, retainedAt, { readCall: "status", retained: !!host, subject, detail }));
+  const push = (key: string, name: string, found: Found, limited: string, notRead: string, scope: Scope = hostScope, subject: string | null = null, detail: string | null = null, recordsReadAt: number | null = null) =>
+    out.push(finish(key, name, scope, call, found, { limited, notRead, failed: statusFailed(name) }, at, retainedAt, { readCall: "status", retained: !!host, subject, detail, recordsReadAt }));
   // Requests in the active home. The host gives the home's whole request register (serverRequests, the
   // register snapshot of native_requests.rs) whenever its Codex is ready with a generation: `state: "ready"`
   // with a generation of the generation's shape (sameActivityGeneration) and a `serverRequests` array is the
@@ -440,6 +454,9 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
   push("reopened", "Runs recorded before the App restarted", { evidence: { read: census, affirmedWhole: censusWhole, limits: census ? [...list(reopened.limits), ...list(reopened.historyNotices)].map(text) : [] }, entries: [] },
     "Runs recorded before the App restarted were read with limits: some may not be shown, and whether one of their checkpoints waits for your act is not known.",
     "Runs recorded before the App restarted have not been read, so whether one of their checkpoints waits for your act is not known. Reopen recorded workflow runs reads them.");
+  // When the records were last read for these runs: only the reopened view's own `readAt` says so (stamped where
+  // read_reopened_history stores the view). The status response carrying the view is not that time.
+  const recordsReadAt = census ? hostUtcTime(reopened.readAt) : null;
   for (const row of census ? reopened.runs : []) {
     const reference = text(row?.reference ?? row?.run);
     if ((runs ?? []).some((live: Json) => live?.reference === reference)) continue;   // a hot run's own reading covers it
@@ -463,7 +480,7 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
     const runName = `The run ${idWords(reference)}, reopened after the App restarted`;
     push(`${REOPENED_RUN}${reference}`, runName, found,
       "A run reopened after the App restarted was read with limits, so more of its checkpoints may be waiting.",
-      `${runName}, is not known to have ended: ${detail ?? REOPENED_REASON_UNKNOWN}; the App does not show its checkpoints.`, hostScope, reference, detail);
+      `${runName}, is not known to have ended: ${detail ?? REOPENED_REASON_UNKNOWN}; the App does not show its checkpoints.`, hostScope, reference, detail, recordsReadAt);
   }
   return out;
 }
@@ -700,11 +717,14 @@ function Several({ count, summary, className, children }: { count: number; summa
   return count === 1 ? <div className={className}>{children}</div> : <details className={className}><summary>{summary}</summary>{children}</details>;
 }
 
-/** Each reopened run the aggregate line counts: its reference, why it is not known to have ended, and when the census observed it. */
+/** Each reopened run the aggregate line counts: its reference, why it is not known to have ended, and when the records
+ * were last read for it where the Host states that time; otherwise only which status response carried it. */
 function ReopenedRuns({ runs }: { runs: SourceReading[] }) {
   return <Several count={runs.length} summary={`Each of the ${runs.length} runs, by its reference`} className="waiting-reopened-runs">
     {runs.map(run => <p key={run.key}>The run <SuppliedId value={run.subject} source="file" label="Run:" name="Run reference as recorded, not the App's words" />: {run.detail ?? REOPENED_REASON_UNKNOWN}.{" "}
-      {run.at === null ? "When the census observed it is not known." : `Observed by the census at ${clockWords(run.at)}.`}</p>)}
+      {run.recordsReadAt !== null ? `The records were last read for it at ${clockWords(run.recordsReadAt)}.`
+        : run.at === null ? "When the records were last read for it is not given."
+        : `Carried in the status response read at ${clockWords(run.at)}. When the records were last read for it is not given.`}</p>)}
   </Several>;
 }
 
