@@ -1067,6 +1067,22 @@ mod a_turn_start_not_yet_answered {
         }
     }
 
+    /// App Agent 0 and the INTERLOCUTOR, before round 3: a write that began
+    /// and failed may have reached Codex in part, so its start stays counted
+    /// (outcome not known), and the person is asked. A reply to that request
+    /// naming a valid turn still resolves it, through the one function.
+    #[test]
+    fn a_failed_write_stays_counted_until_its_reply_resolves_it() {
+        let mut f = Fixture::new();
+        *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented write failure");
+        let request = send_turn_start(&mut f, "hello".into(), "failed; outcome not known");
+        assert!(f.host().inner.0.lock().unwrap().source_requests.get(&request.to_string()).unwrap().write_error.is_some());
+        assert_eq!(counts(&f), [(0, 1); 3], "a failed write is counted");
+        emit(&f, &json!({"id":request,"result":{"turn":turn("turn-1", "inProgress")}}));
+        until("the reply did not resolve the start", || f.host().snapshot()["unansweredTurnStarts"].as_array().unwrap().is_empty());
+        assert_eq!(counts(&f), [(1, 0); 3], "its reply ties it to its turn");
+    }
+
     /// Round 2, finding 2: the sentence is true whether the start is one of
     /// the listed turns, is not, or there is no turn at all.
     #[test]

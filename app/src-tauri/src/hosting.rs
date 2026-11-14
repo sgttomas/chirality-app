@@ -1096,6 +1096,9 @@ pub struct Host {
     /// Runs once after any request's final admission, frame writer held, before its write.
     #[cfg(test)]
     pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// A `turn/start`'s write fails with this error after it has begun.
+    #[cfg(test)]
+    pub(crate) turn_start_simulated_write: Mutex<Option<&'static str>>,
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
@@ -1251,6 +1254,7 @@ impl Host {
             #[cfg(test)] reading_after_reserve: Mutex::new(None),
             #[cfg(test)] reading_after_register: Mutex::new(None),
             #[cfg(test)] before_request_write: Mutex::new(None),
+            #[cfg(test)] turn_start_simulated_write: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
             #[cfg(test)]
@@ -1374,21 +1378,18 @@ impl Host {
         let i=self.inner.0.lock().unwrap();
         i.conversation_turns.iter().find(|t|t["generation"]==*generation&&t["threadId"]==thread_id&&t["turnId"]==turn_id).cloned()
     }
-    /// Each `turn/start` of the current, open generation whose write has
-    /// begun (in progress, or written) and that the Host has not yet
-    /// associated with a turn, in the order the writes began. An entry stays
-    /// while it is in `turn_request_threads`, which the Host leaves only when
-    /// it has taken in the reply to that request (and remembered the turn the
-    /// reply names) or the request has failed. A reply that arrived while its
-    /// write was still being recorded does not end it, and neither does a
-    /// notice of a turn on its thread: order of receipt shows no association.
+    /// Each unresolved turn start of the current, open generation: exactly the
+    /// entries of `turn_request_threads` (entered when a start's write
+    /// begins, left only through [`Self::resolve_start`]), in the order the
+    /// writes began. The write state is reported, never used to drop one: a
+    /// failed write's outcome is not known.
     fn unanswered_turn_starts(i: &Inner) -> Vec<Value> {
         if i.server_requests.is_closed(&i.generation) { return Vec::new(); }
         let mut starts: Vec<(u64, Value)> = i.turn_request_threads.iter().filter_map(|(key, (generation, thread, _))| {
             let e = i.source_requests.get(key)?;
             let position = e.attempt_position?;
-            if *generation != i.generation || e.write_error.is_some() { return None; }
-            let write = if e.write_attempt_in_progress { "in-progress" } else if e.written { "written" } else { return None };
+            if *generation != i.generation { return None; }
+            let write = if e.write_attempt_in_progress { "in-progress" } else if e.written { "written" } else { "failed; outcome not known" };
             Some((position, json!({"generation":generation,"threadId":thread,"requestIdentity":e.request.request_id(),"write":write})))
         }).collect();
         starts.sort_by_key(|(position, _)| *position);
@@ -2888,7 +2889,6 @@ impl Host {
             let state=i.oauth.get_mut(original.request_ref()).unwrap();
             state.cancel_request=Some(json!(id));
         }
-        if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,frame["params"]["threadId"].as_str().unwrap().into(),pos));}
         if expected_generation.is_some()&&method=="turn/interrupt" {let gen=i.generation.clone();i.interrupt_requests.push(json!({"generation":gen,"threadId":frame["params"]["threadId"],"turnId":frame["params"]["turnId"],"requestIdentity":id,"initiator":"person-directed"}));}
         let captured=self.capture_pipe(&i);
         i.source_requests.get_mut(&id.to_string()).unwrap().source_pipe=captured.as_ref().ok().map(|bound|(bound.epoch,bound.identity));
@@ -2943,12 +2943,14 @@ impl Host {
                 // attempt is registered and nothing is written.
                 if let Some(limit)=write_bound{limit.begin_write()?;}
                 i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
+                // A turn start enters the table of unresolved starts when its write begins.
+                if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,frame["params"]["threadId"].as_str().unwrap().into(),pos));}
                 let epoch=i.aa_epoch;let cut=i.receipt_position;
                 if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
             #[cfg(test)] if write_bound.is_some() {let hook=self.after_interrupt_decision.lock().unwrap().take();if let Some(h)=hook{h();}}
             #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
             #[cfg(test)] {let hook=self.before_request_write.lock().unwrap().take();if let Some(h)=hook{h(self);}}
-            #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else{None};
+            #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else if method=="turn/start"{self.turn_start_simulated_write.lock().unwrap().take()}else{None};
             #[cfg(test)] let result=match simulated{Some(reason)=>Err(format!("simulated write settlement: {reason}")),None=>Self::write_complete(&mut bound.file,&bytes)};
             #[cfg(not(test))] let result=Self::write_complete(&mut bound.file,&bytes);
             #[cfg(test)] if aa_selected {let hook=self.aa_after_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
@@ -2960,9 +2962,13 @@ impl Host {
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
-                if !closed&&method=="turn/start"&&response.as_ref().is_some_and(Self::start_reply_resolves){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
+                if !closed&&method=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
             }
-            Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
+            // A write that began and failed may have reached Codex in part: its
+            // start stays unresolved (outcome not known) until a reply resolves
+            // it or its generation closes. A start whose write never began never
+            // entered the table.
+            Err(error)=> {i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
                 if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
                 else{e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; v0.10 cannot faithfully project that combination; raw source retained".into());}
                     else{record["writeResult"]=json!("write-failed");record["outcome"]=json!("unknown-no-response");i.client_requests[idx]=record;}}
@@ -4836,13 +4842,29 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(response)
     }
 
-    /// Whether Codex's reply to a `turn/start` resolves that start: a result
-    /// naming a valid turn ties it to that turn, and an error object refuses
-    /// it. Anything else (a result with no usable turn, or a reply with
-    /// neither) leaves it unresolved, and so counted as live work.
-    fn start_reply_resolves(reply: &Value) -> bool {
-        reply.get("error").is_some_and(Value::is_object)
-            || reply.get("result").and_then(|r| r.get("turn")).is_some_and(Self::native_turn_shape)
+    /// The only way a turn start leaves the table of unresolved starts
+    /// (`turn_request_threads`), which a start enters when its write begins.
+    /// `reply` must be Codex's reply to that very request (its `id` is the
+    /// request's). A result naming a valid turn ties the start to that turn,
+    /// which is remembered, and retires it; an error object refuses it and
+    /// retires it. Anything else (a result with no usable turn, a reply with
+    /// neither, a reply to another request) leaves it unresolved, and so
+    /// counted as live work. A write error never retires a start: a write
+    /// that began may have reached Codex in part. Its generation's closing
+    /// ends its listing (`unanswered_turn_starts`), not this table.
+    fn resolve_start(i: &mut Inner, key: &str, reply: &Value, position: u64, generation: &Value) {
+        if reply["id"].to_string() != key || !i.turn_request_threads.contains_key(key) { return; }
+        let refused = reply.get("error").is_some_and(Value::is_object);
+        let turn = reply.get("result").and_then(|r| r.get("turn")).filter(|t| Self::native_turn_shape(t)).cloned();
+        if !refused && turn.is_none() { return; }
+        let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(key) else { return };
+        let Some(turn) = turn else { return };
+        if source_gen != *generation { return; }
+        Self::remember_turn(i, &source_gen, &thread, &turn, "turn/start response", position);
+        Self::note_turn_request(i, key, &source_gen, &thread, &turn["id"]);
+        if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == source_gen && e["threadId"] == thread && e["turnId"] == turn["id"] && e["source"] == "turn/start response" && e["receiptPosition"] == position) {
+            entry["startResponseIssuedAfterReceipt"] = json!(sent_after_receipt);
+        }
     }
     fn native_turn_shape(turn: &Value) -> bool {
         turn["id"].as_str().map(|s| !s.is_empty()).unwrap_or(false)
@@ -5252,25 +5274,18 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // reading's request, releases the reservation; one naming another generation or request,
             // or one settlement rejects, releases nothing.
             if native_settlement.is_some_and(|verdict|verdict.is_ok()) && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
+            // A reply to a turn start whose write failed after it began: no
+            // longer pending, but its start is still unresolved.
+            if frame.get("method").is_none() && !i.pending.contains_key(&key) && i.turn_request_threads.contains_key(&key) {
+                Self::resolve_start(&mut i, &key, &frame, pos, &gen);
+            }
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
                     let mut record=i.client_requests[idx].clone();
                     match Self::completed_client_response(&mut record,Some(&frame),Some(pos),native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
                 }
-                // A start leaves the table of unresolved starts only when its
-                // reply ties it to a valid turn or refuses it.
-                if !deferred&&i.client_requests[idx]["method"] == "turn/start" && Self::start_reply_resolves(&frame) {
-                    if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
-                        if source_gen == gen {
-                            if let Some(turn) = frame.get("result").and_then(|r| r.get("turn")) {
-                                Self::remember_turn(&mut i, &gen, &thread, turn, "turn/start response", pos);
-                                Self::note_turn_request(&mut i, &key, &gen, &thread, &turn["id"]);
-                                if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == gen && e["threadId"] == thread && e["turnId"] == turn["id"] && e["source"] == "turn/start response" && e["receiptPosition"] == pos) { entry["startResponseIssuedAfterReceipt"] = json!(sent_after_receipt); }
-                            }
-                        }
-                    }
-                }
+                if !deferred&&i.client_requests[idx]["method"] == "turn/start" { Self::resolve_start(&mut i, &key, &frame, pos, &gen); }
                 // A delegation read's reply after its reading stopped waiting is
                 // kept as its outcome only; a reply still awaited is kept whole
                 // until the reading takes its fields (`delegation_signals_read`).
