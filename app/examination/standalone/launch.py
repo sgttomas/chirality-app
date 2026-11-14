@@ -5,9 +5,14 @@ A development launcher for first launches on new throwaway homes that never
 hold a sign-in, all under one homes root. It is not a boundary around the App
 or around anything the App starts. Each run creates a launch folder under the
 root, launches the App once with its home there, publishes a record, and does
-nothing more with them; it cannot relaunch a home. The caller does not choose
-where the launch folder, the home or the record go; the candidate folder is
-the only path a caller gives.
+nothing more with them; `launch` cannot relaunch a home. The kept-home commands
+(below) keep ONE home for an operated walk that must see the launch after
+setup: `keep-make` makes a kept folder, `keep-launch` launches the App in it as
+`launch` does (the same environment, every network block unchanged, the same
+listings and record, one numbered record per launch), and `keep-remove` removes
+it whole. The caller does not choose where a folder, its home or its records
+go; the candidate folder, and for a kept folder its path, are the only paths a
+caller gives.
 
 What the launcher states, and nothing more:
 1. The App's environment is built from nothing: HOME and CFFIXED_USER_HOME
@@ -170,8 +175,9 @@ import sys
 sys.dont_write_bytecode = True  # running the helper writes nothing beside the sources it imports
 
 import argparse  # noqa: E402
-from datetime import datetime, timezone  # noqa: E402
+from datetime import datetime, timedelta, timezone  # noqa: E402
 import hashlib  # noqa: E402
+import importlib.util  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -179,6 +185,7 @@ import plistlib  # noqa: E402
 import pwd  # noqa: E402
 import re  # noqa: E402
 import secrets  # noqa: E402
+import shutil  # noqa: E402
 import signal  # noqa: E402
 import stat  # noqa: E402
 import subprocess  # noqa: E402
@@ -199,6 +206,11 @@ HOMES_ROOT = ('dev', 'chirality-t3', 'scratch', 'app', 'homes', 'examination')  
 HOME, RECORD_FOLDER, PROJECT = 'home', 'record', 'project'  # the three children of a launch folder
 MARKER = '.git'  # the entry the supplier's upward search stops at
 RECORD = 'launch-record.json'  # in record/
+KEPT_PREFIX, KEPT_RECORD = 'kept-', 'kept.json'  # a kept folder's name begins so; its own record is record/kept.json
+KEPT_HOURS = 12  # a kept folder may be launched for this long after it was made, and removed at any time
+# A build carrying the scripted driver (a test build) is never launched by the kept-home commands: what an operator
+# meets must be the real App, its native confirmation included. These strings are in such a build and in no other.
+DRIVER_MARKERS = (b'chirality-scripted-driver-test-build-v1', b'chirality-setup-confirmation-stand-in-v1')
 BUNDLE_FOLDER = ('target', 'debug', 'bundle', 'macos')  # in a candidate folder (build_candidate.py)
 IDENTIFICATION = ('identification', 'candidate-identification.json')  # in a candidate folder (identify.py record)
 INVENTORY = 'bundle-inventory.json'  # beside the identification record
@@ -773,7 +785,8 @@ def launch(args):
         os.close(home_fd)
 
 
-def _run(args, app, record_data, executable_path, executable, model_address, folder, home_fd, record_fd):
+def _run(args, app, record_data, executable_path, executable, model_address, folder, home_fd, record_fd,
+         record_name=RECORD):
     identifier = record_data['bundle']['identifier']
     home = folder / HOME
     tmp = f'.chirality-launch-tmp-{secrets.token_hex(4)}'
@@ -783,7 +796,8 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
               'project': str(folder / PROJECT), 'codex': CODEX_NOTE,
               'address_override': 'the default (nothing listens there)' if args.model_address is None
               else 'given by the caller'}
-    facts = {'started': False, 'signals': [], 'open': True, 'record': str(folder / RECORD_FOLDER / RECORD)}
+    facts = {'started': False, 'signals': [], 'open': True, 'record': str(folder / RECORD_FOLDER / record_name),
+             'record_name': record_name}
     proc, output = None, None
     cache = user_cache_dir()
     previous = {}
@@ -872,17 +886,161 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
             signal.signal(s, handler)
 
 
-def write_record(record_fd, record):
+def check_not_a_test_build(executable):
+    """The kept-home commands launch only a build without the scripted driver: refused if a marker is present."""
+    with open(executable, 'rb') as stream:
+        content = stream.read()
+    found = [marker.decode() for marker in DRIVER_MARKERS if marker in content]
+    if found:
+        raise Refusal(f'the candidate is a test build carrying the scripted driver ({", ".join(found)}); refusing')
+
+
+def running_candidates(executable):
+    """Processes of this user running the candidate's executable, by file identity (operated/stray.py). Only on
+    macOS: elsewhere it cannot look, and refuses."""
+    if sys.platform != 'darwin':
+        raise Refusal('a running candidate can be looked for on macOS only; refusing')
+    spec = importlib.util.spec_from_file_location('stray', Path(__file__).with_name('operated') / 'stray.py')
+    stray = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(stray)
+    found, _ = stray.processes(str(executable))
+    return found
+
+
+def kept_folder(root, root_fd, text):
+    """A kept folder named by the caller: directly under the homes root, named kept-..., reached without following a
+    link, and the very directory its record/kept.json names (path, device and inode). Returns its path, a held handle
+    on it and its kept record."""
+    path = Path(text)
+    if path.parent != root or not path.name.startswith(KEPT_PREFIX) or '/' in path.name:
+        raise Refusal(f'not a kept folder directly under the homes root: {text}')
+    try:
+        fd = os.open(path.name, DIRECTORY, dir_fd=root_fd)
+    except OSError as error:
+        raise Refusal(f'the kept folder could not be opened ({type(error).__name__}); refusing') from None
+    try:
+        record_fd = os.open(RECORD_FOLDER, DIRECTORY, dir_fd=fd)
+        try:
+            regular_file(record_fd, KEPT_RECORD, 'the kept record')
+            kept_fd = os.open(KEPT_RECORD, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=record_fd)
+            with os.fdopen(kept_fd, 'rb') as stream:
+                kept = json.loads(stream.read())
+        finally:
+            os.close(record_fd)
+        info = os.fstat(fd)
+        if (kept.get('folder'), kept.get('device'), kept.get('inode')) != (str(path), info.st_dev, info.st_ino):
+            raise Refusal('the kept record does not name this folder; refusing')
+        return path, fd, kept
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def keep_make(args):
+    """A new kept folder: home/, record/ and project/, by exclusive creates, and record/kept.json. Nothing launched."""
+    root, root_fd = open_root()
+    try:
+        candidate, record_path = find_candidate(args.candidate, _ident(root_fd))
+        record_data = read_record(record_path)
+        app, executable_path, executable = find_bundle(candidate, record_data)
+        check_executable(executable)
+        check_not_a_test_build(app / executable_path)
+        identify_candidate(app, record_path)
+        name = KEPT_PREFIX + new_folder_name()[len('launch-'):]
+        os.mkdir(name, 0o700, dir_fd=root_fd)
+        fd = os.open(name, DIRECTORY, dir_fd=root_fd)
+        try:
+            for child in (HOME, RECORD_FOLDER, PROJECT):
+                os.mkdir(child, 0o700, dir_fd=fd)
+            info, made = os.fstat(fd), datetime.now(timezone.utc)
+            kept = {'note': 'A kept folder for one operated walk; the network blocks of every launch are unchanged.',
+                    'folder': str(root / name), 'device': info.st_dev, 'inode': info.st_ino, 'made_at': f'{made:%Y-%m-%dT%H:%M:%SZ}',
+                    'expires_at': f'{made + timedelta(hours=KEPT_HOURS):%Y-%m-%dT%H:%M:%SZ}',
+                    'candidate_key': record_data['candidate_key'], 'identifier': record_data['bundle']['identifier']}
+            record_fd = os.open(RECORD_FOLDER, DIRECTORY, dir_fd=fd)
+            try:
+                write_record(record_fd, kept, KEPT_RECORD)
+            finally:
+                os.close(record_fd)
+        finally:
+            os.close(fd)
+    finally:
+        os.close(root_fd)
+    print(json.dumps({'kept_folder': str(root / name), 'expires_at': kept['expires_at']}, indent=2))
+    return 0
+
+
+def keep_launch(args):
+    """One launch in a kept folder, as `launch` makes one, after every refusal below; its record is the next
+    numbered launch-record-N.json in the folder's record/."""
+    model_address = DEFAULT_MODEL_ADDRESS
+    root, root_fd = open_root()
+    try:
+        candidate, record_path = find_candidate(args.candidate, _ident(root_fd))
+        record_data = read_record(record_path)
+        app, executable_path, executable = find_bundle(candidate, record_data)
+        check_executable(executable)
+        check_not_a_test_build(app / executable_path)
+        identify_candidate(app, record_path)
+        folder, fd, kept = kept_folder(root, root_fd, args.folder)
+    finally:
+        os.close(root_fd)
+    try:
+        if datetime.now(timezone.utc) >= datetime.strptime(kept['expires_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc):
+            raise Refusal('the kept folder has expired; it may only be removed')
+        if (kept.get('candidate_key'), kept.get('identifier')) != (record_data['candidate_key'], record_data['bundle']['identifier']):
+            raise Refusal('the kept folder was made for another candidate; refusing')
+        if running_candidates(app / executable_path):
+            raise Refusal('the candidate is already running; refusing')
+        home_fd = os.open(HOME, DIRECTORY, dir_fd=fd)
+        record_fd = os.open(RECORD_FOLDER, DIRECTORY, dir_fd=fd)
+    finally:
+        os.close(fd)
+    try:
+        number = 1 + sum(1 for n in os.listdir(record_fd) if n.startswith('launch-record-') and n.endswith('.json'))
+        print(json.dumps({'launch_folder': str(folder), 'launch': number}), file=sys.stderr, flush=True)
+        args.model_address = None
+        return _run(args, app, record_data, executable_path, executable, model_address, folder, home_fd, record_fd,
+                    record_name=f'launch-record-{number}.json')
+    finally:
+        os.close(record_fd)
+        os.close(home_fd)
+
+
+def keep_remove(args):
+    """Removes a kept folder whole, after the same identity checks (an expired folder may be removed) and when no
+    candidate process runs: entries are unlinked by name, a link is never followed, and no file is opened or read."""
+    root, root_fd = open_root()
+    try:
+        folder, fd, kept = kept_folder(root, root_fd, args.folder)
+        os.close(fd)
+        if args.candidate is None:
+            raise Refusal('keep-remove needs the candidate, to see that it is not running; refusing')
+        candidate, record_path = find_candidate(args.candidate, _ident(root_fd))
+        app, executable_path, _ = find_bundle(candidate, read_record(record_path))
+        if running_candidates(app / executable_path):
+            raise Refusal('the candidate is still running; refusing to remove the kept folder')
+        if not shutil.rmtree.avoids_symlink_attacks:
+            raise Refusal('this platform cannot remove a tree without following links; refusing')
+        shutil.rmtree(folder.name, dir_fd=root_fd)
+        gone = not os.path.lexists(folder)
+    finally:
+        os.close(root_fd)
+    print(json.dumps({'removed': str(folder), 'gone': gone, 'made_at': kept.get('made_at')}, indent=2))
+    return 0 if gone else 1
+
+
+def write_record(record_fd, record, name=RECORD):
     """STATEMENT 2: the record exists whole under its name or not at all: written to a temporary name in record/,
     flushed, then linked to its name (never over an existing one). A temporary file left by an interruption has
     another name and is not the record."""
-    temporary = f'.{RECORD}.partial-{secrets.token_hex(4)}'
+    temporary = f'.{name}.partial-{secrets.token_hex(4)}'
     fd = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=record_fd)
     with os.fdopen(fd, 'w') as stream:
         stream.write(json.dumps(record, indent=2) + '\n')
         stream.flush()
         os.fsync(stream.fileno())
-    os.link(temporary, RECORD, src_dir_fd=record_fd, dst_dir_fd=record_fd, follow_symlinks=False)
+    os.link(temporary, name, src_dir_fd=record_fd, dst_dir_fd=record_fd, follow_symlinks=False)
     os.unlink(temporary, dir_fd=record_fd)
 
 
@@ -896,7 +1054,7 @@ def _finish(record_fd, record, facts, code, label=None):
     record['signals_received'] = list(facts['signals'])
     record['failures'] = failures
     record['outcome'] = label or result
-    write_record(record_fd, record)
+    write_record(record_fd, record, facts.get('record_name', RECORD))
     print(json.dumps({'outcome': record['outcome'], 'record': facts['record'], 'failures': failures}, indent=2))
     return code if code is not None else (0 if result == 'clean' else 1)
 
@@ -910,8 +1068,9 @@ def main(argv=None):
                'project/ is the project folder to choose in the App for an operated run. The caller does '
                'not choose where they go. What the launcher states, what it also does and its limits are in the '
                'module docstring.')
-    parser.add_argument('command', choices=['launch'])
-    parser.add_argument('--candidate', required=True,
+    parser.add_argument('command', choices=['launch', 'keep-make', 'keep-launch', 'keep-remove'])
+    parser.add_argument('--folder', help='keep-launch and keep-remove: the kept folder, as keep-make printed it')
+    parser.add_argument('--candidate',
                         help='the candidate folder made by build_candidate.py; the identification record is '
                              'identification/candidate-identification.json in it and the bundle the one entry of '
                              "target/debug/bundle/macos, named as the record names it; identification's check must pass")
@@ -919,7 +1078,19 @@ def main(argv=None):
                         f'{DEFAULT_MODEL_ADDRESS} (nothing listens there); empty or blank is refused; '
                         'http(s)://127.0.0.1 or [::1] only')
     args = parser.parse_args(argv)
+    if args.command != 'keep-remove' and not args.candidate:
+        parser.error('--candidate is required')
+    if args.command in ('keep-launch', 'keep-remove') and not args.folder:
+        parser.error('--folder is required')
+    if args.command.startswith('keep-') and args.model_address is not None:
+        parser.error('the kept-home commands take no model address: every network block stays as launch sets it')
     try:
+        if args.command == 'keep-make':
+            return keep_make(args)
+        if args.command == 'keep-launch':
+            return keep_launch(args)
+        if args.command == 'keep-remove':
+            return keep_remove(args)
         return launch(args)
     except (ValueError, KeyError, TypeError, AttributeError, OSError, ImportError, json.JSONDecodeError,
             plistlib.InvalidFileException, ExpatError, subprocess.CalledProcessError, tarfile.TarError,

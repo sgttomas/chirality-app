@@ -1,0 +1,105 @@
+{
+  "scenario": "signed-out relaunch after setup",
+  "version": 1,
+  "what_it_is": "Agent-operated development evidence on the same development build and the same kept home after setup: what the App shows on the next launch, signed out, read by views and by opening disclosures and one account check. The labels of the disclosures and of the account check are read from the App's source at the revision built, not from a recorded view. It is not a person's observation and meets no criterion.",
+  "starting_state": "The kept home after the setup walk, relaunched by the launcher with its network blocks on; no credential.",
+  "acts": "views; clicks that open a disclosure; one press of Check account status, which asks the App's own Codex for the account state and changes nothing; nothing typed",
+  "never_clicked": [
+    "Start",
+    "Stop",
+    "Sign in",
+    "any control that starts, resumes or forks a conversation",
+    "the window's own buttons",
+    "the menu bar"
+  ],
+  "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
+  "starts_no_process": false,
+  "steps": [
+    {
+      "id": "R1",
+      "act": "view",
+      "wait_ms": 15000,
+      "says": "the relaunch as it first stands: the workspace or the welcome, and the connection line; the whole view is kept",
+      "expect": [
+        {
+          "no_text": "Welcome to Chirality"
+        },
+        {
+          "summary": "Desktop setup Changes apply on the next launch",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Desktop setup Changes apply on the next launch"
+      },
+      "says": "desktop setup opened: what it says the launch is",
+      "expect": [
+        {
+          "summary": "Desktop setup Changes apply on the next launch",
+          "is": "on"
+        },
+        {
+          "summary": "Setup details and source status",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Setup details and source status"
+      },
+      "says": "the setup details: the current launch and the App data folder",
+      "expect": [
+        {
+          "summary": "Setup details and source status",
+          "is": "on"
+        },
+        {
+          "text_starts": "Current launch: saved-request."
+        },
+        {
+          "text": "App data: {app_data}"
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "act": "click",
+      "control": {
+        "kind": "button",
+        "label": "Check account status"
+      },
+      "wait_ms": 5000,
+      "says": "the account check, read only: what the App says about sign-in when signed out; the whole view is kept",
+      "expect": [
+        {
+          "button": "Check account status",
+          "is": "available"
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "SETUP NO LONGER REQUIRED": [
+      "R1"
+    ],
+    "THE LAUNCH IS THE SAVED REQUEST": [
+      "R3"
+    ]
+  }
+}

@@ -2,9 +2,12 @@
 // expected states. An operator loads this inside the node runtime's js tool and gives it the supplier's
 // window service; replay.mjs gives it a stand-in that returns recorded views. See README.md beside it.
 //
-// It makes two kinds of call and no others: a view (get_app_state) and a click by element index. It clicks only
-// controls a scenario step names, found by their kind and words in the latest view. It never lists applications,
-// types, sets a value, presses a key, scrolls, drags or pastes.
+// It makes views (get_app_state) and clicks by element index, and, only where a scenario names them, two more: one
+// set-value into a field the scenario names in `typed_fields` (the path typed because the alternative is the system's
+// folder panel, which no agent operates), and one press on the App's own confirmation sheet the scenario names in
+// `sheets`, after checking that sheet whole. It clicks only controls a scenario step names, found by their kind and
+// words in the latest view. It never lists applications, types keys, presses a key, scrolls, drags or pastes, and any
+// sheet but the one named stops it as before.
 //
 // What its result establishes: that views returned by the service held the expected elements, or did not. It is
 // development evidence about a development build. It is not evidence that a person saw or did anything.
@@ -60,7 +63,8 @@ export function applyDifference(previous, text) {
 const fill = (text, values) => String(text).replace(/\{(\w+)\}/g, (whole, name) => (name in values ? values[name] : whole));
 
 /**
- * Every element a selector names. A selector is {kind, label} where kind is button, summary, radio, heading or text.
+ * Every element a selector names. A selector is {kind, label} where kind is button, summary, radio, heading, text or
+ * text field (a settable text field; its value and placeholder, after the label, are not part of the label).
  * The label is the control's words whole: a control whose words merely begin with the label is not it.
  */
 export function select(elements, selector) {
@@ -71,6 +75,7 @@ export function select(elements, selector) {
     if (kind === 'radio') return content === `radio button Value: 0, ${label}` || content === `radio button Value: 1, ${label}`;
     if (kind === 'heading') return content.startsWith(`heading ${label}`) && /^(, Value: \d+)?$/.test(content.slice(`heading ${label}`.length));
     if (kind === 'text') return content === `text ${label}`;
+    if (kind === 'text field') return content === `text field (settable) ${label}` || content.startsWith(`text field (settable) ${label}, `);
     return false;
   });
 }
@@ -96,6 +101,71 @@ export function notThePage(elements, scenario) {
     }
   }
   return null;
+}
+
+/**
+ * The App's own confirmation sheet against what the scenario names for it, before anything is pressed: in the view of
+ * the development build (the view already says it is of the bundle), at the top the one window and the menu bar;
+ * directly inside the window what the scenario lists and exactly one thing more, the sheet; in the sheet exactly the
+ * named buttons, the named title once, and the complete statement. The statement is compared on the view's raw text
+ * of the sheet with every run of white space (a line break included) made one space, so its words, order and paths
+ * are checked and its line breaks are not. Returns {problems, record, press} where press is the index of the named
+ * button to press.
+ */
+export function sheetCheck(text, elements, scenario, sheet, values) {
+  const problems = [], record = {};
+  const title = `standard window ${scenario.window}`;
+  const isWindow = ({ content }) => content === title || content.startsWith(title + ', ');
+  const top = elements.filter(({ depth }) => depth === 0);
+  if (top.some(element => !isWindow(element) && element.content !== 'menu bar') || top.filter(isWindow).length !== 1) {
+    problems.push('the view is not of the one window and the menu bar');
+  }
+  const start = elements.findIndex(isWindow);
+  const extra = [];
+  for (let at = start + 1; at < elements.length && elements[at].depth > 0; at++) {
+    if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) extra.push(at);
+  }
+  if (extra.length !== 1) {
+    problems.push(`the window holds ${extra.length} things beside the page, not one sheet`);
+    return { problems, record, press: null };
+  }
+  const at = extra[0], sheetElement = elements[at];
+  record.sheet = sheetElement.content;
+  if (sheetElement.content !== sheet.element && !sheetElement.content.startsWith(sheet.element + ', ')) {
+    problems.push(`the thing beside the page is "${sheetElement.content}", not a ${sheet.element}`);
+  }
+  const inside = [];
+  for (let next = at + 1; next < elements.length && elements[next].depth > sheetElement.depth; next++) inside.push(elements[next]);
+  const buttons = inside.filter(({ content }) => content.startsWith('button '));
+  record.buttons = buttons.map(({ content }) => content.replace(/^button (\(disabled\) )?/, ''));
+  if (JSON.stringify([...record.buttons].sort()) !== JSON.stringify([...sheet.buttons].sort())) {
+    problems.push(`the sheet's buttons are ${JSON.stringify(record.buttons)}, not ${JSON.stringify(sheet.buttons)}`);
+  }
+  const titles = inside.filter(({ content }) => content === `text ${sheet.title}`);
+  if (titles.length !== 1) problems.push(`the sheet's title "${sheet.title}" is there ${titles.length} times`);
+  // The raw text of the sheet: from its own line to the next element no deeper than it.
+  const lines = String(text).split('\n');
+  const first = lines.findIndex(line => { const m = ELEMENT.exec(line); return m && !m[1] && Number(m[3]) === sheetElement.index; });
+  // Each element line inside the sheet gives its words without its place and kind; a line that is not an element
+  // line (a text running over more than one line) is kept as it is.
+  const raw = [];
+  for (let n = first + 1; first >= 0 && n < lines.length; n++) {
+    const m = ELEMENT.exec(lines[n]);
+    if (m && !m[1] && m[2].length <= sheetElement.depth) break;
+    raw.push(m && !m[1] ? m[4].replace(/^text /, '') : lines[n]);
+  }
+  const plain = words => String(words).replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
+  // The App shows the statement whole only within 30 lines and 1,500 characters; beyond that it shows a digest.
+  const whole = sheet.statement.map(line => fill(line, values)).join('\n');
+  if (whole.split('\n').length > 30 || [...whole].length > 1500) problems.push('for these paths the statement is longer than the App shows whole');
+  const seen = plain(raw.join('\n')), wanted = plain(whole);
+  record.statement_seen = seen;
+  record.statement_wanted = wanted;
+  const times = wanted ? seen.split(wanted).length - 1 : 0;
+  if (times !== 1) problems.push(`the complete statement is in the sheet ${times} times, not once`);
+  const press = buttons.filter(({ content }) => content === `button ${sheet.press}`);
+  if (press.length !== 1) problems.push(`the button to press, "${sheet.press}", is there ${press.length} times`);
+  return { problems, record, press: press.length === 1 ? press[0].index : null };
 }
 
 /** One expectation against one view's elements: {expectation, pass, found}. */
@@ -158,7 +228,8 @@ export function checkOne(elements, expectation, values) {
 
 /**
  * Walk the scenario. Options:
- *   sky       the supplier's window service (or a stand-in with get_app_state and click)
+ *   sky       the supplier's window service (or a stand-in with get_app_state, click and, for a scenario that types,
+ *             set_value)
  *   scenario  the parsed scenario file
  *   app       the development build's bundle identifier
  *   home      the throwaway home the launcher made for this launch (launch folder + /home)
@@ -170,6 +241,7 @@ export function checkOne(elements, expectation, values) {
  *   readWatch optional: () => the parsed watch file, or null (default: reads `watch`)
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
  *   now       optional: () => the time as text (default: the UTC time)
+ *   project   the invented project folder beside the home, for a scenario with a `type` step: the one value it types
  * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped, view_error when a view failed, click_error when a
  * click failed}. verdict is 'pass', 'fail' or
  * 'inconclusive'; a refusal before any call is 'inconclusive' with nothing called.
@@ -223,7 +295,7 @@ export function failure(where, error) {
   return { where, message: text(error), causes };
 }
 
-export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, sleep, now }) {
+export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, sleep, now, project }) {
   if (!readWatch && typeof watch === 'string') {
     const fs = await import('node:fs');
     readWatch = () => { try { return JSON.parse(fs.readFileSync(watch, 'utf8')); } catch { return null; } };
@@ -252,7 +324,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   };
   sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
   now ??= () => new Date().toISOString();
-  const values = { identifier: app, home, app_data: `${home}/Library/Application Support/${app}` };
+  const values = { identifier: app, home, app_data: `${home}/Library/Application Support/${app}`, ...(project ? { project } : {}) };
   const calls = [];
   const report = { scenario: scenario.scenario, version: scenario.version, app, home, started: now(), steps: [], calls, stopped: null };
   const finish = (verdict, stopped = null) => {
@@ -275,6 +347,15 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   }
   if (typeof bundle !== 'string' || !bundle.startsWith('/') || !bundle.endsWith('.app')) {
     return finish('inconclusive', 'refused before any call: the bundle is not the absolute path of an .app folder');
+  }
+  const typing = (scenario?.steps ?? []).filter(step => step?.act === 'type');
+  const pressing = (scenario?.steps ?? []).filter(step => step?.act === 'confirm_sheet');
+  if (typing.length > 1 || pressing.length > 1 || (scenario?.typed_fields ?? []).length > 1 || (scenario?.sheets ?? []).length > 1
+      || typing.some(step => step.value !== '{project}')) {
+    return finish('inconclusive', 'refused before any call: a scenario types once at most, the project path into one named field, and presses one named sheet once at most');
+  }
+  if (typing.length && (typeof project !== 'string' || !project.startsWith('/') || project.endsWith('/') || !project.startsWith(home.replace(/\/home$/, '/')))) {
+    return finish('inconclusive', 'refused before any call: the project to type is not an absolute path beside the home');
   }
   const steps = Array.isArray(scenario?.steps) ? scenario.steps : [];
   if (typeof scenario?.window !== 'string' || !Array.isArray(scenario.window_holds) || !steps.length
@@ -364,6 +445,78 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (step.wait_ms) await sleep(step.wait_ms);
       const beforeView = gate(`at ${step.id}, before its view`);  // read again immediately before the view
       if (beforeView) return beforeView;
+    } else if (step.act === 'type') {
+      // One set-value into one field the scenario names; nothing else is typed in a walk.
+      if (step.control?.kind !== 'text field' || !(scenario.typed_fields ?? []).includes(step.control.label)) {
+        return finish('inconclusive', `stopped at ${step.id}: the scenario names no such field to type into`);
+      }
+      const found = select(elements, step.control);
+      entry.control = step.control;
+      if (found.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the field was found ${found.length} times in the latest view`);
+      if (report.calls.some(call => call.call === 'set_value')) return finish('inconclusive', `stopped at ${step.id}: a walk sets one value once`);
+      const value = fill(step.value, values);
+      entry.element_index = found[0].index;
+      entry.typed = value;
+      calls.push({ at: now(), call: 'set_value', app, element_index: found[0].index, value });
+      try {
+        await sky.set_value({ app, element_index: found[0].index, value });
+      } catch (error) {
+        report.set_value_error = readFailure(step.id, error);
+        entry.error = report.set_value_error.message;
+        return finish('inconclusive', `stopped at ${step.id}: setting the field's value failed (${entry.error})`);
+      }
+      if (step.wait_ms) await sleep(step.wait_ms);
+      const beforeView = gate(`at ${step.id}, before its view`);
+      if (beforeView) return beforeView;
+    } else if (step.act === 'confirm_sheet') {
+      // The App's own confirmation: click the control that opens it, view the sheet and check it whole, press the
+      // named button once, and view again. Any difference stops the walk before the press; a press with no visible
+      // effect is not pressed again.
+      const sheet = (scenario.sheets ?? []).find(named => named.id === step.sheet);
+      if (!sheet || step.control?.kind !== 'button' || step.control?.label !== sheet.opener) return finish('inconclusive', `stopped at ${step.id}: the scenario names no such sheet`);
+      if (report.steps.some(earlier => earlier.checks.some(check => !check.pass))) {
+        return finish('fail', `stopped at ${step.id}: an earlier check failed, so the sheet is not opened`);
+      }
+      const opener = select(elements, step.control);
+      entry.control = step.control;
+      if (opener.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the control that opens the sheet was found ${opener.length} times`);
+      if (opener[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control that opens the sheet is unavailable`);
+      calls.push({ at: now(), call: 'click', app, element_index: opener[0].index });
+      try {
+        await sky.click({ app, element_index: opener[0].index });
+      } catch (error) {
+        report.click_error = readFailure(step.id, error);
+        entry.error = report.click_error.message;
+        return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
+      }
+      await sleep(step.sheet_wait_ms ?? 2000);
+      const beforeSheet = gate(`at ${step.id}, before the sheet's view`);
+      if (beforeSheet) return beforeSheet;
+      let shown;
+      try {
+        shown = await view();
+      } catch (error) {
+        report.view_error = readFailure(step.id, error);
+        entry.error = report.view_error.message;
+        return finish('inconclusive', `stopped at ${step.id}: the sheet's view failed (${entry.error})`);
+      }
+      entry.sheet_view = shown.text;
+      if (!shown.whole) return finish('inconclusive', asDifferences(step.id));
+      const checked = sheetCheck(shown.text, elements, scenario, sheet, values);
+      entry.sheet = { ...checked.record, problems: checked.problems };
+      if (checked.problems.length) return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.problems.join('; ')}); nothing was pressed`);
+      entry.pressed = sheet.press;
+      calls.push({ at: now(), call: 'click', app, element_index: checked.press });
+      try {
+        await sky.click({ app, element_index: checked.press });
+      } catch (error) {
+        report.click_error = readFailure(step.id, error);
+        entry.error = report.click_error.message;
+        return finish('inconclusive', `stopped at ${step.id}: the press on the sheet failed (${entry.error})`);
+      }
+      if (step.wait_ms) await sleep(step.wait_ms);
+      const afterPress = gate(`at ${step.id}, after the press`);
+      if (afterPress) return afterPress;
     } else if (step.act !== 'view') {
       return finish('inconclusive', `stopped at ${step.id}: an act this script does not perform`);
     }
@@ -381,8 +534,16 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       return finish('inconclusive', asDifferences(step.id));
     }
     const stray = notThePage(elements, scenario);
+    if (stray && step.act === 'confirm_sheet') return finish('inconclusive', `stopped at ${step.id}: after the one press, ${stray}; it is not pressed again`);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
     entry.checks = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values));
+    // Paths the scenario captures for a later step (the sheet's statement names them): a named location's path.
+    for (const [name, location] of Object.entries(step.capture ?? {})) {
+      const named = elements.filter(element => element.content === `text ${location}`);
+      const next = named.length === 1 ? elements[elements.indexOf(named[0]) + 1] : null;
+      values[name] = next && next.content.startsWith('text /') ? next.content.slice(5) : undefined;
+      if (values[name] === undefined) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" could not be read`);
+    }
     const after = gate(`after ${step.id}`);
     entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';
     if (after) return after;
@@ -401,6 +562,6 @@ export function summary(report) {
       lines.push(`  ${step.id} expected ${JSON.stringify(check.expectation)}, found: ${JSON.stringify(check.found)}`);
     }
   }
-  lines.push(`  calls made: ${report.calls.filter(c => c.call === 'get_app_state').length} views, ${report.calls.filter(c => c.call === 'click').length} clicks`);
+  lines.push(`  calls made: ${report.calls.filter(c => c.call === 'get_app_state').length} views, ${report.calls.filter(c => c.call === 'click').length} clicks, ${report.calls.filter(c => c.call === 'set_value').length} set-values`);
   return lines.join('\n');
 }
