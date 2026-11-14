@@ -3,9 +3,14 @@
 // the same `read_available_models` checked by the Rust fixture test
 // `model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration`.
 // No supplier, model, sign-in, network or person act.
-import test from 'node:test';
+import test, {beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
+// The kept local route's views are gated off in this version (DEL-01-05 "For 4.0.0"); the test of the kept
+// local flow turns the gate on, as a later update would. The host refuses every local command regardless.
+const localRoute = loadSrc('localRoute');
+beforeEach(t => { localRoute.LOCAL_ROUTE_OFFERED = /^in the dedicated local home/.test(t.name); });
+afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
