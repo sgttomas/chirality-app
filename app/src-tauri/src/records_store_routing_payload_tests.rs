@@ -363,3 +363,66 @@ fn records_store_routing_connector_attempt_is_retained_without_hiding_in_place_h
     std::fs::remove_dir_all(output).unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }
+
+/// Status's "importNeeded" says what the write gate says. The reader's store
+/// (pull request 313's reading): valid in-place history, a store holding only
+/// a corrupt final, no import account. Routing reads the store; status names
+/// the in-place file as not imported and not read; and status's importNeeded
+/// and notes give the gate's own answer for a write: here "not known".
+#[test]
+fn records_store_routing_status_import_needed_follows_the_gate_with_only_a_corrupt_final() {
+    let (_own, root, dir, _) = routing_fixture();
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join("acts").join(format!("{}.jsonl", storage::key("corrupt"))), b"corrupt final\n").unwrap();
+    let gate = write_dir(&root).map(|_| ()).unwrap_err();
+    let shown = status(Some(&root));
+    let project = &shown["project"];
+    assert_eq!(project["reading"], "records store", "{shown}");
+    assert_eq!((project["legacyFiles"].as_u64(), project["notImported"].as_u64()), (Some(1), Some(1)), "{shown}");
+    let notes = project["notes"].as_array().unwrap().iter().filter_map(Value::as_str).collect::<Vec<_>>();
+    assert!(notes.iter().any(|n| n.contains("not imported into the records store") && n.contains("it is not read")), "{notes:?}");
+    // A corrupt final gives the gate no positive evidence and makes its
+    // authority uncertain: the gate refuses "not known", not "import needed".
+    // Status says the same: importNeeded false, and the gate's own sentence.
+    assert!(gate.contains("records store governs this project's records is unknown") && gate.contains("no recognised RS record in the log"), "{gate}");
+    assert_eq!(project["importNeeded"], false, "{shown}");
+    assert!(notes.iter().any(|n| *n == gate), "status carries the gate's own refusal word for word: {gate}; {notes:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// A completed import that refused a file: the store governs and recording is
+/// admitted, so importNeeded is false; notImported and the refusal note say
+/// what is not read.
+#[test]
+fn records_store_routing_status_import_needed_is_false_after_a_completed_import_with_a_refused_file() {
+    let (_own, root, dir, _) = routing_fixture();
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join("acts/in-place.jsonl"), b"a different file the store already holds\n").unwrap();
+    let imported = import(&root);
+    assert!(imported.is_ok(), "{imported:?}");
+    assert!(write_dir(&root).is_ok(), "a completed import admits recording");
+    let shown = status(Some(&root));
+    let project = &shown["project"];
+    assert_eq!(project["importNeeded"], false, "{shown}");
+    assert_eq!(project["notImported"].as_u64(), Some(1), "{shown}");
+    let notes = project["notes"].as_array().unwrap().iter().filter_map(Value::as_str).collect::<Vec<_>>();
+    assert!(notes.iter().any(|n| n.contains("not imported into the records store:") && n.contains("not overwritten")), "{notes:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// Where the gate's authority is uncertain, status never says "import needed":
+/// it gives the gate's own "not known" sentence as a note.
+#[test]
+fn records_store_routing_status_import_needed_is_never_claimed_on_uncertain_authority() {
+    let (_own, root, dir, _) = routing_fixture();
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join("acts").join(format!("{}.jsonl", storage::key("good"))), b"").unwrap();
+    std::fs::write(dir.join("acts").join(format!("{}.jsonl", storage::key("corrupt"))), b"corrupt final\n").unwrap();
+    let gate = write_dir(&root).map(|_| ()).unwrap_err();
+    assert!(gate.contains("is unknown"), "{gate}");
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    let notes = shown["project"]["notes"].as_array().unwrap().iter().filter_map(Value::as_str).collect::<Vec<_>>();
+    assert!(notes.iter().any(|n| n.contains("records store governs this project's records is unknown")), "{notes:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}

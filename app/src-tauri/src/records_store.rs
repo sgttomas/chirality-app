@@ -2160,18 +2160,26 @@ fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if state.completed {
         accept_import_completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", ")).map_err(|e| format!("{e}; nothing written"))?;
     }
-    let authority = store_write_authority_from_imports(dir, &state);
-    if !matches!(authority, Ok(true)) {
-        // The authority question arises only when there is something to
-        // import. With no in-place history nothing is waived: the writers
-        // keep handling their own malformed or unfinished payloads as before.
-        let legacy = legacy_census(root)?;
-        if !legacy.is_empty() {
-            authority?;
-            return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
-        }
+    let mut legacy = Vec::new();
+    if import_needed_from(dir, &state, || { legacy = legacy_census(root)?; Ok(!legacy.is_empty()) })? {
+        return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
     }
     Ok(())
+}
+/// Whether a write would be refused as "import needed": in-place records wait
+/// and the store has no positive write authority. The write gate and status
+/// both ask this one function, on an account snapshot each has read, so the
+/// status line "import needed" and the gate's refusal cannot say different
+/// things. `in_place` is asked only when authority is not established, and
+/// says whether the project folder holds records. With no in-place history
+/// nothing is waived: the writers keep handling their own malformed or
+/// unfinished payloads as before. An uncertain authority is an error here,
+/// as in the gate ("not known"), never "import needed".
+fn import_needed_from(dir: &Path, state: &Imports, in_place: impl FnOnce() -> Result<bool, String>) -> Result<bool, String> {
+    let authority = store_write_authority_from_imports(dir, state);
+    if matches!(authority, Ok(true)) || !in_place()? { return Ok(false); }
+    authority?;
+    Ok(true)
 }
 /// The project's writer lock (shared for writers that do not wait on each
 /// other), with the write permission checked again once it is held: an
@@ -3011,10 +3019,26 @@ pub fn status(project: Option<&Path>) -> Value {
             let census = home.census()?;
             // What is read comes from the one decision.
             let read = decide(home.attachment.clone(), home.store_mode);
-            let imports = match home.attachment.dir.as_ref() { Some(d) => imports(d)?.lines, None => 0 };
+            let account = match home.attachment.dir.as_ref() { Some(d) => Some(imports(d)?), None => None };
+            let imports = account.as_ref().map_or(0, |a| a.lines);
             let covered = match home.attachment.dir.as_ref() { Some(d) => coverage(d)?, None => HashMap::new() };
             // §13.7 files no import has copied (all of them before the first).
             let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
+            // "importNeeded" says what the write gate would say: recording is
+            // refused until an import. Where the store is read, it is the gate's
+            // own question on status's account snapshot (no re-proof: status
+            // reports, it admits nothing). Where authority is uncertain, the
+            // gate says "not known", and so does a note here; never "import needed".
+            let mut gate_notes = Vec::new();
+            let store_import_needed = match (&read, home.attachment.dir.as_ref(), account.as_ref()) {
+                (Ok(read), Some(dir), Some(account)) if read.in_store().is_some() => {
+                    match import_needed_from(dir, account, || Ok(!census.is_empty())) {
+                        Ok(needed) => needed,
+                        Err(e) => { gate_notes.push(e); false }
+                    }
+                }
+                _ => false,
+            };
             Ok(json!({"attachment":home.attachment.view(),
                 "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
                 // A refused attachment is said first: files kept in the
@@ -3023,9 +3047,9 @@ pub fn status(project: Option<&Path>) -> Value {
                 "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
                     else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
                     else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty())}},
-                "importNeeded":read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
+                "importNeeded":store_import_needed || read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
                 "legacyFiles":census.len(),"notImported":to_import,
-                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home(home.clone())}))
+                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home(home.clone()).into_iter().chain(gate_notes).collect::<Vec<_>>()}))
         }) {
             Ok(view) => view,
             Err(e) => {
