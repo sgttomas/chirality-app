@@ -2579,7 +2579,7 @@ export function App() {
             <FileActPanel command={(name, args) => invoke(name, args)} controlRef={fileActPanel} onBusyChange={setFileActBusy}/>
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-records" title="Records and Fleet" description="Project records, capability bindings and cross-source records">
-            <RecordsStorePanel store={host?.recordsStore} act={act}/>
+            <RecordsStorePanel store={host?.recordsStore} chain={host?.recordChain} invoke={(command, args) => invoke<Json>(command, args)} refresh={refresh}/>
           <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }}/>
   <RecordsCapabilityBindings host={host}/>
           </WorkspaceDisclosure>

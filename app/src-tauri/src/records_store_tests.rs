@@ -14,6 +14,7 @@ mod routing_payload { include!("records_store_routing_payload_tests.rs"); }
 mod publication { include!("records_store_publication_tests.rs"); }
 mod safe_append { include!("records_store_lines_tests.rs"); }
 mod legacy_witness { include!("records_store_witness_tests.rs"); }
+mod sync { include!("records_store_sync_tests.rs"); }
 
 fn folder(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
@@ -64,6 +65,161 @@ fn legacy_project() -> PathBuf {
 }
 
 // ---- Placement ----
+
+// Only the existing native dialog's synthetic explicit-action result may
+// pass this gate. This is control examination, never evidence of a person's act.
+fn synthetic_location_confirmation(text: String, dont: &str, perform: &str) -> Result<bool, String> {
+    use crate::act_control::native_statement as ns;
+    assert!(ns::bounded("records store location", text).is_ok());
+    let result = ns::dialog_model::outcomes(&ns::act_buttons(dont, perform)).into_iter()
+        .find(|(how, _)| *how == "middle").unwrap().1;
+    Ok(ns::chose(&result, perform))
+}
+
+#[test]
+fn records_store_placement_picked_folder_is_read_only_and_refuses_an_unsuitable_child() {
+    // Empty (the Finder's own file aside): the folder itself.
+    let empty = folder("pick-empty-");
+    std::fs::write(empty.join(".DS_Store"), b"finder").unwrap();
+    assert_eq!(location_for_choice(&empty).unwrap(), empty);
+    // Already a records store (a store folder the person moved): the folder itself.
+    let moved = folder("pick-store-");
+    std::fs::write(moved.join("store.json"), serde_json::to_vec(&json!({"format":STORE_FORMAT,"formatVersion":VERSION,"storeId":"records-store:invented"})).unwrap()).unwrap();
+    std::fs::create_dir(moved.join("projects")).unwrap();
+    assert_eq!(location_for_choice(&moved).unwrap(), moved);
+    // Holding other things: a folder inside it, so nothing is mixed in.
+    let documents = folder("pick-documents-");
+    std::fs::write(documents.join("letter.txt"), b"the person's own file").unwrap();
+    assert_eq!(location_for_choice(&documents).unwrap(), documents.join(CHOSEN_FOLDER));
+    // ...which is used again once it is a store, and refused when it holds something else or is a file.
+    std::fs::create_dir(documents.join(CHOSEN_FOLDER)).unwrap();
+    assert_eq!(location_for_choice(&documents).unwrap(), documents.join(CHOSEN_FOLDER));
+    std::fs::write(documents.join(CHOSEN_FOLDER).join("notes.txt"), b"not a store").unwrap();
+    assert!(location_for_choice(&documents).unwrap_err().contains("already holds files that are not a records store"));
+    std::fs::remove_dir_all(documents.join(CHOSEN_FOLDER)).unwrap();
+    std::fs::write(documents.join(CHOSEN_FOLDER), b"a file").unwrap();
+    assert!(location_for_choice(&documents).unwrap_err().contains("is not a folder"));
+    // A folder whose store.json is something else is not taken for a store.
+    let other = folder("pick-other-");
+    std::fs::write(other.join("store.json"), b"{\"format\":\"another product\"}").unwrap();
+    assert_eq!(location_for_choice(&other).unwrap(), other.join(CHOSEN_FOLDER));
+    // Neither a picked link nor a linked identity is taken for a store.
+    let linked = folder("pick-linked-");
+    std::os::unix::fs::symlink(moved.join("store.json"), linked.join("store.json")).unwrap();
+    assert!(location_for_choice(&linked).is_err());
+    std::fs::remove_file(linked.join("store.json")).unwrap();
+    std::os::unix::fs::symlink(&moved, linked.join("store-folder")).unwrap();
+    assert!(location_for_choice(&linked.join("store-folder")).unwrap_err().contains("not a folder"));
+    assert!(location_for_choice(Path::new("relative/folder")).is_err());
+    assert!(location_for_choice(&empty.join("absent")).unwrap_err().contains("unavailable"));
+    assert_eq!(std::fs::read(documents.join("letter.txt")).unwrap(), b"the person's own file", "choosing writes nothing in the picked folder");
+    for p in [empty, moved, documents, other, linked] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn records_store_placement_saved_current_unreadable_override_and_development_views() {
+    let data = folder("choice-data-");
+    let project = folder("choice-project-");
+    let volume = PathBuf::from("/Volumes/Backup-for-test/Chirality records");
+    // The store in use, as a built App with default placement started it
+    // (given directly: this test's App data folder is a temporary one).
+    use_store_for_test(Some(Ok(Store { root: data.join("records"), placement: Placement::AppData, limits: vec![] })));
+    let view = choice_view(Ok(&data), false);
+    assert_eq!(view["offered"], true);
+    assert_eq!((view["chosen"].clone(), view["pending"].clone()), (Value::Null, json!(false)));
+    assert_eq!(view["nextStart"], data.join("records").display().to_string());
+    // Chosen: recorded for the next start; the store in use does not change.
+    confirm_placement(&data, Some(&volume), Some(&project), &[], synthetic_location_confirmation).unwrap();
+    let view = choice_view(Ok(&data), false);
+    assert_eq!(view["chosen"], volume.display().to_string());
+    assert_eq!(view["nextStart"], volume.display().to_string());
+    assert_eq!(view["pending"], true, "the store in use was fixed at start");
+    assert_eq!(current().unwrap().root, data.join("records"));
+    // Simulate the next start's selection without creating the invented
+    // volume: this is a placement view, not store-startup examination.
+    use_store_not_started_for_test(Some(for_app(None, Ok(&data), false, Some(&project), &[])));
+    assert_eq!(current().unwrap().placement, Placement::PersonChosen);
+    assert_eq!(choice_view(Ok(&data), false)["pending"], false);
+    // Back to the default: the choice is removed, for the next start.
+    let cleared = confirm_placement(&data, None, Some(&project), &[], synthetic_location_confirmation).unwrap();
+    assert_eq!(cleared["state"], "default placement chosen");
+    assert_eq!(cleared["location"], data.join("records").display().to_string());
+    assert!(chosen_location(&data).unwrap().is_none());
+    let view = choice_view(Ok(&data), false);
+    assert_eq!((view["chosen"].clone(), view["pending"].clone()), (Value::Null, json!(true)));
+    assert_eq!(confirm_placement(&data, None, Some(&project), &[], synthetic_location_confirmation).unwrap()["state"], "default placement already in use");
+    // An unreadable choice is shown, never guessed past.
+    std::fs::write(data.join(CHOICE_FILE), b"{").unwrap();
+    let unreadable = choice_view(Ok(&data), false);
+    assert!(unreadable["choiceUnreadable"].as_str().unwrap().contains("unreadable"));
+    assert!(unreadable["nextStart"].is_null(), "an unreadable preference never promises the default next start");
+    assert!(for_app(None, Ok(&data), false, Some(&project), &[]).unwrap_err().contains("records store choice unreadable"), "no fallback to the default over an unreadable choice");
+    assert_eq!(confirm_placement(&data, None, Some(&project), &[], synthetic_location_confirmation).unwrap()["state"], "default placement chosen", "the person can clear it");
+    // The override of this run wins and is named; nothing is pending against it.
+    confirm_placement(&data, Some(&volume), Some(&project), &[], synthetic_location_confirmation).unwrap();
+    let override_root = folder("choice-override-");
+    use_store_for_test(Some(for_app(Some(override_root.clone()), Ok(&data), false, Some(&project), &[])));
+    let view = choice_view(Ok(&data), false);
+    assert_eq!(view["pending"], false);
+    assert!(view["overridden"].as_str().unwrap().contains(OVERRIDE_ENV));
+    // A run started for development offers no choice and says why; an unavailable App data folder likewise.
+    let dev = choice_view(Ok(&data), true);
+    assert_eq!(dev["offered"], false);
+    assert!(dev["reason"].as_str().unwrap().contains("started for development") && dev.get("chosen").is_none());
+    assert_eq!(choice_view(Err("no data".into()), false)["offered"], false);
+    use_store_for_test(None);
+    for p in [data, project, override_root] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn records_store_placement_only_the_explicit_native_action_changes_the_next_start() {
+    use crate::act_control::native_statement as ns;
+    let data = folder("placement-confirm-data-");
+    let old = PathBuf::from("/Volumes/Invented-old-records");
+    let new = PathBuf::from("/Volumes/Invented-new-records");
+    // Test fixture choices name no real folder; the confirmation receives
+    // the synthetic picker result, never any web-supplied location.
+    for action in ["choose", "default"] {
+        let perform = if action == "choose" { "Use this folder" } else { "Use the App's data folder" };
+        for (how, result) in ns::dialog_model::outcomes(&ns::act_buttons("Keep the present location", perform)) {
+            confirm_placement(&data, Some(&old), None, &[], synthetic_location_confirmation).unwrap();
+            let before = std::fs::read(data.join(CHOICE_FILE)).unwrap();
+            let chosen = (action == "choose").then_some(new.as_path());
+            let outcome = confirm_placement(&data, chosen, None, &[], |text, dont, label| {
+                assert!(text.contains("from the next time the App starts"));
+                assert!(text.contains("not moved or copied"));
+                assert!(text.contains(&chosen.unwrap_or(&data.join("records")).display().to_string()));
+                assert_eq!(dont, "Keep the present location");
+                assert_eq!(label, perform);
+                Ok(ns::chose(&result, label))
+            }).unwrap();
+            match (how == "middle", action) {
+                (true, "choose") => {
+                    assert_eq!(outcome["state"], "chosen");
+                    assert_eq!(chosen_location(&data).unwrap(), Some(new.clone()));
+                }
+                (true, _) => {
+                    assert_eq!(outcome["state"], "default placement chosen");
+                    assert!(!data.join(CHOICE_FILE).exists());
+                    assert_eq!(chosen_location(&data).unwrap(), None);
+                }
+                (false, _) => {
+                    assert_eq!(outcome["state"], "choice cancelled");
+                    assert_eq!(std::fs::read(data.join(CHOICE_FILE)).unwrap(), before);
+                }
+            }
+        }
+    }
+    confirm_placement(&data, Some(&old), None, &[], synthetic_location_confirmation).unwrap();
+    let before = std::fs::read(data.join(CHOICE_FILE)).unwrap();
+    assert!(confirm_placement(&data, Some(&new), None, &[], |_, _, _| Err("invented native statement unavailable".into())).unwrap_err().contains("statement unavailable"));
+    assert_eq!(std::fs::read(data.join(CHOICE_FILE)).unwrap(), before);
+    assert!(confirm_placement(&data, Some(&std::env::temp_dir().join("refused-store")), None, &[], |_, _, _| panic!("an unsuitable location is refused before confirmation")).is_err());
+    assert_eq!(std::fs::read(data.join(CHOICE_FILE)).unwrap(), before);
+    assert_eq!(std::fs::read_dir(&data).unwrap().count(), 1, "only the next-start preference was written");
+    std::fs::remove_dir_all(data).unwrap();
+}
+
 
 fn import_gate_project() -> (OwnStore, PathBuf, PathBuf) {
     let own = OwnStore::new();
@@ -3001,4 +3157,28 @@ fn records_store_an_unexaminable_pending_capture_is_never_replaced() {
     assert_eq!(std::fs::read_link(&path).unwrap(), library.join("nothing-here"), "the link is left as it was");
     assert!(std::fs::symlink_metadata(library.join("nothing-here")).is_err(), "nothing written through it");
     let _ = std::fs::remove_dir_all(&library);
+}
+
+/// The write gate's authority is read only from the account snapshot its own
+/// admission parsed and re-proved. A completion that appears after that read,
+/// and whose syncs fail, never enters through a second read of the account.
+#[test]
+fn records_store_import_gate_authority_reads_only_its_admission_snapshot() {
+    let (_own, root, dir) = import_gate_project();
+    let snapshot = imports(&dir).unwrap();
+    assert!(!snapshot.any && !snapshot.completed);
+    let path = dir.join("imports.jsonl");
+    let mut bytes = serde_json::to_vec(&json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,
+        "event":"completed","importId":"import:later-completion","files":[],"conflicts":[]})).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(&path, &bytes).unwrap();
+    storage::fail_publication_sync_after_for_test(Some((path.clone(), 0, storage::PublicationSyncStage::File)));
+    let authority = store_write_authority_from_imports(&dir, &snapshot);
+    let current_admission = write_permitted(&dir, &root);
+    storage::fail_publication_sync_after_for_test(None);
+    let unchanged = std::fs::read(path).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+    assert!(current_admission.as_ref().is_err_and(|e| e.contains("account durability not established")), "{current_admission:?}");
+    assert_eq!(unchanged, bytes);
+    assert!(matches!(authority, Ok(false)), "a later completion entered through authority without acceptance: {authority:?}");
 }

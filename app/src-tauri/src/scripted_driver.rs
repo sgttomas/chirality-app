@@ -24,7 +24,9 @@ use tauri::{Builder, Manager, Runtime};
 pub const MARKER: &str = "chirality-scripted-driver-test-build-v1";
 
 /// What the script reads: nothing is clicked, typed or changed. It is evaluated again until the page's first heading
-/// is present (the page renders after load), at most `TRIES` times, `WAIT` apart.
+/// is `EXPECTED_HEADING`, at most `TRIES` times, `WAIT` apart. The page renders after load, and what it shows first
+/// depends on when the App's first host read arrives (another heading, or none, may come before), so the wait is for
+/// the expected heading itself, never for whichever heading appears first.
 const PROOF: &str = r#"(() => {
   const heading = document.querySelector('h1, h2, [role="heading"]');
   return { title: document.title, href: String(location.href), ready: document.readyState,
@@ -33,6 +35,8 @@ const PROOF: &str = r#"(() => {
            open_dialogs: document.querySelectorAll('dialog[open], [role="dialog"], [role="alertdialog"]').length };
 })()"#;
 const TRIES: u32 = 60;
+/// The first-use page's heading; `proof.py` expects the same words.
+const EXPECTED_HEADING: &str = "Welcome to Chirality";
 const WAIT: Duration = Duration::from_millis(500);
 
 fn folder() -> Option<PathBuf> {
@@ -127,6 +131,8 @@ pub fn install<R: Runtime>(builder: Builder<R>) -> Builder<R> {
 }
 
 fn evaluate<R: Runtime>(webview: tauri::Webview<R>) {
+    // Each distinct heading in the order first read (null for none), so a report says what came before, or instead.
+    let mut headings_seen: Vec<Value> = Vec::new();
     for attempt in 1..=TRIES {
         let (sender, receiver) = std::sync::mpsc::channel();
         if let Err(error) = webview.eval_with_callback(PROOF, move |result| { let _ = sender.send(result); }) {
@@ -142,10 +148,18 @@ fn evaluate<R: Runtime>(webview: tauri::Webview<R>) {
         };
         let read: Value = serde_json::from_str(&returned).unwrap_or(Value::String(returned));
         let heading = read.get("heading").and_then(Value::as_str).map(str::to_owned);
-        if heading.is_some() || attempt == TRIES {
+        let seen = heading.as_deref().map_or(Value::Null, |h| Value::String(h.to_owned()));
+        if !headings_seen.contains(&seen) {
+            headings_seen.push(seen);
+        }
+        let expected_seen = heading.as_deref() == Some(EXPECTED_HEADING);
+        if expected_seen || attempt == TRIES {
             let windows = webview.app_handle().webview_windows().len();
-            stage("script evaluated", json!({ "attempt": attempt, "returned": read, "windows": windows, "created": created() }));
-            if heading.is_none() {
+            // `attempt` is the number of tries made, and `returned` the last read, whose heading is the last seen.
+            stage("script evaluated", json!({ "attempt": attempt, "tries": TRIES, "expected_heading": EXPECTED_HEADING,
+                                              "expected_seen": expected_seen, "headings_seen": headings_seen,
+                                              "returned": read, "windows": windows, "created": created() }));
+            if !expected_seen {
                 std::process::exit(5);
             }
             match scenario_input() {
