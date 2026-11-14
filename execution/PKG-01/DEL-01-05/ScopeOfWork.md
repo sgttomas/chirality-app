@@ -54,7 +54,6 @@ The items affected, by identifier. An item not listed stands as written. Rows of
 - **AC-008** — Not in force.
 - **AC-009** — Not in force.
 - **AC-011** — Not in force: "and in the dedicated local home it is absent with either". The rest stands.
-- **AC-012** — With new App-owned settings, before confirming, the review page states, as Codex's defaults, what Codex can read and where a sign-in is kept; the routes with existing settings restate none of it; after relaunch, at the person's press, Connection and access says where Codex reports a sign-in is kept. Verify by VER-012. [REQ-011]
 - **Praxeology, opening paragraph** — Not in force: "a local conversation and substitution". Stands: "sign-in […] each need the actual candidate, an actual account […] and the person's own act".
 - **VER-003** — Not in force, except: "Read the access entries offered with a local provider defined in the person's Codex settings." and "No credential is reproduced in the evidence.", which stand.
 - **VER-004** — Stands, with EXAMINATION V4-EXM-12 in its 4.0.0 form.
@@ -62,7 +61,6 @@ The items affected, by identifier. An item not listed stands as written. Rows of
 - **VER-008** — Not in force.
 - **VER-009** — Not in force.
 - **VER-011** — "in each home" means the account home only. The rest stands.
-- **VER-012** — Executable check of the review page's and Connection and access's text against what Codex reported in a recorded configuration read at the pin and against the pinned Codex's default profile as its source and a direct start show it, and an examiner's reading of the same pages on the candidate.
 - **AX-003** — Has no occasion in 4.0.0 and stands for the later update.
 
 ## Deliverable Definition — Ontology
@@ -113,6 +111,7 @@ Boundary:
 - **AC-009** — The handoff states the local-server capabilities Codex required at the pin, what was and was not observed, and that it is the App's provider interface and not a host's model interface. Verify by VER-009. [REQ-008]
 - **AC-010** — None of the acts in REQ-009 is produced by this deliverable's code. Verify by VER-010. [REQ-009]
 - **AC-011** — For the pin, the network view and its record list each start-up connection of the App's Codex and whether an App setting stops it; every connection the record names as stoppable by an App setting is absent, including analytics; in the account home plugin traffic is present with the person's plugin setting on and absent with it off, and in the dedicated local home it is absent with either; and each setting the App applies to its own Codex at start is listed with its reason. Verify by VER-011. [REQ-010]
+- **AC-012** — With new App-owned settings, before confirming, the review page states, as Codex's defaults, what Codex can read and where a sign-in is kept; the routes with existing settings restate none of it; after relaunch, at the person's press, Connection and access says where Codex reports a sign-in is kept. Verify by VER-012. [REQ-011]
 
 ## Production and Verification Method — Praxeology
 
@@ -128,6 +127,7 @@ Account and provider methods are used as the pin publishes them, and what the Ap
 - **VER-009** — Judgment by an independent reviewer: read the handoff against the qualification evidence and the interface split of ARCHITECTURE §6.
 - **VER-010** — Judgment by an independent reviewer: trace each act of REQ-009 to its owner's code.
 - **VER-011** — Comparison with connections observed outside the App: start the App's Codex in each home with the person's plugin setting on and off, compare an operating-system level observation of its connections with the network view and the record, and compare the settings listed with the arguments the App started its Codex with.
+- **VER-012** — Executable check of the review page's and Connection and access's text against what Codex reported in a recorded configuration read at the pin and against the pinned Codex's default profile as its source and a direct start show it, and an examiner's reading of the same pages on the candidate.
 
 ## Governing Values and Decisions — Axiology
 
