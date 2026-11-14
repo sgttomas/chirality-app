@@ -500,8 +500,9 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
             'project': 'shown as "Project folder: …" under "Project" in "Run a workflow", the task view shown first: no '
                        'press, unless that guide is withheld',
             'signed_in': 'shown only after "Check account status", inside "Connection and access" in the "Settings & tools" '
-                         'view: the view\'s link, then the disclosure when Codex is ready (it is open otherwise), then the '
-                         'button: two or three presses',
+                         'view, and only when Codex is ready (the button is unavailable otherwise, so it cannot be learned): '
+                         'the view\'s link, the disclosure (closed when Codex is ready) and the button, three presses, and '
+                         'then an answer from Codex',
             'launch_state': '"Current launch: saved-request. …" is in "Setup details and source status", inside "Desktop '
                             'setup" (closed after setup), in the "Settings & tools" view: three presses'},
         'limits': LIMITS + [

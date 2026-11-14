@@ -129,8 +129,8 @@ then ends its own process. **Shown** means all of these:
 
 The job is `.github/workflows/app-scripted-driver.yml`. It runs on the macOS
 runner the App's workflow already uses and reads the repository only. It
-uploads its two reports (`report.json`, `scenario-report.json`) and nothing
-else, and saves no cache.
+uploads its three reports (`report.json`, `scenario-report.json`,
+`setup-report.json`) and nothing else, and saves no cache.
 
 ## The scenario (step two)
 
@@ -227,7 +227,7 @@ differences:
   fails. What the App leaves in its group after it ends is seen too, and
   ended.
 - After each launch, the inventory lists every name under the home without
-  opening anything. It judges three things:
+  opening anything. It judges these:
   - the saved request, the account homes and the settings folders, as the
     scenario says for that launch (none of either after the leave answer);
   - after the create answer, that the settings folder and account directory
