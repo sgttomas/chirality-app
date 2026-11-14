@@ -60,6 +60,9 @@ code_paths:
 # hosting.rs, runtime_session.rs, lib.rs and App.tsx are shared. Here: the account and provider
 # calls, a conversation's selection state, and the commands and mounting of the surfaces below.
 - app/src-tauri/src/hosting.rs
+# The state of plugins and connected apps read from Codex before each conversation start, resume
+# and fork in the account home, and where it comes from, for display.
+- app/src-tauri/src/hosting_extensions.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/App.tsx
@@ -83,6 +86,7 @@ checks:
 - app/src-tauri/src/home_hold_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
+- app/src-tauri/src/hosting_extensions_tests.rs
 # Shared with DEL-01-01: credential and home-separation names removed from the child.
 - app/src-tauri/src/hosting_child_environment_tests.rs
 - app/tests/conversation-panel.test.mjs

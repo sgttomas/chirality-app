@@ -673,7 +673,8 @@ fn actual_late_fork_and_cold_source_unknown_never_assume_role_from_file_or_metad
 #[test]
 fn actual_failed_write_and_superseded_generation_remain_unknown() {
     let mut f = RoleFixture::new();
-    install_broken_test_input(&f.host);
+    // The plugins-and-apps reading is written and answered; then the input fails, so the start's own write fails.
+    crate::hosting::break_input_after_the_feature_reading(&f.host);
     let receipt = f
         .host
         .thread_start_with_guidance_dispatch(

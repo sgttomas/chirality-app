@@ -53,6 +53,8 @@ impl Peer {
             .spawn()
             .unwrap();
         *host.stdin.lock().unwrap() = child.stdin.take();
+        // The stand-in answers the plugins-and-apps reading: both off.
+        host.answer_features_off_for_test();
         let stdout = child.stdout.take().unwrap();
         let wire = Arc::new(Mutex::new(Vec::new()));
         let replies = Arc::new(Mutex::new(VecDeque::from([
@@ -67,6 +69,8 @@ impl Peer {
                 let frame: Value = serde_json::from_str(&line).unwrap();
                 // An account Continue first reads Codex's configuration: the stand-in reports the
                 // built-in provider and keeps its scripted replies for the history frames.
+                // The plugins-and-apps reading is answered by the hook.
+                if frame["method"] == "experimentalFeature/list" { continue; }
                 if frame["method"] == "config/read" {
                     h.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}})).unwrap(), &generation());
                     continue;

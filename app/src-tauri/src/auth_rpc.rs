@@ -330,6 +330,22 @@ pub fn project_frame(frame: &Value, correlated_method: Option<&str>) -> (Value, 
                                 _ => json!(REDACTED),
                             };
                         }
+                        // Only the pins on plugins and apps (DEL-01-05 REQ-010), as values on or off.
+                        if let Some(features) = req.get("featureRequirements") {
+                            r["featureRequirements"] = if features.is_null() {
+                                Value::Null
+                            } else if let Some(features) = features.as_object() {
+                                let mut kept = serde_json::Map::new();
+                                for name in ["plugins", "apps", "connectors"] {
+                                    if let Some(value) = features.get(name) {
+                                        kept.insert(name.into(), if value.is_boolean() { value.clone() } else { json!(REDACTED) });
+                                    }
+                                }
+                                Value::Object(kept)
+                            } else {
+                                json!(REDACTED)
+                            };
+                        }
                         r
                     } else {
                         json!(REDACTED)

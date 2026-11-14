@@ -1325,6 +1325,11 @@ impl Host {
 }
 
 impl ProviderAdmission {
+    /// The origins object of the private reading this admission rests on, when that reading was
+    /// made on `generation` (`extensions`).
+    pub(super) fn reading_origins(&self, generation: &Value) -> Option<Value> {
+        (self.source.generation() == generation).then(|| self.config.get("origins").filter(|o| o.is_object()).cloned()).flatten()
+    }
     pub(super) fn source(&self) -> &SourceRequest { &self.source }
     pub(super) fn cwd(&self) -> &str { &self.cwd }
 }

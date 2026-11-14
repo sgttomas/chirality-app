@@ -26,6 +26,9 @@ impl Rig {
             i.supplier_standing = Some("synthetic; no provider contact".into());
             i.threads.push(json!({"generation":g,"threadId":"thread","cwd":"/invented/other","modelProvider":"openai"}));
         }
+        // The stand-in answers the plugins-and-apps reading (both off) here, so `frame` and `none`
+        // pass over it.
+        host.answer_features_off_for_test();
         let (child, frames) = Self::echo(&host);
         Rig { host, g, child: Some(child), frames: Mutex::new(frames) }
     }
@@ -42,17 +45,34 @@ impl Rig {
         });
         (child, rx)
     }
-    /// The next frame that reached Codex's input.
-    fn frame(&self) -> Value { self.frames.lock().unwrap().recv_timeout(LONG).expect("a frame on Codex's input") }
-    /// Nothing more reaches Codex's input within `wait`.
+    /// The next frame that reached Codex's input, past the plugins-and-apps readings.
+    fn frame(&self) -> Value {
+        loop {
+            let frame = self.frames.lock().unwrap().recv_timeout(LONG).expect("a frame on Codex's input");
+            if frame["method"] != "experimentalFeature/list" { return frame; }
+        }
+    }
+    /// Nothing more reaches Codex's input within `wait`, past the plugins-and-apps readings.
     fn none(&self, wait: Duration) {
-        if let Ok(frame) = self.frames.lock().unwrap().recv_timeout(wait) { panic!("nothing should reach Codex's input, but {frame} did"); }
+        let deadline = Instant::now() + wait;
+        while let Ok(frame) = self.frames.lock().unwrap().recv_timeout(deadline.saturating_duration_since(Instant::now())) {
+            if frame["method"] != "experimentalFeature/list" { panic!("nothing should reach Codex's input, but {frame} did"); }
+        }
     }
     fn answer(&self, frame: &Value, result: Value) {
         self.host.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":result})).unwrap(), &self.g);
     }
     fn error(&self, frame: &Value) {
         self.host.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"error":{"code":-32603,"message":"invented"}})).unwrap(), &self.g);
+    }
+    /// Runs `hook` just before the conversation request's own write: armed once the plugins-and-apps
+    /// reading made before that request has been written and answered.
+    fn before_the_request_write(&self, hook: Box<dyn FnOnce(&Host) + Send>) {
+        let hook = Mutex::new(Some(hook));
+        *self.host.feature_read_reply.lock().unwrap() = Some(Box::new(move |host, source| {
+            host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":extensions::features_off_page()})).unwrap(), source.generation());
+            if let Some(hook) = hook.lock().unwrap().take() { *host.before_request_write.lock().unwrap() = Some(hook); }
+        }));
     }
     fn current(&self) -> Option<String> { self.host.reading_current_for_test() }
     fn stage(&self) -> Option<(Option<String>, ReadingStage)> { self.host.reading_stage_for_test() }
@@ -161,7 +181,7 @@ fn a_reading_registered_after_a_final_check_reaches_codex_after_that_request() {
     let (host, g) = (rig.host.clone(), rig.g.clone());
     let reader: Arc<Mutex<Option<std::thread::JoinHandle<Result<SourceRequest, String>>>>> = Arc::default();
     let slot = reader.clone();
-    *rig.host.before_request_write.lock().unwrap() = Some(Box::new(move |h| {
+    rig.before_the_request_write(Box::new(move |h| {
         *h.reading_after_register.lock().unwrap() = Some(Box::new(move |_| { let _ = registered_tx.send(()); }));
         *slot.lock().unwrap() = Some(std::thread::spawn(move || read(&host, &g, json!({"cwd":W,"includeLayers":false}), LONG)));
         registered.recv_timeout(LONG).expect("the reading registers while the start holds the writer");
@@ -712,7 +732,7 @@ fn a_requirements_reading_after_continues_final_check_reaches_codex_after_it() {
     let continuing = std::thread::spawn(move || host_for.history_dispatch(&query).map(|_| ()));
     let reading = rig.frame();
     // The Continue's own reading is answered; its request is then held after its final check.
-    *rig.host.before_request_write.lock().unwrap() = Some(Box::new(move |h| {
+    rig.before_the_request_write(Box::new(move |h| {
         *h.reading_after_register.lock().unwrap() = Some(Box::new(move |_| { let _ = registered_tx.send(()); }));
         *slot.lock().unwrap() = Some(std::thread::spawn(move || host.account_requirements_read_until(&g, Instant::now() + LONG)));
         registered.recv_timeout(LONG).expect("the requirements reading registers while the Continue holds the writer");

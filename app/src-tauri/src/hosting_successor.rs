@@ -395,6 +395,9 @@ if '--version' in sys.argv:
 open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','argv.jsonl'),'a').write(json.dumps(sys.argv[1:])+chr(10))
 for line in sys.stdin:
  f=json.loads(line)
+ features=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','features.json')
+ if f.get('method')=='experimentalFeature/list' and os.path.exists(features):
+  print(json.dumps({{'id':f['id'],'result':json.load(open(features))}}),flush=True);continue
  if 'id' in f:
   print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)
 "#
@@ -426,24 +429,29 @@ for line in sys.stdin:
             .map(|line| serde_json::from_str(line).unwrap())
             .collect()
     }
-    /// DEL-01-05 REQ-010: the successor route's start and restart carry plugins and apps off.
+    /// DEL-01-05: on the successor route, a conversation start is preceded by the reading of
+    /// plugins and apps on the generation that route started, and the reading is shown; a reply
+    /// not in the stated shape is shown as not read, and the start is sent all the same.
     #[test]
-    fn the_successor_start_carries_plugins_and_apps_off() {
-        let f = Fixture::new("pass");
-        let host = Arc::new(Host::new());
-        host.start(&f.cfg, "fixture").unwrap();
-        host.stop("fixture", "restart").unwrap();
-        host.start(&f.cfg, "fixture restart").unwrap();
-        let starts = started_with(&f);
-        assert_eq!(starts.len(), 2, "{starts:?}");
-        for arguments in &starts {
-            for flag in [crate::hosting::PLUGINS_OFF_FLAG, crate::hosting::APPS_OFF_FLAG] {
-                let at = arguments.iter().position(|a| a == flag).expect("passed");
-                assert_eq!(arguments[at - 1], "-c");
-            }
-            assert_eq!(arguments.last().map(String::as_str), Some("app-server"));
+    fn the_successor_route_reads_plugins_and_apps_before_a_start() {
+        for (answer, plugins, apps) in [
+            (Some(json!({"data":[{"name":"plugins","enabled":true,"defaultEnabled":false,"stage":"stable"},{"name":"apps","enabled":false,"defaultEnabled":false,"stage":"stable"}],"nextCursor":null})), "on", "off"),
+            (None, "not-read", "not-read"),
+        ] {
+            let f = Fixture::new("pass");
+            if let Some(answer) = &answer { std::fs::write(f.root.join("features.json"), answer.to_string()).unwrap(); }
+            let host = Arc::new(Host::new());
+            host.start(&f.cfg, "fixture").unwrap();
+            let generation = host.snapshot()["generation"].clone();
+            host.request_inner_scoped("thread/start", json!({"model":"m","modelProvider":"p"}), json!({"kind":"person-directed"}), Duration::from_secs(2), false, Some(&generation)).unwrap();
+            let status = host.snapshot();
+            let extensions = &status["extensions"];
+            assert_eq!((extensions["generation"].clone(), extensions["plugins"]["state"].as_str(), extensions["apps"]["state"].as_str()), (generation.clone(), Some(plugins), Some(apps)), "{extensions}");
+            if answer.is_none() { assert_eq!(extensions["plugins"]["notReadBecause"], "malformed-reply"); }
+            let methods: Vec<&str> = status["clientRequests"].as_array().unwrap().iter().filter(|r| r["generation"] == generation).map(|r| r["method"].as_str().unwrap()).filter(|m| *m != "initialize").collect();
+            assert_eq!(methods, ["experimentalFeature/list", "thread/start"], "read, then sent");
+            let _ = host.stop("fixture", "test ended");
         }
-        let _ = host.stop("fixture", "test ended");
     }
     /// DEL-01-05: the development model address reaches the successor start's arguments
     /// when it is admitted, and only then.

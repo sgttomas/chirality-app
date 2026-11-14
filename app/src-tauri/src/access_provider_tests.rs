@@ -145,12 +145,10 @@ fn the_development_model_address_setting_is_listed_with_its_reason_only_where_ap
 #[test]
 fn every_session_setting_the_app_applies_is_listed_with_a_reason() {
     let account = HostConfig::new("/x".into(), "/a".into(), "/p".into(), "/w".into());
-    assert_eq!(account.session_flags, ["analytics.enabled=false", "features.plugins=false", "features.apps=false", "model_provider=\"openai\""]);
+    assert_eq!(account.session_flags, ["analytics.enabled=false", "model_provider=\"openai\""]);
     let listed = applied_session_settings(&account.session_flags);
-    assert_eq!(listed.as_array().unwrap().len(), 4);
-    assert!(listed[1]["reason"].as_str().unwrap().contains("a plugin named in your settings is not loaded here"));
-    assert!(listed[2]["reason"].as_str().unwrap().contains("Apps connected to your ChatGPT account are unavailable"));
-    assert!(listed[3]["reason"].as_str().unwrap().contains("Your files are not changed"));
+    assert_eq!(listed.as_array().unwrap().len(), 2);
+    assert!(listed[1]["reason"].as_str().unwrap().contains("Your files are not changed"));
     let unknown = applied_session_settings(&["invented.setting=1".into()]);
     assert_eq!(unknown, json!([{"setting":"invented.setting=1","reason":"No reason is recorded for this setting."}]), "an unrecognised setting is listed, not dropped");
     for flag in account.session_flags.iter() {
@@ -853,6 +851,8 @@ impl Peer {
             .spawn()
             .unwrap();
         *host.stdin.lock().unwrap() = child.stdin.take();
+        // The stand-in answers the plugins-and-apps reading: both off.
+        host.answer_features_off_for_test();
         let wire = BufReader::new(child.stdout.take().unwrap());
         Self {
             host,
@@ -885,6 +885,8 @@ impl Peer {
             .spawn()
             .unwrap();
         *host.stdin.lock().unwrap() = child.stdin.take();
+        // The stand-in answers the plugins-and-apps reading: both off.
+        host.answer_features_off_for_test();
         let wire = BufReader::new(child.stdout.take().unwrap());
         Self {
             host,
@@ -893,10 +895,28 @@ impl Peer {
             g,
         }
     }
+    /// Answers the next plugins-and-apps reading with both off, then waits for `go` before the
+    /// request after it continues: the test takes the frame writer between the two, so that request
+    /// is queued behind it.
+    pub(crate) fn hold_writer_after_reading(&self) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
+        let (answered_tx, answered) = std::sync::mpsc::channel();
+        let (go, go_rx) = std::sync::mpsc::channel::<()>();
+        let (answered_tx, go_rx) = (Mutex::new(answered_tx), Mutex::new(go_rx));
+        *self.host.feature_read_reply.lock().unwrap() = Some(Box::new(move |host, source| {
+            host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":crate::hosting::extensions::features_off_page()})).unwrap(), source.generation());
+            let _ = answered_tx.lock().unwrap().send(());
+            let _ = go_rx.lock().unwrap().recv_timeout(Duration::from_secs(5));
+        }));
+        (answered, go)
+    }
+    /// The next frame written, past the plugins-and-apps readings the hook answers.
     pub(crate) fn frame(&mut self) -> Value {
-        let mut s = String::new();
-        self.wire.read_line(&mut s).unwrap();
-        serde_json::from_str(&s).unwrap()
+        loop {
+            let mut s = String::new();
+            self.wire.read_line(&mut s).unwrap();
+            let frame: Value = serde_json::from_str(&s).unwrap();
+            if frame["method"] != "experimentalFeature/list" { return frame; }
+        }
     }
     pub(crate) fn answer(&self, result: Value) {
         *self.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
@@ -1755,10 +1775,13 @@ fn access_provider_queued_start_rechecks_original_receipt_after_source_close() {
     peer.answer(config(json!({})));
     let proof = peer.read("chatgpt-account", "openai").unwrap();
     peer.frame();
-    let held = peer.host.frame_write.lock().unwrap();
+    let (answered, go) = peer.hold_writer_after_reading();
     let host = Arc::clone(&peer.host);
     let worker =
         std::thread::spawn(move || host.thread_start_with_access_dispatch(&proof, "guidance"));
+    answered.recv_timeout(Duration::from_secs(2)).unwrap();
+    let held = peer.host.frame_write.lock().unwrap();
+    go.send(()).unwrap();
     let deadline = std::time::Instant::now() + Duration::from_secs(2);
     loop {
         if peer
@@ -2333,10 +2356,13 @@ fn native_children_queued_mutation_cannot_promote_or_strip_prepared_supply() {
             .unwrap();
         assert_eq!(peer.frame()["method"], "config/read");
         assert_eq!(composition.children.len(), 1);
-        let held = peer.host.frame_write.lock().unwrap();
+        let (answered, go) = peer.hold_writer_after_reading();
         let host = Arc::clone(&peer.host);
         let worker =
             std::thread::spawn(move || host.thread_start_with_role_dispatch(&proof, &composition));
+        answered.recv_timeout(Duration::from_secs(2)).unwrap();
+        let held = peer.host.frame_write.lock().unwrap();
+        go.send(()).unwrap();
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         while !peer
             .host
@@ -4712,6 +4738,43 @@ fn access_provider_cloud_start_admission_reads_again_and_does_not_reuse_an_earli
         assert_eq!(peer.read(entry, "openai").err().unwrap(), BUILT_IN_PROVIDER_UNREPORTED, "{entry}: read again at this admission");
         assert_eq!(peer.host.client_requests().iter().filter(|r| r["method"] == "config/read").count(), 2);
         assert!(peer.host.client_requests().iter().all(|r| r["method"] == "config/read"), "no thread/start sent");
+        peer.safe();
+    }
+}
+/// DEL-01-05: where plugins and apps get their state comes from the origins in the very reading
+/// that admitted the start. The examination's scratch home sets both off in its own config.toml:
+/// "off, by this home's settings". A managed `connectors` (a second name for apps, applied after
+/// `apps`) prevails over the home's `apps`.
+#[test]
+fn extensions_sources_come_from_the_admitting_readings_origins() {
+    let user = json!({"name":{"type":"user","file":"/invented/home/config.toml"},"version":"invented-user-version"});
+    let managed = json!({"name":{"type":"mdm","domain":"invented.domain","key":"invented-key"},"version":"invented-mdm-version"});
+    for (case, features, origins, apps_enabled, expected) in [
+        ("this home sets both off", json!({"plugins":false,"apps":false}), json!({"features.plugins":user,"features.apps":user}), false,
+            [("plugins", "off", "this-home"), ("apps", "off", "this-home")]),
+        ("managed connectors over the home's apps", json!({"plugins":false,"apps":false,"connectors":true}), json!({"features.plugins":user,"features.apps":user,"features.connectors":managed}), true,
+            [("plugins", "off", "this-home"), ("apps", "on", "outside-app")]),
+    ] {
+        let mut peer = Peer::new("home");
+        let mut reading = config(json!({}));
+        reading["config"]["features"] = features;
+        reading["origins"] = origins;
+        peer.answer(reading);
+        let proof = peer.read("chatgpt-account", "openai").unwrap();
+        assert_eq!(peer.frame()["method"], "config/read");
+        *peer.host.feature_read_reply.lock().unwrap() = Some(Box::new(move |host, source| {
+            let page = json!({"data":[{"name":"plugins","enabled":false,"defaultEnabled":false,"stage":"stable"},{"name":"apps","enabled":apps_enabled,"defaultEnabled":false,"stage":"stable"}],"nextCursor":null});
+            host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":page})).unwrap(), source.generation());
+        }));
+        peer.host.thread_start_with_access_dispatch(&proof, "guidance").unwrap();
+        assert_eq!(peer.frame()["method"], "thread/start", "{case}");
+        let shown = peer.host.snapshot()["extensions"].clone();
+        assert_eq!(shown["evidence"]["origins"], "admitting-reading", "{case}");
+        for (feature, state, source) in expected {
+            assert_eq!((shown[feature]["state"].as_str(), shown[feature]["source"].as_str()), (Some(state), Some(source)), "{case}: {feature}");
+        }
+        let text = shown.to_string();
+        assert!(!text.contains("/invented/home") && !text.contains("invented.domain") && !text.contains("invented-key"), "no layer detail is shown: {text}");
         peer.safe();
     }
 }

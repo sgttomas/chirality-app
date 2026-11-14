@@ -49,6 +49,7 @@ for line in sys.stdin:
  with open('wire.jsonl','a') as log: log.write(json.dumps(f)+'\n')
  m=f.get('method')
  if m=='initialize': result={'userAgent':'unqualified-recovery-fixture'}
+ elif m=='experimentalFeature/list': result={'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}
  elif m=='thread/start':
   t=thread('thread');t['status']={'type':'idle'}
   result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}

@@ -20,6 +20,7 @@ for line in sys.stdin:
  if f['method']=='initialize':
   print(json.dumps({'method':'test/early','params':{'native':True},'emittedAtMs':1}),flush=True)
   result={'userAgent':'codex/@PIN@'}
+ elif f['method']=='experimentalFeature/list': result={'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}
  else: result={'thread':{'id':'same-thread-id','status':{'type':'idle'}},'model':'configured-model','modelProvider':'configured-provider'}
  print(json.dumps({'id':f['id'],'result':result}),flush=True)
 "#.replace("@PIN@", DECLARED_PIN)).unwrap();

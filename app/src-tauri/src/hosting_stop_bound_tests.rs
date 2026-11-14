@@ -41,6 +41,7 @@ def handle(f):
  m=f.get('method')
  with open('wire.jsonl','a') as log: log.write(json.dumps({'method':m})+'\n')
  if m=='initialize': result={'userAgent':'unqualified-stop-fixture'}
+ elif m=='experimentalFeature/list': result={'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}
  elif m=='thread/start':
   starts[0]+=1
   t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}

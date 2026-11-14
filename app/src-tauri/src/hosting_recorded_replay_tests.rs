@@ -235,6 +235,14 @@ runpy.run_path({peer},run_name='__main__')
                     // The App journals a private configuration reply only in its withheld projection.
                     return super::access_provider::withheld(&json!({"id":e["actual_rpc_id"],"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}}));
                 }
+                if e["event"]=="constructed-frame" && e["recipe"]=="experimental-feature-list-reply-constructed-before-conversation-request" {
+                    // The player's constructed stand-in for the plugins-and-apps reading, not a captured frame.
+                    assert!(e.get("frame_index").is_none() && e.get("source_frame_index").is_none(),"no recorded frame stands behind it");
+                    assert!(e["constructed_standing"].as_str().is_some_and(|s|s.contains("no such frame was captured from the supplier")));
+                    return json!({"id":e["actual_rpc_id"],"result":{"data":[
+                        {"name":"plugins","enabled":false,"defaultEnabled":false,"stage":"stable"},
+                        {"name":"apps","enabled":false,"defaultEnabled":false,"stage":"stable"}],"nextCursor":null}});
+                }
                 if e["event"]=="constructed-frame" {
                     assert_eq!(e["recipe"],"thread-list-envelope-from-thread-read");
                     assert_eq!(e["source_frame_index"],25);
@@ -564,6 +572,8 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
             "thread/list",
             // The account Continue's admitting reading, answered by the player's constructed stand-in.
             "config/read",
+            // The plugins-and-apps reading, answered by the player's constructed stand-in.
+            "experimentalFeature/list",
             "thread/resume"
         ]
     );
@@ -580,10 +590,11 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
         .unwrap();
     f.assert_recorded_frames(&generation, 2);
     let audit = f.audit(2);
-    // The constructed catalog and the constructed stand-in for the App's configuration reading,
-    // each a request and a reply; the App made the reading before it resumed.
+    // The constructed catalog, the constructed stand-in for the App's configuration reading and the
+    // one for its plugins-and-apps reading, each a request and a reply; the App made both readings
+    // before it resumed.
     let constructed: Vec<_> = audit.iter().filter(|e| e["event"] == "constructed-frame").map(|e| (e["direction"].as_str().unwrap_or("").to_owned(), e["method"].as_str().unwrap_or("").to_owned())).collect();
-    assert_eq!(constructed, [("app->codex", "thread/list"), ("codex->app", "thread/list"), ("app->codex", "config/read"), ("codex->app", "config/read")].map(|(d, m)| (d.to_owned(), m.to_owned())));
+    assert_eq!(constructed, [("app->codex", "thread/list"), ("codex->app", "thread/list"), ("app->codex", "config/read"), ("codex->app", "config/read"), ("app->codex", "experimentalFeature/list"), ("codex->app", "experimentalFeature/list")].map(|(d, m)| (d.to_owned(), m.to_owned())));
     let binding = audit.iter().find(|e| e["event"] == "binding").unwrap();
     let adapted_resume = audit
         .iter()

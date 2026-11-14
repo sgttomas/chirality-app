@@ -356,33 +356,6 @@ for line in sys.stdin:
         std::fs::remove_dir_all(root).unwrap();
     }
 
-    /// DEL-01-05 REQ-010: plugins and connected apps are off at every start of the account home's
-    /// Codex, start and restart, each as one `-c` setting, and the configuration identity records both.
-    #[test]
-    fn the_account_home_starts_codex_with_plugins_and_apps_off_every_time() {
-        let (root, cfg) = fixture();
-        let host = Arc::new(Host::new());
-        host.start(&cfg, "fixture").unwrap();
-        host.stop("fixture", "restart").unwrap();
-        host.start(&cfg, "fixture restart").unwrap();
-        let starts = started_with(&root);
-        assert_eq!(starts.len(), 2);
-        for arguments in &starts {
-            for (flag, key) in [(crate::hosting::PLUGINS_OFF_FLAG, "features.plugins"), (crate::hosting::APPS_OFF_FLAG, "features.apps")] {
-                let at = arguments.iter().position(|a| a == flag).expect("passed");
-                assert_eq!(arguments[at - 1], "-c");
-                assert_eq!(arguments.iter().filter(|a| a.contains(key)).count(), 1, "{arguments:?}");
-            }
-            assert_eq!(arguments.last().map(String::as_str), Some("app-server"));
-        }
-        let identity = host.snapshot()["configurationIdentity"].clone();
-        for flag in [crate::hosting::PLUGINS_OFF_FLAG, crate::hosting::APPS_OFF_FLAG] {
-            assert!(identity["sessionFlags"].as_array().unwrap().iter().any(|f| f == flag), "{identity}");
-        }
-        host.stop("fixture", "test ended").unwrap();
-        std::fs::remove_dir_all(root).unwrap();
-    }
-
     #[test]
     fn dev_model_address_does_not_start_a_home_that_holds_a_sign_in_file() {
         let (root, cfg) = fixture();
