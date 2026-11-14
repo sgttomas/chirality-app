@@ -390,7 +390,7 @@
       }
     },
     "sealProvider": {
-      "description": "Provider recorded among the seal-covered facts. Absence preserves legacy captures; a label alone is not verification.",
+      "description": "Provider recorded among the seal-covered facts. Absence preserves legacy captures. A file-key seal can be made by anything that can read the key file, including any process running as the same user. File-key standing stays weaker after enrolment. A label alone is not verification.",
       "enum": ["file-key", "keychain"]
     },
     "seal": {

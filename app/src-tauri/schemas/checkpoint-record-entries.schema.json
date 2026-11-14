@@ -100,7 +100,7 @@
       ],
       "properties": {
         "sealProvider": {
-          "description": "Provider whose key verified the seal when this act was counted. Absent on legacy records; no label alone supplies this standing.",
+          "description": "Provider whose key verified the seal when this act was counted. Absent on legacy records. A file-key seal can be made by anything that can read the key file, including any process running as the same user. File-key standing stays weaker after enrolment. A label alone is not verification.",
           "enum": ["file-key", "keychain"]
         },
         "recordId": {
@@ -750,7 +750,7 @@
       ],
       "properties": {
         "sealProvider": {
-          "description": "Provider whose key verified the seal when this act was counted. Absent on legacy records; no label alone supplies this standing.",
+          "description": "Provider whose key verified the seal when this act was counted. Absent on legacy records. A file-key seal can be made by anything that can read the key file, including any process running as the same user. File-key standing stays weaker after enrolment. A label alone is not verification.",
           "enum": ["file-key", "keychain"]
         },
         "arrival": {

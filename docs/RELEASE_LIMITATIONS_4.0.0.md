@@ -252,7 +252,14 @@ An entry is added in the same pull request that makes the limitation standing.
   as a fresh installation. The enrolment join coordinates participating App
   operations; another process on the same account can replace it and already
   has access to the file key. “No enrolment evidence found” is not proof that
-  protection never existed. The keychain's protection is not established
+  protection never existed. The installation's known-library list is another
+  removable local trace: if it is absent, no library is known, including a
+  retained library that has not been reopened. That is the same complete-loss
+  class; absence permits no weaker seal while any protected item or other veto
+  survives. A present unreadable, malformed or truncated list, or an unreadable
+  listed library, refuses file-key admission. Roots are added on opening and
+  registration and are never silently removed; this unit has no removal act.
+  The keychain's protection is not established
   until release criterion 8 has been met on the installed, signed candidate.
 - **What the person does instead:** read the provider stated for each capture
   and counted act. A key-file seal remains weaker after keychain setup; a
