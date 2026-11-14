@@ -233,3 +233,25 @@ fn each_reading_gives_the_time_it_began_and_a_later_reading_replaces_it() {
     let _ = crate::runtime_session::reopen_recorded(&workflows, Ok(peer.fixture.root.join("invented-not-there").as_path()), &[], &[]);
     assert_eq!(workflows.lock().unwrap().reopened.as_ref().unwrap()["readAt"], second_at);
 }
+
+/// `readAt` is the time the records were read, so handing on the stored view does not change it:
+/// the status read and its poll (`host_status`'s workflow part, which forwards `reopened` without
+/// reading the records) give the same time each time. Only a reading that reads again stamps anew.
+#[test]
+fn handing_on_the_stored_reading_keeps_its_time_and_only_a_new_reading_changes_it() {
+    let (peer, _a) = reopened_after_an_arrival();
+    let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+    let read = crate::runtime_session::reopen_recorded(&workflows, Ok(peer.fixture.root.as_path()), &[], &[]).unwrap();
+    let read_at = read["readAt"].as_str().unwrap().to_owned();
+    for _ in 0..3 {
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        let status = crate::host_tick::workflow_status(&workflows, &peer.home, &json!({}), true);
+        assert_eq!(status["reopened"]["readAt"], read_at.as_str(), "the poll hands on the reading's own time");
+        assert_eq!(status["reopened"]["runs"], read["runs"], "and the reading as it was");
+        assert_eq!(workflows.lock().unwrap().snapshot()["reopened"]["readAt"], read_at.as_str(), "so does the plain status read");
+    }
+    let again = crate::runtime_session::reopen_recorded(&workflows, Ok(peer.fixture.root.as_path()), &[], &[]).unwrap();
+    let again_at = again["readAt"].as_str().unwrap();
+    assert!(again_at > read_at.as_str(), "{again_at} after {read_at}");
+    assert_eq!(crate::host_tick::workflow_status(&workflows, &peer.home, &json!({}), true)["reopened"]["readAt"], again_at, "a new reading is handed on with its own time");
+}
