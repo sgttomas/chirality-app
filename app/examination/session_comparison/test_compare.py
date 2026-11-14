@@ -670,5 +670,56 @@ class TheWorkflowComparisonIsNotAvailable(unittest.TestCase):
             compare.row('W1', {'thread': THREAD}, {}, {}, 'passed', 'x')
 
 
+
+class FourthReading(unittest.TestCase):
+    """The scoped reading after round 3: each of its three findings as a case."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.r = Root(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_answers_are_refused_once_a_saved_view_exists(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.compare(candidate=True)
+        (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
+        lines = screen.read_text().splitlines()
+        answered = [lines[0]] + [json.dumps({**json.loads(l), 'answer': 'passed', 'note': 'seen'}) for l in lines[1:]]
+        screen.write_text('\n'.join(answered) + '\n')
+        self.r.view({'turn-1': 'interrupted'})
+        self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen)]), 1)
+        (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
+        self.assertNotIn('passed', {r['outcome'] for r in rows([json.loads(l) for l in out.read_text().splitlines()])})
+
+    def test_json_escaped_workflow_markers_still_give_the_w1_row(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.write()
+        (path,) = self.r.root.rglob(f'rollout-*-{THREAD}.jsonl')
+        line = json.dumps({'timestamp': 't', 'type': 'response_item', 'payload': {'type': 'message', 'role': 'user',
+                           'content': [{'type': 'input_text', 'text': run_text()}]}}).replace('<', '\\u003c')
+        self.assertNotIn('<<<', line)
+        path.write_text(path.read_text() + line + '\n')
+        lines = self.r.compare(self.r.view({'turn-1': 'completed'}))
+        (w1,) = rows(lines, 'W1')
+        self.assertEqual((w1['outcome'], w1['codex']), ('blocked', {'linesWithWorkflowMarkers': 1}))
+
+    def test_a_header_that_cannot_be_read_still_ends_with_blocked_rows(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.write()
+        original = compare.tool_digest
+        compare.tool_digest = lambda: (_ for _ in ()).throw(OSError('invented'))
+        try:
+            self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--view', self.r.view({})]), 1)
+        finally:
+            compare.tool_digest = original
+        (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
+        lines = [json.loads(l) for l in out.read_text().splitlines()]
+        self.assertIsNone(lines[0]['tool_sha256'])
+        self.assertEqual(lines[0]['workflow_comparison'], compare.NOT_AVAILABLE)
+        self.assertEqual({r['outcome'] for r in rows(lines)}, {'blocked'})
+
+
 if __name__ == '__main__':
     unittest.main()

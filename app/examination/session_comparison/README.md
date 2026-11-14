@@ -5,7 +5,7 @@ This compares the App's account of a Codex session with Codex's own record of th
 This is the first part. It makes exactly three comparisons of one thread: its turns (C2), their outcomes (C3), and the interrupts the App recorded (C4). Children, items, outputs, conversations and order follow in later parts.
 
 **The workflow comparison (W1) is not available in this version.** It would compare the selected workflow with what Codex recorded as the person's input. Its association of a run with a Codex message needed a new rule in each of three independent readings, so it comes in a change of its own, with its own reading. Its claim will require the run reference in the run text's own first line to equal the record's run. Until then, nothing this tool writes establishes that the selected workflow reached Codex, and a result of three passes is not that check.
-- Where a session has a workflow run to compare, the tool writes one W1 row with the outcome blocked and the reason "the workflow comparison is not available in this version". A session has one when a line of Codex's record carries the workflow markers, when a run text record names the thread, or when a workflow record cannot be read. W1 is never passed and never left out. Where the session cannot be read, whether it has a run is not known, so the W1 row is written blocked as well.
+- Where a session has a workflow run to compare, the tool writes one W1 row with the outcome blocked and the reason "the workflow comparison is not available in this version". A session has one when a line of Codex's record carries the workflow markers, in its bytes or in any value once decoded, when a run text record names the thread, or when a workflow record cannot be read. W1 is never passed and never left out. Where the session cannot be read, whether it has a run is not known, so the W1 row is written blocked as well.
 - Every header and every summary, the screen list's header among them, names the three comparisons (`compares`) and carries `workflow_comparison`: "the workflow comparison is not available in this version".
 - Asking for it by name (`--comparison W1` or `--comparison workflow`) is refused with that sentence, and nothing is written.
 
@@ -53,7 +53,7 @@ A candidate cannot save its views, so its result comes in two steps.
    - Rows carry the note's digest, never its text.
    - The answers file's header names its list (`answers_of`), and the examination table counts only the latest answers file of each list.
 
-Where a saved view exists, the comparison is exact. It is never replaced by the operator's list: `compare` without `--view` is refused, with blocked rows, while any `record/host-status-*.json` exists.
+Where a saved view exists, the comparison is exact. It is never replaced by the operator's list: while any `record/host-status-*.json` exists, `compare` without `--view` and `answers` are both refused, with blocked rows.
 
 ## The comparisons and their outcomes
 
@@ -75,7 +75,7 @@ A saved view is taken after the session ended. Comparing views at earlier points
 The output is `record/session-comparison-<UTC>.jsonl`. It is always a new file: an existing name is never written over. It contains, in order:
 1. a header line: `{"header": true, "candidate_key", "examination_root", "tool", "tool_sha256", "model_version", "pinned_codex", "compares", "workflow_comparison", "saved_views_not_named"}`, and on an answers file `answers_of`.
    - `saved_views_not_named` lists the saved views in `record/` that the command was not given, and the tool says the same on stderr. A view that exists is never passed over silently.
-   - A file of blocked rows written after a failure carries the header without that list.
+   - A file of blocked rows written after a failure carries the header without that list. Its fields read from files (`candidate_key`, `tool_sha256`) are null where reading them failed, so the header itself cannot stop the rows being written.
 2. one row per comparison: `{"comparison", "subject", "codex", "app", "outcome", "reason"}`;
 3. a summary line: `{"summary": {comparison: {outcome: count}}, "unrecognised": n, "compares", "workflow_comparison"}`. A W1 row is counted under `W1`, as blocked. It is derived from the rows, and the tool refuses to write a file whose summary would disagree with its rows, or in which a planned comparison has no row.
 
