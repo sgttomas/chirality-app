@@ -520,6 +520,13 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const found = select(elements, step.control);
       entry.control = step.control;
       if (found.some(({ content }) => endsWithEllipsis(content))) return finish('inconclusive', `stopped at ${step.id}: the control found has words that end with an ellipsis, and such a control is never clicked`);
+      // A button the scenario presses only if the App offers it: absent or unavailable, it is recorded as not
+      // offered and not pressed, and the step's view and checks are made as for any other step.
+      const notOffered = step.if_offered === true && step.control.kind === 'button'
+        && (found.length === 0 || (found.length === 1 && found[0].content.startsWith('button (disabled) ')));
+      if (notOffered) entry.offered = found.length ? 'unavailable; not pressed' : 'absent; not pressed';
+      else {
+      if (step.if_offered === true) entry.offered = 'available; pressed';
       if (found.length !== 1) return finish(report.steps.some(s => s.checks.some(c => !c.pass)) ? 'fail' : 'inconclusive',
         `stopped at ${step.id}: the control to click was found ${found.length} times in the latest view`);
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
@@ -535,6 +542,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
       if (step.wait_ms) await sleep(step.wait_ms);
+      }
       const beforeView = gate(`at ${step.id}, before its view`);  // read again immediately before the view
       if (beforeView) return beforeView;
     } else if (step.act === 'type') {

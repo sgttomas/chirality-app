@@ -3,7 +3,7 @@
   "version": 1,
   "what_it_is": "Agent-operated development evidence on the same development build and the same kept home after setup: what the App shows on the next launch, signed out, read by views, by the link to the Settings & tools view, by opening disclosures, and by one account check. The labels are read from the App's source at the revision built (App.tsx, DailyWorkspace.tsx, DesktopSetupPanel.tsx, AccountStatus.tsx), not from a recorded view; a label that differs stops the walk there. It is not a person's observation and meets no criterion.",
   "starting_state": "The kept home after the setup walk, relaunched by the launcher with its network blocks on; no credential.",
-  "acts": "views; one click on the Settings & tools link; clicks that open a disclosure; one press of Check account status, which asks the App's own Codex for the account state and changes nothing; nothing typed",
+  "acts": "views; one click on the Settings & tools link; clicks that open a disclosure; one press of Check account status, which asks the App's own Codex for the account state and changes nothing; one press of Read effective storage and plugin settings if the App offers it, which reads two settings from the App's own Codex and changes nothing; nothing typed",
   "never_clicked": [
     "Start",
     "Stop",
@@ -118,6 +118,23 @@
       },
       "wait_ms": 5000,
       "says": "the account check, read only: what the App says about sign-in when signed out; the whole view is kept",
+      "expect": [
+        {
+          "button": "Check account status",
+          "is": "available"
+        }
+      ]
+    },
+    {
+      "id": "R7",
+      "act": "click",
+      "if_offered": true,
+      "control": {
+        "kind": "button",
+        "label": "Read effective storage and plugin settings"
+      },
+      "wait_ms": 5000,
+      "says": "the effective settings, read only, if the App offers the read signed out: what Credential storage then shows, word for word, is in the whole view kept; if the read is absent or unavailable the step records that it was not offered and nothing is pressed",
       "expect": [
         {
           "button": "Check account status",

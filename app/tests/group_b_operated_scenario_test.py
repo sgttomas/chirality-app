@@ -1140,6 +1140,62 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
                 self.assertFalse(step['control']['label'].endswith(('…', '...')))
         self.assertNotIn('typed_fields', relaunch)
         self.assertNotIn('sheets', relaunch)
+        pressed = [step['control']['label'] for step in relaunch['steps'] if step['act'] == 'click' and step['control']['kind'] == 'button']
+        self.assertEqual(pressed, ['Check account status', 'Read effective storage and plugin settings'])
+        self.assertEqual([step['id'] for step in relaunch['steps'] if step.get('if_offered')], ['R7'])
+        self.assertIn('>Read effective storage and plugin settings</button>', (APP / 'src/App.tsx').read_text())
+
+
+class AButtonPressedOnlyIfOffered(unittest.TestCase):
+    """A click step marked if_offered presses its button when the App offers it and otherwise records that it did not."""
+
+    def walk(self, control, first=None, if_offered=True, expect=None):
+        scenario = json.loads(SCENARIO.read_text())
+        step = {'id': 'O1', 'act': 'click', 'control': control, 'says': 'invented', 'expect': expect or [{'no_text': 'Invented absent words'}]}
+        if if_offered:
+            step['if_offered'] = True
+        scenario['steps'], scenario['outcomes'] = [step], {}
+        views = setup_views()
+        if first:
+            views['views'][0]['text'] = first
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'scenario.json'
+            path.write_text(json.dumps(scenario))
+            return setup_walk('const r = await walk.run(base); return [r.verdict, r.stopped, '
+                              'r.calls.filter(c => c.call === "click").map(c => c.element_index), r.steps.map(s => s.offered ?? null)];',
+                              views, path)['out']
+
+    def test_an_unavailable_button_is_not_pressed_and_is_recorded_as_not_offered(self):
+        self.assertEqual(self.walk({'kind': 'button', 'label': 'Review setup'}), ['pass', None, [], ['unavailable; not pressed']])
+
+    def test_an_absent_button_is_not_pressed_and_is_recorded_as_not_offered(self):
+        self.assertEqual(self.walk({'kind': 'button', 'label': 'Read effective storage and plugin settings'}),
+                         ['pass', None, [], ['absent; not pressed']])
+
+    def test_an_available_button_is_pressed_once(self):
+        typed = setup_views()['views'][1]['text']
+        self.assertEqual(self.walk({'kind': 'button', 'label': 'Review setup'}, first=typed), ['pass', None, [37], ['available; pressed']])
+
+    def test_the_steps_checks_still_decide_when_nothing_is_pressed(self):
+        verdict, _, clicks, _ = self.walk({'kind': 'button', 'label': 'Review setup'}, expect=[{'button': 'Review setup', 'is': 'available'}])
+        self.assertEqual((verdict, clicks), ('fail', []))
+
+    def test_without_the_mark_an_unavailable_button_is_still_a_failure(self):
+        verdict, stopped, clicks, _ = self.walk({'kind': 'button', 'label': 'Review setup'}, if_offered=False)
+        self.assertEqual((verdict, clicks), ('fail', []))
+        self.assertIn('the control to click is unavailable', stopped)
+
+    def test_the_mark_does_not_reach_a_control_that_is_not_a_button(self):
+        verdict, stopped, clicks, _ = self.walk({'kind': 'link', 'label': 'Invented link'})
+        self.assertEqual((verdict, clicks), ('inconclusive', []))
+        self.assertIn('found 0 times', stopped)
+
+    def test_the_mark_does_not_reach_a_button_found_twice(self):
+        typed = setup_views()['views'][1]['text']
+        twice = typed.replace('37 button Review setup', '37 button Review setup\n\t\t\t\t98 button Review setup')
+        verdict, stopped, clicks, _ = self.walk({'kind': 'button', 'label': 'Review setup'}, first=twice)
+        self.assertEqual((verdict, clicks), ('inconclusive', []))
+        self.assertIn('found 2 times', stopped)
 
 
 if __name__ == '__main__':

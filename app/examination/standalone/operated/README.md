@@ -1313,6 +1313,16 @@ either driver marker.
     ruled out, and only an empty directory is at stake.
 
   `keep-launch` is run through `detached.py`, as `launch` is.
+- **A read pressed only if offered.** The relaunch's step R7 presses "Read
+  effective storage and plugin settings" (App Agent 0, 14 November 2026), so
+  that what "Credential storage" shows signed out is recorded word for word in
+  the view kept. The App offers that read only while its Codex is ready, so the
+  step is marked `if_offered`: a button that is absent or unavailable is not
+  pressed, and the step records "absent; not pressed" or "unavailable; not
+  pressed" and makes its view and checks as any other step. A button found
+  twice, or a control of another kind, stops the walk as before. The read
+  changes no setting and starts no sign-in, model or conversation (the App's
+  own words under it).
 - **The record.** It says that an agent pressed the confirmation, by the
   supplier's click on the sheet's button by element index. The records the App
   writes will say that setup was confirmed. It is development evidence and
