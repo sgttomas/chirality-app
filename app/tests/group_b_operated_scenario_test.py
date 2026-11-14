@@ -1418,16 +1418,7 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
         supplier = re.search(r'const SUPPLIER: &str = "([^"]+)";', source).group(1)
         named = iter(['{settings}', '{account}', '{project}', '{request}'])
         expected = re.sub(r'\{\}', lambda _: next(named), statement.replace('{SUPPLIER}', supplier)).split('\\n')
-        recorded = json.loads(SETUP.read_text())['sheets'][0]['statement']
-        # The scenario is as recorded on candidate 9d997626. PR 334 (main fc1b222d) changed the statement's second
-        # line in the App; the recorded line stays until the scenario is re-recorded from a build of main, and the
-        # README names the stale states. Every other line is still the App's, line for line.
-        stale = {1: ('with an empty config.toml, an empty AGENTS.md and an empty skills folder.',
-                     'with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills '
-                     'there, and its own working files to the account directory, when it starts.')}
-        self.assertEqual(len(recorded), len(expected))
-        for n, (was, now) in enumerate(zip(recorded, expected)):
-            self.assertEqual((was, now), stale[n] if n in stale else (now, now), n)
+        self.assertEqual(json.loads(SETUP.read_text())['sheets'][0]['statement'], expected)
 
     def test_the_sheets_title_and_buttons_are_the_apps(self):
         sheet = json.loads(SETUP.read_text())['sheets'][0]
