@@ -125,3 +125,27 @@ fn a_run_whose_log_cannot_be_read_whole_carries_that_limit_so_its_dispositions_r
     let shown = torn["lifecycle"]["records"].as_array().unwrap();
     assert_eq!(shown.len(), whole["lifecycle"]["records"].as_array().unwrap().len(), "the cut line is never shown as a record");
 }
+
+#[test]
+fn a_reading_that_cannot_read_stores_nothing_and_says_it_was_not_read_and_why() {
+    // As the launch reads, through the same function as the person's Reopen.
+    let (peer, a) = reopened_after_an_arrival();
+    let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+    let missing = peer.fixture.root.join("invented-project-not-there");
+    for project in [Err("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback"), Ok(missing.as_path())] {
+        let refused = crate::runtime_session::reopen_recorded(&workflows, project, &[], &[]);
+        assert!(refused.is_err());
+        let root = workflows.lock().unwrap();
+        assert!(root.reopened.is_none(), "nothing stored");
+        let not_read = root.reopened_not_read.clone().unwrap();
+        assert_eq!(not_read["state"], "not read");
+        assert_eq!(not_read["because"].as_str(), refused.as_ref().err().map(String::as_str), "its reason, as the reading gave it");
+    }
+    assert!(!missing.exists(), "nothing was made");
+    // A reading that reads replaces the reason and stores the view.
+    let read = crate::runtime_session::reopen_recorded(&workflows, Ok(peer.fixture.root.as_path()), &[], &[]).unwrap();
+    let root = workflows.lock().unwrap();
+    assert!(root.reopened_not_read.is_none());
+    assert!(root.reopened.as_ref().unwrap()["runs"].as_array().unwrap().iter().any(|r| r["run"] == a.as_str()));
+    assert_eq!(root.reopened.as_ref(), Some(&read));
+}

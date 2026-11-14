@@ -1751,6 +1751,16 @@ pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
     view
 }
 
+/// The person's Reopen and the launch's one reading: [`read_reopened_history`]. Where it cannot
+/// read, nothing is stored and nothing else is stopped; the reopened view says it was not read,
+/// and why, in the App's own words. A later reading that reads replaces the reason.
+pub(crate) fn reopen_recorded(workflows: &std::sync::Mutex<WorkflowRootSession>, project: Result<&std::path::Path, &str>, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    let outcome = project.map_err(str::to_owned).and_then(|project| read_reopened_history(workflows, project, events, homes));
+    let mut root = workflows.lock().unwrap();
+    root.reopened_not_read = outcome.as_ref().err().map(|because| json!({"state":"not read","because":because,
+        "words":"the App's own words, which may name a folder; no recorded value is shown"}));
+    outcome
+}
 pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
     // See records_store::HistoryRead for the shared-reader check and slice 2.
     let reading = crate::records_store::HistoryRead::begin(project);
@@ -4528,6 +4538,9 @@ pub(crate) struct WorkflowRootSession {
     /// Last durable reopen of the explicit project's records (display only).
     reopened: Option<Value>,
     reopened_generation: u64,
+    /// Why the latest reading of the recorded runs did not read, while it did not; `reopened`,
+    /// if present, is then from an earlier reading.
+    reopened_not_read: Option<Value>,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4581,6 +4594,7 @@ impl Default for WorkflowRootSession {
             conversations: Default::default(),
             reopened: None,
             reopened_generation: 0,
+            reopened_not_read: None,
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -4725,6 +4739,7 @@ impl WorkflowRootSession {
             }).collect::<Vec<_>>(),
             "afterRunEnd":self.after_run_end.view(),
             "reopened":self.reopened,
+            "reopenedNotRead":self.reopened_not_read,
             "restartLimits":self.restart_limits,
             "endedAfterRelaunch":self.reopened_ends_view(),
             "drafts":self.active_library.as_deref().map(|l|self.drafts_view(l)),

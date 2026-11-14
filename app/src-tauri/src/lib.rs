@@ -2704,14 +2704,14 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
 /// Reading only: the project's recorded runs, with this session's restart facts, read into the
 /// reopened view under its generation. The person's Reopen and the launch's one read are this.
 fn reopen_recorded_runs(state:&AppState)->Result<Value,String>{
-    let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback")?;
+    let root=state.workspace.as_deref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback");
     let home=state.homes.lock().unwrap().active();
     let recovery=home.recovery_startup.lock().unwrap().snapshot();
     let mut events=restart_events(&recovery);
     // The REC custody projection is where the Host derives app_restart_interruption.
     for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
     let homes=state.homes.lock().unwrap().entries();
-    runtime_session::read_reopened_history(&state.workflows,root,&events,&homes)
+    runtime_session::reopen_recorded(&state.workflows,root,&events,&homes)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]
