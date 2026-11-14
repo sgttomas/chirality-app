@@ -20,7 +20,7 @@ import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
 import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
-import { RunOffer, type RunAct } from "./RunOffers";
+import { type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
@@ -410,7 +410,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
-      renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
+      offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
@@ -2521,7 +2521,7 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/></div>}
+        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} open={group => { void openRequests(group); }}/></div>}
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>

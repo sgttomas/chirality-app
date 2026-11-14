@@ -7,6 +7,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
+import {agentPlain,agentBoxNames} from './support/agent-text.mjs';
 
 // Each module is transpiled alone; a local import is served from the modules already loaded.
 const load=(name,local={})=>{
@@ -26,9 +27,11 @@ const request=(method,parameters,extra={})=>({recordKind:'server-request-entry',
 const at={threadId:'T',turnId:'u',itemId:'i'};
 const command=(params={},extra={})=>request('item/commandExecution/requestApproval',{...at,command:'ls -la',cwd:'/work',reason:'List the folder',proposedExecpolicyAmendment:['ls'],...params},extra);
 const entry=extra=>command({},extra);
-const render=(r,view=null)=>renderToStaticMarkup(React.createElement(NativeRequestCard,{request:r,view,answer:async()=>{}}));
+// The markup with each box of text the App did not write read as ⟦label value⟧ (support/agent-text.mjs).
+const renderRaw=(r,view=null)=>renderToStaticMarkup(React.createElement(NativeRequestCard,{request:r,view,answer:async()=>{}}));
+const render=(r,view=null)=>agentPlain(renderRaw(r,view));
 // The App's own words: everything except code spans, quoted supplier text and preformatted native JSON.
-const appWords=html=>html.replace(/<pre[\s\S]*?<\/pre>/g,'').replace(/<code>[\s\S]*?<\/code>/g,'').replace(/<q>[\s\S]*?<\/q>/g,'').replace(/<[^>]+>/g,' ');
+const appWords=html=>agentPlain(html).replace(/⟦[\s\S]*?⟧/g,' ').replace(/<pre[\s\S]*?<\/pre>/g,'').replace(/<code>[\s\S]*?<\/code>/g,'').replace(/<q>[\s\S]*?<\/q>/g,'').replace(/<[^>]+>/g,' ');
 const A14={
   'item/commandExecution/requestApproval':command({reason:'Needs approval to accept'}),
   'item/fileChange/requestApproval':request('item/fileChange/requestApproval',{...at,reason:'Approve these edits',grantRoot:'/work'}),
@@ -41,7 +44,7 @@ test('tool-permission cards are titled and read without the raw JSON',()=>{
   const html=render(command());
   assert.match(html,/<h3>Tool permission: run a command<\/h3>/);
   const outside=html.replace(/<details>[\s\S]*?<\/details>/g,'');
-  assert.ok(outside.includes('<code>ls -la</code>')&&outside.includes('<code>/work</code>')&&outside.includes('<q>List the folder</q>'),'command, folder and reason are shown readably');
+  assert.ok(outside.includes('Command: ⟦The agent wrote: ls -la⟧')&&outside.includes('Working folder: ⟦The agent wrote: /work⟧')&&outside.includes('Reason given: ⟦The agent wrote: List the folder⟧'),'command, folder and reason are shown readably, as the agent\'s');
   assert.ok(outside.includes('<b>Waiting for your answer</b>'));
   assert.ok(!/item\/commandExecution\/requestApproval/.test(outside),'the method name is not the title');
   for(const [method,r] of Object.entries(A14)) assert.ok(requestTitle(r).startsWith('Tool permission: '),method);
@@ -58,9 +61,9 @@ test('LB-1/LB-2/LB-3: App words never say accept or approve; the native value is
     assert.match(html,/Tool permission only\..*does not mark anything checked, take the work as done, give engineering sign-off or rely on the result/,method);
   }
   const html=render(command());
-  assert.match(html,/Allow once <code>&quot;accept&quot;<\/code>/);
-  assert.match(html,/Don&#x27;t allow, and interrupt the turn <code>&quot;cancel&quot;<\/code>/);
-  assert.match(html,/Allow, and add a lasting rule \(see below\) <code>/);
+  assert.match(html,/<button>Allow once<\/button> <code>accept<\/code>/);
+  assert.match(html,/<button>Don&#x27;t allow, and interrupt the turn<\/button> <code>cancel<\/code>/);
+  assert.match(html,/<button>Allow, and add a lasting rule \(see below\)<\/button> <small>Sends:<\/small> ⟦Native value: /);
   assert.equal(decisionWords('decline'),"Don't allow; the agent continues the turn");
   assert.equal(decisionWords({mystery:1}),'Codex option','an unknown form gets neutral words and keeps its value');
 });
@@ -93,17 +96,19 @@ test('card states use the person words for each register state (CS)',()=>{
     [{state:'answered'},'Your answer was written to Codex; Codex has not confirmed it'],
     [{state:'answered',acknowledgmentObservation:{status:'observed'}},'Your answer was written; Codex reported the request resolved'],
     [{state:'declined',settlement:{origin:{class:'person-via-interaction'}}},'You declined; written to Codex; Codex has not confirmed it'],
-    [{state:'declined',settlement:{origin:{class:'app-rule',ruleName:'on-stop'}}},'Declined by App rule on-stop, not by you'],
+    [{state:'declined',settlement:{origin:{class:'app-rule',ruleName:'on-stop'}}},'Declined by an App rule (named below), not by you'],
     [{state:'settle-write-failed'},'Your answer could not be written; whether Codex received it is unknown'],
     [{state:'resolved-by-supplier',supplierResolution:{source:'serverRequest/resolved'}},'Resolved by Codex before you answered (cause: not reported)'],
     [{state:'ended-unanswered'},'Ended unanswered: the Codex process ended'],
     [{state:'ended-unanswered',endContext:'app-quit'},'Ended unanswered: the Codex process ended when you quit'],
     [{state:'ended-unanswered',endContext:'supplier-exit'},'Ended unanswered: the Codex process ended'],
-    [{state:'errored',settlement:{origin:{class:'app-rule',ruleName:'no-dynamic-tools'}}},'Codex asked for something the App does not provide (item/commandExecution/requestApproval): answered with an error by rule no-dynamic-tools'],
+    [{state:'errored',settlement:{origin:{class:'app-rule',ruleName:'no-dynamic-tools'}}},'Codex asked for something the App does not provide: answered with an error by an App rule (named below)'],
   ];
   for(const [extra,words] of cases) assert.equal(cardState(entry(extra)),words);
-  assert.equal(refusalWords('already-settled'),'Last answer not taken: already answered (already-settled)');
-  assert.equal(refusalWords('generation-closed: closed'),'Last answer not taken: Codex restarted since this was asked (generation-closed: closed)');
+  // The reason in the App's words only; what was reported is shown beside it, boxed (ErrorLine).
+  assert.equal(refusalWords('already-settled'),'Last answer not taken: already answered.');
+  assert.equal(refusalWords('generation-closed: closed'),'Last answer not taken: Codex restarted since this was asked.');
+  assert.equal(refusalWords('\u202eAllow once'),'Last answer not taken.','an unknown refusal adds no supplied words');
 });
 
 test('closed unknown retains the answer and cannot claim receipt, action or permit another answer',()=>{
@@ -126,7 +131,7 @@ test('questions and input requests say they are conversation input and offer the
   assert.match(html,/Not blocking the turn/);assert.match(html,/Decline to answer/);
   const e=request('mcpServer/elicitation/request',{threadId:'T',turnId:'u',serverName:'srv',mode:'url',message:'Open this',url:'https://example.invalid/x',elicitationId:'e'});
   const eh=render(e);
-  assert.match(eh,/Input request from MCP server srv or the agent \(not established\)/);
+  assert.match(eh,/<h3>Input request from an MCP server or the agent \(not established\)<\/h3><p>MCP server, as named in the request: ⟦Server name: srv⟧<\/p>/,'the server name is below the heading, in its own box');
   assert.match(eh,/the App never opens it/);assert.ok(!/<a href="https:/.test(eh),'the address is never a link');
 });
 
@@ -146,9 +151,9 @@ test('item anchors link the card and the activity row both ways (§4.7, TR-6)',(
 test('the waiting indicator shows the native all-home groups and source limits (WI-1…WI-3)',()=>{
   const overview={groups:[{modeHomeClass:'account',generation:g,threadId:'T',count:3},{modeHomeClass:'api-key',generation:{...g,home:'key'},threadId:'T',count:1}],sources:[{modeHomeClass:'account',state:'ready'},{modeHomeClass:'api-key',state:'ready'}],coverage:'Sequential local snapshots; no supplier read.'};
   const html=renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview,open:()=>{}}));
-  assert.match(html,/4 requests from Codex waiting for your answer/);assert.match(html,/conversation T: 3/);assert.match(html,/it answers nothing/);
-  assert.match(html,/api-key.*conversation T: 1/);assert.match(html,/Sequential local snapshots/);
-  assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:{groups:[],sources:[{modeHomeClass:'account',state:'stopped'}]},open:()=>{}})),/account: stopped; no current waiting groups shown/);
+  assert.match(html,/4 requests from Codex waiting for your answer/);assert.match(html,/account · thread T: 3<\/button>/);assert.match(html,/it answers nothing/);
+  assert.match(html,/api-key · thread T: 1<\/button>/);assert.match(html,/Sequential local snapshots/);
+  assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:{groups:[],sources:[{modeHomeClass:'account',state:'stopped'}]},open:()=>{}})),/<code>account<\/code>: <code>stopped<\/code>; no current waiting groups shown/);
   assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:null,open:()=>{}})),/overview unavailable/);
 });
 
@@ -165,8 +170,8 @@ test('DM-3: a legacy decline carries the person\'s reason as written, empty when
   for(const r of [A14.execCommandApproval,A14.applyPatchApproval]){
     const html=render(r);
     assert.match(html,/<label>Reason for Codex with “Don&#x27;t allow; the agent tries something else” \(optional; sent exactly as written, up to 2000 characters\) <textarea/,'the card offers the field');
-    assert.match(html,/Don&#x27;t allow; the agent tries something else <code>\{&quot;denied&quot;:\{&quot;rejection&quot;:&quot;&quot;\}\}<\/code>/,'an empty field sends ""');
-    assert.match(html,/Don&#x27;t allow; the agent waits for your next message <code>&quot;abort&quot;<\/code>/,'abort keeps its label');
+    assert.match(html,/<button>Don&#x27;t allow; the agent tries something else<\/button> <small>Sends:<\/small> ⟦Native value: \{&quot;denied&quot;:\{&quot;rejection&quot;:&quot;&quot;\}\}⟧/,'an empty field sends ""');
+    assert.match(html,/<button>Don&#x27;t allow; the agent waits for your next message<\/button> <code>abort<\/code>/,'abort keeps its label');
     assert.doesNotMatch(appWords(html),/accept|approv/i);
   }
   for(const r of [command(),A14['item/fileChange/requestApproval']]) assert.doesNotMatch(render(r),/<textarea/,'only legacy requests take a reason');
@@ -194,7 +199,8 @@ test('DM-3: a legacy decline carries the person\'s reason as written, empty when
   await React.act(()=>props(deny()).onClick());
   assert.deepEqual(sent.at(-1),{decision:{denied:{rejection:''}}},'nothing written: ""');
   await type(written);
-  assert.equal(deny().textContent,`Don't allow; the agent tries something else ${JSON.stringify({denied:{rejection:written}})}`,'the native value shown is the one sent');
+  assert.equal(deny().textContent,"Don't allow; the agent tries something else",'the button holds only the App\'s words');
+  assert.ok(deny().parentNode.textContent.includes(`Native value: ${JSON.stringify({denied:{rejection:written}}).replace(/\u200d/g,'‹U+200D›')}`),'the native value shown beside it is the one sent, its zero-width joiner marked');
   await React.act(()=>props(deny()).onClick());
   assert.deepEqual(sent.at(-1),{decision:{denied:{rejection:written}}},'written text, verbatim');
   assert.equal(props(box()).value,'','the draft is cleared once sent');
@@ -244,8 +250,8 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
   try {
     await render();
     await check({container,calls,props,button,send,get custody(){return custody;},original,
-      async choose(){if(!permission)await React.act(()=>props(button('One · Use one')).onClick());},
-      async answer(){if(!permission)await React.act(()=>props(button('One · Use one')).onClick());await React.act(async()=>props(send()).onClick());},
+      async choose(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());},
+      async answer(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());await React.act(async()=>props(send()).onClick());},
       async read(){await React.act(async()=>props(button('Read current request state')).onClick());},
       async selectConversation(threadId){const select=container.querySelectorAll(node=>node.localName==='select'&&node.parentNode.textContent.startsWith('Current-generation conversation '))[0];await React.act(()=>props(select).onChange({target:{value:threadId?JSON.stringify([g,threadId]):''}}));},
       allowRefresh(){refreshUnavailable=false;},replyAs(next){currentOutcome=next;},
@@ -324,9 +330,9 @@ test('supplier resolution after interruption remains a supplier resolution and i
   await withReplyObserver(async ui=>{
     await ui.answer();
     assert.equal(ui.custody.state,'resolved-by-supplier');
-    assert.match(ui.container.textContent,/Native answer command reported: already-resolved/);
+    assert.match(ui.container.textContent,/The native answer command reported an error \(shown below\)\..*Reported: already-resolved/s);
     // A failed status read is shown only as the fixed line (App Agent 0's decision), never its raw diagnostic.
-    assert.ok(ui.container.textContent.includes("Request state unavailable: The App could not read Codex's status afterwards, so what is shown may be out of date."),ui.container.textContent.slice(-500));assert.doesNotMatch(ui.container.textContent,/reconnect snapshot unavailable/);
+    assert.ok(ui.container.textContent.includes("Request state unavailable: Reported: The App could not read Codex's status afterwards, so what is shown may be out of date."),ui.container.textContent.slice(-500));assert.doesNotMatch(ui.container.textContent,/reconnect snapshot unavailable/);
     assert.equal(ui.send(),undefined);
     const call=ui.calls.find(call=>call.command==='answer_native_request');
     assert.deepEqual(call.args,{generation:g,requestId:'original-permission',answer:{decision:'decline'}});
@@ -339,7 +345,7 @@ test('supplier resolution after interruption remains a supplier resolution and i
 
 test('a rejected invalid answer can be retried only after current outstanding custody is read',async()=>{
   await withReplyObserver(async ui=>{
-    await ui.answer();assert.match(ui.container.textContent,/Native answer command reported: invalid-answer/);assert.equal(ui.send(),undefined);
+    await ui.answer();assert.match(ui.container.textContent,/The native answer command reported an error \(shown below\)\..*Reported: invalid-answer/s);assert.equal(ui.send(),undefined);
     ui.allowRefresh();await ui.read();assert.ok(ui.send());
     ui.replyAs('written');await ui.answer();assert.equal(ui.custody.state,'answered');
     assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,2);
@@ -351,7 +357,7 @@ test('failed or unconfirmed reply writes stay uncertain and are never upgraded o
     await ui.answer();assert.equal(ui.send(),undefined);
     assert.doesNotMatch(ui.container.textContent,/The reply was written locally|Last answer not taken:/);
     if(outcome==='write-failed')assert.match(ui.container.textContent,/synthetic reply IO failed/);
-    else assert.match(ui.container.textContent,/Reply write outcome not established \(unknown\)/);
+    else assert.match(ui.container.textContent,/Reply write outcome not established \(its result is shown below\).*Write result: unknown/s);
     ui.allowRefresh();await ui.read();
     assert.equal(ui.send(),undefined,'uncertain local evidence does not authorize another response');
     assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1);

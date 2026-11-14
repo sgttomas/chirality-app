@@ -95,7 +95,7 @@ test('an explicit all-home click opens the original full-generation conversation
     await ui.change(ui.select(),JSON.stringify([ui.dto['api-key'].generation,'shared-thread']));
     await ui.change(ui.draft(),'Kept unsent draft / 家');
     assert.ok(!ui.container.textContent.includes('Private synthetic question content'),'inactive account question content is absent');
-    await ui.press('account · conversation shared-thread: 2');
+    await ui.press('account · thread shared-thread: 2');
     assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
     assert.equal(props(ui.draft()).value,'Kept unsent draft / 家');
     assert.ok(ui.container.textContent.includes('Private synthetic question content'),'ordinary selected-home view receives the original cards');
@@ -116,7 +116,7 @@ test('an unnamed waiting group opens its original home request section without l
 test('native stale-source refusal never opens a same-ID successor or falls back to the active home',async()=>{
   await mounted(async ui=>{
     const selected=JSON.stringify([ui.dto['api-key'].generation,'shared-thread']);await ui.change(ui.select(),selected);
-    await ui.press('account · conversation shared-thread: 2');
+    await ui.press('account · thread shared-thread: 2');
     assert.equal(props(ui.select()).value,selected);assert.deepEqual(ui.scrolls,[]);
     assert.match(ui.container.textContent,/Original waiting-request source is no longer current/);
   },{refuse:true});
@@ -125,7 +125,7 @@ test('native stale-source refusal never opens a same-ID successor or falls back 
 test('a mismatched post-navigation source refresh never selects or scrolls to a lookalike conversation',async()=>{
   await mounted(async ui=>{
     const selected=JSON.stringify([ui.dto['api-key'].generation,'shared-thread']);await ui.change(ui.select(),selected);
-    await ui.press('account · conversation shared-thread: 2');
+    await ui.press('account · thread shared-thread: 2');
     assert.equal(props(ui.select()).value,selected);assert.deepEqual(ui.scrolls,[]);assert.match(ui.container.textContent,/navigation superseded/);
   },{wrongRefresh:true});
 });
@@ -134,8 +134,8 @@ test('a newer conversation choice made during navigation takes precedence over i
   const wait=deferred();
   await mounted(async ui=>{
     await ui.change(ui.select(),JSON.stringify([ui.dto['api-key'].generation,'shared-thread']));
-    await ui.press('account · conversation shared-thread: 2');
-    assert.equal(props(find(ui.container,'button','account · conversation shared-thread: 2')).disabled,true);
+    await ui.press('account · thread shared-thread: 2');
+    assert.equal(props(find(ui.container,'button','account · thread shared-thread: 2')).disabled,true);
     assert.equal(props(find(ui.container,'button','Use account home')).disabled,true,'a manual home choice is not offered while the original navigation is pending');
     assert.equal(find(ui.container,'button','Use api-key home'),undefined,'no API-key home switch is offered');
     assert.equal(ui.calls.filter(c=>c.command==='select_home').length,0,'no manual switch is dispatched during the pending navigation');
@@ -149,7 +149,7 @@ test('navigation invalidates the prior-home chooser at intent and preserves newe
   await mounted(async ui=>{
     // The retained legacy home offers no connection route or model field, so no prior-home choice can be made.
     assert.deepEqual(ui.choice(),{model:null,route:false});
-    await ui.press('account · conversation shared-thread: 2');
+    await ui.press('account · thread shared-thread: 2');
     assert.deepEqual(ui.choice(),{model:'',route:false});
     assert.match(ui.container.textContent,/Selected home: account\./,'target source is rendered while its independent decision refresh waits');
     // While the target home's refresh is pending the route is not offered; the model field can still be edited.
@@ -170,7 +170,7 @@ test('same-home waiting navigation preserves a separate unconsumed new-conversat
       if(initial==='account'){await ui.press(ROUTE);await ui.change(ui.field('input','Model '),'unsent-new-model');}
       assert.deepEqual(ui.choice(),kept);
       await ui.change(ui.draft(),'Kept unsent draft / 家');
-      await ui.press(`${initial} · conversation shared-thread: ${initial==='account'?2:1}`);
+      await ui.press(`${initial} · thread shared-thread: ${initial==='account'?2:1}`);
       assert.deepEqual(ui.choice(),kept);
       assert.equal(props(ui.draft()).value,'Kept unsent draft / 家');
       assert.equal(props(ui.select()).value,JSON.stringify([ui.dto[initial].generation,'shared-thread']));
@@ -190,7 +190,7 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
     if(account){await ui.press(ROUTE);await ui.change(ui.field('input','Model '),'unsent-new-model');}
     const kept=account?{model:'unsent-new-model',route:true}:{model:null,route:false};
     assert.deepEqual(ui.choice(),kept);
-    const waiting=`${initial} · conversation shared-thread: ${account?2:1}`;
+    const waiting=`${initial} · thread shared-thread: ${account?2:1}`;
     assert.equal(find(ui.container,'button','Use api-key home'),undefined,'no API-key home switch is offered');
     assert.equal(!!find(ui.container,'button','Use account home'),!account,'the account choice is offered only from a retained legacy home');
     const queuedOpen=props(find(ui.container,'button',waiting)).onClick;
@@ -223,7 +223,7 @@ test('a waiting-request navigation whose refresh fails shows only the fixed line
   const {REFRESH_FAILED}=loadSrc('statusRefresh');
   await mounted(async ui=>{
     const before=props(ui.select()).value;
-    await ui.press('account · conversation shared-thread: 2');await ui.settle();
+    await ui.press('account · thread shared-thread: 2');await ui.settle();
     assert.ok(ui.container.textContent.includes(REFRESH_FAILED),'the fixed refresh line');
     assert.doesNotMatch(ui.container.textContent,/INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_92|Waiting-request navigation:|superseded or its original source/);
     assert.equal(props(ui.select()).value,before,'nothing is navigated without a status read');
