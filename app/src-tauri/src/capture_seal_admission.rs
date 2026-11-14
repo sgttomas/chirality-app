@@ -112,6 +112,17 @@ fn capture_trace(directory: &Path, depth: usize) -> Result<bool, EvidenceFailure
             let value = serde_json::from_slice(&bytes).map_err(|_| failure(Cause::ProtectionInconsistent,
                 "A capture in the protection inventory cannot be read completely. Recover capture verification and check again."))?;
             if keychain_claim(&value) { return Ok(true) }
+            // A syntactically readable JSON value is not a complete inventory
+            // observation. Only recognised captures and their pending writer
+            // envelopes can establish that no provider claim was omitted.
+            let recognised = if path.parent().and_then(Path::file_name).is_some_and(|name| name == "pending") {
+                crate::records::recognise_capture_submission(&value, &crate::act_control::ActControl::capture_submission_log(&value["capture"]))
+                    .map(|_| ())
+            } else {
+                crate::schema_validation::validate_capture(&value)
+            };
+            recognised.map_err(|e| failure(Cause::ProtectionInconsistent, format!(
+                "A capture in the protection inventory has an unknown or incomplete shape: {e}. Recover capture verification and check again.")))?;
         }
     }
     held.recheck().map_err(|e| failure(Cause::SealSourceChanged, e))?;

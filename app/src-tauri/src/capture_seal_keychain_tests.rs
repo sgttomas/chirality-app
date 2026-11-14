@@ -1323,10 +1323,16 @@ fn capture_seal_locked_denied_late_failed_and_wrong_identity_reads_never_grant_f
     f.backend.items.lock().unwrap().clear();
     crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
     let inventory = f.root().join("invented-capture-inventory"); fs::create_dir(&inventory).unwrap();
-    fs::write(inventory.join("broken.json"), b"not JSON").unwrap();
-    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ProtectionInconsistent);
-    fs::remove_file(inventory.join("broken.json")).unwrap();
+    let original: serde_json::Value = serde_json::from_str(include_str!("../schemas/fixtures/aac.capture-evidence.example.valid.json")).unwrap();
+    let valid = serde_json::to_vec(&original["instances"][2]).unwrap();
+    fs::write(inventory.join("capture.json"), &valid).unwrap();
     crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+    for broken in [b"not JSON".as_slice(), b"{}".as_slice(), b"null".as_slice()] {
+        fs::write(inventory.join("capture.json"), broken).unwrap();
+        assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ProtectionInconsistent);
+        fs::write(inventory.join("capture.json"), &valid).unwrap();
+        crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+    }
 }
 #[test]
 fn capture_seal_policy_only_far_item_and_head_deletion_never_authorize_file() {
