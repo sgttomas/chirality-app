@@ -934,6 +934,18 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertIn('nothing was pressed', stopped)
         self.assertNotIn('click904', calls)
 
+    def test_a_field_alone_inside_a_page_alert_is_not_typed_into(self):
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace(
+            '\t\t\t\t\t\t\t15 text Project folder\n\t\t\t\t\t\t\t16 text field (settable) Project folder, Placeholder: /full/path/to/your/project\n',
+            '\t\t\t\t\t\t990 alert External prompt\n\t\t\t\t\t\t\t15 text Project folder\n\t\t\t\t\t\t\t16 text field (settable) Project folder, Placeholder: /full/path/to/your/project\n'
+            '\t\t\t\t\t\t991 container\n')
+        self.assertIn('990 alert External prompt', views['views'][0]['text'])
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('alert External prompt', stopped)
+        self.assertFalse([c for c in calls if c.startswith('set_value')])
+
     def test_an_alert_in_the_pages_own_content_is_page_not_prompt(self):
         result = harness("texts[2] = texts[2].replace('\\t\\t\\t3 container Welcome', '\\t\\t\\t3 container Welcome\\n\\t\\t\\t\\t990 alert Why Codex was not started'); "
                          'return (await walk.run(base)).verdict;')

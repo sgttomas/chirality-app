@@ -97,7 +97,7 @@ const MODAL = /^(sheet|dialog|alert|system dialog|popover|drawer|standard window
  */
 // What an alert of the page's own may hold: words, and the containers and lists that hold them; nothing a person can
 // operate.
-const READ_ONLY = /^(text|container|group|heading|list marker|content list|list|description list)( |,|$)/;
+const READ_ONLY = /^(text(?! field)|container|group|heading|list marker|content list|list|description list)( |,|$)/;
 
 /**
  * The positions of a view's elements that are a window or something modal. An alert inside the page's own web
@@ -565,6 +565,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const beforePress = gate(`at ${step.id}, before the press`);
       if (beforePress) return beforePress;
       entry.pressed = sheet.press;
+      entry.pressed_index = checked.press;
       calls.push({ at: now(), call: 'click', app, element_index: checked.press });
       try {
         await sky.click({ app, element_index: checked.press });

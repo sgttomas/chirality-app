@@ -1236,6 +1236,17 @@ either driver marker.
   not in it, and the walk cannot see one. The operator stops if one appears in
   what the view returns or in the screenshot it refers to, and if anything
   but the build asks for an answer.
+- **What the checks establish, and what the record shows.** The checks on
+  the field and the sheet are of the App's own tree as the view returned it.
+  They cannot tell apart a sheet or field that looks the same in every checked
+  part, and the App could change between the view and the press. Those are
+  limits, not refusals. A wrong field or a wrong sheet inside the App's own
+  window costs a throwaway home and a walk run again. So the walk's result
+  keeps what would show a wrong act afterwards:
+  - the sheet's whole view;
+  - the statement seen and the statement wanted;
+  - the button pressed and its index;
+  - the field typed into, with its index and the value.
 - **A walk that sees the next launch.** `launch` makes a new home each time.
   A walk that must see the launch after setup uses one kept folder, with the
   same environment and every network block unchanged:
