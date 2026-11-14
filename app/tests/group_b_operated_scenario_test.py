@@ -464,7 +464,7 @@ class TheWalkItself(unittest.TestCase):
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
         result = harness('''
           const menu = '\\n5 menu bar\\n\\t6 Chirality App v4 (development invented)\\n\\t7 File\\n\\t8 Edit\\n\\t9 View\\n\\t10 Window\\n\\t11 Help\\n\\t12 Waiting requests (0)';
-          const before = walk.parseView('Window: "Chirality", App: Chirality App v4 (development invented).\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button' + menu);
+          const before = walk.parseView('Window: "Chirality", App: Chirality App v4 (development invented).\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button' + menu, 'Chirality App v4 (development invented)');
           const after = walk.applyDifference(before, 'The following is a diff from the previous accessibility tree for Window: "Chirality"\\nRemoved element IDs: 2-3\\n~\\t1 button Review setup\\n+\\t13 container (expanded)\\n+\\t\\t14 summary Details, Value: on\\nThe focused UI element is 14');
           const same = walk.applyDifference(after, 'There has been no change in the accessibility tree for Window: "Chirality".');
           return [after.map(e => e.index + ':' + e.depth + ':' + e.content), same.length];''')
@@ -942,6 +942,7 @@ def setup_state(name):
 # The invented identity every fixture view carries.
 INVENTED = {'app': 'dev.chirality.app-v4.candidate.invented', 'home': '/invented/homes/launch-invented/home',
             'bundle': '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development invented).app'}
+INVENTED_APP = 'Chirality App v4 (development invented)'  # the launched build's name, from the bundle above
 # The page after the setup confirmation, as the supplier returned it whole on candidate 9d997626 (14 November 2026,
 # 12:23 UTC), with the project path and the build's name made invented.
 AFTER_THE_PRESS = (APP / 'tests/group_b_operated_fixtures/signed-out-setup/after-the-press.txt').read_text()
@@ -1288,11 +1289,23 @@ return [r.verdict, r.stopped, r.calls.filter(c => c.call !== 'get_app_state').ma
         case = (
             "const bundle = '/invented/candidate/Other App.app'; base.bundle = bundle; viewOf.app = bundle; "
             "base.readWatch = () => ({ pid: base.pid, running: true, at_ms: Date.now(), children: [], executable: bundle + '/Contents/MacOS/chirality-app-v4' }); "
-            "texts[4] = texts[4].replaceAll('Chirality App v4 (development invented)', 'Other App'); "
+            "for (let i = 0; i < texts.length; i++) texts[i] = texts[i].replaceAll('Chirality App v4 (development invented)', 'Other App'); "
             "const r = await walk.run(base); return [r.verdict, r.stopped, r.calls.filter(c => c.call === 'click').map(c => c.element_index)];")
         verdict, stopped, clicks = setup_walk(case)['out']
         self.assertEqual((verdict, clicks), ('inconclusive', []), stopped)
         self.assertIn("stopped at S2: the view is not the listed state S1 (the candidate bundle's name is not of the development build's form", stopped)
+
+    def test_views_naming_another_app_than_the_launched_build_lead_to_no_act(self):
+        # The INTERLOCUTOR, on PR 351's first round: the App's name is bound to the build the launcher started. Views
+        # whose window line and menu bar agree with each other, but name another development build than the launched
+        # one, are refused at the first view.
+        case = (
+            "const bundle = '/invented/candidate/Chirality App v4 (development another).app'; base.bundle = bundle; viewOf.app = bundle; "
+            "base.readWatch = () => ({ pid: base.pid, running: true, at_ms: Date.now(), children: [], executable: bundle + '/Contents/MacOS/chirality-app-v4' }); "
+            "const r = await walk.run(base); return [r.verdict, r.stopped, r.calls.filter(c => c.call !== 'get_app_state').map(c => c.call)];")
+        verdict, stopped, acts = setup_walk(case)['out']
+        self.assertEqual((verdict, acts), ('inconclusive', []), stopped)
+        self.assertIn("the window line's App is not the launched build", stopped)
 
     def test_a_row_holding_a_line_or_paragraph_separator_or_a_carriage_return_does_not_hide_a_second_index(self):
         for char, name in (('\u2028', 'line separator'), ('\u2029', 'paragraph separator'), ('\r', 'carriage return')):
@@ -1327,7 +1340,7 @@ class AViewRecognisedLineForLine(unittest.TestCase):
     and the focused-element line. Anything else is refused."""
 
     def recognise(self, text):
-        return harness(f'const r = walk.recognise({json.dumps(text)}); return [r.refusal, r.elements.length];')['out']
+        return harness(f'const r = walk.recognise({json.dumps(text)}, {json.dumps(INVENTED_APP)}); return [r.refusal, r.elements.length];')['out']
 
     def test_the_whole_views_are_recognised(self):
         # The whole views the supplier returned (made invented in their names) and the listed states filled.
@@ -1389,6 +1402,8 @@ class AViewRecognisedLineForLine(unittest.TestCase):
         cases["the window line naming another App before the block's"] = whole.replace(
             window, window.replace(', App: ', ', App: Another App, App: ', 1))
         cases['a quote in the window title'] = whole.replace(window, window.replace('Window: "', 'Window: "Chi"', 1))
+        cases['the window line and block agreeing on another build than the launched one'] = whole.replace(
+            'Chirality App v4 (development invented)', 'Chirality App v4 (development another)')
         cases['words after the window line'] = whole.replace(window, window + ' and more')
         cases['a waiting count with a leading zero'] = whole.replace('Waiting requests (0)', 'Waiting requests (01)')
         cases['a negative waiting count'] = whole.replace('Waiting requests (0)', 'Waiting requests (-1)')
@@ -1500,7 +1515,7 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
             with self.subTest(name):
                 text = setup_state(name)
                 self.assertNotIn('{', text.replace('{~', ''))  # every placeholder filled
-                self.assertIsNone(harness(f'return walk.recognise({json.dumps(text)}).refusal;')['out'])
+                self.assertIsNone(harness(f'return walk.recognise({json.dumps(text)}, {json.dumps(INVENTED_APP)}).refusal;')['out'])
         self.assertIn('0 standard window Chirality', setup_state('S1'))
         self.assertIn('summary Exact locations, Value: on', setup_state('S4'))
 

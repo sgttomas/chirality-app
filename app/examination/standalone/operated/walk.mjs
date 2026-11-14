@@ -40,7 +40,7 @@ const WAITING = '(0|[1-9][0-9]{0,5})';  // the one free part of the block: a non
 // The window line, whole: a title holding no quote, the App's name, and nothing after.
 const WINDOW_PARTS = new RegExp(`^Window: "([^"]*)", App: (${WORDS}+)\\.$`, 'u');
 
-export function recognise(text) {
+export function recognise(text, launchedName) {
   const lines = String(text).split('\n'), elements = [], seen = new Set();
   const refuse = why => ({ elements, refusal: why });
   if (!WINDOW_LINE.test(lines[0])) return refuse("its first line is not the supplier's window line");
@@ -71,7 +71,7 @@ export function recognise(text) {
       return refuse(`line ${n + 1} is not one the walk recognises`);
     }
   }
-  return anchored(lines, last, elements) ?? { elements, refusal: null };
+  return anchored(lines, last, elements, launchedName) ?? { elements, refusal: null };
 }
 
 /**
@@ -87,18 +87,22 @@ export function recognise(text) {
  *   one comparison, not a check of pieces: an extra line of any kind (a further line, a well-formed element line), a
  *   missing line or an altered line inside the block refuses, and so does a view without the block;
  * - the window line must be whole: `Window: "<title>", App: <name>.`, a title holding no quote, nothing after; <name>
- *   is the one the block is built from;
+ *   must be exactly the launched build's name (its bundle's, as the walk was given it), and the block is built from it;
  * - so every index the walk may act on is one the view assigns, in order, each once, and an index it does not assign
  *   is refused here, before any call. Refusal is the default: a view lacking any part of this shape is not acted on.
  */
-function anchored(lines, last, elements) {
+function anchored(lines, last, elements, launchedName) {
   const refuse = why => ({ elements, refusal: why });
   for (let k = 0; k < elements.length; k++) {
     if (elements[k].index !== k) return refuse(`the element lines are not in index order from 0 (element ${k + 1} carries ${elements[k].index})`);
   }
   const windowParts = WINDOW_PARTS.exec(lines[0]);
   if (!windowParts) return refuse('its first line is not a whole window line (a title holding no quote, the App\'s name, nothing after)');
-  const name = windowParts[2], k = elements.length - 8;
+  // The App's name is bound to the build the launcher started (its bundle's name), not only to the line checked: a
+  // window line and block that agree with each other but name another App are refused.
+  if (typeof launchedName !== 'string' || !launchedName) return refuse("the launched build's name is not given");
+  if (windowParts[2] !== launchedName) return refuse("the window line's App is not the launched build");
+  const name = launchedName, k = elements.length - 8;
   const block = lines.slice(last - 7, last + 1);
   const expected = [`${k} menu bar`, `\t${k + 1} ${name}`, ...MENU_ITEMS.map((item, i) => `\t${k + 2 + i} ${item}`)];
   const waiting = new RegExp(`^\\t${k + 7} Waiting requests \\(${WAITING}\\)$`);
@@ -109,8 +113,8 @@ function anchored(lines, last, elements) {
 }
 
 /** The elements of a whole view: [{index, depth, content}] in the order returned (none if it is not recognised). */
-export function parseView(text) {
-  const { elements, refusal } = recognise(text);
+export function parseView(text, launchedName) {
+  const { elements, refusal } = recognise(text, launchedName);
   return refusal ? [] : elements;
 }
 
@@ -289,7 +293,7 @@ export function stateCheck(text, lines, values, appName) {
   if (!Array.isArray(lines) || !lines.length) return ['the scenario gives no recorded view of this state'];
   const wanted = fill(lines.join('\n'), { ...values, app_name: appName }).split('\n');
   if (wanted.some(line => /\{\w+\}/.test(line))) return ['the recorded view names a value this walk does not have'];
-  const template = recognise(wanted.join('\n'));
+  const template = recognise(wanted.join('\n'), appName);
   if (template.refusal) return [`the recorded view, filled, is not a view the walk recognises (${template.refusal})`];
   return compareView(wanted, text).differs;
 }
@@ -311,7 +315,7 @@ export function sheetCheck(text, sheet, values, appName) {
   }
   const wanted = fill(sheet.view.join('\n'), { ...values, title: sheet.title, statement, app_name: appName }).split('\n');
   // The filled template must itself be a recognised view whose indices each name one element.
-  const template = recognise(wanted.join('\n'));
+  const template = recognise(wanted.join('\n'), appName);
   if (template.refusal) {
     problems.push(`the recorded view, filled, is not a view the walk recognises (${template.refusal})`);
     return { problems, record, press: null };
@@ -570,7 +574,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     }
     // The first property of a view the walk acts on, beside being whole: it is recognised line for line, and each
     // element index names one element. A view that is not is kept, and nothing is done from it.
-    const recognised = recognise(text);
+    const recognised = recognise(text, appName);
     elements = recognised.refusal ? [] : recognised.elements;
     latest = recognised.refusal ? null : text;
     return { whole: true, refusal: recognised.refusal, text };

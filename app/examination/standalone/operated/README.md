@@ -1174,10 +1174,17 @@ failure, the same scenario and acts.
   - **The anchor: the view's shape, whole.** The k-th element line must
     carry index k, and the view's last eight lines before its blank line
     must equal, line for line and whole, the App window's own menu bar block
-    built from the window line's App name and the menu bar's index:
+    built from the launched build's name and the menu bar's index. The name
+    is the one the walk was given for the build the launcher started (its
+    bundle's), not taken from the view: the window line's App must be
+    exactly it, so a window line and block that agree with each other but
+    name another App are refused. The block is:
     `<k> menu bar`, then one tab in, `<k+1> <name>`, `File`, `Edit`, `View`,
-    `Window`, `Help` and `Waiting requests (<n>)`, numbered on. Only `<n>`
-    is free, a non-negative integer with no leading zero. It is one
+    `Window`, `Help` and `Waiting requests (<n>)`, each carrying the index
+    the sequence requires at its place. Only `<n>` is free, a non-negative
+    integer in plain decimal form. Harmless variation in the supplier's tool
+    may therefore refuse; that is intended, and the positive case is
+    established by fresh captures on the supported tool and version. It is one
     comparison, not a check of pieces: an extra line of any kind (a further
     line, a well-formed element line with the next index), a missing line or
     an altered line inside the block refuses, and so does a view without it.
@@ -1234,15 +1241,34 @@ failure, the same scenario and acts.
 - **Environment names (`env_names.py`).** It prints the names, never a
   value, of one process's environment, from the sysctl KERN_PROCARGS2 block,
   whose entries are NUL-separated, so a name is exact. Where the arguments
-  start is found by the kernel's alignment of the path's padding, measured
-  on this Mac and not promised, so the read does not rest on it alone: at
-  every run a calibration starts the script's own children with invented
-  environments (an empty argv[0], an empty later argument, an empty
-  environment) and requires each to read back exactly, or the real read is
-  not made; and the real read must parse exactly argc arguments and then
-  only name=value entries with a non-empty name, closed by an empty string
-  with the block going on after it. Anything else is "not observed" (exit
-  2). No environment for one of Apple's own binaries (the kernel withholds
+  start is found by the kernel's alignment of the path's padding. The
+  layout is the kernel's (xnu: `sysctl_procargsx` in
+  `bsd/kern/kern_sysctl.c`; `exec_save_path` and `exec_extract_strings` in
+  `bsd/kern/kern_exec.c`), named so that a reader can check it; that source
+  was not fetched for this change, and which release this Mac runs is not
+  checked. The alignment is measured on this Mac, not promised, so the read
+  does not rest on it alone:
+  - a calibration at every run starts the script's own children with
+    invented environments (an empty argv[0], an empty later argument, an
+    empty environment) and requires each to read back exactly, or the real
+    read is not made;
+  - the target is checked against what is independently known of it: its
+    parsed arguments must equal, exactly and in order, the arguments the
+    caller knows it was started with (from the source that starts it and
+    the launch record), and its names must include each name the caller
+    knows was set (for the App's Codex, `CODEX_HOME`). A result without it,
+    the empty result included, is not observed;
+  - the real read must parse exactly argc arguments, then only name=value
+    entries with a non-empty name, closed by an empty string with the block
+    going on after it; a block as long as the size asked for, or not ending
+    in NUL, is not read.
+
+  Anything else is "not observed" (exit 2). What even this does not show:
+  finding the arguments and a required name shows the framing is right for
+  this process; it does not by itself prove that no entry was skipped inside
+  the environment area. No answer of the form "no other `CODEX_` or
+  `OPENAI_` name is present" rests on it until an independent reading has
+  answered that completeness question. No environment for one of Apple's own binaries (the kernel withholds
   it; the block ends after the arguments) stays "not observed", never an
   empty environment. Its first use is a dry run in a launch with no sign-in
   and no conversation, not the signed-in rehearsal (App Agent 0).

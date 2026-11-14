@@ -11,6 +11,7 @@ import subprocess
 import struct
 import contextlib
 import io
+import json
 import sys
 import unittest
 
@@ -103,13 +104,20 @@ class EnvironmentNamesOnMacOS(unittest.TestCase):
     INVENTED = {'INVENTED_PLAIN': 'one', 'INVENTED_SPACES': 'a b c = d e', 'INVENTED_BREAK': 'first\nsecond=third',
                 'INVENTED_EQUALS': '=x==y', 'INVENTED_LOOKS_LIKE_A_NAME': 'NOT_A_NAME=1 ANOTHER=2'}
 
-    def run_names(self, pid):
-        return subprocess.run([sys.executable, '-B', str(OPERATED / 'env_names.py'), str(pid)], capture_output=True, text=True)
+    SLEEP = ['-c', 'import time; time.sleep(30)']
+
+    def run_names(self, pid, args=None, required=('INVENTED_PLAIN',)):
+        # The target's known arguments: by default, the interpreter started as [sys.executable] + SLEEP.
+        args = [sys.executable] + self.SLEEP if args is None else args
+        command = [sys.executable, '-B', str(OPERATED / 'env_names.py'), str(pid), '--expect-args', json.dumps(args)]
+        for name in required:
+            command += ['--require', name]
+        return subprocess.run(command, capture_output=True, text=True)
 
     def test_the_names_of_a_process_started_with_an_invented_environment_and_no_value(self):
         # A process this test starts, not an Apple platform binary (whose environment the kernel withholds): the
         # interpreter, sleeping, with exactly the invented environment.
-        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'], env=self.INVENTED)
+        child = subprocess.Popen([sys.executable] + self.SLEEP, env=self.INVENTED)
         self.addCleanup(child.wait)
         self.addCleanup(child.kill)
         for _ in range(50):
@@ -127,7 +135,7 @@ class EnvironmentNamesOnMacOS(unittest.TestCase):
         child = subprocess.Popen(['/bin/sleep', '30'], env={'INVENTED_PLAIN': 'one'})
         self.addCleanup(child.wait)
         self.addCleanup(child.kill)
-        done = self.run_names(child.pid)
+        done = self.run_names(child.pid, args=['/bin/sleep', '30'])
         self.assertEqual((done.returncode, done.stdout), (2, ''))
 
     def test_no_such_process_is_cannot_be_read(self):
@@ -143,19 +151,34 @@ class EnvironmentNamesOnMacOS(unittest.TestCase):
     def test_an_empty_argv0_and_an_empty_later_argument_do_not_hide_the_environment(self):
         # The independent reading of PR 351 (round one): an empty argv[0] was taken for padding, and the environment
         # read as empty. Each of these must read back its invented names exactly.
-        cases = {'an empty argv[0]': ['', '-c', 'import time; time.sleep(30)'],
-                 'an empty later argument': ['invented', '-c', 'import time; time.sleep(30)', ''],
-                 'both': ['', '-c', 'import time; time.sleep(30)', '', '']}
+        cases = {'an empty argv[0]': [''] + self.SLEEP,
+                 'an empty later argument': ['invented'] + self.SLEEP + [''],
+                 'both': [''] + self.SLEEP + ['', '']}
         for name, argv in cases.items():
             with self.subTest(name):
                 child = self.started(argv, self.INVENTED)
-                done = self.run_names(child.pid)
+                done = self.run_names(child.pid, args=argv)
                 self.assertEqual((done.returncode, done.stdout.split('\n')[:-1]), (0, sorted(self.INVENTED)), done.stderr)
 
-    def test_an_empty_environment_is_reported_empty_only_as_seen(self):
-        child = self.started(['invented', '-c', 'import time; time.sleep(30)'], {})
-        done = self.run_names(child.pid)
-        self.assertEqual((done.returncode, done.stdout), (0, ''), done.stderr)
+    def test_the_target_is_checked_against_what_is_known_of_it(self):
+        # The arguments must equal the known ones exactly, and a required name must be there; otherwise nothing is
+        # reported, the empty environment included.
+        child = self.started(['invented'] + self.SLEEP, self.INVENTED)
+        self.assertEqual(self.run_names(child.pid, args=['invented'] + self.SLEEP).returncode, 0)
+        cases = {'other arguments than the known ones': dict(args=['invented'] + self.SLEEP + ['extra']),
+                 'the known arguments in another order': dict(args=[self.SLEEP[1], self.SLEEP[0], 'invented']),
+                 'a required name that is not there': dict(args=['invented'] + self.SLEEP, required=('INVENTED_ABSENT',))}
+        for name, kwargs in cases.items():
+            with self.subTest(name):
+                done = self.run_names(child.pid, **kwargs)
+                self.assertEqual((done.returncode, done.stdout), (2, ''))
+        empty = self.started(['invented'] + self.SLEEP, {})
+        done = self.run_names(empty.pid, args=['invented'] + self.SLEEP)
+        self.assertEqual((done.returncode, done.stdout), (2, ''), 'an empty result is not observed')
+        for argv in ([], [str(child.pid)], [str(child.pid), '--expect-args', '[]'], [str(child.pid), '--require', 'X']):
+            with self.subTest(usage=argv):
+                done = subprocess.run([sys.executable, '-B', str(OPERATED / 'env_names.py')] + argv, capture_output=True, text=True)
+                self.assertEqual((done.returncode, done.stdout), (2, ''))
 
     def load(self):
         spec = importlib.util.spec_from_file_location('env_names_under_test', OPERATED / 'env_names.py')
@@ -181,16 +204,33 @@ class EnvironmentNamesOnMacOS(unittest.TestCase):
         real_read_block = module.read_block
         module.read_block = lambda pid: (read.append(pid), real_read_block(pid))[1]
         module.parse = skipping_every_nul
-        target = self.started(['invented', '-c', 'import time; time.sleep(30)'], self.INVENTED)
+        argv = ['invented'] + self.SLEEP
+        target = self.started(argv, self.INVENTED)
         out = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
-            code = module.main([str(target.pid)])
+            code = module.main([str(target.pid), '--expect-args', json.dumps(argv), '--require', 'INVENTED_PLAIN'])
         self.assertEqual((code, out.getvalue()), (2, ''))
         self.assertNotIn(target.pid, read)
         # With the right parsing back, the same target reads.
         module.parse = right
         self.assertTrue(module.calibrated())
-        self.assertEqual(module.names(target.pid), sorted(self.INVENTED))
+        self.assertEqual(module.names(target.pid, [arg.encode() for arg in argv], ['INVENTED_PLAIN']), sorted(self.INVENTED))
+
+    def test_a_buffer_that_may_be_cut_or_is_unended_is_not_read(self):
+        module = self.load()
+        size = 4096
+
+        def returning(block):
+            return lambda libc, mib, asked: struct.pack('i', size) if len(mib) == 2 else block
+
+        whole = struct.pack('i', 1) + b'/x\0\0\0\0\0\0' + b'a\0N=v\0\0apple=x\0'
+        module._sysctl = returning(whole)
+        self.assertEqual(module.read_block(1), whole)
+        for name, block in {'as long as the size asked for': whole + b'\0' * (size - len(whole)),
+                            'its last string not ended': whole + b'apple2=y'}.items():
+            with self.subTest(name):
+                module._sysctl = returning(block)
+                self.assertIsNone(module.read_block(1))
 
     def test_a_block_not_of_the_layout_is_not_read_as_an_environment(self):
         module = self.load()

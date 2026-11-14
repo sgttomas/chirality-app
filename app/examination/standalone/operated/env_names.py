@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The names in one process's environment, and nothing else (DEL-09-02 examination tooling, macOS only).
 
-    python3 -B env_names.py <pid>
+    python3 -B env_names.py <pid> --expect-args '<JSON list of the target's arguments>' --require <NAME> [--require ...]
 
 It reads the process's argument block once, read-only, with sysctl KERN_PROCARGS2 for that one pid, and prints the
 sorted names of its environment entries, one per line. It drives nothing, opens no file, and keeps no value in memory
@@ -27,8 +27,28 @@ one the system promises. So the read does not rest on it alone:
 - CONSISTENCY, on the real read. Exactly argc arguments are parsed; every entry after them, up to the empty string,
   is name=value with a non-empty name; and the empty string is followed by more of the block. Anything else is not
   read as an environment.
-- An empty list is reported only when the calibration passed and the empty string that closes the environment comes
-  straight after the arguments, with the block going on after it.
+- THE TARGET, checked against what is independently known of it. The arguments parsed for the target must equal,
+  exactly and in order, the arguments the caller knows the target was started with (from the source that starts it
+  and the launch record), and the names must include each name the caller knows was set. If not, nothing is
+  reported. Finding the arguments shows the parser found the boundary between arguments and environment in this
+  process, not only in the calibration's children. A result without a required name, the empty result included, is
+  not observed, never "nothing there".
+- COMPLETENESS of the buffer: a block as long as the size asked for (it may have been cut), or one that does not end
+  in NUL, is not observed.
+
+What even this does not show: finding the arguments and a required name shows the framing is right for this process;
+it does not by itself prove that no entry was skipped inside the environment area. Each entry is taken from one NUL
+to the next, so an entry can be lost only if the block itself lacks it; that is the kernel's copy of what the process
+was started with, and it is not checked further here.
+
+The layout, from a supported source: the kernel's own source for the sysctl (xnu, bsd/kern/kern_sysctl.c,
+sysctl_procargsx, which copies the string area from the process's stack and prepends argc for KERN_PROCARGS2) and for
+the string area (bsd/kern/kern_exec.c: exec_save_path writes the path, exec_extract_strings pads it with NULs until
+the remaining space is a multiple of the pointer size, then the arguments, then the environment, then the apple
+strings). That source is published by Apple per release. It was not fetched for this change (the lane downloads
+nothing): the functions are named so that a reader can check them, and which release this Mac runs, and that its
+source reads the same, is not checked here. What remains measured: the alignment, on this Mac (path lengths 1 to 16, each with an
+empty and a non-empty argv[0]), and, at every run, the calibration.
 
 It exits 2 and prints nothing to standard output when the calibration fails, or when the block cannot be read (no such
 process, another user's, or a refusal) or is not of that layout. The kernel gives no environment for an Apple platform
@@ -62,12 +82,16 @@ def _sysctl(libc, mib, size):
 
 
 def read_block(pid):
-    """The process's KERN_PROCARGS2 block, or None if it cannot be read."""
+    """The process's KERN_PROCARGS2 block, or None if it cannot be read whole."""
     libc = ctypes.CDLL(ctypes.util.find_library('c'), use_errno=True)
     argmax = _sysctl(libc, [CTL_KERN, KERN_ARGMAX], ctypes.sizeof(ctypes.c_int))
     if argmax is None:
         return None
-    return _sysctl(libc, [CTL_KERN, KERN_PROCARGS2, pid], struct.unpack('i', argmax)[0])
+    size = struct.unpack('i', argmax)[0]
+    block = _sysctl(libc, [CTL_KERN, KERN_PROCARGS2, pid], size)
+    if block is None or len(block) >= size or not block.endswith(b'\0'):
+        return None                              # it may have been cut, or its last string is not ended
+    return block
 
 
 def parse(block):
@@ -109,10 +133,17 @@ def parse(block):
         found.append(name.decode('utf-8', 'backslashreplace'))
 
 
-def names(pid):
-    """The sorted environment names of process pid, or None if its argument block cannot be read as above."""
+def names(pid, args_match, required):
+    """The sorted environment names of process pid, or None unless its block reads as above, its parsed arguments
+    satisfy args_match (a list of bytes compared exactly, or a function of the list), and every required name is
+    among the names."""
     parsed = parse(read_block(pid))
-    return None if parsed is None else parsed[1]
+    if parsed is None or not required:
+        return None
+    arguments, found = parsed
+    if not (args_match(arguments) if callable(args_match) else arguments == list(args_match)):
+        return None
+    return found if set(required) <= set(found) else None
 
 
 def calibrated(timeout=5.0):
@@ -136,18 +167,35 @@ def calibrated(timeout=5.0):
     return True
 
 
+USAGE = "usage: env_names.py <pid> --expect-args '<JSON list>' --require <NAME> [--require <NAME> ...]"
+
+
 def main(argv):
-    if len(argv) != 1 or not argv[0].isdigit():
-        print('usage: env_names.py <pid>', file=sys.stderr)
+    import json
+    pid, expected, required = None, None, []
+    rest = list(argv)
+    try:
+        pid = int(rest.pop(0)) if rest and rest[0].isdigit() else None
+        while rest:
+            flag, value = rest.pop(0), rest.pop(0)
+            if flag == '--expect-args':
+                expected = [item.encode() for item in json.loads(value)]
+            elif flag == '--require' and value:
+                required.append(value)
+            else:
+                raise ValueError(flag)
+    except (IndexError, ValueError, TypeError, AttributeError):
+        pid = None
+    if pid is None or expected is None or not required:
+        print(USAGE, file=sys.stderr)
         return 2
     if not calibrated():
         print('the calibration did not read back exactly: not observed', file=sys.stderr)
         return 2
-    found = names(int(argv[0]))
+    found = names(pid, expected, required)
     if found is None:
         return 2
-    if found:  # an empty environment, seen as above, prints nothing and exits 0
-        print('\n'.join(found))
+    print('\n'.join(found))
     return 0
 
 
