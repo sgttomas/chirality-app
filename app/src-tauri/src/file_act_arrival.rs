@@ -167,6 +167,9 @@ struct Basis {
     files: BTreeMap<String, FileSource>,
     content: Value,
     request: Option<String>,
+    /// Whether a decline offered beside the act would answer the arrival too, fixed at opening;
+    /// a change by confirmation refuses as a changed source.
+    decline_answers: bool,
 }
 fn original_claim(
     record: &Value,
@@ -234,21 +237,16 @@ fn basis(run: &WorkflowRun, id: &str) -> Result<Basis, String> {
     {
         return Err("The run source records an end; no live arrival offer".into());
     }
-    // Only one act answers an arrival: an act or decline already recorded as answering it,
-    // which the recorder has not yet taken up, means no second offer, until it has.
-    let arrival = json!({"checkpoint":candidate.arrival["checkpoint"],"arrivalOrdinal":candidate.arrival["arrivalOrdinal"]});
-    let taken: Vec<Value> = run.entries.iter().map(|e| json!({"kind":e.kind,"body":e.body})).collect();
-    if source.claims.iter().map(|c| &c["record"]).any(|r| {
-        r["runId"] == *run_id
-            && match r["kind"].as_str() {
-                Some("human_act") => r["body"]["relations"]["arrivalAnswered"] == arrival,
-                Some("act_declined") => r["body"]["arrival"] == arrival,
-                _ => false,
-            }
-            && !crate::checkpoint_recorder::taken_up(&taken, &arrival, &r["recordId"])
-    }) {
-        return Err(crate::checkpoint_recorder::not_answering::ANSWER_PENDING.into());
-    }
+    // The offer is made only where an act would answer this arrival once the recorder has taken
+    // up every act and decline already recorded: the recorder's own reader and counting step,
+    // which write nothing here. An act record that cannot be read withholds the offer.
+    let entries: Vec<Value> = run.entries.iter()
+        .map(|e| json!({"kind":e.kind,"body":e.body,"written":e.written.is_some()}))
+        .collect();
+    let acts = crate::checkpoint_recorder::project_act_records(&run.project_root)
+        .map_err(|_| crate::checkpoint_recorder::not_answering::ACTS_NOT_READ.to_owned())?;
+    let decline_answers = crate::checkpoint_recorder::answer_once_taken_up(&entries, &acts, &run.project_root, &candidate.arrival)
+        .map_err(str::to_owned)?;
     let openings: Vec<_> = run
         .entries
         .iter()
@@ -375,6 +373,7 @@ fn basis(run: &WorkflowRun, id: &str) -> Result<Basis, String> {
         files,
         content,
         request,
+        decline_answers,
     })
 }
 
@@ -518,6 +517,10 @@ impl ArrivalSource {
     }
     pub(crate) fn answers(&self) -> Value {
         json!({"runId":self.original.candidate.record["runId"],"arrival":self.original.candidate.arrival})
+    }
+    /// Whether a decline on this offer would answer its arrival (only while the arrival waits).
+    pub(crate) fn decline_answers(&self) -> bool {
+        self.original.decline_answers
     }
     pub(crate) fn request_ref(&self) -> Option<&str> {
         self.original.request.as_deref()

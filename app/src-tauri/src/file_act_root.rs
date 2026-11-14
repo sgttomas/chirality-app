@@ -46,7 +46,12 @@ impl FileActRoot {
         arrival: Option<Arc<crate::runtime_session::ArrivalSource>>,
     ) -> Result<Value, String> {
         let (facts, bytes) = control.file_act_preview(&offer)?;
-        let preview = json!({"reference":offer.id(),"offer":facts,"byteLength":bytes.len(),"utf8":std::str::from_utf8(bytes).ok(),"hex":bytes.iter().map(|b|format!("{b:02x}")).collect::<String>(),"previewStanding":"exact frozen bytes; selection and preview are not act evidence"});
+        let mut preview = json!({"reference":offer.id(),"offer":facts,"byteLength":bytes.len(),"utf8":std::str::from_utf8(bytes).ok(),"hex":bytes.iter().map(|b|format!("{b:02x}")).collect::<String>(),"previewStanding":"exact frozen bytes; selection and preview are not act evidence"});
+        // The offer still carries declineAvailable by its schema; where a decline would not
+        // answer the arrival, the preview says so beside it, as the sheet does.
+        if arrival.as_ref().is_some_and(|a| !a.decline_answers()) {
+            preview["declineNotice"] = json!(crate::checkpoint_recorder::not_answering::DECLINE_DOES_NOT_ANSWER);
+        }
         let reference = offer.id().to_owned();
         self.offers.insert(
             reference,
@@ -99,7 +104,7 @@ impl FileActRoot {
     }
     pub fn snapshot(&self) -> Value {
         json!(self.offers.iter().map(|(reference,owner)|match owner.try_lock(){
-            Ok(owner)=>json!({"reference":reference,"offer":owner.preview["offer"],"attempted":owner.attempted,"status":owner.status}),
+            Ok(owner)=>json!({"reference":reference,"offer":owner.preview["offer"],"declineNotice":owner.preview.get("declineNotice"),"attempted":owner.attempted,"status":owner.status}),
             Err(_)=>json!({"reference":reference,"state":"original native operation pending"}),
         }).collect::<Vec<_>>())
     }

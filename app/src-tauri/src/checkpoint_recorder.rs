@@ -902,13 +902,23 @@ fn comparable(time: &str) -> bool {
 /// counts (§4.7). A record that claims an act on the arrival's file but
 /// cannot be verified against its capture adds an "unresolvable reference"
 /// limit, once.
+/// The subjects a file act or decline record names: its bound subject, or a decline's subject.
+fn named(record: &Value) -> Value {
+    let b = &record["body"];
+    if record["kind"] == "act_declined" { b["subject"].clone() } else { b["boundSubject"].clone() }
+}
+/// An arrival referent's file, resolved now inside `root` (canonical) as the act control
+/// resolves its subjects.
+fn subject_files(subject: &str, root: &Path) -> Vec<std::path::PathBuf> {
+    subject.match_indices(": file ")
+        .filter_map(|(i, m)| normal(&subject[i + m.len()..]))
+        .filter_map(|rel| std::fs::canonicalize(root.join(rel)).ok())
+        .filter(|f| f.starts_with(root) && *f != root)
+        .collect()
+}
 pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<Output> {
     let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let mut out: Vec<Output> = Vec::new();
-    let named = |record: &Value| -> Value {
-        let b = &record["body"];
-        if record["kind"] == "act_declined" { b["subject"].clone() } else { b["boundSubject"].clone() }
-    };
     for arrival_entry in entries.iter().filter(|e| e["kind"] == "checkpoint_arrival") {
         let body = &arrival_entry["body"];
         let arrival = json!({"checkpoint":body["checkpoint"],"arrivalOrdinal":body["arrivalOrdinal"]});
@@ -927,11 +937,7 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             continue;
         }
         // The arrival's file, resolved now as the act control resolves its subjects.
-        let files: Vec<std::path::PathBuf> = subject.match_indices(": file ")
-            .filter_map(|(i, m)| normal(&subject[i + m.len()..]))
-            .filter_map(|rel| std::fs::canonicalize(root.join(rel)).ok())
-            .filter(|f| f.starts_with(&root) && *f != root)
-            .collect();
+        let files = subject_files(subject, &root);
         if files.is_empty() {
             continue;
         }
@@ -1070,16 +1076,50 @@ pub(crate) mod not_answering {
     pub(crate) const NOT_ESTABLISHED: &str = "This arrival's disposition cannot be established from its run's records, so no act is offered for it here.";
     pub(crate) const UNFAMILIAR: &str = "This arrival's recorded disposition is not one the App writes, so no act is offered for it here.";
     pub(crate) const ANSWER_PENDING: &str = "An act or decline answering this arrival is already recorded and not yet taken up, so no second act is offered for it here. Review again once it is.";
+    pub(crate) const ACTS_NOT_READ: &str = "The project's act records could not be read completely, so whether an act here would answer this arrival cannot be established, and no act is offered for it here. The same act on this file can still be made from the standing file selection; while the records cannot be read, its record may wait until they can. Review again once they can be read.";
+    /// On a performed arrival answered again only by an act on its current content (RC-8), a
+    /// decline answers nothing: said on its sheet, and the reason a decline there is refused.
+    pub(crate) const DECLINE_DOES_NOT_ANSWER: &str = "This arrival is performed and its file has changed since: only an act on its current content answers it. A decline here would not answer it and is not recorded; a decline of this kind stays available outside the arrival.";
 }
-/// Whether the record `id` is one the recorder has taken up for `arrival`: counted, not counted
-/// or recorded as declining it, by the run's own entries (the same test the recorder uses not
-/// to count it twice).
-pub(crate) fn taken_up(entries: &[Value], arrival: &Value, id: &Value) -> bool {
-    entries.iter().any(|e| e["body"]["arrival"] == *arrival && match e["kind"].as_str() {
-        Some("act_counted" | "act_not_counted") => e["body"]["act"]["recordId"] == *id,
-        Some("arrival_declined") => e["body"]["declinedEventRef"] == *id,
-        _ => false,
-    })
+/// Whether an act offered now on `arrival` would be counted for it, once the recorder has taken
+/// up every act and decline already recorded. First the recorded disposition decides
+/// ([`act_would_answer`]); then what the recorder's own counting step ([`count_acts`]) would
+/// write from `read`, the project's act records as its own reader reads them
+/// ([`project_act_records`]), on the same gate it counts on ([`countable`]). This returns what
+/// the recorder would write and appends nothing. Where the recorded disposition answers and the
+/// projected one does not, the reason is [`not_answering::ANSWER_PENDING`].
+///
+/// `Ok` carries whether a decline offered beside the act would answer too: only while the
+/// arrival waits, since a performed arrival with a referent lapsed after its resume point is
+/// answered again only by an act (RC-8).
+///
+/// The read must be positively complete for this arrival's file: a record on that file that the
+/// reader could not settle either way (its capture or its relations not resolved) refuses with
+/// [`not_answering::ACTS_NOT_READ`], as a read that failed does. A record the reader settled as
+/// no act (it differs from its capture, another writer wrote it, it shares its capture, its
+/// identity conflicts) is never counted, so it holds nothing.
+///
+/// The decision is the projected state's answerability ([`act_would_answer`] on the entries with
+/// what the recorder would write), never whether this projection produced a new entry.
+pub(crate) fn answer_once_taken_up(entries: &[Value], read: &ActRead, root: &Path, arrival: &Value) -> Result<bool, &'static str> {
+    act_would_answer(entries, arrival)?;
+    let root = std::fs::canonicalize(root).map_err(|_| not_answering::ACTS_NOT_READ)?;
+    let subject = entries.iter()
+        .find(|e| e["kind"] == "checkpoint_arrival" && e["body"]["checkpoint"] == arrival["checkpoint"] && e["body"]["arrivalOrdinal"] == arrival["arrivalOrdinal"])
+        .and_then(|e| e["body"]["referents"][0]["subject"].as_str());
+    let files = subject.map(|s| subject_files(s, &root)).unwrap_or_default();
+    let unsettled = |u: &Value| u["reason"].as_str().is_some_and(|r| r.starts_with("capture evidence not resolved") || r.starts_with("record relation not resolved"));
+    let on_file = |record: &Value| named(record).as_array().is_some_and(|subjects| subjects.iter().any(|s| s.as_str().is_some_and(|p| files.iter().any(|f| Path::new(p) == f))));
+    if read.unresolved.iter().any(|u| unsettled(u) && on_file(&u["record"])) {
+        return Err(not_answering::ACTS_NOT_READ);
+    }
+    let root = root.as_path();
+    let mut projected = entries.to_vec();
+    if countable(entries) {
+        projected.extend(count_acts(entries, read, root).into_iter().map(|(kind, body)| json!({"kind":kind,"body":body,"written":true})));
+    }
+    act_would_answer(&projected, arrival).map_err(|_| not_answering::ANSWER_PENDING)?;
+    Ok(disposition(&projected, &[], arrival).as_deref() == Some("waiting"))
 }
 /// Whether an act on `arrival` now would be counted for it, by the rule acts are counted by
 /// (CE-5, RC-8): its latest disposition, recorded, is *waiting*, or it is *performed* with a

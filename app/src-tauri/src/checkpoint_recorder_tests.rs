@@ -230,7 +230,7 @@ fn digest(content: &str) -> Value {
     json!({"method":EXACT_BYTES,"value":crate::util::sha256_hex(content.as_bytes())})
 }
 /// The capture object the App act control writes for a file act or decline.
-fn capture_of(choice: &str, kind: &str, file: &std::path::Path, content: &Value, time: &str) -> Value {
+pub(crate) fn capture_of(choice: &str, kind: &str, file: &std::path::Path, content: &Value, time: &str) -> Value {
     let id = crate::util::opaque_id("cap:").unwrap();
     let capture = json!({"format":"chirality.aac.capture-evidence","formatVersion":"0.3","captureId":id,"offerId":format!("offer:{id}"),
         "offerDigest":{"method":"aac-offer-digest/0.1","value":"0".repeat(64)},"choice":choice,"actKind":kind,
@@ -241,7 +241,7 @@ fn capture_of(choice: &str, kind: &str, file: &std::path::Path, content: &Value,
     capture
 }
 /// Store a capture as the App act control does: sealed under this installation's key.
-fn store(root: &std::path::Path, capture: &Value) {
+pub(crate) fn store(root: &std::path::Path, capture: &Value) {
     let mut sealed = capture.clone();
     crate::capture_seal::seal(root, &mut sealed).unwrap();
     store_as_is(root, &sealed);
@@ -2265,4 +2265,69 @@ fn an_act_would_answer_an_arrival_only_on_its_recorded_waiting_or_relapsed_dispo
     // Another arrival's disposition says nothing of this one.
     let other = json!({"kind":"disposition_change","body":{"arrival":{"checkpoint":"CP-check","arrivalOrdinal":2},"disposition":"waiting"},"written":true});
     assert_eq!(act_would_answer(&[arrived, other], &arrival), Err(NOT_ESTABLISHED));
+}
+
+// The arrival offer's rule (`file_act_arrival` basis; reading of 347, round 2): an act offered on
+// an arrival answers only as the recorder's own counting step, over the act records as its own
+// reader reads them now, would leave the arrival. It returns what the recorder would write and
+// appends nothing.
+#[test]
+fn an_offer_answers_only_as_the_recorders_own_count_would_leave_the_arrival() {
+    use not_answering::*;
+    let written = |all: &[Value]| -> Vec<Value> { all.iter().map(|e| { let mut e = e.clone(); e["written"] = json!(true); e }).collect() };
+    let now = |root: &std::path::Path, all: &[Value]| answer_once_taken_up(&written(all), &project_act_records(root).unwrap(), root, &cp_rely());
+    let log = |root: &std::path::Path| std::fs::read(crate::storage::project_file(root, crate::recorder::LOG).unwrap()).unwrap();
+    // Waiting: an act answers, and a decline would too.
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let (all, _, _) = observe_with(&root);
+    assert_eq!(now(&root, &all), Ok(true));
+    // (b) A record claiming to answer the arrival that differs from its capture is no act to the
+    // recorder, so nothing is pending.
+    let capture = capture_of("act", "A7", &file, &digest("v1"), LATER);
+    store(&root, &capture);
+    let mut body = crate::act_control::act_body(&capture);
+    body["relations"] = json!({"arrivalAnswered": cp_rely()});
+    crate::records::append(&crate::storage::project_file(&root, crate::recorder::LOG).unwrap(), "human_act", &crate::records::APP_INTERFACE, body).unwrap();
+    assert_eq!(project_act_records(&root).unwrap().unresolved.len(), 1);
+    assert_eq!(now(&root, &all), Ok(true));
+    // A record on the arrival's file whose capture cannot be resolved leaves the read not
+    // positively complete: the offer is refused with the not-read reason.
+    let unsettled = record_for(&root, &capture_of("act", "A7", &file, &digest("v1"), LATER), &crate::records::APP_INTERFACE);
+    assert!(project_act_records(&root).unwrap().unresolved.iter().any(|u| u["record"]["recordId"] == unsettled.as_str()));
+    assert_eq!(now(&root, &all), Err(ACTS_NOT_READ));
+    std::fs::remove_dir_all(&root).unwrap();
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let (all, _, _) = observe_with(&root);
+    // (e) A standing act on the same content, recorded and not yet taken up: pending; and the
+    // projection appends nothing.
+    act(&root, "A7", &file, "v1", LATER);
+    let before = log(&root);
+    assert_eq!(now(&root, &all), Err(ANSWER_PENDING));
+    assert_eq!(log(&root), before, "the projection appends nothing");
+    std::fs::remove_dir_all(&root).unwrap();
+    // An act of another kind would not be counted and leaves the arrival waiting: not pending.
+    let root = project("v1");
+    let (all, _, _) = observe_with(&root);
+    act(&root, "A4", &root.join("out/summary.md"), "v1", LATER);
+    assert_eq!(now(&root, &all), Ok(true));
+    std::fs::remove_dir_all(&root).unwrap();
+    // (d) Performed, then its file changed after the resume point: an act on the current content
+    // answers and a decline does not. A decline recorded there is never taken up, so it is not
+    // pending; an act on the current content is; once taken up, the arrival reads performed.
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let (mut recorder, mut all, _) = performed_run(&root);
+    std::fs::write(&file, "v2").unwrap();
+    again(&mut recorder, &root, &resumed_view(), &mut all);
+    assert_eq!(now(&root, &all), Ok(false));
+    decline(&root, "A7", &file, "v2", LATER);
+    assert_eq!(now(&root, &all), Ok(false));
+    assert!(again(&mut recorder, &root, &resumed_view(), &mut all).is_empty(), "the recorder does not take it up");
+    act(&root, "A7", &file, "v2", LATER);
+    assert_eq!(now(&root, &all), Err(ANSWER_PENDING));
+    assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["act_counted", "disposition_change"]);
+    assert_eq!(now(&root, &all), Err(PERFORMED));
+    std::fs::remove_dir_all(&root).unwrap();
 }
