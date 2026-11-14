@@ -5,7 +5,7 @@
 // It makes views (get_app_state) and clicks by element index, and, only where a scenario names them, two more: one
 // set-value into a field the scenario names in `typed_fields` (the path typed because the alternative is the system's
 // folder panel, which no agent operates), and one press on the App's own confirmation sheet the scenario names in
-// `sheets`, after checking that sheet whole. It clicks only controls a scenario step names, found by their kind and
+// `sheets`, only when its view equals the recorded view of it. It clicks only controls a scenario step names, found by kind and
 // words in the latest view. It never lists applications, types keys, presses a key, scrolls, drags or pastes, and any
 // sheet but the one named stops it as before.
 //
@@ -154,130 +154,52 @@ function inMenuBar(elements) {
 }
 
 /**
- * The App's own confirmation sheet against what the scenario names for it, before anything is pressed. The view must
- * say it is of the development build (view() refuses any other). Two shapes are accepted, and no third:
- * - THE SHEET INSIDE THE WINDOW: at the top, the one window and the menu bar; directly inside the window, what the
- *   scenario lists and exactly one thing more, the sheet; directly inside the sheet, the named title as a text of its
- *   own, the statement's text, and the buttons;
- * - THE SHEET ON ITS OWN, as the supplier's view was seen to give the App's native confirmation on 14 November 2026
- *   (the window the view names is "Unknown"): at the top, exactly one sheet and the menu bar, and nothing else;
- *   directly inside the sheet, exactly one text, which is the named title, one space, and the statement, and the
- *   buttons, each written "button <words>, ID: action-button-<n>".
- * In either shape: no other window, sheet, dialog, alert or popover at any depth, the menu bar's included; nothing deeper than the sheet's
- * own children; exactly the named buttons, none shown unavailable, matched on their words (before the identifier
- * suffix, which must be of the form seen); no element index given twice; inside the window, an image (the App's icon)
- * allowed and recorded, and on its own, none; anything else is a problem. The statement must
- * equal the complete statement. Line breaks, however the view gives them (a new element, a new line, or written as
- * \n), are made one space, and each line is trimmed at its ends; nothing else is changed, so every word and every
- * path is compared exactly. Returns {problems, record, press} where press is the index of the named button to press.
+ * The App's own confirmation sheet against the scenario's recorded view of it, before anything is pressed. The view
+ * must equal the template line for line: each element line in its depth and its words, every other line exactly. The
+ * template is filled only with the captured paths (through the statement), the sheet's title, and the App's name, which
+ * is the candidate bundle's own folder name; the identifier is inside the paths. Element indices are not compared, since
+ * a view numbers its elements as it goes; the view is uniquely addressed (view() refuses one that is not), and the
+ * press goes to the index the view gives the element in the template's place for the named button. The focused-element
+ * line must name, by that mapping, the element the template's names. Anything else is a difference, and nothing is
+ * pressed. A view of the same sheet in another shape (another macOS or supplier version) stops the walk until the
+ * template is recorded again from a real observation and read again.
  */
-const BUTTON_SUFFIX = /, ID: action-button-\d+$/;
-const ALONE_SHEET = 'Description: alert, Secondary Actions: Raise';
+const FOCUSED = /^The focused UI element is (\d+) (.*)$/;
 
-export function sheetCheck(text, elements, scenario, sheet, values) {
-  const problems = [], record = {};
-  const title = `standard window ${scenario.window}`;
-  const isWindow = ({ content }) => content === title || content.startsWith(title + ', ');
-  const isSheet = ({ content }) => content === sheet.element || content.startsWith(sheet.element + ', ');
-  const top = elements.filter(({ depth }) => depth === 0);
-  // Every window, sheet, dialog, alert or popover anywhere in the view, the menu bar's subtree included.
-  const modalAll = elements.flatMap(({ content }, at) => (MODAL.test(content) ? [at] : []));
-  if (new Set(elements.map(({ index }) => index)).size !== elements.length) {
-    problems.push('the view gives the same element index to more than one element');
+export function sheetCheck(text, sheet, values, appName) {
+  const problems = [], record = { compared_with: 'the recorded view of the sheet' };
+  const statement = (sheet.statement ?? []).map(line => fill(line, values)).join('\n');
+  record.statement_wanted = statement;
+  // The App shows the statement whole only within 30 lines and 1,500 characters; beyond that it shows a digest.
+  if (statement.split('\n').length > 30 || [...statement].length > 1500) problems.push('for these paths the statement is longer than the App shows whole');
+  if (!Array.isArray(sheet.view) || !sheet.view.length) {
+    problems.push('the scenario gives no recorded view of the sheet');
     return { problems, record, press: null };
   }
-  let sheetElement, alone = false;
-  // On its own, the sheet's line is exactly the one the supplier's view gave for the App's alert sheet.
-  const isAlone = ({ content }) => content === `${sheet.element} ${ALONE_SHEET}`;
-  if (top.length === 2 && top.filter(isAlone).length === 1 && top.some(({ content }) => content === 'menu bar')) {
-    // The sheet on its own: nothing modal anywhere but it.
-    alone = true;
-    sheetElement = top.find(isAlone);
-    const others = modalAll.filter(at => at !== elements.indexOf(sheetElement));
-    if (others.length) {
-      problems.push(`there is ${others.length} more window, sheet, dialog, alert or popover in the view beside the sheet`);
-      return { problems, record, press: null };
-    }
-    record.shape = 'the sheet on its own';
-  } else {
-    if (top.some(element => !isWindow(element) && element.content !== 'menu bar') || top.filter(isWindow).length !== 1) {
-      problems.push('the view is neither the one window with its sheet, nor the one sheet, with the menu bar');
-      return { problems, record, press: null };
-    }
-    const start = elements.findIndex(isWindow);
-    const extra = [], modal = modalAt(elements, start + 1, true);
-    for (let at = start + 1; at < elements.length && elements[at].depth > 0; at++) {
-      if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) extra.push(at);
-    }
-    if (extra.length !== 1 || modal.length !== 1 || modal[0] !== extra[0]
-        || modalAll.length !== 2 || modalAll[0] !== start || modalAll[1] !== extra[0]) {
-      problems.push(`the window holds ${extra.length} things beside the page and ${modal.length} windows, sheets or dialogs, not one sheet`);
-      return { problems, record, press: null };
-    }
-    sheetElement = elements[extra[0]];
-    record.shape = 'the sheet inside the window';
-  }
-  record.sheet = sheetElement.content;
-  if (!alone && !isSheet(sheetElement)) problems.push(`the thing beside the page is "${sheetElement.content}", not a ${sheet.element}`);
-  // Every line of the view inside the sheet: from its own line to the next element no deeper than it.
-  const lines = String(text).split('\n');
-  const first = lines.findIndex(line => { const m = ELEMENT.exec(line); return m && !m[1] && Number(m[3]) === sheetElement.index; });
-  if (first < 0) problems.push('the sheet was not found in the view as returned');
-  const buttons = [], titles = [], body = [];
-  record.images = [];
-  record.other = [];
-  for (let n = first + 1; first >= 0 && n < lines.length; n++) {
-    const m = ELEMENT.exec(lines[n]);
-    if (m && !m[1]) {
-      const depth = m[2].length, content = m[4];
-      if (depth <= sheetElement.depth) break;
-      if (depth > sheetElement.depth + 1) { record.other.push(content); continue; }
-      if (/^button /.test(content)) buttons.push({ index: Number(m[3]), content });
-      else if (!alone && content === `text ${sheet.title}`) titles.push(content);
-      else if (!alone && /^image( |,|$)/.test(content)) record.images.push(content);
-      else if (/^text /.test(content)) body.push(content.slice(5));
-      else record.other.push(content);
-    } else if (body.length) {
-      body[body.length - 1] += '\n' + lines[n];  // a text running over more than one line
-    } else {
-      record.other.push(lines[n]);
+  const wanted = fill(sheet.view.join('\n'), { ...values, title: sheet.title, statement, app_name: appName }).split('\n');
+  const seen = String(text).split('\n');
+  const at = new Map();  // template index -> the view's index for the element in the same place
+  const differs = [];
+  if (seen.length !== wanted.length) differs.push(`the view has ${seen.length} lines and the recorded view ${wanted.length}`);
+  for (let n = 0; !differs.length && n < wanted.length; n++) {
+    const w = ELEMENT.exec(wanted[n]), s = ELEMENT.exec(seen[n]);
+    const wf = FOCUSED.exec(wanted[n]), sf = FOCUSED.exec(seen[n]);
+    if (w && !w[1]) {
+      if (!s || s[1] || s[2] !== w[2] || s[4] !== w[4]) differs.push(`line ${n + 1} is not the recorded view's`);
+      else at.set(Number(w[3]), Number(s[3]));
+    } else if (wf) {
+      if (!sf || sf[2] !== wf[2] || !at.has(Number(wf[1])) || Number(sf[1]) !== at.get(Number(wf[1]))) differs.push(`line ${n + 1}, the focused element, is not the recorded view's`);
+    } else if (seen[n] !== wanted[n]) {
+      differs.push(`line ${n + 1} is not the recorded view's`);
     }
   }
-  if (record.other.length) problems.push(`the sheet holds what the scenario does not name: ${JSON.stringify(record.other)}`);
-  // A button's words: on its own, before the identifier suffix, which must be there; inside the window, without one.
-  const words = content => {
-    const bare = content.replace(/^button (\(disabled\) )?/, '');
-    if (!alone) return bare;
-    return BUTTON_SUFFIX.test(bare) ? bare.replace(BUTTON_SUFFIX, '') : null;
-  };
-  record.buttons = buttons.map(({ content }) => words(content));
-  if (buttons.some(({ content }) => content.startsWith('button (disabled) '))) problems.push('a button of the sheet is shown unavailable');
-  if (record.buttons.includes(null)) problems.push('a button of the sheet is not written with the identifier suffix seen');
-  if (JSON.stringify([...record.buttons].sort()) !== JSON.stringify([...sheet.buttons].sort())) {
-    problems.push(`the sheet's buttons are ${JSON.stringify(record.buttons)}, not ${JSON.stringify(sheet.buttons)}`);
-  }
-  const plain = words => String(words).replace(/\\n/g, '\n').split('\n').map(line => line.trim()).filter(Boolean).join(' ');
-  let seen;
-  if (alone) {
-    // Exactly one text: the title, one space, then the statement.
-    if (body.length !== 1) problems.push(`the sheet holds ${body.length} texts, not the one that is its title and statement`);
-    const one = plain(body.join('\n'));
-    if (!one.startsWith(`${sheet.title} `)) problems.push(`the sheet's text does not begin with its title "${sheet.title}"`);
-    seen = one.startsWith(`${sheet.title} `) ? one.slice(sheet.title.length + 1) : one;
-  } else {
-    if (titles.length !== 1) problems.push(`the sheet's title "${sheet.title}" is there ${titles.length} times`);
-    seen = plain(body.join('\n'));
-  }
-  // The App shows the statement whole only within 30 lines and 1,500 characters; beyond that it shows a digest.
-  const whole = sheet.statement.map(line => fill(line, values)).join('\n');
-  if (whole.split('\n').length > 30 || [...whole].length > 1500) problems.push('for these paths the statement is longer than the App shows whole');
-  const wanted = plain(whole);
-  record.statement_seen = seen;
-  record.statement_wanted = wanted;
-  if (seen !== wanted) problems.push('the statement in the sheet is not the complete statement, exactly');
-  const press = buttons.filter(({ content }) => words(content) === sheet.press);
-  if (press.length !== 1) problems.push(`the button to press, "${sheet.press}", is there ${press.length} times`);
-  return { problems, record, press: press.length === 1 ? press[0].index : null };
+  problems.push(...differs);
+  record.first_difference = differs[0] ?? null;
+  const named = wanted.map(line => ELEMENT.exec(line)).filter(m => m && !m[1] && m[4].startsWith(`button ${sheet.press}, ID: `));
+  if (named.length !== 1) problems.push(`the recorded view holds the button to press, "${sheet.press}", ${named.length} times`);
+  const press = named.length === 1 && !differs.length ? at.get(Number(named[0][3])) : null;
+  if (!problems.length && !Number.isInteger(press)) problems.push('the button to press has no index in the view');
+  return { problems, record, press: problems.length ? null : press };
 }
 
 /** One expectation against one view's elements: {expectation, pass, found}. */
@@ -503,10 +425,13 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       return { whole: false, text, rebuilt };
     }
     elements = parseView(text);
-    return { whole: true, text };
+    // The first property of a view the walk acts on, beside being whole: each element index names one element.
+    const addressed = new Set(elements.map(({ index }) => index)).size === elements.length;
+    return { whole: true, addressed, text };
   };
   // What was asked, said truly for each view: the first is a plain view of an identifier not viewed before in this
   // walk; every later view asked for the whole window.
+  const unaddressed = id => `stopped at ${id}: the view gives the same element index to more than one element, so it cannot be addressed; nothing is clicked, typed or pressed from it`;
   const asDifferences = (id, plain = false) => `stopped at ${id}: the view came back as differences although ${plain
     ? 'it was the first view of this build in the walk, asked with the application alone'
     : 'the whole window was asked for'}; nothing is checked or clicked from a rebuilt view`;
@@ -526,6 +451,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     }
     report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
     if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`, ordinal === 'first'));
+    if (!seen.addressed) return finish('inconclusive', unaddressed(`the ${ordinal} view before any click`));
     const stray = notThePage(elements, scenario);
     if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
     const afterView = gate(`after the ${ordinal} view before any click`);
@@ -633,7 +559,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       }
       entry.sheet_view = shown.text;
       if (!shown.whole) return finish('inconclusive', asDifferences(step.id));
-      const checked = sheetCheck(shown.text, elements, scenario, sheet, values);
+      if (!shown.addressed) return finish('inconclusive', `${unaddressed(step.id)}; nothing was pressed`);
+      const checked = sheetCheck(shown.text, sheet, values, bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length));
       entry.sheet = { ...checked.record, problems: checked.problems };
       if (checked.problems.length) return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.problems.join('; ')}); nothing was pressed`);
       const beforePress = gate(`at ${step.id}, before the press`);
@@ -671,6 +598,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       entry.rebuilt_for_reading = seen.rebuilt;
       return finish('inconclusive', asDifferences(step.id));
     }
+    if (!seen.addressed) return finish('inconclusive', unaddressed(step.id));
     const stray = notThePage(elements, scenario);
     if (stray && step.act === 'confirm_sheet') return finish('inconclusive', `stopped at ${step.id}: after the one press, ${stray}; it is not pressed again`);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);

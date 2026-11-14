@@ -28,14 +28,27 @@
     {
       "id": "desktop-setup",
       "opener": "Create settings and save for next launch…",
-      "element": "sheet",
       "title": "Desktop setup — next launch only",
-      "buttons": [
-        "Leave setup unchanged",
-        "Create settings and save for next launch",
-        "Cancel"
-      ],
       "press": "Create settings and save for next launch",
+      "view_recorded": "14 November 2026, by the supplier's view of the development build, on this Mac: the sheet on its own beside the menu bar (tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt, with paths, identifier and name made invented). The walk presses only when the view equals this template, filled with the captured paths, the title and the candidate bundle's name; another shape stops it until a new observation is recorded and read",
+      "view": [
+        "Window: \"Unknown\", App: {app_name}.",
+        "0 sheet Description: alert, Secondary Actions: Raise",
+        "\t1 text {title} {statement}",
+        "\t2 button Leave setup unchanged, ID: action-button-1",
+        "\t3 button Cancel, ID: action-button-3",
+        "\t4 button Create settings and save for next launch, ID: action-button-2",
+        "5 menu bar",
+        "\t6 {app_name}",
+        "\t7 File",
+        "\t8 Edit",
+        "\t9 View",
+        "\t10 Window",
+        "\t11 Help",
+        "\t12 Waiting requests (0)",
+        "",
+        "The focused UI element is 0 sheet Description: alert, Secondary Actions: Raise"
+      ],
       "statement_form": "whole: for these paths the statement is within 30 lines and 1,500 characters (ns::bounded), so the App shows it whole; the digest form stops the walk",
       "statement": [
         "Create NEW App-owned settings folder: {settings}",

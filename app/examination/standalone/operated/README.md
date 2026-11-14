@@ -244,16 +244,15 @@ these from its own shell, in this order, and keeps each output in the new
 evidence folder under a name beginning `lane-`. Each opens nothing under
 `~/.codex` and signals nothing.
 
-1. **The screen lock, first.** `screen_lock.py` reads the login session's own
-   description (read only) and changes nothing. As read on this Mac on 14
-   November 2026, the key `CGSSessionScreenIsLocked` is present, at 1, while
-   the screen is locked, and absent while it is not. So: on the console
-   (`kCGSSessionOnConsoleKey` 1) with the lock key absent or 0 is not locked;
-   the lock key present and not 0 is locked; no session, not on the console,
-   either key given twice, either key with a value that is not plain digits,
-   or either key's name anywhere but as a key of the description's own top
-   level (inside another name, a quoted value or a nested dictionary), is not
-   established:
+1. **The screen lock, first.** `screen_lock.py` asks the login session's own
+   dictionary for two keys by CoreFoundation's lookup, reads each value as a
+   number or a boolean, and parses no text. It changes nothing. As read on
+   this Mac on 14 November 2026, the key `CGSSessionScreenIsLocked` is
+   present, at 1, while the screen is locked, and absent while it is not. So:
+   on the console (`kCGSSessionOnConsoleKey` 1) with the lock key absent or 0
+   is not locked; the lock key a number or boolean that is not 0 is locked;
+   anything else (no session, not on the console, either key of another type)
+   is not established:
 
    ```sh
    <python> -B app/examination/standalone/operated/screen_lock.py > <evidence folder>/lane-screen-lock.txt
@@ -1125,8 +1124,8 @@ failure, the same scenario and acts.
   an element there. An alert holding a control, or any alert outside the web
   content, stops the walk. A sheet, a dialog,
   an alert, a second window, or a kind of thing nobody named, stops it; the one
-  exception is the sheet a scenario's one `confirm_sheet` step names, checked
-  whole before its one press, and a sheet still there after that press stops
+  exception is the sheet a scenario's one `confirm_sheet` step names, pressed
+  once only when its view equals the recorded view of it, and a sheet still there after that press stops
   it and is not pressed again. It also stops
   if the watch file stops showing the build running, at the last step as at
   any other. A result that stopped this way is inconclusive, not a pass:
@@ -1140,7 +1139,12 @@ failure, the same scenario and acts.
   App, and the operator ends it only after the walk. A process the App started
   that has been given another parent, or that came and went between samples,
   is not seen as a child.
-- **Whole views, or nothing.** Before any click the script asks for two
+- **Each view whole and uniquely addressed, or nothing.** These are the two
+  properties of every view the walk acts on. A view in which any element
+  index is given to more than one element cannot be addressed, since a click
+  names an element only by its index: the walk stops there, before any act,
+  at every view, the first ones included (App Agent 0, 14 November 2026).
+- **Whole views.** Before any click the script asks for two
   views, one after the other, and both must come back whole. The first asks
   with the application alone; the first view of an application was seen to be
   whole without asking, and it counts only if what it returned is whole. The
@@ -1226,43 +1230,38 @@ either driver marker.
   step does this, in order:
   1. It is not taken if any earlier check failed.
   2. It clicks the opener once, waits, and views.
-  3. Before any press, it checks the view, the App's own element tree. The
-     view says it is of the bundle, and it has one of two shapes and no
-     other:
-     - **the sheet inside the window**: at the top, the one window and the
-       menu bar; directly inside the window, what the scenario lists and
-       exactly one thing more, a sheet; below the window, at any depth, no
-       other window, sheet, dialog, alert or popover, the page's own alerts
-       included; directly inside the sheet, and nothing deeper, exactly the
-       named buttons, the named title once, and the statement's text;
-     - **the sheet on its own**, the shape the supplier's view gave for the
-       real sheet on 14 November 2026
-       (`tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt`,
-       with its paths and identifier replaced by invented ones): at the top,
-       exactly two things, the menu bar and a sheet whose line is exactly
-       `sheet Description: alert, Secondary Actions: Raise`; no other window,
-       sheet, dialog, alert or popover anywhere, the menu bar included; no
-       image; directly inside the sheet,
-       and nothing deeper, exactly one text, which is the title, one space and
-       the statement, and exactly the named buttons, each written as its
-       words followed by `, ID: action-button-` and a number, a suffix that
-       must be there.
+  3. Before any press, it compares the view with the one recorded view of
+     the sheet, the scenario's `view`, and presses only when they are equal
+     (App Agent 0, 14 November 2026). The recorded view is the one the
+     supplier's view gave of the real sheet on 14 November 2026: the sheet on
+     its own beside the menu bar, with its title and statement as one text,
+     its three buttons each with its `, ID: action-button-<n>` suffix, the
+     App's menu, and the focused-element line
+     (`tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt`,
+     with its paths, identifier and name replaced by invented ones). The
+     template is filled with three things only: the statement, made from the
+     exact locations the page showed one step earlier; the sheet's title; and
+     the App's name, which is the candidate bundle's own folder name. The
+     identifier is inside the paths. Then:
+     - each element line must equal the template's in its depth and its
+       words; element indices are not compared, since a view numbers its
+       elements as it goes;
+     - every other line, the view's first line and each line of the
+       statement among them, must equal the template's exactly;
+     - the focused-element line must name, by those indices, the element the
+       template's names;
+     - the press goes to the index the view gives the element in the
+       template's place for the named button.
 
-     In either shape: no button of the sheet is shown unavailable; no
-     element index is given twice in the view; no window, sheet, dialog,
-     alert or popover is anywhere in the view but the window and the sheet
-     the shape names. Inside the window, an image (the App's icon) is allowed
-     and recorded. Anything else in the sheet is a difference. The record
-     names the shape.
-     - the statement's text equals the complete statement. Line breaks, in
-       whatever form the view gives them (a new element, a new line, or
-       written as `\n`), become one space, and each line is trimmed at its
-       ends. Nothing else is changed, so every word and every path is
-       compared exactly, and nothing may be added.
-
-     So its paths are exactly the locations the page named, and the previous
-     step checked that each lies under the App data folder in the home. Any
-     of these differences stops the walk, and nothing is pressed.
+     Anything else, an added or missing line, another word, path, button,
+     line break or kind of element, is a difference, and nothing is pressed.
+     So the statement's paths are exactly the locations the page named, and
+     the previous step checked that each lies under the App data folder in
+     the home. What follows, and App Agent 0 accepts as a cost: if the
+     supplier's view of the same sheet changes shape, on another macOS or
+     another supplier version, the walk stops at the sheet. The template is
+     then recorded again from a real observation and read again before it is
+     relied on. A stop costs a rerun; a wrong press does not.
   4. It reads the watch file again just before the press. If the build is
      not shown running, it stops without pressing.
   5. The App shows the statement whole within 30 lines and 1,500 characters,
@@ -1271,16 +1270,18 @@ either driver marker.
   6. It presses the named button once, by its index, waits and views. If the
      sheet, or anything else that is not the page, is still there, the walk
      stops and does not press again.
-- **What tells the App's own sheet apart.** Not its shape: in the sheet on
-  its own, a window, title or attribute names nothing of the App's, and an
-  alert sheet of the same build looks the same in every part but its words.
-  What tells it apart is two things together. The view is asked of the
+- **What tells the App's own sheet apart.** Not its shape alone: in the
+  recorded view no window, title or attribute names anything of the App's,
+  and an alert sheet of the same build would look the same in every part but
+  its words. What tells it apart is two things together. The view is asked of the
   development build by its bundle identifier, and the supplier gives that
   process's own tree, so a sheet of the system or of another application is
-  not in it (see the next point). And the sheet's one text must equal the
-  App's title and its complete statement, every word and path, with the
-  locations the page showed one step earlier; another alert of
-  the same build, with other words, is a difference and nothing is pressed.
+  not in it (see the next point). That is a reliance on the supplier, which
+  the walk does not check independently. And the view must equal the
+  recorded view, its one text being the App's title and complete statement,
+  every word and path, with the locations the page showed one step earlier;
+  another alert of the same build, with other words, is a difference and
+  nothing is pressed.
 - **What the tree does not show.** The view is the development build's own
   tree. A window of another application, or of the system, over the build is
   not in it, and the walk cannot see one. The operator stops if one appears in
@@ -1294,7 +1295,8 @@ either driver marker.
   window costs a throwaway home and a walk run again. So the walk's result
   keeps what would show a wrong act afterwards:
   - the sheet's whole view;
-  - the statement seen and the statement wanted;
+  - the statement wanted, and the first line where the view differed from
+    the recorded one, if it did;
   - the button pressed and its index;
   - the field typed into, with its index and the value.
 - **A walk that sees the next launch.** `launch` makes a new home each time.
