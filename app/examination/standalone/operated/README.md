@@ -1636,8 +1636,11 @@ either driver marker.
     never inside one) holds the owner's sign-in on the owner's word: each
     entry names one folder by its full name, quotes the owner's words, and
     gives the sign-in time as the owner said it and its end exactly seven days
-    later. For that folder keep-launch honours the exemption's end in place of
-    the 12 hours. It is an exemption by name, never a longer `expires_at`;
+    later. The file is refused unless it is a regular file of this user,
+    written by no one else by its mode or by any access control list, and JSON
+    with each key once. For that folder keep-launch honours the exemption's end
+    in place of the 12 hours. It is an exemption by name, never a longer
+    `expires_at`;
   - `launch.py keep-remove --folder <kept folder> --candidate <candidate
     folder>` removes it whole. It first makes keep-launch's checks of the
     candidate (admitted, identified, without the driver's markers, and the one

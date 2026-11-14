@@ -955,7 +955,29 @@ def running_candidates(executable):
     return found
 
 
-def kept_exemption(root_fd, name):
+def _no_repeated_keys(pairs):
+    """A JSON object whose keys each appear once: a repeated key would let a later value hide an earlier one."""
+    keys = [key for key, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError('a key is repeated')
+    return dict(pairs)
+
+
+def _has_acl(root, info):
+    """Whether the exemptions file carries any access control list entry, as `ls -leid` on that one file shows it
+    (an entry is a line after the first, numbered "n: ..."). Unknown is a yes: ls failing, or listing a file whose
+    inode is not the one opened. Only on macOS, where an ACL can grant writes the permission bits do not show."""
+    if sys.platform != 'darwin':
+        return False
+    done = subprocess.run(['/bin/ls', '-leid', str(Path(root) / EXEMPTIONS)], capture_output=True, text=True,
+                          env={'PATH': '/bin:/usr/bin', 'LC_ALL': 'C'})
+    lines = done.stdout.splitlines()
+    if done.returncode != 0 or not lines or lines[0].split()[:1] != [str(info.st_ino)]:
+        return True
+    return lines[0].split()[1][10:11] == '+' or any(re.match(r'\s*\d+:', line) for line in lines[1:])
+
+
+def kept_exemption(root, root_fd, name):
     """The exemption naming this kept folder by its full name in kept-exemptions.json under the homes root, or None.
     The file is a regular file of this user, written by no one else, read without following a link. Each entry names
     one folder (folder), quotes the owner's words (owner_words), gives the sign-in time as the owner said it
@@ -971,10 +993,12 @@ def kept_exemption(root_fd, name):
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o022:
             raise Refusal('the kept exemptions file is not a regular file of this user, written by no one else; refusing')
+        if _has_acl(root, info):
+            raise Refusal('the kept exemptions file carries an access control list, which could let another write it; refusing')
         try:
-            data = json.loads(stream.read())
-        except ValueError:
-            raise Refusal('the kept exemptions file is not JSON; refusing') from None
+            data = json.loads(stream.read(), object_pairs_hook=_no_repeated_keys)
+        except ValueError as error:
+            raise Refusal(f'the kept exemptions file is not JSON with each key once ({error}); refusing') from None
     entries = data.get('exemptions') if isinstance(data, dict) else None
     if not isinstance(entries, list):
         raise Refusal('the kept exemptions file holds no list of exemptions; refusing')
@@ -1084,7 +1108,7 @@ def keep_launch(args):
         check_not_a_test_build(app / executable_path)
         identify_candidate(app, record_path)
         folder, fd, kept = kept_folder(root, root_fd, args.folder)
-        exemption = kept_exemption(root_fd, folder.name)
+        exemption = kept_exemption(root, root_fd, folder.name)
     finally:
         os.close(root_fd)
     try:
@@ -1137,7 +1161,7 @@ def keep_remove(args):
         folder, fd, kept = kept_folder(root, root_fd, args.folder)
         if (kept.get('candidate_key'), kept.get('identifier')) != (record_data['candidate_key'], record_data['bundle']['identifier']):
             raise Refusal('the kept folder was made for another candidate; refusing')
-        exemption = kept_exemption(root_fd, folder.name)
+        exemption = kept_exemption(root, root_fd, folder.name)
         if exemption is not None and datetime.now(timezone.utc) < exemption['ends'] and args.exemption_end != exemption['ends_at']:
             raise Refusal(f"the kept folder is exempted on the owner's word until {exemption['ends_at']}; removing it before "
                           f"then needs --exemption-end {exemption['ends_at']}; refusing")

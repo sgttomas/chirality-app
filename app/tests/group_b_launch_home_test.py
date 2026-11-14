@@ -1178,6 +1178,22 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
             (self.root / launch.EXEMPTIONS).write_text(json.dumps({'exemptions': [{**entry, 'folder': folder.name + '-other'}]}))
             code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
             self.assert_refused(code, out, 'expired')
+        for name, text in {'a repeated key at the top': '{{"exemptions": [{0}], "exemptions": []}}',
+                           'a repeated key in the entry': '{{"exemptions": [{{"folder": "elsewhere", {1}}}]}}'}.items():
+            with self.subTest(name):
+                entry = self.exempt(folder)
+                body = json.dumps(entry)
+                (self.root / launch.EXEMPTIONS).write_text(text.format(body, body[1:-1]))
+                code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+                self.assert_refused(code, out, 'each key once')
+                self.assertFalse(list((folder / 'record').glob('launch-record-*.json')))
+        if sys.platform == 'darwin':
+            with self.subTest('an access control list granting a write'):
+                self.exempt(folder)
+                subprocess.run(['/bin/chmod', '+a', 'everyone allow write', str(self.root / launch.EXEMPTIONS)], check=True)
+                code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+                self.assert_refused(code, out, 'access control list')
+                self.assertFalse(list((folder / 'record').glob('launch-record-*.json')))
 
     def test_an_exempted_folder_is_removed_before_its_end_only_with_the_ends_own_word(self):
         candidate = self.candidate()
