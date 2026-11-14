@@ -1442,6 +1442,31 @@ either driver marker.
   writes will say that setup was confirmed. It is development evidence and
   meets no criterion.
 
+## The view-only scenarios
+
+Two scenarios act on nothing: each is one view, read, and the walk makes no click, set-value or press in them.
+- `first-launch-view.scenario.json`: the first launch in a fresh home, before setup. Its expectations are the
+  first-use page as the setup walk's listed state S1 recorded it: the welcome, Start with new settings chosen, Review
+  setup unavailable, Technical details closed.
+- `signed-out-relaunch.scenario.json`: the launch after the setup walk, in its kept folder. On 14 November 2026 at
+  12:40 UTC it read, on candidate 9d997626, "Codex is connected Choose a conversation, or select a model and access
+  entry for a new one." and "Project folder: " with the kept folder's project, the project the sheet named. The
+  settings, sign-in and App data folders are behind "Settings & tools", which it does not open, so whether they are
+  the folders the sheet named is not established by it.
+
+**The first view: limits seen on 14 November 2026.**
+- A first plain view taken 113 seconds after a launch held only the window frame and the menu bar, with no web
+  content. Why is not established.
+- A read-only launch then saw the view's text hold the first-use page at 150 seconds while the screenshot showed a
+  blank content area; the page was painted by 181 seconds. So the accessibility text can be ahead of the picture, and
+  the page can take over 150 seconds to paint on a loaded machine.
+- A view taken at a one-minute load of 86 failed with "Computer Use server error -10005: timeoutReached".
+- So an operator holds the walk's call at least 240 seconds after the launch, and then until the one-minute load
+  reads under 20 (for at most 15 minutes, after which the launch is spent), and records the readings. A view the walk
+  would act from that is not its listed state stops the walk with no act: that is a launch spent, not a failure of
+  the App. The walk acts only from a step's own view; its preliminary views are read, and a preliminary view without
+  the page does not by itself stop it.
+
 ## The rehearsal: a kept folder with the network open
 
 The rehearsal is the walk of the central journey on an identified candidate,

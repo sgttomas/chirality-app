@@ -1280,6 +1280,28 @@ class AViewRecognisedLineForLine(unittest.TestCase):
                 self.assertIsNotNone(refusal)
 
 
+class TheViewOnlyScenarios(unittest.TestCase):
+    """Two scenarios act on nothing: one view each, read."""
+
+    def test_they_hold_only_view_steps_and_no_state_to_act_from(self):
+        for path in (OPERATED / 'first-launch-view.scenario.json', RELAUNCH):
+            with self.subTest(path.name):
+                scenario = json.loads(path.read_text())
+                self.assertEqual([step['act'] for step in scenario['steps']], ['view'])
+                self.assertNotIn('states', scenario)
+                self.assertNotIn('typed_fields', scenario)
+                self.assertNotIn('sheets', scenario)
+
+    def test_the_first_launch_view_reads_the_recorded_first_use_page_and_acts_on_nothing(self):
+        views = setup_views()
+        views['views'] = [views['views'][0]]
+        result = setup_walk(RESULT.replace('OPTIONS', 'base'), views, OPERATED / 'first-launch-view.scenario.json')
+        verdict, stopped, calls = result['out']
+        self.assertEqual((verdict, stopped), ('pass', None))
+        self.assertEqual(set(calls), {'get_app_state'})
+        self.assertEqual(result['touched'], ['get_app_state'] * 3)
+
+
 class TheSignedOutScenarioFiles(unittest.TestCase):
     def test_the_sheets_statement_is_the_apps_new_settings_statement_line_for_line(self):
         source = (APP / 'src-tauri/src/desktop_startup.rs').read_text()
