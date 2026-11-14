@@ -3453,6 +3453,28 @@ pub fn run() {
 }
 
 #[cfg(all(test,unix))]
+mod host_status_tests {
+    use super::*;
+    /// The status holds the home's observation only while it receives it: a
+    /// status waiting on another activity (here the conversation links) does
+    /// not hold up Stop's or the quit's assessment, which take it.
+    #[test]
+    fn a_status_waiting_on_another_activity_does_not_hold_the_homes_observation(){
+        let(_root,state,home,_,_,_)=workflow_root_context_tests::fixture();
+        let held=state.native_links.lock().unwrap();
+        std::thread::scope(|scope|{
+            let status=scope.spawn(||host_status_of(&state));
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            assert!(!status.is_finished(),"the status waits on the links");
+            let taken=util::lock_by(&home.runtime,std::time::Instant::now()+std::time::Duration::from_secs(2));
+            assert!(taken.is_some(),"the home's observation is free while the status waits");
+            drop(taken);drop(held);
+            status.join().unwrap();
+        });
+    }
+}
+
+#[cfg(all(test,unix))]
 mod workflow_root_context_tests {
     use super::*;
     pub(super) fn fixture()->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){
@@ -3467,23 +3489,6 @@ mod workflow_root_context_tests {
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
         let reference={let mut workflows=state.workflows.lock().unwrap();workflows.select_development_copy(None,package).unwrap();workflows.create_selected_draft(None,"coordinated-knowledge-work").unwrap();workflows.begin_review(home.clone(),context.clone(),vec!["coordinated-knowledge-work".into()],false).unwrap();workflows.active_review.clone().unwrap()};
         (root,state,home,library,reference,context)
-    }
-    /// The status holds the home's observation only while it receives it: a
-    /// status waiting on another activity (here the conversation links) does
-    /// not hold up Stop's or the quit's assessment, which take it.
-    #[test]
-    fn a_status_waiting_on_another_activity_does_not_hold_the_homes_observation(){
-        let(_root,state,home,_,_,_)=fixture();
-        let held=state.native_links.lock().unwrap();
-        std::thread::scope(|scope|{
-            let status=scope.spawn(||host_status_of(&state));
-            std::thread::sleep(std::time::Duration::from_millis(300));
-            assert!(!status.is_finished(),"the status waits on the links");
-            let taken=util::lock_by(&home.runtime,std::time::Instant::now()+std::time::Duration::from_secs(2));
-            assert!(taken.is_some(),"the home's observation is free while the status waits");
-            drop(taken);drop(held);
-            status.join().unwrap();
-        });
     }
     #[test]
     fn file_act_actual_observer_checks_original_context_and_fails_fast_under_contention(){
