@@ -2779,6 +2779,7 @@ pub(crate) const READ_LOG: &str = "reads/records-reads.jsonl";
 pub(crate) fn read_log_path(root: &Path) -> Result<PathBuf, String> {
     let attachment = attach(root, false).map_err(|e| format!("records store unavailable: {e}"))?;
     let dir = attachment.dir.ok_or_else(|| match attachment.refusal {
+        Some(refusal) if attachment.fault == Some("no folder recorded") => refusal,
         Some(refusal) => format!("no project identity in the records store: {refusal}"),
         None => "the project has no records store identity yet (the App mints it when it opens the project; an agent's read does not); nothing recorded".into(),
     })?;

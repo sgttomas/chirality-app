@@ -25,6 +25,26 @@ fn pending(p: &ProjectRecords) -> PendingRecord {
 }
 
 #[test]
+fn records_store_writer_binding_wr_nonfreezing_import_needed_publication_retries_after_import() {
+    let f = Fixture::new();
+    let legacy = f.0.join(".chirality/records/acts");
+    std::fs::create_dir_all(&legacy).unwrap();
+    crate::records::append(&legacy.join("fixture.jsonl"), "evidence_limit", &crate::records::APP_WRITER,
+        json!({"label":"unresolvable reference","subjectRef":"fixture","detail":"invented legacy history"})).unwrap();
+    let p = f.store();
+    let waiting = pending(&p);
+    let original = waiting.bytes.clone();
+    let refusal = p.publish(&waiting).unwrap_err();
+    assert!(refusal.contains("import needed"), "{refusal}");
+    assert!(waiting.binding.is_ok(), "import needed is a publication refusal, not an initial binding refusal");
+    crate::records_store::import(&f.0).unwrap();
+    let saved = p.publish(&waiting).unwrap();
+    assert_eq!(saved.reference(), waiting.reference());
+    assert_eq!(saved.bytes, original);
+    assert_eq!(p.resolve(waiting.reference()).unwrap().bytes, original);
+}
+
+#[test]
 fn records_store_writer_binding_f4_workflow_publication_keeps_refused_bytes() {
     let f = Fixture::new();
     let p = f.store();

@@ -453,7 +453,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           <button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || (unresolvedStart && checkedRun !== holdKey)}
           onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
           : <><p>Prepared {text(prepared.workflow?.name)} with your text. Nothing has been sent yet.</p>
-            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button>
+            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready || !!prepared.publication?.admissionRefusal} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button>
             {prepared.status?.sent === false && prepared.status?.limit && <>{" "}<button disabled={!canAct || !ready || !thread || !chosenReady} onClick={() => performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start")}>Prepare this run again</button></>}</>}
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>

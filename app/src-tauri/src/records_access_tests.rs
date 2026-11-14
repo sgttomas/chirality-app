@@ -86,10 +86,9 @@ fn records_store_writer_binding_f4_read_log_refusal_reaches_tool_and_person() {
     let capability = RecordsCapability::new(&project).unwrap();
     let response = capability.answer(&call(1, json!({"operation":"list_runs"})), project.to_str());
     assert_eq!(response["success"], false);
-    let response = response.to_string();
-    assert!(response.contains("the read could not be recorded") && response.contains(&reason), "{response}");
+    assert_eq!(returned(&response)["refused"], format!("the read could not be recorded (read log unavailable: {reason}); nothing returned"));
     let shown = capability.snapshot();
-    assert!(shown["readLogLimit"].as_str().unwrap().contains(&reason), "{shown}");
+    assert_eq!(shown["readLogLimit"], format!("read log unavailable: {reason}"));
     assert!(shown["recentReads"].as_array().unwrap().is_empty());
     assert!(!dir.join(crate::records_store::READ_LOG).exists());
     assert_eq!(std::fs::read(&registry).unwrap(), b"");

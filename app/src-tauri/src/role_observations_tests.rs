@@ -72,6 +72,62 @@ fn observation(supply: &str, outcome: &str) -> Value {
     row(supply,"thread-start",Some("thread"),json!({"home":"home","generation":{"appSession":"fixture","home":"home","spawnCounter":1},"requestIdentity":1,"requestRef":"private-fixture-receipt","method":"thread/start","writeResult":"written","outcome":if outcome=="supplied"{"response-observed-result"}else{"pending"},"sourceCurrent":true}),json!({"role":"HELP_HUMAN","preselected":null,"roleSet":c.role_set_identity()}),outcome,Some(c.carried),json!({"instructionSources":null,"agentRole":null,"forkedFromId":null}),json!({}),None).unwrap()
 }
 #[test]
+fn records_store_writer_binding_f4_bound_role_writer_preserves_confirmation_refusal() {
+    for startup in [false, true] {
+        let f = Fixture::new();
+        let dir = records_store::write_dir(&f.project).unwrap();
+        let log = if startup {
+            let log = RoleLog::open_before_store(&f.project).unwrap();
+            log.bind_writer_source().unwrap();
+            log
+        } else {
+            f.log()
+        };
+        f.append(&log, "sup:before-roots-loss", "unknown");
+        let path = dir.join(RELATIVE_LOG);
+        let before = std::fs::read(&path).unwrap();
+        let registry = f.store.join("roots.jsonl");
+        std::fs::write(&registry, b"").unwrap();
+        let reason = records_store::status(Some(&f.project))["project"]["attachment"]["refusal"].as_str().unwrap().to_owned();
+        let waiting = observation("sup:after-roots-loss", "unknown");
+        let error = log.append(waiting.clone(), Some(&composition())).unwrap_err();
+        assert_eq!(error, format!("Role observation was not recorded: {reason}"), "startup={startup}");
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        assert_eq!(std::fs::read(&registry).unwrap(), b"");
+        records_store::adopt(&f.project).unwrap();
+        log.append(waiting, Some(&composition())).unwrap();
+        assert!(std::fs::read(&path).unwrap().starts_with(&before));
+        assert_eq!(log.read("home", Some("thread"))["observations"].as_array().unwrap().len(), 2);
+    }
+}
+
+#[test]
+fn records_store_writer_binding_f4_role_admission_rechecks_after_preflight() {
+    let f = Fixture::new();
+    let dir = records_store::write_dir(&f.project).unwrap();
+    let log = std::sync::Arc::new(f.log());
+    f.append(&log, "sup:before-admission-race", "unknown");
+    let path = dir.join(RELATIVE_LOG);
+    let before = std::fs::read(&path).unwrap();
+    let registry = f.store.join("roots.jsonl");
+    let (at, owner) = (registry.clone(), log.clone());
+    BEFORE_WRITE_ADMISSION.with(|slot| *slot.borrow_mut() = Some(Box::new(move || {
+        let source = owner.source.lock().unwrap();
+        source.as_ref().unwrap().binding.as_ref().unwrap().as_ref().unwrap().check_attachment().unwrap();
+        std::fs::write(at, b"").unwrap();
+    })));
+    let waiting = observation("sup:after-admission-race", "unknown");
+    let error = log.append(waiting.clone(), Some(&composition())).unwrap_err();
+    let reason = records_store::status(Some(&f.project))["project"]["attachment"]["refusal"].as_str().unwrap().to_owned();
+    assert_eq!(error, format!("Role observation was not recorded: {reason}"));
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    records_store::adopt(&f.project).unwrap();
+    log.append(waiting, Some(&composition())).unwrap();
+    assert_eq!(log.read("home", Some("thread"))["observations"].as_array().unwrap().len(), 2);
+}
+
+#[test]
 fn records_store_writer_binding_pending_role_observation_under_a_is_not_written_under_b() {
     let f = Fixture::new();
     let a = records_store::write_dir(&f.project).unwrap();

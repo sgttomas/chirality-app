@@ -695,6 +695,11 @@ pub(crate) fn writer_record_set(root: &Path) -> (Vec<Value>, Vec<String>) {
 /// or stopped after only its "started" line, while this writer waited.
 fn writer_ownership(log: &Path) -> Result<crate::storage::Ownership, String> {
     if let Some(dir) = crate::records_store::project_dir_of(log) {
+        // A cached log path needs the same read-only attachment diagnostic as
+        // a bound writer. The writer lock's admission remains authoritative.
+        if let Some(root) = crate::records_store::root_for_dir(&dir) {
+            crate::records_store::require_attached(&root, &dir)?;
+        }
         return crate::records_store::writer_lock(&dir, false);
     }
     let lock_path = crate::storage::records_root(log).map(|r| r.join(".writer.lock")).unwrap_or_else(|| log.with_extension("ownership.lock"));

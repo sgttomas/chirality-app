@@ -211,6 +211,11 @@ pub struct ProjectRecords {
     reader: std::sync::Mutex<Option<crate::records_store::ReaderBinding>>,
     writer: std::sync::Mutex<Option<std::sync::Arc<crate::records_store::WriterBinding>>>,
 }
+#[cfg(test)]
+thread_local! {
+    pub(crate) static BEFORE_INITIAL_WRITER_BINDING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
+    pub(crate) static AFTER_INITIAL_WRITER_BINDING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
+}
 impl ProjectRecords {
     pub fn open(explicit_root: &Path) -> Result<Self, String> {
         if !explicit_root.is_absolute() {
@@ -337,7 +342,12 @@ impl ProjectRecords {
             if !now.is_dir() || (now.dev(), now.ino()) != self.identity {
                 return Err("the project folder is not the folder this writer was opened for; nothing written".into());
             }
-            let binding = crate::records_store::bind_writer(&self.root)?;
+            #[cfg(test)]
+            if let Some(hook) = BEFORE_INITIAL_WRITER_BINDING.with(|slot| slot.borrow_mut().take()) { hook(); }
+            let binding = crate::records_store::bind_writer(&self.root);
+            #[cfg(test)]
+            if let Some(hook) = AFTER_INITIAL_WRITER_BINDING.with(|slot| slot.borrow_mut().take()) { hook(); }
+            let binding = binding?;
             if binding.project_folder() != self.identity {
                 return Err("the project folder is not the folder this writer was opened for; nothing written".into());
             }
@@ -1027,6 +1037,20 @@ impl PendingRecord {
     pub fn reference(&self) -> &str {
         self.envelope["record_id"].as_str().unwrap()
     }
+    /// An initial refusal belongs to these immutable bytes. Their envelope
+    /// does not name the owning project identity/folder, so it cannot support
+    /// a fresh binding. A later failure of an admitted writer is different.
+    fn admission_refusal(&self) -> Option<String> {
+        let reason = self.binding.as_ref().err()?;
+        let action = match (self.envelope["body"]["record_kind"].as_str(), self.envelope["body"]["purpose"].as_str()) {
+            (Some("selection_record"), _) | (Some("run_text"), Some("run start")) =>
+                "Workflow start record not saved; nothing was sent; start again to record it. Resolve the refusal, then use Prepare exact selected workflow text to prepare a new start.",
+            (Some("run_text"), Some("run end notice")) =>
+                "End-notice record not saved. The run has already ended; this notice was not sent. After resolving the refusal, you can choose Send without the end notice (recorded as not supplied) to continue without it.",
+            _ => "Supply-check record not saved. The native send, refusal or history check already happened and is not repeated. You can read this check result here, but Retry cannot save this original check.",
+        };
+        Some(format!("{action} Its original bytes are held in this App process only and are lost on quit. This record does not name the project identity and folder it was prepared for, so it cannot be saved from within the App. Original admission refusal: {reason}"))
+    }
     /// The owning native producer supplies its actual check; persistence adds no
     /// native authority. Schema-valid JSON is never sufficient for live send/check.
     pub(crate) fn supply_check(
@@ -1071,6 +1095,9 @@ pub struct PublishedSupplyCheck {
     check: ResolvedRecord,
 }
 impl PendingSupplyCheck {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.record.admission_refusal()
+    }
     pub(crate) fn new(
         project: &ProjectRecords,
         completed: CompletedSupplyCheck,
@@ -1133,6 +1160,9 @@ pub struct PublishedRunText {
     text: ResolvedRecord,
 }
 impl PreparedRunPublication {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.selection.admission_refusal().or_else(|| self.text.admission_refusal())
+    }
     pub fn new(
         project: &ProjectRecords,
         selection: &Selection,
@@ -1281,6 +1311,9 @@ pub struct PublishedEndNotice {
     record: ResolvedRecord,
 }
 impl PreparedEndPublication {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.record.admission_refusal()
+    }
     pub fn new(
         project: &ProjectRecords,
         prepared: &PreparedRunText,

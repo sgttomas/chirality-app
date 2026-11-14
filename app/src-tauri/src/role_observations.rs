@@ -32,6 +32,7 @@ thread_local! {pub(crate) static METADATA_BEFORE_READ:std::cell::RefCell<Option<
 const STANDING: &str = "Quoted App supply observations; mutable file provenance is unverified. No current role, CCE authority, provider adoption or human act is established.";
 #[cfg(test)]
 thread_local! {
+    pub(crate) static BEFORE_WRITE_ADMISSION: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
     pub(crate) static BEFORE_APPEND: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
     pub(crate) static FAIL_AFTER_FILE_SYNC: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
@@ -296,6 +297,13 @@ impl RoleLog {
             dir
         };
         let admission = if write {
+            // Diagnostic only: admission and both writer proofs below still
+            // decide whether this original binding may write.
+            self.source.lock().unwrap_or_else(|p| p.into_inner()).as_ref().ok_or("role observation writer source not initialized")?
+                .binding.as_ref().map_err(Clone::clone)?
+                .as_ref().ok_or("role observation writer binding unavailable")?.check_attachment()?;
+            #[cfg(test)]
+            if let Some(hook) = BEFORE_WRITE_ADMISSION.with(|slot| slot.borrow_mut().take()) { hook(); }
             crate::records_retention::write_path(&dir)?
         } else {
             crate::records_retention::read_path(&dir)?

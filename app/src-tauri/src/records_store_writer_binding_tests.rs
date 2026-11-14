@@ -19,6 +19,23 @@ fn store_bytes(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
 }
 
 #[test]
+fn records_store_writer_binding_f4_cached_act_log_preserves_confirmation_refusal() {
+    let own = OwnStore::new();
+    let root = folder("writer-f4-cached-log-");
+    let log = storage::project_log(&root, None, "writer:cached").unwrap();
+    records::append(&log, "evidence_limit", &APP_WRITER, body("before loss")).unwrap();
+    std::fs::write(own.0.join("roots.jsonl"), b"").unwrap();
+    let reason = status(Some(&root))["project"]["attachment"]["refusal"].as_str().unwrap().to_owned();
+    let before = store_bytes(&own.0);
+    assert_eq!(records::append(&log, "evidence_limit", &APP_WRITER, body("after loss")).unwrap_err(), reason);
+    assert_eq!(store_bytes(&own.0), before);
+    adopt(&root).unwrap();
+    records::append(&log, "evidence_limit", &APP_WRITER, body("after loss")).unwrap();
+    assert_eq!(records::read_log(&log).0.len(), 2);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn records_store_writer_binding_f4_retained_history_requires_confirmation_before_first_write() {
     let own = OwnStore::new();
     let root = folder("writer-f4-");
