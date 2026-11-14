@@ -115,9 +115,9 @@ fn connected_file_act_all_kinds_and_declines_read_original_capture_without_write
             assert_eq!(
                 row["event"],
                 if choice == "decline" {
-                    "declined this act"
+                    "recorded decline"
                 } else {
-                    "recorded human-act claim"
+                    "recorded act"
                 }
             );
             assert!(row["comparison"]
