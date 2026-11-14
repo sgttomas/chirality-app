@@ -252,13 +252,13 @@ fn unknown_targets_are_refused_before_anything_is_read() {
 }
 
 // What ties a text to a workflow is its content: the files read hash to the revision the person was shown, or no
-// text is returned. Where those files are read from is bounded by the shared snapshot reader, exactly as for
-// selecting and running: it refuses a link at the package folder and inside it, and it follows links in the folders
-// above it. So with a folder above a holding copy replaced, from outside the App, by a link to another folder, the
-// only text that can come out is the revision's own. (Descending to the package folder through handles that follow
-// no link is the shared reader's own change, DEL-02-01; when it lands, the first case here becomes a refusal.)
+// text is returned. Where those files are read from is bounded by the shared package reader, exactly as for
+// selecting and running. On macOS that reader refuses a link anywhere on the path to the package folder
+// (DEL-02-01, Revision), so with a folder above a holding copy replaced, from outside the App, by a link to
+// another folder, no text comes out at all, even where the copy behind the link is byte-equal.
+#[cfg(target_os = "macos")]
 #[test]
-fn a_replaced_folder_above_a_holding_copy_yields_the_revisions_own_text_or_none() {
+fn a_replaced_folder_above_a_holding_copy_yields_no_text_through_the_link() {
     let f = Fixture::new();
     let root = f.selected();
     let held = root.inspected.as_ref().unwrap().selection.identity().clone();
@@ -278,25 +278,28 @@ fn a_replaced_folder_above_a_holding_copy_yields_the_revisions_own_text_or_none(
         assert_eq!((root.snapshot(), tree(&outside)), before, "the read changed nothing, here or through the link");
         read
     };
+    assert_eq!(std::fs::read_to_string(f.package.join("WORKFLOW.md")).unwrap(), text, "an ordinary read follows the link to byte-equal text");
     let read = read_changing_nothing();
-    assert_eq!(read["state"], "read", "today the shared reader follows a link above the package folder: {read}");
-    assert_eq!(read["text"], text.as_str(), "the revision's own text, and no other");
-    assert_eq!(read["identity"], json!(held));
-    assert_eq!(read["matched"], true);
-    // Different content behind the link, in WORKFLOW.md or in another file: no text.
+    assert_refused(&read, "could not read this revision's files and tie them to its identity");
+    let cause = read["cause"].as_str().unwrap();
+    assert!(cause.contains(crate::workflow_workspace::LINK_IN_PACKAGE_PATH) && cause.contains(&format!("({} is a link)", f.root.display())), "the reader's own refusal, for the link: {cause}");
+    // Different content behind the link is refused the same way: nothing behind the link is read.
     let name = crate::workflow_workspace::development_catalog::NAME;
-    let other = tree(&outside).iter().find(|(path, kind, _)| kind == "file" && path.starts_with(name) && !path.ends_with("WORKFLOW.md")).map(|(path, _, _)| outside.join(path)).expect("the package has another file");
-    for file in [outside.join(name).join("WORKFLOW.md"), other] {
-        let original = std::fs::read(&file).unwrap();
-        let mut changed = original.clone();
-        changed[0] ^= 0x01;
-        std::fs::write(&file, &changed).unwrap();
-        assert_refused(&read_changing_nothing(), "could not read this revision's files and tie them to its identity");
-        std::fs::write(&file, &original).unwrap();
-    }
-    assert_eq!(read_changing_nothing()["text"], text.as_str(), "restored, it is the revision's text again");
-    // A link at the package folder itself is refused, whatever it points to.
-    std::fs::rename(outside.join(name), outside.join("moved")).unwrap();
-    std::os::unix::fs::symlink(outside.join("moved"), outside.join(name)).unwrap();
-    assert_refused(&read_changing_nothing(), "could not read this revision's files and tie them to its identity");
+    let file = outside.join(name).join("WORKFLOW.md");
+    let original = std::fs::read(&file).unwrap();
+    std::fs::write(&file, b"other text").unwrap();
+    assert!(read_changing_nothing()["cause"].as_str().unwrap().contains(crate::workflow_workspace::LINK_IN_PACKAGE_PATH));
+    std::fs::write(&file, &original).unwrap();
+    // With the link gone and the folder back at its own place, the revision's text is read again.
+    std::fs::remove_file(&f.root).unwrap();
+    std::fs::rename(&outside, &f.root).unwrap();
+    let read = root.read_chosen_text(None, &chosen_target(&held.revision));
+    assert_eq!(read["state"], "read", "{read}");
+    assert_eq!(read["text"], text.as_str());
+    // A byte changed at its own place: no text. The content tie is what admits a text.
+    let own = f.package.join("WORKFLOW.md");
+    let mut changed = std::fs::read(&own).unwrap();
+    changed[0] ^= 0x01;
+    std::fs::write(&own, &changed).unwrap();
+    assert_refused(&root.read_chosen_text(None, &chosen_target(&held.revision)), "could not read this revision's files and tie them to its identity");
 }

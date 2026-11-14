@@ -107,6 +107,18 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Duration;
+/// How long the App's last look at a turn's selected files may take (`Host::recheck_attachment_sources`),
+/// made with the writer, the custody's source lock and the request gate held. It is a fifth of Stop's limit, `codex_stop::STOP_WAIT_LIMIT` (ten seconds), within which
+/// Stop and the quit take the writer for their interrupts. The quit fence takes each home's request
+/// gate in turn within one ten-second bound; an attachment send holds its home's gate for at most this
+/// limit plus work in memory, so at most about two seconds per home, taken in turn. The fence's longest
+/// wait belongs to other holders of the gate (a start's spawn and handshake, Stop Codex), not to this.
+/// A refused turn releases the gate, the source lock and the writer at once.
+pub(crate) const ATTACHMENT_RECHECK_LIMIT: Duration = Duration::from_secs(2);
+#[cfg(test)]
+static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync::Mutex::new(None);
+#[cfg(test)]
+static ATTACHMENT_RECHECK_RETURNED: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 /// The pin the App candidate declares (HOSTING §7.1, D4).
 pub const DECLARED_PIN: &str = "0.167.0";
@@ -1004,6 +1016,15 @@ pub struct Host {
     this: Mutex<std::sync::Weak<Host>>,
     #[cfg(test)]
     after_attachment_namespace_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch just before it waits for the frame writer.
+    #[cfg(test)]
+    before_attachment_writer:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch just before it takes the request gate.
+    #[cfg(test)]
+    before_attachment_gate:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch after its write and before the write is recorded.
+    #[cfg(test)]
+    after_attachment_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     #[cfg(test)]
     before_attachment_hot_join:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
@@ -1198,6 +1219,12 @@ impl Host {
             this: Mutex::new(std::sync::Weak::new()),
             #[cfg(test)]
             after_attachment_namespace_write:Mutex::new(None),
+            #[cfg(test)]
+            before_attachment_writer:Mutex::new(None),
+            #[cfg(test)]
+            before_attachment_gate:Mutex::new(None),
+            #[cfg(test)]
+            after_attachment_write:Mutex::new(None),
             #[cfg(test)]
             before_attachment_hot_join:Mutex::new(None),
             distribution_store: Mutex::new(None),
@@ -3802,12 +3829,22 @@ impl Host {
             let recheck=attachments::prepare_ordered(&prepared.selections,prepared.submission_ref(),&now_rfc3339()).map_err(|e|e.message)?;
             if recheck.native_inputs()!=prepared.list.native_inputs(){return Err("attachment source/input changed after durable preparation; nothing sent".into());}
             let frame=prepared.source.attempted_frame();let bytes=Self::frame_bytes(frame)?;
+            #[cfg(test)] {let hook=self.before_attachment_writer.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let serial=self.frame_write.lock().unwrap();
             let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
             // After the writer wait, before the commit: the local home's files are read again.
             self.check_local_files(frame["method"].as_str().unwrap_or_default())?;
-            let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
+            #[cfg(test)] {let hook=self.before_attachment_gate.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+            let gate=self.attachment_gate.lock().unwrap();
+            // The App's last look at the person's selected files, made with the writer, the custody's
+            // source lock and the request gate held, immediately before the frame is written and
+            // bounded (DEL-01-04 AC-003). After it no file is read and no lock is waited for that
+            // another taker holds across file or pipe I/O. A change after this look and before the
+            // write is not detected; what is written is still the frame prepared from the content as
+            // selected. A refusal here unwinds and releases the gate, the source lock and the writer.
+            Self::recheck_attachment_sources(prepared)?;
+            let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
             Self::check_local_request(&i,frame["method"].as_str().unwrap(),&frame["params"],Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,frame["method"].as_str().unwrap())?;
@@ -3820,16 +3857,52 @@ impl Host {
             if frame["method"]=="turn/start"{let pos=i.receipt_position;i.turn_request_threads.insert(key.clone(),(generation.clone(),frame["params"]["threadId"].as_str().unwrap().into(),pos));}
             *state="attempted";drop(state);drop(i);drop(gate);drop(source_lock);
             let written=Self::write_complete(&mut bound.file,&bytes);drop(bound);drop(serial);
+            #[cfg(test)] {let hook=self.after_attachment_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let mut i=self.inner.0.lock().unwrap();let closed=i.generation!=*generation||i.server_requests.is_closed(generation)||i.state!="ready";
             let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let response=e.response.clone();let response_position=e.response_position;
             i.client_requests[index]["sendPosition"]=json!(position);
             match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
-                if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}}
+                if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}
+                }
+                // A write that began and failed may have reached Codex in part: the failure itself retires
+                // nothing, and the start stays listed unless a stored reply resolves it below.
                 Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+            // A reply that arrived while the write was in progress is taken in here, whether the write
+            // succeeded or failed, since the reader deferred it. Only Codex's reply to this very request
+            // retires the start: a result naming a turn (remembered as that turn) or an error object (a
+            // refusal). Anything else leaves it listed until a reply resolves it or its generation closes.
+            // "Naming a turn" is the Host's own test of a turn it remembers (native_turn_shape), so a
+            // start is never retired by a reply whose turn is then not remembered.
+            let resolves=response.as_ref().is_some_and(|r|r.get("error").is_some_and(Value::is_object)||r.get("result").and_then(|r|r.get("turn")).is_some_and(Self::native_turn_shape));
+            if !closed&&frame["method"]=="turn/start"&&resolves{if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             drop(i);drop(namespace_lease);
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
         })();if let Err(error)=&result{*prepared.state.lock().unwrap()="refused";self.attachment_limit(&prepared.source,error.clone());}result
+    }
+    /// The App's last look at a turn's selected files, made while the frame writer, the custody's
+    /// source lock and the request gate are held, and the Host's state lock is not: the files must
+    /// still give exactly the inputs prepared from them. The reading is done on a thread of its own,
+    /// which is given only copies of the selections and holds no gate, writer or source lock, and it
+    /// is waited for at most ATTACHMENT_RECHECK_LIMIT. A reading that has not returned by then refuses
+    /// the turn, so the caller releases the gate, the source lock and the writer at the limit whether
+    /// or not the reading ever returns. Its late result goes to a channel nobody reads: it has no
+    /// route to the frame, the write or the Host. A thread blocked in the system on an unanswering
+    /// volume stays blocked; it holds no lock of the Host.
+    fn recheck_attachment_sources(prepared:&PreparedAttachmentDispatch)->Result<(),String>{
+        let(selections,submission,expected)=(prepared.selections.clone(),prepared.submission_ref().to_owned(),prepared.list.native_inputs());
+        let(tx,rx)=std::sync::mpsc::channel();
+        std::thread::Builder::new().name("attachment-recheck".into()).spawn(move||{
+            #[cfg(test)] {let delay=*ATTACHMENT_RECHECK_DELAY.lock().unwrap();if let Some(delay)=delay{std::thread::sleep(delay);}}
+            let _=tx.send(attachments::prepare_ordered(&selections,&submission,&now_rfc3339()).map(|list|list.native_inputs()).map_err(|e|e.message));
+            #[cfg(test)] ATTACHMENT_RECHECK_RETURNED.fetch_add(1,std::sync::atomic::Ordering::SeqCst);
+        }).map_err(|e|format!("attachment sources could not be read again; nothing sent: {e}"))?;
+        match rx.recv_timeout(ATTACHMENT_RECHECK_LIMIT){
+            Ok(Ok(inputs)) if inputs==expected=>Ok(()),
+            Ok(Ok(_))=>Err("attachment source changed while the turn waited to be sent; confirm current content or remove; nothing sent".into()),
+            Ok(Err(error))=>Err(format!("{error}; nothing sent")),
+            Err(_)=>Err(format!("attachment sources could not be read again within {} seconds; nothing sent",ATTACHMENT_RECHECK_LIMIT.as_secs())),
+        }
     }
     pub fn persist_attachment_observation(&self,source:&SourceRequest)->Result<Value,String>{
         self.check_source(source)?;let(custody,record,limit)={let i=self.inner.0.lock().unwrap();let e=i.source_requests.get(&source.request_id().to_string()).ok_or("source unavailable")?;let a=e.attachment.as_ref().ok_or("source is not attachment-bearing")?;
@@ -7532,6 +7605,186 @@ mod conversation_transport_tests {
         for change in ["cancel","file","session","home","counter","pipe","target","metadata"]{let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");let mut replacement=None;no_attachment_write(&host,||{let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();match change{"cancel"=>{assert!(packet.cancel());},"file"=>std::fs::write(root.join("first.txt"),"changed").unwrap(),"session"|"home"|"counter"=>{let mut i=host.inner.0.lock().unwrap();let field=match change{"session"=>"appSession","home"=>"home",_=>"spawnCounter"};i.generation[field]=if field=="spawnCounter"{json!(2)}else{json!("other")};},"pipe"=>{let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();host.inner.0.lock().unwrap().attachment_pipe_epoch+=1;replacement=Some(child);},"target"=>event(&host,"completed"),_=>{let mut records=packet.supply_records();records[0]["displayName"]=json!("changed metadata");std::fs::write(owner.supplies_path(packet.submission_ref()).unwrap(),serde_json::to_vec(&records).unwrap()).unwrap();}}
             assert!(host.dispatch_attachment_turn(&packet).is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");assert_eq!(packet.source().evidence()["writeAttemptInProgress"],false);assert!(packet.source().evidence()["sentFrame"].is_null());assert!(host.dispatch_attachment_turn(&packet).is_err());});if let Some(mut child)=replacement{assert!(child.wait().unwrap().success());let mut bytes=vec![];child.stdout.take().unwrap().read_to_end(&mut bytes).unwrap();assert!(bytes.is_empty());}std::fs::remove_dir_all(root).unwrap();}
     }
+    // DEL-01-04 AC-003: a file changed between selection and sending is held and not sent. The change
+    // here is made while the sender waits for the frame writer, after its earlier reread of the files.
+    #[test]
+    fn attachment_host_final_reread_a_file_changed_while_waiting_for_the_writer_is_held_and_not_sent(){
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            let path=root.join("first.txt");
+            *host.before_attachment_writer.lock().unwrap()=Some(Box::new(move||std::fs::write(&path,"Changed while the sender waited for the writer\n").unwrap()));
+            let refused=host.dispatch_attachment_turn(&packet).err().expect("a file changed while the sender waits for the writer is held and not sent");
+            assert!(refused.contains("nothing sent"),"{refused}");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0,"no frame was written");
+            assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");
+            assert!(packet.source().evidence()["sentFrame"].is_null());
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"and it is not sent on a second press of the same packet");
+        });
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    // DEL-01-04 AC-003, the same check after the request gate: a file changed, deleted or replaced by
+    // a folder while the sender waits for the gate is held, and nothing is sent.
+    #[test]
+    fn attachment_host_final_reread_a_file_changed_deleted_or_replaced_while_waiting_for_the_gate_is_held_and_not_sent(){
+        for change in ["changed","deleted","folder"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+            no_attachment_write(&host,||{
+                let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+                let path=root.join("first.txt");
+                *host.before_attachment_gate.lock().unwrap()=Some(Box::new(move||match change{
+                    "changed"=>std::fs::write(&path,"Changed while the sender waited for the gate\n").unwrap(),
+                    "deleted"=>std::fs::remove_file(&path).unwrap(),
+                    _=>{std::fs::remove_file(&path).unwrap();std::fs::create_dir(&path).unwrap();}
+                }));
+                let refused=host.dispatch_attachment_turn(&packet).err().unwrap_or_else(||panic!("a file {change} while the sender waits for the gate is held and not sent"));
+                assert!(refused.contains("nothing sent"),"{change}: {refused}");
+                assert_eq!(host.inner.0.lock().unwrap().send_position,0,"{change}: no frame was written");
+                assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted","{change}");
+                assert!(packet.source().evidence()["sentFrame"].is_null(),"{change}");
+                assert!(host.dispatch_attachment_turn(&packet).is_err(),"{change}: and not sent on a second press");
+            });
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    // The same two cases with the writer and the gate really held by another taker, not reached by a
+    // hook alone: the sender waits, the file changes, the holder lets go, and nothing is sent.
+    #[test]
+    fn attachment_host_final_reread_a_file_changed_while_another_holds_the_writer_or_the_gate_is_held_and_not_sent(){
+        for held in ["writer","gate"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+            no_attachment_write(&host,||{
+                let packet=Arc::new(host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap());
+                let(waiting,arrived)=channel();
+                let refused={
+                    let(writer,gate)=(host.frame_write.lock().unwrap(),(held=="gate").then(||host.attachment_gate.lock().unwrap()));
+                    // With the gate held the writer is free for the sender to take first.
+                    let writer=if held=="gate"{drop(writer);None}else{Some(writer)};
+                    let hook:Box<dyn FnOnce()+Send>=Box::new(move||waiting.send(()).unwrap());
+                    if held=="writer"{*host.before_attachment_writer.lock().unwrap()=Some(hook);}else{*host.before_attachment_gate.lock().unwrap()=Some(hook);}
+                    let(sender,prepared)=(Arc::clone(&host),Arc::clone(&packet));
+                    let worker=std::thread::spawn(move||sender.dispatch_attachment_turn(&prepared).err());
+                    arrived.recv_timeout(Duration::from_secs(5)).unwrap();
+                    std::thread::sleep(Duration::from_millis(50));
+                    std::fs::write(root.join("first.txt"),"Changed while another held the lock\n").unwrap();
+                    drop(gate);drop(writer);
+                    worker.join().unwrap()
+                };
+                let refused=refused.unwrap_or_else(||panic!("a file changed while another holds the {held} is held and not sent"));
+                assert!(refused.contains("nothing sent"),"{held}: {refused}");
+                assert_eq!(host.inner.0.lock().unwrap().send_position,0,"{held}: no frame was written");
+                assert!(packet.source().evidence()["sentFrame"].is_null(),"{held}");
+            });
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    /// Clears the test delay of the last look when a test ends, also when it panics, so a delay a
+    /// failed test set never reaches the next test.
+    struct RecheckDelay;
+    impl Drop for RecheckDelay{fn drop(&mut self){*ATTACHMENT_RECHECK_DELAY.lock().unwrap_or_else(|e|e.into_inner())=None;}}
+    fn wait_for_late_rereads(before:usize){
+        let deadline=std::time::Instant::now()+ATTACHMENT_RECHECK_LIMIT*4;
+        while ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst)==before{assert!(std::time::Instant::now()<deadline,"the late reread returned");std::thread::sleep(Duration::from_millis(10));}
+    }
+    fn custody_source_lock_is_free(owner:&AttachmentCustody)->bool{
+        use std::os::fd::AsRawFd;let file=std::fs::File::open(owner.root().join("runtime/hosting/.client-custody.lock")).unwrap();
+        let free=unsafe{libc::flock(file.as_raw_fd(),libc::LOCK_EX|libc::LOCK_NB)}==0;if free{unsafe{libc::flock(file.as_raw_fd(),libc::LOCK_UN);}}free
+    }
+    // The last look is bounded: one that has not returned within ATTACHMENT_RECHECK_LIMIT refuses the
+    // turn at the limit and releases the gate, the custody's source lock and the writer.
+    #[test]
+    fn attachment_host_final_reread_that_times_out_refuses_at_the_limit_and_releases_the_gate_the_source_lock_and_the_writer(){
+        let _delay=RecheckDelay;
+        assert_eq!(ATTACHMENT_RECHECK_LIMIT*5,crate::codex_stop::STOP_WAIT_LIMIT,"the limit is a fifth of Stop's, as its comment says");
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            let before=ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst);
+            *host.before_attachment_gate.lock().unwrap()=Some(Box::new(||{*ATTACHMENT_RECHECK_DELAY.lock().unwrap()=Some(ATTACHMENT_RECHECK_LIMIT+Duration::from_secs(1));}));
+            let started=std::time::Instant::now();
+            let refused=host.dispatch_attachment_turn(&packet).err().expect("a reread that does not return in time refuses the turn");
+            let took=started.elapsed();
+            *ATTACHMENT_RECHECK_DELAY.lock().unwrap()=None;
+            assert!(refused.contains("could not be read again within") && refused.contains("nothing sent"),"{refused}");
+            assert!(took<ATTACHMENT_RECHECK_LIMIT+Duration::from_millis(500),"refused at the limit, not when the reading returned: {took:?}");
+            assert!(host.attachment_gate.try_lock().is_ok(),"the request gate is released");
+            assert!(custody_source_lock_is_free(&owner),"the custody's source lock is released");
+            assert!(host.frame_write.try_lock().is_ok(),"the writer is released");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0);
+            wait_for_late_rereads(before);
+        });
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    // A reread that returns after its turn was refused has no route to the frame or the write: nothing
+    // of it reaches the Host, the turn stays refused, and nothing is written.
+    #[test]
+    fn attachment_host_final_reread_that_returns_after_its_refusal_reaches_nothing(){
+        let _delay=RecheckDelay;
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            let before=ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst);
+            *host.before_attachment_gate.lock().unwrap()=Some(Box::new(||{*ATTACHMENT_RECHECK_DELAY.lock().unwrap()=Some(ATTACHMENT_RECHECK_LIMIT+Duration::from_millis(300));}));
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"a last look that does not return within its limit refuses the turn");
+            *ATTACHMENT_RECHECK_DELAY.lock().unwrap()=None;
+            let refused=host.snapshot();
+            wait_for_late_rereads(before);
+            let after=host.snapshot();
+            assert_eq!(after["clientRequests"],refused["clientRequests"],"the late result changed no record");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0,"and wrote nothing");
+            assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");
+            assert!(packet.source().evidence()["sentFrame"].is_null());
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"the turn stays refused");
+        });
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    // A reply to an attachment turn's start that arrives while the write is being finished is taken
+    // in when the write is recorded, as the ordinary writer does: the request's turn entry goes, and
+    // the turn the reply names is remembered; a refusal leaves no turn and no entry.
+    #[test]
+    fn attachment_host_final_reread_and_a_start_reply_during_the_write_is_taken_in_when_the_write_is_recorded(){
+        for reply in ["started","refused","malformed","id-only turn","empty turn id"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person text",&selections).unwrap();
+            let id=packet.source().request_id().clone();let key=id.to_string();
+            let frame=match reply{"started"=>json!({"id":id,"result":{"turn":complete_turn()}}),"refused"=>json!({"id":id,"error":{"code":-32000,"message":"invented native refusal"}}),"id-only turn"=>json!({"id":id,"result":{"turn":{"id":"turn"}}}),"empty turn id"=>{let mut turn=complete_turn();turn["id"]=json!("");json!({"id":id,"result":{"turn":turn}})},_=>json!({"id":id,"result":{"turnId":"not a turn"}})};
+            let receiver=Arc::clone(&host);
+            *host.after_attachment_write.lock().unwrap()=Some(Box::new(move||receiver.on_line(&serde_json::to_vec(&frame).unwrap(),&g())));
+            let source=host.dispatch_attachment_turn(&packet).unwrap();
+            assert_eq!(source.evidence()["writeResult"],"written","{reply}");
+            {let i=host.inner.0.lock().unwrap();
+                assert_eq!(i.turn_request_threads.contains_key(&key),!matches!(reply,"started"|"refused"),"{reply}: a result naming a turn the Host remembers, or an error, retires the start; anything else leaves it listed");
+                let remembered=i.conversation_turns.iter().any(|e|e["threadId"]=="thread"&&e["turnId"]=="turn"&&e["source"]=="turn/start response");
+                assert_eq!(remembered,reply=="started","{reply}: the turn the reply names is remembered, and none for a refusal");}
+            *host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    // A start whose write began and failed may have reached Codex in part: the failure retires nothing,
+    // so with no reply it stays listed among the unresolved starts. A reply that came during that write
+    // is still taken in, as on success: a turn it names is remembered and an error retires the start.
+    // (A reply after the failed write is the reader's, in the Execution lane's work.)
+    #[test]
+    fn attachment_host_final_reread_and_a_start_whose_write_failed_stays_listed_unless_a_reply_came_during_it(){
+        for reply in ["none","started","refused"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person text",&selections).unwrap();
+            child.kill().unwrap();child.wait().unwrap();
+            let id=packet.source().request_id().clone();let key=id.to_string();
+            let frame=match reply{"started"=>Some(json!({"id":id,"result":{"turn":complete_turn()}})),"refused"=>Some(json!({"id":id,"error":{"code":-32000,"message":"invented native refusal"}})),_=>None};
+            if let Some(frame)=frame{let receiver=Arc::clone(&host);*host.after_attachment_write.lock().unwrap()=Some(Box::new(move||receiver.on_line(&serde_json::to_vec(&frame).unwrap(),&g())));}
+            let _source=host.dispatch_attachment_turn(&packet).unwrap();
+            {let i=host.inner.0.lock().unwrap();
+                assert!(i.source_requests[&key].write_error.is_some(),"{reply}: the write failed");
+                assert_eq!(i.turn_request_threads.contains_key(&key),reply=="none","{reply}: the failure retires nothing; a reply during the write is taken in");
+                let remembered=i.conversation_turns.iter().any(|e|e["threadId"]=="thread"&&e["turnId"]=="turn"&&e["source"]=="turn/start response");
+                assert_eq!(remembered,reply=="started","{reply}: the turn the reply names is remembered");}
+            *host.stdin.lock().unwrap()=None;
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
     #[test]
     fn attachment_host_actual_partial_and_sync_publication_failures_never_send(){
         for failure in ["array","client","sync"]{let host=host();let(root,owner,selections)=attachment_fixture();match failure{"array"=>{std::fs::write(owner.root().join("runtime/nir"),"obstruction").unwrap();},"client"=>{std::fs::create_dir_all(owner.root().join("runtime/hosting")).unwrap();std::fs::write(owner.root().join("runtime/hosting/client-requests"),"obstruction").unwrap();},_=>{crate::storage::ensure_directory(&owner.root().join("runtime/nir/attachment-supplies")).unwrap();crate::storage::fail_directory_for_test(Some(owner.root().join("runtime/nir/attachment-supplies")));}}
@@ -8155,7 +8408,7 @@ mod conversation_transport_tests {
     impl PreparedTurnFixture {
         fn new(thread:&str)->Self {
             use crate::workflow_workspace::{Snapshot,Selection,WorkflowIdentity,RunScope,PreparedRunText,SNAPSHOT_METHOD};
-            let root=std::env::temp_dir().join(opaque_id("prepared-turn-").unwrap());std::fs::create_dir(&root).unwrap();std::fs::write(root.join("WORKFLOW.md"),"# Synthetic workflow\nExact prepared bytes.\n").unwrap();
+            let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("prepared-turn-").unwrap());std::fs::create_dir(&root).unwrap();std::fs::write(root.join("WORKFLOW.md"),"# Synthetic workflow\nExact prepared bytes.\n").unwrap();
             let snapshot=Snapshot::capture(&root).unwrap();let identity=WorkflowIdentity{kind:"workflow".into(),origin:"bundled".into(),source_root:"synthetic-bundled-root".into(),name:"synthetic".into(),revision:snapshot.revision().to_owned(),revision_method:SNAPSHOT_METHOD.into(),derived_from:None};
             let selection=Selection::synthetic_shipped(snapshot,identity).unwrap();let scope=RunScope{run:"run:synthetic".into(),conversation:thread.into(),home:"conversation-home".into(),generation:g(),source_root:"synthetic-bundled-root".into(),holding_library:"synthetic-holding".into(),selection_ref:"selection:synthetic".into(),revision_store:root.clone()};
             let prepared=PreparedRunText::start(&selection,scope,"synthetic folder",None).unwrap();Self{root,prepared}
