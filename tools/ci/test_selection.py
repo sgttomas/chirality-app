@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 
@@ -142,7 +143,7 @@ def test_tracked_path_completeness_and_unknown_full_fallback(repo, monkeypatch):
     write(repo, "AGENTS.md")
     write(repo, "app/new-module.rs")
     base = commit(repo)
-    assert subject.inventory(repo) == {"tracked_paths": 2, "unmatched": []}
+    assert subject.inventory(repo) == {"tracked_paths": 2, "unmatched": [], "collisions": [], "links": []}
     path = "new-domain/README.md"
     write(repo, path)
     result = selection(repo, base)
@@ -179,7 +180,7 @@ def test_unknowns_anywhere_keep_every_product_job(repo, path):
 
 
 @pytest.mark.parametrize("path", [
-    "app/src/new.rs", "docs/PRD.md", "tools/ci/select_checks.py",
+    "app/src/new.rs", "docs/document-metadata.schema.json", "tools/ci/select_checks.py",
     "reference/library-v3.1.0/README.md",
 ])
 def test_new_documentary_exceptions_do_not_swallow_product_domains(repo, path):
@@ -412,6 +413,35 @@ def test_workflow_always_runs_selection_and_checks_only_explicit_exclusion():
     assert set(gate["needs"]) == {"change-selection", "repository-checks", "app-v4"}
     assert gate["steps"][-1]["env"]["RESULTS"] == "${{ toJSON(needs) }}"
     assert gate["steps"][-1]["run"] == "python3 tools/ci/select_checks.py gate"
+
+
+def test_repository_checks_test_the_merge_and_selection_stays_on_the_head():
+    # A command main adds names a file a branch cut before it lacks: repository
+    # checks therefore run on the event's merge commit, never on the head.
+    root = Path(subject.__file__).resolve().parents[2]
+    jobs = yaml.safe_load((root / ".github/workflows/governance-harness.yml").read_text())["jobs"]
+    head = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+    def checkout(job):
+        steps = jobs[job]["steps"]
+        assert steps[0]["uses"] == "actions/checkout@v4", job
+        assert [step for step in steps if "actions/checkout" in step.get("uses", "")] == steps[:1], job
+        return steps[0]["with"]
+
+    assert checkout("repository-checks") == {"ref": "${{ github.sha }}", "fetch-depth": 0}
+    assert checkout("change-selection") == {"ref": head, "fetch-depth": 0}
+    assert checkout("harness") == {"ref": head}
+    steps = jobs["repository-checks"]["steps"]
+    named = steps[1]
+    assert named["name"] == "Name the commits under test"
+    assert "git rev-parse HEAD^2" in named["run"] and "git rev-parse HEAD^1" in named["run"]
+    assert named["env"]["PR_HEAD"] == "${{ github.event.pull_request.head.sha }}"
+    # The conflict and credential checks examine the pull request's own change.
+    conflict = next(step for step in steps if step.get("name") == "Conflict and credential checks")
+    assert conflict["env"]["HEAD_SHA"] == head
+    for script in ("validate_conflict_markers.py", "validate_run_record_leaks.py"):
+        assert f'python tools/validation/{script} --base "$BASE" --head "$HEAD_SHA"' in conflict["run"]
+    assert "--head HEAD" not in conflict["run"]
 
 
 def test_product_workflow_gates_every_job_and_assigns_each_lib_cohort_once():
@@ -657,3 +687,410 @@ def test_nightly_gate_runs_the_suite_when_a_runs_jobs_cannot_be_read(monkeypatch
     monkeypatch.setattr(nightly_gate, "gh_api", lambda path: None if path.endswith("per_page=100") and "/jobs" in path
                         else {"workflow_runs": [{"id": 8, "head_sha": "head"}]})
     assert nightly_gate.fetch("owner/repo", "head") is None
+
+
+# Consumed-input narrowing (docs/CI_SELECTION.md, "Inputs the macOS jobs do not
+# consume"). Exact path sets of the three heads queued on 13 November 2026.
+PR228_GOVERNING_TEXT = [
+    "docs/EXAMINATION.md", "docs/RELEASE_TARGET_4.0.0.md",
+    "execution/PKG-01/DEL-01-02/ScopeOfWork.md", "execution/PKG-01/DEL-01-04/ScopeOfWork.md",
+    "execution/PKG-01/DEL-01-04/deliverable.yaml", "execution/PKG-02/DEL-02-02/ScopeOfWork.md",
+    "execution/PKG-02/DEL-02-03/ScopeOfWork.md", "execution/PKG-09/DEL-09-01/ScopeOfWork.md",
+    "execution/PKG-09/DEL-09-02/ScopeOfWork.md", "execution/PKG-09/DEL-09-02/deliverable.yaml",
+    "execution/PKG-09/DEL-09-05/ScopeOfWork.md", "execution/PKG-09/DEL-09-05/deliverable.yaml",
+]
+PR267_PATHS = [
+    "app/examination/candidate_identity/build_candidate.py", "app/examination/standalone/launch.py",
+    "app/tests/candidate_identity_test.py", "app/tests/group_b_launch_home_test.py",
+]
+PR270_EXAMINATION = [
+    "app/examination/standalone/operated/README.md", "app/examination/standalone/operated/detached.py",
+    "app/examination/standalone/operated/first-use-setup.scenario.json",
+    "app/examination/standalone/operated/replay.mjs", "app/examination/standalone/operated/stray.py",
+    "app/examination/standalone/operated/walk.mjs", "app/examination/standalone/operated/watch.py",
+    "app/tests/group_b_operated_fixtures/first-use-setup/views.json",
+    "app/tests/group_b_operated_fixtures/first-use-setup/wrong.a-line-of-what-setup-will-do-missing.json",
+    "app/tests/group_b_operated_fixtures/first-use-setup/wrong.a-sixth-line-in-what-setup-will-do.json",
+    "app/tests/group_b_operated_fixtures/first-use-setup/wrong.another-control-begins-with-the-same-words.json",
+    "app/tests/group_b_operated_fixtures/first-use-setup/wrong.location-outside-the-home.json",
+    "app/tests/group_b_operated_fixtures/first-use-setup/wrong.review-available-before-any-choice.json",
+    "app/tests/group_b_operated_fixtures/first-use-setup/wrong.review-available-with-existing-settings.json",
+    "app/tests/group_b_operated_scenario_test.py", "execution/PKG-09/DEL-09-02/deliverable.yaml",
+]
+# Inside the class B roots but read by a step of a macOS product job.
+MACOS_CONSUMED_IN_CLASS_ROOTS = [
+    "app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/WORKFLOW.md",
+    "app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/tally.py",
+    "app/examination/standalone/fixtures/inputs/initial.csv",
+    "app/tests/group_b_fixture_consumer.rs",
+    "app/tests/group_b_fixtures/pkg.identity-record.valid.examples.json",
+    "app/tests/group_b_sq_receiving_fixtures/development/selection.sha256",
+    "app/tests/group_b_sq_receiving_fixtures/development/case.json",
+]
+
+
+def modified(repo, paths):
+    for path in paths:
+        write(repo, path)
+    base = commit(repo)
+    for path in paths:
+        write(repo, path, "revised\n")
+    return selection(repo, base)
+
+
+def test_governing_text_alone_pr228_selects_no_product_job(repo):
+    result = modified(repo, PR228_GOVERNING_TEXT)
+    assert result["mode"] == "prose" and result["run_product"] is False
+    assert {item["path"] for item in result["changes"]} == set(PR228_GOVERNING_TEXT)
+    docs = [item for item in result["changes"] if item["path"].startswith("docs/")]
+    assert docs and all(item["rule"] == "governing-text" for item in docs)
+
+
+@pytest.mark.parametrize("path", [
+    "docs/PRD.md", "docs/new-guide.md", "docs/user-manual/workflows/new.md",
+])
+def test_new_governing_text_document_alone_selects_no_product_job(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, path)
+    result = selection(repo, base)
+    assert result["run_product"] is False
+    assert result["changes"][0]["rule"] == "governing-text"
+
+
+def test_examination_tooling_alone_pr270_selects_no_product_job(repo):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "execution/PKG-09/DEL-09-02/deliverable.yaml")
+    base = commit(repo)
+    for path in PR270_EXAMINATION:
+        write(repo, path, "revised\n")
+    result = selection(repo, base)
+    assert result["mode"] == "prose" and result["run_product"] is False
+    assert {item["path"] for item in result["changes"]} == set(PR270_EXAMINATION)
+    tooling = [item for item in result["changes"] if item["path"].startswith("app/")]
+    assert len(tooling) == 15 and all(item["rule"] == "examination" for item in tooling)
+
+
+def test_examination_launcher_and_its_test_alone_select_no_product_job(repo):
+    result = modified(repo, ["app/examination/standalone/launch.py", "app/tests/group_b_launch_home_test.py"])
+    assert result["run_product"] is False
+    assert {item["rule"] for item in result["changes"]} == {"examination"}
+
+
+def test_pr267_keeps_product_because_candidate_identity_is_a_macos_input(repo):
+    result = modified(repo, PR267_PATHS)
+    assert result["mode"] == "product" and result["run_product"] is True
+    rules = {item["path"]: (item["rule"], item["checks"]) for item in result["changes"]}
+    assert rules["app/tests/candidate_identity_test.py"] == ("product-domain", "product")
+    assert rules["app/examination/candidate_identity/build_candidate.py"] == ("product-domain", "product")
+    assert rules["app/examination/standalone/launch.py"] == ("examination", "repository")
+
+
+@pytest.mark.parametrize("path", MACOS_CONSUMED_IN_CLASS_ROOTS)
+def test_class_root_paths_a_macos_job_reads_keep_product(repo, path):
+    result = modified(repo, [path])
+    assert result["run_product"] is True
+    assert result["changes"][0]["rule"] == "product-domain"
+
+
+@pytest.mark.parametrize("product", [
+    "app/src/App.tsx", "app/src-tauri/src/lib.rs", "app/src-tauri/Cargo.lock", "app/package-lock.json",
+    "app/src-tauri/schemas/RS_RECORD.schema.json", "app/src-tauri/resources/instructions/AGENTS.md",
+    "app/tests/candidate_identity_test.py", "app/tests/fixtures/FX-DP1/MANIFEST.sha256",
+    "app/examination/repin.py", "app/examination/pins.lock.json",
+    "app/examination/native_forms/pre_run_form.py", "app/tests/examination_repin_test.py",
+    *MACOS_CONSUMED_IN_CLASS_ROOTS,
+])
+def test_mixed_class_change_with_any_product_input_keeps_full_product(repo, product):
+    base = git(repo, "rev-parse", "HEAD")
+    for path in ["docs/PRD.md", "app/examination/standalone/launch.py",
+                 "app/tests/group_b_launch_home_test.py", "execution/PKG-09/DEL-09-02/ScopeOfWork.md", product]:
+        write(repo, path)
+    result = selection(repo, base)
+    assert result["mode"] == "product" and result["run_product"] is True
+    assert next(item for item in result["changes"] if item["path"] == product)["checks"] == "product"
+
+
+@pytest.mark.parametrize("path", [
+    # Other file types inside the class roots.
+    "docs/document-metadata.schema.json", "docs/check.py", "docs/PRD.md.py", "docs/notes.txt",
+    "app/examination/standalone/run.sh", "app/examination/standalone/data.csv",
+    "app/tests/group_b_new.rs", "app/tests/group_b_operated_fixtures/case.txt",
+    "app/tests/group_b_operated_fixtures/MANIFEST.sha256",
+    # Lookalikes of the class roots.
+    "app/docs/PRD.md", "app/examination/standalone.py",
+    "app/examination/standalone-other/launch.py", "app/examination/native_forms/native_form.py",
+    "app/examination/STANDALONE/launch.py", "app/tests/group_bx_test.py", "app/tests/group_b",
+    "app/tests/nested/group_b_new_test.py", "app/tests/group-b_new_test.py",
+    "app/src-tauri/tests/group_b_new_test.py", "tools/group_b_new_test.py",
+    # Unknown paths.
+    "new-domain/README.md", "unknown.md",
+])
+def test_lookalikes_other_types_and_unknowns_beside_a_class_keep_product(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    write(repo, "docs/PRD.md")
+    write(repo, "app/tests/group_b_launch_home_test.py")
+    write(repo, path)
+    result = selection(repo, base)
+    assert result["run_product"] is True
+    assert next(item for item in result["changes"] if item["path"] == path)["checks"] == "product"
+
+
+@pytest.mark.parametrize("path", [
+    # Case variants; a case-insensitive fixture filesystem cannot hold them beside docs/.
+    "Docs/PRD.md", "DOCS/PRD.md", "docs/PRD.MD", "App/tests/group_b_new_test.py",
+    "app/Examination/standalone/launch.py", "app/tests/GROUP_B_new_test.py",
+    "app/examination/standalone/launch.PY",
+])
+def test_case_variants_of_a_class_are_product(path):
+    change = {"path": path, "status": "A", "old_mode": "000000", "new_mode": "100644"}
+    assert subject.classify(change)["checks"] == "product"
+
+
+@pytest.mark.parametrize("kind", ["delete", "executable", "symlink"])
+@pytest.mark.parametrize("relative", [
+    "docs/PRD.md", "app/examination/standalone/launch.py", "app/tests/group_b_launch_home_test.py",
+    "app/tests/group_b_operated_fixtures/first-use-setup/views.json",
+])
+def test_deletion_and_type_or_mode_changes_in_a_class_keep_product(repo, kind, relative):
+    path = write(repo, relative)
+    base = commit(repo)
+    if kind == "delete":
+        path.unlink()
+    elif kind == "executable":
+        path.chmod(0o755)
+    else:
+        path.unlink()
+        path.symlink_to(Path(os.path.relpath(repo / ".fixture", path.parent)))
+    assert selection(repo, base)["run_product"]
+
+
+@pytest.mark.parametrize("old, new", [
+    ("app/examination/standalone/launch.py", "app/src-tauri/launch.py"),
+    ("app/src-tauri/resources/instructions/new.md", "docs/new.md"),
+    ("app/tests/candidate_identity_test.py", "app/tests/group_b_candidate_test.py"),
+    ("docs/PRD.md", "app/examination/standalone/PRD.md"),
+    ("app/tests/group_b_fixtures/x.json", "app/tests/group_b_operated_fixtures/x.json"),
+])
+def test_renames_into_out_of_or_between_classes_keep_product(repo, old, new):
+    write(repo, old)
+    base = commit(repo)
+    target = repo / new
+    target.parent.mkdir(parents=True, exist_ok=True)
+    (repo / old).rename(target)
+    result = selection(repo, base)
+    assert result["run_product"] is True
+    assert {item["status"] for item in result["changes"]} == {"D", "A"}
+
+
+@pytest.mark.parametrize("path", [
+    "tools/ci/select_checks.py", "tools/ci/test_selection.py",
+    ".github/workflows/governance-harness.yml", ".github/workflows/app-v4.yml",
+    ".github/workflows/nightly-full-suite.yml", ".github/actions/app-v4-setup/action.yml",
+])
+def test_selector_rules_and_workflows_beside_a_class_keep_product(repo, path):
+    base = git(repo, "rev-parse", "HEAD")
+    for item in ["docs/PRD.md", "app/examination/standalone/launch.py", path]:
+        write(repo, item)
+    assert selection(repo, base)["run_product"] is True
+
+
+def test_selection_document_keeps_its_existing_repository_route(repo):
+    # docs/CI_SELECTION.md was already an audited documentary path; it keeps that route.
+    result = modified(repo, ["docs/CI_SELECTION.md"])
+    assert result["run_product"] is False and result["changes"][0]["rule"] == "documentary"
+
+
+def test_repository_checks_run_every_consumer_of_the_narrowed_classes():
+    # A narrowed class is safe only while the always-run job still runs what reads it.
+    root = Path(subject.__file__).resolve().parents[2]
+    jobs = yaml.safe_load((root / ".github/workflows/governance-harness.yml").read_text())["jobs"]
+    steps = "\n".join(step.get("run", "") for step in jobs["repository-checks"]["steps"])
+    job = jobs["repository-checks"]
+    # A listed command must run unconditionally and its failure must fail the job.
+    assert not {"if", "continue-on-error"} & set(job)
+    assert all(not {"if", "continue-on-error"} & set(step) for step in job["steps"])
+    assert all("|| true" not in step.get("run", "") for step in job["steps"])
+    for command in [
+        "python -m pytest -q app/tests/group_b*test.py",
+        "python -m pytest -q app/tests/examination_repin_test.py",
+        "python app/examination/repin.py --check",
+        "python -m pytest -q tools/validation/test_document_metadata.py",
+        "python -m tools.deliverables --project . check",
+        "python tools/ci/check_execution_layout.py",
+    ]:
+        assert command in steps, command
+    product = yaml.safe_load((root / ".github/workflows/app-v4.yml").read_text())["jobs"]
+    runs = "\n".join(step.get("run", "") for job in product.values() for step in job.get("steps", []))
+    # No macOS step names a class B path; the Group B suites are repository checks only.
+    assert "group_b" not in runs and "standalone" not in runs and "docs/" not in runs
+
+
+# Every file outside a narrowed class that names one of its paths, and why that
+# reader is not a macOS product input (docs/CI_SELECTION.md mapping).
+CLASS_REFERENCE = re.compile(r"group_b[_*]|standalone/|(?<![\w./-])docs/|\.\./docs/|[\"'](docs|standalone)[\"']")
+KNOWN_REFERRERS = {
+    ".github/workflows/governance-harness.yml": "repository-checks runs the Group B suites",
+    "tools/ci/select_checks.py": "the selector's own rules",
+    "tools/ci/test_selection.py": "the selector's own tests",
+    "tools/validation/test_document_metadata.py": "repository check reading docs/*.md headers",
+    "tools/library_workflows/test_bundle.py": "invented docs/ paths of a synthetic Library release",
+    "app/tests/check_git_checkout_bytes.py": "invented docs/ control path in a temporary repository",
+    "app/examination/repin.py": "pin check; runs in repository checks and examination_repin_test",
+    "app/examination/pins.lock.json": "pin lock read by repin.py",
+    "app/examination/native_forms/pre_run_form.py": "run only by group_b_native_forms_test",
+    "app/examination/native_forms/pre_run_form.terms-v1.pins.json": "read by pre_run_form.py",
+    "app/examination/native_forms/sources.terms-v1.json": "read by native_form.py",
+    "app/examination/scripted_driver/proof.py": "reads the first-use scenario for the scripted driver's hosted job",
+    ".github/workflows/app-scripted-driver.yml": "its path trigger names the first-use scenario its driver reads",
+    # Readers of in-root paths that stay product inputs.
+    "tools/validation/test_library_v3_operational_adoption.py": "names the Library's own docs/ files",
+    "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs (product input)",
+    "app/tests/group_b_fixture_consumer.rs": "product input; reads standalone/fixtures/ (product input)",
+    "app/packaging/static_distribution/test_s1_value_model.py": "reads group_b_fixtures/ (product input)",
+    "app/tests/package_successor_receiving_fixtures.py": "reads group_b_sq_receiving_fixtures/ (product input)",
+    # Ignored export generators: they write fixtures under an explicit root and read none.
+    "app/src-tauri/src/hosting_s4_export.rs": "export_group_b_* generator name",
+    "app/src-tauri/src/hosting_terminal_export.rs": "export_group_b_* generator name",
+}
+# Retained Library manifests name the Library repository's own docs/ files.
+LIBRARY_MANIFEST = re.compile(r"reference/library-v[0-9.]+/MANIFEST\.json")
+CODE_SUFFIXES = (".py", ".rs", ".mjs", ".cjs", ".js", ".ts", ".tsx", ".json", ".toml", ".sh", ".yml")
+
+
+def test_no_unreviewed_reader_of_a_narrowed_class():
+    root = Path(subject.__file__).resolve().parents[2]
+    found = set()
+    for path in git(root, "ls-files").splitlines():
+        if (path.startswith(("docs/", "execution/", "app/src-tauri/resources/supplier/"))
+                or subject.path_rule(path) == "examination" or not path.endswith(CODE_SUFFIXES)):
+            continue
+        if LIBRARY_MANIFEST.fullmatch(path):
+            continue
+        if CLASS_REFERENCE.search((root / path).read_text(errors="ignore")):
+            found.add(path)
+    # A new reader must be placed in docs/CI_SELECTION.md's mapping and here, or
+    # the path it reads must stay a product input.
+    assert found == set(KNOWN_REFERRERS)
+
+
+@pytest.mark.parametrize("paths", [PR228_GOVERNING_TEXT, PR270_EXAMINATION])
+def test_narrowed_selection_reaches_a_harness_that_still_requires_repository_checks(repo, tmp_path, paths):
+    base = git(repo, "rev-parse", "HEAD")
+    for path in paths:
+        write(repo, path)
+    head = commit(repo)
+    output = tmp_path / "outputs"
+    command = ["python3", str(Path(subject.__file__)), "select", "--event", "pull_request",
+               "--repo", str(repo), "--base", base, "--head", head, "--github-output", str(output)]
+    assert subprocess.run(command, capture_output=True).returncode == 0
+    outputs = dict(line.split("=", 1) for line in output.read_text().splitlines())
+    assert outputs == {"selection_mode": "prose", "run_product": "false"}
+
+    def gate(repository, product):
+        results = {"change-selection": {"result": "success", "outputs": outputs},
+                   "repository-checks": {"result": repository}, "app-v4": {"result": product}}
+        subject.require_success(results)
+
+    gate("success", "skipped")  # the product jobs correctly not selected
+    for repository in ["failure", "cancelled", "skipped", None]:
+        with pytest.raises(ValueError):
+            gate(repository, "skipped")  # the jobs that run every reader must pass
+    for product in ["success", "failure", "cancelled", None]:
+        with pytest.raises(ValueError):
+            gate("success", product)  # an unexpected product run is not accepted either
+
+
+# B1: a path a checkout may fold onto a protected input is never narrowed.
+def plumb(repo, entries):
+    """Commit entries {path: (mode, bytes)} through the index, not the file system,
+    so names a case- or normalization-insensitive volume would merge stay distinct."""
+    git(repo, "config", "core.precomposeunicode", "false")  # Git on macOS would precompose NFD names
+    for path, (mode, data) in entries.items():
+        oid = subprocess.run(["git", "-C", str(repo), "hash-object", "-w", "--stdin"], input=data,
+                             capture_output=True, check=True).stdout.decode().strip()
+        git(repo, "update-index", "--add", "--cacheinfo", f"{mode},{oid},{path}")
+    git(repo, "commit", "-qm", "plumbed")
+    return git(repo, "rev-parse", "HEAD")
+
+
+PROTECTED_FILE = "app/tests/group_b_fixtures/pkg.identity-record.valid.examples.json"
+LONG_S_ALIAS = "app/tests/group_b_fixtureſ/pkg.identity-record.valid.examples.json"
+CASE_ALIAS = "app/tests/group_b_Fixtures/pkg.identity-record.valid.examples.json"
+
+
+@pytest.mark.parametrize("alias", [LONG_S_ALIAS, CASE_ALIAS])
+def test_reviewer_alias_of_a_protected_input_selects_product_and_is_refused(repo, alias):
+    base = plumb(repo, {PROTECTED_FILE: ("100644", b"{}\n")})
+    head = plumb(repo, {alias: ("100644", b"{\"changed\": true}\n")})
+    result = subject.select(repo, "pull_request", base, head)
+    assert result["mode"] == "product" and result["run_product"] is True
+    assert [change["checks"] for change in result["changes"]] == ["product"]
+    found = subject.inventory(repo)
+    directory = "app/tests/" + alias.split("/")[2]
+    assert sorted([directory, "app/tests/group_b_fixtures"]) in found["collisions"]
+    command = ["python3", str(Path(subject.__file__)), "inventory", "--repo", str(repo)]
+    refused = subprocess.run(command, capture_output=True, text=True)
+    assert refused.returncode == 2 and "collide" in refused.stderr
+
+
+@pytest.mark.parametrize("path", [
+    "docs/PRÉ.md", "docs/PRÉ.md", "execution/PKG-01/DEL-01-01/ScopeſOfWork.md",
+    "AGENTS​.md", "app/examination/standalone/launcħ.py", "app/tests/group_b_а_test.py",
+    "app/tests/group_b_operated_fixtures/viｅws.json",
+])
+def test_non_ascii_spelling_of_any_narrowing_rule_keeps_product(repo, path):
+    head = plumb(repo, {path: ("100644", b"text\n")})
+    result = subject.select(repo, "pull_request", git(repo, "rev-parse", "HEAD~1"), head)
+    assert result["run_product"] is True
+    assert result["changes"][0]["reason"] == "Only printable ASCII paths can skip product verification"
+
+
+@pytest.mark.parametrize("path", [
+    "app/tests/GROUP_B_FIXTURES/x.json", "app/tests/group_b_FIXTURES/x.json",
+    "app/tests/group_b_Fixture_Consumer.rs.json", "app/examination/standalone/Fixtures/tally.py",
+    "app/tests/group_b_SQ_receiving_fixtures/case.json",
+])
+def test_case_variants_of_protected_prefixes_keep_product(path):
+    assert subject.path_rule(path) != "examination"
+
+
+def test_collision_check_reads_the_tree_and_folds_case_normalization_and_format_characters(repo):
+    plumb(repo, {"docs/A.md": ("100644", b"a\n"), "docs/a.md": ("100644", b"b\n"),
+                 "docs/é.md": ("100644", b"c\n"), "docs/é.md": ("100644", b"d\n"),
+                 "docs/z‍.md": ("100644", b"e\n"), "docs/z.md": ("100644", b"f\n")})
+    assert subject.inventory(repo)["collisions"] == [
+        ["docs/A.md", "docs/a.md"], ["docs/é.md", "docs/é.md"], ["docs/z.md", "docs/z‍.md"]]
+
+
+# R2-B2 and links as a class. The inventory inspects committed modes 120000 and
+# 160000, resolves no target, and rejects either anywhere in the tracked tree.
+@pytest.mark.parametrize("link, mode, target", [
+    # The reviewer's construction: a product test's directory linked to a class root.
+    ("app/tests/r2-assets", "120000", "../examination/standalone"),
+    ("app/tests/r2-assets", "120000", "../examination/standalone/"),
+    ("app/tests/ancestor", "120000", "../examination"),
+    ("app/src/notes.md", "120000", "../../docs/PRD.md"),
+    ("app/src/unrelated.json", "120000", "../src-tauri/resources/x.json"),
+    ("app/src/dangling.json", "120000", "../nowhere/absent.json"),
+    ("app/tests/group_b_link_test.py", "160000", "0" * 39 + "1"),
+])
+def test_inventory_refuses_any_symbolic_link_or_gitlink(repo, link, mode, target):
+    if mode == "160000":
+        git(repo, "update-index", "--add", "--cacheinfo", f"{mode},{target},{link}")
+        git(repo, "commit", "-qm", "gitlink")
+    else:
+        plumb(repo, {link: (mode, target.encode())})
+    kind = "symbolic link" if mode == "120000" else "gitlink"
+    assert subject.inventory(repo)["links"] == [f"{link} ({kind})"]
+    command = ["python3", str(Path(subject.__file__)), "inventory", "--repo", str(repo)]
+    refused = subprocess.run(command, capture_output=True, text=True)
+    assert refused.returncode == 2 and "symbolic link or gitlink" in refused.stderr
+
+
+def test_reviewer_link_consumer_commit_is_refused(repo):
+    # R2-B2 as the reviewer built it: a product test reads through a directory link
+    # to the standalone root. The commit adding the link is refused by the inventory.
+    plumb(repo, {"app/examination/standalone/r2-input.json": ("100644", b"true\n"),
+                 "app/tests/font_notice_test.py": ("100644", b"# reads r2-assets/r2-input.json\n")})
+    plumb(repo, {"app/tests/r2-assets": ("120000", b"../examination/standalone")})
+    assert subject.inventory(repo)["links"] == ["app/tests/r2-assets (symbolic link)"]

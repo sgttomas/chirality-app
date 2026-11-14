@@ -10,7 +10,7 @@ import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
-const {RecoveryCustodyPanel} = loadSrc('RecoveryCustodyPanel');
+const {RecoveryCustodyPanel, RecoveryCustodyDetails, requestEndWords, OPEN_AT_APP_SESSION_END_WORDS} = loadSrc('RecoveryCustodyPanel');
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
 let output;
 if (process.env.CHIRALITY_REQUEST_HISTORY_DTO_LOG) {
@@ -52,7 +52,17 @@ test('actual cold RQ04 and RQ06 DTOs stay historical and require an explicit bou
       await view.show(); assert.deepEqual(calls, [], 'mount and ordinary metadata presentation do not query the ledger');
       await view.press('Read latest request summaries');
       assert.deepEqual(calls, [null]);
-      assert.match(view.container.textContent, /ended-unanswered\(process-exit\)/, scenario);
+      // The session that held the request records a process exit it observed (RQ-04). A later
+      // session's startup ending records only what the ledger holds (RQ-06): recorded open, no
+      // reply recorded, the rest not observed; the raw value stays beside the sentence.
+      if (scenario === 'app-ended-without-record') {
+        assert.match(view.container.textContent, /open-at-app-session-end:/, scenario);
+        assert.match(view.container.textContent, /The App session that held this request ended while the request was recorded open; this App session cannot answer it\. No reply to it is recorded\. Whether one was sent after the last record was not observed\./, scenario);
+        assert.doesNotMatch(view.container.textContent, /unanswered|process-exit/, scenario);
+      } else {
+        assert.match(view.container.textContent, /ended-unanswered\(process-exit\)/, scenario);
+        assert.doesNotMatch(view.container.textContent, /open-at-app-session-end/, scenario);
+      }
       assert.match(view.container.textContent, /original-request-home/);
       assert.match(view.container.textContent, /old-request-session/);
       assert.match(view.container.textContent, /cannot be answered here/);
@@ -95,6 +105,41 @@ test('foreign replies and completion after home selection changes do not populat
   } finally {await view.close();}
 });
 
+test('a startup ending is worded by its own kind, and an unknown kind is never shown as an ending', () => {
+  assert.equal(requestEndWords({kind:'request_open_at_app_session_end'}), OPEN_AT_APP_SESSION_END_WORDS);
+  assert.doesNotMatch(OPEN_AT_APP_SESSION_END_WORDS, /unanswered|process|Codex/);
+  assert.equal(requestEndWords({kind:'request_ended_unanswered'}), 'Recorded by an earlier build as ended unanswered when its App session ended without a record:');
+  assert.equal(requestEndWords({kind:'some_later_kind'}), 'some_later_kind:');
+  assert.equal(requestEndWords({}), 'not established:');
+});
+test('the custody details show a request recorded open at App session end with no process exit and no "unanswered"', async () => {
+  // The event as the host's custody view gives it for a startup closure (kind, standing and the
+  // ledger entry it was read from), mounted in the details the panel shows.
+  const event = {eventId:'request-end-1', kind:'request_open_at_app_session_end', standing:'App-recorded', context:'app-ended-without-record', appSession:'later-session', at:'2026-11-12T00:00:00Z',
+    entry:{kind:'register_entry_summary', transition:'RQ-06', state:'closed', endedAs:'open-at-app-session-end', context:'app-ended-without-record',
+      method:'item/fileChange/requestApproval', subject:{threadId:'thread-open', itemId:'item'}, replyWrite:'not-attempted', acknowledgment:'not-observed'}};
+  const earlier = {...event, eventId:'request-end-0', kind:'request_ended_unanswered', standing:'App-observed', entry:{...event.entry, endedAs:'ended-unanswered(process-exit)', subject:{threadId:'thread-earlier-build', itemId:'item'}}};
+  const data = events => ({readAt:'2026-11-12T00:00:01Z', source:{modeHomeClass:'H-account', appSession:'later-session', generation:null}, readStanding:'read standing', historicalScope:'scope',
+    custody:{standing:'custody standing', automaticResume:false, pendingPointerFacts:0, limits:[], restartEvents:[], requestEndEvents:events, historicalConversations:[]}});
+  const container = document.createElement('div'); document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await React.act(() => root.render(React.createElement(RecoveryCustodyDetails, {data: data([event])})));
+    const shown = container.textContent;
+    assert.match(shown, /Requests an earlier App session left recorded open/);
+    assert.ok(shown.includes(OPEN_AT_APP_SESSION_END_WORDS), shown);
+    assert.match(shown, /thread-open/);
+    assert.doesNotMatch(shown, /unanswered/i, 'no "unanswered" for a request recorded open at App session end');
+    assert.doesNotMatch(shown, /process[- ]exit|process exited|Codex (exited|ended|stopped)/i, 'no process exit');
+    // A row an earlier build wrote is shown as that build recorded it, beside the new one, and the
+    // new one's words do not change for it.
+    await React.act(() => root.render(React.createElement(RecoveryCustodyDetails, {data: data([earlier, event])})));
+    const summaries = [...container.querySelectorAll(node => node.localName === 'summary')].map(node => node.textContent);
+    assert.ok(summaries.some(text => text.startsWith('Recorded by an earlier build as ended unanswered') && text.includes('thread-earlier-build')), summaries.join(' | '));
+    const open = summaries.find(text => text.includes('thread-open'));
+    assert.ok(open.startsWith(OPEN_AT_APP_SESSION_END_WORDS) && !/unanswered|process/i.test(open), open);
+  } finally { await React.act(() => root.unmount()); container.remove?.(); }
+});
 test('terminal outcome and typed identities are displayed without relabeling them unanswered', async () => {
   const dto = structuredClone(original);
   dto.page.entries = ['answered','declined','reply-outcome-unknown','errored','resolved-by-supplier'].map((endedAs,index) => ({

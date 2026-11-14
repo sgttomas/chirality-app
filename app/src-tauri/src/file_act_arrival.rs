@@ -252,7 +252,9 @@ fn basis(run: &WorkflowRun, id: &str) -> Result<Basis, String> {
     if source_openings.len() != 1 || source_openings[0]["record"] != claims[1]["record"] {
         return Err("Original run opening has conflicting source claims".into());
     }
-    let log = crate::records::supply::run_log(&run.project_root, run_id)?;
+    // A preview reads: the owning log through the read home, never the
+    // writer's path (which attaches with minting and takes writer admission).
+    let log = crate::records::supply::run_log_for_read(&run.project_root, run_id)?;
     if candidate.record["runId"] != *run_id
         || claims
             .iter()

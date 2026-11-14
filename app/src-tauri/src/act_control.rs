@@ -1492,6 +1492,13 @@ impl ActControl {
         results
     }
 
+    /// The existing owning-log choice, shared with submission recognition.
+    pub(crate) fn capture_submission_log(original: &Value) -> String {
+        if original["actKind"] == "A15" { ".chirality/records/acts.jsonl".into() }
+        else if matches!(original["actKind"].as_str(),Some("A4"|"A6"|"A7")) && original["answers"]["runId"].is_string(){storage::log_rel(original["answers"]["runId"].as_str(),records::APP_INTERFACE.identity)}
+        else { LOG.into() }
+    }
+
     /// Relaunch/late-write reconciliation; never captures again or changes act facts.
     pub fn recover_pending(&mut self) -> Result<Vec<Value>, String> {
         self.recover_pending_mode().map(|(results,_)|results)
@@ -1560,7 +1567,7 @@ impl ActControl {
                     serde_json::from_slice(&std::fs::read(&path).map_err(|e| e.to_string())?)
                         .map_err(|e| e.to_string())
                 })();
-                let mut value = match parsed {
+                let value = match parsed {
                     Ok(v) => v,
                     Err(e) => {
                         results.push(cold_file_limit(&path, &e));
@@ -1579,7 +1586,7 @@ impl ActControl {
                     results.push(cold_file_limit(&path, &e));
                     continue;
                 }
-                if (original["actKind"] == "A15") != a15_only {
+                if storage::capture_belongs_to_library(&original) != a15_only {
                     continue;
                 }
                 let id = original["captureId"].as_str().unwrap().to_owned();
@@ -1587,7 +1594,6 @@ impl ActControl {
                     continue;
                 }
                 if is_pending {
-                    value["capture"] = original.clone();
                     candidates.entry(id).or_insert((original, None)).1 = Some(value);
                 } else {
                     candidates.entry(id).or_insert((original, None));
@@ -1688,15 +1694,11 @@ fn recover_capture_recording(
     if hot.as_ref().is_some_and(|h| h.capture != *original) {
         return Err("capture disagrees with original native custody; no replay".into());
     }
-    let target_log = hot.as_ref().map(|h| h.target_log.clone()).unwrap_or_else(|| {
-        if original["actKind"] == "A15" { ".chirality/records/acts.jsonl".into() }
-        else if matches!(original["actKind"].as_str(),Some("A4"|"A6"|"A7")) && original["answers"]["runId"].is_string(){storage::log_rel(original["answers"]["runId"].as_str(),records::APP_INTERFACE.identity)}
-        else { LOG.into() }
-    });
-    // A pending submission written before the records store names its log by
-    // the §13.7 spelling of the same home-relative path.
-    if disk_pending.is_some_and(|p| p["capture"] != *original || p["log"].as_str().map(storage::home_rel) != Some(storage::home_rel(&target_log))) {
-        return Err("pending capture/owning log disagreement; no replay".into());
+    let target_log = hot.as_ref().map(|h| h.target_log.clone()).unwrap_or_else(|| ActControl::capture_submission_log(original));
+    if let Some(pending) = disk_pending {
+        if records::recognise_capture_submission(pending, &target_log)? != *original {
+            return Err("pending capture/owning log disagreement; no replay".into());
+        }
     }
     let homes = storage::capture_file_for(root, original).and_then(|c| storage::submission_log(root, original, &target_log).map(|l| (c, l)));
     let (cap_path, owning) = match homes {
@@ -1751,7 +1753,7 @@ fn recover_capture_recording(
         return Ok(json!({"state":"AC-8 record pending","capture":durable,"writeFailure":e}));
     }
     // An A15 capture's record set is its library's act log (U-STORE-2).
-    let a15 = original["actKind"] == "A15";
+    let a15 = storage::capture_belongs_to_library(original);
     let (entries, limits) = if a15 { records::library_record_set(root) } else { records::writer_record_set(root) };
     if !limits.is_empty() {
         let e = format!("incomplete/ambiguous record set: {limits:?}; no replay");

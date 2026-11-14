@@ -87,6 +87,9 @@ test('classification is unchanged: answer controls only for an outstanding known
 test('card states use the person words for each register state (CS)',()=>{
   const cases=[
     [{state:'settling'},'Sending your answer: not yet written to Codex'],
+    [{state:'outstanding'},'Waiting for your answer'],
+    [{state:'outstanding',originClass:'named-service'},'Waiting for a reply from the App; none has been sent to Codex'],
+    [{state:'received',classification:'known-app-unsupported',originClass:'none'},"Received; the App's reply has not been sent to Codex"],
     [{state:'answered'},'Your answer was written to Codex; Codex has not confirmed it'],
     [{state:'answered',acknowledgmentObservation:{status:'observed'}},'Your answer was written; Codex reported the request resolved'],
     [{state:'declined',settlement:{origin:{class:'person-via-interaction'}}},'You declined; written to Codex; Codex has not confirmed it'],
@@ -322,7 +325,8 @@ test('supplier resolution after interruption remains a supplier resolution and i
     await ui.answer();
     assert.equal(ui.custody.state,'resolved-by-supplier');
     assert.match(ui.container.textContent,/Native answer command reported: already-resolved/);
-    assert.match(ui.container.textContent,/Request state unavailable: Error: reconnect snapshot unavailable/);
+    // A failed status read is shown only as the fixed line (App Agent 0's decision), never its raw diagnostic.
+    assert.ok(ui.container.textContent.includes("Request state unavailable: The App could not read Codex's status afterwards, so what is shown may be out of date."),ui.container.textContent.slice(-500));assert.doesNotMatch(ui.container.textContent,/reconnect snapshot unavailable/);
     assert.equal(ui.send(),undefined);
     const call=ui.calls.find(call=>call.command==='answer_native_request');
     assert.deepEqual(call.args,{generation:g,requestId:'original-permission',answer:{decision:'decline'}});

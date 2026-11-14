@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
+import { readingRefusal } from "./readingSentences";
+import { REFRESH_FAILED } from "./statusRefresh";
 import { AccessRouteChoice, AvailableModels, useBoundModelChoice, type BoundModelChoice } from "./ModelChoice";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -366,14 +368,14 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
 
 export type StartChoice = { model: string; modelProvider: string; entryId: string };
 
-/** The model and the configured provider are exact Codex identifiers, sent as
- * typed; the webview must not capitalise or correct them (EXACT_TEXT). Used by
- * the start display and by Continue as. */
-export function ModelProviderFields({ model, modelProvider, setModel, setModelProvider }: { model: string; modelProvider: string; setModel: (model: string) => void; setModelProvider: (provider: string) => void }) {
+/** The model is an exact Codex identifier, sent as typed; the webview must not
+ * capitalise or correct it (EXACT_TEXT). Used by the start display, a clean
+ * trial and Continue as. The provider is never typed: at the pin Codex runs a
+ * conversation only on the provider its process was started with. */
+export function ModelIdField({ model, setModel }: { model: string; setModel: (model: string) => void }) {
   return <>
-    <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>{" "}
-    <label>Configured Codex provider <input {...EXACT_TEXT} value={modelProvider} onChange={e => setModelProvider(e.target.value)} /></label>
-    <small> The chosen access entry must match this provider: cloud entries use built-in OpenAI; local entries use a configured Responses provider without credentials. An unavailable definition prevents Start.</small>
+    <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>
+    <small> A model ID for the ChatGPT account connection, sent to Codex as typed. Choose “Use my ChatGPT account” above first. If the account does not offer this model, Codex reports an error when the conversation starts or its first message runs.</small>
   </>;
 }
 
@@ -381,26 +383,28 @@ export function ModelProviderFields({ model, modelProvider, setModel, setModelPr
  * that starts one (a clean trial, Continue as): the explicit access route, the
  * models Codex reports read at the person's press, and the manual IDs under
  * Advanced. Nothing is preselected; nothing here starts or sends. */
-export function ConnectionAndModel({ homeClass, chooser, entries, disabled }: {
+export function ConnectionAndModel({ homeClass, chooser, entries, disabled, local = null }: {
   homeClass: string | null; chooser: BoundModelChoice; entries: { value: string; label: string }[]; disabled: boolean;
+  /** The keyed oMLX route of the local home in use, when it is prepared. */
+  local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
 }) {
   const { route, revise } = chooser;
   return <div aria-label="Connection and model">
     {chooser.stale && <p role="status">Codex, the home or its generation changed since you chose. Your text is kept; choose how it connects and its model again.</p>}
-    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} choose={revise}
-      localHint="Or use a local model server: enter its configured provider under “Advanced: enter IDs yourself”." />
+    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} model={route.model} disabled={disabled} choose={revise} local={local} />
     <AvailableModels packet={chooser.packet} current={chooser.current} reading={chooser.reading} message={chooser.message}
-      model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose} />
-    <details><summary>Advanced: enter IDs yourself</summary>
-      <p><ModelProviderFields model={route.model} modelProvider={route.modelProvider} setModel={model => revise({ model })} setModelProvider={modelProvider => revise({ modelProvider })} /></p>
-      <p><label>Access entry <select value={route.entryId} disabled={disabled} onChange={e => revise({ entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label></p>
-    </details>
+      model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose}
+      setModel={model => revise({ model })} fixedModel={local && route.entryId === local.entryId ? local.model : null}
+      localHome={homeClass === "local-provider" ? (local ? "prepared" : "unprepared") : null} />
+    {homeClass === "account" && <details><summary>Advanced: enter a model ID yourself</summary>
+      <p><ModelIdField model={route.model} setModel={model => revise({ model })} /></p>
+    </details>}
   </div>;
 }
 
 /** A Continue as start press's outcome as its caller reports it. */
 export type ContinueStartOutcome = { ok: true } | { ok: false; message: string };
-type StartAttempt = { state: "idle" } | { state: "starting" } | { state: "unconfirmed"; message: string; held: boolean };
+type StartAttempt = { state: "idle" } | { state: "starting" } | { state: "unconfirmed"; message: string; held: boolean } | { state: "not-sent"; message: string };
 
 /** The handoff message's send state. "sent" only after the send resolved
  * with a result; a refusal or error keeps the draft and allows another try. */
@@ -443,15 +447,15 @@ export function HandoffSendStatus({ outcome }: { outcome: HandoffSendOutcome }) 
     {outcome.state === "not-attempted" && <p role="alert"><small>Not sent: the native owner established that no write attempt occurred. {outcome.reason} The draft is kept; you can send it again.</small></p>}
     {outcome.state === "native-failed" && <p role="alert"><small>The original request received a native error: {text(outcome.nativeResponse?.error?.message ?? outcome.reason)}. The draft is kept; nothing is resent automatically.</small></p>}
     {outcome.state === "unknown" && <p role="alert"><small>Send outcome unknown: {outcome.reason} The draft is kept. Nothing is resent automatically; no second send is offered as proved safe.</small></p>}
-    {outcome.observationFailure && <p role="alert"><small>View refresh unavailable: {outcome.observationFailure}. The original send outcome above is retained.</small></p>}
+    {outcome.observationFailure && <p role="alert"><small>{outcome.observationFailure === REFRESH_FAILED ? REFRESH_FAILED : `View refresh unavailable: ${outcome.observationFailure}.`} The original send outcome above is retained.</small></p>}
   </>;
 }
 
 /** CA-2, CA-3: one open handoff. The draft is editable and unsent; the new
  * conversation starts with no model chosen; its first message is sent only
  * when the person sends it. */
-export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy, ready, start, send, read, open, dismiss }: {
-  handoff: Json; entries: { value: string; label: string }[]; homeClass?: string | null; generation?: Json; busy: boolean; ready: boolean;
+export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy, ready, start, send, read, open, dismiss, local = null }: {
+  handoff: Json; entries: { value: string; label: string }[]; homeClass?: string | null; generation?: Json; busy: boolean; ready: boolean; local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
   start: (choice: StartChoice, source: { generation: Json; modeHomeClass: string | null }) => void | Promise<ContinueStartOutcome>; send: (text: string) => Promise<HandoffSendOutcome>; read?: () => Promise<HandoffSendOutcome>; open: () => void; dismiss: () => void;
 }) {
   const [draft, setDraft] = useState<string>(text(handoff?.draftText));
@@ -464,7 +468,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
   const mountedPanel = useRef(true);
   const outcomeNode = useRef<HTMLDivElement>(null);
   useEffect(() => { mountedPanel.current = true; return () => { mountedPanel.current = false; }; }, []);
-  useEffect(() => { if (startOutcome.state === "unconfirmed") outcomeNode.current?.focus?.(); }, [startOutcome.state]);
+  useEffect(() => { if (startOutcome.state === "unconfirmed" || startOutcome.state === "not-sent") outcomeNode.current?.focus?.(); }, [startOutcome.state]);
   const startHeld = startOutcome.state === "starting" || (startOutcome.state === "unconfirmed" && startOutcome.held);
   // Held across renders: a Start control from before an unconfirmed outcome
   // must not start again either. Only the person's explicit acknowledgement lifts it.
@@ -483,11 +487,14 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     setStartOutcome({ state: "starting" });
     void Promise.resolve(pending).then(outcome => outcome, error => ({ ok: false as const, message: String(error) })).then(outcome => {
       startPressed.current = false;
-      if (!outcome?.ok) startBlocked.current = true;
+      // A start refused at its configuration reading is known not sent (the host's message is the
+      // reading's sentence, or what is known then the sentence): shown as it is, with no hold.
+      const notSent = outcome?.ok ? null : readingRefusal(outcome?.message);
+      if (!outcome?.ok && notSent === null) startBlocked.current = true;
       if (!mountedPanel.current) return;
-      // A rejection does not say whether Codex started the conversation: hold
+      // Any other rejection does not say whether Codex started the conversation: hold
       // Start until the person has looked, so a press can't silently make a second.
-      setStartOutcome(outcome?.ok ? { state: "idle" } : { state: "unconfirmed", message: text(outcome?.message), held: true });
+      setStartOutcome(outcome?.ok ? { state: "idle" } : notSent !== null ? { state: "not-sent", message: notSent } : { state: "unconfirmed", message: text(outcome?.message), held: true });
     });
   };
   const [sending, setSending] = useState<HandoffSendOutcome>(() => handoff?.sendOutcome ? handoffOutcome(handoff.sendOutcome) : { state: "unsent" });
@@ -534,12 +541,15 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     <label>Handoff message {blocked ? "(original draft retained)" : "(editable; not sent)"} <textarea value={draft} disabled={busy || blocked || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
-      <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} />
+      <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} local={local} />
       <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {target}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
       {startRefusal && <p role="alert">{startRefusal}</p>}
       {startOutcome.state === "starting" && <p role="status">Starting the new conversation…</p>}
+      {startOutcome.state === "not-sent" && <div role="alert" aria-label="Start outcome" tabIndex={-1} ref={outcomeNode}>
+        <p>{startOutcome.message}</p><p>Your handoff message is kept.</p>
+      </div>}
       {startOutcome.state === "unconfirmed" && <div role="alert" aria-label="Start outcome" tabIndex={-1} ref={outcomeNode}>
         <p><strong>The new conversation wasn't confirmed as started.</strong> Your handoff message is kept.</p>
         {startOutcome.held ? <>

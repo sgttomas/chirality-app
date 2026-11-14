@@ -25,7 +25,7 @@
 //! (Q-7, AS-09). Unknown settlement keeps the App running and supervised.
 //! A quit ends no workflow run and answers no request.
 
-use crate::codex_stop::{interrupt_and_wait, Interrupts, STOP_WAIT_LIMIT};
+use crate::codex_stop::{interrupt_and_wait, Interrupts, Unsent, STOP_WAIT_LIMIT};
 use crate::runtime_session::{HomeSession, WorkflowRootSession};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -225,21 +225,24 @@ pub(crate) fn assess_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSess
 
 impl<C> Interrupts for HostQuit<'_, C> {
     type Pending = (Arc<crate::hosting::Host>, crate::hosting::SourceRequest);
-    fn interrupt(&mut self, turn: &Value) -> Result<Self::Pending, String> {
-        let thread = turn["threadId"].as_str().ok_or("live turn without a conversation")?;
-        let id = turn["turnId"].as_str().ok_or("live turn without an identity")?;
-        let home = self.home_for(&turn["generation"]).ok_or("the turn's Codex process is no longer the current one; nothing sent")?;
-        let class = crate::stop_records::home_class(home.class().as_str()).ok_or("this home has no App-owned home class")?;
+    fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<Self::Pending, Unsent> {
+        let unsent = |reason: &str| Unsent::NotSent(reason.to_owned());
+        let thread = turn["threadId"].as_str().ok_or_else(|| unsent("live turn without a conversation"))?;
+        let id = turn["turnId"].as_str().ok_or_else(|| unsent("live turn without an identity"))?;
+        let home = self.home_for(&turn["generation"]).ok_or_else(|| unsent("the turn's Codex process is no longer the current one; nothing sent"))?;
+        let class = crate::stop_records::home_class(home.class().as_str()).ok_or_else(|| unsent("this home has no App-owned home class"))?;
         let host = Arc::clone(&home.host);
         let mut written = None;
         let person = &self.person;
         // The same guard as the person's Interrupt control; the request is
-        // written (its SR-01 record first), not awaited.
+        // written (its SR-01 record first), not awaited, and its write is
+        // waited for no later than the quit's stop deadline.
         crate::runtime_session::interrupt_conversation_turn(&host.snapshot(), &turn["generation"], thread, id, |g, t, u| {
-            written = Some(host.turn_interrupt_begin(g, t, u, crate::stop_records::Cause::Quit, class, person)?);
+            written = Some(host.turn_interrupt_within(g, t, u, crate::stop_records::Cause::Quit, class, person, deadline));
             Ok(Value::Null)
-        })?;
-        written.map(|w| (host, w)).ok_or_else(|| "interrupt request not written".to_owned())
+        }).map_err(Unsent::NotSent)?;
+        let written: Result<crate::hosting::SourceRequest, Unsent> = written.map_or_else(|| Err(unsent("interrupt request not written")), Into::into);
+        written.map(|w| (host, w))
     }
     fn acknowledgment(&mut self, pending: &Self::Pending, wait: Duration) -> Result<Value, String> {
         pending.0.turn_interrupt_acknowledgment(&pending.1, wait)
@@ -418,6 +421,11 @@ pub(crate) fn session_end(proceeding: Option<Vec<String>>, records: &[Value]) ->
     }
 }
 
+/// What the person reads when a quit is withheld because a Codex process group the App started
+/// can never be established ended in this App session (its reservation is lost and its group
+/// is not known empty). The temporary case, where settlement was merely unavailable this time,
+/// keeps its own sentence.
+pub(crate) const QUIT_CANNOT_ESTABLISH: &str = "Chirality cannot establish whether a Codex process group it started has ended. Retrying Quit cannot resolve this in the current App session. You can end Chirality using macOS Force Quit, but that does not establish that Codex or its descendants have ended.";
 /// Before deliberate exit: stop each App-owned home's Codex process (Q-6, AS-08;
 /// HOSTING §4.5 closes the generation, so a quit stop request Codex never
 /// reported ended gets SR-08), then write `session_ended` with each quit stop
@@ -448,6 +456,13 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
     }
     if !failures.is_empty() {
         for home in homes { home.host.cancel_quit(); }
+        // A group whose reservation is lost and that is not known empty can never be established
+        // settled in this App session: retrying cannot change it, and the App no longer
+        // supervises that group. Selected by that established state, not by an error's text.
+        // (Reached when a reservation is lost at creation or at any later observation.)
+        if homes.iter().any(|home| home.host.has_unestablishable_process()) {
+            return Err(QUIT_CANNOT_ESTABLISH.into());
+        }
         return Err(format!("The App is still running: owned supplier settlement is unavailable ({}). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.", failures.join("; ")));
     }
     let (how, stops) = session_end(proceeding, &records);

@@ -10,7 +10,11 @@ if (!globalThis.document) installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {useOrderedHost, shownBeforePress, invoke, SELF_ISSUED_QUIET, POLL_MS} = loadSrc('hostReads');
-const {readFileSync, readdirSync} = await import('node:fs');
+const {readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync} = await import('node:fs');
+const {join} = await import('node:path');
+const {tmpdir} = await import('node:os');
+const {fileURLToPath} = await import('node:url');
+const {REFRESH_FAILED} = loadSrc('statusRefresh');
 
 function controlledHost() {
   const pending = [];
@@ -46,7 +50,8 @@ test('a reply is applied only if its read started after the one whose reply is s
     assert.equal(ui.text(), '{"view":"third"}'); assert.equal(ui.api.hostReads.applied, 3);
     // A read that fails is numbered and applies nothing.
     const failed = ui.api.readHost(window.__TAURI_INTERNALS__.invoke('host_status')); host.pending[3].reject(new Error('invented failure'));
-    await assert.rejects(failed, /invented failure/);
+    // A failed status read is shown only as the fixed line (App Agent 0's decision): readHost rejects with it, never the raw error.
+    await assert.rejects(failed, error => String(error) === REFRESH_FAILED && !String(error).includes('invented failure'));
     assert.equal(ui.api.hostReads.started(), 4); assert.equal(ui.api.hostReads.applied, 3);
   } finally { await ui.close(); host.restore(); }
 });
@@ -85,7 +90,7 @@ test('after a command settles, the view is from before it until a read started a
       // A read started after the settle that fails applies nothing; its message is kept beside the mark.
       const failed = statusRead(ui.api); host.of('host_status').at(-1).reject(new Error('invented read failure'));
       await React.act(async () => { await failed.catch(() => undefined); });
-      assert.equal(stale(), true); assert.equal(ui.api.hostReads.failure, 'Error: invented read failure');
+      assert.equal(stale(), true); assert.equal(ui.api.hostReads.failure, "The App could not read Codex's status afterwards, so what is shown may be out of date.", 'the fixed refresh line, never the raw diagnostic');
       // A read started after the settle, applied: the view follows the command, and the failure is behind it.
       const after = statusRead(ui.api); host.of('host_status').at(-1).resolve({view:`${outcome}: read after the command`});
       await React.act(async () => { assert.equal(ui.api.applyHost(await after), true); });
@@ -194,7 +199,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     failStatus = true;
     await press("Show this project's workflows");
     assert.match(guide().textContent, WITHHELD, 'a rejected refresh ends the press; the guide is withheld, which it is only when the panel is not busy');
-    assert.match(guide().textContent, /The last read failed: Error: invented status failure/);
+    assert.match(guide().textContent, /The last read failed: The App could not read Codex's status afterwards, so what is shown may be out of date\./);
     assert.ok(!nodes('button').some(b => b.textContent === 'End this run'));
     failStatus = false;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
@@ -205,7 +210,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     failStatus = true;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
     assert.doesNotMatch(guide().textContent, WITHHELD);
-    assert.match(guide().textContent, /The App's last read of its state failed \(Error: invented status failure\)\. What is shown here was read before that\./);
+    assert.match(guide().textContent, /The App's last read of its state failed \(The App could not read Codex's status afterwards, so what is shown may be out of date\.\)\. What is shown here was read before that\./);
     assert.ok(nodes('button').some(b => b.textContent === 'End this run'), 'the steps stay: nothing says they are wrong');
     failStatus = false;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
@@ -219,7 +224,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     // A status read that fails leaves it withheld, with the failure said in the guide.
     hold = null; failStatus = true;
     await React.act(async () => { poll(); await new Promise(resolve => setTimeout(resolve, 0)); });
-    assert.match(guide().textContent, /What this view showed may be from before the App's last operation finished\..*The last read failed: Error: invented status failure/);
+    assert.match(guide().textContent, /What this view showed may be from before the App's last operation finished\..*The last read failed: The App could not read Codex's status afterwards, so what is shown may be out of date\./);
     // The held reply, from a read started after the command, arrives: the guide returns with the state after it.
     failStatus = false;
     await React.act(async () => { release(); await new Promise(resolve => setTimeout(resolve, 0)); });
@@ -236,4 +241,67 @@ test('whether a view is from before the last command is read from the reads\' or
   assert.equal(shownBeforePress(reads(2, 3)), true, 'the read shown started before the command settled');
   assert.equal(shownBeforePress(reads(3, 3)), true, 'the last read started before the settle is still from before it');
   assert.equal(shownBeforePress(reads(4, 3)), false, 'a read started after the settle');
+});
+
+// The construction that keeps a status read's raw diagnostic from every caller: readHost rejects
+// with StatusReadFailed, whose message and String() are the fixed line alone, and which holds none
+// of the raw error in any own property (enumerable or not).
+test('a failed status read rejects with the fixed line alone and carries none of the raw diagnostic', async () => {
+  const secret = 'INVENTED_PRIVATE_STATUS_DIAGNOSTIC_A2';
+  const host = controlledHost(); const ui = await mount();
+  try {
+    const failed = ui.api.readHost(window.__TAURI_INTERNALS__.invoke('host_status')); host.pending[0].reject(new Error(secret));
+    let error; await React.act(async () => { try { await failed; } catch (caught) { error = caught; } });
+    assert.ok(error instanceof Error, 'it rejects');
+    assert.equal(error.message, REFRESH_FAILED); assert.equal(String(error), REFRESH_FAILED, 'no class name in front');
+    const own = [...Object.getOwnPropertyNames(error), ...Object.getOwnPropertySymbols(error)];
+    assert.ok(own.length > 0);
+    for (const key of own) {
+      const value = Object.getOwnPropertyDescriptor(error, key).value;
+      const shown = typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
+      assert.ok(!shown.includes(secret), `own property ${String(key)} carries none of the raw diagnostic`);
+    }
+    assert.equal(Object.hasOwn(error, 'cause'), false);
+  } finally { await ui.close(); host.restore(); }
+});
+// Every invocation of host_status in app/src, in every .ts and .tsx file at any depth, is the direct
+// argument of readHost, so it gets that construction. Limit: this is a check of spelling. It finds the
+// literal "host_status" command passed to invoke; a status read under a new command name, or through a
+// constant, is not seen.
+function hostStatusInvocations(root) {
+  const found = [], outside = [];
+  const visit = relative => {
+    for (const entry of readdirSync(join(root, relative), {withFileTypes: true})) {
+      const name = relative ? `${relative}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) { visit(name); continue; }
+      if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) continue;
+      const text = readFileSync(join(root, name), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, comment => comment.replace(/[^\n]/g, ' ')).replace(/^\s*\/\/.*$/gm, comment => ' '.repeat(comment.length));
+      text.split('\n').forEach((line, index) => {
+        for (const match of line.matchAll(/invoke(?:<[^>]*>)?\(\s*["']host_status["']/g)) {
+          found.push(`${name}:${index + 1}`);
+          if (!/readHost\(\s*$/.test(line.slice(0, match.index))) outside.push(`${name}:${index + 1}`);
+        }
+      });
+    }
+  };
+  visit('');
+  return {found, outside};
+}
+test('every invocation of host_status in app/src is the direct argument of readHost', () => {
+  const {found, outside} = hostStatusInvocations(fileURLToPath(new URL('../src/', import.meta.url)));
+  assert.ok(found.length > 0, 'no invocation of host_status was found: zero is not a pass');
+  assert.deepEqual(outside, [], `not the direct argument of readHost: ${outside.join(', ')}`);
+});
+test('the host_status search reaches files in subfolders at any depth and names one outside readHost', () => {
+  const root = mkdtempSync(join(tmpdir(), 'host-status-search-'));
+  try {
+    mkdirSync(join(root, 'sub', 'deeper'), {recursive: true});
+    writeFileSync(join(root, 'top.tsx'), 'const a = await readHost(invoke<Json>("host_status"));\n');
+    writeFileSync(join(root, 'sub', 'deeper', 'inner.ts'), '// invoke("host_status") in a comment is not counted\nconst b = await invoke("host_status");\n');
+    writeFileSync(join(root, 'sub', 'notes.md'), 'invoke("host_status")\n');
+    const {found, outside} = hostStatusInvocations(root);
+    assert.deepEqual([...found].sort(), ['sub/deeper/inner.ts:2', 'top.tsx:1'], 'both files found, the comment and the .md file not counted');
+    assert.deepEqual(outside, ['sub/deeper/inner.ts:2']);
+  } finally { rmSync(root, {recursive: true, force: true}); }
 });

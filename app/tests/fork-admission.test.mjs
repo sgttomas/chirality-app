@@ -24,7 +24,10 @@ const button=(c,label)=>elements(c,'button').find(e=>e.textContent===label);
 const conversation=c=>c.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0];
 const labelled=(c,tag,label)=>elements(c,tag).find(e=>e.parentNode.textContent.startsWith(label));
 const draft='Unsent composer text é / 家\n';
-const choice={model:'person-choice',modelProvider:'fixture-provider',entryId:'local-provider'};
+// The account home's one connection route (built-in OpenAI with the ChatGPT account); the model distinguishes a choice.
+const ROUTE='Use my ChatGPT account (built-in OpenAI)';
+const choice={model:'person-choice',route:true};
+const noChoice={model:null,route:false};
 
 async function mounted(options,check) {
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
@@ -43,7 +46,7 @@ async function mounted(options,check) {
    if(options.refreshFails)statusFailure=true;return options.fork?options.fork(result):result;
   }
   if(command==='thread_start'){
-   assert.deepEqual(args,{...choice,modeHomeClass:'account',generation:g,role:null,preselected:false});
+   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:g,role:null,preselected:false});if(options.refreshFails)statusFailure=true;
    if(options.start)return options.start(args);const row=thread('new-choice',g,args.role);homes.account.threads.push(row);
    return {id:91,startGeneration:g,result:{thread:{id:row.threadId},model:'fixture-model',modelProvider:'fixture-provider'},roleSupplyRecord:{state:'not-confirmed'}};
   }
@@ -52,15 +55,17 @@ async function mounted(options,check) {
  });
  const selected=()=>props(elements(conversation(c),'select')[0]).value;
  const change=async(e,value)=>React.act(()=>props(e).onChange({target:{value}}));
- const edit=async values=>{for(const [name,value]of Object.entries(values)){const [tag,label]=name==='model'?['input','Model ']:name==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(labelled(c,tag,label),value);}};
- const values=()=>({model:props(labelled(c,'input','Model ')).value,modelProvider:props(labelled(c,'input','Configured Codex provider ')).value,entryId:props(labelled(c,'select','Access entry ')).value});
+ const routeChosen=()=>{const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+ const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
+ const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  const press=async label=>React.act(async()=>{const b=button(c,label);assert.ok(b,label);assert.equal(props(b).disabled,false,label);if(label==='Start thread')explicitStarts++;if(label==='Use account home')explicitHomes++;props(b).onClick();});
  const poll=async()=>React.act(async()=>{const p=[...intervals.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  try{
   await React.act(async()=>root.render(React.createElement(App)));
   await change(elements(conversation(c),'select')[0],key('source',homes[initial].generation));
-  // A retained legacy home offers no new-conversation access entry.
-  await change(elements(conversation(c),'textarea')[0],draft);await edit(initial==='account'?choice:{model:choice.model,modelProvider:choice.modelProvider});
+  // Only the account home offers a new-conversation choice; a retained legacy home and an unprepared local home offer none.
+  await change(elements(conversation(c),'textarea')[0],draft);if(initial==='account')await edit(choice);
+  assert.deepEqual(values(),initial==='account'?choice:noChoice);
   assert.equal(calls.filter(c=>c.command==='conversation_fork').length,0,'mount/selection/edits never fork');
   await check({c,calls,homes,snapshot,selected,values,edit,press,poll,change,chooser:()=>elements(conversation(c),'select')[0],recover:()=>{statusFailure=false;},observeHome:async mode=>{active=mode;await poll();},forkCount:()=>calls.filter(c=>c.command==='conversation_fork').length});
   assert.deepEqual(unexpected,[],'strict dispatcher rejects implicit send/resume/start/answer');
@@ -104,7 +109,7 @@ test('leaving and returning to the original home never revives old navigation',a
  const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');await ui.observeHome('api-key');await ui.press('Use account home');await ui.edit(choice);await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1'));assert.deepEqual(ui.values(),choice);assert.equal(ui.forkCount(),1);});
 });
 test('stale Fork observer reply cannot restore an older home over newer choices',async()=>{
- const observer=deferred();let hold=true;await mounted({initial:'api-key',read:async(_s,calls)=>{if(hold&&calls.some(c=>c.command==='conversation_fork')){hold=false;await observer.promise;}}},async ui=>{await ui.press('Fork (same role)');await ui.press('Use account home');await ui.edit({model:'new-account-choice',modelProvider:'fixture-provider',entryId:'local-provider'});const newer=ui.values();await React.act(async()=>{observer.resolve();});assert.match(ui.c.textContent,/Selected home: account\./);assert.notEqual(ui.selected(),key('fork-1',kg));assert.deepEqual(ui.values(),newer);assert.equal(ui.forkCount(),1);});
+ const observer=deferred();let hold=true;await mounted({initial:'api-key',read:async(_s,calls)=>{if(hold&&calls.some(c=>c.command==='conversation_fork')){hold=false;await observer.promise;}}},async ui=>{await ui.press('Fork (same role)');await ui.press('Use account home');await ui.edit({model:'new-account-choice',route:true});const newer=ui.values();await React.act(async()=>{observer.resolve();});assert.match(ui.c.textContent,/Selected home: account\./);assert.notEqual(ui.selected(),key('fork-1',kg));assert.deepEqual(ui.values(),newer);assert.equal(ui.forkCount(),1);});
 });
 for(const close of ['closed','replacement'])test(`original admission cannot navigate after source ${close}`,async()=>{
  const held=deferred();await mounted({fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');if(close==='closed'){ui.homes.account.state='exited';ui.homes.account.generationClosed=true;}else{ui.homes.account.generation={...g,spawnCounter:2};ui.homes.account.threads=[thread('source',ui.homes.account.generation),thread('fork-1',ui.homes.account.generation)];}await ui.poll();await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1'));assert.equal(ui.forkCount(),1);assert.deepEqual(ui.values(),choice);});
@@ -136,4 +141,24 @@ test('account intent from the local home supersedes a pending local Fork',localF
 });
 test('a replaced local generation cannot receive the original local Fork navigation',localFork,async()=>{
  const held=deferred();await mounted({initial:'local-provider',fork:async r=>{await held.promise;return r;}},async ui=>{await ui.press('Fork (same role)');const next={...lgk,spawnCounter:2};ui.homes['local-provider'].generation=next;ui.homes['local-provider'].threads=[thread('source',next),thread('fork-1',next)];await ui.poll();await React.act(async()=>{held.resolve();});assert.notEqual(ui.selected(),key('fork-1',lgk));assert.notEqual(ui.selected(),key('fork-1',next));assert.equal(ui.forkCount(),1);});
+});
+
+// A fork or start refused at its configuration reading: the host returns that sentence alone
+// (desktop_startup::access_provider_start_fork_and_key_entry_refusals_…), as Tauri rejects, a string.
+const {READING_GATE,READING_WITHDRAWN}=loadSrc('readingSentences');
+for(const sentence of [READING_GATE,READING_WITHDRAWN])test(`a Fork refused at its reading shows that sentence alone and keeps source/draft: ${sentence.slice(0,40)}`,async()=>{
+ await mounted({admit:false,fork:async()=>{throw sentence;}},async ui=>{await ui.press('Fork (same role)');assert.ok(ui.c.textContent.includes(sentence),'the sentence is shown');assert.doesNotMatch(ui.c.textContent,/Fork outcome is not confirmed|role supply observation/);assert.equal(ui.selected(),key('source'));assert.equal(ui.forkCount(),1);assert.deepEqual(ui.values(),choice);});
+});
+for(const sentence of [READING_GATE,READING_WITHDRAWN])test(`a Start refused at its reading shows that sentence: ${sentence.slice(0,40)}`,async()=>{
+ await mounted({start:async()=>{throw sentence;}},async ui=>{await ui.press('Start thread');assert.ok(ui.c.textContent.includes(`thread_start: ${sentence}`),'the sentence is shown');assert.doesNotMatch(ui.c.textContent,/role supply observation/);assert.deepEqual(ui.values(),choice);});
+});
+
+// A status refresh that fails after a refused Fork or Start adds the fixed line once, after the
+// action's own message, and never its raw diagnostic; an ordinary refusal keeps its own message.
+const {REFRESH_FAILED}=loadSrc('statusRefresh');
+for(const [label,reason,shown] of [['the gate sentence',READING_GATE,READING_GATE],['an ordinary refusal','refused-not-sent: invented fork refusal','Fork outcome is not confirmed: refused-not-sent: invented fork refusal']])test(`a Fork refused (${label}) then a failed refresh: its message, then the fixed line`,async()=>{
+ await mounted({admit:false,refreshFails:true,fork:async()=>{throw reason;}},async ui=>{await ui.press('Fork (same role)');assert.ok(ui.c.textContent.includes(`${shown} ${REFRESH_FAILED}`),ui.c.textContent.slice(-600));assert.doesNotMatch(ui.c.textContent,/controlled observer refresh unavailable/);ui.recover();});
+});
+for(const [label,reason] of [['the withdrawn sentence',READING_WITHDRAWN],['an ordinary refusal','refused-not-sent: invented start refusal']])test(`a Start refused (${label}) then a failed refresh: its message, then the fixed line`,async()=>{
+ await mounted({refreshFails:true,start:async()=>{throw reason;}},async ui=>{await ui.press('Start thread');assert.ok(ui.c.textContent.includes(`thread_start: ${reason} ${REFRESH_FAILED}`),ui.c.textContent.slice(-600));assert.doesNotMatch(ui.c.textContent,/controlled observer refresh unavailable/);ui.recover();});
 });

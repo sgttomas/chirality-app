@@ -28,10 +28,15 @@ struct Ops {
     waits: Vec<Duration>,
     stop_ok: bool,
     fail_second_assess: bool,
+    /// A turn whose interrupt is not written: Some(true) not sent,
+    /// Some(false) write outcome unknown.
+    unwritten: fn(&str) -> Option<bool>,
+    /// Whether the stop established the process's end.
+    established: bool,
 }
 impl Ops {
     fn new(materials: Vec<Value>, answers: Vec<bool>) -> Self {
-        Self { log: vec![], materials, answers, asked: vec![], ends: |_| None, unacknowledged: vec![], waits: vec![], stop_ok: true, fail_second_assess: false }
+        Self { log: vec![], materials, answers, asked: vec![], ends: |_| None, unacknowledged: vec![], waits: vec![], stop_ok: true, fail_second_assess: false, unwritten: |_| None, established: true }
     }
     fn run(&mut self, restart: bool) -> Result<Value, String> {
         stop_or_restart(self, restart, Duration::from_millis(150))
@@ -59,10 +64,14 @@ impl StopOps for Ops {
     fn reopen_to_new_turns(&mut self) {
         self.log.push("reopen".into());
     }
-    fn interrupt(&mut self, turn: &Value) -> Result<String, String> {
+    fn interrupt(&mut self, turn: &Value, _deadline: Instant) -> Result<String, crate::codex_stop::Unsent> {
         let id = turn["turnId"].as_str().unwrap().to_owned();
         self.log.push(format!("interrupt {id}"));
-        Ok(id)
+        match (self.unwritten)(&id) {
+            Some(true) => Err(Unsent::NotSent("fixture: not written".into())),
+            Some(false) => Err(Unsent::WriteUnknown("write outcome unknown".into())),
+            None => Ok(id),
+        }
     }
     fn acknowledgment(&mut self, pending: &String, wait: Duration) -> Result<Value, String> {
         self.log.push(format!("ack {pending}"));
@@ -85,7 +94,7 @@ impl StopOps for Ops {
     }
     fn stop(&mut self) -> Result<Value, String> {
         self.log.push("stop".into());
-        if self.stop_ok { Ok(json!({"state":"stopped"})) } else { Err("stop not accepted in state stopping".into()) }
+        if self.stop_ok { Ok(json!({"state":"stopped","processEndEstablished":self.established})) } else { Err("stop not accepted in state stopping".into()) }
     }
     fn start(&mut self) -> Result<Value, String> {
         self.log.push("start".into());
@@ -160,6 +169,43 @@ fn an_unacknowledged_first_interrupt_does_not_starve_the_others() {
     assert_eq!(out["turns"][0]["label"], "interrupted by Stop Codex (final status not observed)");
     assert_eq!(out["turns"][1]["interruptRequest"]["state"], "acknowledged");
     assert_eq!(out["turns"][1]["label"], "interrupted by Stop Codex");
+}
+
+/// Decision 2: no Stop label for a turn whose interrupt was not written and
+/// whose end Codex did not report, but an explanation that keeps apart the
+/// process's end, the turn's own outcome and the interrupt's transmission. A
+/// written interrupt keeps today's label, and an end Codex reported keeps its
+/// label and is shown as reported.
+#[test]
+fn an_unwritten_interrupt_with_no_reported_end_gets_no_label_but_an_explanation() {
+    for established in [true, false] {
+        let mut ops = Ops::new(vec![view_material(json!([live("sent"), live("unsent"), live("unknown"), live("unsent-ended")]), json!([]), json!([]))], vec![true]);
+        ops.unwritten = |turn| match turn { "unsent" | "unsent-ended" => Some(true), "unknown" => Some(false), _ => None };
+        ops.ends = |turn| if turn == "unsent-ended" { ended("completed") } else { None };
+        ops.established = established;
+        let out = ops.run(false).unwrap();
+        assert_eq!(out["state"], "stopped");
+        let by = |id: &str| out["turns"].as_array().unwrap().iter().find(|t| t["turnId"] == id).unwrap().clone();
+        assert_eq!(by("sent")["label"], "interrupted by Stop Codex (final status not observed)", "a written interrupt keeps today's label");
+        let first = if established { "Codex's process was confirmed ended during Stop." } else { "Whether Codex's process ended during Stop was not established." };
+        let unsent = by("unsent");
+        assert!(unsent["label"].is_null(), "{unsent}");
+        assert_eq!(unsent["reading"], format!("{first} No final status for this turn was observed. Stop not sent: fixture: not written"));
+        let unknown = by("unknown");
+        assert!(unknown["label"].is_null(), "{unknown}");
+        assert_eq!(unknown["reading"], format!("{first} No final status for this turn was observed. Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known."));
+        for turn in [&unsent, &unknown] {
+            let shown = format!("{} {} {}", turn["label"], turn["reading"], turn["interruptRequest"]);
+            assert!(!shown.contains("interrupted"), "{shown}");
+            if !established {
+                assert!(!shown.contains("ended during Stop.") || shown.contains("not established"), "never says it ended: {shown}");
+                assert!(!shown.contains("running"), "never says it is running: {shown}");
+            }
+        }
+        let reported = by("unsent-ended");
+        assert_eq!((reported["label"].as_str(), reported["codexReported"].as_str()), (Some("completed (Stop Codex requested)"), Some("completed")), "Codex's reported status is kept and shown");
+        assert!(reported.get("reading").is_none());
+    }
 }
 
 #[test]
@@ -387,6 +433,9 @@ for line in sys.stdin:
         cfg: HostConfig,
         home: Arc<HomeSession>,
         generation: Value,
+        /// The root held as the App holds its App data before it opens a
+        /// ledger, so that a later App on it models a relaunch.
+        _custody: crate::AppDataCustody,
     }
     impl Fixture {
         fn new() -> Self {
@@ -400,7 +449,7 @@ for line in sys.stdin:
             self.root.join("recovery.ledger.jsonl")
         }
         fn started(ledger: bool) -> Self {
-            let (root, cfg) = Self::prepare();
+            let (root, cfg, _custody) = Self::prepare();
             let host = Arc::new(Host::new());
             if ledger {
                 host.configure_recovery(root.join("recovery.ledger.jsonl")).unwrap();
@@ -409,20 +458,20 @@ for line in sys.stdin:
             let generation = host.snapshot()["generation"].clone();
             host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
             let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
-            Self { root, cfg, home, generation }
+            Self { root, cfg, home, generation, _custody }
         }
         /// A Host whose handshake is refused: `halted-after-repeated-failure`.
         fn halted() -> Self {
-            let (root, cfg) = Self::prepare();
+            let (root, cfg, _custody) = Self::prepare();
             std::fs::write(root.join("fail-initialize"), "").unwrap();
             let host = Arc::new(Host::new());
             assert!(host.start(&cfg, "stop fixture").is_err());
             assert_eq!(host.snapshot()["state"], "halted-after-repeated-failure");
             let generation = host.snapshot()["generation"].clone();
             let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
-            Self { root, cfg, home, generation }
+            Self { root, cfg, home, generation, _custody }
         }
-        fn prepare() -> (PathBuf, HostConfig) {
+        fn prepare() -> (PathBuf, HostConfig, crate::AppDataCustody) {
             use std::os::unix::fs::PermissionsExt;
             let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("codex-stop-").unwrap());
             for name in ["account", "probe"] {
@@ -434,7 +483,8 @@ for line in sys.stdin:
             let mut cfg = HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
             cfg.allow_unverified_dev = true;
             cfg.wait_limit = Duration::from_secs(2);
-            (root, cfg)
+            let custody = crate::hold_app_data_for_test(&root).unwrap();
+            (root, cfg, custody)
         }
         /// The child ends with no stop record: `exited-unexpectedly`, its
         /// generation closed (HOSTING LT-12).
@@ -587,6 +637,8 @@ for line in sys.stdin:
         assert_eq!(entry["actor"]["identity"], "R · OS account r");
         crate::recovery::RecoveryLedger::open(f.ledger()).unwrap();
         // Relaunch: a new App session reads the stop outcome from the ledger alone.
+        // The earlier App's process has ended (one App at a time on this data).
+        f.home.host.end_process_for_test();
         let relaunched = Host::new();
         relaunched.configure_recovery(f.ledger()).unwrap();
         let back = relaunched.snapshot()["stopRequests"]["records"].as_array().unwrap().iter().find(|r| r["turnId"] == "turn-1").unwrap().clone();
@@ -726,7 +778,10 @@ for line in sys.stdin:
         // cannot strand a modeled-unknown reservation in this fixture.
         f.home.host.model_quit_census(None);
         let retry = app.allow(&decision, |ids| crate::app_quit::finish_exit(&[Arc::clone(&f.home)], Some(ids.to_vec())));
-        assert!(refused.unwrap_err().contains("still running"));
+        // A settlement that was unavailable this time keeps its own sentence: it is not the
+        // one for a settlement that can never be established.
+        let refused = refused.unwrap_err();
+        assert!(refused.contains("still running") && refused.contains("before retrying Quit") && refused != crate::app_quit::QUIT_CANNOT_ESTABLISH, "{refused}");
         assert!(permission.is_none(), "no exit permission from stopped state alone");
         assert_eq!(failed_snapshot["state"], "stopped");
         assert_eq!(failed_snapshot["generation"], f.generation);
@@ -899,13 +954,22 @@ for line in sys.stdin:
         std::fs::write(f.root.join("interrupt-mode"), "silent").unwrap();
         f.live_turn("turn-1");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
-        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(1), |_| true, || Err("no start".into()));
+        // The limit leaves time for the interrupt's write to begin (a write
+        // not begun by the limit is withdrawn); the peer never answers it.
+        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(300), |_| true, || Err("no start".into()));
         // The process stop closed it in this session; the crash case is the
         // ledger as it stood at the last `sent` record.
         let rows = ledger_rows(&f);
         let last_sent = rows.iter().rposition(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent").expect("sent record");
         let crashed = f.root.join("crashed.ledger.jsonl");
         std::fs::write(&crashed, rows[..=last_sent].iter().map(|r| serde_json::to_string(r).unwrap() + "\n").collect::<String>()).unwrap();
+        // The crashed App's process has ended: its lock file stays beside the
+        // crashed ledger, free, as the kernel leaves it.
+        f.home.host.end_process_for_test();
+        let session = f.generation["appSession"].as_str().unwrap();
+        let lock = crate::session_liveness::lock_path(&crashed, session);
+        std::fs::create_dir_all(lock.parent().unwrap()).unwrap();
+        std::fs::copy(crate::session_liveness::lock_path(&f.ledger(), session), &lock).unwrap();
         let mut ledger = crate::recovery::RecoveryLedger::open(crashed.clone()).unwrap();
         ledger.start_session("relaunch", "candidate").unwrap();
         let after: Vec<Value> = ledger.recorded_entries().as_array().unwrap().clone();
@@ -916,6 +980,38 @@ for line in sys.stdin:
         let mut again = crate::recovery::RecoveryLedger::open(crashed).unwrap();
         again.start_session("relaunch-2", "candidate").unwrap();
         assert_eq!(again.recorded_entries().as_array().unwrap().iter().filter(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08").count(), 1, "closed once");
+    }
+
+    /// A stop request left sent by a session the ledger has no start record
+    /// for (round 4's row): nothing establishes that session's end, so the
+    /// next start infers no closure from it. The record is left as it is,
+    /// and the custody view says so as a limit. With its source session's
+    /// start record present the same row is closed (the test above).
+    #[test]
+    fn a_stop_request_whose_source_session_has_no_start_record_is_not_closed_at_the_next_start() {
+        let f = Fixture::with_ledger();
+        std::fs::write(f.root.join("interrupt-mode"), "silent").unwrap();
+        f.live_turn("turn-1");
+        let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+        // The limit leaves time for the interrupt's write to begin (a write
+        // not begun by the limit is withdrawn); the peer never answers it.
+        let _ = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_millis(300), |_| true, || Err("no start".into()));
+        let rows = ledger_rows(&f);
+        let last_sent = rows.iter().rposition(|e| e["kind"] == "stop_request" && e["record"]["state"] == "sent").expect("sent record");
+        let source = f.generation["appSession"].as_str().unwrap();
+        let orphaned: Vec<&Value> = rows[..=last_sent].iter().filter(|e| !(e["kind"] == "session_started" && e["session"] == source)).collect();
+        assert!(orphaned.len() < last_sent + 1, "the source session's start record is what was left out");
+        let orphan = f.root.join("orphan.ledger.jsonl");
+        std::fs::write(&orphan, orphaned.iter().map(|r| serde_json::to_string(r).unwrap() + "\n").collect::<String>()).unwrap();
+        f.home.host.end_process_for_test();
+        let mut ledger = crate::recovery::RecoveryLedger::open(orphan).unwrap();
+        ledger.start_session("relaunch", "candidate").unwrap();
+        let after: Vec<Value> = ledger.recorded_entries().as_array().unwrap().clone();
+        assert!(!after.iter().any(|e| e["kind"] == "stop_request" && e["record"]["transition"] == "SR-08"), "no closure inferred: {after:?}");
+        let latest = after.iter().rev().find(|e| e["kind"] == "stop_request").unwrap();
+        assert_eq!((latest["record"]["state"].as_str(), latest["record"]["appSession"].as_str()), (Some("sent"), Some(source)), "the record is as it was left");
+        let view = crate::recovery::RecoveryCustodyView::from_owner("relaunch", Some(ledger.current_entries()), json!({}), 0, None).snapshot();
+        assert!(view["limits"].as_array().unwrap().iter().any(|l| l == crate::recovery::STOP_SOURCE_UNAVAILABLE), "shown as a limit: {view}");
     }
 
     /// B-1: a quit asked while Stop Codex has closed the process (and is

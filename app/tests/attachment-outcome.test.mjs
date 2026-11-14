@@ -13,6 +13,7 @@ import './support/rust-prebuild.mjs';
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
 const {App,ConversationPanel} = loadSrc('App');
+const {REFRESH_FAILED}=loadSrc('statusRefresh');
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
 const labelled = (container,label) => container.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
@@ -146,7 +147,7 @@ test('actual acknowledged Send and Steer retain native completion independently 
       assert.deepEqual(selectionView(view.container),{refs:expected.attachmentSelections.selections.map(row => row.selection.selectionRef),submissions:expected.attachmentSelections.submissions});
       assert.equal(!!props(button(view.container,steerLabel)).disabled,!(expected.steeringTargets ?? []).some(row => row.target));
       if (refreshFails) {
-        assert.equal(alerts(view.container).length,1);assert.ok(alerts(view.container)[0].includes(view.observerError));
+        assert.equal(alerts(view.container).length,1);assert.ok(alerts(view.container)[0].includes(REFRESH_FAILED),'a failed read is shown only as the fixed line (App Agent 0)');assert.ok(!view.container.textContent.includes(view.observerError),'never its raw diagnostic');
         assert.ok(alerts(view.container)[0].includes('command outcome above is unchanged'));
       } else assert.deepEqual(alerts(view.container),[]);
       assert.deepEqual(view.calls.slice(view.actionStart).map(([command]) => command),[sample.command,'host_status']);
@@ -164,7 +165,7 @@ test('actual native refusal, error, malformed reply and pending error survive a 
       assert.equal(view.returned,undefined);
       assert.equal(props(composer(view.container)).value,sample.args.text);
       assert.deepEqual(alerts(view.container).slice(0,1),[`${sample.nativeError} No automatic retry.`]);
-      assert.equal(alerts(view.container).length,2);assert.ok(alerts(view.container)[1].includes(view.observerError));
+      assert.equal(alerts(view.container).length,2);assert.ok(alerts(view.container)[1].includes(REFRESH_FAILED),'a failed read is shown only as the fixed line (App Agent 0)');assert.ok(!view.container.textContent.includes(view.observerError),'never its raw diagnostic');
       assert.ok(!outcome(view.container).textContent.includes(ack));view.assertOriginalIdentity();
       assert.equal(!!props(button(view.container,sendLabel)).disabled,false);
       assert.equal(!!props(composer(view.container)).disabled,false);

@@ -13,12 +13,42 @@ it selects: deliverable structure and utility tests, selection regressions, and
 the existing conflict and credential checks. The workflow itself has no PR path
 filter. This standalone repository does not execute SWBPIPE checks.
 
+## Which commit each job tests
+
+On a pull request GitHub reads the workflow from the merge of the head with
+`main` (`github.sha`, the event's merge commit), so a command added on `main`
+names a file that a branch cut earlier lacks. `repository-checks` therefore
+checks out that merge commit: it tests the head merged with `main` as `main`
+stood when the event created the run, and a re-run of the same run keeps that
+merge commit. Its step "Name the commits under test" prints the tested commit,
+the pull request head and the base it merges (its two parents) and the event's
+base, and fails if the tested commit is not the event's merge of that head. Its
+conflict and credential checks still examine the pull request's own change,
+from the event's base to the head, which they read from Git objects, not from
+the checkout. `change-selection`, the product jobs in `app-v4.yml` and the
+`harness` gate check out the head itself. GitHub reports all of them against
+the head. On a manual dispatch every job tests the dispatched commit.
+
+A pull request that conflicts with `main` has no merge commit, and GitHub
+starts no `pull_request` run for it. If the conflict is there when the head is
+pushed, the required `harness` check stays expected and never reports; if it
+arises later because `main` moved, the head keeps its earlier result. Either
+way GitHub shows that the branch has conflicts and does not merge it until they
+are resolved, and the push that resolves them starts a new run. This was the
+same before repository checks moved to the merge commit.
+
 ## Change selection
 
 `tools/ci/select_checks.py` reads the complete committed change between the PR
 merge base and head. It reports the base/head identities and a reason for every
 path in the selection job's output and GitHub step summary. No GitHub files-list
 pagination or extension-wide skip is used.
+
+The `change-selection` job checks out the PR's head and runs that head's own
+`select_checks.py`, not main's. A branch cut before a selector change is
+therefore judged by the old selector until it takes main. The `inventory`
+command, by contrast, runs in `repository-checks` and so reads the merged tree
+with the merged selector.
 
 Only additions and modifications of ordinary non-executable files at these
 exact documentary paths, and all paths under the guarded declarative `execution/` tree, select repository checks without product verification:
@@ -31,10 +61,24 @@ exact documentary paths, and all paths under the guarded declarative `execution/
 - `docs/user-manual/README.md`
 - `tools/deliverables/README.md`
 
+Two further classes select repository checks without product verification,
+because no macOS product job consumes them (see
+[Inputs the macOS jobs do not consume](#inputs-the-macos-jobs-do-not-consume)):
+governing text, Markdown under `docs/`; and examination tooling, the Python,
+JavaScript, JSON and Markdown under `app/examination/standalone/` and the
+`app/tests/group_b_*` tests and fixtures, except the four paths in them that a
+macOS job reads.
+
+Every narrowing rule, the documentary paths and `execution/` included, applies
+only to a path of printable ASCII; any other spelling selects product checks,
+because a checkout may fold it onto another file (a macOS volume folds case and
+Unicode forms, so `group_b_fixtureſ` with a long s is `group_b_fixtures` there).
+The protected paths inside the class roots are compared without regard to case.
+
 Everything else retains the existing App product verification. This includes
 Rust and frontend code, dependencies/locks, workflows, the selector and its
-tests, App schema/fixture copies, packaging resources, examination readers,
-packaged Markdown and unknown paths. Mixed changes select the union: one
+tests, App schema/fixture copies, packaging resources, the other examination
+readers, packaged Markdown and unknown paths. Mixed changes select the union: one
 product-relevant path selects the product workflow. Deletions, executable-mode
 changes, symlinks and other file-type changes select product checks even at an
 allowlisted path. Renames are examined as deletion plus addition, so neither
@@ -46,7 +90,22 @@ The selector names conservative product domains and exact root files, with the
 reviewed documentary exceptions taking precedence. Its report distinguishes an
 explicit product rule from an unmatched path; both select all existing PR product
 checks. The always-run `inventory` command checks every tracked path against
-positive rules and fails on unmatched paths. Classify such a path deliberately;
+positive rules and fails on unmatched paths. It also fails when two tracked
+paths or directories, read from the commit's tree rather than a checkout (which
+may already have merged them), fold to the same name. Its folding is Unicode
+compatibility normalization, case folding and dropping format characters: at
+least what a case- and normalization-insensitive macOS volume folds, without
+claiming to model any file system exactly.
+
+**An assumption this selector requires: the tracked tree holds no symbolic link
+and no gitlink.** The inventory inspects the committed Git modes 120000
+(symbolic link) and 160000 (gitlink), resolves no target, and fails on either
+anywhere in the tracked tree, dangling links and directory aliases included.
+The selector routes by path, and a link lets one path stand for another: a
+product reader reaching a class path through a link would lose its product job
+on a change to that class path. Generated and untracked links are outside the
+inventory's scope. A future legitimate tracked link needs a reviewed change to
+this assumption and to the routing. Classify an unmatched path deliberately;
 the full-coverage fallback does not satisfy completeness. New files within a
 known product domain keep product coverage without individual allowlisting.
 
@@ -74,6 +133,55 @@ Path moves and all App/tool/guard/selector edits select full product checks.
 Other product domains remain conservative; no partial frontend/Rust mapping is
 introduced.
 
+## Inputs the macOS jobs do not consume
+
+A path skips the three macOS product jobs only when no step of theirs reads it,
+directly or through what it builds, and every reader it has runs in the
+always-run `repository-checks` job. Neither the frontend build (`tsc` includes
+only `app/src`; Vite starts at `app/index.html`) nor the Rust code and its tests
+read outside `app/src-tauri` except `app/tests/fixtures`,
+`app/supplier_checks/recordings`, `app/packaging/unsigned`,
+`tools/verify_records_bag.py` and the kept paths below. `build.rs` watches only
+`src-tauri` files, and the bundle takes only `resources/instructions` and
+`resources/production_workflows`.
+The searches were made by reading each consumer and searching all tracked files
+for the paths, not by file extension.
+
+| Class and paths | Readers, and where they run | Search |
+| --- | --- | --- |
+| A: `docs/**/*.md` | `tools/validation/test_document_metadata.py` reads every header, in `repository-checks`. No App source, test, build script, bundle or pin names a `docs/` path. | `git grep` for `docs/`, `../docs/`, `"docs"`, every `docs/` basename and `include_str!`/`include_bytes!` targets in `app`, `tools` and `.github` |
+| A: `execution/**` | Already documentary; `tools.deliverables check` and `check_execution_layout.py` in `repository-checks`. | as above, plus `ScopeOfWork`, `deliverable.yaml` |
+| B: `app/examination/standalone/**` except `fixtures/` (`.py`, `.mjs`, `.cjs`, `.js`, `.json`, `.md`) | The Group B suites (`app/tests/group_b*test.py`), `repin.py --check` and `examination_repin_test.py` (which copies the standalone pin profiles), all in `repository-checks`; `native_forms/` reads the pre-run inputs and pins and is run only by `group_b_native_forms_test.py`. `app/examination/scripted_driver/proof.py` reads `operated/first-use-setup.scenario.json` in the scripted driver's own hosted job (`.github/workflows/app-scripted-driver.yml`, whose path trigger names that file), and `group_b_scripted_driver_test.py` reads it in `repository-checks`. | every top-level standalone entry name, `standalone`, `group_b` |
+| B: `app/tests/group_b_*` except below (same types) | Run only by the `repository-checks` step `pytest -q app/tests/group_b*test.py`; no macOS product step names `group_b`. | every `group_b_*` directory and file name |
+| Kept product: `app/examination/standalone/fixtures/` | Read at runtime by the lib tests in `group_b_fixture_consumer.rs`; no PR lib cohort runs them today, only the full suite, but a cohort filter change would. | `CARGO_MANIFEST_DIR` joins in Rust |
+| Kept product: `app/tests/group_b_fixture_consumer.rs` | Compiled into the lib by `lib.rs` (`#[path]`): the test-target build and clippy in `rust-integration`. | `group_b` in `app/src-tauri` |
+| Kept product: `app/tests/group_b_fixtures/` | `packaging/static_distribution/test_s1_value_model.py`, `sources-packaging`. | `group_b_*fixtures` outside the class |
+| Kept product: `app/tests/group_b_sq_receiving_fixtures/` | `tests/package_successor_receiving_fixtures.py` through `package_successor_test.py`, `sources-packaging`. | as above |
+
+`examination_repin_test.py` runs in `sources-packaging` and now also in
+`repository-checks`, so that a standalone pin change is examined on the route it
+takes. It uses only the standard library.
+
+The three pull request product jobs do not run the Group B suites on macOS at
+all, and did not before this narrowing: selecting them never supplied macOS
+evidence for examination tests. Examination tests that need macOS run where
+they ran before: in the nightly full suite (`App v4 product` runs
+`python -m pytest -q tests`) and in a lane's own local runs. That is unchanged
+by this narrowing, neither a gain nor a loss. `group_b_runner_test.mjs` is run
+by no CI route.
+
+Deletions, mode or type changes, renames (each side examined), other file types
+in these roots, non-ASCII and case-variant spellings and any change with a
+product input keep the full product route.
+
+The table rests on reading each consumer. `tools/ci/test_selection.py` adds a
+warning, not a proof: it fails when a tracked code file outside the classes
+names one of their paths in its text and is not a reader listed there with its
+reason, so a new reader is noticed and placed in this table, or the path it
+reads kept as a product input. A path assembled at run time, or reached through
+data the search does not read, evades it. The same file fails if
+`repository-checks` stops running, or makes conditional, a reader listed here.
+
 ## Required result
 
 The macOS reusable product workflow is called only when explicitly selected. It
@@ -81,7 +189,8 @@ needs only `change-selection`, so product jobs start as soon as the route is
 known, not after the slower repository checks. `harness` runs with `always()`
 and requires a successful `change-selection` with valid outputs and successful
 repository checks. It accepts `app-v4: skipped` only for the explicit `prose`
-selection. A product selection requires `app-v4: success`; failures,
+selection, which every documentary, governing-text and examination change
+alone receives. A product selection requires `app-v4: success`; failures,
 cancellations, unexpected skips and missing/inconsistent outputs block merging.
 A failing repository check therefore blocks the merge although the product jobs
 still run to completion.
@@ -99,12 +208,131 @@ focused lib cohort filter sits in exactly one of two shards and still runs as
 its own serial libtest process, because some tests read process-wide state that
 others set. The workflow's `App v4 checks` job
 requires all three to succeed. Selection tests execute that gate, check the
-event conditions and reject a filter listed twice; they do not detect a removed
-filter, so cohort changes need review like any other check change.
+event conditions and reject a filter listed twice. The
+[library test listing](#library-test-listing) catches a new test module that
+no filter selects and most removed filters, with the limits it states; web test
+files have the [web test listing](#web-test-listing).
 Manual App workflow dispatch
 retains the broader supplier-dependent route; it is not a release and remains
 subject to the owner's authorization and App hold. No release workflow is present.
 Manual dispatch of the governance harness also always selects product checks.
+
+## Web test listing
+
+Each web test file, `app/tests/**/*.test.mjs`, is named on a `node --test` line
+of a pull-request job in `app-v4.yml`, or in `tools/ci/web_test_exclusions.txt`
+with the reason no pull-request job can run it and where it does run (the full
+route's `npm test`, or nowhere). `tools/ci/check_web_test_listing.py`, run by
+`repository-checks` through `tools/ci/test_web_test_listing.py`, fails, naming the file,
+when a test file is in neither, when a file named on a line it reads or in the
+list does not exist, when a file is in both, and when it finds no test files or
+no pull-request `node --test` line. A line it reads is a `node --test` command
+at the start of a shell command in a step, after any `NAME=value` words. Jobs
+are told apart by their `if`: the focused-route condition makes a pull-request
+job, a job with no `if` counts as one (it runs on the pull-request call too),
+and the full-route condition makes the full route, whose lines do not count. A
+job with a `node --test` line and any other condition fails the check, naming
+the job. A new web test file therefore needs a line or an exclusion in the same
+PR. A file whose test starts `cargo test --lib` belongs in a job that has
+already built the default lib test target (`rust-lib-node` after its shard, or
+`rust-integration` after its compile step); one that runs an integration test
+target belongs in `rust-integration`.
+
+The check reads spelling in a workflow file. It does not show that a listed
+test executes or passes, and does not read `app/package.json`'s test script. It
+does not see a file reached only through a shell variable, a `node --test` line
+that is not at the start of a command, or a web test under a name pattern other
+than `*.test.mjs`, such as `group_b_runner_test.mjs`.
+
+## Library test listing
+
+`tools/ci/check_lib_cohorts.py` runs in `rust-integration` right after the
+test-target compile. It lists the library's default-feature tests and its
+ignored tests from that build and checks them against the workflow and
+`tools/ci/lib_cohort_exclusions.txt`, reading the workflow with the Python
+standard library (the macOS job has no YAML library). Its logic is tested with
+invented lists in `repository-checks` (`tools/ci/test_lib_cohorts.py`), which
+also compares its reading of the committed workflow with PyYAML's, job by job
+(job ids, conditions, `LIB_COHORTS`, and each step's name, `if`,
+`LIB_COHORTS` and run text, exactly) and fails on any difference. Listing a built target
+took 0.2 seconds locally on this project's Mac; no hosted figure is recorded.
+
+What it establishes: every test in the supplied default-feature listing is
+either matched by name by a default-feature pull-request filter (a
+`LIB_COHORTS` entry of a shard whose cohort step's run text is exactly the
+cohort loop the check holds as `COHORT_LOOP`, compared by equality, or the one
+literal filter of a `cargo test --lib` command in a pull-request job's step),
+or ignored, or covered by a line of the
+exclusion file with its reason. "Selected" is that name match; it does not show
+that the test's body runs. An ignored (`#[ignore]`) test counts as neither
+selected nor left to the full route: the full route runs `cargo test` without
+`--ignored`, so it does not select ignored tests directly, though a parent test
+it runs may start one as a child process. Each has a line saying so, either
+opt-in, run by no hosted job unless someone names it, or a child process that a
+named parent test starts, running only where that parent runs.
+
+It fails, naming them, on a test in none of those, an ignored test without such
+a line, a default-feature pull-request filter that selects no test that is not
+ignored, and an exclusion line that covers no test. It refuses, naming the job
+and step and giving the line, what it does not read: more than one test
+filter, `--skip` or `--ignored` on a library test command; a step-level
+`LIB_COHORTS`; a step-level `if` on a step that has a library test command
+(it does not evaluate step conditions); a filter containing `$` in any run
+text that is not exactly `COHORT_LOOP` (restore the script, or change the
+constant with it and say why in the pull request); `LIB_COHORTS` without that
+step, or that step without `LIB_COHORTS`; an anchor, alias or merge key
+anywhere in the jobs; a
+line it does not recognise (including a value on the next line), flow forms
+where it reads below, and value forms it does not read exactly.
+
+What it does not establish: that a selected test passes; anything about tests
+compiled only with a feature; anything about a reason's text beyond the ignored
+marker, such as the named feature step, web fixture, parent test or the full
+route's command. A test left to the full route runs on main nightly and on a
+product dispatch, not on the pull request that changes it. A module line covers
+the tests directly in that module that no filter selects, so a new submodule
+needs its own cohort or line, but a new direct test in an excluded module is
+covered without notice; and removing a filter that selected a direct test of an
+excluded module is absorbed the same way, with the check still passing.
+
+The file is refreshed after cohorts change by the command in its header, which
+removes lines that cover no test or name a selected test and adds none.
+
+## Records presence spelling
+
+The records store asks whether something is there through `records_inspect`, which
+keeps "not there" apart from "not known" and does not follow a link at the final
+entry (a link among the ancestors can still be followed).
+`tools/ci/check_records_presence.py`, run by `repository-checks` through
+`tools/ci/test_check_records_presence.py`, reads the raw text of every line of the
+records modules' files (`app/src-tauri/src/records*.rs`, leaving out only files
+named `*_tests.rs`) and finds each line that spells `exists`, `is_dir`, `is_file`
+or `is_symlink` as a whole word after a dot or `::`, with or without white space
+between: a method call, a path-qualified call (`Path::exists(path)`) or a function
+reference (`is_some_and(Path::is_dir)`) alike, whatever follows the name. It does
+not interpret the language: a spelling in code, a comment or a
+string is found alike. Each such line must be on the reviewed list
+`tools/ci/records_presence_list.yaml`, keyed by its file and the line's own text,
+with its kind and reason: `metadata`, `path` (which also says what its caller
+concludes when it cannot tell), `test`, `comment`, `string`, or `outside`. The check
+fails on a new such line and on a listed line no longer found. A kind only
+describes: every listed line takes part in the same accounting of exact text and
+number of copies, and no kind exempts a line or loosens the count.
+
+The check reads spelling, not meaning. It notices a new spelling, or one more copy
+of a listed one. It does not notice a change of meaning around a listed line whose
+text stays the same, such as a caller concluding something new from the same call:
+that is why each `path` entry carries its `cannot_tell`, and it is what a reviewer
+of a change near a listed line still has to read. The kinds `test`, `comment` and `string` are
+the reviewer's statement: the check does not verify them. It does not see
+a spelling whose dot or `::` and name are divided by a line boundary (any boundary
+Python's `splitlines` recognises, a form feed and U+2028 among them), `try_exists()`,
+an alias, a wrapper, a macro that does not spell the name, a `use` that renames, or
+a module outside `records*.rs` that reads the store. Files named
+`*_tests.rs` are left out by name; each such records file is compiled only under a
+test configuration (found by searching the crate for each file's name and reading
+the attribute or enclosing module of its one declaration). Its passing says only
+that no new such spelling appeared in its scope.
 
 ## Rust dependency cache
 

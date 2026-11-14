@@ -30,12 +30,14 @@ const elements=(c,tag)=>c.querySelectorAll(e=>e.localName===tag);
 const button=(c,label)=>elements(c,'button').find(e=>e.textContent===label);
 const labelled=(c,tag,label)=>elements(c,tag).find(e=>e.parentNode.textContent.startsWith(label));
 const conversation=c=>c.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0];
-const choice={model:'person-choice',modelProvider:'configured',entryId:'local-provider'};
+// The account home's one connection route (built-in OpenAI with the ChatGPT account); the model distinguishes a choice.
+const ROUTE='Use my ChatGPT account (built-in OpenAI)';
+const choice={model:'person-choice',route:true};
 const draft='Existing unsent text é / 家\n';
 
 async function mounted(options,check){
  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
- const calls=[],unexpected=[],timers=new Map(),actions=new Set();let timer=0,fail=false,resumed=false,active='account',starts=0,homes=0,selects=0,holdObserver=true,metadataReads=0;
+ const calls=[],unexpected=[],timers=new Map(),actions=new Set();let timer=0,fail=false,selectFailure=null,resumed=false,active='account',starts=0,homes=0,selects=0,holdObserver=true,metadataReads=0;
  const account={state:'ready',generation:g,threads:[thread('existing'),thread('other')],roleLimits:{account:{roles:[]}},nativeHistory:{state:'history-receiving',home:g.home,generation:g,selectionEpoch:0,threads:[{native:native()},{native:native('stored-other')}],dispatches:[]}};
  const keyHome={state:'ready',generation:{...g,home:'other-home'},threads:[],nativeHistory:{state:'history-receiving',home:'other-home',generation:{...g,home:'other-home'},selectionEpoch:0,selected:null,threads:[],dispatches:[]}};
  const snapshot=()=>structuredClone({...(active==='account'?account:keyHome),homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});
@@ -48,12 +50,13 @@ async function mounted(options,check){
   if(command==='native_confirmation_content')return [];
   if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
   if(command==='thread_start'){
-   assert.deepEqual(args,{...choice,modeHomeClass:'account',generation:g,role:null,preselected:false});
+   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:g,role:null,preselected:false});
    if(options.startError)throw options.startError;
    account.threads.push(thread('new-choice'));return {id:91,startGeneration:g,result:{thread:{id:'new-choice'}}};
   }
   if(command==='history_select'){
    assert.deepEqual(args,{generation:g,selectionEpoch:account.nativeHistory.selectionEpoch,threadId:args.threadId});
+   if(selectFailure){const failure=selectFailure;selectFailure=null;throw failure;}
    account.nativeHistory={...account.nativeHistory,selectionEpoch:account.nativeHistory.selectionEpoch+1,selected:{threadId:args.threadId,state:'indexed-read-only',resumeEligibilityCurrent:false,appRole:unknown}};return structuredClone(account.nativeHistory);
   }
   if(command==='history_action'){
@@ -79,13 +82,14 @@ async function mounted(options,check){
  const change=async(e,value)=>React.act(()=>{if(e===labelled(c,'select','Stored conversation '))selects++;track(props(e).onChange({target:{value}}));});
  const press=async label=>React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Start thread')starts++;if(label==='Use account home')homes++;track(props(e).onClick());});
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
- const edit=async values=>{for(const[name,value]of Object.entries(values)){const[tag,label]=name==='model'?['input','Model ']:name==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(labelled(c,tag,label),value);}};
- const values=()=>({model:props(labelled(c,'input','Model ')).value,modelProvider:props(labelled(c,'input','Configured Codex provider ')).value,entryId:props(labelled(c,'select','Access entry ')).value});
+ const routeChosen=()=>{const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+ const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
+ const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  const context=()=>conversation(c).querySelectorAll(e=>e.getAttribute('aria-label')==='Prior work in continued conversation')[0];
  try{
   await React.act(async()=>root.render(React.createElement(App)));await change(elements(conversation(c),'select')[0],key('existing'));await change(elements(conversation(c),'textarea')[0],draft);await edit(choice);
   await change(labelled(c,'select','Stored conversation '),'stored');for(let n=0;n<(options.metadataReads??1);n++)await press('Read metadata');assert.equal(selected(),key('existing'));assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,0);
-  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>elements(conversation(c),'select')[0],browser:()=>labelled(c,'select','Stored conversation ')});
+  await check({c,calls,account,selected,press,poll,change,edit,values,context,recover:()=>{fail=false;},failStatus:()=>{fail=true;},failSelect:failure=>{selectFailure=failure;},observeHome:async mode=>{active=mode;await poll();},track,chooser:()=>elements(conversation(c),'select')[0],browser:()=>labelled(c,'select','Stored conversation ')});
   assert.deepEqual(unexpected,[]);assert.equal(calls.filter(x=>x.command==='thread_start').length,starts,'only explicit Start presses');assert.equal(calls.filter(x=>x.command==='select_home').length,homes);assert.equal(calls.filter(x=>x.command==='history_select').length,selects);
   assert.equal(calls.filter(x=>x.command==='history_action'&&x.args.action==='continue').length,1,'one original explicit Continue, never a retry on read');
   assert.equal(props(elements(conversation(c),'textarea')[0]).value,draft,'Continue never clears or replaces the unsent draft');
@@ -156,9 +160,9 @@ test('newer successful Start and later chooser edits survive a delayed Continue'
  const commandGate=deferred();await mounted({commandGate},async ui=>{await ui.press('Continue selected conversation');await ui.press('Start thread');assert.equal(ui.selected(),key('new-choice'));await ui.edit({model:'newer-unsent-choice'});const newer=ui.values();await React.act(async()=>{commandGate.resolve();});assert.equal(ui.selected(),key('new-choice'));assert.deepEqual(ui.values(),newer);});
 });
 // No API-key switch is offered; the newer home is the observed retained legacy
-// home, whose chooser offers no access entry.
+// home, which offers no new-conversation choice.
 test('stale Continue observer cannot restore the original home over a newer observed home',async()=>{
- const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');await ui.edit({model:'new-key-choice',modelProvider:'configured'});const newer=ui.values();assert.equal(newer.entryId,'');await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Selected home: api-key\./);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
+ const observerGate=deferred();await mounted({observerGate},async ui=>{await ui.press('Continue selected conversation');await ui.observeHome('api-key');const newer=ui.values();assert.deepEqual(newer,{model:null,route:false});await React.act(async()=>{observerGate.resolve();});assert.match(ui.c.textContent,/Selected home: api-key\./);assert.notEqual(ui.selected(),key('stored'));assert.deepEqual(ui.values(),newer);});
 });
 // The first Continue observer has already captured its old admitted view.
 // A later normal poll renders supersession before that old response returns.
@@ -240,4 +244,24 @@ test('an admitted Continue shows the Conversation view with its message box focu
    assert.match(note.textContent,/written while another conversation was shown\. It is kept; if you send it now it goes to Conversation/);
   });
  }finally{proto.focus=previousFocus;proto.scrollIntoView=previousScroll;}
+});
+
+// A Continue refused (a reading sentence, or an ordinary refusal) whose view refresh then fails:
+// the refusal stands, then the fixed refresh line once; the raw refresh diagnostic is withheld.
+const {READING_GATE}=loadSrc('readingSentences');const {REFRESH_FAILED}=loadSrc('statusRefresh');
+for(const commandError of [READING_GATE,'original Continue refused before dispatch'])test(`a refused Continue then a failed refresh: its message, then the fixed line: ${commandError.slice(0,40)}`,async()=>{
+ await mounted({admit:false,failObserver:true,commandError},async ui=>{await ui.press('Continue selected conversation');assert.ok(ui.c.textContent.includes(`${commandError} ${REFRESH_FAILED}`),ui.c.textContent.slice(-800));assert.doesNotMatch(ui.c.textContent,/original Continue view unavailable/);ui.recover();});
+});
+
+// Selecting a stored conversation whose status refresh then fails: the selection's own error (if
+// any) stands, then the fixed refresh line once; the raw refresh diagnostic is never shown.
+for(const selectError of [null,'invented stored-conversation selection refusal'])test(`a stored-conversation selection then a failed refresh: ${selectError?'its error, then':'only'} the fixed line`,async()=>{
+ await mounted({},async ui=>{
+  await ui.press('Continue selected conversation');
+  ui.failStatus();if(selectError)ui.failSelect(selectError);
+  await ui.change(ui.browser(),'stored-other');
+  assert.ok(ui.c.textContent.includes(selectError?`${selectError} ${REFRESH_FAILED}`:REFRESH_FAILED),ui.c.textContent.slice(-600));
+  assert.doesNotMatch(ui.c.textContent,/original Continue view unavailable/);
+  ui.recover();
+ });
 });

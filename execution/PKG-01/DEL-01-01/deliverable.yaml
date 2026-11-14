@@ -39,6 +39,12 @@ code_paths:
 # native delivery. Recovery reads and stops are DEL-01-02's, delegation reads DEL-01-03's,
 # answer and handoff sends DEL-01-04's, account and provider carriage DEL-01-05's.
 - app/src-tauri/src/hosting.rs
+# The reading gate: configuration readings of one Codex generation are made one at a time.
+- app/src-tauri/src/hosting_reading_gate.rs
+- app/src-tauri/src/hosting_reading_gate_tests.rs
+# Its two sentences, held once in the web view and checked against the gate's constants.
+- app/src/readingSentences.ts
+- app/tests/reading-sentences.test.mjs
 - app/src-tauri/src/hosting_probe.rs
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/hosting_observation_facts.rs
@@ -48,6 +54,13 @@ code_paths:
 - app/src-tauri/src/hosting_s4_export.rs
 - app/src-tauri/src/hosting_terminal_export.rs
 - app/src-tauri/src/process_group_custody.rs
+# One App at a time on each Codex home: the process's held home inodes, shared with the saved
+# route's receiving source (DEL-01-05), taken where the Host starts its child.
+- app/src-tauri/src/home_hold.rs
+# App.tsx and DailyWorkspace.tsx are shared. Here: the connection status shows the host
+# status's last start refusal and its reason.
+- app/src/App.tsx
+- app/src/DailyWorkspace.tsx
 - app/src-tauri/src/installed_custody.rs
 - app/src-tauri/src/publisher_selection.rs
 - app/src-tauri/src/compiled_development_selection.rs
@@ -87,6 +100,8 @@ checks:
 - app/tests/process-group-custody.test.mjs
 - app/src-tauri/src/hosting_build_selection_tests.rs
 - app/src-tauri/src/hosting_startup_refusal_tests.rs
+- app/src-tauri/src/home_hold_tests.rs
+- app/src-tauri/src/hosting_recovery_reads_tests.rs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/tests/validate-records.test.mjs
 - app/packaging/static_distribution/test_s1_value_model.py

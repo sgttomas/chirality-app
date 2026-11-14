@@ -6,6 +6,8 @@
 //! webview only reads snapshots and asks the host to act.
 
 pub mod access;
+// A test build only (build.rs sets this cfg and refuses it with the release feature).
+#[cfg(chirality_scripted_driver)] mod scripted_driver;
 pub mod act_control;
 pub mod act_policy;
 pub mod attachments;
@@ -54,6 +56,8 @@ mod native_local_provider;
 mod dev_model_address;
 mod native_secure_entry;
 mod desktop_startup;
+mod home_hold;
+mod session_liveness;
 mod desktop_setup_confirmation;
 mod main_window;
 mod provider_endpoint_confirmation;
@@ -75,6 +79,7 @@ mod records_index;
 pub mod record_lines;
 pub mod records_store;
 pub mod records_export;
+pub(crate) mod records_inspect;
 use records_store::custody as records_package;
 pub mod records_retention;
 pub mod recovery;
@@ -89,6 +94,10 @@ pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
+#[cfg(test)]
+#[path = "placement_homes_tests.rs"]
+mod placement_homes_tests;
+#[cfg(test)] mod pinned_codex_observations;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_assurance;
 pub(crate) mod workflow_workspace;
@@ -385,8 +394,11 @@ fn provider_endpoint_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
-    endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch)
-        .map_err(|_| "Endpoint edit unavailable; private values and diagnostics withheld".into())
+    endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch).map_err(endpoint_offer_refusal)
+}
+/// What the endpoint offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
+pub(crate) fn endpoint_offer_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Endpoint edit unavailable; private values and diagnostics withheld".into())
 }
 fn endpoint_save_result(
     state: &AppState,
@@ -516,8 +528,16 @@ fn provider_create_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
-    create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch)
-        .map_err(|_| "Provider Add unavailable; private values and diagnostics withheld".into())
+    create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch).map_err(create_offer_refusal)
+}
+/// What the Add save command returns for a failure: either reading sentence as it is (the reading
+/// before the write was not sent and nothing was written), else its fixed sentence.
+pub(crate) fn create_save_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Provider Add unavailable; no automatic retry; private diagnostics withheld".into())
+}
+/// What the Add offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
+pub(crate) fn create_offer_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Provider Add unavailable; private values and diagnostics withheld".into())
 }
 #[tauri::command(async)]
 fn provider_create_save(
@@ -563,9 +583,7 @@ fn provider_create_save(
             .then(|| candidate.accept_checked_current_object()))
         },
     )
-    .map_err(|_| {
-        "Provider Add unavailable; no automatic retry; private diagnostics withheld".into()
-    })
+    .map_err(create_save_refusal)
 }
 fn endpoint_question_current(state: &AppState, epoch: &str, scope: &Value) -> Result<(), String> {
     if state
@@ -747,6 +765,9 @@ fn host_status(state: State<'_, AppState>) -> Value {
     if let Err(e) = &home.host_config {
         s["configurationProblem"] = json!(e);
     }
+    // The home this status is for, as `lastStartRefusal.home` names one: a
+    // refusal is shown only for the home being shown.
+    s["codexHome"] = home.host_config.as_ref().map_or(Value::Null, |cfg| json!(hosting::home_identity(&cfg.codex_home)));
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
@@ -805,6 +826,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
+    s["recordsStore"]["placementChoice"] = records_store::choice_view(state.app_user_data_root.lock().unwrap().as_deref().map_err(Clone::clone), tauri::is_dev());
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
@@ -820,6 +842,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
         .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null);
 
+    s["codexSessionSettings"] = home.host_config.as_ref().ok().map(|cfg|hosting::applied_session_settings(&cfg.session_flags)).unwrap_or(Value::Null);
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
@@ -959,6 +982,22 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
 #[tauri::command(async)]
 fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing changed")?;
+    // Giving the folder another identity while this session still has records
+    // waiting for the one it had would write them into the wrong history:
+    // refused, saying what waits. Restoring the link is what lets them be
+    // written, so it is never refused for this.
+    let (_links, _workflows, _acts);
+    if matches!(action.as_str(), "adopt" | "new-identity") {
+        let waiting = |what: &str| format!("{what} for the project this folder was recorded for is still waiting to be written. Restore the project file so it can be recorded, then try again; nothing changed");
+        let links = state.native_links.try_lock().map_err(|_| "a record of a related conversation is being written; try again in a moment. Nothing changed")?;
+        if links.has_pending() { return Err(waiting("A record of a related conversation")); }
+        let workflows = state.workflows.try_lock().map_err(|_| "a workflow operation is in progress; try again when it has finished. Nothing changed")?;
+        workflows.retention_ready().map_err(|e| format!("{e}. End the run, or restore the project file so its records can be written, then try again; nothing changed"))?;
+        let acts = state.act.try_lock().map_err(|_| "an act is being recorded; try again in a moment. Nothing changed")?;
+        if acts.as_ref().is_some_and(|a| !a.writer_ready()) { return Err(waiting("A captured act")); }
+        // Held until the association has changed.
+        (_links, _workflows, _acts) = (Some(links), Some(workflows), Some(acts));
+    }
     match action.as_str() {
         "adopt" => records_store::adopt(project),
         "new-identity" => records_store::new_identity(project),
@@ -966,25 +1005,87 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
         _ => Err("unknown records store identity action; nothing changed".into()),
     }
 }
-/// RS §13.8 "Placement": the person chooses where the records store is kept
-/// (another volume, for example), from the next start.
+/// RS §13.8 "Placement": the person picks and confirms the next-start
+/// location in native dialogs. The web view supplies only choose/default.
 #[tauri::command(async)]
-fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<Value, String> {
+fn records_store_choose(app: tauri::AppHandle, state: State<'_, AppState>, action: String) -> Result<Value, String> {
+    use act_control::native_statement as ns;
+    if tauri::is_dev() {
+        return Err(format!("this run was started for development and keeps its records only where {} names; a chosen location is read by a built App", records_store::OVERRIDE_ENV));
+    }
+    if action != "choose" && action != "default" {
+        return Err("unknown records store location action".into());
+    }
     let data = state.app_user_data_root.lock().unwrap().clone()?;
     let homes = state.homes.lock().unwrap();
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
-    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter()))
+    let location = if action == "choose" {
+        let Some(picked) = workflow_native_folder(&app, "Choose a folder for the App's records")? else {
+            return Ok(json!({"state":"choice cancelled"}));
+        };
+        Some(records_store::location_for_choice(&picked)?)
+    } else { None };
+    records_store::confirm_placement(&data, location.as_deref(), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), |text, dont, perform| {
+        let mut refused = None;
+        let statement = ns::bounded("records store location", text).map(|text| ns::NativeStatement { text, in_app: None });
+        let yes = confirm_choice(&app, "Records store location", statement, dont, perform, &mut refused);
+        refused.map_or(Ok(yes), Err)
+    })
 }
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
-fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
-    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [cfg.codex_home.clone(), cfg.probe_home.clone()]).collect();
-    homes.extend(["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
+/// The Codex homes the records store must stay out of, on two separate
+/// paths so that the second can never discard the first's protection.
+/// - STRICT: every home the App uses or plans, made absolute where its child
+///   resolves it: each configured supplier home under `cfg.cwd`, each probe
+///   home in its own folder (an empty configured home is kept empty, and
+///   placement refuses it by name as an invalid input), and the local
+///   provider's home (`runtime_session::local_provider_home`), before any
+///   host configuration exists for it. (The folder where the App allocates
+///   its account homes is reserved by placement itself, from the App data
+///   folder: `desktop_startup::desktop_account_homes`.)
+/// - RAW, a compatibility rule: for raw environment inputs, the legacy
+///   comparison's result is retained. A result left relative could not
+///   overlap the absolute store accepted by either entrypoint, so it is not
+///   given to placement (whose own rule would otherwise make it absolute
+///   against the App's folder and refuse a location no Codex home occupies).
+///   This is not an inference that such a home is absent, and it is no rule
+///   for homes the App uses or plans. No child resolves a raw value under
+///   its own working folder: CHIRALITY_CODEX_HOME is the configured home
+///   itself; every Codex child is given CODEX_HOME explicitly; a relative
+///   CHIRALITY_KEY_HOME is refused at admission (`environment_path_refusal`). (An
+///   earlier version said raw values were compared "exactly as before"
+///   while making them absolute; the second reading showed that wrong.)
+fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
+    codex_homes_from(configs, app_data, |key| std::env::var_os(key))
+}
+fn codex_homes_from<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>, input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    let mut homes = strict_codex_homes(configs, app_data);
+    homes.extend(raw_codex_home_inputs(input));
     homes.sort();
     homes.dedup();
     homes
+}
+/// Every Codex home the App uses or plans, made absolute where its child
+/// resolves it; one that cannot be made absolute is left relative, and
+/// placement refuses it.
+fn strict_codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
+    let absolute = |path: PathBuf| std::path::absolute(&path).unwrap_or(path);
+    let used = |cwd: &std::path::Path, home: &std::path::Path| if home.as_os_str().is_empty() { PathBuf::new() } else { absolute(cwd.join(home)) };
+    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [used(&cfg.cwd, &cfg.codex_home), used(&cfg.probe_home, &cfg.probe_home)]).collect();
+    homes.extend(app_data.map(|data| absolute(runtime_session::local_provider_home(data))));
+    homes
+}
+/// The raw environment inputs, by the compatibility rule above: the legacy
+/// comparison's result, kept where it is absolute.
+fn raw_codex_home_inputs(input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter()
+        .filter_map(|key| input(key).filter(|v| !v.is_empty()).map(PathBuf::from))
+        .map(|raw| records_store::resolve_lexically(&raw))
+        .filter(|resolved| resolved.is_absolute())
+        .collect()
 }
 
 #[tauri::command(async)]
@@ -1234,10 +1335,30 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
     bootstrap.validate_binding(home.class(),&config)?;Ok(config)})?;
     let _=config;
     let generation=home.host.snapshot()["generation"].clone();
-    runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app))
+    runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app)).map_err(key_entry_refusal)
+}
+/// Known when the key entry's configuration reading is refused: the separate key home is set up,
+/// and the reading comes before the secure key field opens, so no key was sent or saved.
+pub(crate) const KEY_HOME_READY: &str = "The separate key home is set up; the key field was not opened, so no key was sent or saved. ";
+/// What `add_api_key` returns for a failure: either reading sentence after what is already known,
+/// otherwise the failure as before.
+pub(crate) fn key_entry_refusal(error: String) -> String {
+    if hosting::reading_gate::reading_sentence(&error) { format!("{KEY_HOME_READY}{error}") } else { error }
 }
 
-/// Explicit local-provider setup; no endpoint/model/key argument and no account resource links.
+/// The local home's namespace preflight, before its directory is created or prepared.
+fn local_home_preflight(state: &AppState, bootstrap: &runtime_session::HomeBootstrapSet) -> Result<(Arc<runtime_session::HomeSession>, Arc<hosting::attachment_custody::AttachmentCustody>), String> {
+    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+    state.validate_home_source(&account)?;
+    // The prospective local directory is already in the actual Root namespace set.
+    let namespaces=bootstrap.native_namespaces(state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey).is_ok())?;
+    account.host.app_runtime_custody()?.preflight_native_namespaces(&namespaces)?;
+    let attachment=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.clone();
+    attachment.preflight_binding(&namespaces)?;
+    Ok((account,attachment))
+}
+/// Explicit local-provider setup with the local model settings the person saved; no
+/// endpoint/model/key argument and no account resource links. Never writes defaults.
 #[tauri::command(async)]
 fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
     if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
@@ -1246,17 +1367,14 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
     provider_endpoint_confirmation::recheck_original(&window)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     let plan=bootstrap.local_plan()?;
-    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
-    state.validate_home_source(&account)?;
-    // The prospective local directory is already in the actual Root namespace set.
+    if native_local_provider::stored(plan)?.is_none() { return Err(native_local_provider::UNSET.into()); }
     let data=state.app_user_data_root.lock().unwrap().clone()?;
-    let namespaces=bootstrap.native_namespaces(state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey).is_ok())?;
-    account.host.app_runtime_custody()?.preflight_native_namespaces(&namespaces)?;
-    let attachment=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.clone();
-    attachment.preflight_binding(&namespaces)?;
-    native_local_provider::prepare(plan)?;
+    let (account,attachment)=local_home_preflight(&state,&bootstrap)?;
+    let settings=native_local_provider::prepare(plan)?;
     bootstrap.revalidate()?;
     let home=match state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider) { Ok(home)=>Some(home),Err(_)=>None };
+    // Settings saved after this session bound the home take effect only after the App is reopened.
+    if home.as_ref().is_some_and(|home| home.host.local_superseded() || home.host.local_settings().ok().as_ref()!=Some(&settings)) { return Err(native_local_provider::RELAUNCH.into()); }
     let home=if let Some(home)=home { home } else {
         let config=native_local_provider::config(account.host_config.as_ref().map_err(Clone::clone)?,plan)?;
         let host=Arc::new(Host::new_with_app_custody(account.host.app_runtime_custody()?)?);
@@ -1287,7 +1405,42 @@ fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state
     let field_home=home.clone(); let field_generation=generation.clone(); let field_window=window.clone();
     native_local_provider::submit(&home,bootstrap.local_plan()?,&generation,&state.local_credentials,
         || provider_endpoint_confirmation::recheck_original(&window),
-        || native_secure_entry::local(&app,field_window,move || field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+        |address| native_secure_entry::local(&app,field_window,address,move || !field_home.host.local_superseded() && field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+}
+
+/// The local model settings: the App-owned file and the settings in force for this session.
+/// Reads only the dedicated local home's config.toml; starts nothing; never a key.
+#[tauri::command(async)]
+fn local_model_settings_read(state: State<'_, AppState>) -> Value {
+    let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
+    let in_force=home.as_ref().and_then(|home| home.host.local_settings().ok());
+    let superseded=home.as_ref().is_some_and(|home| home.host.local_superseded());
+    let reading=state.home_bootstrap.lock().unwrap().clone().and_then(|bootstrap| native_local_provider::read(bootstrap.local_plan()?));
+    native_local_provider::settings_view(reading,in_force.as_ref(),superseded)
+}
+/// Saves the server address and model name after one native confirmation in the invoking
+/// window. Never takes a key. An address change first has Codex sign out of the saved key.
+#[tauri::command(async)]
+fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, endpoint: String, model: String) -> Result<Value, String> {
+    if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
+    let proposed=native_local_provider::LocalSettings::new(&endpoint,&model)?;
+    let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
+    if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
+    provider_endpoint_confirmation::recheck_original(&window)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
+    let plan=bootstrap.local_plan()?;
+    let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
+    if let Some(home)=&home {
+        state.validate_home_source(home)?;
+        native_local_provider::check_no_key_entry_before_address_change(plan,&proposed,&home.host.snapshot()["generation"],&state.local_credentials)?;
+    }
+    // A first save creates the home directory: the same namespace preflight as preparation.
+    if native_local_provider::stored(plan)?.is_none() { local_home_preflight(&state,&bootstrap)?; }
+    let saved=native_local_provider::save(plan,proposed,home.as_deref(),
+        || { if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.to_owned()); } provider_endpoint_confirmation::recheck_original(&window) },
+        |statement,action| native_local_provider::confirm_native(&window,statement,action))?;
+    if saved["outcome"]=="saved" { bootstrap.revalidate()?; }
+    Ok(saved)
 }
 
 #[tauri::command(async)]
@@ -1297,11 +1450,13 @@ fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Valu
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
+    // Whatever refuses this request, an earlier refusal is no longer the latest.
+    home.host.begin_start_request();
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App quit is under way; Codex was not started".into()); }
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; native_local_provider::require_no_admin_layers()?; }
+    if home.class()==home_resources::HomeClass::LocalProvider { if home.host.local_superseded() { return Err(native_local_provider::RELAUNCH.into()); } home.host.check_local_home()?; native_local_provider::require_no_admin_layers()?; }
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
         &home.host,
@@ -1604,10 +1759,16 @@ fn start_conversation(
             let mut history=runtime_session::HistorySession::default();history.configure_role_log_source(state.role_log.clone());
             let publication=history.role_refused_continuing(&supply_ref,&generation,role,preselected,reason,true,resolved_continued_from);
             if let Ok(home)=home{home.role_supply_status.lock().unwrap()["roleSupplyRecord"]=publication.clone();}
-            return Err(format!("{reason}; role supply observation: {publication}"));
+            return Err(role_supply_refusal(reason, &publication));
         }
     }
     result
+}
+/// What a start or fork refused before dispatch returns. Either reading sentence is returned alone:
+/// the refusal is still recorded in role supply, and nothing else is shown with the sentence.
+/// Any other reason keeps its role supply observation.
+pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Display) -> String {
+    if hosting::reading_gate::carries_reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
 }
 #[allow(clippy::too_many_arguments)]
 fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
@@ -1621,8 +1782,8 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         .as_ref()
         .map_err(Clone::clone)?
         .cwd.to_str().ok_or("Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent")?.to_owned();
-    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>native_local_provider::fixed_selection(&entry_id,&model_provider,&model).is_ok(),home_resources::HomeClass::Probe=>false };
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; }
+    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>home.host.local_settings().is_ok_and(|settings|native_local_provider::fixed_selection(&settings,&entry_id,&model_provider,&model).is_ok()),home_resources::HomeClass::Probe=>false };
+    if home.class()==home_resources::HomeClass::LocalProvider { home.host.check_local_home()?; }
     if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
     if let Ok(set) = &*state.home_bootstrap.lock().unwrap() { set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?; }
     else if home.class()==home_resources::HomeClass::ApiKey {return Err("Explicit key source binding is unavailable".into());}
@@ -1788,11 +1949,14 @@ fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync
     ordinary_send_text_effort(home, workflows, generation, thread, text, mode, model, None)
 }
 fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
-    if home.class()==home_resources::HomeClass::LocalProvider {
-        if model.is_some_and(|m| m != native_local_provider::MODEL) { return Err(native_local_provider::LIMIT.into()); }
+    let local_model=if home.class()==home_resources::HomeClass::LocalProvider {
+        let settings=home.host.local_settings()?;
+        // A model other than the one in force names a conversation started under earlier settings.
+        if model.is_some_and(|m| m != settings.model()) { return Err(native_local_provider::EARLIER.into()); }
         home.host.require_canonical_167(generation)?;
-    }
-    let model=if home.class()==home_resources::HomeClass::LocalProvider { Some(native_local_provider::MODEL) } else { model };
+        Some(settings.model().to_owned())
+    } else { None };
+    let model=if local_model.is_some() { local_model.as_deref() } else { model };
     // TC-2: one original ordered notice/person frame, with the same mode/model.
     if let Some(sent) = runtime_session::send_with_pending_notice_effort_observed(workflows, generation, thread, text, mode, model, effort, &mut |_| {}) {
         return sent.result;
@@ -2721,13 +2885,117 @@ fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_
 #[tauri::command(async)]
 fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
+/// The environment route's App data directory, named explicitly, for
+/// development runs only. Without it the route uses the App's own data
+/// directory for its identifier, which every development run that keeps the
+/// committed identifier shares; one App at a time holds an App data
+/// directory, so parallel development runs each name their own.
+///
+/// Read only when `tauri::is_dev()` is true, as the records-store override
+/// is. A built App does not read it: it neither selects the environment
+/// route nor moves the App's data, so nothing inherited from the environment
+/// can point an installed App at other data.
+pub(crate) const APP_DATA_ENV: &str = "CHIRALITY_APP_DATA";
+/// Any of these selects the environment route; its inputs are then exclusive.
+const ENVIRONMENT_KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR", APP_DATA_ENV];
+fn environment_selected(input: impl Fn(&str)->Option<std::ffi::OsString>) -> bool {
+    ENVIRONMENT_KEYS.iter().any(|key|input(key).is_some())
+}
+/// The startup inputs as this build reads them: a build that is not a
+/// development run does not see [`APP_DATA_ENV`] at all.
+fn build_input<'a>(input: &'a impl Fn(&str)->Option<std::ffi::OsString>, is_dev: bool) -> impl Fn(&str)->Option<std::ffi::OsString> + 'a {
+    move |key| if key == APP_DATA_ENV && !is_dev { None } else { input(key) }
+}
+/// The startup admission `run` performs before any operational consumer:
+/// the App data directory (named by [`APP_DATA_ENV`] or the platform's), the
+/// launch route, and one App at a time on that data on either route. On the
+/// environment route App data must resolve and be held before any of its
+/// launch inputs is built (its probe home included); otherwise nothing
+/// operational starts and the actual reason is shown.
+pub(crate) fn admitted_startup(
+    input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
+    probe: impl Fn()->Result<PathBuf,String>,
+) -> (desktop_startup::DesktopSetup, desktop_startup::RootInputs) {
+    let input = build_input(&input, is_dev);
+    let data = environment_app_data(&input).unwrap_or(platform_data);
+    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
+    if environment_selected(&input) {
+        if let Err(reason) = data.as_ref().map_err(Clone::clone).and_then(|data| desktop.hold_environment_data(data)) {
+            let inputs = desktop.refuse_environment(&reason);
+            return (desktop, inputs);
+        }
+    }
+    let environment = explicit_environment_launch(&input, &data, &resources, is_dev, &probe);
+    let launch = desktop.resolve(environment, is_dev, &probe);
+    let inputs = desktop.admit_root(launch, data);
+    (desktop, inputs)
+}
+/// This process's exclusive hold on an App data directory, taken through the
+/// App's own lease and its registration (as both launch routes take it).
+#[doc(hidden)]
+pub struct AppDataCustody(#[allow(dead_code)] desktop_startup::DesktopSetup);
+/// Test fixtures that model an App relaunch on a ledger take App data custody
+/// of their fixture root as the App does, so that a session is started only
+/// under it. The root is created if missing and named by its canonical path
+/// (the lease refuses a path through a link). Not a bypass: the same lease and
+/// registration the App takes at launch.
+#[doc(hidden)]
+pub fn hold_app_data_for_test(data: &std::path::Path) -> Result<AppDataCustody, String> {
+    std::fs::create_dir_all(data).map_err(|e| e.to_string())?;
+    let data = data.canonicalize().map_err(|e| e.to_string())?;
+    let mut setup = desktop_startup::DesktopSetup::new(Ok(data.clone()), Err("no resources for an App data hold".into()));
+    setup.hold_environment_data(&data)?;
+    Ok(AppDataCustody(setup))
+}
+/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`
+/// components, by the same check as the environment route's other paths
+/// ([`environment_path_problem`]). Set and empty is refused by name, never
+/// read as unset: an empty value selects the environment route, and read as
+/// unset it would hold the platform App data folder unannounced.
+fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Option<Result<PathBuf,String>> {
+    let value = input(APP_DATA_ENV)?;
+    Some(match environment_path_problem(APP_DATA_ENV, &value) {
+        Some(problem) => Err(problem),
+        None => Ok(PathBuf::from(value)),
+    })
+}
+
+/// The paths the environment route takes from the environment: each one
+/// supplied, empty included, must be an absolute path with no `.` or `..`
+/// component, CHIRALITY_APP_DATA's own rule. An absent name is not supplied,
+/// as before. The inherited CODEX_HOME is not a launch input and is not read.
+const ENVIRONMENT_PATHS: [&str; 5] = ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"];
+/// Why an environment-supplied path is refused, by name; the value is never
+/// echoed. Components are read from the value as given: `Path::components`
+/// drops a `.` inside a path, which would let `/a/./b` through.
+fn environment_path_problem(name: &str, value: &std::ffi::OsStr) -> Option<String> {
+    if value.is_empty() {
+        return Some(format!("{name} is empty: it must be an absolute path without . or .. components"));
+    }
+    let dotted = value.as_encoded_bytes().split(|byte| *byte == b'/').any(|part| part == b"." || part == b"..");
+    (!std::path::Path::new(value).is_absolute() || dotted).then(|| format!("{name} must be an absolute path without . or .. components"))
+}
+/// Every refused environment path, in [`ENVIRONMENT_PATHS`] order, as one reason.
+fn environment_path_refusal(input: &impl Fn(&str)->Option<std::ffi::OsString>) -> Option<String> {
+    let problems: Vec<String> = ENVIRONMENT_PATHS.iter().filter_map(|name| input(name).and_then(|value| environment_path_problem(name, &value))).collect();
+    (!problems.is_empty()).then(|| problems.join("; "))
+}
+
 fn explicit_environment_launch(
     input: impl Fn(&str)->Option<std::ffi::OsString>, data: &Result<PathBuf,String>, resources: &Result<PathBuf,String>, is_dev: bool,
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
-    const KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR"];
-    if !KEYS.iter().any(|key|input(key).is_some()) { return None; }
+    if !environment_selected(&input) { return None; }
     let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // Refused at admission, on both branches, before any configuration is
+    // built or the probe home allocated. The key and shared values are carried
+    // as received, never read as not supplied; nothing reads them while the
+    // configuration is refused.
+    if let Some(reason) = environment_path_refusal(&input) {
+        let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+        let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
+        return Some(desktop_startup::Launch::environment(workspace, Err(reason), key, shared));
+    }
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
         host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
@@ -2749,6 +3017,19 @@ fn explicit_environment_launch(
     Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
 }
 
+/// The launch's automatic start of Codex (HOSTING §4.6, actor `app-startup`),
+/// as `run` performs it on either route: the App ledger is configured, then
+/// this App's custody is rechecked, then the Host starts.
+pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, cfg: &HostConfig, desktop: &Mutex<desktop_startup::DesktopSetup>) -> Result<Value, String> {
+    runtime_session::start_with_recovery(host, recovery, data, Some(&cfg.codex_home), || {
+        // A refusal before Host::start is kept as the host status's last
+        // start refusal too (Host::start keeps its own home refusals).
+        host.begin_start_request();
+        let admitted = desktop.lock().map_err(|_|"Desktop custody unavailable".to_string()).and_then(|desktop|desktop.recheck_active());
+        if let Err(reason) = admitted { host.note_start_refusal("app-startup", &cfg.codex_home, &reason); return Err(reason); }
+        host.start(cfg, "app-startup")
+    })
+}
 fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
     let desktop_startup::Launch { workspace, host_config, key_path, shared_paths, bootstrap, namespaces, source } = launch;
     let source = if source == "explicit environment (exclusive)" { "explicit Root native environment path inputs" } else { source };
@@ -2803,11 +3084,23 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     // recording visibly, with no fallback. Opening the project gives it
     // its identity once (`.chirality/project.json`).
     {
-        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
+        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
 
         records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        // The store is created here, once, when the App starts: no reader
+        // creates it (a read writes nothing). A failure is shown by the
+        // store's status and refuses recording; there is no fallback.
+        if allow_operational && records_store::current().is_ok() {
+            if let Err(e) = records_store::create_at_startup() { eprintln!("chirality: the records store was not opened at startup: {e}"); }
+        }
         if let Some(ws) = workspace.as_ref() {
             if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
+        }
+        // Once, under the store lock: fragments in the store's own line files
+        // are closed and named (an append never changes earlier bytes' meaning).
+        match records_store::recover_at_startup() {
+            Ok(left) => for note in left { eprintln!("chirality: records store line file left as it is: {note}"); },
+            Err(e) => eprintln!("chirality: records store line files not examined at startup: {e}"),
         }
     }
     // AAC §6.3 SEAL-C: install the App-owned location; the gated signed
@@ -2891,8 +3184,14 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// The scripted driver's page-load hook in a test build; in every other build, the builder unchanged.
+#[cfg(chirality_scripted_driver)]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { scripted_driver::install(builder) }
+#[cfg(not(chirality_scripted_driver))]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { builder }
+
 pub fn run() {
-    tauri::Builder::default()
+    with_scripted_driver(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
         .on_menu_event(|app, event| {
@@ -2912,12 +3211,8 @@ pub fn run() {
             let _ = window.minimize();
         })
         .setup(move |app| {
-    let data = app.path().app_data_dir().map_err(|e| e.to_string());
     let resources = app.path().resource_dir().map_err(|e|e.to_string());
-    let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
-    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
-    let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
-    let desktop_startup::RootInputs { mut launch, data, allow_operational } = desktop.admit_root(launch, data);
+    let (desktop, desktop_startup::RootInputs { mut launch, data, allow_operational }) = admitted_startup(|key|std::env::var_os(key), app.path().app_data_dir().map_err(|e| e.to_string()), resources.clone(), tauri::is_dev(), probe_home);
     // DEL-01-05: a development build can be held to a same-machine model address.
     // Not consulted in the release configuration.
     launch.host_config = dev_model_address::apply(launch.host_config, development_inputs_admitted(tauri::is_dev()), |key|std::env::var_os(key));
@@ -2990,13 +3285,7 @@ pub fn run() {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
                 std::thread::spawn(move || {
-                    let _ = runtime_session::start_with_recovery(
-                        &h,
-                        &recovery,
-                        data.as_deref().map_err(String::as_str),
-                        Some(&cfg.codex_home),
-                        || { desktop.lock().map_err(|_|"Desktop custody unavailable")?.recheck_active()?; h.start(&cfg, "app-startup") },
-                    );
+                    let _ = automatic_start(&h, &recovery, data.as_deref().map_err(String::as_str), &cfg, &desktop);
                 });
             }
             Ok(())
@@ -3025,6 +3314,8 @@ pub fn run() {
             add_api_key,
             prepare_local_provider,
             submit_local_provider_key,
+            local_model_settings_read,
+            local_model_settings_save,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,
             host_observe,

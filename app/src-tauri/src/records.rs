@@ -404,6 +404,38 @@ pub(crate) fn note_project_late_write(
     Ok(())
 }
 
+/// Read-only recognition shared by write authority, recovery and submission.
+/// Returns the original act facts, without a later record backlink. Recognition
+/// establishes neither native custody nor authority to replay a cold capture.
+pub(crate) fn recognise_capture_submission(pending: &Value, target_log: &str) -> Result<Value, String> {
+    let mut capture = pending["capture"].clone();
+    crate::schema_validation::validate_capture(&capture)?;
+    let id = pending["recordId"].as_str().filter(|id| !id.is_empty()).ok_or("pending record identity absent")?;
+    if capture.get("recordId").is_some_and(|backlink| backlink != id) {
+        return Err("pending capture/record identity disagreement; no replay".into());
+    }
+    capture.as_object_mut().unwrap().remove("recordId");
+    // The old §13.7 spelling names the same file after an import.
+    if pending["log"].as_str().filter(|log| !log.is_empty()).map(crate::storage::home_rel)
+        != Some(crate::storage::home_rel(target_log)) {
+        return Err("pending capture/owning log disagreement; no replay".into());
+    }
+    let observed = pending["observedAt"].as_str().filter(|time| !time.is_empty()).ok_or("pending original observedAt absent")?;
+    if pending["observedAt"] != capture["capturedAt"] {
+        return Err("pending observation time disagrees with original capture; no replay".into());
+    }
+    if !pending["delayed"].is_boolean() {
+        return Err("pending capture delay state absent".into());
+    }
+    // Reuse the writer's RS schema for the reserved identity and projection;
+    // do not introduce another identity or time format for pending wrappers.
+    crate::schema_validation::bundled()?.validate(&envelope(
+        capture_record_kind(&capture)?, &APP_INTERFACE, crate::act_control::act_body(&capture),
+        id.into(), 1, file_capture_run(&capture), Some(observed),
+    ))?;
+    Ok(capture)
+}
+
 /// Writer owns reservation; this is called only after actual capture publication is durable.
 pub(crate) fn prepare_capture_submission(
     root: &Path,
@@ -464,6 +496,7 @@ pub(crate) fn append_capture_submission(
     pending: &Value,
     body: Value,
 ) -> Result<Value, String> {
+    recognise_capture_submission(pending, &crate::act_control::ActControl::capture_submission_log(&pending["capture"]))?;
     if body != crate::act_control::act_body(&pending["capture"]) {
         return Err("Record body differs from original capture projection".into());
     }
@@ -636,9 +669,8 @@ pub(crate) fn library_record_set(library: &Path) -> (Vec<Value>, Vec<String>) {
     if let Err(e) = crate::storage::check_path(&log) {
         return (vec![], vec![e]);
     }
-    if !log.exists() {
-        return (vec![], vec![]);
-    }
+    // Only a log that is not there holds no acts (read_log_parts' rule); one
+    // that cannot be examined is a limit, never an empty and complete set.
     let read = read_log_parts(&log);
     let mut limits = read.limits;
     let mut ids = std::collections::HashSet::new();

@@ -235,9 +235,15 @@ pub(crate) fn require_complete(dir: &Path) -> Result<(), String> {
     }
     Ok(())
 }
+/// Whether a package import into `dir` has completed; `Err` when that cannot
+/// be known (an incomplete, uncertain or unreadable package import state).
+pub(crate) fn completed(dir: &Path) -> Result<bool, String> {
+    require_complete(dir)?;
+    Ok(entries(dir)?.iter().any(|e| e.done.is_some()))
+}
+#[cfg(test)]
 pub(crate) fn complete_exists(dir: &Path) -> bool {
-    require_complete(dir).is_ok()
-        && entries(dir).is_ok_and(|rows| rows.iter().any(|e| e.done.is_some()))
+    completed(dir).unwrap_or(false)
 }
 pub(crate) fn provenance_context(dir: &Path) -> Result<Value, String> {
     require_complete(dir)?;
@@ -290,15 +296,12 @@ pub(crate) fn quoted_prefix(dir: &Path, relative: &str, bytes: &[u8]) -> Result<
 }
 pub(crate) fn status(root: &Path) -> Value {
     let result = (|| -> Result<Value, String> {
-        let (store, _) = opened()?;
-        let project = match identity::resolve_root(root)? {
-            Some(intent) => intent.project,
-            None => match read_link(root) {
-                Link::Present { project, .. } => project,
-                _ => return Ok(json!({"state":"none","identity":identity::context(root)})),
-            },
+        // This folder's own package state, by the same selection recovery
+        // uses: a project file that names another project does not bring
+        // that project's unfinished import (at its own folder) here.
+        let Some((_, _, dir)) = selected_project(root)? else {
+            return Ok(json!({"state":"none","identity":identity::context(root)}));
         };
-        let dir = project_dir(&store, &project);
         let rows = entries(&dir)?;
         let uncertain_id = UNCERTAIN
             .lock()
@@ -313,8 +316,12 @@ pub(crate) fn status(root: &Path) -> Value {
                     .find(|e| Some(&e.intent.id) == uncertain_id.as_ref())
             });
         if let Some(e) = row {
+            // Finish is offered only where its preparation's own checks of
+            // folder and link can hold now; otherwise the reason is said.
+            let finish = resume_blocked(root, &e.intent);
             return Ok(
-                json!({"state":"incomplete","importId":e.intent.id,"packageIdentity":e.intent.package_identity,"limit":"Ordinary reads and recording are fenced until this same import finishes."}),
+                json!({"state":"incomplete","importId":e.intent.id,"packageIdentity":e.intent.package_identity,"limit":"Ordinary reads and recording are fenced until this same import finishes.",
+                    "canFinish":finish.is_none(),"finishReason":finish}),
             );
         }
         Ok(json!({"state":if rows.is_empty(){"none"}else{"complete"}}))
@@ -415,54 +422,167 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
     if owns(dir) {
         return Ok(());
     }
-    let Some(root) = root_for_dir(dir) else {
-        return Ok(());
-    };
     let store = dir
         .parent()
         .and_then(Path::parent)
         .ok_or("project store absent")?;
+    // While the roots registry's last line is unread, no binding read from
+    // its complete lines is written through (records_store::REGISTRY_TORN).
+    require_roots_whole(store)?;
+    let Some(root) = root_for_dir(dir) else {
+        return Ok(());
+    };
     let here = listed(
         &roots(store)?,
         root.to_str().ok_or("project root is not UTF-8")?,
     );
-    if here.len() != 1
-        || project_dir(store, &here[0]) != dir
-        || !matches!(read_link(&root), Link::Present { .. })
-    {
-        return Err("project root association changed; stale queued write refused".into());
+    const STALE: &str = "project root association changed; stale queued write refused";
+    if here.len() != 1 || project_dir(store, &here[0]) != dir {
+        return Err(format!(
+            "{STALE}: the records store records {} for {}, not this folder's project",
+            if here.is_empty() { "no project".to_owned() } else { here.join(", ") },
+            root.display()
+        ));
+    }
+    // The link must agree with the store on both identities, as attach
+    // requires. The store's identity is taken as attach takes it: store.json
+    // read as a records store identity and equal to the identity this process
+    // opened for this store. Anything else refuses, as attach refuses.
+    let store_id = {
+        let bytes = retention::read_plain(&store.join("store.json"))
+            .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
+        let v: Value = serde_json::from_slice(&bytes)
+            .map_err(|e| format!("{STALE}: this store's identity is unreadable: {e}"))?;
+        if v["format"] != STORE_FORMAT {
+            return Err(format!("{STALE}: store.json is not a records store identity"));
+        }
+        let id = v["storeId"]
+            .as_str()
+            .map(str::to_owned)
+            .ok_or_else(|| format!("{STALE}: this store's identity names none"))?;
+        // The store attach opens, with the identity it holds for it.
+        let (opened_root, known) = opened().map_err(|e| format!("{STALE}: {e}"))?;
+        if opened_root != store {
+            return Err(format!("{STALE}: the records store at {} is not the one the App has open ({})", store.display(), opened_root.display()));
+        }
+        if known != id {
+            return Err(format!("{STALE}: this store's identity changed since the App opened it ({known}, now {id}); no silent reassociation"));
+        }
+        id
+    };
+    match read_link(&root) {
+        Link::Present { project, store: linked } if project == here[0] && linked == store_id => Ok(()),
+        Link::Present { project, .. } if project != here[0] => Err(format!(
+            "{STALE}: project file {PROJECT_LINK} names project {project}, and the records store records project {} at {}",
+            here[0],
+            root.display()
+        )),
+        Link::Present { store: linked, .. } => Err(format!(
+            "{STALE}: project file {PROJECT_LINK} names another records store ({linked}), not this one ({store_id})"
+        )),
+        Link::Absent => Err(format!("{STALE}: project file {PROJECT_LINK} is missing at {}", root.display())),
+        Link::Unreadable(e) => Err(format!("{STALE}: project file {PROJECT_LINK} is unreadable ({e})")),
+    }
+}
+
+/// Whether the registry's current `bytes` lie within the frozen registry write
+/// of an active original package import that has not finished it: from its
+/// frozen original prefix up to, not including, its whole frozen bytes. While
+/// they do, only that import's own recovery writes to the registry.
+pub(crate) fn roots_write_pending(store: &Path, bytes: &[u8]) -> Result<bool, String> {
+    let within = |i: &Intent| {
+        bytes.len() >= i.roots_original.len()
+            && bytes.len() < i.roots_final.len()
+            && i.roots_final.starts_with(bytes)
+    };
+    // An identity restoration's intent is the store's active original.
+    if identity::active_intent(store)?.as_ref().is_some_and(within) {
+        return Ok(true);
+    }
+    // Any other unfinished import's intent is in its project's journal.
+    let administration = store.join("administration");
+    let keys = match std::fs::read_dir(&administration) {
+        Ok(rd) => rd.map(|e| e.map(|e| e.file_name()).map_err(|e| e.to_string())).collect::<Result<Vec<_>, _>>()?,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(e) => return Err(format!("package import journals unreadable, so whether a registry write is pending is unknown: {e}")),
+    };
+    for key in keys {
+        let dir = store.join("projects").join(&key);
+        // Only a journal that is not there is passed over. If whether one
+        // exists cannot be established, whether a registry write is pending
+        // is unknown, and that is a refusal, never "nothing pending".
+        match std::fs::symlink_metadata(journal(&dir)?) {
+            Ok(_) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(e) => return Err(format!("the package import journal of project folder {} could not be examined ({e}), so whether a registry write is pending is unknown", key.to_string_lossy())),
+        }
+        if entries(&dir)?.iter().any(|e| e.done.is_none() && within(&e.intent)) {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+/// A new package import freezes its own write to the registry of project
+/// folders. While another unfinished import's frozen write is pending over
+/// the registry's bytes, a second frozen write could not be satisfied
+/// together with the first, so the new import is refused before its intent
+/// is made durable. The pending import's own recovery does not come here.
+fn refuse_while_another_registry_write_is_pending(store: &Path) -> Result<(), String> {
+    let registry = optional(&store.join("roots.jsonl"))?.unwrap_or_default();
+    if roots_write_pending(store, &registry)? {
+        return Err("an interrupted package import's write to the registry of project folders is pending; finish that import first; nothing imported and nothing in the registry changed".into());
     }
     Ok(())
 }
-
 pub(crate) fn require_root(root: &Path) -> Result<(), String> {
     let (store, _) = opened()?;
     identity::require_root(&store, root)
 }
-fn recovery_project(root: &Path) -> Result<(PathBuf, String, PathBuf), String> {
+/// The one selection of identity and store folder for a project folder's
+/// package state, the controls offered for it and their recovery: the
+/// folder's own frozen package intent first, then the single identity the
+/// store records for the folder, and only when it records none (or several)
+/// the identity the folder's link names. `None` when there is none.
+fn selected_project(root: &Path) -> Result<Option<(PathBuf, String, PathBuf)>, String> {
     let (store, _) = opened()?;
     let project = if let Some(intent) = identity::resolve_root(root)? {
         intent.project
     } else {
-        match read_link(root) {
-            Link::Present { project, .. } => project,
-            _ => {
-                let known = listed(
-                    &roots(&store)?,
-                    root.to_str().ok_or("project root is not UTF-8")?,
-                );
-                if known.len() != 1 {
-                    return Err("original project identity is unavailable; select its verified package for native restoration".into());
-                }
-                known[0].clone()
-            }
+        let recorded = listed(
+            &roots(&store)?,
+            root.to_str().ok_or("project root is not UTF-8")?,
+        );
+        match (recorded.as_slice(), read_link(root)) {
+            ([only], _) => only.clone(),
+            (_, Link::Present { project, .. }) => project,
+            _ => return Ok(None),
         }
     };
-    Ok((
-        store.clone(),
-        project.clone(),
-        project_dir(&store, &project),
-    ))
+    let dir = project_dir(&store, &project);
+    Ok(Some((store, project, dir)))
+}
+fn recovery_project(root: &Path) -> Result<(PathBuf, String, PathBuf), String> {
+    selected_project(root)?.ok_or_else(|| "original project identity is unavailable; select its verified package for native restoration".into())
+}
+/// Why finishing `intent` from `root` would be refused now by the checks of
+/// folder and project link its preparation makes (`prepare_resume`,
+/// `validate_target`), or `None` when those hold. Preparation still makes
+/// every check and refuses on any other.
+fn resume_blocked(root: &Path, intent: &Intent) -> Option<String> {
+    if intent.root != root {
+        return Some(format!("This import belongs to the project folder {}; finish it from there.", intent.root.display()));
+    }
+    if physical(root).ok().as_ref() != Some(&intent.physical_root) {
+        return Some("This folder is not the physical folder the import was started in; it cannot be finished here.".into());
+    }
+    let link = match optional(&root.join(PROJECT_LINK)) {
+        Ok(link) => link,
+        Err(e) => return Some(format!("The project file cannot be read ({e}); the import cannot be finished until it can.")),
+    };
+    if link != intent.link_before && !(link.is_none() || link.as_deref() == Some(intent.link_after.as_slice())) {
+        return Some("The project file differs from the one this import recorded. The import can be finished only once the file is exactly as the import left it, or removed; restoring it from the App does not yet write those exact bytes.".into());
+    }
+    None
 }
 
 fn roots_context(
@@ -709,7 +829,8 @@ fn prepare_inner(
     if root.canonicalize().map_err(|e| e.to_string())? != root {
         return Err("select the physical project folder".into());
     }
-    let (store, store_id) = opened()?;
+    // The person's import may be the first thing this installation records.
+    let (store, store_id) = created()?;
     require_native_actor(actor)?;
     identity::require_root(&store, root)?;
     let linked=match read_link(root){Link::Present{project,store}=>Some((project,store)),_ if restoring=>None,_=>return Err("package import requires this folder's existing readable project identity link; resolve its identity first".into())};
@@ -759,6 +880,7 @@ fn prepare_inner(
     {
         return Err("finish the existing package import first".into());
     }
+    refuse_while_another_registry_write_is_pending(&store)?;
     let before = bag::payload_inventory(&dir)?;
     for (name, member) in snapshot.payload() {
         if before.get(name).is_some_and(|old| old != member) {
@@ -1044,6 +1166,8 @@ pub(crate) fn apply(plan: Plan, actor: &Value, observed: &Value) -> Result<Value
         {
             return Err("another package import is incomplete".into());
         }
+        // Under the store lock and before this import's intent is durable.
+        refuse_while_another_registry_write_is_pending(i.store_path())?;
         // Mark uncertain before create: an error can mean the complete intent
         // is visible but its parent flush has not been confirmed.
         UNCERTAIN

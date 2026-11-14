@@ -244,6 +244,9 @@ mod platform {
     };
 
     #[cfg(test)] thread_local!{static INSPECTION_AUDIT:std::cell::RefCell<Option<Vec<String>>>=const{std::cell::RefCell::new(None)};}
+    #[cfg(test)] thread_local!{static CHAIN_WALKS:std::cell::Cell<usize>=const{std::cell::Cell::new(0)};}
+    /// How many walks from the anchor `f` made (test only).
+    #[cfg(test)] pub(super) fn chain_walks<T>(f:impl FnOnce()->T)->(T,usize){CHAIN_WALKS.with(|w|w.set(0));let value=f();(value,CHAIN_WALKS.with(|w|w.get()))}
     #[cfg(test)] pub(super) fn audit_inspection<T>(f:impl FnOnce()->T)->(T,Vec<String>){INSPECTION_AUDIT.with(|a|*a.borrow_mut()=Some(Vec::new()));let value=f();let audit=INSPECTION_AUDIT.with(|a|a.borrow_mut().take().unwrap());(value,audit)}
     fn ioerr(context: &str, e: std::io::Error) -> StoreError {
         let kind = match e.raw_os_error() {
@@ -532,6 +535,10 @@ mod platform {
         /// go only there.
         store_dir: Option<PathBuf>,
         location: String,
+        /// The kept reader's binding to the store, project folder and
+        /// accounts' records folder it was opened for, proved before each
+        /// operation (`records_store::ReaderBinding`).
+        reader: crate::records_store::ReaderBinding,
     }
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub(super) enum Stage {
@@ -601,7 +608,13 @@ mod platform {
                 let id = identity(&directory)?;
                 (directory, id)
             };
+            let reader = crate::records_store::bind_reader(&root, crate::records_store::ReaderDecision::Accounts)
+                .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))?;
+            if reader.records_folder().map(|(dir, _)| dir) != place.store_dir.as_deref() {
+                return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's accounts place changed while it was opened; reopen"));
+            }
             let store = Self {
+                reader,
                 root,
                 project_identity,
                 anchor: place.anchor,
@@ -682,7 +695,22 @@ mod platform {
         pub fn resolved_project(&self) -> &Path {
             &self.root
         }
+        /// Accounts kept in the records store are read and written only while
+        /// the project is still attached, cleanly, to the store folder they
+        /// were opened in (RS §13.8). The binding is kept, never reassociated:
+        /// once the person resolves the link, the same store works again.
+        fn check_association(&self) -> Result<()> {
+            // The binding made when these accounts were opened, proved again:
+            // the same store, the same project folder, the same place (in the
+            // store or in the project) by the decision made again, and the same
+            // records folder. A kept reader opened in place refuses once the
+            // accounts have moved into the store.
+            self.reader
+                .prove()
+                .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))
+        }
         fn check_root(&self) -> Result<()> {
+            self.check_association()?;
             if self.anchor != self.root {
                 let project = open_path(&self.root).map_err(|e| {
                     StoreError::new(
@@ -706,6 +734,18 @@ mod platform {
             Ok(())
         }
         fn chain(&self, parts: &[&str], create: bool) -> Result<Chain> {
+            // In the store the anchor is the whole store: a walk is confined to
+            // this project's own folder there (`projects/<key>`), so that no
+            // reference, whoever supplied it, reaches another project's
+            // records. In the project the anchor is the project folder itself.
+            if self.store_dir.is_some() {
+                let own = self.parts.get(..2).ok_or_else(|| StoreError::new(ErrorKind::LocationMismatch, "the accounts' place in the store names no project folder; nothing read"))?;
+                if parts.len() < 2 || parts[0] != own[0] || parts[1] != own[1] {
+                    return Err(StoreError::new(ErrorKind::LocationMismatch, format!("this reference names a folder outside this project's records in the store ({}); nothing read", parts.join("/"))));
+                }
+            }
+            #[cfg(test)]
+            CHAIN_WALKS.with(|w| w.set(w.get() + 1));
             let mut handles = vec![self
                 .directory
                 .try_clone()
@@ -719,6 +759,12 @@ mod platform {
             Ok(Chain { handles, ids })
         }
         fn compare(&self, parts: &[&str], expected: &[FileIdentity]) -> Result<()> {
+            self.compared(parts, expected).map(|_| ())
+        }
+        /// The association proved, the chain walked once and compared with
+        /// `expected`, and that same chain returned: a read goes through the
+        /// folders just compared, never through a second walk of the path.
+        fn compared(&self, parts: &[&str], expected: &[FileIdentity]) -> Result<Chain> {
             self.check_root()?;
             let actual = self.chain(parts, false).map_err(|e| {
                 StoreError::new(
@@ -732,7 +778,7 @@ mod platform {
                     "canonical directory identities changed; caller reconciliation required",
                 ));
             }
-            Ok(())
+            Ok(actual)
         }
         fn inspection_chain(&self, expected: &[FileIdentity]) -> Result<Chain> {
             let mut handles = vec![self
@@ -792,6 +838,7 @@ mod platform {
                 }
                 let check_project = || -> Result<()> {
                     // Keep original errors, unlike the legacy compare wrapper.
+                    self.check_association()?;
                     let current = open_path(&self.anchor)?;
                     if identity(&current)? != self.root_identity {
                         return Err(StoreError::new(
@@ -1272,7 +1319,8 @@ mod platform {
                         .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e))?;
                     let parts = relative_parts(&a.reference.relative_path)?;
                     let (name, ancestors) = parts.split_last().unwrap();
-                    let chain = self.chain(ancestors, false)?;
+                    // Read through the chain just compared with the binding.
+                    let chain = self.compared(ancestors, &a.reference.directories)?;
                     let again = read_account_mode(
                         chain.last(),
                         name,
@@ -1401,8 +1449,8 @@ mod platform {
                     "incomplete reference directory identity binding",
                 ));
             }
-            self.compare(ancestors, &reference.directories)?;
-            let chain = self.chain(ancestors, false)?;
+            // Read through the chain just compared with the binding.
+            let chain = self.compared(ancestors, &reference.directories)?;
             let observed = read_account(
                 chain.last(),
                 name,

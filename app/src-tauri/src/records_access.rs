@@ -97,7 +97,9 @@ impl RecordsSource for ProjectPaths {
         let paths = match crate::storage::discover(&self.root) {
             Ok(paths) => paths,
             Err(_) => {
-                corpus.limits.push("the project's records could not all be discovered; what follows may be incomplete".into());
+                // Nothing was read: the records are unavailable, and an empty
+                // answer is not a project with no records.
+                corpus.limits.push("the project's records are unavailable: they could not be discovered, so none of them is returned; an empty answer here does not mean the project has none".into());
                 return corpus;
             }
         };
@@ -472,13 +474,25 @@ impl ReadLog {
             LogPlace::Fixed(path) => Ok(path.clone()),
             LogPlace::Store(root) => {
                 let path = crate::records_store::read_log_path(root).map_err(|e| format!("read log unavailable: {e}"))?;
-                crate::storage::ensure_directory(path.parent().ok_or("read log has no folder")?).map_err(|e| format!("read log unavailable: {e}"))?;
+                // Admitted through the project's control as it exists, and
+                // that admission held while the log's own folder is made:
+                // that one folder only, beneath parents that exist. A read
+                // re-creates no control, no project folder and no store,
+                // also when they vanish after the control was found.
+                let folder = path.parent().ok_or("read log has no folder")?;
+                let _admission = crate::records_retention::write_path_existing(&path).map_err(|e| format!("read log unavailable: {e}"))?;
+                crate::storage::check_path(folder).map_err(|e| format!("read log unavailable: {e}"))?;
+                match std::fs::create_dir(folder) {
+                    Ok(()) => crate::storage::sync_dir(folder.parent().ok_or("read log has no folder")?).map_err(|e| format!("read log unavailable: {e}"))?,
+                    Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && folder.is_dir() => {}
+                    Err(e) => return Err(format!("read log unavailable: its folder {} cannot be made beneath the project's existing records ({e}); a read re-creates nothing above it", folder.display())),
+                }
                 Ok(path)
             }
         }
     }
     fn write(path: &Path, entry: &Value) -> Result<(), String> {
-        let _admission=crate::records_retention::write_path(path)?;
+        let _admission=crate::records_retention::write_path_existing(path)?;
         static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
         let validator = VALIDATOR
             .get_or_init(|| serde_json::from_str::<Value>(LOG_SCHEMA).map_err(|e| e.to_string()).and_then(|s| jsonschema::options().offline().build(&s).map_err(|e| e.to_string())))
@@ -493,7 +507,7 @@ impl ReadLog {
             let mut last = [0u8];
             file.seek(std::io::SeekFrom::End(-1)).and_then(|_| file.read_exact(&mut last)).map_err(|e| format!("read log unavailable: {e}"))?;
             if last[0] != b'\n' {
-                return Err("read log has an unclosed final line; bytes preserved, nothing appended".into());
+                return Err(torn_read_log(path));
             }
         }
         let mut line = serde_json::to_vec(entry).map_err(|e| e.to_string())?;
@@ -504,6 +518,24 @@ impl ReadLog {
         }
         Ok(())
     }
+}
+
+/// The refusal for a read log whose last line was cut short (an append
+/// interrupted before its newline): the one act that recovers it, with the
+/// file as the App resolved it and the exact new name, first, so that a
+/// person can act on it without knowing the store's layout; then why. The App
+/// never cuts or closes that line. The new name does not end in `.jsonl`, so
+/// that no log inventory (a package import's collision check among them)
+/// takes the torn file for a log; it stays in the records store and travels,
+/// byte for byte, in exports (RELEASE_LIMITATIONS LIM-014).
+fn torn_read_log(path: &Path) -> String {
+    let stamp = now_rfc3339().replace(':', "-");
+    let name = path.file_name().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "records-reads.jsonl".into());
+    let renamed = format!("{name}.torn-{stamp}");
+    format!(
+        "This project's records capability cannot answer reads until its read log is set aside: rename {}, in the same folder, to exactly {renamed}. That file ends in a read that was not recorded completely, so this capability cannot record or answer another read; nothing already recorded is lost. The App then starts a new read log at the next read, and keeps the renamed file in the records store without using it to answer records reads",
+        path.display()
+    )
 }
 
 /// The capability the host offers in its current project.

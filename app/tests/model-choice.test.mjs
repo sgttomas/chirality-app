@@ -30,12 +30,14 @@ const snapshotFor = (mode = 'account', generation = g) => ({state:'ready', gener
 
 // Optional one-shot hold of the next host_status read (its snapshot is taken first).
 let hostGate = null;
+// When set, every host_status read rejects with it (a status refresh that fails).
+let statusFailure = null;
 async function mounted(handler, check, initial = snapshotFor()) {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
   let snapshot = initial;
   const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args:structuredClone(args)});
-    if (command === 'host_status') { const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
+    if (command === 'host_status') { if (statusFailure) throw statusFailure; const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     return handler(command, args, {get snapshot() { return snapshot; }});
@@ -144,7 +146,7 @@ test('a list for another provider, an unnamed provider and a stale or failed rea
     assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'a stale list offers nothing');
     reply = Error('invented: model/list answered with an error');
     await ui.press('Read available models');
-    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter IDs yourself/);
+    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter a model ID yourself/);
     reply = packet({generation:g});
     await ui.press('Read available models');
     assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: the reply was not a model list for this Codex source/, 'a reply for another generation is refused');
@@ -163,8 +165,9 @@ test('omitted OpenAI-key mode offers no product entry or dispatch; account and l
     assert.equal(ui.issued().filter(x => ['add_api_key','read_available_models','thread_start'].includes(x.command)).length, 0);
     ui.setSnapshot(snapshotFor()); await ui.refresh();
     assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'));
-    assert.ok(nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'));
-    assert.match(region(ui.c, 'Account connection').textContent, /Keyed oMLX runs Codex in a separate local home/);
+    assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'), 'the account home offers no local-provider entry');
+    assert.match(region(ui.c, 'Local model servers').textContent, /Custom local providers are not offered from this home\./);
+    assert.match(region(ui.c, 'Account connection').textContent, /A local model server \(oMLX or another that serves the same interface\) runs with Codex in a separate local home/);
     assert.ok(button(ui.c, 'Prepare the oMLX connection'), 'keyed local access is offered separately from account sign-in');
     assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'no key entry before a current local source exists');
     const advanced=nodes(ui.c,'details').find(n=>n.textContent.startsWith('Other sign-in options'));
@@ -195,7 +198,7 @@ const localView = (credentialState, generation = lg, over = {}) => ({modeHomeCla
 const routed = (active, local = null) => ({...snapshotFor(active, active === 'local-provider' ? local : g),
   homeRouting:{activeModeHomeClass:active, entries:[{modeHomeClass:'account', generation:g, state:'ready'}, ...(local ? [{modeHomeClass:'local-provider', generation:local, state:'ready'}] : [])]}});
 let ui;
-const localAllowed = ['prepare_local_provider', 'submit_local_provider_key', 'select_home', 'thread_start', 'read_account_status', 'read_home_access'];
+const localAllowed = ['prepare_local_provider', 'submit_local_provider_key', 'select_home', 'thread_start', 'read_account_status', 'read_home_access', 'local_model_settings_read', 'local_model_settings_save'];
 const assertNoSecretTraffic = ui => {
   for (const call of ui.issued()) {
     assert.ok(localAllowed.includes(call.command), call.command);
@@ -241,6 +244,49 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'api-key'));
     assertNoSecretTraffic(ui);
   });
+});
+
+test('a settings save withdraws the key and route shown before, whether it succeeded or its outcome is not established', async () => {
+  // Custody review: after a save the page said the key was removed and, beside it, "Key saved by Codex — not verified".
+  const settings = (endpoint, over = {}) => ({state:'set', settings:{endpoint, model:LOCAL.model}, offered:{endpoint:'http://127.0.0.1:8000/v1'},
+    inForce:{endpoint:LOCAL.endpoint, model:LOCAL.model}, relaunchRequired:false, ...over});
+  for (const outcome of ['saved', 'rejected-after-sign-out', 'malformed']) {
+    await mounted(async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+      if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); return {state:'selected'}; }
+      if (command === 'local_model_settings_read') return settings(LOCAL.endpoint);
+      if (command === 'local_model_settings_save') {
+        assert.deepEqual(args, {endpoint:'http://[::1]:9000/v1', model:LOCAL.model});
+        if (outcome === 'saved') return settings(args.endpoint, {outcome:'saved', keyRemoved:true, relaunchRequired:true});
+        if (outcome === 'malformed') return {state:'set'};
+        throw 'Codex removed the saved key; the local model settings could not be written.';
+      }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      const panel = () => region(ui.c, 'Keyed oMLX connection').textContent;
+      assert.match(panel(), /Key saved by Codex — not verified/);
+      await ui.press('Use local oMLX home');
+      await ui.press(`Use oMLX model ${LOCAL.model}`);
+      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
+      await ui.press('Show local model settings');
+      const address = nodes(ui.c, 'input').find(node => node.parentNode.textContent.startsWith('Server address '));
+      await React.act(async () => { props(address).onChange({target:{value:'http://[::1]:9000/v1'}}); });
+      await ui.press('Save local model settings…');
+      assert.doesNotMatch(panel(), /Key saved by Codex — not verified/, outcome);
+      assert.equal(region(ui.c, 'oMLX destination'), undefined, `${outcome}: the earlier destination is no longer shown as prepared`);
+      assert.match(panel(), /The connection and key state shown before are withdrawn; prepare the oMLX connection again/, outcome);
+      assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, `${outcome}: the old route is not offered`);
+      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, `${outcome}: a route chosen before the save cannot start`);
+      if (outcome === 'saved') assert.match(panel(), /Saved\. Codex removed the saved key for the earlier address/);
+      else {
+        assert.doesNotMatch(panel(), /Saved: server/, `${outcome}: nothing is shown as saved`);
+        assert.match(panel(), /Whether anything changed is not established here/);
+      }
+      if (outcome === 'rejected-after-sign-out') assert.match(panel(), /Codex removed the saved key; the local model settings could not be written\./);
+    });
+  }
 });
 
 test('keyed oMLX key entry is offered once per Codex session, including cancel and refusal', async () => {
@@ -394,4 +440,63 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, 'no local route without a current observation');
     assertNoSecretTraffic(ui);
   });
+});
+
+// oMLX key entry refused (a reading sentence, or an ordinary refusal), then a failed status refresh:
+// the entry's own message stands, then the fixed refresh line once; nothing raw from the refresh.
+for (const [label, refusal] of [['the gate sentence', loadSrc('readingSentences').READING_GATE], ['an ordinary refusal', 'Keyed oMLX unavailable: invented refusal']]) test(`keyed oMLX: key entry refused (${label}) then a failed refresh shows its message, then the fixed line`, async () => {
+  const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  try {
+    await mounted(async command => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('entry-required'); }
+      if (command === 'submit_local_provider_key') { statusFailure = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_58'; throw refusal; }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      await ui.press('Enter oMLX key in a secure field…');
+      const shown = region(ui.c, 'Keyed oMLX connection').textContent;
+      assert.ok(shown.includes(`oMLX key entry did not complete: ${refusal} ${REFRESH_FAILED}`), shown);
+      assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_58/);
+      statusFailure = null;
+    });
+  } finally { statusFailure = null; }
+});
+
+// The model list's provider note ending with a reading sentence (model_catalog.rs `providerLimit`):
+// the sentence is shown as it is, with no second full stop after it.
+test('a provider note ending with a reading sentence is shown once, without a doubled full stop', async () => {
+  const {READING_GATE} = loadSrc('readingSentences');
+  const note = `provider not established: ${READING_GATE}`;
+  await mounted(async command => { if (command === 'read_available_models') return packet({serverProvider:null, serverProviderState:'not-established', providerLimit:note}); throw Error(`unexpected ${command}`); }, async ui => {
+    await ui.press('Use my ChatGPT account (built-in OpenAI)');
+    await ui.press('Read available models');
+    const shown = region(ui.c, 'Available models').textContent;
+    assert.ok(shown.includes(note), shown);
+    assert.ok(!shown.includes(`${READING_GATE}.`), 'no second full stop after the sentence');
+  });
+});
+
+// A home command that succeeds and whose status refresh then fails: the command is not shown as
+// failed, the account panel shows no raw refresh text, and the App line adds the fixed line once.
+// The same command with a successful refresh shows what it showed before (no refresh line).
+for (const refreshFails of [true, false]) test(`keyed oMLX: using the local home ${refreshFails ? 'then a failed refresh adds only the fixed line' : 'with a successful refresh shows no refresh line'}`, async () => {
+  const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  try {
+    await mounted(async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+      if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); if (refreshFails) statusFailure = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64'; return {state:'selected'}; }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      await ui.press('Use local oMLX home');
+      assert.equal(ui.issued().filter(call => call.command === 'select_home').length, 1);
+      assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64/, 'no raw refresh text anywhere');
+      const shown = ui.c.textContent.split(REFRESH_FAILED).length - 1;
+      if (refreshFails) assert.ok(shown >= 1, 'the fixed line (App line and guides)'); else assert.equal(shown, 0, 'no refresh line after a successful refresh');
+      assert.doesNotMatch(region(ui.c, 'Account connection')?.textContent ?? '', /did not complete|INVENTED_PRIVATE/, 'the account panel does not show the command as failed');
+      statusFailure = null;
+    });
+  } finally { statusFailure = null; }
 });

@@ -1,0 +1,70 @@
+name: App scripted driver (test build proof)
+
+# The scripted driver's bounded first step (app/examination/scripted_driver/README.md): a test build of the App
+# opens its window on the macOS runner the App workflow already uses, loads its page, evaluates a trivial script
+# and reports; then walks the first-use setup scenario in its page and reports. Development evidence only. It
+# reads the repository, holds no secret, writes nothing back, and uploads only its two reports.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/app-scripted-driver.yml
+      - app/examination/scripted_driver/**
+      - app/src-tauri/src/scripted_driver.rs
+      # The scenario the driver walks: a change to it alone reruns this job.
+      - app/examination/standalone/operated/first-use-setup.scenario.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-scripted-driver-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  proof:
+    name: Test build runs a script in its window (macOS)
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: '0'
+      CARGO_BUILD_JOBS: '2'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      # The shared setup restores the compiled-dependency cache and saves nothing of it here (no save step follows);
+      # the npm download cache, which setup-node would also save, is off.
+      - uses: ./.github/actions/app-v4-setup
+        with:
+          rust-cache-job: scripted-driver
+          npm-cache: 'false'
+      - name: Build the test bundle
+        run: python3 -B examination/scripted_driver/proof.py build --out "$RUNNER_TEMP/driver"
+      - name: Launch it once and read its report
+        run: |
+          bundle="$(ls -d "$RUNNER_TEMP"/driver/target/debug/bundle/macos/*.app)"
+          python3 -B examination/scripted_driver/proof.py run --bundle "$bundle" --out "$RUNNER_TEMP/driver" --timeout 180
+      - name: Walk the first-use setup scenario in the test build
+        if: ${{ !cancelled() }}
+        run: |
+          bundle="$(ls -d "$RUNNER_TEMP"/driver/target/debug/bundle/macos/*.app)"
+          python3 -B examination/scripted_driver/proof.py scenario --bundle "$bundle" --out "$RUNNER_TEMP/driver" --timeout 300
+      - name: The release features carry none of it
+        if: ${{ !cancelled() }}
+        run: python3 -B examination/scripted_driver/proof.py release-free --out "$RUNNER_TEMP/driver"
+      - name: Upload the report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: scripted-driver-report
+          path: |
+            ${{ runner.temp }}/driver/report.json
+            ${{ runner.temp }}/driver/scenario-report.json
+          if-no-files-found: warn
+          retention-days: 14

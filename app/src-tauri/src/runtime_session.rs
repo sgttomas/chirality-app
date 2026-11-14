@@ -2872,19 +2872,29 @@ pub(crate) fn native_api_key_entry(app: &tauri::AppHandle) -> Result<Option<Stri
 /// Explicit native source read; no credential/config filesystem access or automatic refresh.
 pub fn read_native_home_access(home: &HomeSession, generation: &Value) -> Result<Value, String> {
     for method in ["configRequirements/read", "account/read"] {
+        // The requirements reading's deadline covers its wait for the generation's reservation,
+        // for the frame writer and for its reply.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
         let source = match method {
-            "configRequirements/read" => home.host.account_requirements_read_scoped(generation)?,
+            "configRequirements/read" => home.host.account_requirements_read_until(generation, deadline)?,
             _ => home.host.account_read_scoped(generation)?,
         };
         home.account_sources.lock().unwrap().push(source.clone());
         home.host
-            .source_request_wait(&source, std::time::Duration::from_secs(20))?;
+            .source_request_wait(&source, deadline.saturating_duration_since(std::time::Instant::now()))?;
     }
     Ok(home.account_view())
 }
 
 /// Consumes explicit Root OS paths. Existing account/probe are observations,
 /// never relocated or claimed as newly App-owned plans to fit this constructor.
+/// Where the local provider's Codex home is: a path in the App data folder.
+/// It only calculates the path; it creates and prepares nothing. The
+/// bootstrap plans this home here, and the records store's placement check
+/// protects the same path, whether or not the home exists yet.
+pub(crate) fn local_provider_home(app_data: &std::path::Path) -> std::path::PathBuf {
+    app_data.join("codex-omlx")
+}
 pub fn freeze_root_home_descriptors(
     app_data: &std::path::Path,
     config: &crate::hosting::HostConfig,
@@ -2924,7 +2934,7 @@ pub fn freeze_root_home_descriptors(
     };
     let mut set = HomeBootstrapSet::new(account, key, probe)?;
     set.shared_root_targets = shared_root_targets;
-    set.local = Some(OwnedHomePlan::new(app_data.to_path_buf(), app_data.join("codex-omlx"), HomeClass::LocalProvider, None)?);
+    set.local = Some(OwnedHomePlan::new(app_data.to_path_buf(), local_provider_home(app_data), HomeClass::LocalProvider, None)?);
     set.revalidate()?;
     Ok(set)
 }
@@ -2942,10 +2952,11 @@ pub fn submit_native_home_key<F: FnOnce() -> Result<Option<String>, ()>>(
     }
     let config = home.host_config.as_ref().map_err(Clone::clone)?;
     bootstrap.validate_binding(home.class(), config)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
     home.account_sources.lock().unwrap().push(policy.clone());
     home.host
-        .source_request_wait(&policy, std::time::Duration::from_secs(20))?;
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))?;
     let source =
         home.host
             .account_login_api_key_from_native_entry(generation, Some(&policy), || {
@@ -3352,10 +3363,11 @@ pub(crate) fn start_native_oauth<F: FnOnce() -> bool>(
         });
     }
     check_native_oauth_home(home, bootstrap, generation)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
     home.account_sources.lock().unwrap().push(policy.clone());
     home.host
-        .source_request_wait(&policy, std::time::Duration::from_secs(20))?;
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))?;
     check_native_oauth_home(home, bootstrap, generation)?;
     let login = std::sync::Arc::new(home.host.account_oauth_start(
         generation,
@@ -3853,7 +3865,6 @@ for line in sys.stdin:
             })
             .unwrap();
         });
-        let before = f.wire().len();
         for mode in [NativeLoginMode::Browser, NativeLoginMode::DeviceCode] {
             let refusal = start_native_oauth(&f.home, &f.generation, mode, None, || {
                 panic!("the person is not asked")
@@ -3862,13 +3873,25 @@ for line in sys.stdin:
             .unwrap();
             assert_eq!(refusal, crate::dev_model_address::SIGN_IN_OFF);
         }
-        assert_eq!(f.wire().len(), before, "no request reached the supplier");
-        assert!(f.wire().iter().all(|frame| {
-            !matches!(
-                frame["method"].as_str(),
-                Some("account/login/start" | "configRequirements/read" | "account/read")
-            )
-        }));
+        // What the host itself sent, which does not depend on when the stand-in logs a frame:
+        // the start's own request and nothing else.
+        let sent: Vec<String> = f
+            .home
+            .host
+            .client_requests()
+            .iter()
+            .map(|request| request["method"].as_str().unwrap_or_default().to_owned())
+            .collect();
+        assert_eq!(sent, ["initialize"], "no request was sent after the start's own");
+        // And what the stand-in has received so far: the start's handshake at most. Its second
+        // frame, the `initialized` notification, may be logged at any moment after the start
+        // returns, so the frames are compared by what they are and never counted.
+        let beyond: Vec<Value> = f
+            .wire()
+            .into_iter()
+            .filter(|frame| !matches!(frame["method"].as_str(), Some("initialize" | "initialized")))
+            .collect();
+        assert!(beyond.is_empty(), "a frame beyond the start's handshake reached the supplier: {beyond:?}");
         assert!(f.home.oauth_login.lock().unwrap().is_none());
         // The same home without the setting still starts a sign-in.
         let plain = Fixture::new();
@@ -8220,7 +8243,7 @@ for line in sys.stdin:
   where=f['params'].get('cwd')
   which='bare' if where is None else ('server' if os.path.realpath(where)==os.path.realpath(os.getcwd()) else 'folder')
   p=mode('config-provider-'+which) or mode('config-provider') or 'fixture-provider'
-  config={'model_provider':None if p=='none' else p,'developer_instructions':'fixture private configuration text'}
+  config={'model_provider':None if p=='none' else p,'model_providers':{},'developer_instructions':'fixture private configuration text'}
   if m in ('true','false'):config['features']={'multi_agent':m=='true'}
   result={'config':config,'origins':{}}
  elif method=='modelProvider/capabilities/read':
@@ -9594,15 +9617,34 @@ for line in sys.stdin:
     }
     // DEL-06-01: a child recorded under one project identity is given no end
     // under a replacement identity (review round 2 of the producer).
+    //
+    // How the replacement identity is made here. The App itself refuses to
+    // give a folder a new identity, or to adopt it, while Codex runs for it
+    // (DEL-04-03 AC-008, containment), so this state can arise only from
+    // outside the App: something else changes the store's registry and the
+    // project's link while Codex runs. The test therefore writes them as an
+    // outside process would, in the store's own formats, and does not call
+    // the App's own act: a line releasing the folder from its identity, a
+    // line recording it for another, the link naming that other, and the
+    // other project's folder in the store with its identity file, which is
+    // everything the App's own act leaves. The replacement is a complete
+    // identity: its recording context is captured before the exit, so the
+    // exit has somewhere it could write and must still write nothing. This
+    // is preparation of the fixture only; the writer whose behaviour the
+    // test establishes runs untouched. It stands for the cases containment
+    // does not cover. (Setup changed by the Records lane with App Agent 0's
+    // decision; the three assertions are as 235 wrote them, and the limit's
+    // own reason is asserted beside them.)
     #[test]
     fn the_apps_exit_writes_nothing_under_a_replacement_project_identity(){
         let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-identity-store-").unwrap());
         crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
         struct ResetStore(PathBuf);
         impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
-        let _reset=ResetStore(store);
+        let _reset=ResetStore(store.clone());
         let peer=Peer::new();let g=peer.generation.clone();
-        let original=crate::records_store::attach(&peer.fixture.root,true).unwrap().dir.unwrap();
+        let first=crate::records_store::attach(&peer.fixture.root,true).unwrap();
+        let original=first.dir.clone().unwrap();
         let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
         let mut links=crate::native_conversation_links::Session::default();
         let log=|dir:&std::path::Path|std::fs::read_to_string(dir.join("fleet/coordination.fleet.jsonl")).unwrap_or_default();
@@ -9613,13 +9655,34 @@ for line in sys.stdin:
             assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
         }
         let before=log(&original);
-        crate::records_store::new_identity(&peer.fixture.root).unwrap();
+        // The App's own act is refused while this Codex runs, with nothing changed.
+        assert!(crate::records_store::new_identity(&peer.fixture.root).unwrap_err().contains("is still in use"));
+        assert_eq!(crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.as_ref(),Some(&original));
+        // From outside the App: the registry and the link, written by hand.
+        let other=crate::util::opaque_id("chirality-project:").unwrap();
+        let at=peer.fixture.root.to_str().unwrap();
+        let line=|project:&str,how:&str|format!("{}\n",json!({"format":"chirality.records-store.root","formatVersion":"0.1","projectId":project,"root":at,"at":crate::util::now_rfc3339(),"how":how}));
+        let registry=store.join("roots.jsonl");
+        let mut lines=std::fs::read_to_string(&registry).unwrap();
+        lines.push_str(&line(first.project.as_deref().unwrap(),"released"));lines.push_str(&line(&other,"minted"));
+        std::fs::write(&registry,lines).unwrap();
+        let link_path=peer.fixture.root.join(crate::records_store::PROJECT_LINK);
+        let mut link:Value=serde_json::from_slice(&std::fs::read(&link_path).unwrap()).unwrap();
+        link["projectId"]=json!(other);
+        std::fs::write(&link_path,serde_json::to_vec(&link).unwrap()).unwrap();
         let replacement=crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.unwrap();
+        std::fs::create_dir_all(&replacement).unwrap();
+        std::fs::write(replacement.join("project.json"),serde_json::to_vec(&json!({"format":"chirality.records-store.project","formatVersion":"0.1","projectId":other,"createdAt":crate::util::now_rfc3339(),"how":"minted"})).unwrap()).unwrap();
+        assert_eq!(crate::native_conversation_links::captured_context_identity_for_test(&peer.fixture.root).as_deref(),Ok(other.as_str()),"the replacement identity is complete: the recording context captured now is the replacement's, and not the original's");
+        assert_ne!(first.project.as_deref(),Some(other.as_str()));
         assert_ne!(replacement,original);
         links.end_delegation_at_exit(&[peer.home.clone()]);links.retry(peer.project());
         assert!(!log(&replacement).contains("observation_ended"),"nothing of that child under the replacement identity");
         assert_eq!(log(&original),before,"and nothing more under the original, which is no longer in force");
         assert!(links.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
+        // For the reason the test exists for, and not because the replacement could not be opened.
+        let limits=links.snapshot()["limits"].to_string();
+        assert!(limits.contains("original project/store association changed; no reassociation")&&!limits.contains("No such file"),"{limits}");
     }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.
@@ -10017,6 +10080,18 @@ for line in sys.stdin:
         assert!(!err.prefill_kept&&err.contains("withdrawn"),"{err}");
         assert!(!pending_refs(&root).contains(&r1),"a failed start withdraws the pre-fill");
         assert!(root.lock().unwrap().cancel_trial(&r1).is_err());
+        // The start was refused at its configuration reading: known not started, then the sentence.
+        for sentence in [crate::hosting::reading_gate::READING_GATE, crate::hosting::reading_gate::READING_WITHDRAWN] {
+            let r=prepare();
+            let err=trial_flows::start_clean_trial(&root,&r,||Err(sentence.to_owned()),|_,_|panic!("nothing is sent")).unwrap_err();
+            assert_eq!(err.message,format!("The trial conversation was not started; the pre-filled trial was withdrawn. {sentence}"));
+            assert!(!err.prefill_kept&&!pending_refs(&root).contains(&r),"withdrawn as any failed start");
+        }
+        // Not by suffix: a start error ending in a sentence after another prefix keeps the general text.
+        let r=prepare();
+        let later=format!("{}{}",crate::hosting::reading_gate::WRITE_THEN_READING,crate::hosting::reading_gate::READING_GATE);
+        let err=trial_flows::start_clean_trial(&root,&r,||Err(later.clone()),|_,_|panic!("nothing is sent")).unwrap_err();
+        assert!(err.message.starts_with(&format!("{later}. The trial conversation was not started (or its start was not acknowledged)")),"{}",err.message);
         // The start named no thread id: withdrawn.
         let r2=prepare();
         let err=trial_flows::start_clean_trial(&root,&r2,||Ok(json!({"startGeneration":peer.generation,"result":{"thread":{}}})),|_,_|panic!("nothing is sent")).unwrap_err();

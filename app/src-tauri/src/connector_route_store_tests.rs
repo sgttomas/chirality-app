@@ -44,6 +44,18 @@ fn failure() -> StoreError {
 }
 
 #[test]
+fn records_store_import_gate_recognised_connector_account_waives_census() {
+    let scratch = Scratch::new();
+    let root = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&root).unwrap();
+    store.write(&account("ra:import-gate")).unwrap();
+    let legacy = root.join(".chirality/records/acts");
+    fs::create_dir_all(&legacy).unwrap();
+    fs::write(legacy.join("late.jsonl"), b"late in-place evidence").unwrap();
+    assert!(crate::records_store::write_dir(&root).is_ok());
+}
+
+#[test]
 fn embedded_schemas_validate_exact_versions() {
     let v2 = account("ra:v2");
     validate_account(&v2).unwrap();
@@ -125,9 +137,10 @@ fn round_trip_restart_project_move_and_symlink_selected_root() {
         ErrorKind::LocationMismatch
     );
     // RS §13.8: a moved project attaches nothing until the person adopts it.
-    let unadopted = ProjectRouteStore::open(&moved).unwrap();
-    assert!(unadopted.discover().directory_absent, "read in place: nothing there");
-    assert!(unadopted.location().contains("nothing written"), "{}", unadopted.location());
+    // Its accounts are unavailable until then: the folder is not opened as
+    // an empty source read in place (review round 3, finding 1).
+    let unadopted = ProjectRouteStore::open(&moved).unwrap_err();
+    assert!(unadopted.detail.contains("and not here; nothing attached") && unadopted.detail.contains("not read in their place"), "{unadopted}");
     crate::records_store::adopt(&moved).unwrap();
     let cold = ProjectRouteStore::open(&moved).unwrap();
     let discovery = cold.discover();
@@ -1355,4 +1368,316 @@ fn a_writer_waiting_behind_an_import_that_did_not_complete_writes_nothing() {
     assert!(refused.detail.contains("import incomplete"), "{refused}");
     let reader = ProjectRouteStore::open(&p).unwrap();
     assert_eq!(reader.discover().accounts.len(), 1, "only the first account");
+}
+/// DEL-04-03 AC-008 / REQ-007: an account store kept from before the project's
+/// link stopped agreeing reads and writes nothing until the person resolves
+/// it; the same store then reads what it read before.
+#[test]
+fn a_kept_account_store_refuses_while_the_link_disagrees_and_reads_again_once_restored() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let data = account("ra:link-fixture");
+    let reference = store.write(&data).unwrap();
+    assert_eq!(store.resolve(&reference).unwrap().account, data);
+    assert_eq!(store.discover().accounts.len(), 1);
+    let accounts = store.accounts_directory();
+    let names = || {
+        let mut v: Vec<_> = fs::read_dir(&accounts).unwrap().map(|e| e.unwrap().file_name()).collect();
+        v.sort();
+        v
+    };
+    let before = names();
+    let link_path = p.join(crate::records_store::PROJECT_LINK);
+    let link: Value = serde_json::from_slice(&fs::read(&link_path).unwrap()).unwrap();
+    let mut changed = link.clone();
+    changed["projectId"] = json!("chirality-project:forged-fixture");
+    let mut other_store = link.clone();
+    other_store["storeId"] = json!("records-store:another-fixture");
+    for (case, replacement, expected) in [
+        ("changed", Some(changed), "link changed; not attached"),
+        ("missing", None, "link missing; not attached"),
+        ("another store", Some(other_store), "another"),
+    ] {
+        match &replacement {
+            Some(v) => fs::write(&link_path, serde_json::to_vec(v).unwrap()).unwrap(),
+            None => fs::remove_file(&link_path).unwrap(),
+        }
+        let read = store.resolve(&reference).unwrap_err();
+        assert!(read.detail.contains(expected), "{case}: {read}");
+        let discovery = store.discover();
+        assert!(discovery.accounts.is_empty() && !discovery.enumeration_complete, "{case}: {discovery:?}");
+        assert!(discovery.issues.iter().any(|i| i.detail.contains(expected)), "{case}: {discovery:?}");
+        let write = store.write(&account("ra:while-link-disagrees")).unwrap_err();
+        assert!(write.detail.contains(expected), "{case}: {write}");
+        assert_eq!(names(), before, "{case}: nothing written");
+        crate::records_store::restore_link(&p).unwrap();
+        assert_eq!(store.resolve(&reference).unwrap().account, data, "{case}: the same store reads again");
+        assert_eq!(store.discover().accounts.len(), 1, "{case}");
+    }
+    // Moved: the folder is no longer at the path the store was opened for.
+    let moved = scratch.0.join("moved");
+    fs::rename(&p, &moved).unwrap();
+    assert!(store.resolve(&reference).is_err());
+    let discovery = store.discover();
+    assert!(discovery.accounts.is_empty() && !discovery.enumeration_complete, "moved: {discovery:?}");
+    assert!(store.write(&account("ra:while-moved")).is_err());
+    assert_eq!(names(), before, "moved: nothing written");
+}
+/// Review round 3, finding 1: a refused attachment has no accounts place.
+/// A reader opened while the link disagrees is refused, whether the accounts
+/// are in the store or kept in the project folder, and is never a complete,
+/// empty or in-place source; a reader opened in place before the attachment
+/// was refused reads nothing while the refusal stands.
+#[test]
+fn a_refused_attachment_is_never_an_empty_or_an_in_place_account_source() {
+    let scratch = Scratch::new();
+    // The reviewer's first state: one account in the store, then the link changed.
+    let p = scratch.project();
+    let writer = ProjectRouteStore::open_for_write(&p).unwrap();
+    writer.write(&account("ra:in-the-store")).unwrap();
+    drop(writer);
+    let link_path = p.join(crate::records_store::PROJECT_LINK);
+    let link: Value = serde_json::from_slice(&fs::read(&link_path).unwrap()).unwrap();
+    let mut changed = link.clone();
+    changed["projectId"] = json!("chirality-project:forged-fixture");
+    fs::write(&link_path, serde_json::to_vec(&changed).unwrap()).unwrap();
+    let refused = ProjectRouteStore::open(&p).unwrap_err();
+    assert!(refused.detail.contains("link changed; not attached") && refused.detail.contains("not read in their place"), "{refused}");
+    // Its second: an account also kept in the project folder is not read in the store's place.
+    legacy_account(&p, &format!("{KEY}.json"), &account("ra:kept-in-the-project"));
+    let kept_files = snapshot(&p.join(LEGACY_DIRECTORY));
+    let refused = ProjectRouteStore::open(&p).unwrap_err();
+    assert!(refused.detail.contains("link changed; not attached"), "{refused}");
+    fs::remove_file(&link_path).unwrap();
+    for refused in [ProjectRouteStore::open(&p).unwrap_err(), ProjectRouteStore::open_for_write(&p).unwrap_err()] {
+        assert!(refused.detail.contains("link missing; not attached"), "{refused}");
+    }
+    assert_eq!(snapshot(&p.join(LEGACY_DIRECTORY)), kept_files, "nothing written in the project");
+    crate::records_store::restore_link(&p).unwrap();
+    ProjectRouteStore::open(&p).unwrap();
+    // A reader opened in place (accounts an earlier build left, not yet
+    // imported) and kept: once the folder's attachment is refused it reads
+    // nothing, and reads again when the person restores the link.
+    let q = scratch.0.join("kept-in-place");
+    fs::create_dir(&q).unwrap();
+    legacy_account(&q, &format!("{KEY}.json"), &account("ra:legacy"));
+    let kept = ProjectRouteStore::open(&q).unwrap();
+    let before = kept.discover();
+    assert!(before.accounts.len() == 1 && before.enumeration_complete && before.location.contains("read in place"), "{before:?}");
+    crate::records_store::attach(&q, true).unwrap();
+    assert_eq!(kept.discover().accounts.len(), 1, "an identity alone changes nothing: still read in place until imported");
+    fs::remove_file(q.join(crate::records_store::PROJECT_LINK)).unwrap();
+    let during = kept.discover();
+    assert!(during.accounts.is_empty() && !during.enumeration_complete, "{during:?}");
+    assert!(during.issues.iter().any(|i| i.detail.contains("link missing; not attached")), "{during:?}");
+    crate::records_store::restore_link(&q).unwrap();
+    assert_eq!(kept.discover().accounts.len(), 1);
+}
+/// Review round 2, finding 1, case (a), as containment: an account writer
+/// already past its checks (the TempChecked seam) holds its admission, so a
+/// new identity for the folder is refused at the act and the account is
+/// published under the identity it was admitted for, still attached.
+#[test]
+fn a_new_identity_is_refused_while_an_account_writer_is_admitted() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let project = crate::records_store::attach(&p, false).unwrap().project.unwrap();
+    let mut at_seam = None;
+    store
+        .write_inner(&account("ra:admitted"), KEY, |stage| {
+            if stage == Stage::TempChecked {
+                at_seam = Some(crate::records_store::new_identity(&p));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let refused = at_seam.expect("the seam was reached").unwrap_err();
+    assert!(refused.contains(&format!("a record of project {project} is being read or written at this moment")) && refused.ends_with("nothing changed"), "{refused}");
+    let now = crate::records_store::attach(&p, false).unwrap();
+    assert_eq!(now.project.as_deref(), Some(project.as_str()), "the association did not change");
+    assert!(store.accounts_directory().join(format!("{KEY}.json")).is_file(), "published under the identity it was admitted for");
+    // Once nothing is admitted, the person's act goes through.
+    let fresh = crate::records_store::new_identity(&p).unwrap();
+    assert_ne!(fresh["projectId"], project.as_str());
+}
+
+// ---- Slice 1: a kept reader of the project's connector accounts reads only
+// the store, project and records folder it bound. These protect KEPT READERS;
+// writers are slice 2's. ----
+
+/// The project's folder replaced by another at the same path, carrying a copy
+/// of its link: the kept reader refuses.
+#[test]
+fn records_store_kept_reader_of_accounts_refuses_a_replacement_folder_carrying_a_copied_link() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let data = account("ra:kept-reader");
+    let reference = store.write(&data).unwrap();
+    assert_eq!(store.resolve(&reference).unwrap().account, data);
+    let aside = scratch.0.join("project-aside");
+    fs::rename(&p, &aside).unwrap();
+    let link = Path::new(crate::records_store::PROJECT_LINK);
+    fs::create_dir_all(p.join(link.parent().unwrap())).unwrap();
+    fs::copy(aside.join(link), p.join(link)).unwrap();
+    let read = store.resolve(&reference);
+    fs::remove_dir_all(&p).unwrap();
+    fs::rename(&aside, &p).unwrap();
+    assert!(read.is_err(), "read through a replacement folder");
+    assert_eq!(store.resolve(&reference).unwrap().account, data, "reads again once its folder is back");
+}
+
+/// 240 R2-3: after the person's disposal of the project's records, the payload
+/// bytes and the link put back. The kept reader refuses on the App's own
+/// record of the disposal.
+#[test]
+fn records_store_kept_reader_of_accounts_refuses_after_a_disposal_with_the_payload_and_link_put_back() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let reference = store.write(&account("ra:disposed")).unwrap();
+    let accounts = store.accounts_directory();
+    let files = snapshot(&accounts);
+    let link_path = p.join(crate::records_store::PROJECT_LINK);
+    let link = fs::read(&link_path).unwrap();
+    let dir = crate::records_store::attach(&p, false).unwrap().dir.unwrap();
+    let actor = crate::act_control::person(Some("Invented fixture person"), Some("invented-fixture-os"));
+    let observed = json!({"observedHome":{"codexAccount":"invented-fixture@example.invalid"},"fixture":"native callback test seam; no live person's act"});
+    let act = |action: &str, bag: Option<&Path>| crate::records_retention::prepare(&p, action, bag, &actor, &observed)
+        .and_then(|plan| crate::records_retention::apply(plan, &actor, &observed));
+    act("close", None).unwrap();
+    let bag = scratch.0.join("export");
+    crate::records_export::export(&p, &bag).unwrap();
+    assert_eq!(act("dispose", Some(&bag)).unwrap()["state"], "disposed");
+    // Someone puts the payload bytes and the link back.
+    fs::create_dir_all(&accounts).unwrap();
+    for (name, bytes) in &files {
+        fs::write(accounts.join(name), bytes).unwrap();
+    }
+    if !link_path.exists() {
+        fs::write(&link_path, &link).unwrap();
+    }
+    assert!(dir.exists());
+    let read = store.resolve(&reference).unwrap_err();
+    assert!(read.detail.contains("dispos"), "refused on the App's record of the disposal: {read}");
+    let discovery = store.discover();
+    assert!(discovery.accounts.is_empty() && !discovery.enumeration_complete, "{discovery:?}");
+}
+
+/// 240: a reader opened in place, kept across the import that moves the
+/// project's accounts into the store, never goes on reading the originals.
+#[test]
+fn records_store_kept_reader_of_accounts_opened_in_place_refuses_once_they_are_imported() {
+    let scratch = Scratch::new();
+    let q = scratch.0.join("kept-in-place");
+    fs::create_dir(&q).unwrap();
+    let data = account("ra:legacy");
+    legacy_account(&q, &format!("{KEY}.json"), &data);
+    let kept = ProjectRouteStore::open(&q).unwrap();
+    let before = kept.discover();
+    assert!(before.accounts.len() == 1 && before.location.contains("in place"), "{before:?}");
+    let held = before.accounts[0].reference.clone();
+    let imported = crate::records_store::import(&q).unwrap();
+    assert_eq!(imported["state"], "imported", "{imported}");
+    let read = kept.resolve(&held).unwrap_err();
+    assert!(read.detail.contains("reopen"), "{read}");
+    let after = kept.discover();
+    assert!(after.accounts.is_empty() && !after.enumeration_complete, "{after:?}");
+    assert!(after.issues.iter().any(|i| i.detail.contains("reopen")), "{after:?}");
+}
+
+/// A test's own records store on this thread, removed with its folder.
+struct KeptReaderStore(PathBuf);
+impl KeptReaderStore {
+    fn new() -> Self {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("kept-reader-store-").unwrap());
+        fs::create_dir(&root).unwrap();
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: root.clone(), placement: crate::records_store::Placement::Override, limits: vec![] })));
+        Self(root)
+    }
+}
+impl Drop for KeptReaderStore {
+    fn drop(&mut self) {
+        crate::records_store::use_store_for_test(None);
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+fn unsearchable<T>(dir: &Path, f: impl FnOnce() -> T) -> T {
+    fs::set_permissions(dir, fs::Permissions::from_mode(0o000)).unwrap();
+    let out = f();
+    fs::set_permissions(dir, fs::Permissions::from_mode(0o700)).unwrap();
+    out
+}
+
+/// What a kept reader cannot examine of its binding is not known, never
+/// unchanged: the project folder (its parent not searchable) refuses as not
+/// known; the records folder in the store (its parent not searchable) cannot
+/// be examined by the decision made again, which refuses first. Each reads
+/// again once the folder can be examined.
+#[test]
+fn records_store_kept_reader_of_accounts_refuses_as_not_known_what_it_cannot_examine() {
+    let own = KeptReaderStore::new();
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let data = account("ra:not-known");
+    let reference = store.write(&data).unwrap();
+    // The project folder.
+    let read = unsearchable(&scratch.0, || store.resolve(&reference));
+    let refused = read.unwrap_err();
+    assert!(refused.detail.contains("not known: the project folder"), "{refused}");
+    assert_eq!(store.resolve(&reference).unwrap().account, data, "reads again");
+    // The project's records folder in the store.
+    let read = unsearchable(&own.0.join("projects"), || store.resolve(&reference));
+    assert!(read.is_err(), "never read as unchanged");
+    assert_eq!(store.resolve(&reference).unwrap().account, data, "reads again");
+}
+
+/// Round 1 of pull request 294, finding 1: a reference to another project's
+/// account, written by the store for that project, is refused by a reader of
+/// this project, whether the reader was kept or opened just now. In the store
+/// a walk is confined to this project's own folder.
+#[test]
+fn records_store_kept_reader_of_accounts_refuses_another_projects_reference() {
+    let _own = KeptReaderStore::new();
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let q = scratch.0.join("other-project");
+    fs::create_dir(&q).unwrap();
+    let kept = ProjectRouteStore::open_for_write(&p).unwrap();
+    let own_data = account("ra:own-project");
+    let own_reference = kept.write(&own_data).unwrap();
+    assert_eq!(kept.resolve(&own_reference).unwrap().account, own_data);
+    let other = ProjectRouteStore::open_for_write(&q).unwrap();
+    let foreign_reference = other.write(&account("ra:other-project")).unwrap();
+    assert_ne!(kept.accounts_directory(), other.accounts_directory());
+    for (which, reader) in [("kept", kept), ("opened now", ProjectRouteStore::open_for_write(&p).unwrap())] {
+        let read = reader.resolve(&foreign_reference).map(|r| r.account["account_id"].clone());
+        let refused = read.expect_err(which).to_string();
+        assert!(refused.contains("outside this project's records"), "{which}: {refused}");
+        assert_eq!(reader.resolve(&own_reference).unwrap().account, own_data, "{which}: its own account still reads");
+    }
+}
+
+/// Round 2 of pull request 294, finding 2: a non-0.5 resolve reads through the
+/// chain it has just compared with the binding, not through a second walk of
+/// the path. Beyond the canonical discovery's own walks, it walks twice: the
+/// comparison that is also the read, and the comparison after the read (the
+/// round-2 code walked three times: compare, walk again to read, compare).
+#[test]
+fn records_store_kept_reader_of_accounts_reads_through_the_chain_it_compared() {
+    let _own = KeptReaderStore::new();
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    let data = account("ra:compared-chain");
+    let reference = store.write(&data).unwrap();
+    assert_ne!(reference.format_version, "0.5", "the branch under test");
+    let (discovered, discovery) = super::platform::chain_walks(|| store.discover());
+    assert!(discovered.enumeration_complete);
+    let (read, walks) = super::platform::chain_walks(|| store.resolve(&reference));
+    assert_eq!(read.unwrap().account, data);
+    assert_eq!(walks - discovery, 2, "compare-and-read, then compare after: no walk between the comparison and the read");
 }

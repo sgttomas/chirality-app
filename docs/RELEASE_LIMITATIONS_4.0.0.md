@@ -161,3 +161,109 @@ An entry is added in the same pull request that makes the limitation standing.
   resources they need and their licence notices, and point the agent at them
   in the conversation. The whole Library is not needed for this.
 - **Basis:** DEL-02-02 (AC-014, TBD-005); DEL-02-03 (the requirement check).
+
+### LIM-011: A local model server is set up in the App, on the same machine, with a key
+
+- **Id:** LIM-011
+- **Exit criteria:** 6
+- **What is unavailable:** a conversation on a local provider defined in the
+  person's own Codex settings; a conversation with a model server on another
+  machine; and a local model server that requires no key. Preparing or
+  starting the local connection, and entering its key, are refused while
+  a system Codex configuration file exists (`/etc/codex/config.toml`,
+  `/etc/codex/managed_config.toml` or `/etc/codex/requirements.toml`) or a
+  managed Codex preference is set, whatever they contain. Removing or
+  renaming such a file is the person's or their administrator's own act; the
+  App does not ask for it. In the home that
+  uses the ChatGPT account, the App starts Codex on the built-in OpenAI
+  provider whatever default provider the person's Codex settings name; a
+  conversation saved earlier on another provider can be opened there and
+  cannot run a message. Where a managed Codex requirement names another
+  provider, that home's Codex does not report the built-in one, and the App
+  starts no ChatGPT account conversation and says so. In the local model home, Codex's plugin traffic is
+  always off, whatever the person's Codex plugin setting. Changing the local
+  server's address removes the saved key, except when restoring the address
+  the App recorded for the saved key; that restoration keeps the key and does
+  not require a prepared connection. An existing conversation continues
+  only when the model name now set matches the model Codex recorded for it,
+  and then uses the server at the address now set; otherwise it cannot
+  continue under the current settings. In a session already using the local
+  home, a change to the local model settings cannot be used until the App is
+  quit and reopened; the local connection is unavailable meanwhile. Changing
+  an existing server address requires the local connection to be prepared
+  first so Codex can sign out, even if no key was saved. After key entry has
+  been begun in a Codex session, including an entry that was cancelled or
+  failed, the address cannot be changed until Codex is restarted for the
+  local model home. After the App has ended unexpectedly, the local
+  connection is refused while an earlier Codex process for the local model
+  home, or a program it started, still holds the App's lock for that home.
+  The App cannot tell which program holds it or when it will release it.
+  Quitting and reopening the App does not end that earlier process. If an
+  otherwise
+  valid local-home configuration is changed outside the App to name an
+  address different from the one recorded for its saved key, preparation is
+  refused and the App offers to restore the recorded address. A local-home
+  configuration that is no longer in the App's own form cannot be read or
+  repaired from the App. If the App's record of the address a saved key was
+  entered for is removed outside the App, the App refuses preparation and
+  further requests and replies that could send the key in that home, and
+  offers no repair; this does not stop work already running in Codex, and a
+  turn that was waiting for an answer stays waiting until it is interrupted. The protection of a saved key rests on the
+  files of the local model home being changed only by the App and its Codex:
+  it does not survive their removal or replacement from outside while an
+  earlier Codex process of that home is still running.
+- **Why:** at the selected supplier version, Codex runs conversations only on
+  the provider its process started with, so account and local access use
+  separate homes; the App does not reconfigure a prepared local connection in
+  place. The release requires a local credential, limits the server to this
+  machine to keep the key and conversation content from travelling off it
+  without the protections that requires, does not prepare or start the local
+  home under a system or managed Codex configuration because the App cannot
+  establish what such a layer would do to that home's settings, and requires a prepared local
+  connection to confirm removal of the saved key before an address change so
+  that key cannot be sent to another server. For the same reason it starts
+  Codex for the local model home only when it can take that home's lock,
+  which an earlier Codex process and any program that inherited it hold
+  until they let go of it or end, and does not move the address under a key
+  entry that Codex may still be saving.
+- **What the person does instead:** set the local server's address and model
+  name in the App's local model settings and run the model server on the
+  same machine with a key. To change the address, prepare the local
+  connection (and if key entry was begun in this Codex session, restart Codex
+  for the local model home first), save the new address, quit and reopen the
+  App, prepare the connection again and enter the key again. Where the App
+  offers to restore the address a saved key was entered for, use that; it
+  keeps the key. To use a different model name,
+  save it, quit and reopen the App, and start a new conversation. If the
+  refusal that the App's lock for the local model home is held continues for
+  more than a few minutes, a Codex process started earlier for that home
+  (named `codex`), a program it started, or another copy of the App still
+  holds it; the App cannot tell which program it is. End that program in
+  Activity Monitor, or log out of the Mac and back in.
+- **Basis:** DEL-01-05 (REQ-003, REQ-010, AC-003, AC-005, AC-008, AC-011);
+  PRD V4-APP-02.
+
+### LIM-014: An interrupted read log stops the records capability answering reads until the person renames it
+
+- **Id:** LIM-014
+- **Exit criteria:** 15
+- **What is unavailable:** reads through a project's records capability, once
+  an interruption has left the project's read log ending in a read that was
+  not recorded completely (the App was stopped, or the Mac lost power, while
+  it was recording a read). Until the person acts, every read asked for
+  through that capability is refused, and the refusal, shown in full with the
+  conversation records capability, says why. This does not prevent agents
+  reading files directly. Nothing already recorded is lost: the cut-short
+  read was never answered, and every read that was answered stays in the read
+  log.
+- **Why:** every read asked for through the records capability is recorded
+  before it is answered, and the App does not cut, close or rewrite a line of
+  the read log, so it cannot record another read after an unfinished one. In
+  4.0.0 the App does not set the file aside by itself.
+- **What the person does instead:** rename the read log, in the same folder,
+  to exactly the name the refusal gives (it begins `records-reads.jsonl.torn-`);
+  the refusal names the file with its full path. The App then starts a new
+  read log at the next read. The renamed file stays in the records store and
+  is included byte for byte in exports of the project's records. The records
+  capability does not use it to answer reads.
+- **Basis:** DEL-04-03 (REQ-011, AC-012; REQ-012).

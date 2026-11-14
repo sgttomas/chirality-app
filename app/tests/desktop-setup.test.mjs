@@ -23,7 +23,7 @@ const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {DesktopSetupPanel} = loadSrc('DesktopSetupPanel');
-const {App} = loadSrc('App');
+const {App, FIRST_READ_PATIENCE_MS} = loadSrc('App');
 const props = node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
 const nodes = (c,tag)=>c.querySelectorAll(node=>node.localName===tag);
 const region = (c,label)=>c.querySelectorAll(node=>node.getAttribute('aria-label')===label)[0];
@@ -503,6 +503,32 @@ test('first use: a later project edit or no-project supersedes an in-flight Brow
     });
   }
 });
+test('a saved setup whose Codex home is held is not shown as setup being needed',async()=>{
+  const reason='Desktop request unavailable: Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.';
+  const view={...packet.dataHeld,launch:{state:'home-held',reason,operationalData:'not admitted; nothing operational started'}};
+  await mountedWelcome(view,()=>assert.fail('no IPC while a home is held'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/A Codex home this App uses is held/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,reason);
+    assert.match(welcome.textContent,/Nothing operational was started\. This launch did not change your saved setup\. Quit this Chirality instance \(⌘Q\), then reopen it after the process holding the home has released it\./);
+    assert.doesNotMatch(welcome.textContent,/saved setup is unchanged|open Chirality again when/,'no claim that nobody changed it, and the quit is said');
+    assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder|Set up your workspace/i,'setup is not offered or said to be needed');
+    assert.equal(nodes(c,'button').length,0,'no setup action is offered');
+    assert.deepEqual(calls,[]);
+  });
+});
+test('a second App on data another process holds says what was observed, names no owner and offers no setup',async()=>{
+  const view=packet.dataHeld;
+  assert.equal(view.launch.state,'data-held');
+  await mountedWelcome(view,()=>assert.fail('no IPC while another process holds this data'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/This App's data is in use/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,'Chirality did not start here: its data is held by another process on this computer. Nothing operational was started. If a Chirality window is already open, use it; otherwise quit whatever is using this data, then open Chirality again.');
+    assert.doesNotMatch(welcome.textContent,/already running|another Chirality App|nothing was started or changed/i,'no owner, window or unchanged state is asserted');
+    assert.equal(nodes(c,'button').length,0,'no setup action is offered');
+    assert.deepEqual(calls,[]);
+  });
+});
 test('the mounted App shows only the welcome while setup is required and keeps confirmation content visible',async()=>{
   const host={state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}};
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
@@ -525,4 +551,175 @@ test('the mounted App shows only the welcome while setup is required and keeps c
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 });
+test('a refused start at launch is shown in the connection status with its reason, without pressing Start, only for its home and only while no start is under way',async()=>{
+  const reason='Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.';
+  const host={state:'absent',generation:null,threads:[],desktopSetup:{...packet.retained.initial},codexHome:'app-home:invented-shown',lastStartRefusal:{reason,actor:'app-startup',at:'invented',home:'app-home:invented-shown',attempt:null},roleLimits:{account:{roles:[]}}};
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
+  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
+  const calls=[];
+  const idle=installIdleNativeWaiting(async(command)=>{
+    calls.push(command);
+    if(command==='host_status')return structuredClone(host);if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    return null;
+  });
+  try {
+    await React.act(()=>root.render(React.createElement(App)));
+    const status=region(c,'Workspace connection status');
+    assert.match(status.textContent,/Codex is not connected/);
+    assert.equal(region(c,'Why Codex was not started').textContent,reason);
+    assert.ok(!calls.includes('host_start'),'shown without a start being pressed');
+    const poll=async()=>React.act(async()=>{for(const t of timers.values())await t.fn();});
+    // A start under way: an earlier refusal is not shown beside it, even if a host still carried one.
+    for(const state of ['verifying','spawning','handshaking','ready','stopping']){
+      host.state=state;await poll();
+      assert.equal(region(c,'Why Codex was not started'),undefined,state);
+    }
+    // A refusal for another home is not shown for this one.
+    host.state='refused';host.lastStartRefusal={...host.lastStartRefusal,home:'app-home:invented-other'};await poll();
+    assert.equal(region(c,'Why Codex was not started'),undefined,'another home');
+    // A reason that does not say so itself is introduced as a refusal to start.
+    host.lastStartRefusal={reason:'The Codex home does not exist, so Codex was not started on it.',home:'app-home:invented-shown',attempt:null};await poll();
+    assert.equal(region(c,'Why Codex was not started').textContent,'Codex was not started: The Codex home does not exist, so Codex was not started on it.');
+    host.state='ready';host.lastStartRefusal=null;host.generation={appSession:'s',home:'h',spawnCounter:1};
+    await poll();
+    assert.equal(region(c,'Why Codex was not started'),undefined,'gone once Codex is connected');
+  } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
+});
 const guidance2=c=>c.querySelectorAll(n=>n.getAttribute('id')==='first-use-next')[0];
+
+// Before the App's first host read: neither the welcome nor the workspace is in the document, only a
+// line that says the App is starting; a failed first read says so and offers to try again.
+async function mountedBeforeFirstRead(check) {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval,setTimeout:globalThis.setTimeout,clearTimeout:globalThis.clearTimeout};
+  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
+  // The App's first-read patience timeout is held here and fired by the test; every other timeout runs as usual.
+  const patience=new Map();
+  globalThis.setTimeout=(fn,ms,...rest)=>{if(ms===FIRST_READ_PATIENCE_MS){const id={patience:++timer};patience.set(id,fn);return id;}return previous.setTimeout(fn,ms,...rest);};
+  globalThis.clearTimeout=id=>{if(patience.has(id))patience.delete(id);else previous.clearTimeout(id);};
+  const elapse=()=>React.act(async()=>{for(const fn of patience.values())fn();patience.clear();});
+  const reads=[],calls=[];
+  const idle=installIdleNativeWaiting(async(command)=>{
+    calls.push(command);
+    if(command==='host_status')return new Promise((resolve,reject)=>reads.push({resolve,reject}));
+    if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  const poll=()=>React.act(async()=>{for(const t of timers.values())t.fn();});
+  const settle=(outcome)=>React.act(async()=>{const read=reads.at(-1);if(outcome instanceof Error)read.reject(outcome);else read.resolve(structuredClone(outcome));});
+  try { await React.act(()=>root.render(React.createElement(App))); await check({c,reads,calls,poll,settle,elapse,patience}); idle.assertClean(c); }
+  finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
+}
+const starting=c=>c.querySelectorAll(n=>n.getAttribute('role')==='status'&&n.textContent==='Starting Chirality…');
+const workspaceAbsent=(c,state)=>{
+  assert.ok(!nodes(c,'h1').some(n=>n.textContent==='Chirality'),`${state}: the workspace heading is not in the document`);
+  for(const label of ['Workspace navigation','Workspace connection status','Run a workflow','Workspace tools','Welcome'])assert.ok(!region(c,label),`${state}: ${label}`);
+  assert.equal(c.querySelectorAll(n=>n.getAttribute('id')==='view-conversation').length,0,`${state}: no workspace view, hidden or not`);
+};
+const readyHost=()=>({state:'ready',generation:{appSession:'s',home:'h',spawnCounter:1},threads:[],desktopSetup:{...packet.retained.initial},roleLimits:{account:{roles:[]}}});
+
+test('before the first host read, only the starting line is shown: no workspace heading or control, and no welcome',async()=>{
+  await mountedBeforeFirstRead(async({c,reads})=>{
+    assert.equal(reads.length,1,'the first read is under way');
+    workspaceAbsent(c,'not yet read');
+    assert.equal(nodes(c,'button').length,0,'no control can be reached or counted');
+    assert.equal(starting(c).length,1,'one status line says the App is starting');
+    const shown=nodes(c,'main')[0].childNodes.filter(n=>n.localName!=='style').map(n=>n.textContent).join('');
+    assert.equal(shown,'Starting Chirality…','nothing else is shown');
+  });
+});
+
+test('the first read decides: setup required shows the welcome with the workspace hidden, as before',async()=>{
+  await mountedBeforeFirstRead(async({c,settle})=>{
+    await settle({state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}});
+    assert.equal(starting(c).length,0);
+    assert.ok(!!region(c,'Welcome'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Welcome to Chirality'));
+    const hiddenUp=node=>{for(let n=node;n;n=n.parentNode)if(props(n)?.hidden)return true;return false;};
+    for(const label of ['Workspace navigation','Workspace connection status','Run a workflow'])assert.equal(hiddenUp(region(c,label)),true,label);
+  });
+});
+
+test('the first read decides: setup not required shows the workspace and no welcome',async()=>{
+  await mountedBeforeFirstRead(async({c,settle})=>{
+    await settle(readyHost());
+    assert.equal(starting(c).length,0);
+    assert.ok(!region(c,'Welcome'));
+    const heading=nodes(c,'h1').find(n=>n.textContent==='Chirality');
+    assert.ok(!!heading);
+    for(let n=heading;n;n=n.parentNode)assert.notEqual(props(n)?.hidden,true,'the workspace is not hidden');
+    assert.ok(!!region(c,'Workspace navigation'));
+  });
+});
+
+test('a failed first read says so and offers to try again; loading never conceals it, and a later success shows the workspace',async()=>{
+  await mountedBeforeFirstRead(async({c,reads,calls,poll,settle})=>{
+    await settle(new Error('invented raw diagnostic'));
+    workspaceAbsent(c,'failed');
+    assert.equal(starting(c).length,0,'the starting line does not stand in for a failure');
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0]?.textContent,'Chirality could not read its own state. It keeps trying; you can also try again now.');
+    assert.doesNotMatch(c.textContent,/invented raw diagnostic/,'the raw diagnostic is not shown');
+    assert.deepEqual(nodes(c,'button').map(n=>n.textContent),['Try again']);
+    // A scheduled read that is still under way leaves the failure shown.
+    await poll();
+    assert.equal(reads.length,2);
+    assert.ok(!!button(c,'Try again'),'still failed while a later read is under way');
+    await settle(new Error('invented again'));
+    assert.ok(!!button(c,'Try again'));
+    const before=calls.filter(command=>command==='host_status').length;
+    await React.act(async()=>{props(button(c,'Try again')).onClick();});
+    assert.equal(calls.filter(command=>command==='host_status').length,before+1,'Try again makes the read again');
+    await settle(readyHost());
+    assert.ok(!button(c,'Try again'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));
+  });
+});
+
+test('a read that fails after one succeeded leaves the workspace shown, as before',async()=>{
+  await mountedBeforeFirstRead(async({c,poll,settle})=>{
+    await settle(readyHost());
+    await poll();await settle(new Error('invented later failure'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));
+    assert.ok(!button(c,'Try again'));
+  });
+});
+
+test('a first read that neither arrives nor fails: the starting line, then after the patience time the slow line with Try again; a read arriving later shows the page',async()=>{
+  assert.equal(FIRST_READ_PATIENCE_MS,10000,"App Agent 0's number");
+  const slowLine='Chirality is taking longer than usual to start. It keeps trying; you can also try again now.';
+  const slow=c=>c.querySelectorAll(n=>n.getAttribute('role')==='status'&&n.textContent===slowLine);
+  await mountedBeforeFirstRead(async({c,reads,calls,poll,settle,elapse,patience})=>{
+    assert.equal(patience.size,1,'one patience timeout is set at launch');
+    assert.equal(starting(c).length,1);assert.equal(slow(c).length,0);
+    workspaceAbsent(c,'not yet read');assert.equal(nodes(c,'button').length,0);
+    // The status timer keeps issuing reads while the first is unanswered.
+    await poll();assert.equal(reads.length,2,'a new read starts while the first is unanswered');
+    await elapse();
+    assert.equal(starting(c).length,0,'the starting line is replaced');
+    assert.equal(slow(c).length,1,'the slow line says the App is taking longer than usual');
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert').length,0,'nothing failed, so nothing says it did');
+    workspaceAbsent(c,'slow');
+    assert.deepEqual(nodes(c,'button').map(n=>n.textContent),['Try again']);
+    const before=calls.filter(command=>command==='host_status').length;
+    await React.act(async()=>{props(button(c,'Try again')).onClick();});
+    assert.equal(calls.filter(command=>command==='host_status').length,before+1,'Try again issues a read while earlier ones are unanswered');
+    workspaceAbsent(c,'slow after Try again');
+    await settle(readyHost());
+    assert.equal(slow(c).length,0);assert.ok(!button(c,'Try again'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));assert.ok(!region(c,'Welcome'));
+  });
+});
+
+test('after the patience time, a first read that arrives and needs setup shows the welcome as otherwise',async()=>{
+  await mountedBeforeFirstRead(async({c,elapse,settle})=>{
+    await elapse();
+    await settle({state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}});
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Welcome to Chirality'));
+    assert.ok(!button(c,'Try again'));
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='status'&&/taking longer than usual/.test(n.textContent)).length,0);
+  });
+});

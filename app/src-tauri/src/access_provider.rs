@@ -13,6 +13,8 @@ pub(crate) struct ProviderAdmission {
     config_link: Option<crate::child_roles::ConfigLink>,
 }
 struct ChildStartGuard { namespace: crate::child_roles::Namespace, config: Value, files: Vec<crate::child_roles::ChildSupply>, supplier: Value }
+/// The marker of a proof made by `cloud_continuation_admission`; no entry the person chooses has it.
+const CLOUD_CONTINUATION: &str = "cloud-continuation";
 const LIMIT: &str = "Access entry unavailable: current provider configuration could not be established; no thread/start sent";
 fn unavailable() -> String {
     LIMIT.into()
@@ -40,6 +42,10 @@ const PROVIDER_FIELDS: &[&str] = &[
     "supports_standalone_web_search",
     "project_id", "location", "credential_file", "capabilities",
 ];
+/// Before either reading sentence when a start's child-role reread is refused: what is already
+/// known (settled wording). `prepare` publishes only the child roles it could supply, and an
+/// identical file already present is accepted, hence "child-role files for this role are in place".
+pub(crate) const CHILD_ROLES_IN_PLACE: &str = "The configuration was read and child-role files for this role are in place in the App's data. The conversation was not started, because the configuration must be read again first. ";
 const OBSERVATION_LIMIT: &str = "Configured provider observation unavailable; private values and diagnostics withheld. Manual explicit choices remain independent and Start requires a fresh private reading.";
 pub(super) struct PrivateConfigReading {
     pub(super) source: SourceRequest,
@@ -355,7 +361,7 @@ fn project_configured_providers(
             return Err(fail());
         }
         let endpoint = definition.get("base_url").and_then(public_endpoint);
-        if classify(&reading.config, "local-provider", id).is_err()
+        if classify(&reading.config, "local-provider", id, None).is_err()
             || !public_id(id)
             || endpoint.is_none()
             || reflections.excludes(id)
@@ -451,7 +457,7 @@ pub(super) fn create_offer_fields(
                 .unwrap()
                 .iter()
                 .any(|(key, value)| definition.get(key) != Some(value))
-            || classify(&read.config, "local-provider", id).is_err()
+            || classify(&read.config, "local-provider", id, None).is_err()
             || ["model_catalog_url", "env_key_instructions"]
                 .iter()
                 .any(|key| !definition[*key].is_null())
@@ -539,7 +545,27 @@ fn url_without_credentials(value: &Value) -> Result<(), String> {
     }
     Ok(())
 }
-fn classify(result: &Value, entry: &str, provider: &str) -> Result<(), String> {
+/// The refusal of a cloud entry whose home's Codex does not report the built-in provider. It
+/// does not assert the cause.
+pub(crate) const BUILT_IN_PROVIDER_UNREPORTED: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/start sent";
+/// As BUILT_IN_PROVIDER_UNREPORTED, for a saved conversation continued from history.
+pub(crate) const BUILT_IN_PROVIDER_UNREPORTED_RESUME: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/resume sent";
+/// As BUILT_IN_PROVIDER_UNREPORTED, for a fork of a conversation.
+pub(crate) const BUILT_IN_PROVIDER_UNREPORTED_FORK: &str = "Access entry unavailable: this home's Codex does not report the built-in OpenAI provider (a managed Codex requirement may name another); no thread/fork sent";
+/// One rule for every cloud admission (a start, an account Continue or fork): the configuration
+/// reading reports the built-in provider. Its definitions are a readable object (missing, null or
+/// any other kind is not established) with no definition named `openai`, which would shadow the
+/// built-in provider, and the provider in force is `openai`. A start reaches the first part through
+/// `classify`'s cloud arm, which is this same test of the definitions.
+pub(super) fn cloud_reading_reports_built_in(result: &Value) -> bool {
+    classify(result, "chatgpt-account", "openai", None).is_ok() && result["config"]["model_provider"] == "openai"
+}
+fn classify(
+    result: &Value,
+    entry: &str,
+    provider: &str,
+    local: Option<&crate::native_local_provider::LocalSettings>,
+) -> Result<(), String> {
     let definitions = result["config"]
         .get("model_providers")
         .and_then(Value::as_object)
@@ -638,7 +664,11 @@ fn classify(result: &Value, entry: &str, provider: &str) -> Result<(), String> {
                 return Err(unavailable());
             }
             if ["project_id", "location", "credential_file", "capabilities"].iter().any(|key| def.get(*key).is_some_and(|v| !v.is_null())) { return Err(unavailable()); }
-            if entry == "local-provider-keyed" && (provider != crate::native_local_provider::PROVIDER || def.get("base_url") != Some(&json!(crate::native_local_provider::ENDPOINT)) || def.get("name") != Some(&json!("oMLX")) || def.get("model_catalog_url").is_none_or(|v| !v.is_null())) { return Err(unavailable()); }
+            // The dedicated local entry: exactly the definition generated from the settings in force.
+            if entry == "local-provider-keyed" {
+                let settings = local.ok_or_else(unavailable)?;
+                if provider != crate::native_local_provider::PROVIDER || def.get("base_url") != Some(&json!(settings.endpoint())) || def.get("name") != Some(&json!("oMLX")) || def.get("model_catalog_url").is_none_or(|v| !v.is_null()) { return Err(unavailable()); }
+            }
             let carries = |key: &str| def.get(key).is_some_and(|v| !v.is_null());
             if AUTH.iter().any(|key| carries(key))
                 || def.get("requires_openai_auth") != Some(&json!(entry == "local-provider-keyed"))
@@ -713,10 +743,19 @@ impl Host {
         if cwd.is_empty() || provider.trim().is_empty() || model.trim().is_empty() {
             return Err(unavailable());
         }
+        // The settings frozen for this Codex process, never the file's current contents.
+        let local = if entry == crate::native_local_provider::ENTRY { Some(self.local_settings()?) } else { None };
+        // A superseded local home admits no start, Continue or fork: refuse before any reading is sent.
+        if local.is_some() && self.local_superseded() { return Err(crate::native_local_provider::RELAUNCH.into()); }
         let reading = self.private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Admission)?;
-        classify(&reading.config, entry, provider)?;
-        if entry == crate::native_local_provider::ENTRY {
-            crate::native_local_provider::fixed_selection(entry, provider, model)?;
+        classify(&reading.config, entry, provider, local.as_ref())?;
+        // The cloud entries rest on the provider this home's Codex itself reports, not on the App's
+        // own session setting: a managed requirement is applied before that setting.
+        if matches!(entry, "chatgpt-account" | "api-key") && !cloud_reading_reports_built_in(&reading.config) {
+            return Err(BUILT_IN_PROVIDER_UNREPORTED.into());
+        }
+        if let Some(settings) = &local {
+            crate::native_local_provider::fixed_selection(settings, entry, provider, model)?;
             self.require_local_destination(generation)?;
             if reading.config["config"]["model_provider"] != provider || reading.config["config"]["model"] != model || reading.config["config"]["cli_auth_credentials_store"] != "file" || reading.config["config"]["features"]["plugins"] != false || reading.config["config"]["features"]["api_key_model_discovery"] != false { return Err(unavailable()); }
         }
@@ -749,8 +788,11 @@ impl Host {
         if cwd.is_empty() {
             return Err(unavailable());
         }
+        // One absolute deadline: the wait for the generation's reservation, for the frame writer
+        // and for the reply (`reading_gate`).
+        let deadline = std::time::Instant::now() + wait;
         let source = self
-            .request_begin_with_access_offer(
+            .request_begin_with_access_offer_guarded(
                 "config/read",
                 json!({"cwd":cwd,"includeLayers":true}),
                 match purpose {
@@ -770,13 +812,17 @@ impl Host {
                 None,
                 true,
                 None,
+                None,
+                None,
+                Some(deadline),
+                None,
             )
-            .map_err(|_| unavailable())?;
+            .map_err(|e| reading_gate::reading_or(e, unavailable))?;
         #[cfg(test)]
         if let Some(hook) = self.before_provider_wait.lock().unwrap().as_ref() {
             hook(self, &source);
         }
-        let received = source.receiver.lock().unwrap().recv_timeout(wait);
+        let received = source.receiver.lock().unwrap().recv_timeout(deadline.saturating_duration_since(std::time::Instant::now()));
         // End every private wait, including malformed/error/timeout/stale paths.
         // Late replies arrive reduced. Drain only this receipt's receiver.
         self.delegation_wait_ended(&source);
@@ -813,7 +859,7 @@ impl Host {
     ) -> Result<Value, String> {
         let read = self
             .private_provider_config_read(generation, cwd, wait, PrivateConfigPurpose::Observation)
-            .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
+            .map_err(|e| reading_gate::reading_or(e, || OBSERVATION_LIMIT.to_owned()))?;
         self.check_provider_read(&self.inner.0.lock().unwrap(), &read.source, cwd)
             .map_err(|_| OBSERVATION_LIMIT.to_owned())?;
         let view = project_configured_providers(&read, project)?;
@@ -822,8 +868,9 @@ impl Host {
         Ok(view)
     }
     /// Non-authoritative current revision for the settings reading and the
-    /// native confirmations: the latest configuration read of any kind that
-    /// named this folder, absent after an App configuration write.
+    /// native confirmations: the newest reading of the generation, when it is a
+    /// configuration read that named this folder; absent after a later reading
+    /// of any folder or none, a requirements reading, or an App configuration write.
     /// This is generated source metadata, never a private configuration value.
     pub(crate) fn configured_provider_revision(&self, generation: &Value, cwd: &str) -> Value {
         self.read_revision(generation, cwd, false)
@@ -846,7 +893,8 @@ impl Host {
         {
             return Value::Null;
         }
-        if private_reads_only { &i.provider_observation_revisions } else { &i.provider_read_revisions }
+        if !private_reads_only { return Self::reading_revision(&i, generation, cwd); }
+        i.provider_observation_revisions
             .get(cwd)
             .filter(|(g, _)| g == generation)
             .map(|(_, revision)| json!(revision))
@@ -863,8 +911,9 @@ impl Host {
             .source_requests
             .get(&source.request_id().to_string())
             .ok_or_else(unavailable)?;
-        if i.provider_read_revisions.get(cwd)
-            != Some(&(source.generation.clone(), source.request_ref.clone()))
+        // The newest reading of the generation, whatever folder any later one named; and still
+        // bound to its own folder, source and parameters (below).
+        if !Self::reading_is_current(i, &source.generation, &source.request_ref)
             || !Arc::ptr_eq(&actual, &self.inner)
             || i.generation != source.generation
             || i.state != "ready"
@@ -962,13 +1011,16 @@ impl Host {
             // Config-layer/source coherence is a separate requirement from an
             // equal filesystem rereading. A newer native read always replaces
             // the provider proof; a changed response never promotes absence.
+            // Refused here, after a completed configuration reading and with this role's child-role
+            // files in place in the App's data (`child_roles::prepare` keeps only published ones):
+            // what is known is stated first, then the reading's sentence.
             let refreshed = self.provider_admission_read(
                 &proof.source.generation,
                 &proof.cwd,
                 &proof.entry,
                 &proof.provider,
                 &proof.model,
-            )?;
+            ).map_err(|e| if reading_gate::reading_sentence(&e) { format!("{CHILD_ROLES_IN_PLACE}{e}") } else { e })?;
             let stable = refreshed.config == proof.config
                 && namespace.as_ref().is_some_and(|n| n.recheck().is_ok());
             let link = proof.config_link.clone();
@@ -1080,42 +1132,183 @@ fn child_supplier_subject(i: &Inner) -> Value {
     json!({"identity":i.version_identity,"canonicalInventory":i.successor_status.as_ref().map(|s|json!({"generation":s["verificationGeneration"],"manifest":s["inventory"]["manifest_sha256"]}))})
 }
 
-/// Constructed only for the dedicated local HomeSession, never hydrated from public DTOs.
-pub(super) struct LocalProviderBinding { home: String, cwd: String }
+/// Constructed only for the dedicated local HomeSession, never hydrated from public DTOs. The
+/// settings read when the home was bound are frozen for this Host: every Codex process it starts
+/// carries their session flags, and every guard compares with them. `superseded` is set, holding
+/// the frame writer lock and then Inner (`Host::supersede_local`), when the App changes the settings
+/// file during this session, and is never cleared:
+/// from then on nothing that can reach a model or load a conversation is admitted in this home.
+/// `plan` is the bound home: every request that can make this Codex send to the model server
+/// reads its settings file and key-address record again, through `check_local_files`.
+/// `key_seen`: this bound session has seen a key (a check found the key file present, or a key
+/// entry was begun or acknowledged by Codex). Codex may hold that key in memory after its file is
+/// gone, so from then on every check requires the App's record to name the address in force. Set
+/// under Inner; never cleared: only a new binding (a new bound session) starts without it.
+pub(super) struct LocalProviderBinding { home: String, cwd: String, settings: crate::native_local_provider::LocalSettings, superseded: bool, plan: crate::home_resources::OwnedHomePlan, key_seen: bool, #[cfg(test)] _scratch: Option<ScratchHome> }
+/// A test binding without a caller's plan gets its own seeded home, removed with the binding.
 #[cfg(test)]
-impl LocalProviderBinding { pub(super) fn for_test(home:&str,cwd:&str)->Self { Self{home:home.into(),cwd:cwd.into()} } }
+pub(super) struct ScratchHome(std::path::PathBuf);
+#[cfg(test)]
+impl Drop for ScratchHome { fn drop(&mut self) { let _ = std::fs::remove_dir_all(&self.0); } }
+#[cfg(test)]
+impl LocalProviderBinding {
+    pub(super) fn for_test(home:&str,cwd:&str)->Self { Self::with_settings(home,cwd,crate::native_local_provider::LocalSettings::legacy()) }
+    /// A binding whose files are a private scratch home prepared with `settings` (no key file).
+    pub(super) fn with_settings(home:&str,cwd:&str,settings:crate::native_local_provider::LocalSettings)->Self {
+        let root=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("local-binding-").unwrap());
+        std::fs::create_dir(&root).unwrap();
+        let plan=crate::home_resources::OwnedHomePlan::new(root.clone(),root.join("local"),crate::home_resources::HomeClass::LocalProvider,None).unwrap();
+        crate::native_local_provider::prepare_for_test(&plan,&settings);
+        Self{home:home.into(),cwd:cwd.into(),settings,superseded:false,plan,key_seen:false,_scratch:Some(ScratchHome(root))}
+    }
+    /// A binding to the caller's own prepared home, as `bind_local_destination` makes one.
+    pub(super) fn for_plan(plan:&crate::home_resources::OwnedHomePlan,cwd:&str,settings:crate::native_local_provider::LocalSettings)->Self {
+        Self{home:plan.opaque_home_id(),cwd:cwd.into(),settings,superseded:false,plan:plan.clone(),key_seen:false,_scratch:None}
+    }
+}
+/// What a superseded binding still admits: requests that send nothing to a model and load no
+/// conversation. They are also the requests that need not read the home's files again.
+fn local_read_only(method:&str)->bool {
+    matches!(method,"turn/interrupt"|"account/read"|"account/logout"|"config/read"|"configRequirements/read"|"modelProvider/capabilities/read"|"collaborationMode/list"|"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/loaded/list"|"thread/name/set"|"thread/archive"|"thread/unarchive"|"thread/unsubscribe")
+}
 impl Host {
     pub(crate) fn bind_local_destination(&self, config: &HostConfig, plan: &crate::home_resources::OwnedHomePlan) -> Result<(), String> {
-        crate::native_local_provider::check(plan)?;
-        let expected = crate::native_local_provider::config(config,plan)?;
-        if config.codex_home != plan.native_path() || config.session_flags != expected.session_flags
+        let settings = crate::native_local_provider::current(plan)?;
+        crate::native_local_provider::require_no_admin_layers()?;
+        if config.codex_home != plan.native_path() || config.session_flags != crate::native_local_provider::session_flags(&settings)
             || config.process_lock.as_deref() != Some(plan.native_path().join(crate::native_local_provider::PROCESS_LOCK).as_path()) { return Err(unavailable()); }
         let mut i=self.inner.0.lock().map_err(|_| unavailable())?;
         if i.local_provider.is_some() || i.state!="absent" || !i.generation.is_null() { return Err(unavailable()); }
-        i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into()}); Ok(())
+        i.local_provider=Some(LocalProviderBinding{home:plan.opaque_home_id(),cwd:config.cwd.to_str().ok_or_else(unavailable)?.into(),settings,superseded:false,plan:plan.clone(),key_seen:false,#[cfg(test)] _scratch:None}); Ok(())
+    }
+    /// The settings file changed through the App while this home is bound: refuse every model or
+    /// conversation-loading request in it for the rest of this process. Never cleared.
+    ///
+    /// The mark is set while holding the frame writer lock (`Host::frame_write`), which every write
+    /// to this Codex's input holds from its final admission through the end of its write. So a
+    /// write is either wholly written before the mark or admitted after it and refused, with
+    /// nothing written. The save holds nothing else this Host takes while it waits for that lock
+    /// (frame writer, then Inner, never the reverse). It waits at most `wait`; at the bound the mark
+    /// is not set and the save is refused with `native_local_provider::WRITE_IN_PROGRESS`. That
+    /// bounds this step only. The save's own sign-out and account requests come before it and wait
+    /// for the frame writer on the ordinary request route, which has no deadline, so a Codex that
+    /// has stopped reading its input stalls the save there for as long as that write is blocked.
+    /// Stop and Restart end such a stall: their interrupts wait for this lock only up to the stop
+    /// limit (`Host::lock_within`), then the Codex process is ended, which ends the blocked write and
+    /// with it the save's request (the save is refused and changes nothing). The menu quit is refused
+    /// while the save runs, which holds the App's key operation lock. Once set, the mark is final, and
+    /// asking again returns at once without waiting.
+    pub(crate) fn supersede_local(&self, wait: Duration) -> Result<(), String> {
+        {
+            let i = self.inner.0.lock().map_err(|_| unavailable())?;
+            let binding = i.local_provider.as_ref().ok_or_else(|| crate::native_local_provider::LIMIT.to_owned())?;
+            if binding.superseded { return Ok(()); }
+        }
+        #[cfg(test)] {let hook=self.supersede_waiting.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        let deadline = std::time::Instant::now() + wait;
+        let _writer = loop {
+            match self.frame_write.try_lock() {
+                Ok(writer) => break writer,
+                // A writer that panicked holds nothing in progress.
+                Err(std::sync::TryLockError::Poisoned(poisoned)) => break poisoned.into_inner(),
+                Err(std::sync::TryLockError::WouldBlock) if std::time::Instant::now() < deadline => std::thread::sleep(Duration::from_millis(5)),
+                Err(std::sync::TryLockError::WouldBlock) => return Err(crate::native_local_provider::WRITE_IN_PROGRESS.to_owned()),
+            }
+        };
+        #[cfg(test)] {let hook=self.supersede_marking.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        let mut i = self.inner.0.lock().map_err(|_| unavailable())?;
+        let binding = i.local_provider.as_mut().ok_or_else(|| crate::native_local_provider::LIMIT.to_owned())?;
+        binding.superseded = true;
+        Ok(())
+    }
+    /// Whether this Host's local binding was superseded; a poisoned lock reads as superseded.
+    pub(crate) fn local_superseded(&self) -> bool {
+        self.inner.0.lock().map_or(true, |i| i.local_provider.as_ref().is_some_and(|b| b.superseded))
+    }
+    /// The local model settings in force for this Host's Codex processes; refused without a local binding.
+    pub(crate) fn local_settings(&self) -> Result<crate::native_local_provider::LocalSettings, String> {
+        self.inner.0.lock().map_err(|_| unavailable())?.local_provider.as_ref().map(|b| b.settings.clone()).ok_or_else(|| crate::native_local_provider::LIMIT.to_owned())
+    }
+    /// The home's files, read again for a request that can make this Codex send to the model
+    /// server: the settings file and the key-address record must still establish the settings in
+    /// force (`native_local_provider::check`, the full check). Any read error refuses. Called with
+    /// neither Inner nor the attachment gate held, immediately before the final locked check of each
+    /// write (and at registration); a read-only request the guard admits while superseded reads
+    /// nothing. Without a local binding there is nothing to read.
+    pub(super) fn check_local_files(&self,method:&str)->Result<(),String> {
+        if local_read_only(method) || !self.local_bound()? { return Ok(()); }
+        self.check_local_home()
+    }
+    /// A reply to one of this Codex's own requests can release a waiting turn to call the model, so
+    /// in the dedicated local home it is written only while the binding is not superseded and the
+    /// files still establish the address in force (the same full check as a send). Without a local
+    /// binding there is nothing to check. Never called with Inner or the attachment gate held.
+    pub(super) fn check_local_reply(&self)->Result<(),String> {
+        if !self.local_bound()? { return Ok(()); }
+        self.check_local_home()
+    }
+    /// Read under Inner by a writer that holds the frame writer lock through its write;
+    /// `supersede_local` sets the mark only while holding that lock. So false here means the whole
+    /// write completes before the mark (and so before the save removes the record); once it returns
+    /// true no reply is admitted in this home again.
+    pub(super) fn local_binding_superseded(i:&Inner)->bool {
+        i.local_provider.as_ref().is_some_and(|b| b.superseded)
+    }
+    fn local_bound(&self)->Result<bool,String> {
+        Ok(self.inner.0.lock().map_err(|_| crate::native_local_provider::LIMIT.to_owned())?.local_provider.is_some())
+    }
+    /// The bound session's full check of the home's files: refused while superseded; otherwise the
+    /// settings file and key-address record must establish the settings in force, and once this
+    /// session has seen a key the record must be present whether or not the key file still is.
+    /// A key file found present is remembered. Refused without a local binding. Reads files with
+    /// no lock held.
+    pub(crate) fn check_local_home(&self)->Result<(),String> {
+        let (plan,settings,seen)={
+            let i=self.inner.0.lock().map_err(|_| crate::native_local_provider::LIMIT.to_owned())?;
+            let b=i.local_provider.as_ref().ok_or(crate::native_local_provider::LIMIT)?;
+            if b.superseded { return Err(crate::native_local_provider::RELAUNCH.into()); }
+            (b.plan.clone(),b.settings.clone(),b.key_seen)
+        };
+        if crate::native_local_provider::check_seen(&plan,&settings,seen)? { self.note_local_key(); }
+        Ok(())
+    }
+    /// Remember that this bound session has seen a key. Never cleared.
+    pub(crate) fn note_local_key(&self) {
+        if let Ok(mut i)=self.inner.0.lock() { if let Some(b)=i.local_provider.as_mut() { b.key_seen=true; } }
     }
     // Pure state/parameter guard. Caller already holds Inner; no recursion, IO or public capture.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn check_local_request(i:&Inner,method:&str,params:&Value,expected:Option<&Value>,handshake:bool,private_credential:bool,private_config:bool,admission:Option<&ProviderAdmission>)->Result<(),String> {
         let Some(binding)=&i.local_provider else {return Ok(());};
         let refuse=||Err(crate::native_local_provider::LIMIT.to_owned());
+        // Superseded settings: only what sends nothing to a model and loads no conversation passes;
+        // a running turn can still be interrupted and the page can still read state.
+        if binding.superseded && !local_read_only(method) {
+            return Err(crate::native_local_provider::RELAUNCH.into());
+        }
         if i.generation["home"]!=binding.home || expected!=Some(&i.generation) || i.server_requests.is_closed(&i.generation) {return refuse();}
         if method=="initialize" {return if handshake && i.state=="handshaking" {Ok(())}else{refuse()};}
         if handshake || i.state!="ready" || !canonical_167(i) {return refuse();}
         for key in ["auth","base_url","model_catalog_url","env_key","experimental_bearer_token","http_headers","env_http_headers","path"] {if params.get(key).is_some_and(|v|!v.is_null()){return refuse();}}
         if params.get("cwd").is_some_and(|v|v!=&json!(binding.cwd)) {return refuse();}
+        let model=binding.settings.model();
         let configured=|key:&str, expected:&str|params.get(key).is_none_or(|v|v.is_null()||v==expected);
-        if !configured("modelProvider",crate::native_local_provider::PROVIDER)||!configured("model",crate::native_local_provider::MODEL){return refuse();}
-        if params["collaborationMode"]["settings"].get("model").is_some_and(|v|v!=crate::native_local_provider::MODEL){return refuse();}
+        if !configured("modelProvider",crate::native_local_provider::PROVIDER)||!configured("model",model){return refuse();}
+        if params["collaborationMode"]["settings"].get("model").is_some_and(|v|v!=model){return refuse();}
         if params.get("config").is_some_and(|v|!v.is_null()) && method!="thread/start" {return refuse();}
-        let local_proof=||admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && p.cwd==binding.cwd && p.provider==crate::native_local_provider::PROVIDER && p.model==crate::native_local_provider::MODEL);
-        let thread_current=||i.threads.iter().rev().find(|t|t["generation"]==i.generation&&t["threadId"]==params["threadId"]&&t["threadId"].is_string()).is_some_and(|t|t["modelProvider"]==crate::native_local_provider::PROVIDER&&t["model"]==crate::native_local_provider::MODEL);
+        let local_proof=||admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && p.cwd==binding.cwd && p.provider==crate::native_local_provider::PROVIDER && p.model==model);
+        let row=||i.threads.iter().rev().find(|t|t["generation"]==i.generation&&t["threadId"]==params["threadId"]&&t["threadId"].is_string());
+        let thread_current=||row().is_some_and(|t|t["modelProvider"]==crate::native_local_provider::PROVIDER&&t["model"]==model);
+        // A local conversation Codex recorded with another model name continues only under that name.
+        if matches!(method,"turn/start"|"turn/steer"|"turn/interrupt"|"thread/fork") && row().is_some_and(|t|t["modelProvider"]==crate::native_local_provider::PROVIDER&&t["model"].is_string()&&t["model"]!=model) {
+            return Err(crate::native_local_provider::EARLIER.into());
+        }
         match method {
             "account/login/start" if private_credential && params["type"]=="apiKey" => Ok(()),
             "account/read" if params.as_object().is_some_and(|p|p.is_empty()) || *params==json!({"refreshToken":false}) => Ok(()),
             "account/logout"|"configRequirements/read"|"modelProvider/capabilities/read"|"collaborationMode/list" if params.as_object().is_some_and(|p|p.is_empty()) => Ok(()),
             "config/read" if private_config && params["cwd"]==binding.cwd && params["includeLayers"]==true && params.as_object().is_some_and(|p|p.len()==2) => Ok(()),
-            "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==crate::native_local_provider::MODEL && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
+            "thread/start" if params["cwd"]==binding.cwd && params["modelProvider"]==crate::native_local_provider::PROVIDER && params["model"]==model && admission.is_some_and(|p|p.entry==crate::native_local_provider::ENTRY && (params.get("config").is_none_or(|c| c.is_null() || c.as_object().is_some_and(|c| c.is_empty())) || p.children.as_ref().is_some_and(|c| params["config"]==c.config))) => Ok(()),
             "turn/start"|"turn/steer"|"turn/interrupt" if thread_current() => Ok(()),
             // Same-role fork only: the exact packet, no instructions/model/config, on a current private reading.
             // Codex loads layered configuration for an explicit request cwd ahead of any history-derived cwd,
@@ -1163,8 +1356,9 @@ impl Host {
         if e["outcome"] != "response-observed-result" || e["sourceCurrent"] != true || e["response"]["result"]["thread"]["id"] != thread || e["response"]["result"]["thread"]["cwd"] != json!(cwd) {
             return Err(crate::native_local_provider::LIMIT.into());
         }
-        use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
-        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, MODEL).map(Some)
+        use crate::native_local_provider::{ENTRY, PROVIDER};
+        let settings = self.local_settings()?;
+        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, settings.model()).map(Some)
     }
     /// Write-time recheck: the admitting reading is still the current private reading for the bound home.
     pub(super) fn check_local_resume_proof(&self, i: &Inner, proof: &ProviderAdmission) -> Result<(), String> {
@@ -1174,32 +1368,94 @@ impl Host {
     }
     /// Fork source: the admitted local row must report the bound cwd (the cwd Codex reloads) and fixed selection.
     pub(super) fn local_fork_admission(&self, generation: &Value, thread: &str) -> Result<Option<ProviderAdmission>, String> {
-        let cwd = {
+        let (cwd, model) = {
             let i = self.inner.0.lock().map_err(|_| unavailable())?;
             let Some(binding) = &i.local_provider else { return Ok(None); };
             let row = i.threads.iter().rev().find(|t| t["generation"] == *generation && t["threadId"] == thread);
-            if row.is_none_or(|t| t["cwd"] != json!(binding.cwd) || t["modelProvider"] != crate::native_local_provider::PROVIDER || t["model"] != crate::native_local_provider::MODEL) {
+            if row.is_none_or(|t| t["cwd"] != json!(binding.cwd) || t["modelProvider"] != crate::native_local_provider::PROVIDER || !t["model"].is_string()) {
                 return Err(crate::native_local_provider::LIMIT.into());
             }
-            binding.cwd.clone()
+            if row.is_some_and(|t| t["model"] != binding.settings.model()) {
+                return Err(crate::native_local_provider::EARLIER.into());
+            }
+            (binding.cwd.clone(), binding.settings.model().to_owned())
         };
-        use crate::native_local_provider::{ENTRY, MODEL, PROVIDER};
-        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, MODEL).map(Some)
+        use crate::native_local_provider::{ENTRY, PROVIDER};
+        self.provider_admission_read(generation, &cwd, ENTRY, PROVIDER, &model).map(Some)
+    }
+    /// A host with no local binding (the account home, the separate key home): before a saved
+    /// conversation is resumed or forked, Codex's own configuration reading for this generation must
+    /// report the built-in provider, the fact the cloud entries' start admission rests on. Read at
+    /// the folder this Codex was started in: the provider is the session setting unless a managed
+    /// requirement names another, and managed requirements do not depend on the folder. A reading
+    /// that cannot be made refuses with the same sentence (no report was obtained). The dedicated
+    /// local home has its own admissions: nothing here (`None`).
+    ///
+    /// The reading is returned as a proof, carried by `thread/resume` or `thread/fork` into the
+    /// registration and final-write checks every start's proof passes (`check_continuation_proof`,
+    /// through `check_provider_read`): a newer reading of the same folder, or a confirmed provider
+    /// write, between this reading and the write refuses with nothing sent.
+    ///
+    /// A reading refused at the generation's one-at-a-time gate (`reading_gate`) was not sent, and
+    /// its sentence is passed on as it is, as a start's admission passes it on: the Continue or fork
+    /// is then known not to have been sent. Every other failure of the reading is `refusal`.
+    pub(super) fn cloud_continuation_admission(&self, generation: &Value, refusal: &str) -> Result<Option<ProviderAdmission>, String> {
+        let cwd = {
+            let i = self.inner.0.lock().map_err(|_| unavailable())?;
+            if i.local_provider.is_some() { return Ok(None); }
+            // No folder, no reading: Codex has not reported the built-in provider.
+            i.server_cwd.clone().filter(|cwd| !cwd.is_empty()).ok_or_else(|| refusal.to_owned())?
+        };
+        let wait = Duration::from_secs(10);
+        #[cfg(test)]
+        let wait = self.continuation_reading_budget.lock().unwrap().unwrap_or(wait);
+        let reading = self
+            .private_provider_config_read(generation, &cwd, wait, PrivateConfigPurpose::Admission)
+            .map_err(|e| reading_gate::reading_or(e, || refusal.to_owned()))?;
+        // The built-in provider by a start's own rule (`cloud_reading_reports_built_in`): a readable
+        // definitions object with no definition named `openai`, and `openai` reported.
+        if !cloud_reading_reports_built_in(&reading.config) { return Err(refusal.into()); }
+        #[cfg(test)] {let hook=self.after_continuation_reading.lock().unwrap().take();if let Some(h)=hook{h(self);}}
+        Ok(Some(ProviderAdmission {
+            source: reading.source,
+            cwd,
+            provider: "openai".into(),
+            model: String::new(),
+            entry: CLOUD_CONTINUATION.into(),
+            config: reading.config,
+            children: None,
+            config_link: None,
+        }))
+    }
+    /// Registration and final-write check of a `thread/resume` or `thread/fork` proof, the same
+    /// check as a start's: the admitting reading is still the current reading of its folder
+    /// (`check_provider_read`). The dedicated local home's proof is its local one; any other host's
+    /// is the cloud continuation's, read at the folder this Codex was started in.
+    pub(super) fn check_continuation_proof(&self, i: &Inner, proof: &ProviderAdmission) -> Result<(), String> {
+        if i.local_provider.is_some() { return self.check_local_resume_proof(i, proof); }
+        if proof.entry != CLOUD_CONTINUATION || proof.provider != "openai" || i.server_cwd.as_deref() != Some(proof.cwd.as_str()) {
+            return Err(unavailable());
+        }
+        self.check_provider_read(i, &proof.source, &proof.cwd)
     }
     /// Operational admission of a local Continue or fork still requires its admitting reading to be current.
     pub(super) fn check_local_reading_current(&self, i: &Inner, source: Option<&SourceRequest>) -> Result<(), String> {
         let Some(binding) = &i.local_provider else { return Ok(()); };
         self.check_provider_read(i, source.ok_or(crate::native_local_provider::LIMIT)?, &binding.cwd)
     }
-    /// A resumed or forked local thread is admitted only when its reported source is the fixed oMLX selection.
+    /// A resumed or forked local thread is admitted only when its reported source is the oMLX
+    /// provider, the bound cwd and the model name in force. One Codex recorded under another model
+    /// name was started under earlier settings and is not continued.
     pub(super) fn check_local_reported(i:&Inner,result:&Value)->Result<(),String>{
-        if i.local_provider.is_none() {return Ok(());}
-        if result["modelProvider"]!=crate::native_local_provider::PROVIDER || result["model"]!=crate::native_local_provider::MODEL || result["cwd"]!=json!(i.local_provider.as_ref().map(|b|b.cwd.as_str())) {return Err(crate::native_local_provider::LIMIT.into());}
+        let Some(binding)=&i.local_provider else {return Ok(());};
+        if result["modelProvider"]!=crate::native_local_provider::PROVIDER || !result["model"].is_string() || result["cwd"]!=json!(binding.cwd) {return Err(crate::native_local_provider::LIMIT.into());}
+        if result["model"]!=binding.settings.model() {return Err(crate::native_local_provider::EARLIER.into());}
         Ok(())
     }
     pub(crate) fn require_local_destination(&self,generation:&Value)->Result<(),String>{
         self.require_canonical_167(generation)?;
         let i=self.inner.0.lock().map_err(|_|unavailable())?;
-        if i.generation!=*generation || i.local_provider.as_ref().is_none_or(|b|generation["home"]!=b.home) {return Err(unavailable());} Ok(())
+        if i.generation!=*generation || i.local_provider.as_ref().is_none_or(|b|generation["home"]!=b.home) {return Err(unavailable());}
+        if i.local_provider.as_ref().is_some_and(|b|b.superseded) {return Err(crate::native_local_provider::RELAUNCH.into());} Ok(())
     }
 }

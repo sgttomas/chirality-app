@@ -1,0 +1,289 @@
+# The reviewed list for tools/ci/check_records_presence.py.
+#
+# Every line of the records modules' files (app/src-tauri/src/records*.rs, except
+# files named *_tests.rs) whose raw text spells exists, is_dir, is_file or
+# is_symlink as a whole word after a dot or ::, in code, a comment or a string
+# alike, is listed here by its file and its own text, with its kind and reason:
+#   metadata  called on metadata already examined; the reason names that examination.
+#   path      called on a path; cannot_tell says what the caller concludes when it
+#             cannot tell, and why that admits nothing.
+#   test      in test code inside a records module; the reason names the module or
+#             attribute it is under. The kind is the reviewer's statement: the check
+#             does not verify that the line is test-only.
+#   comment   inside a comment, not a call; the reason says which.
+#   string    inside a string, not a call; the reason says which. Like test, these
+#             two kinds are the reviewer's statement and are not verified.
+#   outside   a known site outside the records modules, recorded, not scanned.
+# A new such line fails the check until it is asked through records_inspect or listed
+# here with its reason; a listed line no longer found fails it too.
+- file: records.rs
+  kind: path
+  line: if path.exists() {
+  reason: persist_capture_submission chooses between comparing an existing pending capture and creating one.
+  cannot_tell: 'It takes the create branch, which writes through storage::create_json, a create-new publication: an existing
+    file, a link or an unsearchable folder refuses it. So no pending capture is replaced without being compared (test records_store_an_unexaminable_pending_capture_is_never_replaced).'
+- file: records.rs
+  kind: path
+  line: Some((None, set_limits, false, held)) if !log.exists() => (vec![], false, Some(1), 0, 0, None, set_limits, held),
+  reason: 'The record writer: the index knows no owning log for this append.'
+  cannot_tell: It treats the log as new, but this branch is taken only after the index's discovery succeeded and listed no
+    such log; that discovery fails on any examination error and never skips (records_index). A failed discovery takes the
+    other branch, which reads the log alone through read_log_parts (only NotFound is empty). The append then opens the log
+    itself.
+- file: records_access.rs
+  kind: path
+  line: Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists && folder.is_dir() => {}
+  reason: 'The read log''s folder: create_dir said it already exists.'
+  cannot_tell: is_dir() false sends the error on as a refusal ("read log unavailable"); nothing is written.
+- file: records_access.rs
+  kind: path
+  line: let created = !path.exists();
+  reason: 'The read log: whether this append created the file.'
+  cannot_tell: created becomes true, and the only consequence is one extra sync of the parent folder after the append. Nothing
+    is skipped.
+- file: records_access.rs
+  kind: path
+  line: if !read_log.parent().is_some_and(Path::is_dir) {
+  reason: 'RecordsCapability::with_source: the folder of a read log given explicitly, outside the project. Production builds
+    the capability through RecordsCapability::new (lib.rs), whose read log is in the project''s records store; with_source
+    is reached only through RecordsCapability::at and from tests.'
+  cannot_tell: 'is_dir() false, whether the folder is not there, cannot be examined or is a link to something else, refuses
+    the capability ("records read log folder unavailable"): nothing is read and no log is written. A link at the parent that
+    leads to a folder passes here, but every append first runs storage::check_path on the log''s path, which refuses a link
+    it can examine; a read whose append is refused is not answered.'
+- file: records_access.rs
+  kind: metadata
+  line: if !metadata.is_dir() { return Err("records capability physical project is not a directory".into()); }
+  reason: std::fs::metadata of the canonical project path (links already resolved by canonicalize), its error refused.
+- file: records_administration.rs
+  kind: path
+  line: if temporary.exists() {
+  reason: Cleanup of this act's own temporary file after its publication.
+  cannot_tell: The temporary file is left in place. No answer depends on it, and nothing is removed that the act did not make.
+- file: records_export.rs
+  kind: metadata
+  line: if !f.metadata().map_err(io)?.is_file() { return Err("package member is not a regular file".into()); }
+  reason: the metadata of a file handle already opened, its error returned; anything but a regular file is refused.
+- file: records_export.rs
+  kind: metadata
+  line: if !f.metadata().map_err(io)?.is_file() { return Err("package tag is not a regular file".into()); }
+  reason: the metadata of a file handle already opened, its error returned; anything but a regular file is refused.
+- file: records_export.rs
+  kind: metadata
+  line: if meta.is_dir() { walk(root, &path, omit, out)?; }
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_export.rs
+  kind: metadata
+  line: else if meta.is_file() { out.insert(relative(rel)?, crate::records_index::Stamp::of(&meta)); }
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_export.rs
+  kind: metadata
+  line: if meta.is_dir() { sync_dirs(&entry.path)?; }
+  reason: the entry's own metadata from records_inspect::listing, its error refused just above (pull request 279).
+- file: records_export.rs
+  kind: metadata
+  line: else if !meta.is_file() {
+  reason: the entry's own metadata from records_inspect::listing, its error refused just above (pull request 279); a link
+    or any other member refuses.
+- file: records_export.rs
+  kind: path
+  line: if stage.exists() { let _ = std::fs::remove_dir_all(stage); }
+  reason: Cleanup of the export's own staging folder after the attempt.
+  cannot_tell: The staging folder is left in place. The export's result is already decided and returned; nothing outside the
+    staging is touched.
+- file: records_export.rs
+  kind: metadata
+  line: if !meta.is_file() || meta.len() != 0 {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_export.rs
+  kind: metadata
+  line: if !meta.is_dir() {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_export.rs
+  kind: metadata
+  line: if !meta.is_file() {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_export.rs
+  kind: metadata
+  line: if !before.is_file() {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_index.rs
+  kind: metadata
+  line: Ok(m) if m.file_type().is_symlink() => None,
+  reason: symlink_metadata, its error returned or refused where it is made (an error is no stamp, which the index treats as
+    changed).
+- file: records_index.rs
+  kind: metadata
+  line: 'if meta.file_type().is_symlink() { return fail(format!("owning path contains symlink: {}", dir.display())); }'
+  reason: symlink_metadata, its error returned or refused where it is made; discovery fails on any error.
+- file: records_index.rs
+  kind: metadata
+  line: 'if kind.is_symlink() { return fail(format!("owning path contains symlink: {}", path.display())); }'
+  reason: symlink_metadata, its error returned or refused where it is made; discovery fails on any error.
+- file: records_index.rs
+  kind: metadata
+  line: if kind.is_dir() { children.push((path, true)); }
+  reason: symlink_metadata, its error returned or refused where it is made; discovery fails on any error.
+- file: records_index.rs
+  kind: metadata
+  line: if directory && !metadata.is_dir() { return Err(std::io::Error::other("source folder is not a directory")); }
+  reason: the metadata of a file handle already opened, its error returned.
+- file: records_index.rs
+  kind: metadata
+  line: if !directory && !metadata.is_file() { return Err(std::io::Error::other("record log is not a regular file")); }
+  reason: the metadata of a file handle already opened, its error returned.
+- file: records_inspect.rs
+  kind: metadata
+  line: Some(metadata) if metadata.file_type().is_symlink() => {
+  reason: 'The module that answers presence: the listed path''s own metadata, never followed.'
+- file: records_package_controls.rs
+  kind: metadata
+  line: if !before.is_file() || before.nlink() != 1 || before.len() < member.bytes {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_package_identity.rs
+  kind: path
+  line: if !active(intent.store_path()).exists() {
+  reason: 'publish_intent: whether the active association location is there.'
+  cannot_tell: 'It is reached only after active_original has examined that location: with no readable intent it asks records_inspect::presence
+    (an error or a dangling link refuses there); with a readable intent it validates the intent and lists the active folder.
+    What it gates is an exclusive rename (RENAME_EXCL / RENAME_NOREPLACE), which refuses rather than replaces.'
+- file: records_package_import.rs
+  kind: metadata
+  line: if !m.is_dir() {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_package_import.rs
+  kind: metadata
+  line: if !opened.is_file()
+  reason: the metadata of a file handle already opened, its error returned.
+- file: records_query.rs
+  kind: metadata
+  line: Ok(m) if m.is_dir() => {}
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_retention.rs
+  kind: metadata
+  line: if !before.is_file() || before.nlink() != 1 {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_retention.rs
+  kind: metadata
+  line: if !opened.is_file() || opened.nlink() != 1 || crate::records_index::Stamp::of(&opened) != stamp
+  reason: the metadata of a file handle already opened, its error returned.
+- file: records_retention.rs
+  kind: metadata
+  line: if !m.is_dir() {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_store.rs
+  kind: metadata
+  line: if !meta.is_dir() {
+  reason: location_for_choice reads symlink_metadata and returns its examination error before testing metadata; a non-directory, including a symlink, is refused.
+- file: records_store.rs
+  kind: metadata
+  line: Ok(Some(meta)) if meta.is_dir() => {}
+  reason: records_inspect::presence of the canonical store root (pull request 279), its error refused.
+- file: records_store.rs
+  kind: path
+  line: Ok(at) if at != bound.folder || !bound.root.is_dir() => return Err(format!("the opened records store folder {} was
+    replaced by another folder; it is not the store this App opened, so nothing is read or written there and no replacement
+    store or project identity is minted", bound.root.display())),
+  reason: A bound store handle checks that its folder is still the one it opened.
+  cannot_tell: 'is_dir() false refuses ("was replaced by another folder"): a wrong message, never an admission.'
+- file: records_store.rs
+  kind: path
+  line: if temp.exists() {
+  reason: Cleanup of this write's own temporary file after its publication.
+  cannot_tell: The temporary file is left in place. No answer depends on it, and nothing is removed that the write did not
+    make.
+- file: records_store.rs
+  kind: path
+  line: if !record.exists() {
+  reason: 'register: whether the store already holds the identity''s record.'
+  cannot_tell: 'It goes on to write the record through storage::create_json, a create-new publication: a link is refused by
+    its path check, an occupied file by the publication ("File exists"). The caller that can meet a record already held asks
+    identity_held first, which refuses on any examination error (tests records_store_an_unexaminable_identity_record_is_never_taken_for_absent_by_adoption
+    and records_store_registration_never_writes_over_an_identity_record_it_could_not_examine).'
+- file: records_store.rs
+  kind: metadata
+  line: Ok(meta) if meta.is_dir() => {},
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_store.rs
+  kind: metadata
+  line: Ok(Some(meta)) if meta.is_dir() => {
+  reason: records_inspect::presence returned this entry's metadata; an examination error refuses routing before this branch.
+- file: records_store.rs
+  kind: metadata
+  line: 'if !meta.is_file() { return Err(format!("{}: not a plain record or preparation file", entry.path.display())); }'
+  reason: records_inspect::listing retained the entry's metadata result; every examination error is handled before this type check and never grants write authority.
+- file: records_store.rs
+  kind: metadata
+  line: if entry.file_name() != ".capture.lock" || !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1)
+    {
+  reason: 'symlink_metadata folded by is_ok_and: an error reads as not the control file, so the captures folder is taken to
+    hold records (conservative).'
+- file: records_store.rs
+  kind: metadata
+  line: Ok(meta) if meta.is_file() => Ok(true),
+  reason: 'identity_held: symlink_metadata, its error returned or refused where it is made (pull request 276).'
+- file: records_store.rs
+  kind: metadata
+  line: if meta.file_type().is_symlink() {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_store.rs
+  kind: metadata
+  line: v.push((path, meta.is_dir()));
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_store.rs
+  kind: metadata
+  line: 'Ok(meta) if meta.is_file() => out.push(LegacyFile { rel: crate::storage::LEGACY_LOG.into(), copy: REGISTERED_COPY.into(),
+    original: registered, refusal: None, stamp: Value::Null }),'
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_store.rs
+  kind: metadata
+  line: let refusal = if meta.file_type().is_symlink() {
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_store.rs
+  kind: metadata
+  line: '} else if !meta.is_file() {'
+  reason: symlink_metadata, its error returned or refused where it is made.
+- file: records_store.rs
+  kind: path
+  line: Err(e) if !mint && read_link(root) == Link::Absent && root.is_dir() => {
+  reason: A project read in place when the store is unavailable and the project has no link.
+  cannot_tell: 'is_dir() false returns the store''s own error instead of reading in place: a refusal, never an admission.'
+- file: records_store.rs
+  kind: metadata
+  line: if !before.is_file() {
+  reason: the metadata of a file handle already opened, its error returned.
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records.rs
+  kind: test
+  line: assert!(!path.exists());
+  reason: 'In records.rs''s test module, `mod tests` under `#[cfg(test)]` (line 841): a test''s assertion that no file was
+    written.'
+- file: records_export.rs
+  kind: test
+  line: let tags:Vec<String>=TAGS.iter().filter(|p|folder.join(p).exists()).map(|p|p.to_string()).collect();
+  reason: In `reprofile_as_for_test`, a function under `#[cfg(test)]` (line 632) that rewrites a test package's tags.
+- file: records_store.rs
+  kind: metadata
+  line: if !meta.file_type().is_dir() || (meta.dev(), meta.ino()) != at {
+  reason: 'hold_folder: the metadata of the folder handle just opened (its error refused as not known), compared with the
+    folder examined without following a link; anything but that one folder is refused.'
+- file: app/src-tauri/src/storage.rs
+  kind: outside
+  line: if let Ok(meta) = std::fs::symlink_metadata(ancestor) {
+  reason: storage::check_path, shared code outside the records modules, skips an ancestor whose metadata it cannot read, so
+    it passes a path it could not examine. Every caller traced then opens or lists the path itself and fails on the same error;
+    no admission was seen. Whether to change it is App Agent 0's question; it is recorded here so that it is not forgotten.

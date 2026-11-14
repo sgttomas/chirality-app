@@ -1019,10 +1019,17 @@ fn standalone_file_act_lapse_retry_refuses_replaced_store_root_with_same_project
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|limit| limit
-                    .as_str()
-                    .unwrap_or("")
-                    .contains("source binding changed")),
+                .any(|limit| {
+                    let limit = limit.as_str().unwrap_or("");
+                    // A replaced store root is refused by the store's own
+                    // binding to the folder it opened, before the source check;
+                    // a replaced project store directory, by the kept reader's
+                    // binding to the records folder it opened (pull request
+                    // 294), also before the source check.
+                    limit.contains("source binding changed")
+                        || (scope == "store root" && limit.contains("was replaced by another folder"))
+                        || (scope == "project store directory" && limit.contains("is not the folder this reader was opened for"))
+                }),
             "{refused}"
         );
         assert_eq!(

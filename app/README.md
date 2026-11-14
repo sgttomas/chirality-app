@@ -404,15 +404,28 @@ implemented behavior and qualification limits.
     stops sending new turns and steers (text, mode, workflow or attachment) to
     that Codex process. It then assesses the live work again; if the list
     changed since it was shown, the host reopens and asks again with the
-    current list. The App writes `turn/interrupt` for every observed live turn
-    before waiting. It then waits on one shared deadline for the
-    acknowledgments and for Codex to report those turns ended, then stops the
-    process (HOSTING §4.5). All of this stays within the stop wait limit of
-    10 s (U-R4 test value). Each turn then shows one of the four TO-4 labels:
+    current list. The App attempts a `turn/interrupt` for every observed live
+    turn, each on its own thread. One shared deadline, the stop wait limit of
+    10 s (U-R4 test value), bounds the wait for each interrupt's write, the
+    acknowledgments and Codex's reports that those turns ended; the host then
+    stops the process (HOSTING §4.5) whatever is still pending. An interrupt
+    whose write has not begun by the deadline (for example, Codex has stopped
+    reading its input and another write holds the writer) is withdrawn and
+    never written: it is *not sent*, "the interrupt could not be written within
+    the stop limit". One whose write began and has not completed is of unknown
+    write outcome; ending the process group ends that write. The outcome says,
+    for each turn, whether the interrupt was acknowledged, sent and not
+    acknowledged, not sent (with the reason), or of unknown write outcome. A
+    turn whose interrupt was written, or whose end Codex reported, then shows
+    one of the four TO-4 labels:
     "interrupted by Stop Codex", "completed (Stop Codex requested)",
     "failed (Stop Codex requested)" or "interrupted by Stop Codex (final status
     not observed)". The label comes from the observed `turn/completed`, never
-    from the interrupt acknowledgment. Codex's own status is shown beside it. A
+    from the interrupt acknowledgment. Codex's own status is shown beside it.
+    A turn whose interrupt was not written and whose end Codex did not report
+    gets no label; it reads, kept apart, whether Codex's process was confirmed
+    ended, that no final status was observed, and what became of the
+    interrupt. A
     refused stop is reported as a refusal; its turns get no label and new turns
     are allowed again. Interrupts go only to a `ready` process (DEL-01-02
     §4.1). A process in another state (for example a stuck handshake) is
@@ -429,7 +442,8 @@ implemented behavior and qualification limits.
     as well as the stop's, first writes a stop-request record (SR-01,
     `recovery.stop-request.schema.json`, embedded as a byte copy) to the App
     ledger, then sends `turn/interrupt`. Each later step appends the record's
-    next state: sent or not sent (SR-02/03), Codex's answer (SR-04/05/12), the
+    next state: sent or not sent (SR-02/03; not sent only when no write
+    began), Codex's answer (SR-04/05/12), the
     turn's observed end with its label (SR-06/07), the end of waiting (SR-10)
     or the end of the generation (SR-08). Every record is validated before it
     is appended. An interrupt refused before SR-01 (wrong generation, no live
@@ -441,7 +455,13 @@ implemented behavior and qualification limits.
     person", "completed (stop requested)", "interrupted by Stop Codex" and so
     on. A request whose App session ended before a final status was recorded
     reads *outcome unknown*, marked "(derived; not written)". *Limits:* SR records do
-    not list the items or delegated agents at the outcome. A turn that ended
+    not list the items or delegated agents at the outcome. An interrupt whose
+    write began and did not complete is recorded as neither sent nor not sent:
+    SR-13, *send-unknown* (`unknown(write-incomplete)`, stop-request schema
+    0.3), final once recorded, which reads that whether it reached Codex is not
+    known. A row an earlier build wrote as *not-sent(write-failed)* still
+    validates against `recovery.stop-request.v0.2.schema.json` and reads that
+    whether that interrupt reached Codex is not established. A turn that ended
     after SR-01 but before the send is recorded as SR-03 *not-sent (not-ready)*
     with the reason, a gap in the Design's send values. At the next start the
     App writes SR-08 for each stop request an earlier session left sent with
@@ -456,7 +476,8 @@ implemented behavior and qualification limits.
     Cancel record `quit_answered` *cancelled* and change nothing. On **Quit**
     every ready home is closed to new turns and assessed again (a changed list
     is recorded and asked again); then `quit_answered` *confirmed*, each live
-    turn's stop request (SR-01, cause *quit*) and its interrupt; the App waits
+    turn's stop request (SR-01, cause *quit*) and its interrupt, whose write is
+    bounded by the same limit as Stop Codex's; the App waits
     up to the stop wait limit for those turns to end, exits, stops each home's
     Codex and writes `session_ended` *quit* with each quit stop request's
     state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
@@ -935,7 +956,8 @@ implemented behavior and qualification limits.
 | `src-tauri/src/records_index.rs`, `records_query.rs`, `records_index_tests.rs` | RS §13.8 derived SQLite query cache: disk-backed identities and positions, streamed rebuilding, authoritative line revalidation, and source-scan fallback; cache metadata is disposable |
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `records_continuity.rs`, `records_continuity_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
-| `src-tauri/src/records_store.rs`, `records_store_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records, and the host status `recordsStore` |
+| `src-tauri/src/records_store.rs`, `records_store_lines.rs`, `records_store_witness.rs`, `records_store_tests.rs`, `records_store_lines_tests.rs`, `records_store_witness_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records with the store's witness of it, the appender and shared reading of the store's own line files, and the host status `recordsStore` |
+| `src/RecordsStorePanel.tsx` | The records store panel: current and saved placement, native location choice, project identity and its resolving acts, export and verification, package recovery, retention facts and acts, log-integrity reports and plain-language outcomes |
 | `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload and prior administration snapshot, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
 | `src-tauri/src/records_retention.rs`, `records_retention_tests.rs`, `resources/runtime_core/records-administration.entry.schema.json` | Native close/reopen, legal hold/release and recorded disposal after verified export; surviving administrative evidence, stable write admission and activity leases, truthful partial-failure recovery |
 | `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
@@ -1196,6 +1218,18 @@ failure/recovery, ordering, namespace and provenance negatives. With no supplier
 binary, set `CHIRALITY_SKIP_CODEX=1` explicitly for Rust checks; the Node hosting
 check then reports its skip. Skipped checks establish no supplier result.
 
+Two library tests keep the same rule (`pinned_codex_observations`): they start
+the pinned supplier through the host in invented folders below the system
+temporary folder, in a fresh home nobody has signed in to, and fail without
+`CHIRALITY_CODEX_BIN` unless the skip is set. One starts it with the development
+model address set (below) and reads the setting back from the supplier's own
+configuration reading; it runs no turn, so it shows that the supplier starts
+with the setting, not where a model request goes. The other shows how far the
+supplier's search for a `.codex/config.toml` above its working folder goes: not
+at all where no folder above holds a `.git` entry, and up to the folder that
+holds one where one does. They run in the hosted product job and nightly, not
+in a pull request's own checks.
+
 The handshake uses its own unique system-temp home, a local provider at
 127.0.0.1 port 9, plugins off and analytics off. It starts no model turn, supplies
 no credential, and checks its sampled process-group sockets. Test-owned scratch
@@ -1311,8 +1345,170 @@ incomplete or invalid; there is no fallback or field merge from saved desktop
 requests. A compiled production successor continues to refuse without its
 installed-custody issuer, regardless of a desktop development selection.
 
+One App at a time holds an App data directory and each Codex home it starts
+Codex on, on this route as on the saved one. Each hold is an exclusive `flock`
+on the directory itself; a conflicting lock shows that some process holds it,
+not which one, so the refusals say what was observed and name no owner. An App
+whose App data is held by another process starts nothing operational (no Codex,
+no recovery ledger, no record) and shows "Chirality did not start here: its
+data is held by another process on this computer"; a start of Codex on a home
+held by another process is refused, and so is a home that does not exist. A
+home this App still holds because a Codex process it started has not been
+confirmed ended refuses a later start in the same App and says so; quitting
+Chirality releases it. If App data cannot be resolved or held (an invalid
+`CHIRALITY_APP_DATA`, an unavailable platform path), nothing operational starts
+and the reason is shown. Every committed configuration uses the identifier
+`dev.chirality.app-v4.skeleton`, so development runs that do not name their
+App data share one directory and only the first of them starts. To run in
+parallel, give each run its own `CHIRALITY_APP_DATA` (an absolute path
+without `.` or `..` components; it is created if missing, and setting it alone
+selects this route; an empty value is refused, not read as unset) and its own
+existing `CHIRALITY_CODEX_HOME`.
+
+When the App data hold is taken. On the environment route, at launch, after
+the App data directory is created if missing. On the saved route, at launch
+only if the App data directory already exists; with no directory the App sits
+at setup with no hold and takes it when setup is first saved, which creates
+the directory. Two Apps on a never-used machine can therefore both show setup;
+the second to save is refused.
+
+How an earlier App session is read. A later session start reads an earlier
+session without a recorded end as ended only when this process holds the App
+data directory that contains the ledger (established by device and inode, not
+by path text) and that session is not alive in this process. A session's
+liveness lock file can only ever say that it is still running (a held lock
+refuses the start); a free, missing or replaced lock file says nothing, and a
+crashed session's lock file is never what its ending rests on: it is removed
+only after that session's end is recorded. Otherwise the start is refused,
+nothing is written, and it is shown as a recovery limit. Limit: an App of a
+build before this hold, started on the environment route, takes no lock of any
+kind and cannot be excluded or detected; while it runs on the same App data, a
+later App can hold that App data and read its session as ended.
+
+What that reading says of live work. Where a conversation's turn was live when
+the earlier session last recorded it, the custody view carries a restart fact
+(`app_restart_interruption`) with standing `App-recorded`, the turn under
+`liveTurnsLastRecorded`, and `liveAtSessionEnd` `not-known`: it is the record
+as that session left it, not an observation of its end, and the turn may have
+ended after the last record. Only where the App itself recorded at its own quit
+that it lost sight of the live turn does the fact say `recorded-at-quit`. The
+run-limit record the host writes from that fact says the same: what was last
+recorded, that the end was not observed, and that no end of the run is
+inferred. Records written before this change keep what they say.
+
+What that reading says of stop requests. After this App session has
+successfully started on the ledger and established the earlier sessions'
+endings, startup closes an earlier session's unsettled stop request (SR-08)
+only when that source session has a start record in the ledger. The view of stop outcomes follows the same rule: for a request of
+a session with no start record it shows the record as recorded, derives no
+label, does not call the session earlier or ended, and says as a limit that the
+session's end is not established. An outcome-unknown record is read as "No
+final turn status is recorded for this stop request. That does not establish
+that Codex's process ended.", whichever way it came to be written.
+
+What that reading records. A request the earlier session left listed is closed
+in the ledger as `open-at-app-session-end` (RECOVERY RQ-06, context
+`app-ended-without-record`), and the custody view shows it as the event
+`request_open_at_app_session_end` with standing `App-recorded`: the App records
+that its own earlier session ended while the request was recorded open. It is
+not an observation. It asserts no Codex process exit and no missing reply; a
+Codex the earlier session started may still be alive, and a reply sent after
+the last record was not observed. Rows an earlier build wrote
+(`ended-unanswered(process-exit)`) stay as written and keep their kind. The
+custody-event schema is 0.3; 0.2 is retained beside it.
+
+The home check before Codex starts compares the home's path with the held
+directory by device and inode immediately before the label probe and again
+before the app-server is spawned. A window remains between the last check and
+the child's exec, because the child is handed the home by path (`CODEX_HOME`):
+a directory put in place of the home inside that window is not detected.
+
+The process lock of a home. Every start of Codex, for every home, first takes
+an exclusive, non-waiting `flock` on one small private file the App keeps in
+the home, `chirality-codex-process.lock` (created at the home's first start,
+opened by name inside the held directory, never through a link). The Codex
+child is given that one descriptor and the App closes its own copy as soon as
+the child is spawned, so the lock is held by the Codex process, and by any
+program it passed the descriptor to, for as long as each keeps it open, and by
+nothing of the App. This is what excludes a second Codex on a home after an
+App is killed (its Codex can outlive it: the supplier's app-server exits by
+itself up to about 45 seconds after its input closes) and after a Stop that did
+not end the process. A held lock refuses the start before it is an attempt: no
+lifecycle record, the state unchanged, the reason kept as the host status's
+`lastStartRefusal`, and no retry by the App; Start can be pressed again. What
+the refusal says is what the App knows. Where this App started a Codex process
+on the home and has not confirmed it ended, it says so with its census of that
+process's group as just taken; otherwise it says only that a Codex process
+started earlier, or a program it started, may hold the lock, and that the App
+cannot tell which program it is. A lock that cannot be tried (a link in its
+place, a file not private to the user, any other failure) refuses and never
+reads as free. Limits. Taking the lock shows that nothing still holds it. It
+does not show that every program Codex started has ended: a program that was
+passed the descriptor can close it and keep running, and a process Codex
+started without it never held it. At the pinned supplier version
+the commands of a turn and local MCP servers are started with other descriptors
+closed (best-effort on the supplier's side), so they do not hold the lock and a
+free lock does not show they have ended; hooks and the notifier program of the
+person's own Codex settings are started with Codex's descriptors, so one of
+those left running keeps the home from being started on until it lets go of
+the lock or ends. That the supplier itself keeps the descriptor for as long as
+it runs is an assumption about the supplier: the hosted handshake test
+observes the real supplier holding the lock while it is ready, and nothing
+more. The App's census and settlement of the process groups it
+started are unchanged and are what Quit and the home hold rest on, and they are
+a second condition on a start, beside the lock: a Host starts no further Codex
+on a home while a process group it started there is not established settled
+(its leader's exit observed and its group known empty), whatever the lock says,
+and none while the lock is held, whatever the Host believes. "There" is the
+directory, by device and inode, recorded for each process when it is started:
+the same home named through another spelling or a link is the same home, and a
+process with no recorded home counts for every home. A process that was
+created but whose exit reservation was already lost (another reaper had taken
+its leader) is kept too, as one that can never be established settled: the
+start fails as a failed spawn (its record says the process was created and
+custody of it was lost), and for the life of that App process nothing further
+is started on that home and the menu quit is withheld. For that state, and for
+a reservation lost at any later observation, the person reads: "Chirality
+cannot establish whether a Codex process group it started has ended. Retrying
+Quit cannot resolve this in the current App session. You can end Chirality
+using macOS Force Quit, but that does not establish that Codex or its
+descendants have ended." A settlement that was only unavailable this time keeps
+its earlier sentence. Force Quit can end the App without its end being
+recorded, and a later start on that home is still answered by the home's lock. A start refused on
+the first ground alone, the lock being free, is told that this App is still
+holding the home for a Codex process not confirmed ended. A build
+before this lock takes none and is not excluded by it. The lock is the file:
+if the lock file is removed or replaced in the home while a Codex holds it, a
+later start makes and takes a new file and is not excluded by that earlier
+process. A Stop that cancels a start before anything is spawned releases that
+start's lock at once.
+
+Relaunch. The holds and the process lock have no wait and no retry, and
+process exit is the reliable final release. A deliberate relaunch by the App itself would have to
+start its successor after the predecessor has exited, or after an explicit,
+proven release of each hold; a successor started first is refused at once.
+The predecessor's exit releases its own holds only: a Codex it started that
+still holds a home's process lock keeps a start on that home refused after it.
+Tests construct their state in their own scratch folders and need neither.
+`CHIRALITY_APP_DATA` is read only by a development run (`tauri dev`), as
+`CHIRALITY_RECORDS_STORE` is; a built App does not read it, so it cannot point
+an installed App at other data. It moves the App's own data only. The system
+web view keeps its website data, caches and application support in folders
+named for the build's bundle identifier within the launch's home. Set both
+`CFFIXED_USER_HOME` and `HOME` to the same throwaway folder for a development
+launch (the App does not set them): two runs of one build under different
+throwaway homes then do not share web view storage. Without both set (`HOME`
+alone redirects none of it), they share it under `~/Library`.
+
 Set `CHIRALITY_WORKSPACE`, `CHIRALITY_CODEX_BIN` and a scratch
-`CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. A matching binary
+`CHIRALITY_CODEX_HOME`; never use `~/.codex` for development. On this route
+`CHIRALITY_CODEX_HOME`, `CHIRALITY_KEY_HOME` and the three
+`CHIRALITY_SHARED_*` paths, when set, must each be an absolute path without
+`.` or `..` components; one that is relative, empty or dotted is refused by
+name at admission, before anything is started with it, in development and
+release builds alike. An empty value is refused, not read as unset. The
+inherited `CODEX_HOME` is not a launch input: the App gives each Codex child
+its own. A matching binary
 hash is a development assertion. Full qualified distribution identity is absent,
 so the development run requires `CHIRALITY_ALLOW_UNVERIFIED=1` and is labelled
 `unverified-development` (LT-24); mismatches still refuse.
@@ -1324,6 +1520,11 @@ ancestry. Put this stand-in configuration in the scratch home's `config.toml`:
 ```toml
 model_provider = "skeleton_local"
 model = "skeleton-no-model"
+# The App starts this home's Codex on the built-in provider whatever
+# model_provider says (DEL-01-05). The next line gives that provider a
+# same-machine address in this file. A file alone does not decide where a
+# launch's model requests go: also set CHIRALITY_DEV_OPENAI_BASE_URL, below.
+openai_base_url = "http://127.0.0.1:9/v1"
 [model_providers.skeleton_local]
 name = "Offline development stand-in"
 base_url = "http://127.0.0.1:9/v1"
@@ -1392,8 +1593,12 @@ which does not qualify the account route to the real service.
 
 Copy the maintained `tests/fixtures/FX-DP1/project/decisions` files into the
 scratch workspace's `project/decisions/`, then run `npx --offline tauri dev`.
-For the offline thread exercise, enter model `skeleton-no-model` and provider
-`skeleton_local` explicitly. These are test choices, not product defaults.
+For the offline thread exercise, start a new conversation with the ChatGPT
+account entry and, under **Advanced: enter a model ID yourself**, type the
+model `skeleton-no-model`. No provider is entered: the conversation runs on
+the built-in provider, at the address `CHIRALITY_DEV_OPENAI_BASE_URL` gives.
+This is a test choice, not a
+product default.
 Open a package, choose an alternative and confirm its full native text.
 Authenticated/live model work remains coordinated with the owner.
 
@@ -1443,13 +1648,50 @@ retrying automatically.
 
 The App routes configured account (`H-acct`) and explicitly prepared API-key (`H-key`) homes separately. Per-home resource and metadata guards preserve existing account use when a prospective key proposal fails. Key entry and OAuth controls use native source-bound adapters; their actual OS/auth/provider journeys remain unqualified. A continued conversation without a trustworthy home-class association stays unknown and may remain hot-only. Home class is independent of model/provider choice.
 
+### A local model home made by a development build before the key's address was recorded
+
+The App records the address a local model server's key is entered for, in the
+file `key-address` beside `config.toml` in the dedicated local home (the
+folder `codex-omlx` in that build's App data folder), and uses a saved key
+only at the recorded address. A development build made before that record
+existed could leave a home that holds a key and no record; no released build
+can. Such a home is refused: the local model settings show that a key is
+saved, that the App has no record of the address it was entered for, and that
+this cannot be put right from the App. To use that home again:
+
+1. Quit the App.
+2. In that build's App data folder (under a throwaway home, the folder
+   `Library/Application Support/<identifier>` inside it), open `codex-omlx`
+   and remove the one file `auth.json`. Remove nothing else; the file holds
+   the key, so do not open, copy or print it.
+3. Open the App, prepare the local connection and enter the key again in the
+   secure field. The App writes the record before the field opens.
+
+Do not remove or replace anything else in that folder, and not the folder
+itself. If the App ended unexpectedly before step 1, an earlier Codex process
+of that home may still be running: make sure none is (Activity Monitor, a
+process named `codex`), or log out of the Mac and back in, before removing the
+file. The App's protection of a saved key does not survive files of that home
+being removed or replaced from outside while such a process runs.
+
 ## Storage and remaining work
 
 The App keeps a project's records in its own records store (RS §13.8;
 `src-tauri/src/records_store.rs`), outside the project and every Codex home:
 `<App data>/records/` by default, or a folder the person chose (from the next
-start). Tests and development name it with `CHIRALITY_RECORDS_STORE`; a
-development build without it records nothing, and there is no fallback. Each
+start). **Choose where records are kept…** opens the host's native folder
+picker and a separate native confirmation; the web view sends only the
+`choose` action, never a path. An empty folder or an existing records store
+is used directly. A folder holding other things gets a `Chirality App records`
+child; an unsuitable existing child is refused. **Keep records in the App's
+data folder** confirms the return to default. Both affect only the next
+start's preference and move no records. A failed save can follow publication;
+the panel shows the host's error and rereads status instead of claiming that
+nothing changed. A failed status refresh is shown alongside the action result.
+Tests and development name the store with `CHIRALITY_RECORDS_STORE`; a run
+started for development refuses location choice and reads neither the saved
+choice nor the default. Without its override it records nothing. A built App
+reads the preference, including a bundled debug build; there is no fallback. Each
 project has one subtree, `projects/<safe-project-key>/`, holding
 `runs/<safe-run-key>/<safe-writer-key>.jsonl`, `acts/<safe-writer-key>.jsonl`,
 `captures/` and `workflow/` (WR WP-1 records), and the App's own logs for the
@@ -1457,10 +1699,68 @@ project (U-STORE-6, "Split by who writes"): `connectors/route-accounts/`
 (connector route accounts) and `reads/records-reads.jsonl` (the agents'
 records read log). The project is linked to it by
 `.chirality/project.json`, an identity the App mints once; the store's own
-record of the project's roots governs. A changed link is a limit; a missing
-or unreadable one, a duplicate, or a moved project attaches nothing until the
-person restores the link, adopts the project or gives the folder a new
-identity. Records an earlier App wrote at the §13.7 paths
+record of the project's roots governs. A link that is missing or unreadable,
+that names another identity or another store than the store records for the
+folder, that is a duplicate, or that belongs to a moved project attaches
+nothing until the person restores the link, adopts the project or gives the
+folder a new identity; the host status names which of those acts apply, and
+the panel offers those. While an attachment is refused the project's records
+are unavailable: one decision (`readable_home` in `records_store.rs`) says
+where a project's records are read from, in the store or in the project
+folder; it gives no location for a refused attachment, so files kept in the
+project folder are not read in the place of records the store holds, and
+status says nothing is read in place and asks for no import. Ordinary readers
+take the place from that decision and writers from `write_dir`, with one
+exception: the fleet reader (`fleet_records.rs`) must create nothing, so it
+keeps association checks of its own and builds the protected folder only
+after them; with the link removed or changed it reads no protected payload
+and gives the cause. This is held by name and by a limited test, not by
+construction: the test fails when selected source lines change (the lines
+that name a records location in the project folder, and, outside the store
+module, the lines that name one of nine of the store's path-returning
+functions by its `records_store::` path or that begin with `use` and name
+the store). It does not enforce the arrangement and is not a complete list
+of who can obtain a location: among what it does not see are an import
+spread over several lines, a file brought into the store module other than
+by a path attribute in its usual spelling, a re-export or a new function of
+the store, and an unchanged listed line whose argument now comes from
+somewhere else; its comment lists them. Review and the behavioural tests
+establish the permitted use, and making those functions private is later
+work. One case stands
+apart, unchanged: with no records store available at all and no link in the
+folder, connector route accounts are read in place and nothing is written,
+while ordinary records in that state are unavailable. A link naming a project whose records the store keeps
+with no folder recorded for it (an adoption that stopped part way) reads as
+"records kept, not attached", admits no Codex and is not registered on the
+link alone; the person adopts it. Restoring the link reads no record, so it
+stays possible when a disposal stands; finishing a disposal is offered only
+once the folder is attached again, and finishing an interrupted package
+import only where its folder and project file agree with the import's own
+record. As containment, adopting a project or giving a folder a new identity
+is refused while a record of an identity concerned is being read or written
+or while that identity's activity is held (a running Codex, an open run, a
+capture or a record waiting to be written), in this or another App window.
+Present limits: that containment is not a binding of store and project across
+an operation, and a writer that reaches the records by the project's path
+after the act, with nothing holding the project's activity, is not covered; a
+workflow record reader kept from before can be given a replacement folder at
+the same path carrying a copied link; a connector account reader does not hold
+the retention read admission, so payload put back from outside after a
+disposal can be read again; and restoring the link of a folder with an
+interrupted package import writes the App's link bytes, not those the import
+recorded, so that import cannot then be finished from the App. When the last
+line of the store's registry of project folders (`roots.jsonl`) is
+incomplete, every attachment and the status say so and its bytes are kept;
+records are read from what its complete lines record, and nothing is
+written, minted, adopted or restored for any project. The App's only way out
+of that state today is finishing an interrupted package import whose frozen
+registry bytes begin with exactly the bytes found: the import completes a
+tail that is byte for byte a prefix of those frozen bytes. The App cannot
+tell whose interrupted write left such bytes; the result is exactly the line
+the import would have written from a clean file, and another act that left
+them never reported success and its line was never in force. Any other
+incomplete line can only be resolved by hand, outside the App. Records an
+earlier App wrote at the §13.7 paths
 (`.chirality/records/runs/`, `…/acts/`, `…/workflow/`, `.chirality/captures/`,
 the registered `records/coordination.rs.jsonl`, and connector route accounts
 in `.chirality/records/connectors/route-accounts/`) are read in place, and
@@ -1471,7 +1771,124 @@ the originals left unchanged and no longer read. A copy carries only the
 trust of the folder it came from. A library's own act log in the project is
 library evidence, never part of the project's record set. The override
 `CHIRALITY_RECORDS_STORE` is read only by development and test builds, and a
-store inside the project or a Codex home is refused. The host status (`recordsStore`)
+store inside the project or a Codex home is refused. The store's own line
+files (`roots.jsonl`, the registry of project folders; each project's
+`imports.jsonl`; and `legacy-imports.jsonl`, the store's witness of legacy
+imports, written before any copy and kept outside every project's subtree)
+are appended so that an append never changes the meaning of earlier bytes
+(`src-tauri/src/records_store_lines.rs`): a new file is put in place whole,
+and a fragment left by an interrupted append is closed with the byte 0x1E,
+which no JSON line contains, and named by a
+`chirality.records-store.unread-line` line before the next append or at
+startup; its bytes are kept and never read. A complete line that cannot be
+read and does not end in that mark is never set aside, by the writer or by a
+naming line written for it, and a naming line in any form but the one the
+App writes names nothing: either leaves the file not read whole, so that
+reading continues, the limit is shown, nothing more is appended to it, and
+the App does not repair it. A package import writes its registry lines as one
+frozen write of its own; while that write is pending, every other registry
+write is refused with the registry unchanged, another package import's
+included, and if whether one is pending cannot be established (a journal
+that cannot be examined) the write is refused too. The witness begins with a
+store this build creates (or, in an older store, at the first startup,
+registration or import) and is backfilled once from each readable account.
+Its first line lists the store folder key of every project present when it
+began, taken from the store's project folders and its registry; if they
+cannot be listed whole the witness does not begin and the act that would
+have begun it is refused. That list records which projects predate the
+witness, and no time is compared. A witness line says an import was begun,
+not that anything was copied. The witness is written by this build and
+read by nothing that decides: its reader answers only that a legacy import
+is established, from a witness line read whole and wholly formed or from
+the project's account, or that it is not; it never concludes "no import",
+since the absence of a line is not evidence that none was begun. Its
+answer establishes the imports it lists, not an exhaustive history and not
+an authenticated origin (the store's files are unsigned). Nothing in the App
+reads it yet (the decision view does not consult it on this build), so exit
+criterion 5 is not served by it until that view does.
+
+The store is created (its folder and `store.json`) when the App starts, and
+otherwise only by the acts that write for the person: attaching a project with
+a newly minted identity, the imports and the identity acts. A read creates
+no store, no folder, no lock file and no control, and repairs nothing (a
+reader does take a shared lock on a control that already exists, which is
+what keeps a disposal out while it reads): with no store, or a folder at the store's path that
+holds no identity, every reader says the store is not created yet and nothing
+is written there, elsewhere or in a temporary folder. Once opened, a process
+stays bound to the store's physical folder and identity file (their device and
+inode): a redirected alias is not followed, and a folder put at the store's
+path in its place, even holding a copy of `store.json`, is refused by readers
+and writers alike. So is a `store.json` replaced while the App runs, even with
+the same bytes (a restore from a backup, for example): nothing is read or
+written through it until the App is reopened, which opens the store afresh. Readers take only an admission control that already exists;
+records with no control beside them read as unavailable with that reason
+(development note: a store written by a development build from before
+admission controls existed holds records with no control beside them, so its
+role and workflow history reads as unavailable until the App next writes to
+that project, which makes the control; no release wrote such a store). The
+records capability's own read-log write is admitted through the control that
+exists and is refused, with the read, when it is missing. A control that is
+not a regular, singly linked file is refused without waiting. A store whose
+state cannot be read reads as unavailable, never as empty or as "no records
+yet": a project's import account is read whole, and nothing is concluded
+from one that is not. An account that exists and yields no import line (an
+empty file, or one holding only closed fragments and the lines that name
+them), a partial last line or a closed line not yet named, a blank line, bytes outside a line's one JSON object, bytes that are
+not UTF-8, a key given twice, a line that is not an object of the import
+format and version with an import identity, an unknown event, a member no
+form of import line has, a member the reader takes in a form it is not taken
+as, or a census, files or conflicts list with an entry lacking what the
+reader takes from it, each make the account unknown, and unknown is an error
+in every reader that takes the account through the store's own reading (where
+records are read from, write admission, import, coverage, notes, status and
+export admission), never "no import" and never "the store holds records"; the
+fleet view does not consult the account, and a workflow record handle kept
+from an earlier read does not ask again. Only an account that is not there is
+"no import". A fragment an interrupted append left, closed with the mark and
+named by the store's appender, is left out with its naming line, as the
+store's shared reading leaves it out; every other line is held to these
+rules. No evidence beside an existing account, the witness of legacy
+imports included, is taken to show that nothing was begun: the store's
+appender makes a new account whole and later appends keep the lines before
+them, so no supported path needs an existing account with no import line to
+read as "no import"; a historical or damaged account needs recovery, which
+reading it as "no import" would not give. And the witness reads a project's
+account through the same reading: an account that exists and cannot be read
+is an error there too, never "no account evidence"; and it concludes "no
+import" only from a witness read in full, every line of it wholly formed
+and naming a project. The reader checks every member of a line that it takes, for the
+form it takes it as (the format, the version, the import identity, the event,
+`storeHeld`, a started line's `at`, and the three lists), and checks no
+member of a line that it does not take (`root`, `method`, `resumes`,
+`censusChanged`, and `at` on a completed line), accepting a line that lacks
+them. An entry of a census, files or conflicts list is held to its entry form
+whole (`original`, `copy`, `sha256` and `bytes`; a conflict's `original` and
+`reason`), although nothing after the reader reads a census entry's `copy` or
+`bytes` or a file entry's `bytes`. This does not establish that a line is one
+the App wrote: the store's files are unsigned, so a well-formed line added to
+the account from outside the App reads as the App's own, a completed line
+after an interrupted import included, and an export of such a project
+verifies. Nor does it establish that lines once there are still there: an
+account cut back at the end of a line reads as the shorter account, so a
+later interrupted import whose started line is cut away reads as no
+unfinished import, and an export verifies. Like an added line, that is a
+change made to an unsigned file from outside the App; the App's own
+interrupted append leaves a partial line or none and never removes one.
+Signing does not by itself close it: a signed export of a cut account
+authenticates the cut, and signed lines still allow a suffix to be removed.
+Closing it needs trusted, retained evidence of the expected history, covering
+the started line and checked before export, which the signing work has to
+establish. An export of such an account that verifies says that the package's
+present bytes agree with its manifests and heads, not that a preceding import
+completed or that no history was removed.
+Verification of a package says its bytes agree with its manifests and chain
+heads, not that the import behind them completed. The store's appender makes
+a new file whole or not at all, so the App leaves no empty account of its
+own. The capability's read-log write makes only its own folder beneath
+parents that exist. A read writes
+only two things below an existing store: the records read log that the
+agents' records capability writes for each call (`reads/records-reads.jsonl`),
+and the derived query cache described below. The host status (`recordsStore`)
 
 shows the store, the project's identity and any import or identity limit.
 The records-store panel offers **Export project records**, choosing a parent
@@ -1679,16 +2096,28 @@ chained. Showing those needs comparison with a trusted head kept from before
 the alteration, which the App does not keep while log checkpoints are
 unsigned; the head an export package records shows such a change only against
 that package. The host status
-(`recordChain`) shows bounded counts of chained, legacy and broken logs;
-each log's chain head comes on demand (`records_chain_heads`).
+(`recordChain`) shows bounded counts of chained, legacy and broken logs,
+labelled **As last read** in the records panel. **Check the logs now** reads
+again through `records_chain_heads`, showing breaks by log and line and
+preserving discovery failures and reader notes as limits. A failed or limited
+read never becomes a zero-log all-clear. The panel offers no chain repair.
+Package verification keeps byte consistency separate from log integrity and
+from the chain-head profile's statement about the exported log bytes; a
+controls-only repair retains each import's “not stated” integrity.
 Signed checkpoints wait for App signing (OI-011).
 
 The derived records index keeps identities, positions and membership counts in
 process-owned SQLite files under the store's `indexes/`; record bodies stay in
 their logs. Cold use rebuilds from authoritative sources, and returned entries
 are reread and revalidated, including their exact line hash. Changed or unusable
-caches rebuild or use source scans. A private temporary cache can serve a process
-when the store cannot host derived metadata; records themselves have no fallback.
+caches rebuild or use source scans. The cache is the one stated exception to a
+read writing nothing: a read may write it under `indexes/` of a store that
+already exists and that the process has bound, never into a folder put in the
+store's place, and never in a temporary folder (SQLite's own temporary
+structures stay in memory). The decision view does not use it. Where the cache
+cannot be written the sources are read directly and the chain report says so.
+The cache is dispensable: deleting `indexes/` at any time changes no answer,
+only how fast it comes.
 Index metadata for ordinary valid entries is per log and directory; diagnostics
 grow with reported limits. Full act projections retain their
 separate result-sized memory cost (RS §13.8, §14.3).

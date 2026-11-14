@@ -67,6 +67,9 @@ needs:
     content identity, scope and purpose; a library's registration acts are kept with that library;
     a record can be validated; and entries for a run's text and its supply check are carried in
     the run's log.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
   gating: false
 - from: external:sgttomas/chirality-library release
   condition: The selected Library release publishes its source archive with a digest, and its
@@ -75,7 +78,9 @@ needs:
   when: When the bundled workflows are generated or compared with the release.
 - from: external:person using the App
   condition: A person reviews and registers workflows, sends the messages the App prepares, and
-    starts and ends runs.
+    starts and ends runs. In an agent-operated journey examination as the release target defines
+    it, the examining agent performs these steps on examination material for control-and-record
+    evidence only; the positive case with the person as actor (AC-006) needs the person.
 - from: external:SWBPIPE implementation owner
   condition: A host lists its workflow library to the App and delivers a host workflow's package
     with its origin and revision.
@@ -124,6 +129,9 @@ code_paths:
 # hostReads.ts is shared by every part of the App shell. Here: the order of status reads and the
 # mark that withholds the Run and Make guides until a read follows the last command.
 - app/src/hostReads.ts
+# statusRefresh.ts: a status refresh after an action. A failed refresh adds one fixed line after the
+# action's message and never shows its raw diagnostic; used with hostReads.ts across the shell.
+- app/src/statusRefresh.ts
 - app/src/IncludedWorkflows.tsx
 - app/src/WorkflowText.tsx
 - app/src/MakeJourney.tsx

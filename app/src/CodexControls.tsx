@@ -44,13 +44,24 @@ export function StopRequests({ requests }: { requests: Json }) {
     <summary>Recorded stop requests ({rows.length})</summary>
     <ul>
       {rows.map((r: Json) => <li key={text(r.stopRequestId)}>
-        Conversation {text(r.threadId)} · turn {text(r.turnId)} · {CAUSE[text(r.cause)] ?? text(r.cause)} at {text(r.requestedAt)}{r.earlierSession ? " (earlier App session)" : ""}: {r.label ? <b>{text(r.label)}</b> : null}{r.label && r.labelDerived ? " (derived; not written)" : ""}{r.label ? ". " : ""}{text(r.reading)}{r.codexReported ? ` Codex reported: ${text(r.codexReported)}.` : ""}
+        Conversation {text(r.threadId)} · turn {text(r.turnId)} · {CAUSE[text(r.cause)] ?? text(r.cause)} at {text(r.requestedAt)}{r.earlierSession ? " (earlier App session)" : r.sourceSessionEnd === "not-established" ? " (another App session; its end is not established)" : ""}: {r.label ? <b>{text(r.label)}</b> : null}{r.label && r.labelDerived ? " (derived; not written)" : ""}{r.label ? ". " : ""}{text(r.reading)}{r.codexReported ? ` Codex reported: ${text(r.codexReported)}.` : ""}
         <br /><small>Record: {text(r.persistence)}.</small>
       </li>)}
       {limits.map((l: Json, i: number) => <li key={`limit${i}`}>Limit: {text(l)}</li>)}
     </ul>
     <p><small>{text(requests?.standing)}</small></p>
   </details>;
+}
+
+/** A stopped turn with no Stop Codex label: Codex was stopped, but the turn's
+ *  interrupt was not written (not sent, or its write's outcome unknown) and
+ *  Codex reported no end. The absent label then says nothing by itself; the
+ *  turn's reading (process, turn status and interrupt kept apart), or else its
+ *  stop-request record's reading, says what happened. Only a refused stop
+ *  reads as Codex not stopped. */
+export function noLabelReading(t: Json, outcome: Json): string {
+  if (outcome?.state !== "stopped") return "no Stop Codex label (Codex was not stopped)";
+  return text(t?.reading) || text(t?.stopRequest?.reading) || "no Stop Codex label; no reading was reported for this turn";
 }
 
 export function StopOutcome({ outcome }: { outcome: Json }) {
@@ -60,7 +71,7 @@ export function StopOutcome({ outcome }: { outcome: Json }) {
     <p><b>{text(outcome?.action) || "Stop Codex"}</b> confirmed by you at {text(outcome?.confirmedAt) || "time not reported"} · home {text(outcome?.modeHomeClass) || "not reported"} · {outcome?.state === "stopped" ? "Codex stopped" : `Codex not stopped: ${text(outcome?.stop?.reading) || "reason not reported"}`}.</p>
     {turns.length === 0 ? <p>No live turn was observed, so no interrupt was sent.</p> : <ul>
       {turns.map((t: Json) => <li key={`${text(t.threadId)}/${text(t.turnId)}`}>
-        Conversation {text(t.threadId)} · turn {text(t.turnId)}: {t.label ? <b>{text(t.label)}</b> : "no Stop Codex label (Codex was not stopped)"}
+        Conversation {text(t.threadId)} · turn {text(t.turnId)}: {t.label ? <b>{text(t.label)}</b> : noLabelReading(t, outcome)}
         {t.codexReported ? ` · Codex reported: ${text(t.codexReported)}` : outcome?.state === "stopped" ? " · Codex reported no end before the stop" : " · Codex reported no end"}
         {" "}· interrupt request: {text(t.interruptRequest?.reading) || text(t.interruptRequest?.state)}
         {t.interruptRequest && <> · stop-request record: {t.stopRequest ? text(t.stopRequest.persistence) : "not recorded"}</>}

@@ -141,6 +141,13 @@ impl Physical {
         Ok(())
     }
 }
+/// For a test elsewhere to establish that a project's recording context can
+/// be captured as it stands, and under which project identity (nothing is
+/// bypassed: this is `Scope::capture`).
+#[cfg(test)]
+pub(crate) fn captured_context_identity_for_test(root: &Path) -> Result<String, String> {
+    Scope::capture(root).map(|scope| scope.project_id)
+}
 #[derive(Clone)]
 struct Scope {
     project: Physical,
@@ -1045,11 +1052,13 @@ fn administrative_lines(path: &Path, format: &str) -> Result<Vec<Value>, String>
     if !bytes.is_empty() && !bytes.ends_with(b"\n") {
         return Err("original association/import source has an unclosed final line; no new Fleet publication".into());
     }
-    bytes
-        .split_inclusive(|b| *b == b'\n')
-        .map(|line| {
-            let row: Value = serde_json::from_slice(line)
-                .map_err(|_| "original association/import source is not JSON")?;
+    // The store's one reading of its line files: a naming line and the closed
+    // fragment it names are not rows; anything else not read is refused.
+    crate::records_store::lines::read(&bytes, path)
+        .require_settled(&bytes, path)
+        .map_err(|_| "original association/import source is not JSON".to_string())?
+        .into_iter()
+        .map(|row| {
             if row["format"] != format || row["formatVersion"] != "0.1" {
                 return Err("original association/import format is unknown".into());
             }
@@ -1058,7 +1067,20 @@ fn administrative_lines(path: &Path, format: &str) -> Result<Vec<Value>, String>
         .collect()
 }
 fn check_import_source(dir: &Path) -> Result<(), String> {
-    for row in administrative_lines(&dir.join("imports.jsonl"), "chirality.records-store.import")? {
+    let path = dir.join("imports.jsonl");
+    let exists = match std::fs::symlink_metadata(&path) {
+        Ok(_) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(format!("original project import state is unknown ({e}); Fleet publication withheld")),
+    };
+    let rows = administrative_lines(&path, "chirality.records-store.import")?;
+    // An import account that exists and yields no import line (empty, or only
+    // closed fragments and the lines that name them) is unknown, as it is to
+    // the store's own reader: decided on the rows read, not on the bytes.
+    if exists && rows.is_empty() {
+        return Err("original project import state is unknown (its import account exists and is empty or holds no import line); Fleet publication withheld".into());
+    }
+    for row in rows {
         if row["importId"].as_str().is_none_or(str::is_empty)
             || !matches!(row["event"].as_str(), Some("started" | "completed"))
             || (row["event"] == "completed"
