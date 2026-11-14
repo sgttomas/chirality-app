@@ -126,7 +126,7 @@
           "are": [
             "What setup will do",
             "Create a new settings folder for this App, inside its data folder",
-            "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+            "In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
             "Create a new sign-in folder for this App, linked to those settings",
             "Project when you next open the App: none",
             "Save these choices privately for the next launch"
