@@ -23,7 +23,7 @@ fn thread() -> Value {
     json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"fixture","preview":"stored work","projectId":null,"sessionId":"fixture-session","source":"appServer","status":{"type":"idle"},"turns":[]})
 }
 fn resume() -> Value {
-    json!({"thread":thread(),"model":"fixture","modelProvider":"fixture","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":[]})
+    json!({"thread":thread(),"model":"fixture","modelProvider":"fixture","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"workspaceWrite","writableRoots":[],"networkAccess":false,"excludeTmpdirEnvVar":true,"excludeSlashTmp":true},"instructionSources":[]})
 }
 fn turns(ids: &[&str], next: Value) -> Value {
     json!({"data":ids.iter().map(|id|json!({"id":id,"status":"completed","items":[],"itemsView":"summary","error":null})).collect::<Vec<_>>(),"nextCursor":next,"backwardsCursor":"turn-back"})

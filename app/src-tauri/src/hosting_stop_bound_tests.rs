@@ -43,8 +43,8 @@ def handle(f):
  if m=='initialize': result={'userAgent':'unqualified-stop-fixture'}
  elif m=='thread/start':
   starts[0]+=1
-  t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
-  result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+  t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+  result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.path.join(os.getcwd(),'project'),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
  elif m=='turn/steer': result={'turnId':f['params']['expectedTurnId']}
  elif m=='account/logout': result={}
  elif m=='turn/interrupt':
@@ -99,7 +99,7 @@ impl Fixture {
     fn new() -> Self {
         use std::os::unix::fs::PermissionsExt;
         let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("stop-bound-").unwrap());
-        for name in ["account", "probe"] {
+        for name in ["account", "probe", "project"] {
             std::fs::create_dir_all(root.join(name)).unwrap();
         }
         let _custody = crate::hold_app_data_for_test(&root).unwrap();
@@ -113,7 +113,7 @@ impl Fixture {
         host.configure_recovery(root.join("recovery.ledger.jsonl")).unwrap();
         host.start(&cfg, "stop fixture").unwrap();
         let generation = host.snapshot()["generation"].clone();
-        host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+        host.thread_start_selected(&root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
         Self { root, cfg, home, generation, held: Vec::new(), _custody }
     }
@@ -443,7 +443,7 @@ fn stop_whose_own_write_blocks_records_the_write_outcome_unknown() {
 #[test]
 fn two_live_turns_with_the_writer_free_in_time_for_one() {
     let f = Fixture::new();
-    f.host().thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+    f.host().thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
     f.live_turn("thread", "turn-1");
     f.live_turn("thread-2", "turn-2");
     let (release_tx, release_rx) = channel::<()>();
@@ -516,7 +516,7 @@ fn two_live_turns_with_the_writer_free_in_time_for_one() {
 #[test]
 fn stop_does_not_wait_past_the_limit_on_a_person_interrupt_holding_the_gate() {
     let mut f = Fixture::new();
-    f.host().thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+    f.host().thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
     f.live_turn("thread", "turn-1");
     f.live_turn("thread-2", "turn-2");
     f.stop_reading();

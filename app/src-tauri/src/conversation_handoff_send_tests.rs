@@ -254,7 +254,7 @@ fn original_generation_and_host_are_never_replaced_by_the_active_source() {
         j.f.home
             .host
             .thread_start_selected(
-                &j.f.root.to_string_lossy(),
+                &j.f.root.join("project").to_string_lossy(),
                 "fixture-model",
                 "fixture-provider",
             )

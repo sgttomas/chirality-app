@@ -22,11 +22,11 @@ lock=threading.Lock()
 def emit(v):
  with lock: print(json.dumps(v),flush=True)
 def thread(i,extra=None):
- t={'id':i,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'roles fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+ t={'id':i,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'roles fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
  if extra: t.update(extra)
  return t
 def settled(t):
- return {'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+ return {'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.path.join(os.getcwd(),'project'),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
 def result(f,r,kind):
  if os.path.exists('defer-'+kind):
   def later():
@@ -81,7 +81,7 @@ impl Fixture {
     fn new() -> Self {
         use std::os::unix::fs::PermissionsExt;
         let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("conversation-roles-").unwrap());
-        for name in ["account", "probe"] {
+        for name in ["account", "probe", "project"] {
             std::fs::create_dir_all(root.join(name)).unwrap();
         }
         let instructions = root.join("instructions");
@@ -110,7 +110,7 @@ impl Fixture {
     /// The same path from a composition already made, so a test can change the
     /// guidance files between composing and the start.
     fn start_composed(&self, composition: &crate::role_supply::Composition, continued_from: Option<Value>) -> String {
-        let receipt = self.home.host.thread_start_with_guidance_dispatch(&self.generation, &self.root.to_string_lossy(), "fixture-model", "fixture-provider", &composition.text).unwrap();
+        let receipt = self.home.host.thread_start_with_guidance_dispatch(&self.generation, &self.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider", &composition.text).unwrap();
         self.home.history.lock().unwrap().start_dispatched_continuing(receipt.clone(), &composition, &crate::util::opaque_id("sup:").unwrap(), continued_from).unwrap();
         let evidence = self.home.host.source_request_wait(&receipt, Duration::from_secs(5)).unwrap();
         self.home.history.lock().unwrap().reconcile(&self.home.host);
@@ -206,7 +206,7 @@ fn fork_refuses_an_unknown_conversation_and_keeps_an_unbound_role_unknown() {
     assert!(fork_conversation(&f.home, &f.generation, "no-such-thread", Duration::from_secs(1)).unwrap_err().contains("refused-not-sent"));
     assert!(f.wire().iter().all(|frame| frame["method"] != "thread/fork"), "nothing written for a refused fork");
     // A conversation started outside the App's binding (no original supply) forks with its role unknown.
-    f.home.host.thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+    f.home.host.thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
     let out = fork_conversation(&f.home, &f.generation, "thread", Duration::from_secs(5)).unwrap();
     assert_eq!(out["role"]["role"]["standing"], "unknown");
     assert_eq!(f.role("fork-1")["standing"], "unknown", "no role is invented for the fork");
@@ -542,7 +542,7 @@ fn native_links_actual_unknown_fork_later_tick_without_resend_or_authority(){
 }
 #[test]
 fn native_links_actual_continue_proof_late_closed_source_and_no_cold_authority(){
- let l=LinksFixture::new();let f=&l.native;let source=f.start(Some(Role::HELP_HUMAN),None);let handoffs=std::sync::Mutex::new(Handoffs::default());let workflows=std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());let opened=continue_as_begin(&handoffs,&workflows,&f.home,&f.generation,&source,Some(Role::WORKING_ITEMS)).unwrap();let id=opened["id"].as_str().unwrap();let(metadata,proof)=continuation_for_start_observed(&handoffs,&f.home,Some(id),Some(Role::WORKING_ITEMS)).unwrap();assert_eq!(metadata.unwrap()["sourceThread"],source);let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);std::fs::write(f.root.join("defer-start"),"owned delay").unwrap();let request=f.home.host.thread_start_with_guidance_dispatch(&f.generation,&f.root.to_string_lossy(),"fixture-model","fixture-provider","synthetic exact new role").unwrap();let mut links=crate::native_conversation_links::Session::default();links.track_continued(context,Arc::clone(&f.home.host),request.clone(),proof.unwrap()).unwrap();let unknown=f.home.host.source_request_wait(&request,Duration::from_millis(10)).unwrap();assert_eq!(unknown["outcome"],"pending");std::fs::write(f.root.join("release-start"),"owned release").unwrap();let until=Instant::now()+Duration::from_secs(3);while f.home.host.source_request_status(&request).unwrap()["outcome"]!="response-observed-result"{assert!(Instant::now()<until);std::thread::sleep(Duration::from_millis(10));}let original_threads=f.home.host.snapshot()["threads"].clone();f.home.host.stop("owned fixture closed generation","fixture").unwrap();assert_eq!(request.evidence()["sourceCurrent"],false);links.retry(Some(&f.root));assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["relation"],"continued from");assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["source"]["threadId"],source);assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["thread"]["generation"],f.generation);let mut closed_threads=original_threads.clone();for row in closed_threads.as_array_mut().unwrap(){row["lastObservedStatus"]=row["status"].take();row["statusObservationEnded"]=json!(true);}assert_eq!(f.home.host.snapshot()["threads"],closed_threads,"the stop moves each row's last status aside; nothing is admitted or otherwise changed");let mut cold=crate::native_conversation_links::Session::default();cold.retry(Some(&f.root));assert!(cold.snapshot()["observations"].as_array().unwrap().is_empty());assert!(cold.snapshot()["nativeAttempts"].as_array().unwrap().is_empty());assert_eq!(f.wire().iter().filter(|frame|frame["method"]=="thread/start").count(),2);
+ let l=LinksFixture::new();let f=&l.native;let source=f.start(Some(Role::HELP_HUMAN),None);let handoffs=std::sync::Mutex::new(Handoffs::default());let workflows=std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());let opened=continue_as_begin(&handoffs,&workflows,&f.home,&f.generation,&source,Some(Role::WORKING_ITEMS)).unwrap();let id=opened["id"].as_str().unwrap();let(metadata,proof)=continuation_for_start_observed(&handoffs,&f.home,Some(id),Some(Role::WORKING_ITEMS)).unwrap();assert_eq!(metadata.unwrap()["sourceThread"],source);let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);std::fs::write(f.root.join("defer-start"),"owned delay").unwrap();let request=f.home.host.thread_start_with_guidance_dispatch(&f.generation,&f.root.join("project").to_string_lossy(),"fixture-model","fixture-provider","synthetic exact new role").unwrap();let mut links=crate::native_conversation_links::Session::default();links.track_continued(context,Arc::clone(&f.home.host),request.clone(),proof.unwrap()).unwrap();let unknown=f.home.host.source_request_wait(&request,Duration::from_millis(10)).unwrap();assert_eq!(unknown["outcome"],"pending");std::fs::write(f.root.join("release-start"),"owned release").unwrap();let until=Instant::now()+Duration::from_secs(3);while f.home.host.source_request_status(&request).unwrap()["outcome"]!="response-observed-result"{assert!(Instant::now()<until);std::thread::sleep(Duration::from_millis(10));}let original_threads=f.home.host.snapshot()["threads"].clone();f.home.host.stop("owned fixture closed generation","fixture").unwrap();assert_eq!(request.evidence()["sourceCurrent"],false);links.retry(Some(&f.root));assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["relation"],"continued from");assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["source"]["threadId"],source);assert_eq!(links.snapshot()["observations"][0]["observation"]["body"]["thread"]["generation"],f.generation);let mut closed_threads=original_threads.clone();for row in closed_threads.as_array_mut().unwrap(){row["lastObservedStatus"]=row["status"].take();row["statusObservationEnded"]=json!(true);}assert_eq!(f.home.host.snapshot()["threads"],closed_threads,"the stop moves each row's last status aside; nothing is admitted or otherwise changed");let mut cold=crate::native_conversation_links::Session::default();cold.retry(Some(&f.root));assert!(cold.snapshot()["observations"].as_array().unwrap().is_empty());assert!(cold.snapshot()["nativeAttempts"].as_array().unwrap().is_empty());assert_eq!(f.wire().iter().filter(|frame|frame["method"]=="thread/start").count(),2);
 }
 
 #[test]

@@ -247,6 +247,20 @@ runpy.run_path({peer},run_name='__main__')
                 if e["kind"] == "reply" {
                     frame["id"] = e["actual_rpc_id"].clone();
                 }
+                // The player's one declared reply-side adaptation (recorded_replay.py, "Level"): a start or resume
+                // reply reports the test Host's level ("edits") exactly, as the pinned Codex reports an explicit
+                // level. Built here from the App's own table, not taken from the player; nothing else may differ.
+                if let Some(adaptations) = e.get("adaptations") {
+                    let method = ["thread/start", "thread/resume"].into_iter()
+                        .find(|m| adaptations == &json!([format!("{m}.result:report-exact-App-level-edits;not-recorded-output")]));
+                    assert!(method.is_some(), "an undeclared reply adaptation: {adaptations}");
+                    let edits = crate::codex_level::level("edits").unwrap();
+                    let result = frame["result"].as_object_mut().expect("an adapted reply has a result");
+                    result.insert("approvalPolicy".into(), json!(edits.approval_policy));
+                    result.insert("approvalsReviewer".into(), json!("user"));
+                    result.insert("sandbox".into(), edits.sandbox_policy.clone());
+                    result.insert("activePermissionProfile".into(), Value::Null);
+                }
                 frame
             })
             .collect::<Vec<_>>();

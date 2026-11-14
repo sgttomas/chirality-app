@@ -2720,6 +2720,15 @@ impl HomeSession {
     pub fn class(&self) -> crate::home_resources::HomeClass {
         self.class
     }
+    /// At launch (V4-AUT-06): the level recorded for this home's scopes, and this home's lasting rules.
+    pub(crate) fn level_launch_reads(&self) {
+        let cfg = self.host_config.as_ref().ok();
+        self.host.read_levels_at_launch(cfg.map(|cfg| crate::hosting::home_identity(&cfg.codex_home)).as_deref());
+        if let Some(cfg) = cfg {
+            let home = cfg.cwd.join(&cfg.codex_home);
+            self.host.read_lasting_rules(Some(&std::path::absolute(&home).unwrap_or(home)));
+        }
+    }
     pub fn account_view(&self) -> Value {
         let sources = self.account_sources.lock().unwrap();
         json!({"modeHomeClass":self.class.as_str(),"observations":sources.iter().map(|source|self.host.account_rpc_observation(source).unwrap_or_else(|error|json!({"limit":error,"source":source.evidence()}))).collect::<Vec<_>>(),"limit":"native source facts; credential validity and actor identity are not inferred"})
@@ -2758,12 +2767,23 @@ impl HomeRouter {
         if account.class != crate::home_resources::HomeClass::Account {
             return Err("Primary entry must be the explicit account source".into());
         }
-        Ok(Self {
+        let router = Self {
             account,
             key: None,
             local: None,
             active: crate::home_resources::HomeClass::Account,
-        })
+        };
+        router.publish_level_homes();
+        Ok(router)
+    }
+    /// Every App-owned Codex home (each entry's home and probe home), given to each entry's Host: an edits level
+    /// is not sent for a project at, in or containing any of them (V4-AUT-06).
+    fn publish_level_homes(&self) {
+        let absolute = |p: std::path::PathBuf| std::path::absolute(&p).unwrap_or(p);
+        let homes: Vec<std::path::PathBuf> = self.entries().iter().filter_map(|e| e.host_config.as_ref().ok())
+            .flat_map(|cfg| [absolute(cfg.cwd.join(&cfg.codex_home)), absolute(cfg.probe_home.clone())])
+            .filter(|p| !p.as_os_str().is_empty()).collect();
+        for entry in self.entries() { entry.host.publish_app_homes(homes.clone()); }
     }
     pub fn active(&self) -> std::sync::Arc<HomeSession> {
         self.entry(self.active).expect("active entry is retained")
@@ -2804,6 +2824,7 @@ impl HomeRouter {
             return Err("Key source does not share the actual App session/sole writer custody; no source substitution".into());
         }
         self.key = Some(key);
+        self.publish_level_homes();
         Ok(())
     }
     pub(crate) fn bind_local(&mut self, local: std::sync::Arc<HomeSession>) -> Result<(), String> {
@@ -2812,7 +2833,7 @@ impl HomeRouter {
         for entry in self.entries() {
             if entry.host_config.as_ref().map_err(Clone::clone)?.codex_home == source.codex_home || !std::sync::Arc::ptr_eq(&entry.host.app_runtime_custody()?, &local.host.app_runtime_custody()?) { return Err("Local source custody/path differs from its actual App binding".into()); }
         }
-        self.local = Some(local); Ok(())
+        self.local = Some(local); self.publish_level_homes(); Ok(())
     }
     /// Resolve an actual full tuple, including retained closed generations in its
     /// owning App session. Stale/closed operational admission remains Host-owned.
@@ -8125,7 +8146,7 @@ mod workflow_root_tests {
         fn wr_files(&self)->Vec<String>{let mut v:Vec<String>=std::fs::read_dir(crate::storage::project_file(&self.root, "workflow").unwrap()).map(|d|d.filter_map(|e|e.ok()).map(|e|e.file_name().to_string_lossy().into_owned()).filter(|n|n.ends_with(".json")&&!n.starts_with('.')).collect()).unwrap_or_default();v.sort();v}
         fn rs_entries(&self)->Vec<Value>{let(entries,limits)=crate::storage::read_all(&self.root);assert!(limits.is_empty(),"{limits:?}");entries}
     }
-    impl Drop for Fixture{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);}}
+    impl Drop for Fixture{fn drop(&mut self){let _=std::fs::remove_dir_all(&self.root);let _=std::fs::remove_dir_all(self.root.with_extension("homes"));}}
     #[test]
     fn workflow_root_closed_selection_real_review_hot_receipt_and_transaction(){
         let f=Fixture::new();let mut root=f.selected();let control=Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&f.root))));
@@ -8187,7 +8208,8 @@ mod workflow_root_tests {
         }
         fn build_with_class(recovery:bool,class:crate::home_resources::HomeClass)->Self {
             use std::os::unix::fs::PermissionsExt;
-            let fixture=Fixture::new();for name in ["account","probe"]{std::fs::create_dir(fixture.root.join(name)).unwrap();}
+            // The App's Codex homes are kept apart from the project: an edits level is not sent for a project that contains one (V4-AUT-06).
+            let fixture=Fixture::new();for name in ["account","probe"]{std::fs::create_dir_all(fixture.root.with_extension("homes").join(name)).unwrap();}
             // The peer sees the WR records where the App publishes them (RS §13.8).
             std::fs::write(fixture.root.join("wr-dir"),crate::storage::project_file(&fixture.root,"workflow").unwrap().to_str().unwrap()).unwrap();
             let script=fixture.root.join("owned-peer.py");
@@ -8213,11 +8235,11 @@ for line in sys.stdin:
  if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
  elif method=='thread/start':
   starts[0]+=1
-  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':f['params'].get('model') or 'fixture-model','modelProvider':f['params'].get('modelProvider') or 'fixture-provider','cwd':f['params'].get('cwd') or os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':f['params'].get('model') or 'fixture-model','modelProvider':f['params'].get('modelProvider') or 'fixture-provider','cwd':f['params'].get('cwd') or os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
  elif method=='thread/fork':
   starts[0]+=1
   copied=thread('thread-%d'%starts[0]);copied['forkedFromId']=f['params']['threadId']
-  result={'thread':copied,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'}}
+  result={'thread':copied,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True}}
  elif method=='turn/start':
   # Publish-before-send witness: the WR records the peer can see when the turn arrives.
   with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
@@ -8358,7 +8380,7 @@ for line in sys.stdin:
  else:continue
  emit({'id':f['id'],'result':result})
 "#).unwrap();std::fs::set_permissions(&script,std::fs::Permissions::from_mode(0o700)).unwrap();
-            let mut cfg=crate::hosting::HostConfig::new(script,fixture.root.join("account"),fixture.root.join("probe"),fixture.root.clone());cfg.allow_unverified_dev=true;cfg.wait_limit=Duration::from_secs(2);
+            let mut cfg=crate::hosting::HostConfig::new(script,fixture.root.with_extension("homes").join("account"),fixture.root.with_extension("homes").join("probe"),fixture.root.clone());cfg.allow_unverified_dev=true;cfg.wait_limit=Duration::from_secs(2);
             let host=Arc::new(crate::hosting::Host::new());
             if recovery{std::fs::create_dir_all(fixture.root.join("app-data/runtime")).unwrap();host.configure_recovery(fixture.root.join("app-data/runtime/recovery.ledger.jsonl")).unwrap();}
             host.start(&cfg,"owned workflow source fixture").unwrap();assert_eq!(host.snapshot()["supplierStanding"],"unverified-development");
@@ -8847,7 +8869,9 @@ for line in sys.stdin:
         crate::ordinary_send_text(&peer.home, &workflows, &peer.generation, "thread", "after refusal", Some("default"), None).unwrap();
         until(7);
         assert_eq!(bodies()[6]["requested"], "mode-choice");
-        assert_eq!(peer.home.host.snapshot()["threads"], before);
+        // The conversation's `level` (what the App sent, V4-AUT-06) changes with the turn; nothing Codex reported does.
+        let without_level = |v: Value| -> Value { Value::Array(v.as_array().unwrap().iter().map(|t|{let mut t=t.clone();t.as_object_mut().unwrap().remove("level");t}).collect()) };
+        assert_eq!(without_level(peer.home.host.snapshot()["threads"].clone()), without_level(before.clone()));
         for _ in 0..2 { crate::host_tick::tick(&homes, &workflows); }
         assert_eq!(bodies().len(), 7, "no duplicate R5 records");
         assert_eq!(workflows.lock().unwrap().runs.len(), 1, "model change opens no run");
@@ -10623,7 +10647,7 @@ for line in sys.stdin:
         let view=select_attachment_source(&list,&owner,0,||Ok(Some(path.clone()))).unwrap();
         let refs=view["selections"].as_array().unwrap().iter().map(|s|s["selection"]["selectionRef"].as_str().unwrap().to_owned()).collect();
         let app=peer.fixture.root.join("app-data");std::fs::create_dir_all(&app).unwrap();
-        let custody=Arc::new(crate::hosting::attachment_custody::AttachmentCustody::open(&app,&peer.fixture.root.join("account")).unwrap());
+        let custody=Arc::new(crate::hosting::attachment_custody::AttachmentCustody::open(&app,&peer.fixture.root.with_extension("homes").join("account")).unwrap());
         (list,owner,view["listRevision"].as_u64().unwrap(),refs,custody,path)
     }
     /// turn/start frames whose input carries a run-end line.
@@ -10929,7 +10953,9 @@ for line in sys.stdin:
                         assert!(frame["params"].get("collaborationMode").is_none());
                         assert_eq!(frame["params"].get("model").and_then(Value::as_str), explicit);
                     }
-                    assert_eq!(peer.home.host.snapshot()["threads"], before, "a native acknowledgment never changes reported model/provider/role");
+                    // The conversation's `level` (what the App sent, V4-AUT-06) changes with the turn; nothing Codex reported does.
+                    let without_level = |v: Value| -> Value { Value::Array(v.as_array().unwrap().iter().map(|t|{let mut t=t.clone();t.as_object_mut().unwrap().remove("level");t}).collect()) };
+                    assert_eq!(without_level(peer.home.host.snapshot()["threads"].clone()), without_level(before.clone()), "a native acknowledgment never changes reported model/provider/role");
                     for field in ["modelProvider", "developerInstructions", "effort", "sandbox", "config"] {
                         assert!(frame["params"].get(field).is_none(), "no unrelated override {field}");
                     }

@@ -642,7 +642,7 @@ def thread(tid,status='idle',source=None):
  t={'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'invented','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':status},'turns':[]}
  if source:t['forkedFromId']=source
  return t
-def result(tid,source=None):return {'thread':thread(tid,source=source),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+def result(tid,source=None):return {'thread':thread(tid,source=source),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')

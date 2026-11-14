@@ -29,7 +29,10 @@ for line in sys.stdin:
  print(json.dumps({'id':f['id'],'result':result}),flush=True)
 "#.replace("@PIN@", DECLARED_PIN)).unwrap();
     std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
-    let mut cfg = HostConfig::new(bin, root.join("home"), root.join("probe"), root.to_path_buf());
+    // The conversations' folder is apart from the App's Codex homes: an edits level is not sent for a project
+    // that contains one (V4-AUT-06).
+    std::fs::create_dir_all(root.join("work")).unwrap();
+    let mut cfg = HostConfig::new(bin, root.join("home"), root.join("probe"), root.join("work"));
     std::fs::create_dir_all(&cfg.codex_home).unwrap();
     std::fs::create_dir_all(&cfg.probe_home).unwrap();
     cfg.allow_unverified_dev = true;

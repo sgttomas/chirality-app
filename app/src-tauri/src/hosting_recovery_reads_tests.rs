@@ -43,7 +43,7 @@ threading.Thread(target=events,daemon=True).start()
 def read(name,default):
  return open(name).read().strip() if os.path.exists(name) else default
 def thread(tid):
- return {'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'recovery fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'notLoaded'},'turns':[]}
+ return {'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'recovery fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'notLoaded'},'turns':[]}
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log: log.write(json.dumps(f)+'\n')
@@ -51,7 +51,7 @@ for line in sys.stdin:
  if m=='initialize': result={'userAgent':'unqualified-recovery-fixture'}
  elif m=='thread/start':
   t=thread('thread');t['status']={'type':'idle'}
-  result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+  result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.path.join(os.getcwd(),'project'),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
  elif m=='turn/interrupt' and os.path.exists('interrupt-error'):
   os.unlink('interrupt-error');emit({'id':f['id'],'error':{'code':-32600,'message':'fixture: refused'}});continue
  elif m=='thread/read':
@@ -78,7 +78,7 @@ impl Fixture {
     fn new() -> Self {
         use std::os::unix::fs::PermissionsExt;
         let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("recovery-reads-").unwrap());
-        for name in ["account", "probe"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
+        for name in ["account", "probe", "project"] { std::fs::create_dir_all(root.join(name)).unwrap(); }
         let _custody = crate::hold_app_data_for_test(&root).unwrap();
         let peer = root.join("peer.py");
         std::fs::write(&peer, PEER).unwrap();
@@ -88,7 +88,7 @@ impl Fixture {
         cfg.wait_limit = Duration::from_secs(2);
         let home = Self::session(&root, &cfg);
         let first = home.host.snapshot()["generation"].clone();
-        home.host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+        home.host.thread_start_selected(&root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         home.host.observe_conversation_project(&first, "thread", Some("H-acct"), &ExplicitAppProjectContext::known("P", AppProjectSource::ConfiguredDirectory).unwrap()).unwrap();
         Self { root, cfg, home, first, _custody }
     }

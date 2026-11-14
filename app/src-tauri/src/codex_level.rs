@@ -224,6 +224,9 @@ pub struct Bound {
     /// The Host's level revision when the frame was built; a frame built under an older revision is not written.
     pub revision: u64,
     pub target: Target,
+    /// The ledger's `level_chosen` entry the level comes from, when the person's choice was recorded (None for a
+    /// level set without a record, as the unit tests' Host is).
+    pub chosen: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -254,14 +257,13 @@ pub fn agreement(level: &Level, reply: &Value) -> Agreement {
     }
 }
 
-/// Characters the App does not accept anywhere in the path of a Codex home it starts Codex in.
-pub const UNSAFE_HOME_CHARACTERS: [char; 4] = ['$', '`', '"', '\\'];
+/// Characters the App refuses anywhere in the path of a Codex home it starts Codex in.
+pub const REFUSED_HOME_CHARACTERS: [char; 4] = ['$', '`', '"', '\\'];
 
 /// The first component of `path`, as written or as resolved through links, that holds one of
-/// `UNSAFE_HOME_CHARACTERS`, with the character. Every component counts, the part above the App's own folders
-/// included. A path that cannot be resolved is checked as written only; the caller has already established the
-/// home exists before it starts Codex there.
-pub fn unsafe_home_component(path: &Path) -> Option<(char, PathBuf)> {
+/// `REFUSED_HOME_CHARACTERS`, with the character. Every component counts, the part above the App's own folders
+/// included. A path that cannot be resolved is checked as written only.
+pub fn refused_home_component(path: &Path) -> Option<(char, PathBuf)> {
     let resolved = std::fs::canonicalize(path).ok();
     for candidate in std::iter::once(path.to_path_buf()).chain(resolved) {
         let mut so_far = PathBuf::new();
@@ -269,7 +271,7 @@ pub fn unsafe_home_component(path: &Path) -> Option<(char, PathBuf)> {
             so_far.push(component.as_os_str());
             if let Component::Normal(name) = component {
                 let name = name.to_string_lossy();
-                if let Some(c) = UNSAFE_HOME_CHARACTERS.iter().find(|c| name.contains(**c)) {
+                if let Some(c) = REFUSED_HOME_CHARACTERS.iter().find(|c| name.contains(**c)) {
                     return Some((*c, so_far));
                 }
             }
@@ -278,8 +280,96 @@ pub fn unsafe_home_component(path: &Path) -> Option<(char, PathBuf)> {
     None
 }
 
-/// Whether a project's path, as given or as resolved, holds a double quote: at the pin the macOS sandbox profile
-/// Codex writes for it does not parse, and every sandboxed command fails without running (it fails closed).
+/// The file in a Codex home that names where Codex runs commands. The App checks only whether an entry of this
+/// name exists, by `symlink_metadata`; it never opens or reads it, because it may hold a credential.
+pub const ENVIRONMENTS_FILE: &str = "environments.toml";
+
+/// Why the App does not start Codex in a home (`levelStartRefusal` in the Host status).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum StartRefusal {
+    /// An entry named `environments.toml` is in the home (`present`), or whether there is one could not be
+    /// established (`present` false). Never opened.
+    EnvironmentsFile { path: PathBuf, present: bool },
+    /// A folder in the home's path, as written or as resolved, holds a refused character.
+    HomePath { character: char, folder: PathBuf },
+}
+
+impl StartRefusal {
+    /// The status value: `{refused: "environments-file", path, presence}` or
+    /// `{refused: "home-path", character, folder}`.
+    pub fn status(&self) -> Value {
+        match self {
+            Self::EnvironmentsFile { path, present } => json!({
+                "refused": "environments-file", "path": path.to_string_lossy(),
+                "presence": if *present { "present" } else { "not-established" }}),
+            Self::HomePath { character, folder } => json!({
+                "refused": "home-path", "character": character.to_string(), "folder": folder.to_string_lossy()}),
+        }
+    }
+    /// The start refusal's reason, naming which check refused. Says what is refused and what the person can do.
+    pub fn reason(&self) -> String {
+        match self {
+            Self::EnvironmentsFile { path, present: true } => format!(
+                "Codex was not started: the App's Codex folder holds a file named environments.toml ({}). It can tell Codex to run commands somewhere other than this Mac, where the level you set does not apply. The App has not opened, moved or removed it. Remove it, then start Codex again.",
+                path.display()),
+            Self::EnvironmentsFile { path, present: false } => format!(
+                "Codex was not started: whether the App's Codex folder holds a file named environments.toml ({}) could not be established. Make the folder readable, or remove the file if it is there, then start Codex again.",
+                path.display()),
+            Self::HomePath { character, folder } => format!(
+                "Codex was not started: the folder {} in the path of the App's Codex folder contains the character {character}, which the App refuses in that path. Rename the folder so that its name contains none of $ ` \" \\, or use the App from a Mac account whose home folder's name contains none of them.",
+                folder.display()),
+        }
+    }
+}
+
+/// The checks made before every Codex start in an App-owned home: the home's path (every component, as written
+/// and as resolved), then the presence of `environments.toml`, by `symlink_metadata` alone.
+pub fn start_refusal(home: &Path) -> Option<StartRefusal> {
+    if let Some((character, folder)) = refused_home_component(home) {
+        return Some(StartRefusal::HomePath { character, folder });
+    }
+    let path = home.join(ENVIRONMENTS_FILE);
+    match std::fs::symlink_metadata(&path) {
+        Ok(_) => Some(StartRefusal::EnvironmentsFile { path, present: true }),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(_) => Some(StartRefusal::EnvironmentsFile { path, present: false }),
+    }
+}
+
+/// The sha-256 digest of the committed level table, as the ledger's `tableDigest` names it.
+pub fn table_digest() -> &'static str {
+    static DIGEST: OnceLock<String> = OnceLock::new();
+    DIGEST.get_or_init(|| crate::util::sha256_hex(TABLE.as_bytes()))
+}
+
+/// A level's exact values as the ledger's `level_chosen.level` records them.
+pub fn recorded_values(level: &Level) -> Value {
+    json!({
+        "id": level.id, "tableDigest": table_digest(), "approvalPolicy": level.approval_policy,
+        "approvalsReviewer": "user", "sandbox": level.sandbox, "sandboxPolicy": level.sandbox_policy,
+        "workspaceWrite": level.workspace_write,
+    })
+}
+
+/// The level a recorded `level_chosen.level` names, accepted only when its id is in the table, its table digest
+/// is this table's and every value equals that row exactly. Anything else is no level.
+pub fn accept_recorded(values: &Value) -> Option<&'static Level> {
+    let level = level(values["id"].as_str()?)?;
+    (*values == recorded_values(level)).then_some(level)
+}
+
+/// The writable roots a level names beyond the project (none at the pin, but checked as any person-given root).
+pub fn writable_roots(level: &Level) -> Vec<PathBuf> {
+    level.workspace_write.as_ref().and_then(|w| w["writable_roots"].as_array())
+        .map(|roots| roots.iter().filter_map(Value::as_str).map(PathBuf::from).collect())
+        .unwrap_or_default()
+}
+
+/// Said, verbatim, by the native statement for the full level.
+pub const FULL_ACCESS_STATEMENT: &str = "At full access, Codex can change any file your Mac account can change, including the App's own records and settings, and its commands can reach the network. Choosing a narrower level later does not undo what was done at full access, and does not stop a command left running from then.";
+
+/// Whether a project's path, as given or as resolved, holds a double quote. Every sandboxed level is refused for
+/// such a project; the person can rename the folder, choose another, or choose full access.
 pub fn project_path_breaks_sandbox(project: &Path) -> bool {
     let resolved = std::fs::canonicalize(project).ok();
     std::iter::once(project.to_path_buf())
@@ -322,14 +412,16 @@ pub fn refusal(
     if level.sandboxed() && project_path_breaks_sandbox(project) {
         return Some(Refusal::ProjectPathBreaksSandbox);
     }
-    if !level.writes_in_the_project() || exempt.is_some_and(|e| same_folder(e, project)) {
+    if !level.writes_in_the_project() {
         return None;
     }
-    for (reaches, reserved) in protected {
-        match crate::working_folder::may_overlap(project, reserved) {
-            Ok(false) => {}
-            Ok(true) | Err(()) => {
-                return Some(Refusal::EditsReachAppFolders { folder: project.to_path_buf(), reaches })
+    // The project (unless it is the no-project folder) and every further writable root the level names.
+    let project_root = (!exempt.is_some_and(|e| same_folder(e, project))).then(|| project.to_path_buf());
+    for folder in project_root.into_iter().chain(writable_roots(level)) {
+        for (reaches, reserved) in protected {
+            match crate::working_folder::may_overlap(&folder, reserved) {
+                Ok(false) => {}
+                Ok(true) | Err(()) => return Some(Refusal::EditsReachAppFolders { folder, reaches }),
             }
         }
     }

@@ -2610,7 +2610,7 @@ fn child_parent_edited(
         .thread_start_with_role_dispatch(&proof, &c)
         .unwrap();
     let sent = peer.frame();
-    let response = json!({"id":receipt.request_id(),"result":{"thread":child_thread("parent",None,None),"model":"chosen-model","modelProvider":"openai","cwd":"/invented/work","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"}}});
+    let response = json!({"id":receipt.request_id(),"result":{"thread":child_thread("parent",None,None),"model":"chosen-model","modelProvider":"openai","cwd":"/invented/work","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"workspaceWrite","writableRoots":[],"networkAccess":false,"excludeTmpdirEnvVar":true,"excludeSlashTmp":true}}});
     peer.host.native_frame_for_test(&peer.g, &response);
     let binding = crate::role_lifecycle::PreparedStart::new(
         "child-home",

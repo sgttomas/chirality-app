@@ -10,7 +10,7 @@ use std::os::unix::fs::PermissionsExt;
 /// from the host's table: each name with the class code the record gives it.
 /// Every expectation below comes from these lists; the host's table is compared
 /// with them once, in `the_hosts_table_is_the_decided_list`.
-pub(super) const DECIDED: [(&str, &str); 33] = [
+pub(super) const DECIDED: [(&str, &str); 34] = [
     ("OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_ACCESS_TOKEN", "credential-custody/credential-variable"),
@@ -44,6 +44,7 @@ pub(super) const DECIDED: [(&str, &str); 33] = [
     ("CODEX_ROLLOUT_TRACE_ROOT", "home-separation"),
     ("CODEX_PLUGIN_METRICS_OUTPUT", "home-separation"),
     ("CODEX_TUI_SESSION_LOG_PATH", "home-separation"),
+    ("CODEX_EXEC_SERVER_URL", "level/execution-location"),
 ];
 /// The names whose values a configuration record treats as secret: the ten
 /// credential variables (the class is well-known provider credential names,
@@ -73,13 +74,13 @@ pub(super) const WRAPPER: [&str; 2] = ["CODEX_MANAGED_PACKAGE_ROOT", "CODEX_MANA
 /// Decided as kept: names the pinned Codex reads that the App leaves to the
 /// person, each with its reason. None may be on the host's list, and each
 /// reaches the child. The rule: the App removes what decides who Codex signs
-/// in as or supplies a credential for the model service; it leaves the
+/// in as, supplies a credential for the model service, or names where Codex
+/// runs commands (the permission level); it leaves the
 /// person's network route and the person's own tooling alone. A reason that
 /// holds only at one supplier pin names that pin, and a test fails when the
 /// pin changes, so that the name is decided again.
-const KEPT: [(&str, &str, Option<&str>); 27] = [
+const KEPT: [(&str, &str, Option<&str>); 26] = [
     ("CODEX_CA_CERTIFICATE", "TLS trust the person sets; deliberately kept", None),
-    ("CODEX_EXEC_SERVER_URL", "an execution backend the person sets; decided as kept", None),
     ("HTTP_PROXY", "the person's own network route", None),
     ("http_proxy", "the person's own network route", None),
     ("HTTPS_PROXY", "the person's own network route", None),

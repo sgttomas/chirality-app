@@ -81,19 +81,19 @@ fn agreement_compares_approval_reviewer_and_the_whole_sandbox() {
 }
 
 #[test]
-fn an_unsafe_home_path_is_found_in_any_component_as_written_and_as_resolved() {
+fn a_refused_home_path_is_found_in_any_component_as_written_and_as_resolved() {
     let base = tmp("home");
     let fine = base.join("App Data").join("homes").join("account");
     std::fs::create_dir_all(&fine).unwrap();
-    assert_eq!(unsafe_home_component(&fine), None);
+    assert_eq!(refused_home_component(&fine), None);
     for (i, (name, c)) in [("has $x", '$'), ("has `x`", '`'), ("has \"x\"", '"'), ("has \\x", '\\')].into_iter().enumerate() {
         let owner = base.join(name);
         let home = owner.join("App Data").join("home");
         std::fs::create_dir_all(&home).unwrap();
-        assert_eq!(unsafe_home_component(&home), Some((c, owner.clone())), "{name}");
+        assert_eq!(refused_home_component(&home), Some((c, owner.clone())), "{name}");
         let link = base.join(format!("link-{i}"));
         std::os::unix::fs::symlink(&home, &link).unwrap();
-        assert_eq!(unsafe_home_component(&link).map(|(c, _)| c), Some(c), "through a link: {name}");
+        assert_eq!(refused_home_component(&link).map(|(c, _)| c), Some(c), "through a link: {name}");
     }
     std::fs::remove_dir_all(&base).unwrap();
 }

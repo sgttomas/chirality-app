@@ -98,6 +98,9 @@ use crate::recovery::RecoveryLedger;
 mod child_role_receiving;
 pub(crate) use child_role_receiving::NativeChildStart;
 use crate::codex_level;
+#[path = "hosting_level.rs"]
+pub(crate) mod level_state;
+pub(crate) use level_state::LevelScope;
 use crate::util::{now_rfc3339, opaque_id, sha256_hex};
 use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
@@ -195,6 +198,8 @@ pub(crate) enum RemovalClass {
     HomeSeparation,
     /// Direct-vendor launcher convention: a wrapper setting (successor plan only).
     LauncherWrapper,
+    /// The permission level (V4-AUT-06): a name for where Codex runs commands.
+    ExecutionLocation,
 }
 impl RemovalClass {
     pub(crate) fn code(self) -> &'static str {
@@ -204,6 +209,7 @@ impl RemovalClass {
             Self::SignInOrTokenRefresh => "credential-custody/sign-in-or-token-refresh",
             Self::HomeSeparation => "home-separation",
             Self::LauncherWrapper => "launcher-wrapper",
+            Self::ExecutionLocation => "level/execution-location",
         }
     }
     fn reason(self) -> &'static str {
@@ -213,6 +219,7 @@ impl RemovalClass {
             Self::SignInOrTokenRefresh => "Removed by name for credential custody: a name for sign-in or token refresh. The name is known to exist; what the variable does is not claimed.",
             Self::HomeSeparation => "Removed by name for the separation of the App's Codex homes: a name for a state location. The name is known to exist; what the variable does is not claimed.",
             Self::LauncherWrapper => "Removed by name by the direct-vendor launcher convention: a wrapper setting.",
+            Self::ExecutionLocation => "Removed by name for the permission level (V4-AUT-06): a name for where Codex runs commands. The name is known to exist; what the variable does is not claimed.",
         }
     }
     /// Names whose values the configuration record treats as secret
@@ -266,6 +273,7 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
         ("CODEX_ROLLOUT_TRACE_ROOT", HomeSeparation),
         ("CODEX_PLUGIN_METRICS_OUTPUT", HomeSeparation),
         ("CODEX_TUI_SESSION_LOG_PATH", HomeSeparation),
+        ("CODEX_EXEC_SERVER_URL", ExecutionLocation),
     ]
 };
 /// Inherited by the child, neither set nor removed; only its presence in the
@@ -447,6 +455,8 @@ struct Inner {
     /// Advanced by every change the person makes to the levels. A frame built under an older revision is
     /// refused at its final admission and nothing is written.
     level_revision: u64,
+    /// The level's start checks, send-time refusals, ledger entries, status and lasting rules (`hosting_level.rs`).
+    level: level_state::LevelState,
     /// The last start of Codex refused before its app-server was spawned: its
     /// reason, actor, time, home (`app-home:` identity) and attempt (null when
     /// it was refused before it was admitted as an attempt). Host status
@@ -1275,7 +1285,9 @@ impl Host {
         let host = Self::new_without_level();
         #[cfg(test)]
         {
-            host.inner.0.lock().unwrap().default_level = codex_level::level("edits");
+            let mut i = host.inner.0.lock().unwrap();
+            i.default_level = codex_level::level("edits");
+            i.level.places = Some(level_state::Places::for_test());
         }
         host
     }
@@ -1512,6 +1524,7 @@ impl Host {
         Self::observe_reply_writes(i);
         let mut status = Self::snapshot_fields(i);
         status["startRefusalCause"] = json!(i.start_refusal_cause.map(StartRefusalCause::as_str));
+        Self::level_status(i, &mut status);
         status["build"] = json!(if cfg!(debug_assertions) { "development" } else { "release" });
         status
     }
@@ -2173,7 +2186,10 @@ impl Host {
     /// that leave the state as it was keep doing so, and the rest are the
     /// attempt's lifecycle record.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
-        self.start_sequence(cfg, actor)
+        let started = self.start_sequence(cfg, actor);
+        // The home's lasting rules are read again each time a start reaches ready (V4-AUT-06).
+        if started.as_ref().is_ok_and(|s| s["state"] == "ready") { self.read_lasting_rules(None); }
+        started
     }
     fn start_refusal(actor: &str, home: &std::path::Path, attempt: Option<u64>, reason: &str) -> Value {
         json!({"reason":reason,"actor":actor,"at":now_rfc3339(),"home":home_identity(home),"attempt":attempt})
@@ -2186,7 +2202,7 @@ impl Host {
     /// refused for a reason that is not kept leaves no refusal showing, and
     /// never an older one. Not a lifecycle transition.
     pub(crate) fn begin_start_request(&self) {
-        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = None; i.start_refusal_cause = None;
+        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = None; i.start_refusal_cause = None; i.level.start_refusal = None;
     }
     pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
         let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = Some(Self::start_refusal(actor, home, None, reason)); i.start_refusal_cause = Some(StartRefusalCause::Home);
@@ -2305,6 +2321,12 @@ impl Host {
             if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
                 return Err(format!("start not accepted in state {}", i.state));
             }
+        }
+        // V4-AUT-06: after the state's own refusal and before the home is claimed, before every Codex start in an App-owned home, the home's path and `environments.toml`
+        // (by presence alone, never opened). Refused, Codex is not started; the cause is in the status.
+        if let Err(reason) = self.level_start_check(cfg) {
+            self.note_start_refusal(actor, &cfg.codex_home, &reason);
+            return Err(reason);
         }
         // The home is the folder the child will use: it is given `cfg.cwd` as its working folder
         // and resolves a relative CODEX_HOME there, so the hold, the identity checks and the lock
@@ -2705,6 +2727,7 @@ impl Host {
             i.stop_record = None;
             i.server_cwd = Some(cfg.cwd.to_string_lossy().into_owned());
             i.app_data = cfg.app_data.clone();
+            Self::level_places_at_start(&mut i, cfg);
             let (removed_names, removed_classes) = removed_environment_record(prepared.as_ref().map(|p| &p.plan.removed[..]).unwrap_or(&[]));
             let conf = json!({
                 "launcher": executable.display().to_string(),
@@ -2906,7 +2929,10 @@ impl Host {
         self.check_local_reply()?;
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare(generation,id,answer,origin,actor)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
-        self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
+        self.flush_recovery_observations();result?;
+        // An answer that adds a lasting rule: the home's rules are read again (V4-AUT-06).
+        if level_state::adds_lasting_rule(answer) { self.read_lasting_rules(None); }
+        Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
     pub fn error_server_request(&self,generation:&Value,id:&Value,error:&Value,origin:&str)->Result<Value,String>{
         self.check_local_reply()?;
@@ -3047,6 +3073,7 @@ impl Host {
         let level = codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))?;
         let mut i = self.inner.0.lock().unwrap();
         i.default_level = Some(level);
+        i.level.default_chosen = None;
         i.level_revision += 1;
         Ok(())
     }
@@ -3057,6 +3084,7 @@ impl Host {
         let level = codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))?;
         let mut i = self.inner.0.lock().unwrap();
         i.thread_levels.insert(thread.to_owned(), level);
+        i.level.thread_chosen.remove(thread);
         i.level_revision += 1;
         Ok(())
     }
@@ -3067,6 +3095,7 @@ impl Host {
         let level = id.map(|id| codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))).transpose()?;
         let mut i = self.inner.0.lock().unwrap();
         i.new_conversation_level = level;
+        i.level.new_chosen = None;
         i.level_revision += 1;
         Ok(())
     }
@@ -3106,15 +3135,18 @@ impl Host {
         let Some((level, target, chosen_for_new)) = Self::resolve_level(i, method, built) else { return Ok(None) };
         let kind = codex_level::Method::of(method).expect("resolved methods carry a level");
         let level = level.ok_or_else(|| format!("refused-not-sent: no level chosen; {method} was not sent"))?;
+        let thread = built.get("threadId").and_then(Value::as_str).unwrap_or_default().to_owned();
+        let chosen = Self::level_chosen_for(i, kind, &thread, chosen_for_new);
+        Self::level_send_check(i, method, built, level, &target)?;
         let mut params = built.clone();
         codex_level::merge(&mut params, level, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
         #[cfg(test)] {let hook=self.after_level_merge.lock().unwrap().take();if let Some(h)=hook{h(&mut params);}}
         if !codex_level::carries_exactly(built, &params, level, kind) {
             return Err(format!("refused-not-sent: {method} would carry other than exactly its level; nothing written"));
         }
-        if chosen_for_new { i.new_conversation_level = None; }
+        if chosen_for_new { i.new_conversation_level = None; i.level.new_chosen = None; }
         let fields = codex_level::params(level, kind);
-        Ok(Some((params, codex_level::Bound { level, method: kind, fields, revision: i.level_revision, target })))
+        Ok(Some((params, codex_level::Bound { level, method: kind, fields, revision: i.level_revision, target, chosen })))
     }
     /// A frame is written only under the level revision it was built under.
     fn check_level_current(i: &Inner, bound: &codex_level::Bound) -> Result<(), String> {
@@ -3122,15 +3154,6 @@ impl Host {
             return Err("refused-not-sent: the level changed after this request was built; nothing written".into());
         }
         Ok(())
-    }
-    /// A start's or fork's reply names the conversation it created: that conversation takes the level the
-    /// frame carried, unless the person has already chosen one for it.
-    fn record_created_level(i: &mut Inner, key: &str, frame: &Value) {
-        let Some(bound) = i.source_requests.get(key).and_then(|e| e.request.level.clone()) else { return };
-        if !matches!(bound.target, codex_level::Target::New | codex_level::Target::ForkOf(_)) || frame.get("error").is_some() { return; }
-        if let Some(thread) = frame["result"]["thread"]["id"].as_str().filter(|t| !t.is_empty()) {
-            i.thread_levels.entry(thread.to_owned()).or_insert(bound.level);
-        }
     }
     fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>,write_bound:Option<&WriteBound>)->Result<SourceRequest,String>{
         // A configuration reading and a bounded interrupt are exclusive by construction: each has
@@ -3292,7 +3315,7 @@ impl Host {
         let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;let native_settlement=e.native_settlement;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
         let reading_error=hold.as_ref().map(|_|write_result.as_ref().err().cloned());
         match write_result {
-            Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
+            Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;Self::level_write_noted(&mut i,&key,true);record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
                 if !closed&&method=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
             }
@@ -3300,7 +3323,7 @@ impl Host {
             // start stays unresolved (outcome not known) until a reply resolves
             // it or its generation closes. A start whose write never began never
             // entered the table.
-            Err(error)=> {i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
+            Err(error)=> {i.pending.remove(&key);Self::level_write_noted(&mut i,&key,false);let e=i.source_requests.get_mut(&key).unwrap();
                 if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
                 else{e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; v0.10 cannot faithfully project that combination; raw source retained".into());}
                     else{record["writeResult"]=json!("write-failed");record["outcome"]=json!("unknown-no-response");i.client_requests[idx]=record;}}
@@ -4092,12 +4115,12 @@ impl Host {
             // anything else leaves it listed. A write error alone retires nothing. (A reply to a start
             // in the table is already taken in at receipt; this hand-over covers the stored copy.)
             if !closed&&frame["method"]=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
-            match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
+            match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;Self::level_write_noted(&mut i,&key,true);i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}
                 }
                 // A write that began and failed may have reached Codex in part: the failure itself retires
                 // nothing, and the start stays listed unless a stored reply resolves it below.
-                Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+                Err(error)=>{i.pending.remove(&key);Self::level_write_noted(&mut i,&key,false);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
             drop(i);drop(namespace_lease);
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
@@ -5749,7 +5772,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     self.capture_pipe(&i).ok().map(|bound|(bound.epoch,bound.identity))
                 } else { None };
                 if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.native_settlement=native_settlement; e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
-                Self::record_created_level(&mut i, &key, &frame);
+                Self::level_reply(&mut i, &key, &frame);
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
@@ -6282,8 +6305,10 @@ mod additive_guidance_transport_tests {
         *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let me=Arc::clone(&host);let g=generation.clone();let (tx,rx)=channel();
         let worker=std::thread::spawn(move|| {
             let mut line=String::new();BufReader::new(stdout).read_line(&mut line).unwrap();let frame:Value=serde_json::from_str(&line).unwrap();
+            // The test Host's "edits" level, as Codex reports it. Pinned 0.167.0, start reply with an explicit sandbox
+            // mode: activePermissionProfile null.
             let response=json!({"id":frame["id"],"result":{"thread":{"id":"mock-thread","status":"idle"},"model":"reported-model","modelProvider":"reported-provider","cwd":"/reported/work",
-                "approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly","networkAccess":false},"activePermissionProfile":{"id":":read-only"}}});
+                "approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"workspaceWrite","writableRoots":[],"networkAccess":false,"excludeTmpdirEnvVar":true,"excludeSlashTmp":true},"activePermissionProfile":null}});
             tx.send((frame,response.clone())).unwrap();me.on_line(&serde_json::to_vec(&response).unwrap(),&g);
         });
         let result=match guidance {Some(text)=>host.thread_start_with_guidance("/invented/work","chosen-model","chosen-provider",text),None=>host.thread_start_selected("/invented/work","chosen-model","chosen-provider")};
@@ -6296,7 +6321,8 @@ mod additive_guidance_transport_tests {
             let run=mock_thread_start(guidance,None);let response=run.result.unwrap();
             // What Codex reported it may do in the conversation is kept on its row, as reported.
             let row=&run.snapshot["threads"][0];
-            assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("readOnly"),Some(":read-only")));
+            assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("workspaceWrite"),None));
+            assert!(row["activePermissionProfile"].is_null(), "kept as reported");
             assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap(),"thread/start"));assert_eq!(response,run.native_response);
             let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
@@ -6883,7 +6909,7 @@ mod conversation_transport_tests {
     }
 
     fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
-    fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":["/native/instructions"],"nativeExtra":true})}
+    fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"workspaceWrite","writableRoots":[],"networkAccess":false,"excludeTmpdirEnvVar":true,"excludeSlashTmp":true},"instructionSources":["/native/instructions"],"nativeExtra":true})}
     fn bind_local_history(host:&Host) {
         let mut i=host.inner.0.lock().unwrap();
         i.local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented"));
@@ -7789,7 +7815,9 @@ mod conversation_transport_tests {
             let schema: Value = serde_json::from_str(include_str!("../schemas/RS_RECORD.schema.json")).unwrap();
             jsonschema::options().offline().build(&schema["$defs"]["modelTurn"]).unwrap().validate(recorded).unwrap();
             let context = host.snapshot()["conversationTurns"].as_array().unwrap().iter().find(|turn| turn["turnId"] == "after-attachment").unwrap()["appTurnStart"]["requestedContext"].clone();
-            assert_eq!(host.snapshot()["threads"], reported, "no reported-model mutation");
+            // The conversation's `level` (what the App sent, V4-AUT-06) changes with the turn; nothing Codex reported does.
+            let without_level = |threads: Value| -> Value { Value::Array(threads.as_array().unwrap().iter().map(|t| { let mut t = t.clone(); t.as_object_mut().unwrap().remove("level"); t }).collect()) };
+            assert_eq!(without_level(host.snapshot()["threads"].clone()), without_level(reported.clone()), "no reported-model mutation");
             std::fs::remove_dir_all(root).unwrap();
             let expected = if settled_refusal { "M1" } else { "unknown" };
             assert_eq!(json!({"modeRefused":mode.is_err(),"requested":context["requested"],"recordedRequested":recorded["requested"]}),
