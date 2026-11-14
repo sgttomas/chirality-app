@@ -129,7 +129,8 @@ pub fn check_path(path: &Path) -> Result<(), String> {
     Ok(())
 }
 /// An append-open refusal is distinct from an I/O failure after an append
-/// starts. Only `open_append` constructs `Refused`: it has written no bytes.
+/// starts. Only `open_append` and `open_read_regular` construct `Refused`;
+/// neither has written any bytes.
 #[derive(Debug)]
 pub(crate) struct AppendOpenError(AppendOpenCause);
 #[derive(Debug)]
@@ -140,6 +141,11 @@ enum AppendOpenCause {
 }
 impl AppendOpenError {
     pub(crate) fn is_refusal(&self) -> bool { matches!(self.0, AppendOpenCause::Refused(_)) }
+    /// A refusal is already the decided sentence naming the file; other
+    /// errors keep the caller's context prefix.
+    pub(crate) fn with_context(&self, context: &str) -> String {
+        if self.is_refusal() { self.to_string() } else { format!("{context}{self}") }
+    }
     pub(crate) fn is_not_found(&self) -> bool {
         matches!(&self.0, AppendOpenCause::Io(e) if e.kind() == std::io::ErrorKind::NotFound)
     }

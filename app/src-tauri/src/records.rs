@@ -647,7 +647,7 @@ pub(crate) fn open_owning_log(root: &Path, log: &Path) -> Result<(), String> {
     let mut file = match crate::storage::open_read_regular(log, "records log") {
         Ok(file) => file,
         Err(e) if e.is_not_found() => return Ok(()),
-        Err(e) => return Err(format!("open log: {e}")),
+        Err(e) => return Err(e.with_context("open log: ")),
     };
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes).map_err(|e| format!("read owning log: {e}"))?;
@@ -709,7 +709,7 @@ fn writer_ownership(log: &Path) -> Result<crate::storage::Ownership, String> {
 fn w0_open(root: &Path, log: &Path) -> Result<(), String> {
     let validator = crate::schema_validation::bundled().map_err(|e| format!("RS W-1 validation unavailable; nothing written: {e}"))?;
     let _ownership = writer_ownership(log)?;
-    let mut file = crate::storage::open_append(log, "records log", false, true).map_err(|e| format!("open log: {e}"))?;
+    let mut file = crate::storage::open_append(log, "records log", false, true).map_err(|e| e.with_context("open log: "))?;
     let mut existing = Vec::new();
     file.read_to_end(&mut existing).map_err(|e| format!("read owning log: {e}"))?;
     if existing.is_empty() || existing.ends_with(b"\n") {
@@ -789,7 +789,7 @@ fn append_unit(
     let mut checked = match crate::storage::open_append(log, "records log", false, false) {
         Ok(file) => Some(file),
         Err(e) if e.is_not_found() => None,
-        Err(e) => return Err(format!("open log: {e}")),
+        Err(e) => return Err(e.with_context("open log: ")),
     };
     crate::storage::check_path(log)?;
     let _ownership = writer_ownership(log)?;
@@ -875,7 +875,7 @@ fn append_unit(
     }
     let mut f = match checked {
         Some(file) => file,
-        None => crate::storage::open_append(log, "records log", true, false).map_err(|e| format!("open log: {e}"))?,
+        None => crate::storage::open_append(log, "records log", true, false).map_err(|e| e.with_context("open log: "))?,
     };
     if let Some(bytes) = repair {
         w0_write(log, &mut f, &bytes)?;

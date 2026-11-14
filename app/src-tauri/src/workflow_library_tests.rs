@@ -2940,7 +2940,7 @@ fn alias_refusal_registry_pending_retains_liveness_and_true_sentence_on_repeat()
     for _ in 0..2 {
         match &attempt.advance()[0] {
             EntryOutcome::Pending { reason, .. } => {
-                assert!(reason.starts_with("the workflow registry file ") && reason.contains(" has another name. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this."), "{reason}");
+                assert_eq!(reason, &format!("the workflow registry file {} has another name. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this.", path.display()));
                 assert!(!reason.contains("durability uncertain"), "{reason}");
                 reasons.push(reason.clone());
             }
@@ -2954,4 +2954,26 @@ fn alias_refusal_registry_pending_retains_liveness_and_true_sentence_on_repeat()
         assert!(s.persistent_owner().reconciliation()[0].starts_with("X-2 deferred"));
     }
     assert_eq!(reasons[0], reasons[1]);
+}
+
+/// A folder name that contains the refusal's own words is kept verbatim: only
+/// the sentence's terminal suffix is rewritten.
+#[test]
+fn alias_refusal_registry_sentence_keeps_a_path_containing_its_own_words() {
+    let root = std::env::temp_dir().canonicalize().unwrap()
+        .join(crate::util::opaque_id("registry-words-").unwrap())
+        .join("Library; nothing was written to it");
+    fs::create_dir_all(root.join(".chirality")).unwrap();
+    let path = root.join(".chirality/workflow-registry.jsonl");
+    let other = root.join("other");
+    fs::write(&other, b"").unwrap();
+    fs::hard_link(&other, &path).unwrap();
+    let error = storage::open_append(&path, "workflow registry", true, false).unwrap_err();
+    assert!(error.is_refusal());
+    assert_eq!(
+        registry_refusal_reason(&error),
+        format!("the workflow registry file {} has another name. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this.", path.display())
+    );
+    assert_eq!(fs::read(&other).unwrap(), b"");
+    fs::remove_dir_all(root.parent().unwrap()).unwrap();
 }

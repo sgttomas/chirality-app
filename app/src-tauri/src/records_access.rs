@@ -507,7 +507,7 @@ impl ReadLog {
         // final name first must not create an empty file through a parent link.
         crate::storage::check_path(path.parent().ok_or("read log has no folder")?)?;
         let created = !path.exists();
-        let mut file = crate::storage::open_append(path, "read log", true, true).map_err(|e| format!("read log unavailable: {e}"))?;
+        let mut file = crate::storage::open_append(path, "read log", true, true).map_err(|e| e.with_context("read log unavailable: "))?;
         crate::storage::check_path(path)?;
         let length = file.metadata().map_err(|e| e.to_string())?.len();
         if length > 0 {

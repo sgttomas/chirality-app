@@ -935,7 +935,9 @@ fn alias_read_log(kind: &str) {
         let answer = cap.answer(&request, project.to_str());
         assert_eq!(answer["success"], false, "{answer}");
         let text = answer["contentItems"][0]["text"].as_str().unwrap();
-        assert!(text.contains("the read could not be recorded") && text.contains("nothing returned"), "{text}");
+        let reason = match kind { "fifo" => "is not a regular file", "symlink" | "dangling" => "is a symbolic link", _ => "has another name" };
+        let decided = format!("the read could not be recorded (the read log file {} {reason}; nothing was written to it); nothing returned", path.display());
+        assert!(text.contains(&decided), "{text}");
         assert!(!text.contains("secret-invented-record-content"), "{text}");
         let log = cap.log.lock().unwrap();
         assert!(log.answered.is_empty(), "the repeat marker must roll back");

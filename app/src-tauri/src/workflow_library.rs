@@ -1889,8 +1889,7 @@ impl HotRegistrationAttempt {
             Err(error) if error.is_refusal() => {
                 // "the workflow registry file <path> has another name; nothing was written to it" becomes
                 // "... has another name. Nothing was written to it, and the registration was not made. ..."
-                let refusal = error.to_string().replacen("; nothing was written to it", ". Nothing was written to it", 1);
-                let reason = format!("{refusal}, and the registration was not made. The App is not retrying; waiting will not resolve this.");
+                let reason = registry_refusal_reason(&error);
                 self.progress[index] = Progress::Pending(reason.clone());
                 Err(reason)
             }
@@ -2340,6 +2339,13 @@ fn reconcile_attempts(root: &Path, origin: &str, source: &str) -> Vec<String> {
         );
     }
     outcomes
+}
+/// The registry's sentence for the shared opener's refusal. Only the terminal
+/// suffix changes; the path, whatever its folder names, is kept verbatim.
+fn registry_refusal_reason(error: &storage::AppendOpenError) -> String {
+    let refusal = error.to_string();
+    let cause = refusal.strip_suffix("; nothing was written to it").unwrap_or(&refusal);
+    format!("{cause}. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this.")
 }
 fn append_line(root: &Path, line: &Value) -> Result<(), storage::AppendOpenError> {
     #[cfg(test)]

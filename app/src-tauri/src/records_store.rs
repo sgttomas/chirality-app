@@ -864,7 +864,7 @@ fn create_whole(path: &Path, bytes: &[u8]) -> Result<(), String> {
 fn write_appending(path: &Path, bytes: &[u8]) -> Result<(), String> {
     #[cfg(test)]
     crate::storage::mutation_for_test("store write_appending");
-    let mut f = crate::storage::open_append(path, "records store control", false, false).map_err(|e| format!("{}: {e}; nothing changed", path.display()))?;
+    let mut f = crate::storage::open_append(path, "records store control", false, false).map_err(|e| format!("{}; nothing changed", e.with_context(&format!("{}: ", path.display()))))?;
     #[cfg(test)]
     match append_stop() {
         Some(AppendStop::BeforeWrite) => return Err("store line write interrupted (injected) before the write".into()),
