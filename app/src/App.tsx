@@ -2473,7 +2473,7 @@ export function App() {
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
   // App data held by another process shows the same focused surface, with its reason.
-  const setupRequired = ["setup-required", "data-held", "home-held"].includes(host?.desktopSetup?.launch?.state);
+  const setupRequired = ["setup-required", "data-held", "home-held", "set-aside-occupied"].includes(host?.desktopSetup?.launch?.state);
   // Until the first status read is applied, neither the welcome nor the workspace is in the document,
   // only the line that says the App is starting (or, after FIRST_READ_PATIENCE_MS, taking longer than usual),
   // or that the read failed (firstReadState).

@@ -566,6 +566,7 @@ for line in sys.stdin:
         account.configure_recovery(data.join("runtime/recovery.ledger.jsonl")).unwrap();
         let ready=account.start(&f.cfg,"fixture").unwrap();let ga=ready["generation"].clone();let before=account.distribution_evidence(&ga);
         let shared=f.root.join("shared");std::fs::create_dir(&shared).unwrap();std::fs::create_dir(shared.join("skills")).unwrap();for name in ["config.toml","AGENTS.md"]{std::fs::write(shared.join(name),b"synthetic resource").unwrap();}
+        crate::working_folder::establish(&data).unwrap(); // as a start does (DEL-01-01)
         let bootstrap=crate::runtime_session::freeze_root_home_descriptors(&data,&f.cfg,Some(data.join("key")),[Some(shared.join("config.toml")),Some(shared.join("AGENTS.md")),Some(shared.join("skills"))]).unwrap();
         let cap=account.app_runtime_custody().unwrap();let installed=std::sync::atomic::AtomicBool::new(false);
         let(tx,rx)=std::sync::mpsc::channel();let(go,wait)=std::sync::mpsc::channel();store.before_s1_audit(move||{tx.send(()).unwrap();wait.recv_timeout(Duration::from_secs(2)).unwrap();});let source=account.clone();let generation=ga.clone();let reader=std::thread::spawn(move||source.distribution_evidence(&generation));rx.recv_timeout(Duration::from_secs(2)).unwrap();
