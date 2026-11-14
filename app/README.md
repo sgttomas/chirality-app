@@ -899,13 +899,27 @@ implemented behavior and qualification limits.
     written when the status Codex reports for a child changes, and
     `observation_ended` when the generation it was observed in closes
     (Codex stopped or exited) or when the App itself exits (cause "App
-    quit"). A session records the end only of its own observation, and every
-    later fact of a child, in whatever generation of Codex reports it, goes
-    through the recording context frozen when that child was first
-    recorded, with the writer's physical check:
-    nothing is ever written about a child another session recorded, or
-    under another identity or folder, and after a crash or a kill no end is
-    recorded at all. Each child's facts reach
+    quit"). Every later fact of a child, in whatever generation of Codex
+    reports it, goes through the recording context frozen when that child
+    was first recorded, with the writer's physical check: nothing is written
+    under another identity or folder. A session records the end of its own
+    observations, and one other end: at its start, from the record tick until
+    it has run, for each child an earlier session of this App recorded and
+    left without an end, where the App ledger established that session ended
+    at this session's start (the rule by which the ledger reads it as ended),
+    it records the end with the cause "App relaunch" and the status its scan
+    read as last recorded; statuses recorded after that scan and before the
+    end's publication are not reflected in it (possible only while a build
+    from before the hold is still alive). A session the ledger did not
+    establish as ended (still running,
+    another App's, or of liveness not established) gets no end from this
+    session, is not looked at again in it, and is stated as a limit. After a
+    crash or a kill no end is recorded until the next start does so. Neither
+    that end nor any limit says the child itself ended: it says only that an
+    observation of it is over, or could not be reconciled. The App's own view
+    also states, as a limit, when this session's reconciliation is pending or
+    could not be written; another reader of the same files sees only the
+    records. A read reports it and triggers nothing. Each child's facts reach
     the store in the order observed; a later one waits while an earlier one
     of that child is unwritten. A dispatch establishes a child and its parent only. A spawn seen only in Codex history, or in a
     conversation whose folder is not the selected project, is not recorded.
@@ -930,13 +944,22 @@ implemented behavior and qualification limits.
     project's files is consulted to tie anything, so a brief file changed,
     replaced or superseded afterwards moves no worker. An item so held, with
     no return recorded, reads `dispatched` and lists every worker dispatched
-    for it, each with its last recorded status, when it was recorded and
-    that nothing has been recorded since; it reads `unknown` once an end of
-    every such worker's observation is recorded, or where its named brief
-    cannot be found. A dispatch under an earlier brief of the item still
-    holds it and says so. A worker still observed for work that is not
-    selected in the current graph leaves no row plainly ready. A child tied to no brief
-    leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
+    for it with, for each generation in which it was observed: where no end
+    of that observation is recorded, the status last recorded in that
+    generation and when (or, where none has been recorded since the
+    dispatch, when the dispatch was recorded), and that nothing has been
+    recorded of it in that generation since; where an end is recorded, its
+    cause, when it was recorded, and the status it carries, if any;
+    generations are not ordered against each other, and none supersedes
+    another. It
+    reads `unknown` once every generation's observation of every such worker
+    has an end recorded, or where its named brief cannot be found. A
+    dispatch under an earlier brief of the item still
+    holds it and says so. A worker last observed, with no ending of that
+    observation recorded, for work that is not selected in the current graph
+    leaves no row plainly ready. A child tied to no brief leaves no item
+    plainly ready while no ending of its observation is recorded. An
+    incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 

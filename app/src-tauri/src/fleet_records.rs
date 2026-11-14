@@ -293,6 +293,8 @@ struct Protected { dir: PathBuf, store: PathBuf, history: HistorySource, retenti
 /// Read-only identity inspection. It deliberately calls neither attach/opened
 /// nor a creating admission helper: absent identity/guard files stay absent.
 fn protected(census: &mut Census, root: &Path, limits: &mut Vec<Value>) -> Result<Protected, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("fleet_records::protected");
     let configured = records_store::current()?;
     let store = configured.root.canonicalize().map_err(|_| "configured records store is absent/unavailable; nothing created")?;
     if store.starts_with(root) || root.starts_with(&store) { return Err("records store overlaps the selected project; no protected counterpart".into()); }

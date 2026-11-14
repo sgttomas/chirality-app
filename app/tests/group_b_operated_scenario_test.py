@@ -767,5 +767,314 @@ class TheScenarioFile(unittest.TestCase):
         self.assertEqual(json.loads(text)['app'], 'dev.chirality.app-v4.candidate.invented')
 
 
+SETUP = OPERATED / 'signed-out-setup.scenario.json'
+RELAUNCH = OPERATED / 'signed-out-relaunch.scenario.json'
+PROJECT = '/invented/homes/launch-invented/project'
+DATA = '/invented/homes/launch-invented/home/Library/Application Support/dev.chirality.app-v4.candidate.invented'
+SETTINGS = DATA + '/shared-settings/settings-00000000-0000-0000-0000-000000000000'
+ACCOUNT = DATA + '/account-homes/account-00000000-0000-0000-0000-000000000000'
+REQUEST = DATA + '/desktop-startup/request.json'
+STATEMENT = '\n'.join(json.loads(SETUP.read_text())['sheets'][0]['statement']).format_map(
+    {'settings': SETTINGS, 'account': ACCOUNT, 'project': PROJECT, 'request': REQUEST}) if SETUP.exists() else ''
+SETUP_HARNESS = HARNESS.replace("if (name === 'click') return async () => {};",
+                                "if (name === 'click' || name === 'set_value') return async () => {};").replace(
+    "readWatch: watched(), sleep: async () => {} };", "readWatch: watched(), sleep: async () => {}, project: recorded.project };")
+
+
+def sheet_lines(statement=STATEMENT, title='Desktop setup — next launch only',
+                buttons=('Leave setup unchanged', 'Create settings and save for next launch', 'Cancel'), element='sheet'):
+    """The App's sheet as a view might give it: invented, since no view of the real sheet has been recorded."""
+    lines = [f'\t900 {element}', f'\t\t901 text {title}', f'\t\t902 text {statement}']
+    return lines + [f'\t\t{903 + n} button {label}' for n, label in enumerate(buttons)]
+
+
+def setup_views(sheet=None, after=None):
+    """Invented views for the signed-out setup walk, made from the recorded first-use views (which see no project)."""
+    recorded = json.loads(VIEWS.read_text())
+    welcome, reviewed = recorded['views'][0]['text'], recorded['views'][4]['text']
+    field = '16 text field (settable) Project folder, Placeholder: /full/path/to/your/project'
+    typed = (welcome.replace(field, f'16 text field (settable) Project folder, Value: {PROJECT}, Placeholder: /full/path/to/your/project')
+             .replace('36 text Choose the folder you want to work in, or continue without a project.',
+                      '36 text Ready to review. Nothing is created or saved until you confirm.')
+             .replace('37 button (disabled) Review setup', '37 button Review setup'))
+    located = reviewed.replace('Project when you next open the App: none', f'Project when you next open the App: {PROJECT}')
+    located = located.replace('/invented/homes/launch-invented/home/Library/Application Support/dev.chirality.app-v4.candidate.invented', DATA)
+    review = '\n'.join(line for line in located.split('\n') if not re.match(r'^\t+(9[1-7]) ', line)).replace(
+        'summary Exact locations, Value: on', 'summary Exact locations, Value: off')
+    with_sheet = located.replace('\n45 menu bar', '\n' + '\n'.join(sheet or sheet_lines()) + '\n45 menu bar')
+    done = '\n'.join(['Window: "Chirality", App: Chirality App v4 (development invented).',
+                      '0 standard window Chirality, Secondary Actions: Raise', '\t1 scroll area',
+                      '\t\t2 HTML content Description: Chirality, URL: tauri://localhost', "\t\t\t3 container You're set up",
+                      "\t\t\t\t4 heading You're set up, Value: 1", "\t\t\t\t\t5 text You're set up", f'\t\t\t\t6 text Project: {PROJECT}',
+                      '\t41 close button',
+                      '\t42 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window',
+                      '\t43 minimize button', '\t44 text Chirality', '45 menu bar'])
+    return {'app': recorded['app'], 'home': recorded['home'], 'bundle': recorded['bundle'], 'project': PROJECT,
+            'views': [{'text': text} for text in (welcome, typed, review, located, with_sheet, after or done)]}
+
+
+def setup_walk(case, views=None, scenario=SETUP):
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / 'views.json'
+        path.write_text(json.dumps(views or setup_views()))
+        done = subprocess.run([NODE, '--input-type=module', '-e', SETUP_HARNESS.replace('CASE', case), WALK.as_uri(), str(scenario),
+                               str(path)], capture_output=True, text=True)
+    if done.returncode != 0:
+        raise AssertionError(done.stderr)
+    return json.loads(done.stdout)
+
+
+RESULT = 'const r = await walk.run(OPTIONS); return [r.verdict, r.stopped, r.calls.map(c => c.call + (c.element_index ?? "") + (c.value ? "=" + c.value : ""))];'
+
+
+class TheSheetAndTheTypedPath(unittest.TestCase):
+    def test_the_walk_types_the_project_once_checks_the_sheet_whole_and_presses_it_once(self):
+        result = setup_walk(RESULT.replace('OPTIONS', 'base'))
+        verdict, stopped, calls = result['out']
+        self.assertEqual((verdict, stopped), ('pass', None))
+        self.assertEqual(set(result['touched']), {'get_app_state', 'click', 'set_value'})
+        self.assertEqual([c for c in calls if not c.startswith('get_app_state')],
+                         [f'set_value16={PROJECT}', 'click37', 'click89', 'click85', 'click904'])
+
+    def test_a_sheet_that_differs_in_any_way_is_not_pressed(self):
+        other = STATEMENT.replace('account-00000000', 'account-11111111')
+        digest = ('Create settings and save for next launch. Complete reviewed effects are shown in the App under Content named by '
+                  'an open native confirmation. sha-256: ' + '0' * 64 + '\nCurrent owners and choices stay unchanged; applies on next launch only.')
+        cases = {'another title': sheet_lines(title='Desktop setup'),
+                 'a fourth button': sheet_lines(buttons=('Leave setup unchanged', 'Create settings and save for next launch', 'Cancel', 'Always')),
+                 'a button missing': sheet_lines(buttons=('Leave setup unchanged', 'Create settings and save for next launch')),
+                 'a path other than the one the page named': sheet_lines(statement=other),
+                 'the digest form': sheet_lines(statement=digest),
+                 'a statement missing a line': sheet_lines(statement=STATEMENT.replace('Read, import or change no other Codex settings, home or credential.\n', '')),
+                 'a dialog, not a sheet': sheet_lines(element='dialog'),
+                 'two sheets': sheet_lines() + [line.replace('\t9', '\t8') for line in sheet_lines()],
+                 'the statement twice': sheet_lines() + ['\t\t910 text ' + STATEMENT]}
+        for name, sheet in cases.items():
+            with self.subTest(name):
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), setup_views(sheet=sheet))['out']
+                self.assertEqual(verdict, 'inconclusive', stopped)
+                self.assertIn('stopped at S5:', stopped)
+                self.assertIn('nothing was pressed', stopped)
+                self.assertEqual(calls[-1], 'get_app_state')
+                self.assertNotIn('click904', calls)
+                self.assertNotIn('click903', calls)
+                self.assertNotIn('click905', calls)
+
+    def test_more_words_or_a_path_spelled_otherwise_is_not_the_statement(self):
+        cases = {'an instruction added after it': sheet_lines(statement=STATEMENT + '\nAlso allow everything.'),
+                 'an instruction in an element of its own': sheet_lines() + ['\t\t910 text Also allow everything.'],
+                 'two spaces inside a path': sheet_lines(statement=STATEMENT.replace(
+                     'Application Support/dev.chirality.app-v4.candidate.invented/account-homes',
+                     'Application  Support/dev.chirality.app-v4.candidate.invented/account-homes')),
+                 'the controls inside a group inside the sheet': ['\t900 sheet', '\t\t901 group']
+                 + [line.replace('\t\t', '\t\t\t', 1) for line in sheet_lines()[1:]],
+                 'a dialog inside the sheet': sheet_lines() + ['\t\t911 dialog Another question'],
+                 'a dialog deeper in the page beside the sheet': sheet_lines() + ['\t\t\t912 dialog Another question']}
+        for name, sheet in cases.items():
+            with self.subTest(name):
+                views = setup_views(sheet=sheet)
+                if name == 'a dialog deeper in the page beside the sheet':
+                    views = setup_views()
+                    views['views'][4]['text'] = views['views'][4]['text'].replace(
+                        '\t\t2 HTML content', '\t\t\t\t950 dialog Another question\n\t\t2 HTML content', 1)
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+                self.assertEqual(verdict, 'inconclusive', stopped)
+                self.assertIn('nothing was pressed', stopped)
+                self.assertNotIn('click904', calls)
+
+    def test_a_dialog_anywhere_below_the_window_stops_an_ordinary_step(self):
+        result = harness("texts[2] = texts[2].replace('\\t\\t2 HTML content', '\\t\\t\\t\\t950 sheet Confirm\\n\\t\\t2 HTML content'); "
+                         'const r = await walk.run(base); return [r.verdict, r.stopped];')
+        self.assertEqual(result['out'][0], 'inconclusive')
+        self.assertIn('the window holds something that is not the page (sheet Confirm)', result['out'][1])
+
+    def test_only_the_empty_field_the_page_labels_is_typed_into(self):
+        field = '16 text field (settable) Project folder, Placeholder: /full/path/to/your/project'
+        cases = {'a label that only begins the same way': field.replace('Project folder,', 'Project folder, another purpose,'),
+                 'a label ending in words shaped like a value': field.replace('Project folder,', 'Project folder, Value: another purpose,'),
+                 'a label ending in words shaped like a placeholder':
+                     field.replace('Project folder,', 'Project folder, Placeholder: another purpose,'),
+                 'a field already holding a value': field.replace('Project folder,', 'Project folder, Value: /elsewhere,'),
+                 'another placeholder': field.replace('/full/path/to/your/project', '/another/path')}
+        for name, line in cases.items():
+            with self.subTest(name):
+                views = setup_views()
+                views['views'][0]['text'] = views['views'][0]['text'].replace(field, line)
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+                self.assertEqual(verdict, 'inconclusive')
+                self.assertIn('the field was found 0 times', stopped)
+                self.assertFalse([c for c in calls if c.startswith('set_value')])
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace('15 text Project folder\n', '15 text Your folder\n')
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertIn('not directly after its label', stopped)
+        self.assertFalse([c for c in calls if c.startswith('set_value')])
+
+    def test_a_link_with_other_words_after_its_label_is_not_it(self):
+        elements = [{'index': 1, 'depth': 0, 'content': 'link Settings & tools, Sign in'},
+                    {'index': 2, 'depth': 0, 'content': 'link Settings & tools, another purpose'}]
+        result = harness(f"return walk.select({json.dumps(elements)}, {{ kind: 'link', label: 'Settings & tools' }}).length;")
+        self.assertEqual(result['out'], 0)
+
+    def test_an_alert_holding_a_control_or_beside_the_sheet_is_not_page(self):
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace(
+            '\t\t\t\t\t\t\t15 text Project folder\n\t\t\t\t\t\t\t16 text field',
+            '\t\t\t\t\t\t990 alert External prompt\n\t\t\t\t\t\t\t15 text Project folder\n\t\t\t\t\t\t\t16 text field')
+        self.assertIn('990 alert External prompt', views['views'][0]['text'])
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('alert External prompt', stopped)
+        self.assertFalse([c for c in calls if c.startswith('set_value')])
+        views = setup_views()
+        views['views'][4]['text'] = views['views'][4]['text'].replace(
+            '\t\t\t3 container Welcome', '\t\t\t3 container Welcome\n\t\t\t\t990 alert Another question\n\t\t\t\t\t991 text Words only', 1)
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('nothing was pressed', stopped)
+        self.assertNotIn('click904', calls)
+
+    def test_a_field_alone_inside_a_page_alert_is_not_typed_into(self):
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace(
+            '\t\t\t\t\t\t\t15 text Project folder\n\t\t\t\t\t\t\t16 text field (settable) Project folder, Placeholder: /full/path/to/your/project\n',
+            '\t\t\t\t\t\t990 alert External prompt\n\t\t\t\t\t\t\t15 text Project folder\n\t\t\t\t\t\t\t16 text field (settable) Project folder, Placeholder: /full/path/to/your/project\n'
+            '\t\t\t\t\t\t991 container\n')
+        self.assertIn('990 alert External prompt', views['views'][0]['text'])
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('alert External prompt', stopped)
+        self.assertFalse([c for c in calls if c.startswith('set_value')])
+
+    def test_an_alert_in_the_pages_own_content_is_page_not_prompt(self):
+        result = harness("texts[2] = texts[2].replace('\\t\\t\\t3 container Welcome', '\\t\\t\\t3 container Welcome\\n\\t\\t\\t\\t990 alert Why Codex was not started'); "
+                         'return (await walk.run(base)).verdict;')
+        self.assertEqual(result['out'], 'pass')
+        result = harness("texts[2] = texts[2].replace('\\t41 close button', '\\t1 scroll area\\n\\t\\t990 alert Allow?\\n\\t41 close button'); "
+                         'const r = await walk.run(base); return [r.verdict, r.stopped];')
+        self.assertEqual(result['out'][0], 'inconclusive')
+        self.assertIn('alert Allow?', result['out'][1])
+
+    def test_the_project_is_exactly_the_launch_folders_own(self):
+        for project in ('/invented/homes/launch-invented/project/../../outside', '/invented/homes/launch-invented/home',
+                        '/invented/homes/launch-invented/project/', '/invented/homes/launch-invented/projects'):
+            with self.subTest(project):
+                verdict, stopped, calls = setup_walk(f"base.project = {json.dumps(project)}; " + RESULT.replace('OPTIONS', 'base'))['out']
+                self.assertEqual((verdict, calls), ('inconclusive', []), stopped)
+        verdict, stopped, calls = setup_walk("base.home = '/invented/homes/x/../launch-invented/home'; base.project = '/invented/homes/x/../launch-invented/project'; "
+                                             + RESULT.replace('OPTIONS', 'base'))['out']
+        self.assertEqual((verdict, calls), ('inconclusive', []), stopped)
+
+    def test_the_build_gone_while_the_sheet_was_viewed_means_no_press(self):
+        case = ("let gone = false; const sheetView = texts[4]; Object.defineProperty(texts, 4, { get() { gone = true; return sheetView; } }); "
+                "base.readWatch = () => (gone ? null : watched()()); " + RESULT.replace('OPTIONS', 'base'))
+        verdict, stopped, calls = setup_walk(case)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('before the press', stopped)
+        self.assertNotIn('click904', calls)
+
+    def test_a_view_steps_wait_is_waited(self):
+        result = setup_walk("const slept = []; base.sleep = async ms => { slept.push(ms); }; scenario.steps[0].wait_ms = 15000; "
+                            "await walk.run(base); return slept;")
+        self.assertEqual(result['out'][0], 15000)
+
+    def test_the_statement_is_matched_whatever_its_line_breaks_are(self):
+        for name, sheet in (('one element per line', ['\t900 sheet', '\t\t901 text Desktop setup — next launch only']
+                             + [f'\t\t{920 + n} text {line}' for n, line in enumerate(STATEMENT.split('\n'))]
+                             + ['\t\t903 button Leave setup unchanged', '\t\t904 button Create settings and save for next launch', '\t\t905 button Cancel']),
+                            ('line breaks written as \\n', sheet_lines(statement=STATEMENT.replace('\n', '\\n')))):
+            with self.subTest(name):
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), setup_views(sheet=sheet))['out']
+                self.assertEqual((verdict, stopped, calls[-2]), ('pass', None, 'click904'))
+
+    def test_a_sheet_still_there_after_the_press_is_not_pressed_again(self):
+        views = setup_views()
+        views['views'][5] = views['views'][4]
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('after the one press', stopped)
+        self.assertIn('it is not pressed again', stopped)
+        self.assertEqual(calls.count('click904'), 1)
+        self.assertEqual(calls[-1], 'get_app_state')
+
+    def test_an_earlier_failed_check_keeps_the_sheet_closed(self):
+        views = setup_views()
+        views['views'][3]['text'] = views['views'][3]['text'].replace(SETTINGS, '/invented/elsewhere/settings')
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'fail')
+        self.assertIn('an earlier check failed, so the sheet is not opened', stopped)
+        self.assertNotIn('click85', calls)
+
+    def test_only_the_project_is_typed_only_into_the_named_field_and_only_once(self):
+        cases = {
+            'two typing steps': "scenario.steps.splice(2, 0, { ...scenario.steps[1], id: 'S2b' })",
+            'a value other than the project': "scenario.steps[1].value = '/invented/other'",
+            'a second field named': "scenario.typed_fields.push('Find in received conversations')",
+            'a second sheet named': "scenario.sheets.push({ ...scenario.sheets[0], id: 'other' })",
+            'two pressing steps': "scenario.steps.push({ ...scenario.steps[4], id: 'S6' })",
+            'no project given': 'base.project = undefined',
+            'a project that is not beside the home': "base.project = '/invented/elsewhere/project'",
+            'a relative project': "base.project = 'project'"}
+        for name, change in cases.items():
+            with self.subTest(name):
+                verdict, stopped, calls = setup_walk(change + '; ' + RESULT.replace('OPTIONS', 'base'))['out']
+                self.assertEqual((verdict, calls), ('inconclusive', []), stopped)
+                self.assertTrue(stopped.startswith('refused before any call: '), stopped)
+        for name, change, says in (
+                ('a field the scenario does not name', "scenario.steps[1].control.label = 'Find in received conversations'", 'names no such field'),
+                ('a field that is not a text field', "scenario.steps[1].control.kind = 'button'", 'names no such field'),
+                ('a sheet opened by another control', "scenario.steps[4].control.label = 'Review setup'", 'names no such sheet'),
+                ('a sheet the scenario does not name', "scenario.steps[4].sheet = 'other'", 'names no such sheet')):
+            with self.subTest(name):
+                verdict, stopped, calls = setup_walk(change + '; ' + RESULT.replace('OPTIONS', 'base'))['out']
+                self.assertEqual(verdict, 'inconclusive')
+                self.assertIn(says, stopped)
+                self.assertNotIn('click904', calls)
+
+    def test_a_link_is_the_one_whose_words_are_exactly_the_scenarios(self):
+        elements = [{'index': 1, 'depth': 0, 'content': 'link Settings & tools'},
+                    {'index': 2, 'depth': 0, 'content': 'link Settings & tools, Visited'},
+                    {'index': 3, 'depth': 0, 'content': 'link Settings & tools and more'},
+                    {'index': 4, 'depth': 0, 'content': 'button Settings & tools'}]
+        result = harness(f"return walk.select({json.dumps(elements)}, {{ kind: 'link', label: 'Settings & tools' }}).map(e => e.index);")
+        self.assertEqual(result['out'], [1, 2])
+
+    def test_the_first_use_walk_still_makes_no_set_value_and_presses_no_sheet(self):
+        result = harness('return (await walk.run(base)).verdict;')
+        self.assertNotIn('set_value', result['touched'])
+
+
+class TheSignedOutScenarioFiles(unittest.TestCase):
+    def test_the_sheets_statement_is_the_apps_new_settings_statement_line_for_line(self):
+        source = (APP / 'src-tauri/src/desktop_startup.rs').read_text()
+        branch = source[source.index('if let PreviewKind::NewSettings { settings } = &preview.kind {'):]
+        statement = re.search(r'format!\("((?:[^"\\]|\\.)*)"', branch).group(1)
+        supplier = re.search(r'const SUPPLIER: &str = "([^"]+)";', source).group(1)
+        named = iter(['{settings}', '{account}', '{project}', '{request}'])
+        expected = re.sub(r'\{\}', lambda _: next(named), statement.replace('{SUPPLIER}', supplier)).split('\\n')
+        self.assertEqual(json.loads(SETUP.read_text())['sheets'][0]['statement'], expected)
+
+    def test_the_sheets_title_and_buttons_are_the_apps(self):
+        sheet = json.loads(SETUP.read_text())['sheets'][0]
+        confirmation = (APP / 'src-tauri/src/desktop_setup_confirmation.rs').read_text()
+        self.assertIn(f'"{sheet["title"]}"', confirmation)
+        self.assertIn(f'"{sheet["buttons"][0]}"', confirmation)
+        self.assertIn(f'"{sheet["buttons"][2]}"', (APP / 'src-tauri/src/act_control.rs').read_text())
+        self.assertIn(f'"affirmative"] = json!("{sheet["press"]}")', (APP / 'src-tauri/src/desktop_startup.rs').read_text())
+
+    def test_the_walks_acts_are_the_ones_the_method_allows(self):
+        setup, relaunch = json.loads(SETUP.read_text()), json.loads(RELAUNCH.read_text())
+        self.assertEqual([step['act'] for step in setup['steps']], ['view', 'type', 'click', 'click', 'confirm_sheet'])
+        self.assertEqual(setup['typed_fields'], ['Project folder'])
+        for step in relaunch['steps']:
+            self.assertIn(step['act'], ('view', 'click'))
+            if step['act'] == 'click':
+                self.assertNotIn(step['control']['label'], relaunch['never_clicked'])
+                self.assertIn(step['control']['kind'], ('button', 'summary', 'link'))
+                self.assertFalse(step['control']['label'].endswith(('…', '...')))
+        self.assertNotIn('typed_fields', relaunch)
+        self.assertNotIn('sheets', relaunch)
+
+
 if __name__ == '__main__':
     unittest.main()

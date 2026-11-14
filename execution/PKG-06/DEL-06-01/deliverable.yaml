@@ -1,6 +1,10 @@
 id: DEL-06-01
 name: Bounded delegation and current work-graph records
 needs:
+- from: DEL-01-02
+  condition: The App ledger yields, after a session's start, the set of earlier sessions that start established
+    as ended, and only those.
+  gating: false
 - from: DEL-01-03
   condition: Each sub-agent thread Codex starts from a conversation is offered with the identity, parent,
     role and nickname Codex reports and the source of each, in a form that can be used without reading

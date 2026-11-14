@@ -4,13 +4,16 @@ What is checked here runs everywhere: the sources and the release recipe, and th
 The build itself, its window and the release-features build are checked by the hosted job
 (.github/workflows/app-scripted-driver.yml, proof.py release-free).
 """
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import re
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -55,7 +58,15 @@ class KeptOutOfTheShippedApp(unittest.TestCase):
     def test_the_module_is_compiled_only_under_the_cfg_and_refuses_the_release_feature_itself(self):
         lib = (APP / 'src-tauri/src/lib.rs').read_text()
         self.assertIn(f'#[cfg({CFG})] mod scripted_driver;', lib)
-        self.assertEqual(len(re.findall(r'scripted_driver::', lib)), 1)
+        # Two uses: the builder hook, and the stand-in for desktop setup's confirmation, which is the only one there
+        # is (its approval's condition): named once, inside desktop_setup_prepare, under the cfg.
+        self.assertEqual(len(re.findall(r'scripted_driver::', lib)), 2)
+        self.assertEqual(lib.count('setup_confirmation_stand_in'), 1)
+        prepare = lib[lib.index('fn desktop_setup_prepare('):]
+        prepare = prepare[:prepare.index('\n}\n')]
+        self.assertIn(f'#[cfg({CFG})]\n    {{\n        let _ = &window;\n        return desktop_setup_confirmation::prepare', prepare)
+        self.assertIn('scripted_driver::setup_confirmation_stand_in', prepare)
+        self.assertIn(f'#[cfg(not({CFG}))]\n    desktop_setup_confirmation::prepare', prepare)
         self.assertIn(f'#[cfg({CFG})]\nfn with_scripted_driver', lib)
         self.assertIn(f'#[cfg(not({CFG}))]\nfn with_scripted_driver', lib)
         module = (APP / 'src-tauri/src/scripted_driver.rs').read_text()
@@ -78,7 +89,9 @@ class KeptOutOfTheShippedApp(unittest.TestCase):
         self.assertNotIn('write', re.sub(r'#.*', '', workflow).lower().replace('writes nothing back', ''))
         self.assertIn('persist-credentials: false', workflow)
         self.assertEqual(workflow.count('upload-artifact'), 1)
-        self.assertIn('path: |\n            ${{ runner.temp }}/driver/report.json\n            ${{ runner.temp }}/driver/scenario-report.json\n          if-no-files-found', workflow)
+        self.assertIn('path: |\n            ${{ runner.temp }}/driver/report.json\n            ${{ runner.temp }}/driver/scenario-report.json\n'
+                      '            ${{ runner.temp }}/driver/setup-report.json\n          if-no-files-found', workflow)
+        self.assertIn('proof.py setup', workflow)
         self.assertIn('proof.py scenario', workflow)
         self.assertIn('runs-on: macos-26', workflow)
         # Nothing else leaves the runner: the npm download cache is off, and no cache is saved.
@@ -321,6 +334,43 @@ class TheJudgeDecidesEachKindBothWays(unittest.TestCase):
         doubled = PAGE + [element('button', 'Continue', 'available')]
         self.assertIn('found 2 times', judge('target', doubled, step('button', 'Continue'), scenario)['why'])
 
+    def test_textbox(self):
+        page = PAGE + [{'kind': 'textbox', 'name': 'Project folder', 'state': '/h/Projects/p', 'unavailable': False}]
+        values = {**HOME_VALUES, 'project': '/h/Projects/p'}
+        self.assertTrue(judge('judgeOne', page, {'textbox': 'Project folder', 'is': '{project}'}, values)['pass'])
+        self.assertFalse(judge('judgeOne', page, {'textbox': 'Project folder', 'is': ''}, values)['pass'])
+        self.assertEqual(judge('judgeOne', PAGE, {'textbox': 'Project folder', 'is': ''}, values)['found'], 'absent')
+
+    def test_text_starts_one_of(self):
+        one = {'text_starts_one_of': ['Launch: setup-required.', 'Launch: ready.']}
+        self.assertEqual(self.check(one), {'expectation': one, 'pass': True, 'found': 'Launch: setup-required. Reason'})
+        self.assertFalse(self.check({'text_starts_one_of': ['Launch: ready.', 'Codex is connected']})['pass'])
+        two = PAGE + [element('text', 'Launch: ready. Other')]
+        self.assertEqual(self.check(one, two)['found'], 'present 2 times')  # exactly one, or not
+
+    def test_only_the_confirmation_the_scenario_names_may_end_with_an_ellipsis_and_no_unavailable_field_is_typed_into(self):
+        page = PAGE + [element('button', 'Create settings and save for next launch…', 'available'),
+                       element('button', 'Other action…', 'available'),
+                       {'kind': 'textbox', 'name': 'Project folder', 'state': '', 'unavailable': True}]
+        scenario = {'confirms': ['Create settings and save for next launch…']}
+        def step(kind, label): return {'control': {'kind': kind, 'label': label}}
+        self.assertEqual(judge('target', page, step('button', 'Create settings and save for next launch…'), scenario), {'index': len(PAGE)})
+        self.assertIn('never clicked', judge('target', page, step('button', 'Other action…'), scenario)['why'])
+        self.assertIn('never clicked', judge('target', page, step('button', 'Create settings and save for next launch…'), {})['why'])
+        self.assertEqual(judge('target', page, step('textbox', 'Project folder'), scenario)['verdict'], 'fail')
+
+    def test_the_setup_scenario_names_one_confirmation_and_only_kinds_the_judge_knows(self):
+        setup = json.loads((APP / 'examination/scripted_driver/setup-complete.scenario.json').read_text())
+        self.assertEqual(setup['confirms'], ['Create settings and save for next launch…'])  # the stand-in's one confirmation
+        known = {'text', 'no_text', 'text_starts', 'text_starts_one_of', 'heading', 'button', 'summary', 'radio', 'textbox',
+                 'texts_from', 'location'}
+        for launch in setup['launches']:
+            for step in launch['steps']:
+                self.assertIn(step['act'], {'view', 'click', 'type', 'read_state'})
+                for expectation in step.get('expect', []):
+                    self.assertTrue(set(expectation) & known, expectation)
+        self.assertEqual([launch['setup_answers'] for launch in setup['launches']], [['leave'], ['create'], []])
+
     def test_the_scenario_files_kinds_are_all_known_to_the_judge(self):
         scenario = json.loads((APP / 'examination/standalone/operated/first-use-setup.scenario.json').read_text())
         known = {'text', 'no_text', 'text_starts', 'heading', 'button', 'summary', 'radio', 'texts_from', 'location'}
@@ -406,6 +456,155 @@ class TheScenarioReportPassesOnlyAWholeWalk(unittest.TestCase):
         self.assertEqual(report['held_awake_by'][:3], ['/usr/bin/caffeinate', '-di', '-w'])
         code, report = self.verdict(hold_awake=True, extra='sleep 2')
         self.assertEqual((code, report['verdict']), (1, 'fail'))
+
+
+SETUP_STAND_IN = """#!{python}
+import json, os, subprocess, sys, time, uuid
+from pathlib import Path
+home = Path(os.environ['HOME'])
+knobs = json.loads((home.parent.parent / 'knobs.json').read_text()) if (home.parent.parent / 'knobs.json').exists() else {{}}
+given = json.loads((home / 'scripted-driver/scenario.json').read_text())
+values, answers = given['values'], given['setup_answers']
+stages = home / 'scripted-driver/stages.jsonl'
+def stage(name, detail):
+    with open(stages, 'a') as f:
+        f.write(json.dumps({{'marker': 'chirality-scripted-driver-test-build-v1', 'stage': name, 'at_ms': 1, 'detail': detail}}) + '\\n')
+stage('process started', {{}})
+stage('script evaluated', {{'attempt': 1, 'tries': 60, 'expected_heading': given['expected_heading'], 'expected_seen': True,
+                           'headings_seen': [given['expected_heading']], 'returned': {{'heading': given['expected_heading']}}}})
+app_data = Path(values['app_data'])
+for index, answer in enumerate(answers):
+    settings = app_data / f'shared-settings/settings-{{uuid.uuid4()}}'
+    account = app_data / f'account-homes/account-{{uuid.uuid4()}}'
+    lines = [f'Create NEW App-owned settings folder: {{settings}}',
+             'with an empty config.toml, an empty AGENTS.md and an empty skills folder.',
+             f'Create NEW App-owned account directory: {{account}}',
+             'Link its config.toml, AGENTS.md and skills to those new settings.',
+             'Read, import or change no other Codex settings, home or credential.',
+             f"Project for next launch: {{values['project']}}",
+             f"Save a private pending request in {{app_data / 'desktop-startup/request.json'}}.",
+             'Codex: the copy included with this App (bundled-owner-use-development).',
+             'The current workspace, homes, account/model choices, records and prepared messages stay unchanged. '
+             'No automatic quit/restart/login/conversation.']
+    if knobs.get('drop_line') is not None:
+        del lines[knobs['drop_line']]
+    stage('setup confirmation stand-in', {{'index': index, 'title': knobs.get('title', 'Desktop setup — next launch only'),
+          'statement': '\\n'.join(lines), 'buttons': ['Leave setup unchanged', 'Create settings and save for next launch', 'Cancel'],
+          'answer': answer}})
+    if knobs.get('settings_on_leave') and answer == 'leave':
+        settings.mkdir(parents=True)
+    if answer == 'create' or knobs.get('save_on_leave'):
+        if knobs.get('save_other_ids'):
+            settings, account = settings.with_name(f'settings-{{uuid.uuid4()}}'), account.with_name(f'account-{{uuid.uuid4()}}')
+        (app_data / 'desktop-startup').mkdir(parents=True, exist_ok=True)
+        (app_data / 'desktop-startup/request.json').write_text('{{}}')
+        settings.mkdir(parents=True, exist_ok=True)
+        account.mkdir(parents=True, exist_ok=True)
+if knobs.get('write_outside'):
+    (home / 'Elsewhere').mkdir(exist_ok=True)
+if knobs.get('unreadable'):
+    hidden = home / f"Library/Caches/{{values['identifier']}}/hidden"
+    hidden.mkdir(parents=True, exist_ok=True)
+    (hidden / 'unexpected-file').write_text('')
+    hidden.chmod(0)
+steps = [{{'id': s['id'], 'checks': [{{'pass': True}}]}} for s in given['scenario']['steps']]
+if not answers:
+    steps[-1]['app_state'] = {{'launch_state': 'saved-request'}}
+    child = knobs.get('child')
+    if child == 'codex':
+        subprocess.Popen([str(Path(sys.argv[0]).resolve().parents[1] / 'Resources/codex/bin/codex'), '3'])
+    elif child == 'other':
+        subprocess.Popen(['/usr/bin/perl', '-e', 'sleep 2'])
+    time.sleep(1.5)
+stage('scenario finished', {{'result': {{'verdict': 'pass', 'steps': steps, 'outcomes': {{}}}}, 'most_windows': 1,
+                             'created': {{'windows_ever_created': 1, 'webviews_ever_created': 1}}, 'exactly_one_each': True}})
+time.sleep(0.3)
+"""
+
+
+class TheSetupRunPassesOnlyWhatItsScenarioSays(unittest.TestCase):
+    """The setup scenario's three launches in one home, with a stand-in App: the inventory, the stand-in's sheet records
+    and the relaunch's one allowance (the bundle's own Codex) each decide."""
+
+    def setUp(self):
+        self.proof = load_proof()
+        self.root = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root, True)
+        app = self.root / 'Test.app'
+        (app / 'Contents/MacOS').mkdir(parents=True)
+        exe = app / 'Contents/MacOS/chirality-app-v4'
+        exe.write_text(SETUP_STAND_IN.format(python=sys.executable))
+        exe.chmod(0o755)
+        # The bundle's Codex here is a link to a system binary (a copy of one may not run): what is compared is the file
+        # the process runs, by device and inode, as for the shipped Codex.
+        codex = app / 'Contents/Resources/codex/bin/codex'
+        codex.parent.mkdir(parents=True)
+        codex.symlink_to('/bin/sleep')
+        self.app = app
+
+    def verdict(self, **knobs):
+        out = self.root / 'out'
+        if out.exists():
+            shutil.rmtree(out)
+        out.mkdir()
+        (out / 'knobs.json').write_text(json.dumps(knobs))
+        try:
+            code = self.proof.setup(self.app, out, 30, APP / 'examination/scripted_driver/setup-complete.scenario.json', hold_awake=False)
+        finally:
+            for hidden in out.glob('setup-run/home/Library/Caches/*/hidden'):
+                hidden.chmod(0o700)
+        return code, json.loads((out / 'setup-report.json').read_text())
+
+    def test_three_right_launches_pass_and_each_kind_is_reported_apart(self):
+        code, report = self.verdict()
+        self.assertEqual((code, report['verdict'], [launch['verdict'] for launch in report['launches']]),
+                         (0, 'pass', ['pass', 'pass', 'pass']), json.dumps(report['launches'], indent=1)[:3000])
+        relaunch = report['launches'][2]
+        self.assertIn('no person-visible element was judged', relaunch['app_state_read']['standing'])
+        self.assertTrue(all('app_state' not in step for step in relaunch['visible_elements']))
+        self.assertIn('not exercised', report['launches'][0]['stand_in_sheets']['standing'])
+        self.assertTrue(any('native confirmation for desktop setup is not exercised' in limit for limit in report['limits']))
+
+    def test_anything_less_does_not_pass(self):
+        for name, knobs, failed in (('saved although the answer was leave', {'save_on_leave': True}, 'L1'),
+                                    ('settings left behind although the answer was leave', {'settings_on_leave': True}, 'L1'),
+                                    ('a sheet with other words', {'title': 'Another title'}, 'L1'),
+                                    ('a statement missing its account-directory line', {'drop_line': 2}, 'L1'),
+                                    ('a statement missing its last line', {'drop_line': 8}, 'L1'),
+                                    ('saved under other names than the sheet said', {'save_other_ids': True}, 'L2'),
+                                    ('a folder the inventory could not list', {'unreadable': True}, 'L1'),
+                                    ('something written outside the App data and the project', {'write_outside': True}, 'L1'),
+                                    ('another process below the App on the relaunch', {'child': 'other'}, 'L3')):
+            with self.subTest(name):
+                code, report = self.verdict(**knobs)
+                self.assertEqual((code, report['verdict']), (1, 'not passed'))
+                self.assertEqual(report['launches'][-1]['id'], failed)
+                self.assertEqual(report['launches'][-1]['verdict'], 'not passed')
+
+    def test_the_console_result_says_the_native_confirmation_was_not_exercised(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code, report = self.verdict()
+        self.assertEqual(code, 0)
+        self.assertIn("The App's native confirmation was not exercised", out.getvalue())
+
+    def test_the_scenarios_statement_is_the_apps_new_settings_statement_line_for_line(self):
+        source = (APP / 'src-tauri/src/desktop_startup.rs').read_text()
+        branch = source[source.index('if let PreviewKind::NewSettings { settings } = &preview.kind {'):]
+        statement = re.search(r'format!\("((?:[^"\\]|\\.)*)"', branch).group(1)
+        supplier = re.search(r'const SUPPLIER: &str = "([^"]+)";', source).group(1)
+        named = iter(['{settings}', '{account}', '{project}', '{app_data}/desktop-startup/request.json'])
+        expected = re.sub(r'\{\}', lambda _: next(named), statement.replace('{SUPPLIER}', supplier)).split('\\n')
+        sheet = json.loads((APP / 'examination/scripted_driver/setup-complete.scenario.json').read_text())['sheet']
+        self.assertEqual(sheet['statement'], expected)
+        self.assertIn('const PROFILE: &str = "desktop-startup/request.json";', source)
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'the executable is asked of macOS')
+    def test_the_relaunch_allows_the_bundles_own_codex_by_file_and_records_it(self):
+        code, report = self.verdict(child='codex')
+        self.assertEqual((code, report['verdict']), (0, 'pass'), json.dumps(report['launches'][-1], indent=1)[:3000])
+        self.assertTrue(report['launches'][2]['allowed_codex_seen'])
+        self.assertFalse(report['launches'][2]['other_processes_seen'])
 
 
 if __name__ == '__main__':

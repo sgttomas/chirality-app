@@ -1,0 +1,137 @@
+{
+  "scenario": "signed-out relaunch after setup",
+  "version": 1,
+  "what_it_is": "Agent-operated development evidence on the same development build and the same kept home after setup: what the App shows on the next launch, signed out, read by views, by the link to the Settings & tools view, by opening disclosures, and by one account check. The labels are read from the App's source at the revision built (App.tsx, DailyWorkspace.tsx, DesktopSetupPanel.tsx, AccountStatus.tsx), not from a recorded view; a label that differs stops the walk there. It is not a person's observation and meets no criterion.",
+  "starting_state": "The kept home after the setup walk, relaunched by the launcher with its network blocks on; no credential.",
+  "acts": "views; one click on the Settings & tools link; clicks that open a disclosure; one press of Check account status, which asks the App's own Codex for the account state and changes nothing; nothing typed",
+  "never_clicked": [
+    "Start",
+    "Stop",
+    "Sign in",
+    "any control that starts, resumes or forks a conversation",
+    "the window's own buttons",
+    "the menu bar"
+  ],
+  "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
+  "starts_no_process": false,
+  "steps": [
+    {
+      "id": "R1",
+      "act": "view",
+      "wait_ms": 15000,
+      "says": "the relaunch as it first stands, in the Run a workflow view: the workspace or the welcome, the connection line, and the project under Project; the whole view is kept",
+      "expect": [
+        {
+          "no_text": "Welcome to Chirality"
+        },
+        {
+          "heading": "Run a workflow"
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "act": "click",
+      "control": {
+        "kind": "link",
+        "label": "Settings & tools"
+      },
+      "says": "the Settings & tools view: desktop setup and the connection, as they first stand",
+      "expect": [
+        {
+          "heading": "Settings & tools"
+        },
+        {
+          "summary": "Desktop setup Changes apply on the next launch",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Desktop setup Changes apply on the next launch"
+      },
+      "says": "desktop setup opened",
+      "expect": [
+        {
+          "summary": "Desktop setup Changes apply on the next launch",
+          "is": "on"
+        },
+        {
+          "summary": "Setup details and source status",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Setup details and source status"
+      },
+      "says": "the setup details: the current launch and the App data folder",
+      "expect": [
+        {
+          "summary": "Setup details and source status",
+          "is": "on"
+        },
+        {
+          "text_starts": "Current launch: saved-request."
+        },
+        {
+          "text": "App data: {app_data}"
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "act": "click",
+      "control": {
+        "kind": "summary",
+        "label": "Connection and access Home, sign-in, provider setup and Codex controls"
+      },
+      "says": "Connection and access opened; it is closed when Codex is ready and open otherwise, so if Codex is not ready this click closes it and the check below records that; the whole view is kept, with the access settings it shows",
+      "expect": [
+        {
+          "summary": "Connection and access Home, sign-in, provider setup and Codex controls",
+          "is": "on"
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "act": "click",
+      "control": {
+        "kind": "button",
+        "label": "Check account status"
+      },
+      "wait_ms": 5000,
+      "says": "the account check, read only: what the App says about sign-in when signed out; the whole view is kept",
+      "expect": [
+        {
+          "button": "Check account status",
+          "is": "available"
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "SETUP NO LONGER REQUIRED": [
+      "R1"
+    ],
+    "THE LAUNCH IS THE SAVED REQUEST": [
+      "R4"
+    ]
+  }
+}

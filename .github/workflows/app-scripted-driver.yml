@@ -2,8 +2,10 @@ name: App scripted driver (test build proof)
 
 # The scripted driver's bounded first step (app/examination/scripted_driver/README.md): a test build of the App
 # opens its window on the macOS runner the App workflow already uses, loads its page, evaluates a trivial script
-# and reports; then walks the first-use setup scenario in its page and reports. Development evidence only. It
-# reads the repository, holds no secret, writes nothing back, and uploads only its two reports.
+# and reports; then walks the first-use setup scenario in its page and reports; then runs the setup scenario (three
+# launches in one throwaway home, desktop setup's confirmation answered by the test build's stand-in, the native
+# confirmation not exercised) and reports. Development evidence only. It reads the repository, holds no secret, signs
+# in to nothing, writes nothing back, and uploads only its three reports.
 on:
   pull_request:
     paths:
@@ -55,6 +57,11 @@ jobs:
         run: |
           bundle="$(ls -d "$RUNNER_TEMP"/driver/target/debug/bundle/macos/*.app)"
           python3 -B examination/scripted_driver/proof.py scenario --bundle "$bundle" --out "$RUNNER_TEMP/driver" --timeout 300
+      - name: Run the setup scenario in the test build (three launches; the stand-in answers desktop setup's confirmation)
+        if: ${{ !cancelled() }}
+        run: |
+          bundle="$(ls -d "$RUNNER_TEMP"/driver/target/debug/bundle/macos/*.app)"
+          python3 -B examination/scripted_driver/proof.py setup --bundle "$bundle" --out "$RUNNER_TEMP/driver" --timeout 300
       - name: The release features carry none of it
         if: ${{ !cancelled() }}
         run: python3 -B examination/scripted_driver/proof.py release-free --out "$RUNNER_TEMP/driver"
@@ -66,5 +73,6 @@ jobs:
           path: |
             ${{ runner.temp }}/driver/report.json
             ${{ runner.temp }}/driver/scenario-report.json
+            ${{ runner.temp }}/driver/setup-report.json
           if-no-files-found: warn
           retention-days: 14

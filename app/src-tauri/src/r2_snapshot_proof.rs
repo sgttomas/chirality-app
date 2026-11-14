@@ -528,6 +528,8 @@ fn root_open(p: &Path) -> Check<File> {
         .map_err(|e| e.to_string())
 }
 fn at(parent: &File, name: &str, flags: i32) -> Check<File> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("r2_snapshot_proof::at"); }
     ensure(
         !name.is_empty() && !name.contains(['/', '\0']),
         "single component required",
@@ -551,6 +553,8 @@ fn directory(parent: &File, name: &str) -> Check<File> {
     at(parent, name, libc::O_RDONLY | libc::O_DIRECTORY)
 }
 fn mkdir(parent: &File, name: &str) -> Check<()> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("r2_snapshot_proof::mkdir");
     let n = CString::new(name).unwrap();
     if unsafe { libc::mkdirat(parent.as_raw_fd(), n.as_ptr(), 0o700) } < 0 {
         return Err(std::io::Error::last_os_error().to_string());
@@ -571,10 +575,14 @@ fn exclusive(parent: &File, name: &str) -> Check<File> {
     Ok(f)
 }
 fn sync(f: &File) -> Check<()> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("r2_snapshot_proof::sync");
     f.sync_all()
         .map_err(|e| format!("test-fsync-v1 failed; no fallback: {e}"))
 }
 fn lock(f: &File) -> Check<()> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("r2_snapshot_proof::lock");
     if unsafe { libc::flock(f.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) } == 0 {
         return Ok(());
     }
@@ -677,6 +685,8 @@ struct LimitedWriter<'a> {
 }
 impl Write for LimitedWriter<'_> {
     fn write(&mut self, b: &[u8]) -> std::io::Result<usize> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("r2_snapshot_proof::LimitedWriter < '_ >::write");
         if self
             .count
             .checked_add(b.len() as u64)
@@ -690,6 +700,8 @@ impl Write for LimitedWriter<'_> {
         Ok(n)
     }
     fn flush(&mut self) -> std::io::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("r2_snapshot_proof::LimitedWriter < '_ >::flush");
         self.file.flush()
     }
 }
@@ -1544,6 +1556,8 @@ impl Session {
         new: &Snapshot,
         hook: &mut Hook<'_>,
     ) -> Result<CommitConfirmed, Failure> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("r2_snapshot_proof::Session::commit");
         let pre = (|| -> Check<_> {
             ensure(
                 self.confirmed && !self.blocked && self.journals.contains(&journal.index),
