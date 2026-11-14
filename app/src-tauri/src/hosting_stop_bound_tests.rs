@@ -804,7 +804,7 @@ mod a_turn_start_not_yet_answered {
 
     /// The sentence the person reads at a quit, written here independently of
     /// the code that forms it.
-    const QUITTING: &str = "The App began to send a turn start to Codex. The App has not yet associated this start with a turn it can interrupt; it may be one of the turns listed. If it is, that turn is interrupted with the others. If not, Quitting stops Codex wherever it has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown.";
+    const QUITTING: &str = "The App began to send a turn start to Codex and has not yet associated it with a turn it can interrupt. It may be a listed turn, which is then interrupted with the others; if not, Quitting stops Codex wherever it has got to, and its outcome may remain unknown.";
 
     /// A turn/start of `text` sent on its own thread through the Host's own
     /// request path (the stand-in never answers it); waits until the Host
@@ -912,7 +912,7 @@ mod a_turn_start_not_yet_answered {
         let (quit, stop, logout) = (quit_asks(&f).unwrap(), stop_asks(&f), logout_asks(&f));
         for view in [&quit, &stop, &logout] { counted(view); }
         named(&quit_statement(&quit).unwrap().text, Some(QUITTING.into()));
-        named(&codex_stop_statement(&stop).unwrap().text, Some(QUITTING.replace("If not, Quitting stops", "If not, Stopping Codex stops")));
+        named(&codex_stop_statement(&stop).unwrap().text, Some(QUITTING.replace("if not, Quitting stops", "if not, Stopping Codex stops")));
         named(&logout_statement(&logout).unwrap().text, None);
     }
 
@@ -927,16 +927,18 @@ mod a_turn_start_not_yet_answered {
     }
 
     /// Round 1, finding 1: Codex's reply arrives while the start's write is
-    /// still being recorded. The Host keeps the reply until the write is
-    /// recorded; until then the start is still counted, at every caller.
+    /// still being recorded. Since the scoped reading after round 3, a reply
+    /// to a start in the table is taken in at receipt, from the line as Codex
+    /// sent it: the start becomes the turn it names at once, and is never
+    /// dropped between the reply and the write's record, at every caller.
     #[test]
-    fn a_reply_before_the_write_is_recorded_leaves_it_counted() {
+    fn a_reply_before_the_write_is_recorded_is_taken_in_at_receipt() {
         let mut f = Fixture::new();
         f.stop_reading();
         let request = send_turn_start(&mut f, "x".repeat(4 << 20), "in-progress");
         reply(&f, &request, "turn-1");
         assert!(f.host().inner.0.lock().unwrap().source_requests.get(&request.to_string()).unwrap().write_attempt_in_progress, "the write is still in progress");
-        assert_eq!(counts(&f), [(0, 1); 3], "counted, never dropped between the reply and the write's record");
+        assert_eq!(counts(&f), [(1, 0); 3], "the turn it names is counted at once, and the start is not counted beside it");
     }
 
     /// The reply arrives while the person is being asked. The start neither
@@ -1157,5 +1159,66 @@ mod a_turn_start_not_yet_answered {
         send_turn_start(&mut f, "hello".into(), "written");
         let _ = f.host().stop("Invented Person", "test");
         assert_eq!(f.host().snapshot()["unansweredTurnStarts"], json!([]));
+    }
+}
+
+/// The scoped reading after round 3 of #317: its findings on the size of the
+/// question and on a projection that withheld a valid reply.
+mod after_the_scoped_reading {
+    use super::*;
+
+    fn turn() -> Value { json!({"id":"scoped-turn","status":"inProgress","items":[],"error":null}) }
+    fn start(f: &Fixture) -> SourceRequest {
+        f.host().request_begin_scoped("turn/start", Host::text_turn_params("thread", "invented text").unwrap(),
+            json!({"kind":"person-directed"}), false, Some(&f.generation)).unwrap()
+    }
+
+    /// A correlated reply whose result also carries a configuration object,
+    /// on a generation with a private configuration reading, is withheld from
+    /// records as before, and its valid turn still resolves the start.
+    #[test]
+    fn a_valid_reply_a_projection_withholds_still_resolves_its_start() {
+        let f = Fixture::new();
+        let source = start(&f);
+        f.host().inner.0.lock().unwrap().private_config_channels.push(f.generation.clone());
+        let mut native = turn();
+        native["itemsView"] = json!("summary");
+        let reply = json!({"id": source.request_id(), "result": {"turn": native, "config": {"invented": "private"}}});
+        Host::validate_native_result("TurnStartResponse", &reply["result"]).unwrap();
+        f.host().on_line(&serde_json::to_vec(&reply).unwrap(), &f.generation);
+        assert_eq!(f.host().snapshot()["unansweredTurnStarts"], json!([]), "the valid turn must resolve its start");
+        let i = f.host().inner.0.lock().unwrap();
+        assert!(i.conversation_turns.iter().any(|e| e["turnId"] == "scoped-turn"), "the turn is counted");
+        assert!(!serde_json::to_string(&i.conversation_turns).unwrap().contains("private"), "nothing of the configuration is kept with the turn");
+    }
+
+    /// The real Stop and Restart callers, with an unresolved start and, for
+    /// Stop, a second start begun while the first question is open: every
+    /// question they ask can be shown.
+    #[test]
+    fn stop_and_restart_can_ask_with_a_start_and_when_asking_again() {
+        let mut refused = Vec::new();
+        for restart in [false, true] {
+            let f = Fixture::new();
+            let begin = || {
+                *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented uncertain write");
+                f.host().request_begin_scoped("turn/start", Host::text_turn_params("thread", "invented text").unwrap(),
+                    json!({"kind":"person-directed"}), false, Some(&f.generation)).unwrap()
+            };
+            let _first = begin();
+            let workflows = Mutex::new(WorkflowRootSession::default());
+            let mut asked = 0;
+            let mut refusal = None;
+            let _ = crate::codex_stop::stop_native_home_within(&f.home, &workflows, &f.generation, restart, "Invented Person", LIMIT, |view| {
+                asked += 1;
+                match crate::act_control::native_statement::codex_stop_statement(view) {
+                    Ok(_) => { if !restart && asked == 1 { let _second = begin(); } true }
+                    Err(cause) => { refusal = Some(cause); false }
+                }
+            }, || Err("no restart source is needed for this check".into()));
+            if let Some(cause) = refusal { refused.push(format!("restart={restart}, question {asked}: {cause}")); }
+            let _ = f.host().stop("test", "test ended");
+        }
+        assert!(refused.is_empty(), "a question was refused before it could be confirmed: {refused:?}");
     }
 }

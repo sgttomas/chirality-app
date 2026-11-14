@@ -5165,6 +5165,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":journalled,"sourceProjection":projection_label}));return;
         }
         i.receipt_position+=1;let pos=i.receipt_position;let gen=i.generation.clone();
+        // A reply to a turn start in the table is taken in from the line as
+        // Codex sent it, before any projection is acted on: a projection that
+        // withholds the frame (a private configuration channel) must not leave
+        // a valid turn uncounted. resolve_start reads only the id, whether an
+        // error object is present, and the turn's shape, so nothing private is
+        // kept by it; the projection then withholds the frame as before.
+        if let Some(raw)=parsed.as_ref().filter(|f|f.get("method").is_none()){
+            if let Some(key)=raw.get("id").map(Value::to_string).filter(|key|i.turn_request_threads.get(key).is_some_and(|(g,_,_)|*g==gen)){
+                Self::resolve_start(&mut i,&key,raw,pos,&gen);
+            }
+        }
         i.observation_facts.receive(&gen, pos, &frame);
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
         if let Some(c)=i.aa_capture.as_mut(){c.observe(&gen,epoch,pipe_epoch,pos,&frame);}
