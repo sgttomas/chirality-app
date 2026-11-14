@@ -135,7 +135,9 @@ carries reaches as far as what it could be (App Agent 0, on the INTERLOCUTOR's f
 - **No step named, or not readable at all** (not JSON, not a JSON object; a truncated failure record, say). It may bear
   on any step, so while one remains no pass is established. A row whose records say passed prints as inconclusive,
   saying that a record that could not be read may bear on it, and counts as inconclusive. Failed, blocked, not run and
-  inconclusive rows stay as they are, and every row and its readable evidence still print. The counts line itself says
+  inconclusive rows stay as they are, and every row and its readable evidence still print. A step with no readable
+  record does not say it was not run: it says that no readable result is recorded and that a record that could not be
+  read may bear on it, and it is still counted as not run (App Agent 0, from the INTERLOCUTOR). The counts line itself says
   how many such records there are and how many passes they hold.
 
 Nothing else is relied on to confine that doubt: not a file's name, and not any part of content that failed to read.

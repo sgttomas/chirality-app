@@ -552,7 +552,10 @@ class AnUnreadableRecordNeverRevivesAPass(Fixture):
                               '2026-11-14T10:00:00.9Z |', rows['A-1'])
                 self.assertIn('| failed |', rows['B-1'])
                 self.assertIn('| blocked |', rows['B-2'])
-                self.assertIn('not run (no record)', rows['B-3'])
+                # A step with no readable record is not said to be not run, and is still counted so.
+                self.assertIn('| not run (no readable result recorded; a record that could not be read may bear on it) |',
+                              rows['B-3'])
+                self.assertNotIn('(no record)', rows['B-3'])
                 self.assertIn('Counted steps in the release: 0 passed, 1 failed, 1 blocked, 2 not run, 1 inconclusive.', text)
                 self.assertIn('r9.json', next(l for l in text.splitlines() if l.startswith('Records that could not be read at all')))
         # With every record readable, nothing is held and the counts line says nothing of the kind.
@@ -560,6 +563,7 @@ class AnUnreadableRecordNeverRevivesAPass(Fixture):
         text = self.printed('--repo', str(self.repo()), '--results', str(folder), '--candidate', 'c')
         self.assertIn('Counted steps in the release: 1 passed, 1 failed, 1 blocked, 2 not run, 0 inconclusive.', text)
         self.assertNotIn('could not be read', text)
+        self.assertIn('| not run (no record) |', next(l for l in text.splitlines() if '| B-3 |' in l))
 
 
 class Comparisons(Fixture):

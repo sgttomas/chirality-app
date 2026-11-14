@@ -34,7 +34,9 @@ table. What it reads:
   - one that names no step, or cannot be read at all (not JSON, not a JSON object), may bear on any step. While one
     remains, no pass is established: a row whose records say passed prints as inconclusive, with that reason, and
     counts as inconclusive; failed, blocked, not run and inconclusive rows stay as they are, and every row and its
-    readable evidence still print. The counts line itself says how many such records there are and how many passes
+    readable evidence still print, except that a step with no readable record says that no readable result is
+    recorded and that a record that could not be read may bear on it, instead of "not run (no record)", and is still
+    counted as not run. The counts line itself says how many such records there are and how many passes
     they hold. Nothing else, a file's name included, is relied on to confine that doubt to one step.
   The way out of a table held this way is to repair or remove the damaged record. Removing a readable failure record
   is something the table cannot see. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
@@ -291,7 +293,11 @@ def table(repo, folder, release, candidate):
             if record is None:
                 if step.get('counts'):
                     totals['not run'] += 1
-                lines.append(f"| {scenario} | {step['step']} | {counts} | not run (no record) | — | — |")
+                # With a record in reach that could not be read, all that is known is that no readable result is
+                # recorded; it is still not a pass, and its count stays where it is.
+                empty = ('not run (no readable result recorded; a record that could not be read may bear on it)'
+                         if unreadable else 'not run (no record)')
+                lines.append(f"| {scenario} | {step['step']} | {counts} | {empty} | — | — |")
                 continue
             outcome = record['outcome']
             citations += [f"{step['step']} ({r['file']}) cites {c}" for r in tied for c in cited(r, folder)]
