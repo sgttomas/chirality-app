@@ -1,4 +1,4 @@
-import { idWords, numberWords } from "./AgentText";
+import { AgentText, idWords, numberWords } from "./AgentText";
 import { useRef, useState } from "react";
 import { REFRESH_FAILED } from "./statusRefresh";
 
@@ -94,7 +94,7 @@ function OutcomeView({ outcome }: { outcome: RecordsOutcome | null }) {
   const words = outcomeWords(outcome);
   if (!words) return null;
   return <div role={words.tone === "refused" ? "alert" : "status"} aria-label="Result of the last records action">
-    {words.lines.map((line, index) => <p key={index} style={{ whiteSpace: "pre-wrap" }}>{line}</p>)}
+    {words.lines.map((line, index) => <p key={index}><AgentText value={line} source="record" label="Result:" name="A result line, which may carry values the host reported, not only the App's words" /></p>)}
     {outcome?.refreshFailed && <p role="alert">{REFRESH_FAILED}</p>}
   </div>;
 }

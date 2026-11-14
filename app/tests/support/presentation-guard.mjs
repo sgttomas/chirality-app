@@ -31,8 +31,12 @@
 // string or a computed string-literal key; an assignment to a property in FORBIDDEN_PROPERTIES (element text, value,
 // id and the like) written as a direct property access or a string-literal element access; a call of a method in
 // FORBIDDEN_CALLS.
-// A listed exception (presentation-guard-exceptions.json) names one expression exactly, with its reason. A listed
-// exception whose expression no longer appears as a failing finding is itself a failure. That detects the
+// A listed exception (presentation-guard-exceptions.json) names one expression exactly, the component it is written
+// in and how many times it occurs there, with its basis (EXCEPTION_BASES) and the evidence for it. Under the rule at
+// the head of every exceptions file (EXCEPTION_RULE) an exception only records evidence that an expression already
+// satisfies a presentation rule the guard cannot see; it adds no source and no presentation form. The same spelling
+// in another component, in another place (a field's value is not a control's name) or more often than its count
+// fails. A listed exception whose expression no longer appears as a failing finding is itself a failure. That detects the
 // expression disappearing; it does not detect its reason becoming untrue: if the code that produces an excepted
 // value changes (a notice factory that starts copying supplied text, a listed constant that is replaced), the guard
 // still passes. Each reason is checked by reading that code.
@@ -338,7 +342,7 @@ export function findings(name, text, mode = 'page') {
   const context = {name, sf, checker, seen: new Set()};
   const out = [];
   const at = node => sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
-  const record = (node, where, extra = {}) => out.push({line: at(node), where, expr: normal(node.getText()), node, context, ...extra});
+  const record = (node, where, extra = {}) => out.push({line: at(node), where, expr: normal(node.getText()), component: enclosingName(node), node, context, ...extra});
 
   // What a child expression can draw: its JSX parts are elements, visited where written; the rest is judged.
   const drawn = (expr, sink = record, inside = null) => {
@@ -557,14 +561,14 @@ export function findings(name, text, mode = 'page') {
       attributes(tag, opening.attributes.properties, trustedComponent);
       // Inside a control or a heading, no presentation that may draw a box; a same-file component drawn there is
       // judged where its JSX is written, which the guard does not follow into this place, so it is listed or fails.
-      if (inside && component) record(opening.tagName, `<${tag}> inside <${inside}>`, {component: true});
+      if (inside && component) record(opening.tagName, `<${tag}> inside <${inside}>`, {unseen: true});
       if (page && component && !trustedComponent) {
         const declared = ts.isIdentifier(opening.tagName) ? declarationOf(opening.tagName, context) : null;
         const local = functionOf(opening.tagName, context) ?? (declared && ts.isClassDeclaration(declared) ? declared : null);
         const from = importOf(opening.tagName, context);
         // A component in this file is judged where its JSX is written; one from another guarded view is judged
         // there. Any other component draws what it is given unseen: it is listed, with its reason, or it fails.
-        if (!local && !(from && GUARDED_VIEWS.has(`${from.module.replace(/^\.\//, '')}.tsx`) && from.imported === tag)) record(opening.tagName, `<${tag}>`, {component: true});
+        if (!local && !(from && GUARDED_VIEWS.has(`${from.module.replace(/^\.\//, '')}.tsx`) && from.imported === tag)) record(opening.tagName, `<${tag}>`, {unseen: true});
       }
       // A role that makes the element a control or a heading counts as that element; a role not built of literals
       // cannot be judged and fails.
@@ -609,17 +613,20 @@ export function findings(name, text, mode = 'page') {
 export const GUARDED_VIEWS = new Set(['RequestCards.tsx', 'NativeActivity.tsx', 'NativeHistory.tsx', 'RunOffers.tsx']);
 
 /** One view's failures, given its source: each finding neither App-made nor listed, each forbidden write (never
- * listable), and the listed keys it used. */
+ * listable), each listed exception whose count of matching findings differs from its count, and the listed keys it
+ * used. A listing matches a finding only by its file, place, exact expression and the component it names. */
 export function sourceFailures(name, text, exceptions = [], mode = 'page') {
-  const listed = new Set(exceptions.map(e => `${e.file}|${e.where}|${normal(e.expr)}`));
-  const failures = [], used = new Set();
+  const entries = exceptionEntries(exceptions);
+  const listed = new Map(entries.map(e => [exceptionKey(e), e]));
+  const failures = [], used = new Set(), counts = new Map();
   for (const f of findings(name, text, mode)) {
     if (f.forbidden) { failures.push(`${name}:${f.line} ${f.where} ${f.expr} (cannot be listed)`); continue; }
     // A finding that breaks a rule (an unseen component, a spread, a reference, a role) fails whatever its expression.
-    if (!f.component && !f.rule && f.where !== '{...}' && appMade(f.node, f.context)) continue;
-    const key = `${name}|${f.where}|${f.expr}`;
-    if (listed.has(key)) used.add(key); else failures.push(`${name}:${f.line} ${f.where} ${f.expr}`);
+    if (!f.unseen && !f.rule && f.where !== '{...}' && appMade(f.node, f.context)) continue;
+    const key = exceptionKey({file: name, where: f.where, expr: f.expr, component: f.component});
+    if (listed.has(key)) { used.add(key); counts.set(key, (counts.get(key) ?? 0) + 1); } else failures.push(`${name}:${f.line} ${f.where} ${f.expr} (in ${f.component})`);
   }
+  failures.push(...countFailures(listed, counts));
   return {failures, used};
 }
 
@@ -631,7 +638,7 @@ export function guardFailures(srcDir, exceptions, views = GUARDED_VIEWS) {
     failures.push(...result.failures);
     for (const key of result.used) used.add(key);
   }
-  for (const e of exceptions) { const key = `${e.file}|${e.where}|${normal(e.expr)}`; if (!used.has(key)) failures.push(`stale exception ${key}`); }
+  failures.push(...staleFailures(exceptions, used));
   return failures;
 }
 
@@ -667,6 +674,198 @@ export function controlsFailures(srcDir, exceptions) {
     failures.push(...result.failures);
     for (const key of result.used) used.add(key);
   }
-  for (const e of exceptions) { const key = `${e.file}|${e.where}|${normal(e.expr)}`; if (!used.has(key)) failures.push(`stale exception ${key}`); }
+  failures.push(...staleFailures(exceptions, used));
+  return failures;
+}
+
+// ---- Exceptions: what one may mean, and how far it reaches ----
+/** The rule at the head of every exceptions file. The loader skips that entry (it carries a "rule" field). */
+export const EXCEPTION_RULE = 'An exception identifies evidence that an expression satisfies an existing presentation rule despite the guard\'s limitation. It cannot introduce another permitted source or presentation form.';
+/** The bases an exception may rest on; its reason names the producer or the conversion that establishes it. */
+export const EXCEPTION_BASES = ['an App-owned literal vocabulary', 'a validated identifier', 'an editable value permitted in that field', 'the adopted conversation title form'];
+/** The entries of an exceptions file, without its rule entry. */
+export const exceptionEntries = list => list.filter(e => !Object.hasOwn(e, 'rule'));
+const exceptionKey = e => `${e.file}|${e.where ?? ''}|${normal(e.expr)}|${e.component}`;
+const countFailures = (listed, counts) => [...counts].filter(([key, n]) => n !== listed.get(key).count)
+  .map(([key, n]) => `exception ${key} lists ${listed.get(key).count} occurrence(s) and matches ${n}`);
+const staleFailures = (exceptions, used) => exceptionEntries(exceptions).filter(e => !used.has(exceptionKey(e))).map(e => `stale exception ${exceptionKey(e)}`);
+
+/** The name of the component or binding a node is written in: the nearest named function, method or class around
+ * it (an unnamed callback is passed through), else "(module)". */
+export function enclosingName(node) {
+  for (let n = node.parent; n; n = n.parent) {
+    if ((ts.isFunctionDeclaration(n) || ts.isClassDeclaration(n) || ts.isMethodDeclaration(n)) && n.name) return n.name.getText();
+    if ((ts.isArrowFunction(n) || ts.isFunctionExpression(n)) && ts.isVariableDeclaration(n.parent) && ts.isIdentifier(n.parent.name)) return n.parent.name.text;
+  }
+  return '(module)';
+}
+
+/** The shape of an exceptions file: its first entry is EXCEPTION_RULE; every other entry names its file, expression,
+ * component and count, one basis from EXCEPTION_BASES (or from `bases`, where a file admits fewer) and a reason. */
+export function exceptionShapeFailures(list, {needsWhere = true, bases = EXCEPTION_BASES} = {}) {
+  const failures = [];
+  if (!Array.isArray(list) || list[0]?.rule !== EXCEPTION_RULE) failures.push('the first entry is not the exception rule');
+  for (const e of exceptionEntries(list ?? [])) {
+    const at = `${e.file}|${e.where ?? ''}|${e.expr}`;
+    if (typeof e.file !== 'string' || typeof e.expr !== 'string' || (needsWhere && typeof e.where !== 'string')) failures.push(`${at}: names no file, place or expression`);
+    if (typeof e.component !== 'string' || !e.component) failures.push(`${at}: names no component`);
+    if (!Number.isInteger(e.count) || e.count < 1) failures.push(`${at}: has no count`);
+    if (!bases.includes(e.basis)) failures.push(`${at}: basis ${JSON.stringify(e.basis)} is not one of ${bases.join('; ')}`);
+    if (typeof e.reason !== 'string' || e.reason.length < 40) failures.push(`${at}: its reason does not name the producer or conversion`);
+  }
+  return failures;
+}
+
+// ---- Guard 1: preformatted text ----
+// Every preformatted block in the App's source (app/src and its subdirectories) is drawn through AgentText, which
+// marks text an agent, a tool, a file or Codex supplies. Outside AgentText.tsx each of these fails:
+//   (a) a <pre> element;
+//   (b) createElement("pre", ...), or a createElement whose tag the guard cannot resolve to a string;
+//   (c) an element written through a same-file const that resolves to "pre" (const X = "pre"; <X>);
+//   (d) an element whose style sets whiteSpace (or "white-space") to pre, pre-wrap or pre-line, in a literal style
+//       object, a same-file const of one, a branch of a choice, or a spread of such a const;
+//   (e) a whiteSpace whose value is not a literal, or a style key the guard cannot read (a computed key that is not a
+//       literal).
+// It does not judge a style it cannot read as a whole (a prop passed through, an imported style object, a call), a
+// stylesheet rule (a CSS file, a <style> text, a class name), or a style written to the DOM outside React.
+/** The rule at the head of preformatted-guard-exceptions.json, beside EXCEPTION_RULE. */
+export const PREFORMATTED_RULE = 'An exception for a preformatted style is allowed only where the text drawn there is the App\'s own literal; a site that draws a supplied value is not an exception, it is a site to fix.';
+const PREFORMATTED = new Set(['pre', 'pre-wrap', 'pre-line']);
+
+/** The strings an expression can be, by its literals and same-file consts; null when one cannot be resolved. */
+function stringsOf(node, context, seen = new Set()) {
+  node = unwrap(node);
+  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return [node.text];
+  if (ts.isConditionalExpression(node)) { const a = stringsOf(node.whenTrue, context, seen), b = stringsOf(node.whenFalse, context, seen); return a && b ? [...a, ...b] : null; }
+  if (ts.isBinaryExpression(node) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(node.operatorToken.kind)) { const a = stringsOf(node.left, context, seen), b = stringsOf(node.right, context, seen); return a && b ? [...a, ...b] : null; }
+  if (ts.isIdentifier(node)) {
+    const d = declarationOf(node, context);
+    if (!d || seen.has(d) || !isConst(d) || !d.initializer) return null;
+    seen.add(d);
+    return stringsOf(d.initializer, context, seen);
+  }
+  return null;
+}
+/** The object literals a style expression can be; null when the style cannot be read as a whole. */
+function objectsOf(node, context, seen = new Set()) {
+  node = unwrap(node);
+  if (ts.isObjectLiteralExpression(node)) return [node];
+  if (ts.isConditionalExpression(node)) { const a = objectsOf(node.whenTrue, context, seen), b = objectsOf(node.whenFalse, context, seen); return a && b ? [...a, ...b] : null; }
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) return objectsOf(node.right, context, seen);
+  if (node.kind === ts.SyntaxKind.UndefinedKeyword || node.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(node) && node.text === 'undefined')) return [];
+  if (ts.isIdentifier(node)) {
+    const d = declarationOf(node, context);
+    if (!d || seen.has(d) || !isConst(d) || !d.initializer) return null;
+    seen.add(d);
+    return objectsOf(d.initializer, context, seen);
+  }
+  if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(unwrap(node.expression))) {
+    const holders = objectsOf(node.expression, context, seen);
+    const entry = holders?.length === 1 ? holders[0].properties.find(p => ts.isPropertyAssignment(p) && p.name.getText().replace(/^["']|["']$/g, '') === node.name.text) : null;
+    return entry ? objectsOf(entry.initializer, context, seen) : null;
+  }
+  return null;
+}
+/** What a style sets for whiteSpace: 'preformatted', 'unread' (a value or key the guard cannot read), or null. */
+function styleVerdict(expr, context) {
+  const objects = objectsOf(expr, context);
+  if (!objects) return null;
+  let verdict = null;
+  const look = (object, seen) => {
+    for (const p of object.properties) {
+      if (ts.isSpreadAssignment(p)) { const inner = objectsOf(p.expression, context); if (inner) for (const o of inner) if (!seen.has(o)) { seen.add(o); look(o, seen); } continue; }
+      const computed = p.name && ts.isComputedPropertyName(p.name) ? unwrap(p.name.expression) : null;
+      const key = !p.name ? null : computed ? (ts.isStringLiteral(computed) || ts.isNoSubstitutionTemplateLiteral(computed) ? computed.text : null) : p.name.getText().replace(/^["']|["']$/g, '');
+      if (key === null) { verdict ??= 'unread'; continue; }
+      if (key !== 'whiteSpace' && key !== 'white-space') continue;
+      const value = ts.isPropertyAssignment(p) ? stringsOf(p.initializer, context) : ts.isShorthandPropertyAssignment(p) ? stringsOf(p.name, context) : null;
+      if (value === null) verdict ??= 'unread';
+      else if (value.some(v => PREFORMATTED.has(v.trim()))) verdict = 'preformatted';
+    }
+  };
+  for (const o of objects) look(o, new Set([o]));
+  return verdict;
+}
+/** Whether an element holds only the App's literal text: text, literal strings and plain elements of the same. */
+function literalOnly(node) {
+  if (ts.isJsxSelfClosingElement(node)) return !/^[A-Z]/.test(node.tagName.getText());
+  if (!ts.isJsxElement(node) || /^[A-Z]/.test(node.openingElement.tagName.getText())) return false;
+  return node.children.every(c => ts.isJsxText(c) || (ts.isJsxExpression(c) && (!c.expression || ts.isStringLiteral(unwrap(c.expression)) || ts.isNoSubstitutionTemplateLiteral(unwrap(c.expression)))) || literalOnly(c));
+}
+
+/** The preformatted findings in one file: { line, rule, expr, component, literal, node }. */
+export function preformattedFindings(name, text) {
+  const {sf, checker} = parsed(name, text);
+  const context = {name, sf, checker, seen: new Set()};
+  const out = [];
+  const record = (node, rule, literal) => out.push({line: sf.getLineAndCharacterOfPosition(node.getStart()).line + 1, rule, expr: normal(node.getText()), component: enclosingName(node), literal, node});
+  const walk = node => {
+    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const opening = ts.isJsxElement(node) ? node.openingElement : node;
+      const tag = opening.tagName.getText();
+      if (tag === 'pre') record(node, '(a) a <pre> element', literalOnly(node));
+      else if (/^[A-Z]/.test(tag) && ts.isIdentifier(opening.tagName) && (stringsOf(opening.tagName, context) ?? []).includes('pre')) record(node, `(c) <${tag}>, which resolves to "pre"`, false);
+      const style = opening.attributes.properties.find(a => ts.isJsxAttribute(a) && a.name.getText() === 'style');
+      const expr = style?.initializer && ts.isJsxExpression(style.initializer) ? style.initializer.expression : null;
+      const verdict = expr ? styleVerdict(expr, context) : null;
+      if (verdict === 'preformatted') record(node, '(d) a preformatted whiteSpace', literalOnly(node));
+      else if (verdict === 'unread') record(node, '(e) a whiteSpace or style key that is not a literal', false);
+    }
+    if (ts.isCallExpression(node)) {
+      const callee = unwrap(node.expression);
+      const named = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : null;
+      if (named === 'createElement' && node.arguments.length) {
+        const tags = stringsOf(node.arguments[0], context);
+        // A component written as a capitalised identifier that is not a const string is a component, not a tag.
+        const component = !tags && ts.isIdentifier(unwrap(node.arguments[0])) && /^[A-Z]/.test(unwrap(node.arguments[0]).text) && !(declarationOf(unwrap(node.arguments[0]), context) && isConst(declarationOf(unwrap(node.arguments[0]), context)) && stringsOf(declarationOf(unwrap(node.arguments[0]), context).initializer, context));
+        if (tags?.includes('pre')) record(node, '(b) createElement("pre")', false);
+        else if (!tags && !component) record(node, '(b) createElement with a tag that is not resolved', false);
+        const props = node.arguments[1] && objectsOf(node.arguments[1], context);
+        for (const o of props ?? []) {
+          const style = o.properties.find(p => ts.isPropertyAssignment(p) && p.name.getText().replace(/^["']|["']$/g, '') === 'style');
+          const verdict = style ? styleVerdict(style.initializer, context) : null;
+          if (verdict === 'preformatted') record(node, '(d) a preformatted whiteSpace', false);
+          else if (verdict === 'unread') record(node, '(e) a whiteSpace or style key that is not a literal', false);
+        }
+      }
+    }
+    ts.forEachChild(node, walk);
+  };
+  walk(sf);
+  return out;
+}
+
+/** Every source file under srcDir and its subdirectories, as paths relative to it, but AgentText.tsx. */
+export function sourceFiles(srcDir, prefix = '') {
+  const out = [];
+  for (const entry of readdirSync(new URL(prefix || './', srcDir), {withFileTypes: true})) {
+    if (entry.isDirectory()) out.push(...sourceFiles(srcDir, `${prefix}${entry.name}/`));
+    else if (/\.(tsx|ts|jsx|js|mjs)$/.test(entry.name) && `${prefix}${entry.name}` !== 'AgentText.tsx') out.push(`${prefix}${entry.name}`);
+  }
+  return out.sort();
+}
+
+/** Guard 1's failures for one file: each finding not listed, and each listing used. A listing passes only an element
+ * that holds the App's literal text alone; a listing on anything else is itself a failure. */
+export function preformattedSourceFailures(name, text, exceptions = []) {
+  const listed = new Map(exceptionEntries(exceptions).map(e => [exceptionKey({...e, where: ''}), e]));
+  const failures = [], used = new Set(), counts = new Map();
+  for (const f of preformattedFindings(name, text)) {
+    const key = exceptionKey({file: name, expr: f.expr, component: f.component});
+    if (listed.has(key) && f.literal) { used.add(key); counts.set(key, (counts.get(key) ?? 0) + 1); }
+    else failures.push(`${name}:${f.line} ${f.rule}: ${f.expr.slice(0, 120)} (in ${f.component})${listed.has(key) ? ' (listed, but it draws more than the App\'s literal)' : ''}`);
+  }
+  failures.push(...countFailures(listed, counts));
+  return {failures, used};
+}
+/** Guard 1 across app/src and its subdirectories, with each stale listing. */
+export function preformattedFailures(srcDir, exceptions) {
+  const failures = [], used = new Set();
+  for (const name of sourceFiles(srcDir)) {
+    const result = preformattedSourceFailures(name, readFileSync(new URL(name, srcDir), 'utf8'), exceptions);
+    failures.push(...result.failures);
+    for (const key of result.used) used.add(key);
+  }
+  failures.push(...exceptionEntries(exceptions).filter(e => !used.has(exceptionKey({...e, where: ''}))).map(e => `stale exception ${exceptionKey({...e, where: ''})}`));
   return failures;
 }

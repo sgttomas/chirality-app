@@ -129,10 +129,11 @@ function actualPacket() {
 const panelIn = container => container.querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow studio controls')[0];
 const createButton = container => nodes(panelIn(container),'button').find(node => node.textContent === 'Create draft from inspected content');
 // ActionFeedback retains the complete response as `<command>: <raw text>`;
-// a technical response keeps it in its details. The raw text must be unchanged.
+// a technical response keeps it in its details, a plain one in its inline box. The raw text must be unchanged.
 const resultText = container => {
   const region = labelled(panelIn(container),'Workflow command result');if (!region) return '';
-  const retained = (agentBlocks(region)[0] ? agentBlockText(agentBlocks(region)[0]) : region.textContent),prefix = /^workflow_[a-z_]+: /.exec(retained);
+  const inline = region.querySelectorAll(node => node.getAttribute?.('class') === 'agent-text-value')[0];
+  const retained = (agentBlocks(region)[0] ? agentBlockText(agentBlocks(region)[0]) : inline ? inline.textContent : region.textContent),prefix = /^workflow_[a-z_]+: /.exec(retained);
   assert.ok(prefix,'the retained response names its original command');return retained.slice(prefix[0].length);
 };
 const limits = container => panelIn(container).querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow observation limit').map(node => node.textContent);

@@ -69,7 +69,7 @@ function AnswerOnlyAccount({account}:{account:Account}){
  return <article><h3>Recorded answer-only account: {idWords(account.accountId)}</h3>{plainId(account.accountId)===null&&account.accountId!=null&&<p>Recorded account ID: <AgentText value={account.accountId} source="record" name="The recorded account ID, as recorded; the App does not vouch for its words"/></p>}<p>{account.relativePath}</p>
  <p>Cold recorded-content inspection only. Internally consistent receipt strings can be fabricated; no original authorship, admitted TASK emission, current permission, accepted answer or performed duty is authenticated.</p>
  <h4>Recorded question and exact base</h4><p>{a.question_id}: {e.baseQuestion.text}</p><p>{a.base_account.account_id}; {a.base_account.relative_path}; original SHA-256 {a.base_account.sha256}; {a.base_account.byte_length} bytes</p><p>{e.baseResolution}</p>
- <h4>Recorded answer</h4><p style={{whiteSpace:"pre-wrap"}}>{e.answer.answer_text}</p>
+ <h4>Recorded answer</h4><AgentText block value={e.answer.answer_text} source="record" label="Recorded answer text:" name="Recorded answer text, not the App's words" />
  {e.answer.claims.map((c:any)=><div key={c.claim_id}><p>{c.claim_id}: {c.statement}</p><p>Cited base claims: {c.base_claim_ids.join(", ")}; facts: {c.fact_ids.join(", ")}; comparisons: {c.comparison_ids.join(", ")}. Links do not prove entailment or quality.</p></div>)}
  <h4>Manager review and integration outstanding</h4><p>The selected subset records no review, plan, integration or integration attempt. Nothing is accepted or integrated by this read.</p>
  <h4>Explicit recorded gaps and responsibility</h4>{a.gaps.map((g:any,i:number)=><p key={i}>{g.gap}; effect: {g.effect}; responsibility: {g.responsibility}</p>)}

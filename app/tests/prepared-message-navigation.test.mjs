@@ -127,7 +127,7 @@ async function mounted(options,check){
   assert.equal(chosenIn(choiceList(c,'Workflow chat')),'C');
   assert.equal(chosenIn(choiceList(c,'Authoring conversation')),key('B'));
   assert.equal(props(labelled(conversation(c),'textarea','Text ')).value,ordinary);
-  assert.match(region(c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);
+  assert.match(region(c,'Content named by an open native confirmation').textContent,/FROZEN⏎review text/);
   assert.match(c.textContent,/Frozen reviewed bytes/);
  };
  try{
@@ -417,7 +417,7 @@ for(const route of ['source','home'])test(`returning original ${route} cannot re
   assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/,'a cleared prior chat is not the currently selected chat');
   assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/Workflow chat context: Conversation C|No chat — library inspection/,'retired choice is distinct from explicit No-chat inspection');
   assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Authoring choice for new trials','B');
-  assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);
+  assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN⏎review text/);
   await ui.choose('B');const original=ui.composer();await ui.change(elements(original,'textarea')[0],'Preserved through local No-chat acknowledgement');await ui.change(choiceList(original,'Send to'),key('D'));await ui.choose('A');
   const before=ui.calls.length;assert.equal(await ui.pickWorkflowChat(''),false);await ui.press('Use No chat — inspect library content');assert.equal(chosenIn(select()),'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.equal(ui.calls.length,before,'explicit local acknowledgement and summary add no RPC');
   assert.equal(button(ui.c,'Use No chat — inspect library content'),undefined,'acknowledged local state needs no recovery action');assertChoice(ui.c,'Operational conversation viewed','A');assertChoice(ui.c,'Authoring choice for new trials','B');assert.equal(ui.composer(),original);assert.equal(props(elements(original,'textarea')[0]).value,'Preserved through local No-chat acknowledgement');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));
@@ -448,7 +448,7 @@ for(const reset of ['source','home','generation'])test(`lost Workflow chat after
   assert.equal(await ui.pickWorkflowChat(''),false,'reselecting the same native option emits no change');assert.match(contextText(ui.c,'Workflow chat context'),/Unavailable/,'unchanged-value selection cannot acknowledge the lost choice');
   const before=ui.calls.length;await ui.press('Use No chat — inspect library content');
   assert.equal(chosenIn(select),'');assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);assert.doesNotMatch(contextText(ui.c,'Workflow chat context'),/Conversation C|Unavailable/);
-  assert.equal(ui.calls.length,before,'the explicit recovery is a local acknowledgement only');assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);
+  assert.equal(ui.calls.length,before,'the explicit recovery is a local acknowledgement only');assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN⏎review text/);
  });
 });
 
@@ -459,7 +459,7 @@ test('local No-chat acknowledgement preserves the current composer and its pendi
   const before=ui.calls.length;await ui.press('Use No chat — inspect library content');assert.equal(ui.calls.length,before,'acknowledgement issues no command');assert.equal(ui.composer(),original);assert.match(original.textContent,/Sending; waiting/);assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));
   assertChoice(ui.c,'Operational conversation viewed','B');assertChoice(ui.c,'Authoring choice for new trials','B');assert.match(ownerIn(original.parentNode),/Conversation B/);assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
   await React.act(async()=>send.resolve({threadId:'D'}));assert.equal(ui.composer(),original);assert.match(original.textContent,/Sent to conversation D/);assert.equal(props(elements(original,'textarea')[0]).value,'Current composer edit');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));
-  assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN\nreview text/);assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
+  assert.equal(props(labelled(conversation(ui.c),'textarea','Text ')).value,ordinary);assert.match(region(ui.c,'Content named by an open native confirmation').textContent,/FROZEN⏎review text/);assert.match(contextText(ui.c,'Workflow chat context'),/No chat — library inspection/);
  });
 });
 
@@ -525,6 +525,8 @@ for(const threadId of ['B',null])test(`waiting ${threadId??'unnamed'} request st
   account.serverRequests=[{recordKind:'server-request-entry',generation:g,requestIdentity:'daily-original-question',method:'item/tool/requestUserInput',classification:'known-answerable',originClass:'person-input',nativeParameters:{...(threadId?{threadId,turnId:'original-turn',itemId:'original-item'}:{}),isBlocking:false,questions:[{id:'q',header:'Scope',question:'Which supplied boundary?',isOther:false,isSecret:false,options:[{label:'Only supplied design',description:'Use the original source'}]}]},state:'outstanding',replyWriteResult:'not-attempted',acknowledgmentObservation:{status:'not-observed'}}];
  }},async ui=>{
   for(const panel of byId(ui.c,'workspace-tools').querySelectorAll(e=>e.localName==='details'&&e.getAttribute('class')==='workspace-disclosure'))panel.open=false;
+  const place=region(ui.c,'Waiting on you');assert.ok(displayed(place));assert.match(place.textContent,/^Waiting on you: 1/);
+  await toggleDisclosure(ui.c,'waiting-on-you',true);
   const indicator=region(ui.c,'Requests waiting for your answer');assert.ok(displayed(indicator));assert.match(byId(ui.c,'other-requests').textContent,/Which supplied boundary/);assert.ok(displayed(byId(ui.c,'other-requests')));assert.ok(displayed(region(ui.c,'Content named by an open native confirmation')));
   const before=ui.calls.length;await ui.press(`account · ${threadId?'thread '+threadId:'no conversation named'}: 1`);
   assert.deepEqual(ui.calls.slice(before).filter(call=>!['host_status','decision_view'].includes(call.command)),[{command:'open_waiting_requests',args:waiting}],'only the original exact group is opened, with no answer/resume/send');

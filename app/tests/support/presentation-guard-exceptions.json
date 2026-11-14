@@ -1,14 +1,23 @@
 [
  {
+  "rule": "An exception identifies evidence that an expression satisfies an existing presentation rule despite the guard's limitation. It cannot introduce another permitted source or presentation form."
+ },
+ {
   "file": "NativeHistory.tsx",
   "where": "drawn",
   "expr": "binding.notice",
-  "reason": "the App's words: every notice a HistoryPageBinding carries is a string literal set in historyPageBinding, or a continuation notice passed through from continuationContextBinding, whose notices are all string literals"
+  "component": "HistoryPageSource",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "every notice a HistoryPageBinding carries is a string literal returned by historyPageBinding (NativeHistory.tsx:38, 40, 42, 44, 46, 53, 55, 56) or, for prior work, by continuationContextBinding's literals passed through at NativeHistory.tsx:166, or a literal at 168 and 175; the guard cannot follow a field of a returned object"
  },
  {
   "file": "NativeHistory.tsx",
   "where": "drawn",
   "expr": "owner.notice",
-  "reason": "the App's words: every notice continuationContextBinding returns is a string literal"
+  "component": "ContinuationContext",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "every notice continuationContextBinding returns is a string literal (NativeHistory.tsx:142, 145, 147, and the four literal branches at 157 to 160); the guard cannot follow a field of a returned object"
  }
 ]
