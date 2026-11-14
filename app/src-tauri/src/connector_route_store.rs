@@ -265,6 +265,8 @@ mod platform {
         })
     }
     fn open_at(parent: &File, name: &OsStr, flags: i32) -> Result<File> {
+        #[cfg(test)]
+        if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("connector_route_store::platform::open_at"); }
         #[cfg(test)] INSPECTION_AUDIT.with(|a|{if let Some(v)=a.borrow_mut().as_mut(){v.push(format!("open:{}",name.to_string_lossy()));}});
         let name = CString::new(name.as_bytes())
             .map_err(|_| StoreError::new(ErrorKind::InvalidInput, "NUL in component"))?;
@@ -295,9 +297,13 @@ mod platform {
             .map_err(|e| ioerr("open resolved project", e))
     }
     fn sync(file: &File, context: &str) -> Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::sync");
         file.sync_all().map_err(|e| ioerr(context, e))
     }
     fn child(parent: &File, name: &str, create: bool) -> Result<File> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::child");
         if create {
             let n = CString::new(name).unwrap();
             let rc = unsafe { libc::mkdirat(parent.as_raw_fd(), n.as_ptr(), 0o700) };
@@ -318,6 +324,8 @@ mod platform {
         Ok(dir)
     }
     fn publish(dir: &File, temporary: &str, target: &str) -> std::io::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::publish");
         let from = CString::new(temporary).unwrap();
         let to = CString::new(target).unwrap();
         // Atomic destination exclusion, but source is still a mutable name.
@@ -714,7 +722,10 @@ mod platform {
             // accounts have moved into the store.
             self.reader
                 .prove()
-                .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))
+                .map_err(|e| {
+                    let kind = if e.unsafe_member().is_some() { ErrorKind::UnsafeEntry } else { ErrorKind::LocationMismatch };
+                    StoreError::new(kind, e.to_string())
+                })
         }
         fn check_root(&self) -> Result<()> {
             self.check_association()?;
@@ -1036,6 +1047,8 @@ mod platform {
             mut hook: impl FnMut(Stage) -> Result<()>,
             publisher: impl FnOnce(&File, &str, &str) -> std::io::Result<()>,
         ) -> Result<BoundReference> {
+            #[cfg(test)]
+            crate::records_effect_guard::mutation_for_test("connector_route_store::platform::ProjectRouteStore::write_using");
             validate_account(account)?;
             let name = format!("{key}.json");
             if !canonical_name(&name) {
@@ -1047,7 +1060,22 @@ mod platform {
             let bytes = serde_json::to_vec(account)
                 .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))?;
             let _writer = self.writable()?;
-            self.check_root()?;
+            self.check_root().map_err(|mut error| {
+                if error.kind == ErrorKind::UnsafeEntry {
+                    // The proof still refuses first. Classify an occupied
+                    // requested publication name as the existing collision,
+                    // using only the held anchor and no-follow directory walk.
+                    if let Ok(chain) = self.chain(&self.parts(), false) {
+                        if let Ok(name) = CString::new(name.as_bytes()) {
+                            let mut metadata = std::mem::MaybeUninit::<libc::stat>::uninit();
+                            if unsafe { libc::fstatat(chain.last().as_raw_fd(), name.as_ptr(), metadata.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) } == 0 {
+                                error.kind = ErrorKind::Collision;
+                            }
+                        }
+                    }
+                }
+                error
+            })?;
             let parts = self.parts();
             let chain = self.chain(&parts, true)?;
             let temporary = format!(

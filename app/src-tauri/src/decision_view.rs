@@ -189,11 +189,14 @@ fn reaches(from: &str, target: &str, edges: &HashMap<String, Vec<String>>) -> bo
 }
 
 pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
+    let home = crate::records_store::readable_home(root);
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let history_notices = crate::records_store::history_notice(home.as_ref().map_err(String::as_str)).view();
     let mut entries = Vec::new();
     let mut limits: Vec<String> = Vec::new();
     // Owning-log provenance is retained for observation order, never performance order.
     let paths = if record_paths.is_empty() {
-        match crate::storage::discover(root) {
+        match home.as_ref().map_err(Clone::clone).and_then(|home| crate::storage::discover_from_home(root, home)) {
             Ok(paths) => paths,
             Err(e) => {
                 limits.push(e);
@@ -203,9 +206,9 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
     } else {
         // A named log where it is read now: in the project's records store
         // subtree once it holds the project's records, otherwise in place.
-        match crate::records_store::readable_home(root){
+        match &home {
             Ok(home)=>record_paths.iter().map(|rp|home.named(rp)).collect(),
-            Err(e)=>{limits.push(e);Vec::new()}
+            Err(e)=>{limits.push(e.clone());Vec::new()}
         }
 
     };
@@ -889,5 +892,5 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             }
         }
     }
-    json!({"view": "decision packages (DEL-06-02; derived, not authority)", "rows": rows, "recordCorrections":record_corrections, "limits": limits, "unresolvedRecords": entries.iter().filter(|e| duplicates.contains(e["recordId"].as_str().unwrap_or("")) || invalid_corrections.contains(e["recordId"].as_str().unwrap_or(""))).collect::<Vec<_>>()})
+    json!({"view": "decision packages (DEL-06-02; derived, not authority)", "historyNotices":history_notices, "rows": rows, "recordCorrections":record_corrections, "limits": limits, "unresolvedRecords": entries.iter().filter(|e| duplicates.contains(e["recordId"].as_str().unwrap_or("")) || invalid_corrections.contains(e["recordId"].as_str().unwrap_or(""))).collect::<Vec<_>>()})
 }

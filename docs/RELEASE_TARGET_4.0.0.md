@@ -66,8 +66,16 @@ selection, and any specialised workspace, keep their own.
 - **Windows.** It follows the macOS release and adds no gate to it.
 - **Domains.** It follows in a later increment and is no condition of release
   or of replacement. PEC adds no delivery prerequisite.
-- **Standalone OpenAI API-key access.** The access modes are the ChatGPT
-  account and a local model server (PRD V4-APP-02).
+- **Standalone OpenAI API-key access.** The App reaches a model through the
+  person's ChatGPT account (PRD V4-APP-02).
+- **A local model server.** The owner decided on 14 November 2026: "For v4
+  I'm really focused on the Codex path. To simplify this I can forego the
+  local model entirely for 4.0.0 and it can come in a later update." 4.0.0
+  does not present a local model server as a way for the App to reach a
+  model. It returns in a later update, with its own examination. What
+  DEL-01-05, DEL-01-01 and DEL-09-02 require of it stays written for that
+  update and is not in force for 4.0.0, as each of those scopes states. A
+  host application's own model server is not this route.
 - **Key rotation.** It is unavailable in 4.0.0, and the release says so.
 - **Signed records.** Log checkpoints and exported records packages are
   unsigned in 4.0.0, because no key is chosen to sign them (DEL-04-03
@@ -108,17 +116,17 @@ a person when no person did it. Findings are repaired and the affected
 scenarios run again before Agent 0 recommends the candidate; a result from an
 earlier candidate is joined as the exit criteria below state.
 
-Credential acts stay the owner's: sign-in and key entry are performed by the
-owner and never by an agent, and a run that needs a signed-in App or the local
-model server follows the owner's sign-in. The criteria not named above keep
+Credential acts stay the owner's: sign-in is performed by the owner and never
+by an agent, and a run that needs a signed-in App follows the owner's
+sign-in. The criteria not named above keep
 the actors their own texts state. Criterion 8's witness on the installed,
 signed candidate needs the person's protection act and the person's
 confirmation of a lowered policy (DEL-01-04 AC-009), which the owner performs
 as bounded acts, like sign-in, apart from and before the evaluation of
 criterion 13. The first human evaluation of the product is the owner's own use
 of the candidate, which begins once Agent 0 has recommended that it is ready
-(criterion 13); the owner's bounded acts before it (sign-in, key entry and the
-keychain acts) are not that evaluation. Agents' testing and the owner's own use
+(criterion 13); the owner's bounded acts before it (sign-in and the keychain
+acts) are not that evaluation. Agents' testing and the owner's own use
 are different things: agents' testing verifies behaviour, and only the owner's
 own use judges whether the product is fit for real work (DEL-09-12). A control
 operated by an agent establishes no act of the owner.
@@ -134,8 +142,8 @@ approval, reliance and decision confirmations, answers to requests, lifecycle
 confirmations, project-link resolution, records export and import, project
 closure and reopening, legal-hold setting and release, and disposal. These
 operations establish no actual person's decision and no legal or professional
-standing. Sign-in and key entry, and criterion 8's protection act and
-policy-lowering confirmation, are the owner's. The exception reaches
+standing. Sign-in, and criterion 8's protection act and policy-lowering
+confirmation, are the owner's. The exception reaches
 examination material only; an invented input does not license an effect on the
 owner's real libraries, stores, accounts or files.
 
@@ -209,10 +217,12 @@ the owner decide on what was actually observed.
    any other means. Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
-   needing none. A file the person selects as an input is sent as selected: if
-   it changes between selection and sending it is held and not sent. What the
-   agent receives is the selected workflow, byte for byte. No time or step
-   limit applies.
+   needing none. A file the person selects as an input is sent as selected.
+   Immediately before attempting to send, the App checks the selected files
+   again, and if it finds one changed, missing or no longer a file it holds the
+   send and sends nothing. A change made after that check is not detected: what
+   is sent is still the content as selected. What the agent receives is the
+   selected workflow, byte for byte. No time or step limit applies.
 
    *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
    the agent received); DEL-01-04 AC-011 (the run text reaches Codex
@@ -301,20 +311,21 @@ the owner decide on what was actually observed.
    *Governed by:* DEL-09-05 AC-001 to AC-007.
 6. **Access.** A person signs in with their ChatGPT account, and the account
    view shows the account Codex reports. The App offers no standalone OpenAI
-   API-key entry. The ChatGPT account and a local model server are configured
-   together. A new conversation has no model until the person chooses. One
-   conversation runs with each, and switching between them leaves the other's
-   configuration in place. The local conversation runs with its required
-   credential held by Codex in the dedicated local home, examined apart from
-   account sign-in, and the two homes keep their own settings and sign-in. A
-   different compliant local server can be substituted through supported
-   settings. The start-up connections of the App's Codex are listed, and those
-   an App setting stops are absent. No credential appears in anything the App
-   wrote. In the examination the owner performs the sign-in and the entry of
-   the local server's key, and agents examine what follows.
+   API-key entry, and presents no local model server as a way to reach a
+   model: none of its views offers one, and its commands for one refuse. A
+   new conversation has no model until the person chooses. A conversation
+   runs with the ChatGPT account. The start-up connections of the App's Codex
+   are listed, and those an App setting stops are absent. No credential
+   appears in anything the App wrote. In the examination the owner performs
+   the sign-in, and agents examine what follows.
 
-   *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
-   AC-011.
+   *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
+   each in the words that its scope states are in force for 4.0.0.
+   That no local model server is presented is governed by the "For 4.0.0"
+   section of DEL-01-05, and is examined on the candidate by inspecting every
+   view met in the journeys and examinations of criteria 1 to 6 for an offer
+   of one, and by an executable check that the App's commands for that route
+   refuse.
 7. **Visual design.** A person meeting the App's views in the journeys and
    examinations of criteria 1 to 6 and 15 finds that they share one visual form,
    drawn from v3.0.1 as installed, that they are consistent with one another,

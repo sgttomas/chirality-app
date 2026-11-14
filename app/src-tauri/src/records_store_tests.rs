@@ -8,11 +8,15 @@ use crate::storage;
 use serde_json::json;
 use std::collections::BTreeMap;
 
+mod routing_traces { include!("records_store_routing_trace_tests.rs"); }
+mod routing_payload { include!("records_store_routing_payload_tests.rs"); }
+
 mod publication { include!("records_store_publication_tests.rs"); }
 mod safe_append { include!("records_store_lines_tests.rs"); }
 mod legacy_witness { include!("records_store_witness_tests.rs"); }
 mod sync { include!("records_store_sync_tests.rs"); }
 mod writer_binding { include!("records_store_writer_binding_tests.rs"); }
+mod status_gate { include!("records_store_status_tests.rs"); }
 
 fn folder(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
@@ -490,12 +494,12 @@ fn records_store_import_gate_completed_import_waives_census_but_incomplete_still
 fn records_store_import_gate_controls_and_exact_staging_names_never_waive_census() {
     let nonce = "12345678-1234-4234-8234-123456789abc";
     let hash = storage::key("cap:fixture");
-    for relative in [".writer.lock".into(), "captures/.capture.lock".into(), "captures/pending".into(),
+    for relative in payload::CONTROLS.iter().map(|name| (*name).to_owned()).chain(["captures/pending".into(),
         format!("captures/.{hash}.json.{nonce}.tmp"),
         format!("captures/pending/.{hash}.json.{nonce}.tmp"),
         format!("workflow/.pending-{nonce}"),
         format!("workflow/.{nonce}.json.{nonce}.tmp"),
-        format!("connectors/route-accounts/.route-{nonce}.tmp")] {
+        format!("connectors/route-accounts/.route-{nonce}.tmp")]) {
         let (_own, root, dir) = import_gate_project();
         let path = dir.join(&relative);
         if relative == "captures/pending" { std::fs::create_dir_all(&path).unwrap(); }
@@ -1077,7 +1081,7 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
     // "The store module" is these files: `records_store.rs` and every file a
     // line `#[path = "..."]` in it or in them names, test files apart. Other
     // ways a file can be brought in are not seen.
-    const STORE_MODULE: [&str; 7] = ["records_package.rs", "records_package_controls.rs", "records_package_identity.rs", "records_package_import.rs", "records_store.rs", "records_store_lines.rs", "records_store_witness.rs"];
+    const STORE_MODULE: [&str; 8] = ["records_package.rs", "records_package_controls.rs", "records_package_identity.rs", "records_package_import.rs", "records_payload.rs", "records_store.rs", "records_store_lines.rs", "records_store_witness.rs"];
     let mut module = std::collections::BTreeSet::from(["records_store.rs".to_owned()]);
     let mut pending = vec!["records_store.rs".to_owned()];
     while let Some(file) = pending.pop() {
@@ -2341,7 +2345,7 @@ fn probe_r16_interrupted_import() {
     let refused = write_dir(&root).unwrap_err();
     assert!(refused.starts_with("import incomplete"), "{refused}");
     assert!(records::append_project(&root, None, "writer:x", "evidence_limit", &APP_WRITER, body("x")).unwrap_err().contains("import incomplete"));
-    assert_eq!(status(Some(&root))["project"]["reading"], "records in place in the project (import needed)");
+    assert_eq!(status(Some(&root))["project"]["reading"], "records in place in the project");
     // The census changes before the rerun: reported, and the rerun resumes.
     let acts = root.join(".chirality/records").join(crate::recorder::LOG);
     records::append(&acts, "evidence_limit", &APP_WRITER, body("written before the rerun")).unwrap();
@@ -3179,4 +3183,95 @@ fn records_store_import_gate_authority_reads_only_its_admission_snapshot() {
     assert!(current_admission.as_ref().is_err_and(|e| e.contains("account durability not established")), "{current_admission:?}");
     assert_eq!(unchanged, bytes);
     assert!(matches!(authority, Ok(false)), "a later completion entered through authority without acceptance: {authority:?}");
+}
+
+
+// Status's importNeeded and notes against the write gate, case by case
+// (pull request 313's narrow reading, its probes taken as maintained tests).
+
+#[test]
+fn records_store_import_gate_status_store_read_can_need_import() {
+    for bytes in [b"".as_slice(), b"unclosed first append".as_slice()] {
+        let (_own, root, dir) = import_gate_project();
+        let path = dir.join("acts").join(format!("{}.jsonl", storage::key("unpublished")));
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, bytes).unwrap();
+        assert!(store_holds(&dir).unwrap());
+        assert!(!store_write_authority_from_imports(&dir, &imports(&dir).unwrap()).unwrap());
+        let gate = write_dir(&root).unwrap_err();
+        let shown = status(Some(&root));
+        std::fs::remove_dir_all(&root).unwrap();
+        assert!(gate.starts_with("import needed:"), "{gate}");
+        assert_eq!(shown["project"]["reading"], "records store", "{shown}");
+        assert_eq!(shown["project"]["importNeeded"], true, "{shown}");
+    }
+}
+
+#[test]
+fn records_store_import_gate_status_in_place_uncertain_offers_no_import() {
+    let (_own, root, dir) = import_gate_project();
+    std::fs::create_dir_all(dir.join("connectors")).unwrap();
+    std::fs::write(dir.join("connectors/opaque-evidence"), b"retained opaque connector evidence").unwrap();
+    assert!(!store_holds(&dir).unwrap());
+    let gate = write_dir(&root).unwrap_err();
+    assert!(gate.contains("governs this project's records is unknown"), "{gate}");
+    let shown = status(Some(&root));
+    std::fs::remove_dir_all(&root).unwrap();
+    assert_eq!(shown["project"]["importNeeded"], false, "gate={gate}; status={shown}");
+    assert!(shown["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str() == Some(gate.as_str())), "{shown}");
+}
+
+#[test]
+fn records_store_import_gate_status_incomplete_import_says_the_gates_refusal() {
+    let (_own, root, dir) = import_gate_project();
+    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":"import:review","at":"now","storeHeld":false,"census":[]})).unwrap();
+    assert!(!store_holds(&dir).unwrap());
+    let gate = write_dir(&root).unwrap_err();
+    assert!(gate.starts_with("import incomplete:"), "{gate}");
+    let shown = status(Some(&root));
+    std::fs::remove_dir_all(&root).unwrap();
+    assert_eq!(shown["project"]["importNeeded"], false, "gate={gate}; status={shown}");
+    assert!(shown["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str() == Some(gate.as_str())), "status carries the gate's own refusal: {shown}");
+}
+
+#[test]
+fn records_store_import_gate_status_refused_attachment_offers_no_import() {
+    let (_own, root, _dir) = import_gate_project();
+    std::fs::remove_file(root.join(PROJECT_LINK)).unwrap();
+    let gate = write_dir(&root).unwrap_err();
+    let shown = status(Some(&root));
+    std::fs::remove_dir_all(&root).unwrap();
+    assert!(!gate.starts_with("import needed:"), "{gate}");
+    assert_eq!(shown["project"]["importNeeded"], false, "{shown}");
+    assert!(shown["project"]["notes"].as_array().unwrap().iter().any(|n| n.as_str().is_some_and(|n| n.contains("link missing"))), "{shown}");
+}
+
+#[test]
+fn records_store_import_gate_helper_keeps_the_gates_order() {
+    for evidence in ["true", "false", "unknown"] {
+        let (_own, root, dir) = import_gate_project();
+        if evidence == "true" {
+            let path = dir.join(storage::log_rel(None, "writer:store"));
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::copy(root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy")), path).unwrap();
+        } else if evidence == "unknown" {
+            std::fs::create_dir_all(dir.join("acts")).unwrap();
+            std::fs::write(dir.join("acts/unfamiliar"), b"unknown").unwrap();
+        }
+        let state = imports(&dir).unwrap();
+        for census in [Ok(false), Ok(true), Err("injected census failure".to_owned())] {
+            let calls = std::cell::Cell::new(0);
+            let actual = import_needed_from(&dir, &state, || { calls.set(calls.get()+1); census.clone() }).map_err(String::from);
+            let authority = store_write_authority_from_imports(&dir, &state);
+            let expected = (|| -> Result<bool, String> {
+                if !matches!(authority, Ok(true)) {
+                    if census.clone()? { authority?; return Ok(true); }
+                }
+                Ok(false)
+            })();
+            assert_eq!(actual, expected, "evidence={evidence}; census={census:?}");
+            assert_eq!(calls.get(), if evidence == "true" { 0 } else { 1 });
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }

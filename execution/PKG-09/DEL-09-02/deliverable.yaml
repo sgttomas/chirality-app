@@ -21,7 +21,11 @@ needs:
   gating: true
 - from: DEL-01-05
   condition: ChatGPT sign-in and a local model server can be configured together, each can be chosen
-    per conversation, and a new conversation has no model selected until the person chooses.
+    per conversation, and a new conversation has no model selected until the person chooses. For
+    4.0.0 the words about the local model server, configuring both together and choosing between
+    them do not apply, because the owner decided on 14 November 2026 that the local model server is
+    not offered in 4.0.0 and comes in a later update; ChatGPT sign-in, its choice per conversation
+    and no model selected until the person chooses stand.
   gating: true
 - from: DEL-01-06
   condition: An installable macOS package of the identified candidate exists with its package identity
@@ -64,8 +68,10 @@ needs:
   condition: The examining agent can operate the built candidate's shipped controls as a user would,
     through the computer-use ability native to its harness, and read what the candidate shows.
 - from: external:owner's sign-in
-  condition: The owner signs in and enters the local server's key on the candidate; no agent performs
-    either.
+  condition: The owner signs in and enters the local server's key on the candidate; no agent
+    performs either. For 4.0.0 the entry of the local server's key does not apply, because the owner
+    decided on 14 November 2026 that the local model server is not offered in 4.0.0 and comes in a
+    later update; the owner's sign-in stands.
   when: Before a run that needs a signed-in App or the local model server.
 - from: external:OI-011
   condition: Signing, notarisation and supplier entitlements of the packaged candidate are decided
@@ -74,22 +80,27 @@ needs:
 - from: external:DEP-005
   condition: The stock supplier's published protocol, a ChatGPT account, and a local model server
     presenting a compliant endpoint with its credential are available in the versions the candidate
-    was built and configured for.
+    was built and configured for. For 4.0.0 the local model server does not apply, because the owner
+    decided on 14 November 2026 that the local model server is not offered in 4.0.0 and comes in a
+    later update.
 code_paths:
 - app/examination/standalone/**
 - app/examination/native_forms/**
 - app/examination/sq_receiving/**
 - app/examination/native_support/**
 - app/examination/scripted_driver/**
+- app/examination/session_comparison/**
 - app/src-tauri/src/scripted_driver.rs
 - .github/workflows/app-scripted-driver.yml
 checks:
 - app/examination/native_support/test_*.py
+- app/examination/session_comparison/test_compare.py
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_launch_home_test.py
 - app/tests/group_b_operated_scenario_test.py
 - app/tests/group_b_operated_macos_test.py
 - app/tests/group_b_scripted_driver_test.py
+- app/tests/group_b_examination_table_test.py
 - app/tests/group_b_pre_run_inputs_test.py
 - app/tests/group_b_native_forms_test.py
 - app/tests/group_b_sq_receiving_test.py

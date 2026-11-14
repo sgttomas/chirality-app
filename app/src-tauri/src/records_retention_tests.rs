@@ -1369,7 +1369,7 @@ fn a_disposal_that_cannot_examine_what_remains_records_no_completion() {
     for (rel, bytes) in &before {
         if kept.get(rel) == Some(bytes) { continue; }
         assert!(!kept.contains_key(rel), "kept bytes are unchanged: {rel}");
-        let control = rel == ".writer.lock" || rel == "captures/.capture.lock";
+        let control = records_store::payload::control(rel);
         assert!(exported.get(rel) == Some(bytes) || (control && bytes.is_empty()), "removed only after its bytes were verified in the export: {rel}");
         removed += 1;
     }
@@ -1529,7 +1529,7 @@ fn a_disposal_whose_removal_stage_cannot_be_examined_records_no_completion() {
     kept.extend(files_with_bytes(&stage));
     let exported = files_with_bytes(&bag.join("data"));
     for (rel, bytes) in &before {
-        let control = rel == ".writer.lock" || rel == "captures/.capture.lock";
+        let control = records_store::payload::control(rel);
         assert!(kept.get(rel) == Some(bytes) || exported.get(rel) == Some(bytes) || (control && bytes.is_empty()), "kept, or removed only after its bytes were verified in the export: {rel}");
     }
     assert!(disposed.is_err(), "{disposed:?}");

@@ -37,6 +37,8 @@ thread_local! {
 }
 
 fn open_at(parent: &File, name: &str, flags: i32) -> Result<File, String> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("role_observations::open_at"); }
     let name = CString::new(name).map_err(|_| "NUL in role observation path")?;
     let fd = unsafe {
         libc::openat(
@@ -73,6 +75,8 @@ fn directory(path: &Path) -> Result<File, String> {
     Ok(at)
 }
 fn child(parent: &File, name: &str, create: bool) -> Result<Option<File>, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("role_observations::child");
     if create {
         let name = CString::new(name).map_err(|_| "NUL directory")?;
         if unsafe { libc::mkdirat(parent.as_raw_fd(), name.as_ptr(), 0o700) } < 0
@@ -462,6 +466,8 @@ impl RoleLog {
         Ok((rows, chain, Some(LogBasis::of(&after))))
     }
     fn publish_bytes(content: &File, bytes: &[u8]) -> Result<(Value, File), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("role_observations::RoleLog::publish_bytes");
         let id = role_supply::content(bytes);
         let leaf = format!("{}.utf8", payload_key(&id)?);
         let file = match open_at(
@@ -554,6 +560,8 @@ impl RoleLog {
         mut row: Value,
         composition: Option<&role_supply::Composition>,
     ) -> Result<(Value, Value, PublicationBasis), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("role_observations::RoleLog::append_row");
         // The Root shares this owner across homes. Serialize initial store
         // attachment too, before the cross-process log lock can be opened.
         let _owner = self

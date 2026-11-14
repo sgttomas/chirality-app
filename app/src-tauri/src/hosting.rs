@@ -107,6 +107,18 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Duration;
+/// How long the App's last look at a turn's selected files may take (`Host::recheck_attachment_sources`),
+/// made with the writer, the custody's source lock and the request gate held. It is a fifth of Stop's limit, `codex_stop::STOP_WAIT_LIMIT` (ten seconds), within which
+/// Stop and the quit take the writer for their interrupts. The quit fence takes each home's request
+/// gate in turn within one ten-second bound; an attachment send holds its home's gate for at most this
+/// limit plus work in memory, so at most about two seconds per home, taken in turn. The fence's longest
+/// wait belongs to other holders of the gate (a start's spawn and handshake, Stop Codex), not to this.
+/// A refused turn releases the gate, the source lock and the writer at once.
+pub(crate) const ATTACHMENT_RECHECK_LIMIT: Duration = Duration::from_secs(2);
+#[cfg(test)]
+static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync::Mutex::new(None);
+#[cfg(test)]
+static ATTACHMENT_RECHECK_RETURNED: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 /// The pin the App candidate declares (HOSTING §7.1, D4).
 pub const DECLARED_PIN: &str = "0.167.0";
@@ -251,6 +263,20 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
 /// App's environment when the child is started is recorded, never its value.
 pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
 
+/// What [`Host::received_view`] takes a received line as.
+struct Received {
+    correlated_method: Option<String>,
+    private_auth_id: Option<(Value, bool)>,
+    known_private_config_channel: bool,
+    private_config: bool,
+    frame: Value,
+    projected: bool,
+    private_config_frame: Option<Value>,
+}
+/// The kind of a received frame, as the receipt records it.
+fn frame_class(frame: &Value) -> &'static str {
+    if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"}
+}
 pub(crate) fn removed_environment_names() -> impl Iterator<Item = &'static str> {
     REMOVED_ENVIRONMENT.iter().map(|(name, _)| *name)
 }
@@ -980,6 +1006,15 @@ pub struct Host {
     this: Mutex<std::sync::Weak<Host>>,
     #[cfg(test)]
     after_attachment_namespace_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch just before it waits for the frame writer.
+    #[cfg(test)]
+    before_attachment_writer:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch just before it takes the request gate.
+    #[cfg(test)]
+    before_attachment_gate:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch after its write and before the write is recorded.
+    #[cfg(test)]
+    after_attachment_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     #[cfg(test)]
     before_attachment_hot_join:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
@@ -1055,6 +1090,13 @@ pub struct Host {
     before_thread_insert: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_records_receipt_bind: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// Runs inside a records identity reading, after the read and before the
+    /// Host state is taken again to compare it (the window the reading leaves).
+    #[cfg(test)]
+    within_records_identity_read: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// How many records identity readings this Host has taken.
+    #[cfg(test)]
+    records_identity_reads: std::sync::atomic::AtomicUsize,
     #[cfg(test)]
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     /// Runs with each delegation read's request after its write and before
@@ -1168,6 +1210,12 @@ impl Host {
             #[cfg(test)]
             after_attachment_namespace_write:Mutex::new(None),
             #[cfg(test)]
+            before_attachment_writer:Mutex::new(None),
+            #[cfg(test)]
+            before_attachment_gate:Mutex::new(None),
+            #[cfg(test)]
+            after_attachment_write:Mutex::new(None),
+            #[cfg(test)]
             before_attachment_hot_join:Mutex::new(None),
             distribution_store: Mutex::new(None),
             inner: Arc::new((Mutex::new(inner), Condvar::new())),
@@ -1216,6 +1264,10 @@ impl Host {
             before_thread_insert: Mutex::new(None),
             #[cfg(test)]
             before_records_receipt_bind: Mutex::new(None),
+            #[cfg(test)]
+            within_records_identity_read: Mutex::new(None),
+            #[cfg(test)]
+            records_identity_reads: std::sync::atomic::AtomicUsize::new(0),
             #[cfg(test)]
             before_turn_result: Mutex::new(None),
             #[cfg(test)]
@@ -1413,6 +1465,20 @@ impl Host {
         {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}*host.session_liveness.lock().unwrap()=custody.liveness.clone();
         custody.sources.lock().unwrap().push(AppRecoverySource{inner:Arc::downgrade(&host.inner),queue:Arc::clone(&host.inner.0.lock().unwrap().pending_recovery)});*host.runtime_custody.lock().unwrap()=Some(Arc::clone(&custody));Ok(host)
     }
+    /// This App session and the earlier sessions its start established as
+    /// ended in the App ledger ([`crate::recovery::established_ended_sessions`]),
+    /// from the ledger's retained observation: memory only, no ledger lock or
+    /// file work under the state.
+    pub(crate) fn established_ended_sessions(&self)->Result<(String,std::collections::BTreeSet<String>),String>{
+        let (session,rows,limit)={let i=self.inner.0.lock().unwrap();
+            let limit=i.recovery_initialization_error.clone().or_else(||i.recovery_error.clone())
+                .or_else(||i.recovery_snapshot.as_ref().is_none().then(||"App ledger unavailable".to_owned()))
+                .or_else(||i.recovery_snapshot.as_ref().filter(|o|o.summary["historyLimits"].as_array().is_some_and(|l|!l.is_empty())).map(|_|"App ledger history incomplete".to_owned()));
+            (i.app_session.clone(),i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)),limit)};
+        if let Some(limit)=limit{return Err(limit);}
+        let rows=rows.ok_or("App ledger unavailable")?;
+        Ok((session.clone(),crate::recovery::established_ended_sessions(&rows,&session)?))
+    }
     /// Safely retained source observation; no ledger lock/IO under Inner.
     pub fn shared_recovery_observation(&self)->Value{
         let i=self.inner.0.lock().unwrap();json!({"appSession":i.app_session,"recovery":i.recovery_snapshot.as_ref().map(|o|&o.summary),"limit":i.recovery_initialization_error.as_ref().or(i.recovery_error.as_ref()),"configured":i.recovery.is_some(),"standing":"actual App custody; last observed pointer ledger metadata, not live native reconstruction"})
@@ -1434,7 +1500,9 @@ impl Host {
         // while this Host and the App custody it shares live.
         let opened=(||{let liveness=crate::session_liveness::directory(&path);if let Some(binding)=&namespaces{binding.guard_domains(&[liveness])?;}
             let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path.clone(),binding)?,None=>RecoveryLedger::open(path.clone())?};
-            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session_held(&session,"chirality-app-v4-unqualified",&hold)?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
+            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session_held(&session,"chirality-app-v4-unqualified",&hold)?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}let retired=i.recovery.replace(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);
+        // A ledger this replaces closes its database (file work) only after the state is released.
+        drop(retired);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
     }
     /// Test model of this App session's process having ended, for a test that
     /// still reads through this Host afterwards: only its liveness lock is
@@ -3350,6 +3418,29 @@ impl Host {
     /// Admits the forked conversation operationally from the correlated
     /// `thread/fork` result only. The fork must be a new thread reporting the
     /// source as `forkedFromId`; otherwise nothing is admitted.
+    /// A fork's admission checks under the state, in the order they refuse,
+    /// with their errors; then, where the source's selected receipt names the
+    /// current records project context (inheritable_receipt), that receipt and
+    /// the capability to read the project through. Reads the state only, so it
+    /// is called twice: before the project is read and after.
+    fn fork_admission(&self,i:&Inner,request:&SourceRequest,response:&Value)->Result<Option<(Arc<crate::records_access::RecordsCapability>,records_continuity::Receipt)>,String>{
+        let generation=request.generation();let t=&response["result"]["thread"];let source=&request.frame["params"]["threadId"];
+        if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
+        if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
+        Self::check_local_reported(i,&response["result"])?;
+        let reading=i.local_fork_configs.get(request.request_ref()).cloned();
+        self.check_local_reading_current(i,reading.as_ref())?;
+        Ok(Self::inheritable_receipt(i,generation,source).and_then(|receipt|Some((i.records_capability.clone()?,receipt.clone()))))
+    }
+    /// The receipt a fork of `source` inherits, before its project is read:
+    /// the source's first receipt in the generation, where it names the
+    /// current records project context. One expression, used by the look that
+    /// decides the reading (fork_admission) and by the inheritance after it.
+    fn inheritable_receipt<'a>(i:&'a Inner,generation:&Value,source:&Value)->Option<&'a records_continuity::Receipt>{
+        i.records_receipts.iter().find(|(g,thread,_)|g==generation&&Some(thread.as_str())==source.as_str())
+            .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference())==Some(receipt.project.as_str()))
+            .map(|(_,_,receipt)|receipt)
+    }
     pub fn thread_fork_finish(&self, request: &SourceRequest) -> Result<Value,String> {
         self.check_source(request)?;let evidence=request.evidence();
         if request.frame["method"]!="thread/fork"||evidence["writeResult"]!="written"||evidence["outcome"]!="response-observed-result"||evidence["sentFrame"].is_null() {return Err(format!("thread/fork has no successful write and correlated result (outcome {}); nothing admitted, no automatic retry",evidence["outcome"]));}
@@ -3359,12 +3450,24 @@ impl Host {
         let source=&request.frame["params"]["threadId"];let t=&response["result"]["thread"];
         if t["id"]==*source||t["forkedFromId"]!=*source {return Err("thread/fork did not report a new thread forked from the source; nothing admitted".into());}
         let generation=request.generation();
+        // The admission's checks under the state (fork_admission), first to
+        // decide whether the project is read, with no state held, then again
+        // under the state after the reading: the same code, so a refusal the
+        // checks give never follows a reading.
+        let look={let i=self.inner.0.lock().unwrap();self.fork_admission(&i,request,&response)?};
+        let records_reading=look.as_ref().map(|(capability,_)|self.records_reading(Arc::clone(capability)));
         let mut i=self.inner.0.lock().unwrap();
-        if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
-        if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
-        Self::check_local_reported(&i,&response["result"])?;
-        let reading=i.local_fork_configs.get(request.request_ref()).cloned();
-        self.check_local_reading_current(&i,reading.as_ref())?;
+        // The reading is bound to what the first call captured: the same
+        // selected receipt, still the source's first and still of the current
+        // context, read through the same capability. Where the second call
+        // selects nothing to inherit, the fork is admitted without inheriting,
+        // as the old code was silent there. Where it selects a receipt, or a
+        // capability, the reading was not taken for, this new refusal (reached
+        // only in the unlocked interval; the old code had none) admits nothing.
+        let again=self.fork_admission(&i,request,&response)?;
+        let unread=match (&again,&look) {(Some((a,ra)),Some((b,rb)))=>!(Arc::ptr_eq(a,b)&&ra==rb),(Some(_),None)=>true,(None,_)=>false};
+        if unread {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
+        let records_reading=if again.is_some() {records_reading} else {None};
         let standing=i.supplier_standing.clone();let result=&response["result"];
         let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
@@ -3376,10 +3479,9 @@ impl Host {
                 i.records_offer_projects.push((generation.clone(),t["id"].clone(),project));
             }
         }
-        let inherited = i.records_receipts.iter().find(|(g,thread,_)|g == generation && Some(thread.as_str()) == source.as_str())
-            .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference()) == Some(receipt.project.as_str())
-                &&i.records_capability.as_ref().and_then(|capability|capability.project_identity().ok()).as_ref() == Some(&receipt.directory))
-            .and_then(|(_,_,receipt)|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
+        let inherited = Self::inheritable_receipt(&i,generation,source)
+            .filter(|receipt|records_reading.as_ref().and_then(|reading|reading.current(&i).ok()) == Some(&receipt.directory))
+            .and_then(|receipt|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
         let context = i.records_project_context.clone();
         let home = inherited.as_ref().map(|receipt|receipt.home_class.clone());
         if let Some(receipt) = inherited { i.records_receipts.push((generation.clone(),receipt.thread.clone(),receipt)); }
@@ -3577,12 +3679,22 @@ impl Host {
             let recheck=attachments::prepare_ordered(&prepared.selections,prepared.submission_ref(),&now_rfc3339()).map_err(|e|e.message)?;
             if recheck.native_inputs()!=prepared.list.native_inputs(){return Err("attachment source/input changed after durable preparation; nothing sent".into());}
             let frame=prepared.source.attempted_frame();let bytes=Self::frame_bytes(frame)?;
+            #[cfg(test)] {let hook=self.before_attachment_writer.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let serial=self.frame_write.lock().unwrap();
             let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
             // After the writer wait, before the commit: the local home's files are read again.
             self.check_local_files(frame["method"].as_str().unwrap_or_default())?;
-            let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
+            #[cfg(test)] {let hook=self.before_attachment_gate.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+            let gate=self.attachment_gate.lock().unwrap();
+            // The App's last look at the person's selected files, made with the writer, the custody's
+            // source lock and the request gate held, immediately before the frame is written and
+            // bounded (DEL-01-04 AC-003). After it no file is read and no lock is waited for that
+            // another taker holds across file or pipe I/O. A change after this look and before the
+            // write is not detected; what is written is still the frame prepared from the content as
+            // selected. A refusal here unwinds and releases the gate, the source lock and the writer.
+            Self::recheck_attachment_sources(prepared)?;
+            let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
             Self::check_local_request(&i,frame["method"].as_str().unwrap(),&frame["params"],Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,frame["method"].as_str().unwrap())?;
@@ -3595,16 +3707,52 @@ impl Host {
             if frame["method"]=="turn/start"{let pos=i.receipt_position;i.turn_request_threads.insert(key.clone(),(generation.clone(),frame["params"]["threadId"].as_str().unwrap().into(),pos));}
             *state="attempted";drop(state);drop(i);drop(gate);drop(source_lock);
             let written=Self::write_complete(&mut bound.file,&bytes);drop(bound);drop(serial);
+            #[cfg(test)] {let hook=self.after_attachment_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let mut i=self.inner.0.lock().unwrap();let closed=i.generation!=*generation||i.server_requests.is_closed(generation)||i.state!="ready";
             let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let response=e.response.clone();let response_position=e.response_position;
             i.client_requests[index]["sendPosition"]=json!(position);
             match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
-                if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}}
+                if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}
+                }
+                // A write that began and failed may have reached Codex in part: the failure itself retires
+                // nothing, and the start stays listed unless a stored reply resolves it below.
                 Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+            // A reply that arrived while the write was in progress is taken in here, whether the write
+            // succeeded or failed, since the reader deferred it. Only Codex's reply to this very request
+            // retires the start: a result naming a turn (remembered as that turn) or an error object (a
+            // refusal). Anything else leaves it listed until a reply resolves it or its generation closes.
+            // "Naming a turn" is the Host's own test of a turn it remembers (native_turn_shape), so a
+            // start is never retired by a reply whose turn is then not remembered.
+            let resolves=response.as_ref().is_some_and(|r|r.get("error").is_some_and(Value::is_object)||r.get("result").and_then(|r|r.get("turn")).is_some_and(Self::native_turn_shape));
+            if !closed&&frame["method"]=="turn/start"&&resolves{if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             drop(i);drop(namespace_lease);
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
         })();if let Err(error)=&result{*prepared.state.lock().unwrap()="refused";self.attachment_limit(&prepared.source,error.clone());}result
+    }
+    /// The App's last look at a turn's selected files, made while the frame writer, the custody's
+    /// source lock and the request gate are held, and the Host's state lock is not: the files must
+    /// still give exactly the inputs prepared from them. The reading is done on a thread of its own,
+    /// which is given only copies of the selections and holds no gate, writer or source lock, and it
+    /// is waited for at most ATTACHMENT_RECHECK_LIMIT. A reading that has not returned by then refuses
+    /// the turn, so the caller releases the gate, the source lock and the writer at the limit whether
+    /// or not the reading ever returns. Its late result goes to a channel nobody reads: it has no
+    /// route to the frame, the write or the Host. A thread blocked in the system on an unanswering
+    /// volume stays blocked; it holds no lock of the Host.
+    fn recheck_attachment_sources(prepared:&PreparedAttachmentDispatch)->Result<(),String>{
+        let(selections,submission,expected)=(prepared.selections.clone(),prepared.submission_ref().to_owned(),prepared.list.native_inputs());
+        let(tx,rx)=std::sync::mpsc::channel();
+        std::thread::Builder::new().name("attachment-recheck".into()).spawn(move||{
+            #[cfg(test)] {let delay=*ATTACHMENT_RECHECK_DELAY.lock().unwrap();if let Some(delay)=delay{std::thread::sleep(delay);}}
+            let _=tx.send(attachments::prepare_ordered(&selections,&submission,&now_rfc3339()).map(|list|list.native_inputs()).map_err(|e|e.message));
+            #[cfg(test)] ATTACHMENT_RECHECK_RETURNED.fetch_add(1,std::sync::atomic::Ordering::SeqCst);
+        }).map_err(|e|format!("attachment sources could not be read again; nothing sent: {e}"))?;
+        match rx.recv_timeout(ATTACHMENT_RECHECK_LIMIT){
+            Ok(Ok(inputs)) if inputs==expected=>Ok(()),
+            Ok(Ok(_))=>Err("attachment source changed while the turn waited to be sent; confirm current content or remove; nothing sent".into()),
+            Ok(Err(error))=>Err(format!("{error}; nothing sent")),
+            Err(_)=>Err(format!("attachment sources could not be read again within {} seconds; nothing sent",ATTACHMENT_RECHECK_LIMIT.as_secs())),
+        }
     }
     pub fn persist_attachment_observation(&self,source:&SourceRequest)->Result<Value,String>{
         self.check_source(source)?;let(custody,record,limit)={let i=self.inner.0.lock().unwrap();let e=i.source_requests.get(&source.request_id().to_string()).ok_or("source unavailable")?;let a=e.attachment.as_ref().ok_or("source is not attachment-bearing")?;
@@ -3710,16 +3858,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// capability (RS §13.9) when it is configured and `cwd` is its project.
     fn offered_start_params(&self, cwd: &str, model: &str, model_provider: &str, developer_instructions: Option<&str>) -> Result<(Value,Option<records_continuity::Project>), String> {
         let mut params = Self::thread_start_params(cwd, model, model_provider, developer_instructions)?;
+        // The cwd's canonical path and the project's identity are read with no
+        // Host state held (they touch the filesystem), through one capability,
+        // for this one offer; under the state that capability must still be the
+        // one configured, or nothing is offered.
+        let capability = self.inner.0.lock().unwrap().records_capability.clone();
+        let reading = capability.filter(|capability|capability.offered_for(cwd)).map(|capability|self.records_reading(capability));
         let mut inner = self.inner.0.lock().unwrap();
-        let capability = inner.records_capability.clone();
         let mut project = None;
-        if let Some(capability) = capability.filter(|capability|capability.offered_for(cwd)) {
-            match capability.project_identity() {
+        if let Some(reading) = &reading {
+            match reading.current(&inner) {
                 Ok(directory) => {
                     params["dynamicTools"] = json!([crate::records_access::definition()]);
-                    project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory });
+                    project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory: directory.clone() });
                 }
-                Err(limit) => inner.records_capability_limit = Some(limit),
+                Err(limit) => if inner.records_capability.is_some() { inner.records_capability_limit = Some(limit) },
             }
         }
         Ok((params,project))
@@ -4937,6 +5090,53 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         });
     }
 
+    /// What a received line is taken as, before anything is recorded of it:
+    /// its correlation and the projection that withholds private material.
+    /// It reads the state only (the receipt's OAuth admission, which runs
+    /// beside it, changes none of what it reads), so the records call's look
+    /// before the project is read and the receipt itself use this one code.
+    fn received_view(i:&Inner,generation:&Value,parsed:Option<&Value>,text:&str)->Received{
+        let correlated_method=parsed.and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
+        let safe_reply_id=parsed.filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).map(|e|e.request.request_id().clone());
+        let possible_original_account=parsed.filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(Value::as_str).is_some_and(|id|i.source_requests.values().any(|e|e.request.generation==*generation&&auth_rpc::account_method(e.request.frame["method"].as_str().unwrap_or(""))&&e.request.request_id().to_string()==id));
+        // Unsupported auth request framing can echo private control material in its ID.
+        // Keep that original only for the immediate mandatory wire error, never the register.
+        let private_auth_id=parsed.filter(|f|f.get("method").and_then(Value::as_str).is_some_and(auth_rpc::account_method)&&auth_rpc::protocol_envelope(f)).and_then(|f|f.get("id").map(|id|(id.clone(),f["method"]=="account/chatgptAuthTokens/refresh")));
+        let known_account_channel=i.account_channels.contains(generation);
+        let known_private_config_channel=i.private_config_channels.contains(generation);
+        let known_private_create_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&(e.request.frame["params"]["privateProviderCreateWithheld"]==true||e.observation_base["initiator"]["name"]=="provider-create-offer"));
+        let known_private_endpoint_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&e.request.frame["method"]=="config/batchWrite");
+        // Client and server ID spaces are independent. A valid server request
+        // sharing a client ID retains its actual method/params and reply duty.
+        let private_config=matches!(correlated_method.as_deref(),Some("config/read"|"config/batchWrite"))&&parsed.is_some_and(|f|
+            (f.get("method").is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some()||f.get("error").is_some())
+            &&f.get("id").is_some_and(|id|i.source_requests.get(&id.to_string()).is_some_and(|e|e.private_config)));
+        let unattributed_private_config=known_private_config_channel&&parsed.is_some_and(|f|{
+            !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read")||known_private_endpoint_channel&&f.get("result").is_some_and(|r|r.get("filePath").is_some()||r.get("overriddenMetadata").is_some())&&correlated_method.as_deref()!=Some("config/batchWrite"))
+        });
+        let private_create_diagnostic=known_private_create_channel.then(||parsed.and_then(provider_create::diagnostic)).flatten();
+        let (frame,projected)=if let Some(frame)=private_create_diagnostic {(frame,true)}else{match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
+            auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
+        },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)}};
+        let private_config_frame=private_config.then(||frame.clone());
+        let frame=if private_config{if correlated_method.as_deref()==Some("config/batchWrite"){
+            if frame.get("id").and_then(|id|i.source_requests.get(&id.to_string())).is_some_and(|e|e.request.frame["params"]["privateProviderCreateWithheld"]==true){provider_create::withheld(&frame)}else{provider_endpoint::withheld(&frame)}
+        }else{access_provider::withheld(&frame)}}else{frame};
+        Received{correlated_method,private_auth_id,known_private_config_channel,private_config,frame,projected,private_config_frame}
+    }
+    /// The checks a received line meets before a records call's project is
+    /// read, in the receipt's order, each a reason the call is not one: the
+    /// generation replaced or closed; not a server request, or private
+    /// account framing; not a tool call, or one the connector offer takes;
+    /// another tool or a namespace; and then the offer's own look, which gives
+    /// the capability to read through. It reads the state only.
+    fn records_call_look(i:&Inner,generation:&Value,frame:&Value,private_auth:bool)->Option<Arc<crate::records_access::RecordsCapability>>{
+        if i.generation!=*generation||i.server_requests.is_closed(generation){return None;}
+        if frame_class(frame)!="server-request"||private_auth{return None;}
+        if frame["method"]!="item/tool/call"||i.cce_offer.as_ref().and_then(|o|o.classify(generation,frame)).is_some(){return None;}
+        if frame["params"]["tool"]!=crate::records_access::TOOL||!frame["params"]["namespace"].is_null(){return None;}
+        Self::offer_look(i,generation,&frame["params"]["threadId"])
+    }
     fn on_line(&self, raw: &[u8], generation: &Value) {
         let text = String::from_utf8_lossy(raw);
         let text = text.trim_end_matches(['\n', '\r']);
@@ -4950,18 +5150,23 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // The one reply prepared here by the App's own rule (current time): the local home's files
         // are checked before Inner is taken, and a refusal leaves the request waiting.
         let local_reply_refused=parsed.as_ref().filter(|f|f["method"]=="currentTime/read"&&f.get("id").is_some()).and_then(|_|self.check_local_reply().err());
+        // A records tool call's project reading, taken before the state is held
+        // (it touches the filesystem). Whether it is taken is decided by the
+        // receipt's own checks (received_view, then records_call_look), which
+        // run again under the state where the call is admitted. Only a line
+        // whose method is item/tool/call is looked at: received_view never
+        // gives a frame that method unless the line has it.
+        let records_reading=parsed.as_ref().filter(|f|f["method"]=="item/tool/call")
+            .and_then(|_|{let i=self.inner.0.lock().unwrap();let received=Self::received_view(&i,generation,parsed.as_ref(),text);
+                Self::records_call_look(&i,generation,&received.frame,received.private_auth_id.is_some())})
+            .map(|capability|self.records_reading(capability));
         let mut i = self.inner.0.lock().unwrap();
-        let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
+        let Received{correlated_method,private_auth_id,known_private_config_channel,private_config,frame,projected,private_config_frame}=Self::received_view(&i,generation,parsed.as_ref(),text);
         // The reply can beat public client-record publication. Its registered
         // source metadata already fixes the privacy class before dispatch.
         let catalog_reply=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation)
             .is_some_and(|e|e.observation_base["initiator"]["name"]==MODEL_CATALOG_INITIATOR);
         let withhold=|frame:&Value| if catalog_reply { catalog_withheld(frame) } else { delegation_withheld(frame) };
-        let safe_reply_id=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).map(|e|e.request.request_id().clone());
-        let possible_original_account=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(Value::as_str).is_some_and(|id|i.source_requests.values().any(|e|e.request.generation==*generation&&auth_rpc::account_method(e.request.frame["method"].as_str().unwrap_or(""))&&e.request.request_id().to_string()==id));
-        // Unsupported auth request framing can echo private control material in its ID.
-        // Keep that original only for the immediate mandatory wire error, never the register.
-        let private_auth_id=parsed.as_ref().filter(|f|f.get("method").and_then(Value::as_str).is_some_and(auth_rpc::account_method)&&auth_rpc::protocol_envelope(f)).and_then(|f|f.get("id").map(|id|(id.clone(),f["method"]=="account/chatgptAuthTokens/refresh")));
         let auth_shape=correlated_method.as_deref().filter(|m|auth_rpc::account_method(m)).map(|method|{
             let raw=parsed.as_ref().unwrap();if raw.get("method").is_some()||raw.get("result").is_some()&&raw.get("error").is_some(){return false;}
             if let Some(error)=raw.get("error"){return error.is_object()&&error["code"].as_i64().is_some()&&error["message"].is_string();}
@@ -4970,19 +5175,6 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         });
         let next_receipt=i.receipt_position+1;
         if let Some(raw)=parsed.as_ref(){Self::oauth_admit(&mut i,generation,next_receipt,raw,auth_shape);}
-        let known_account_channel=i.account_channels.contains(generation);
-        let known_private_config_channel=i.private_config_channels.contains(generation);
-        let known_private_create_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&(e.request.frame["params"]["privateProviderCreateWithheld"]==true||e.observation_base["initiator"]["name"]=="provider-create-offer"));
-        let known_private_endpoint_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&e.request.frame["method"]=="config/batchWrite");
-        // Client and server ID spaces are independent. A valid server request
-        // sharing a client ID retains its actual method/params and reply duty.
-        let private_config=matches!(correlated_method.as_deref(),Some("config/read"|"config/batchWrite"))&&parsed.as_ref().is_some_and(|f|
-            (f.get("method").is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some()||f.get("error").is_some())
-            &&f.get("id").is_some_and(|id|i.source_requests.get(&id.to_string()).is_some_and(|e|e.private_config)));
-        let unattributed_private_config=known_private_config_channel&&parsed.as_ref().is_some_and(|f|{
-            !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read")||known_private_endpoint_channel&&f.get("result").is_some_and(|r|r.get("filePath").is_some()||r.get("overriddenMetadata").is_some())&&correlated_method.as_deref()!=Some("config/batchWrite"))
-        });
-        let private_create_diagnostic=known_private_create_channel.then(||parsed.as_ref().and_then(provider_create::diagnostic)).flatten();
         // Settlement's verdict on a reply exactly as Codex sent it, taken once here at receipt and
         // before any projection below, so no projection can make an invalid native reply acceptable.
         // Only the verdict is kept with the reply; the native diagnostic is not retained.
@@ -4993,13 +5185,6 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 .or_else(||i.pending.get(&key).and_then(|(idx,_)|i.client_requests.get(*idx)).map(|record|record["requestIdentity"].clone()))?;
             Some(reading_gate::settlement(f,Some(&own)))
         });
-        let (frame,projected)=if let Some(frame)=private_create_diagnostic {(frame,true)}else{match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
-            auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
-        },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)}};
-        let private_config_frame=private_config.then(||frame.clone());
-        let frame=if private_config{if correlated_method.as_deref()==Some("config/batchWrite"){
-            if frame.get("id").and_then(|id|i.source_requests.get(&id.to_string())).is_some_and(|e|e.request.frame["params"]["privateProviderCreateWithheld"]==true){provider_create::withheld(&frame)}else{provider_endpoint::withheld(&frame)}
-        }else{access_provider::withheld(&frame)}}else{frame};
         let projection_label=if private_config{Some("private provider configuration outcome projection; not original bytes")}else if known_private_config_channel&&projected{Some("private source diagnostic projection; not original bytes")}else if projected{Some("sensitive account projection; not original bytes")}else{None};
         // NPTD §7.1 delegation reads: their result bodies (whole model
         // catalogues, whole configurations) are never journalled.
@@ -5012,7 +5197,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         i.observation_facts.receive(&gen, pos, &frame);
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
         if let Some(c)=i.aa_capture.as_mut(){c.observe(&gen,epoch,pipe_epoch,pos,&frame);}
-        let class=if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"};
+        let class=frame_class(&frame);
         if !Self::observer_rebuild_own_response(&i, &gen, &frame, class) {
             i.observer_rebuild.record_source_activity(&gen, pos);
         }
@@ -5023,8 +5208,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if class == "server-request" && private_auth_reply.is_none() {
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
             let offered=if frame["method"]=="item/tool/call"{i.cce_offer.as_ref().and_then(|o|o.classify(&gen,&frame))}else{None};
-            let records=offered.is_none()&&frame["method"]=="item/tool/call"&&frame["params"]["tool"]==crate::records_access::TOOL&&frame["params"]["namespace"].is_null()
-                &&Self::records_offer_is_current(&i,&gen,&frame["params"]["threadId"]);
+            let records=Self::records_call_look(&i,&gen,&frame,private_auth_reply.is_some()).is_some()
+                &&Self::records_offer_is_current(&i,&gen,&frame["params"]["threadId"],records_reading.as_ref());
             if records {
                 match i.server_requests.receive_named_tool(&gen,pos,&frame,"app-rule:records-read") {
                     Ok(()) => records_call=Some(Self::records_call(&i,&gen,&frame)),
@@ -7154,6 +7339,186 @@ mod conversation_transport_tests {
         for change in ["cancel","file","session","home","counter","pipe","target","metadata"]{let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");let mut replacement=None;no_attachment_write(&host,||{let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();match change{"cancel"=>{assert!(packet.cancel());},"file"=>std::fs::write(root.join("first.txt"),"changed").unwrap(),"session"|"home"|"counter"=>{let mut i=host.inner.0.lock().unwrap();let field=match change{"session"=>"appSession","home"=>"home",_=>"spawnCounter"};i.generation[field]=if field=="spawnCounter"{json!(2)}else{json!("other")};},"pipe"=>{let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();host.inner.0.lock().unwrap().attachment_pipe_epoch+=1;replacement=Some(child);},"target"=>event(&host,"completed"),_=>{let mut records=packet.supply_records();records[0]["displayName"]=json!("changed metadata");std::fs::write(owner.supplies_path(packet.submission_ref()).unwrap(),serde_json::to_vec(&records).unwrap()).unwrap();}}
             assert!(host.dispatch_attachment_turn(&packet).is_err());assert_eq!(host.inner.0.lock().unwrap().send_position,0);assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");assert_eq!(packet.source().evidence()["writeAttemptInProgress"],false);assert!(packet.source().evidence()["sentFrame"].is_null());assert!(host.dispatch_attachment_turn(&packet).is_err());});if let Some(mut child)=replacement{assert!(child.wait().unwrap().success());let mut bytes=vec![];child.stdout.take().unwrap().read_to_end(&mut bytes).unwrap();assert!(bytes.is_empty());}std::fs::remove_dir_all(root).unwrap();}
     }
+    // DEL-01-04 AC-003: a file changed between selection and sending is held and not sent. The change
+    // here is made while the sender waits for the frame writer, after its earlier reread of the files.
+    #[test]
+    fn attachment_host_final_reread_a_file_changed_while_waiting_for_the_writer_is_held_and_not_sent(){
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            let path=root.join("first.txt");
+            *host.before_attachment_writer.lock().unwrap()=Some(Box::new(move||std::fs::write(&path,"Changed while the sender waited for the writer\n").unwrap()));
+            let refused=host.dispatch_attachment_turn(&packet).err().expect("a file changed while the sender waits for the writer is held and not sent");
+            assert!(refused.contains("nothing sent"),"{refused}");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0,"no frame was written");
+            assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");
+            assert!(packet.source().evidence()["sentFrame"].is_null());
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"and it is not sent on a second press of the same packet");
+        });
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    // DEL-01-04 AC-003, the same check after the request gate: a file changed, deleted or replaced by
+    // a folder while the sender waits for the gate is held, and nothing is sent.
+    #[test]
+    fn attachment_host_final_reread_a_file_changed_deleted_or_replaced_while_waiting_for_the_gate_is_held_and_not_sent(){
+        for change in ["changed","deleted","folder"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+            no_attachment_write(&host,||{
+                let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+                let path=root.join("first.txt");
+                *host.before_attachment_gate.lock().unwrap()=Some(Box::new(move||match change{
+                    "changed"=>std::fs::write(&path,"Changed while the sender waited for the gate\n").unwrap(),
+                    "deleted"=>std::fs::remove_file(&path).unwrap(),
+                    _=>{std::fs::remove_file(&path).unwrap();std::fs::create_dir(&path).unwrap();}
+                }));
+                let refused=host.dispatch_attachment_turn(&packet).err().unwrap_or_else(||panic!("a file {change} while the sender waits for the gate is held and not sent"));
+                assert!(refused.contains("nothing sent"),"{change}: {refused}");
+                assert_eq!(host.inner.0.lock().unwrap().send_position,0,"{change}: no frame was written");
+                assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted","{change}");
+                assert!(packet.source().evidence()["sentFrame"].is_null(),"{change}");
+                assert!(host.dispatch_attachment_turn(&packet).is_err(),"{change}: and not sent on a second press");
+            });
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    // The same two cases with the writer and the gate really held by another taker, not reached by a
+    // hook alone: the sender waits, the file changes, the holder lets go, and nothing is sent.
+    #[test]
+    fn attachment_host_final_reread_a_file_changed_while_another_holds_the_writer_or_the_gate_is_held_and_not_sent(){
+        for held in ["writer","gate"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+            no_attachment_write(&host,||{
+                let packet=Arc::new(host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap());
+                let(waiting,arrived)=channel();
+                let refused={
+                    let(writer,gate)=(host.frame_write.lock().unwrap(),(held=="gate").then(||host.attachment_gate.lock().unwrap()));
+                    // With the gate held the writer is free for the sender to take first.
+                    let writer=if held=="gate"{drop(writer);None}else{Some(writer)};
+                    let hook:Box<dyn FnOnce()+Send>=Box::new(move||waiting.send(()).unwrap());
+                    if held=="writer"{*host.before_attachment_writer.lock().unwrap()=Some(hook);}else{*host.before_attachment_gate.lock().unwrap()=Some(hook);}
+                    let(sender,prepared)=(Arc::clone(&host),Arc::clone(&packet));
+                    let worker=std::thread::spawn(move||sender.dispatch_attachment_turn(&prepared).err());
+                    arrived.recv_timeout(Duration::from_secs(5)).unwrap();
+                    std::thread::sleep(Duration::from_millis(50));
+                    std::fs::write(root.join("first.txt"),"Changed while another held the lock\n").unwrap();
+                    drop(gate);drop(writer);
+                    worker.join().unwrap()
+                };
+                let refused=refused.unwrap_or_else(||panic!("a file changed while another holds the {held} is held and not sent"));
+                assert!(refused.contains("nothing sent"),"{held}: {refused}");
+                assert_eq!(host.inner.0.lock().unwrap().send_position,0,"{held}: no frame was written");
+                assert!(packet.source().evidence()["sentFrame"].is_null(),"{held}");
+            });
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    /// Clears the test delay of the last look when a test ends, also when it panics, so a delay a
+    /// failed test set never reaches the next test.
+    struct RecheckDelay;
+    impl Drop for RecheckDelay{fn drop(&mut self){*ATTACHMENT_RECHECK_DELAY.lock().unwrap_or_else(|e|e.into_inner())=None;}}
+    fn wait_for_late_rereads(before:usize){
+        let deadline=std::time::Instant::now()+ATTACHMENT_RECHECK_LIMIT*4;
+        while ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst)==before{assert!(std::time::Instant::now()<deadline,"the late reread returned");std::thread::sleep(Duration::from_millis(10));}
+    }
+    fn custody_source_lock_is_free(owner:&AttachmentCustody)->bool{
+        use std::os::fd::AsRawFd;let file=std::fs::File::open(owner.root().join("runtime/hosting/.client-custody.lock")).unwrap();
+        let free=unsafe{libc::flock(file.as_raw_fd(),libc::LOCK_EX|libc::LOCK_NB)}==0;if free{unsafe{libc::flock(file.as_raw_fd(),libc::LOCK_UN);}}free
+    }
+    // The last look is bounded: one that has not returned within ATTACHMENT_RECHECK_LIMIT refuses the
+    // turn at the limit and releases the gate, the custody's source lock and the writer.
+    #[test]
+    fn attachment_host_final_reread_that_times_out_refuses_at_the_limit_and_releases_the_gate_the_source_lock_and_the_writer(){
+        let _delay=RecheckDelay;
+        assert_eq!(ATTACHMENT_RECHECK_LIMIT*5,crate::codex_stop::STOP_WAIT_LIMIT,"the limit is a fifth of Stop's, as its comment says");
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            let before=ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst);
+            *host.before_attachment_gate.lock().unwrap()=Some(Box::new(||{*ATTACHMENT_RECHECK_DELAY.lock().unwrap()=Some(ATTACHMENT_RECHECK_LIMIT+Duration::from_secs(1));}));
+            let started=std::time::Instant::now();
+            let refused=host.dispatch_attachment_turn(&packet).err().expect("a reread that does not return in time refuses the turn");
+            let took=started.elapsed();
+            *ATTACHMENT_RECHECK_DELAY.lock().unwrap()=None;
+            assert!(refused.contains("could not be read again within") && refused.contains("nothing sent"),"{refused}");
+            assert!(took<ATTACHMENT_RECHECK_LIMIT+Duration::from_millis(500),"refused at the limit, not when the reading returned: {took:?}");
+            assert!(host.attachment_gate.try_lock().is_ok(),"the request gate is released");
+            assert!(custody_source_lock_is_free(&owner),"the custody's source lock is released");
+            assert!(host.frame_write.try_lock().is_ok(),"the writer is released");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0);
+            wait_for_late_rereads(before);
+        });
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    // A reread that returns after its turn was refused has no route to the frame or the write: nothing
+    // of it reaches the Host, the turn stays refused, and nothing is written.
+    #[test]
+    fn attachment_host_final_reread_that_returns_after_its_refusal_reaches_nothing(){
+        let _delay=RecheckDelay;
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            let before=ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst);
+            *host.before_attachment_gate.lock().unwrap()=Some(Box::new(||{*ATTACHMENT_RECHECK_DELAY.lock().unwrap()=Some(ATTACHMENT_RECHECK_LIMIT+Duration::from_millis(300));}));
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"a last look that does not return within its limit refuses the turn");
+            *ATTACHMENT_RECHECK_DELAY.lock().unwrap()=None;
+            let refused=host.snapshot();
+            wait_for_late_rereads(before);
+            let after=host.snapshot();
+            assert_eq!(after["clientRequests"],refused["clientRequests"],"the late result changed no record");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0,"and wrote nothing");
+            assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");
+            assert!(packet.source().evidence()["sentFrame"].is_null());
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"the turn stays refused");
+        });
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    // A reply to an attachment turn's start that arrives while the write is being finished is taken
+    // in when the write is recorded, as the ordinary writer does: the request's turn entry goes, and
+    // the turn the reply names is remembered; a refusal leaves no turn and no entry.
+    #[test]
+    fn attachment_host_final_reread_and_a_start_reply_during_the_write_is_taken_in_when_the_write_is_recorded(){
+        for reply in ["started","refused","malformed","id-only turn","empty turn id"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person text",&selections).unwrap();
+            let id=packet.source().request_id().clone();let key=id.to_string();
+            let frame=match reply{"started"=>json!({"id":id,"result":{"turn":complete_turn()}}),"refused"=>json!({"id":id,"error":{"code":-32000,"message":"invented native refusal"}}),"id-only turn"=>json!({"id":id,"result":{"turn":{"id":"turn"}}}),"empty turn id"=>{let mut turn=complete_turn();turn["id"]=json!("");json!({"id":id,"result":{"turn":turn}})},_=>json!({"id":id,"result":{"turnId":"not a turn"}})};
+            let receiver=Arc::clone(&host);
+            *host.after_attachment_write.lock().unwrap()=Some(Box::new(move||receiver.on_line(&serde_json::to_vec(&frame).unwrap(),&g())));
+            let source=host.dispatch_attachment_turn(&packet).unwrap();
+            assert_eq!(source.evidence()["writeResult"],"written","{reply}");
+            {let i=host.inner.0.lock().unwrap();
+                assert_eq!(i.turn_request_threads.contains_key(&key),!matches!(reply,"started"|"refused"),"{reply}: a result naming a turn the Host remembers, or an error, retires the start; anything else leaves it listed");
+                let remembered=i.conversation_turns.iter().any(|e|e["threadId"]=="thread"&&e["turnId"]=="turn"&&e["source"]=="turn/start response");
+                assert_eq!(remembered,reply=="started","{reply}: the turn the reply names is remembered, and none for a refusal");}
+            *host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
+    // A start whose write began and failed may have reached Codex in part: the failure retires nothing,
+    // so with no reply it stays listed among the unresolved starts. A reply that came during that write
+    // is still taken in, as on success: a turn it names is remembered and an error retires the start.
+    // (A reply after the failed write is the reader's, in the Execution lane's work.)
+    #[test]
+    fn attachment_host_final_reread_and_a_start_whose_write_failed_stays_listed_unless_a_reply_came_during_it(){
+        for reply in ["none","started","refused"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person text",&selections).unwrap();
+            child.kill().unwrap();child.wait().unwrap();
+            let id=packet.source().request_id().clone();let key=id.to_string();
+            let frame=match reply{"started"=>Some(json!({"id":id,"result":{"turn":complete_turn()}})),"refused"=>Some(json!({"id":id,"error":{"code":-32000,"message":"invented native refusal"}})),_=>None};
+            if let Some(frame)=frame{let receiver=Arc::clone(&host);*host.after_attachment_write.lock().unwrap()=Some(Box::new(move||receiver.on_line(&serde_json::to_vec(&frame).unwrap(),&g())));}
+            let _source=host.dispatch_attachment_turn(&packet).unwrap();
+            {let i=host.inner.0.lock().unwrap();
+                assert!(i.source_requests[&key].write_error.is_some(),"{reply}: the write failed");
+                assert_eq!(i.turn_request_threads.contains_key(&key),reply=="none","{reply}: the failure retires nothing; a reply during the write is taken in");
+                let remembered=i.conversation_turns.iter().any(|e|e["threadId"]=="thread"&&e["turnId"]=="turn"&&e["source"]=="turn/start response");
+                assert_eq!(remembered,reply=="started","{reply}: the turn the reply names is remembered");}
+            *host.stdin.lock().unwrap()=None;
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    }
     #[test]
     fn attachment_host_actual_partial_and_sync_publication_failures_never_send(){
         for failure in ["array","client","sync"]{let host=host();let(root,owner,selections)=attachment_fixture();match failure{"array"=>{std::fs::write(owner.root().join("runtime/nir"),"obstruction").unwrap();},"client"=>{std::fs::create_dir_all(owner.root().join("runtime/hosting")).unwrap();std::fs::write(owner.root().join("runtime/hosting/client-requests"),"obstruction").unwrap();},_=>{crate::storage::ensure_directory(&owner.root().join("runtime/nir/attachment-supplies")).unwrap();crate::storage::fail_directory_for_test(Some(owner.root().join("runtime/nir/attachment-supplies")));}}
@@ -7775,7 +8140,7 @@ mod conversation_transport_tests {
     impl PreparedTurnFixture {
         fn new(thread:&str)->Self {
             use crate::workflow_workspace::{Snapshot,Selection,WorkflowIdentity,RunScope,PreparedRunText,SNAPSHOT_METHOD};
-            let root=std::env::temp_dir().join(opaque_id("prepared-turn-").unwrap());std::fs::create_dir(&root).unwrap();std::fs::write(root.join("WORKFLOW.md"),"# Synthetic workflow\nExact prepared bytes.\n").unwrap();
+            let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("prepared-turn-").unwrap());std::fs::create_dir(&root).unwrap();std::fs::write(root.join("WORKFLOW.md"),"# Synthetic workflow\nExact prepared bytes.\n").unwrap();
             let snapshot=Snapshot::capture(&root).unwrap();let identity=WorkflowIdentity{kind:"workflow".into(),origin:"bundled".into(),source_root:"synthetic-bundled-root".into(),name:"synthetic".into(),revision:snapshot.revision().to_owned(),revision_method:SNAPSHOT_METHOD.into(),derived_from:None};
             let selection=Selection::synthetic_shipped(snapshot,identity).unwrap();let scope=RunScope{run:"run:synthetic".into(),conversation:thread.into(),home:"conversation-home".into(),generation:g(),source_root:"synthetic-bundled-root".into(),holding_library:"synthetic-holding".into(),selection_ref:"selection:synthetic".into(),revision_store:root.clone()};
             let prepared=PreparedRunText::start(&selection,scope,"synthetic folder",None).unwrap();Self{root,prepared}
