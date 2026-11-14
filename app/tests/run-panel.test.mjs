@@ -175,7 +175,7 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   assert.equal(f.humanActs,'checkpoint CP-rely, arrival 1: recorded as performed (performance 1); A7 rec:app:rely, captured T1; lapse: not yet evaluated (no lapse observation recorded; not shown as not lapsed). Actor, recorder and recording mode are in the act record, not in the run record.');
   assert.equal(f.hostChecks,'none reported','the other facets keep their rules');assert.equal(f.temporal,'unknown: no result for this output is recorded');
   // By earlier act.
-  assert.ok(facet([a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T0','earlier act'),performed(['rec:app:rely'])]).humanActs.includes('A7 rec:app:rely, captured T0 — by earlier recorded act rec:app:rely at T0;'));
+  assert.ok(facet([a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T0','earlier act'),performed(['rec:app:rely'])]).humanActs.includes('A7 rec:app:rely, captured T0 — by earlier act rec:app:rely at T0;'));
   // Not counted: prior act not counted before the arrival; after it, the recorded reason.
   const waitingOnly=facet([a,disposition('CP-rely',1,'waiting'),entry('act_not_counted',{arrival:at,act:act('rec:app:old','T0'),reason:'content no longer current',capturedBeforeArrival:true}),
     entry('act_not_counted',{arrival:at,act:act('rec:app:other','T2'),reason:'act on other content',capturedBeforeArrival:false}),disposition('CP-rely',1,'waiting')]).humanActs;
@@ -195,7 +195,7 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   assert.ok(again.includes('recorded as performed (performance 2); A7 rec:app:next, captured T6; lapse: not yet evaluated'),again);
   // Declined; joint answer; no arrival; an unknown disposition.
   assert.ok(facet([a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]).humanActs.includes('resolved negatively — recorded decline (rec:app:no)'));
-  assert.ok(facet([...base.slice(0,3),counted('rec:app:two','T2'),performed(['rec:app:rely','rec:app:two'])]).humanActs.includes('answered by 2 recorded acts: '));
+  assert.ok(facet([...base.slice(0,3),counted('rec:app:two','T2'),performed(['rec:app:rely','rec:app:two'])]).humanActs.includes('answered by 2 acts: '));
   assert.equal(facet([]).humanActs,'none recorded in this run: checkpoint CP-rely, which gates this output, has no recorded arrival');
   assert.ok(facet([a,disposition('CP-rely',1,'unknown')]).humanActs.startsWith('unknown'));
   // A loss, deciding or not: the record holds an entry this view does not read; every facet stays unknown.

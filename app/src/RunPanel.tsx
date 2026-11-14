@@ -296,7 +296,7 @@ function gatedHumanActs(gate: string, all: Json[]): string {
   const acts = answeredBy.map((id: Json) => {
     const c = counted.find((r: Json) => r.body?.act?.recordId === id);
     const cited = actCited(c.body.act);
-    const earlier = c?.body?.relation === "earlier act" ? ` — by earlier recorded act ${text(id)} at ${text(c.body.act.capturedAt)}` : "";
+    const earlier = c?.body?.relation === "earlier act" ? ` — by earlier act ${text(id)} at ${text(c.body.act.capturedAt)}` : "";
     const observations = of("act_lapsed").filter((r: Json) => r.body?.act?.recordId === id);
     const last = observations.length ? observations[observations.length - 1].body : undefined;
     const state = !last ? "lapse: not yet evaluated (no lapse observation recorded; not shown as not lapsed)"
@@ -304,7 +304,7 @@ function gatedHumanActs(gate: string, all: Json[]): string {
       : `lapse: ${LAPSE_FACET[text(last.state)]} (observed ${text(last.time)}${last.state === "lapsed" || last.state === "lapsed (subject absent)" || last.state === "matches c0 again after observed lapse" ? `; c₀ ${text(last.c0?.method)} ${text(last.c0?.value).slice(0, 12)}` : ""})`;
     return `${cited}${earlier}; ${state}`;
   });
-  const answered = acts.length > 1 ? `answered by ${acts.length} recorded acts: ` : "";
+  const answered = acts.length > 1 ? `answered by ${acts.length} acts: ` : "";
   const now = disposition === "performed" ? "recorded as performed" : disposition === "waiting" ? "reached again; the act on its current content is not yet recorded" : `recorded ${disposition}`;
   return `${where}: ${now} (performance ${top}); ${answered}${acts.join(" | ")}. Actor, recorder and recording mode are in the act record, not in the run record.${also}`;
 }
