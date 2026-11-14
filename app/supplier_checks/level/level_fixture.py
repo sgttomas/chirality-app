@@ -26,6 +26,7 @@ import json
 import os
 import queue
 import secrets
+import shlex
 import shutil
 import signal
 import socketserver
@@ -56,11 +57,21 @@ DECLINE = {'item/commandExecution/requestApproval': {'decision': 'decline'},
            'execCommandApproval': {'decision': 'denied'},
            'applyPatchApproval': {'decision': 'denied'}}
 SLASH_TMP = Path('/private/tmp')
+# The network probe: connects to the stub's own loopback port and asks for the probe path. Unlike curl, it prints
+# the system's own reason when the connection is refused, so a sandbox refusal is in evidence, not inferred.
+NET_PROBE = ('use IO::Socket::INET; my $s = IO::Socket::INET->new(PeerAddr => "127.0.0.1", PeerPort => $ARGV[0], '
+             'Proto => "tcp", Timeout => 3); if ($s) { print $s "GET /level-net-probe HTTP/1.0\\r\\n\\r\\n"; '
+             '<$s>; print "connected\\n"; exit 0 } print "connect failed: $!\\n"; exit 3')
 APP_TOOL = 'level_invented_records_read'
 
 
 class Refused(Exception):
     pass
+
+
+def toml_string(value):
+    """A TOML basic string for `value` (JSON's escapes are a subset TOML accepts)."""
+    return json.dumps(str(value))
 
 
 def pinned_sha256():
@@ -200,6 +211,8 @@ class ScriptedStub:
         self.requests = []  # per POST: {'key', 'tools'}; in memory only
         self.outputs = {}   # call id -> output text; in memory only
         self.net_probes = 0
+        self.not_offered = set()  # call ids a command script could not call: no shell tool offered
+        self.issued = set()  # call ids the stub put into a response as a call
         self.unexpected = []
         stub = self
 
@@ -284,8 +297,10 @@ class ScriptedStub:
         script = self.scripts.get(key)
         if script is None:
             return [message('No script for this turn.', 'msg_none')]
-        items = script(body, outputs, self)
-        return items if items else [message('Done.', 'msg_done_%s' % key)]
+        items = script(body, outputs, self) or [message('Done.', 'msg_done_%s' % key)]
+        with self.lock:
+            self.issued.update(i['call_id'] for i in items if i.get('call_id'))
+        return items
 
     def close(self):
         self.server.shutdown()
@@ -293,13 +308,104 @@ class ScriptedStub:
 
 
 def command_script(call_id, command, escalate=False, background=False):
-    """One scripted command, then a closing message once Codex has returned its output."""
+    """One scripted command, then a closing message once Codex has returned its output. When the request offers
+    no shell tool, no call is made and the call id is noted in `stub.not_offered`, so a test can tell that apart
+    from a command that ran."""
     def script(body, outputs, stub):
         if call_id in outputs:
             return [message('Done.', 'msg_' + call_id)]
         call = shell_call(body, call_id, command, escalate=escalate, background=background)
-        return [call] if call else [message('No shell tool offered.', 'msg_noshell_' + call_id)]
+        if call is None:
+            with stub.lock:
+                stub.not_offered.add(call_id)
+            return [message('No shell tool offered.', 'msg_noshell_' + call_id)]
+        return [call]
     return script
+
+
+# ---------- what a call's output shows ----------
+
+SUCCEEDED = 'ran-succeeded'
+SANDBOX_REFUSED = 'ran-refused-by-sandbox'   # ran, failed, and the sandbox's own refusal is in the output
+FAILED = 'ran-failed'                        # ran and failed, with no refusal in evidence: never a refusal
+RUNNING = 'still-running'                    # returned while its process keeps running in the background
+DECLINED = 'declined-at-approval'            # an approval request for this call, declined by the fixture
+REJECTED = 'rejected-by-policy'              # refused by Codex's approval policy before it ran
+UNSUPPORTED = 'unsupported-call'             # Codex has no such tool in this conversation
+NOT_OFFERED = 'not-offered'                  # the stub could not make the call: inconclusive, never a pass
+SANDBOX_REFUSAL = 'operation not permitted'  # what the shell and the network probe print when the sandbox refuses
+
+
+class Outcome:
+    """One observed outcome of one scripted call, with the evidence it rests on."""
+
+    def __init__(self, kind, exit=None, text='', evidence=None):
+        self.kind, self.exit, self.text, self.evidence = kind, exit, text, evidence or {}
+
+    def __repr__(self):
+        return 'Outcome(%s, exit=%r, text=%r)' % (self.kind, self.exit, self.text[:160])
+
+
+def classify(output):
+    """The outcome a call's output shows, from Codex's own words at the pin. An output this does not recognise
+    refuses: it is never read as an absence."""
+    if output is None:
+        raise Refused('no output was received for the call')
+    if 'Process exited with code ' in output:
+        code = int(output.split('Process exited with code ', 1)[1].split()[0])
+        text = output.split('Output:', 1)[1].strip() if 'Output:' in output else ''
+        if code == 0:
+            return Outcome(SUCCEEDED, code, text)
+        return Outcome(SANDBOX_REFUSED if SANDBOX_REFUSAL in text.lower() else FAILED, code, text)
+    if 'Process running with session ID' in output:
+        return Outcome(RUNNING, text=output)
+    if 'rejected by user' in output:
+        return Outcome(DECLINED, text=output)
+    if 'approval policy is Never' in output:
+        return Outcome(REJECTED, text=output)
+    if output.startswith('unsupported call') or output.startswith('unsupported custom tool call'):
+        return Outcome(UNSUPPORTED, text=output)
+    raise Refused('an output this fixture does not recognise: %r' % output[:200])
+
+
+def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn_status):
+    """The outcome of one call, from the protocol stages that outcome has, each tied to the call's id.
+
+    - not offered: the stub could not make the call; returned as NOT_OFFERED, which `expect` reports as
+      inconclusive, never as a pass;
+    - otherwise the stub must have issued it, and the turn must have completed;
+    - succeeded: the output says exit 0, and Codex started a command item with the call's id;
+    - refused by the sandbox: the output says a non-zero exit and carries the refusal's own text;
+    - declined: an approval request with the call's id reached the fixture, and the output says rejected;
+    - rejected by policy: the output says so, and no approval request with the call's id was raised.
+    Anything short of that refuses; nothing is inferred from an absence."""
+    if call_id in not_offered:
+        return Outcome(NOT_OFFERED)
+    if call_id not in issued:
+        raise Refused('the stub never issued %s' % call_id)
+    if turn_status is None:
+        raise Refused('unresolved: the turn carrying %s did not complete in time' % call_id)
+    if turn_status != 'completed':
+        raise Refused('the turn carrying %s ended %s' % (call_id, turn_status))
+    outcome = classify(output)
+    asked = call_id in request_item_ids
+    if outcome.kind == SUCCEEDED and call_id not in item_ids:
+        raise Refused('%s reported exit 0 without its command item' % call_id)
+    if outcome.kind == DECLINED and not asked:
+        raise Refused('%s was reported rejected without an approval request for it' % call_id)
+    if outcome.kind == REJECTED and asked:
+        raise Refused('%s was reported rejected by policy, yet a request was raised for it' % call_id)
+    outcome.evidence = {'issued': True, 'item': call_id in item_ids, 'request': asked, 'turn': turn_status}
+    return outcome
+
+
+def expect(outcome, kind):
+    """Assert one outcome. NOT_OFFERED is inconclusive: it fails, saying so, whatever was expected."""
+    if outcome.kind == NOT_OFFERED:
+        raise AssertionError('INCONCLUSIVE: the call was never offered, so nothing was observed')
+    if outcome.kind != kind:
+        raise AssertionError('expected %s, observed %r' % (kind, outcome))
+    return outcome
 
 
 # ---------- one run ----------
@@ -307,8 +413,9 @@ def command_script(call_id, command, escalate=False, background=False):
 class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
 
-    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False):
+    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, home_name='home'):
         self.binary = binary
+        self.home_name = home_name  # the Codex home's folder name under the root
         self.name = 'level-' + secrets.token_hex(6)
         scratch = Path(scratch).resolve()
         if not scratch.is_dir():
@@ -334,7 +441,7 @@ class Run:
             raise Refused('%s already exists' % self.slash_tmp)
         os.mkdir(self.root, 0o700)
         try:
-            for child in ('home', 'userhome', 'project', 'outside', 'tmpdir'):
+            for child in (self.home_name, 'userhome', 'project', 'outside', 'tmpdir'):
                 os.mkdir(self.root / child, 0o700)
             if self.git_marker:
                 os.mkdir(self.root / 'project' / '.git', 0o700)
@@ -348,14 +455,27 @@ class Run:
         return self
 
     def __exit__(self, *unused):
-        for client in self.clients:
-            client.stop()
+        """Every step runs even when an earlier one raises; the first error is raised after all have run, so a
+        failed removal is never silent."""
+        steps = [client.stop for client in self.clients]
         if self.stub is not None:
-            self.stub.close()
+            steps.append(self.stub.close)
         if self.made_slash_tmp:  # only the folder this run made, never one it found
-            shutil.rmtree(self.slash_tmp, ignore_errors=True)
-        shutil.rmtree(self.root, ignore_errors=True)
+            steps.append(lambda: shutil.rmtree(self.slash_tmp))
+        steps.append(lambda: os.path.lexists(self.root) and shutil.rmtree(self.root))
+        errors = []
+        for step in steps:
+            try:
+                step()
+            except Exception as error:  # noqa: BLE001 - kept and raised after the remaining steps
+                errors.append(error)
+        if errors:
+            raise Refused('cleanup failed: %s' % '; '.join('%s: %s' % (type(e).__name__, e) for e in errors))
         return False
+
+    @property
+    def home(self):
+        return self.root / self.home_name
 
     @property
     def project(self):
@@ -364,7 +484,7 @@ class Run:
     def environment(self, extra=None):
         package = Path(self.binary).resolve().parent.parent
         env = {'PATH': str(package / 'codex-path') + ':' + SYSTEM_PATH, 'HOME': str(self.root / 'userhome'),
-               'TZ': 'UTC', 'LANG': 'en_US.UTF-8', 'CODEX_HOME': str(self.root / 'home'),
+               'TZ': 'UTC', 'LANG': 'en_US.UTF-8', 'CODEX_HOME': str(self.root / self.home_name),
                'TMPDIR': str(self.root / 'tmpdir') + '/'}
         env.update({name: PROXY for name in PROXY_NAMES})
         env.update({'NO_PROXY': EXEMPT, 'no_proxy': EXEMPT})
@@ -381,6 +501,7 @@ class Run:
     def paths(self):
         """The paths the fixed commands write."""
         out = {'in': self.project / 'w-in', 'out': self.root / 'outside' / 'w-out',
+               'out2': self.root / 'outside' / 'w-out2',
                'tmpdir': self.root / 'tmpdir' / 'w-tmpdir', 'late': self.root / 'outside' / 'w-late',
                'git': self.project / '.git' / 'w-git', 'extra': self.root / 'outside' / 'w-extra'}
         if self.slash_tmp is not None:
@@ -388,13 +509,14 @@ class Run:
         return out
 
     def commands(self):
-        """The only commands any fixture scripts. Each writes one file under the run's own folders, or
-        asks the stub's own loopback address."""
+        """The only commands any fixture scripts. Each writes one file under the run's own folders, or reads the
+        project, or asks the stub's own loopback address. Every path is quoted for the shell, so a scratch folder
+        whose name holds spaces or shell characters cannot make a command write anywhere else."""
         p = self.paths()
-        cmds = {key: 'printf ok > %s' % path for key, path in p.items() if key != 'late'}
-        cmds['late'] = 'sleep 4; printf ok > %s' % p['late']
-        cmds['read'] = '/bin/ls %s' % self.project  # reads only
-        cmds['net'] = '/usr/bin/curl -s -m 3 -o /dev/null http://127.0.0.1:%d/level-net-probe' % self.stub.port
+        cmds = {key: 'printf ok > %s' % shlex.quote(str(path)) for key, path in p.items() if key != 'late'}
+        cmds['late'] = 'sleep 4; printf ok > %s' % shlex.quote(str(p['late']))
+        cmds['read'] = '/bin/ls %s' % shlex.quote(str(self.project))
+        cmds['net'] = '/usr/bin/perl -e %s %d' % (shlex.quote(NET_PROBE), self.stub.port)
         return cmds
 
 
@@ -407,6 +529,7 @@ class Client:
              '-c', 'openai_base_url="%s"' % run.stub.base_url, 'app-server'],
             cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=self.stderr, start_new_session=True)
+        self.pgid = self.proc.pid  # its own session, so its own process group
         self.lock = threading.Lock()
         self.changed = threading.Condition(self.lock)
         self.next_id = 0
@@ -532,6 +655,8 @@ class Client:
         return [r for r in self.server_requests if r['method'] in methods and (thread is None or r['thread'] == thread)]
 
     def stop(self):
+        """Close stdin, give the server a moment, then signal its whole process group, even when the leader has
+        already exited, so no process it started outlives the run."""
         if self.proc.poll() is None:
             try:
                 self.proc.stdin.close()
@@ -541,13 +666,18 @@ class Client:
                 self.proc.wait(5)
             except subprocess.TimeoutExpired:
                 pass
-        if self.proc.poll() is None:
-            try:
-                os.killpg(self.proc.pid, signal.SIGKILL)
-            except (ProcessLookupError, PermissionError):
-                pass
-            self.proc.wait(5)
+        self.kill_group()
         self.close_pipes()
+
+    def kill_group(self):
+        try:
+            os.killpg(self.pgid, signal.SIGKILL)
+        except ProcessLookupError:  # the group is gone
+            pass
+        except PermissionError:  # macOS: a group whose members have all exited and await reaping
+            pass
+        if self.proc.poll() is None:
+            self.proc.wait(5)
 
     def close_pipes(self):
         for stream in (self.proc.stdin, self.proc.stdout, self.stderr):
@@ -557,9 +687,5 @@ class Client:
                 pass
 
     def kill(self):
-        """End the app server at once, as a quit or crash would."""
-        try:
-            os.killpg(self.proc.pid, signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            pass
-        self.proc.wait(5)
+        """End the app server and its group at once, as a quit or crash would."""
+        self.kill_group()

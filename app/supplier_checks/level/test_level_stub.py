@@ -6,6 +6,7 @@ Run from the repository root: python -m pytest -q app/supplier_checks/level/test
 import http.client
 import json
 import os
+import shlex
 import sys
 import tempfile
 import unittest
@@ -138,9 +139,27 @@ class Runs(unittest.TestCase):
                 commands = run.commands()
                 for key, path in run.paths().items():
                     self.assertTrue(str(path).startswith((str(run.root) + '/', str(run.slash_tmp) + '/')), key)
-                    self.assertIn('> %s' % path, commands[key])
-                self.assertEqual(commands['net'],
-                                 '/usr/bin/curl -s -m 3 -o /dev/null http://127.0.0.1:%d/level-net-probe' % run.stub.port)
+                    words = shlex.split(commands[key])
+                    self.assertEqual(words[-1], str(path), key)
+                self.assertEqual(shlex.split(commands['net'])[:2], ['/usr/bin/perl', '-e'])
+                self.assertEqual(shlex.split(commands['net'])[-1], str(run.stub.port))
+
+    def test_a_scratch_name_with_spaces_and_shell_characters_stays_one_word(self):
+        odd = Path(self.scratch) / "odd dir $(touch x) 'q' ;`y`"
+        odd.mkdir()
+        try:
+            with L.Run(odd, '/nonexistent/codex') as run:
+                for key, path in run.paths().items():
+                    self.assertEqual(shlex.split(run.commands()[key])[-1], str(path), key)
+                self.assertEqual(shlex.split(run.commands()['read']), ['/bin/ls', str(run.project)])
+            self.assertEqual(list(odd.iterdir()), [])
+        finally:
+            odd.rmdir()
+
+    def test_a_toml_string_survives_any_path(self):
+        import tomllib
+        for value in ('/a b/c', 'q"uote\\back', "it's ; $(x) `y`", 'tab\tand\nnewline', 'é'):
+            self.assertEqual(tomllib.loads('v = %s' % L.toml_string(value))['v'], value)
 
     def test_an_unpinned_binary_is_refused(self):
         with tempfile.NamedTemporaryFile() as fake:
@@ -150,6 +169,97 @@ class Runs(unittest.TestCase):
                 L.admitted_binary(fake.name)
         with self.assertRaises(L.Refused):
             L.admitted_binary('relative/codex')
+
+
+class Judging(unittest.TestCase):
+    """The fixture can fail: each way a call can go unobserved, or be misread, refuses or fails."""
+
+    def judge(self, output, call='c', issued=('c',), not_offered=(), items=('c',), asked=(), turn='completed'):
+        return L.judge(call, set(issued), set(not_offered), output, set(items), set(asked), turn)
+
+    def test_the_six_outcomes_each_need_their_own_evidence(self):
+        ok = 'Chunk ID: 1\nProcess exited with code 0\nOutput:\n'
+        refused = 'Process exited with code 1\nOutput:\nzsh:1: operation not permitted: /x\n'
+        self.assertEqual(self.judge(ok).kind, L.SUCCEEDED)
+        self.assertEqual(self.judge(refused, items=()).kind, L.SANDBOX_REFUSED)
+        network = 'Process exited with code 3\nOutput:\nconnect failed: Operation not permitted\n'
+        self.assertEqual(self.judge(network).kind, L.SANDBOX_REFUSED)
+        self.assertEqual(self.judge('exec_command failed: Rejected("rejected by user")', items=(), asked=('c',)).kind,
+                         L.DECLINED)
+        self.assertEqual(self.judge('approval policy is Never; reject command', items=()).kind, L.REJECTED)
+        self.assertEqual(self.judge('unsupported call: apply_patch', items=()).kind, L.UNSUPPORTED)
+
+    def test_a_call_removed_from_the_script_is_never_a_pass(self):
+        with self.assertRaises(L.Refused):  # the stub never issued it
+            self.judge('Process exited with code 0\nOutput:\n', issued=())
+        not_offered = self.judge(None, issued=(), not_offered=('c',))
+        self.assertEqual(not_offered.kind, L.NOT_OFFERED)
+        for kind in (L.SANDBOX_REFUSED, L.SUCCEEDED, L.DECLINED, L.REJECTED):
+            with self.assertRaisesRegex(AssertionError, 'INCONCLUSIVE'):
+                L.expect(not_offered, kind)
+
+    def test_a_turn_that_did_not_complete_is_unresolved(self):
+        for turn in (None, 'interrupted', 'failed'):
+            with self.assertRaises(L.Refused):
+                self.judge('Process exited with code 1\nOutput:\noperation not permitted\n', turn=turn)
+
+    def test_a_failure_without_the_sandbox_text_is_not_a_refusal(self):
+        failed = self.judge('Process exited with code 7\nOutput:\ncurl: (7) Failed to connect\n', items=())
+        self.assertEqual(failed.kind, L.FAILED)
+        with self.assertRaises(AssertionError):
+            L.expect(failed, L.SANDBOX_REFUSED)
+
+    def test_outcomes_missing_a_stage_refuse(self):
+        with self.assertRaises(L.Refused):  # exit 0 without its command item
+            self.judge('Process exited with code 0\nOutput:\n', items=())
+        with self.assertRaises(L.Refused):  # a decline with no request for this call
+            self.judge('Rejected("rejected by user")', items=(), asked=('other',))
+        with self.assertRaises(L.Refused):  # a policy rejection, yet a request was raised for it
+            self.judge('approval policy is Never; reject command', items=(), asked=('c',))
+        with self.assertRaises(L.Refused):  # no output at all
+            self.judge(None)
+        with self.assertRaises(L.Refused):  # an output nobody recognises
+            self.judge('something else entirely')
+
+    def test_a_misleading_configuration_report_fails_the_effect_check(self):
+        """A reply that reports read-only while the write in fact landed: the test asserts the observed outcome,
+        so the report alone cannot make it pass."""
+        landed = self.judge('Process exited with code 0\nOutput:\n')
+        with self.assertRaises(AssertionError):
+            L.expect(landed, L.SANDBOX_REFUSED)
+
+
+class Cleanup(unittest.TestCase):
+    def setUp(self):
+        self.scratch = tempfile.mkdtemp(prefix='level-cleanup-test-')
+        self.addCleanup(lambda: os.path.isdir(self.scratch) and __import__('shutil').rmtree(self.scratch))
+
+    def test_a_failing_step_does_not_stop_the_later_ones_and_is_raised(self):
+        run = L.Run(self.scratch, '/nonexistent/codex')
+        run.__enter__()
+        broken = mock.Mock()
+        broken.stop.side_effect = OSError('invented stop failure')
+        run.clients.append(broken)
+        with self.assertRaisesRegex(L.Refused, 'invented stop failure'):
+            run.__exit__(None, None, None)
+        self.assertFalse(run.root.exists())  # removal still ran
+
+    def test_a_removal_error_is_not_ignored(self):
+        run = L.Run(self.scratch, '/nonexistent/codex')
+        run.__enter__()
+        with mock.patch.object(L.shutil, 'rmtree', side_effect=PermissionError('invented removal failure')):
+            with self.assertRaisesRegex(L.Refused, 'invented removal failure'):
+                run.__exit__(None, None, None)
+        __import__('shutil').rmtree(run.root)
+
+    def test_the_whole_group_is_signalled_even_after_its_leader_exited(self):
+        client = L.Client.__new__(L.Client)
+        client.pgid = 4242
+        client.proc = mock.Mock()
+        client.proc.poll.return_value = 0  # the leader has exited
+        with mock.patch.object(L.os, 'killpg') as killpg:
+            client.kill_group()
+        killpg.assert_called_once_with(4242, L.signal.SIGKILL)
 
 
 class LiveRequirement(unittest.TestCase):
