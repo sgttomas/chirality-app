@@ -15,7 +15,10 @@ needs:
   gating: true
 - from: DEL-01-03
   condition: The plan-mode element for a turn is offered as plan, default, not offered with its
-    reason, or no model selected, and a native item can be referred to by an item anchor.
+    reason, or no model selected, and a native item can be referred to by an item anchor. For a
+    request card to name who asks, the host's view of a Codex process gives its descendants, each
+    with its thread, its parent and, once its thread has been read, the role and nickname Codex
+    reports for it.
   gating: true
 - from: DEL-01-05
   condition: For a conversation, whether a model is selected, which, and the person's last explicit
@@ -119,6 +122,9 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
+# Every value the App did not write, drawn as the agent's (cards and the activity stream).
+- app/src/AgentText.tsx
+- app/src/nativeWords.ts
 - app/src/NativeWaitingBridge.tsx
 - app/src/CodexControls.tsx
 - app/src/ConversationRoles.tsx
@@ -163,6 +169,10 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
 - app/tests/request-card-words.test.mjs
+- app/tests/agent-text.test.mjs
+- app/tests/presentation-guard.test.mjs
+- app/tests/support/presentation-guard.mjs
+- app/tests/support/presentation-guard-exceptions.json
 - app/tests/request-activity-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs
