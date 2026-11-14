@@ -6537,7 +6537,7 @@ mod tests {
             let held = (refused == "start").then(|| take_process_lock(&home.join(PROCESS_LOCK)).unwrap());
             let input = environment_input(&f.data, (refused == "start").then_some(home.as_path()), Some(&bin));
             let (desktop, RootInputs { launch, data, allow_operational }) =
-                crate::admitted_startup(input, Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || runtime_session::allocate_fresh_probe(&f.root));
+                crate::admitted_startup(input, Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, |_| runtime_session::allocate_fresh_probe(&f.root));
             let (key, shared) = (launch.key_path.clone(), launch.shared_paths.clone());
             let host_config = launch.host_config.clone();
             assert_eq!(host_config.is_err(), refused == "start configuration", "{refused}");
