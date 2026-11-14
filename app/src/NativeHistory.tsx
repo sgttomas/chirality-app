@@ -1,4 +1,5 @@
 import { NativeItemCard } from "./NativeActivity";
+import { AgentText } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
 
@@ -8,7 +9,6 @@ const object = (value: Json) => value !== null && typeof value === "object" && !
 const text = (value: Json): string => value === undefined ? "not reported" : value === null ? "null (as supplied)" : typeof value === "string" ? value : JSON.stringify(value);
 const nonempty = (value: Json): value is string => typeof value === "string" && value.length > 0;
 const positive = (value: Json) => Number.isSafeInteger(value) && value > 0;
-const pre = { whiteSpace: "pre-wrap" as const, overflowWrap: "anywhere" as const };
 
 function generationValid(value: Json): boolean {
   return object(value) && Object.keys(value).length === 3 && nonempty(value.appSession) && nonempty(value.home) && positive(value.spawnCounter);
@@ -67,8 +67,8 @@ export function HistoryPageSource({ binding }: { binding: HistoryPageBinding }) 
 
 function RawPage({ binding, kind }: { binding: HistoryPageBinding; kind: string }) {
   return <>
-    <details><summary>Original native {kind} page{!binding.accepted && binding.rawPage != null ? " (retained prior read; source not established for current request)" : ""}</summary><pre style={pre}>{JSON.stringify(binding.rawPage ?? { state: "not read" }, null, 2)}</pre></details>
-    <details><summary>Current {kind} stream source evidence</summary><pre style={pre}>{JSON.stringify({ home: binding.home, generation: binding.generation, selectionEpoch: binding.epoch, threadId: binding.threadId, resolution: binding.resolution }, null, 2)}</pre></details>
+    <details><summary>Original native {kind} page{!binding.accepted && binding.rawPage != null ? " (retained prior read; source not established for current request)" : ""}</summary><AgentText block value={JSON.stringify(binding.rawPage ?? { state: "not read" }, null, 2)} source="codex" label="Codex sent (native JSON):" /></details>
+    <details><summary>Current {kind} stream source evidence</summary><AgentText block value={JSON.stringify({ home: binding.home, generation: binding.generation, selectionEpoch: binding.epoch, threadId: binding.threadId, resolution: binding.resolution }, null, 2)} source="codex" label="The App's record of this read, with Codex's identities (JSON):" name="The App's record of this read, holding identities Codex reported" /></details>
   </>;
 }
 
@@ -103,13 +103,13 @@ export function StoredTurnPage({ binding, canRead, readItems }: { binding: Histo
         {turn?.startedAt !== undefined && <div><small>Native start: {nativeTime(turn.startedAt)}</small></div>}
         {turn?.completedAt !== undefined && <div><small>Native end: {nativeTime(turn.completedAt)}</small></div>}
         {turn?.durationMs !== undefined && <div><small>Native duration ms: {text(turn.durationMs)}</small></div>}
-        {preview(user) && <div>Input preview:<pre style={pre}>{preview(user)}</pre></div>}
-        {preview(response) && <div>{response.type === "plan" ? "Plan" : "Agent"} preview:<pre style={pre}>{preview(response)}</pre></div>}
+        {preview(user) && <div>Input preview:<AgentText block value={preview(user)} source="person" /></div>}
+        {preview(response) && <div>{response.type === "plan" ? "Plan" : "Agent"} preview:<AgentText block value={preview(response)} source="agent" /></div>}
         {items.length > 0 && <div><small>Embedded native kinds: {items.map(item => text(item?.type)).join(", ")}.</small></div>}
-        {turn?.error != null && <p>Codex reported turn error: {text(turn.error?.message ?? turn.error)}</p>}
+        {turn?.error != null && <p>Codex reported a turn error: <AgentText value={text(turn.error?.message ?? turn.error)} source="codex" label="Error:" name="Turn error as Codex reported it, not the App's words" /></p>}
         <p><small>Checklist updates: not recoverable from native history.</small></p>
         {valid ? <button disabled={!canRead} onClick={() => readItems(turn.id)}>Read items for this turn</button> : <p>Malformed native turn identity; an item read cannot be targeted.</p>}
-        <details><summary>Native turn summary</summary><pre style={pre}>{JSON.stringify(turn, null, 2)}</pre></details>
+        <details><summary>Native turn summary</summary><AgentText block value={JSON.stringify(turn, null, 2)} source="codex" label="Codex sent (native JSON):" /></details>
       </article>;
     })}
     <RawPage binding={binding} kind="turn" />
@@ -127,7 +127,7 @@ export function StoredItemPage({ binding }: { binding: HistoryPageBinding }) {
         const valid = object(entry) && entry.turnId === binding.query.params.turnId && object(native) && nonempty(native.id) && nonempty(native.type);
         return <article key={index}>
           {valid ? <NativeItemCard history row={{ threadId: binding.threadId, turnId: entry.turnId, native }} /> : <p>This native entry has a malformed item or mismatched turn identity. Its readable body is withheld; the source follows unchanged.</p>}
-          <details><summary>Native page entry {index + 1} (including timing fields)</summary><pre style={pre}>{JSON.stringify(entry, null, 2)}</pre></details>
+          <details><summary>Native page entry {index + 1} (including timing fields)</summary><AgentText block value={JSON.stringify(entry, null, 2)} source="codex" label="Codex sent (native JSON):" /></details>
         </article>;
       })}
     </>}
@@ -215,13 +215,13 @@ export function ContinuationContext({ host, thread }: { host: Json; thread: Json
     {failure && <p role="alert">Prior-work read request failed: {text(failure)}. No resume or message was retried.</p>}
     {owner.accepted && <>
       <p><small>Source home {text(context.home)} · conversation {text(context.threadId)} · admitted resume {text(context.resumeRequestRef)}.</small></p>
-      {context.error != null && <p role="alert">Prior-work read: {text(context.error)}</p>}
+      {context.error != null && <p role="alert">Prior-work read: <AgentText value={text(context.error)} source="codex" label="Reported:" name="What the prior-work read reported, not the App's words" /></p>}
       {context.state === "unavailable" && <button disabled={!canRead} onClick={() => { void action("retry"); }}>Retry prior-work read</button>}
       <h4>Prior turn summaries</h4>{paging("turns", turns)}
       <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} />
       <h4>Prior messages and work</h4>{paging("items", items)}
       <StoredItemPage binding={items} />
     </>}
-    {context && <details><summary>Prior-work source and read evidence</summary><pre style={pre}>{JSON.stringify(context, null, 2)}</pre></details>}
+    {context && <details><summary>Prior-work source and read evidence</summary><AgentText block value={JSON.stringify(context, null, 2)} source="codex" label="The read, with the pages Codex sent (JSON):" name="Prior-work read with Codex's pages, not the App's words" /></details>}
   </section>;
 }

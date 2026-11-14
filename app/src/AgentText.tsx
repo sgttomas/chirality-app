@@ -12,7 +12,7 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 // alone outside it. The box is never a heading, button, link or list item and
 // carries no role that reads as a control (it is a named group).
 
-export type AgentTextSource = "agent" | "tool" | "person" | "codex";
+export type AgentTextSource = "agent" | "tool" | "person" | "codex" | "file";
 
 /** The visible label and the accessibility name for each source of text. */
 export const AGENT_TEXT_WORDS: Record<AgentTextSource, { label: string; name: string }> = {
@@ -20,15 +20,24 @@ export const AGENT_TEXT_WORDS: Record<AgentTextSource, { label: string; name: st
   tool: { label: "Tool output:", name: "Output of a tool the agent called, not the App's words" },
   person: { label: "Recorded as your message:", name: "Text Codex recorded as your message, not the App's words" },
   codex: { label: "Codex sent:", name: "Text Codex sent, not the App's words" },
+  file: { label: "From a file:", name: "Text from a file the App read, not the App's words" },
 };
 
-// C0 controls other than tab and line feed (a carriage return is shown too),
-// DEL and C1, the Arabic letter mark, zero-width and direction marks
-// (U+200B–U+200F), line and paragraph separators (laid out as breaks),
-// embeddings and overrides (U+202A–U+202E), invisible operators
-// (U+2060–U+2064), isolates (U+2066–U+2069) and the byte-order mark.
-const ESCAPED = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/;
-const SPECIAL = /(\r?\n|\t|[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff])/;
+// Every character in Unicode's "Other" categories (controls, format
+// characters such as direction marks, overrides, isolates, zero-width and tag
+// characters, surrogates, private use, and unassigned code points) and the
+// line and paragraph separators is shown as a mark, by category rather than a
+// hand-kept list. A character assigned in a later Unicode version than this
+// runtime knows is unassigned to it, so it is marked too. Line feeds and tabs
+// have their own marks.
+const MARKED = /[\p{C}\p{Zl}\p{Zp}]/u;
+const SPECIAL = /(\r?\n|\t|[\p{C}\p{Zl}\p{Zp}])/u;
+
+/** A Codex-supplied identifier (a thread's, for example) that may stand in the App's own words or in a
+ * control: letters, digits and . _ : - only, at most 128 characters. Anything else is shown beside, as
+ * text the App did not write. */
+export const PLAIN_ID = /^[A-Za-z0-9._:-]{1,128}$/;
+export const plainId = (value: unknown): string | null => typeof value === "string" && PLAIN_ID.test(value) ? value : null;
 
 export const LINE_BREAK_MARK = "⏎";
 export const TAB_MARK = "→";
@@ -44,7 +53,7 @@ export function agentTextParts(value: string): AgentTextPart[] {
     if (piece === "") continue;
     if (piece === "\n" || piece === "\r\n") parts.push({ text: LINE_BREAK_MARK, mark: true });
     else if (piece === "\t") parts.push({ text: TAB_MARK, mark: true });
-    else if (piece.length === 1 && ESCAPED.test(piece)) parts.push({ text: codePoint(piece), mark: true });
+    else if ([...piece].length === 1 && MARKED.test(piece)) parts.push({ text: codePoint(piece), mark: true });
     else parts.push({ text: piece, mark: false });
   }
   return parts;

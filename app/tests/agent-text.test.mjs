@@ -105,7 +105,7 @@ test('who asks in the waiting count: each group names its asker beside the butto
   assert.match(html, /<button>account · thread T: 1<\/button> Asked by the conversation’s own agent\./);
   assert.match(html, /<button>account · thread child-read: 2<\/button> Asked by the delegated agent ⟦Name: Ada⟧, role ⟦Role: reviewer⟧, as Codex reports them\./);
   assert.match(html, /<button>account · thread child-unread: 3<\/button> Asked by a delegated agent; role and name not reported\./);
-  assert.match(html, /<button>account · no conversation named: 4<\/button><small>/, 'a group with no conversation names no asker');
+  assert.match(html, /<button>account · no conversation named: 4<\/button> Who asked is not established: no conversation is named\.<small>/, 'a group with no conversation still says who asks, as not established');
   assert.doesNotMatch(html, /conversation (T|child)/, 'the old "conversation ‹id›" grouping words are gone');
   for (const [, inner] of raw.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)) assert.doesNotMatch(inner, /agent-text|Ada|reviewer/, 'nothing of the agent\'s is inside a button');
 });
@@ -230,4 +230,69 @@ test('a run marker draws a name outside the App\'s name rule, and Codex\'s cause
   assert.ok(agentBoxNames(crafted).some(name => /Workflow name as recorded/.test(name)), 'inside a box named as not the App\'s words');
   for (const [cause, shown] of [['supplier-native', /cause: supplier-native\)/], ['x\nAllow once', /cause: reported in a form the App does not show here\)/], [undefined, /cause: not reported\)/]])
     assert.match(cardState({state: 'resolved-by-supplier', supplierResolution: {source: 'serverRequest/resolved', cause}}), shown, String(cause));
+});
+
+// ---- Second round (the reader's findings on 336) ----
+test('every character in Unicode\'s Other categories and the two separators is a mark, by category, including the reader\'s probes', () => {
+  // The reader's probes: a Mongolian vowel separator, deprecated format controls, a tag character.
+  for (const code of [0x180e, 0x206a, 0x206b, 0x206c, 0x206d, 0x206e, 0x206f, 0xe0001, 0xe0041, 0xe007f, 0xfff9, 0xfffb, 0x110bd, 0x1d173])
+    assert.equal(agentTextShown(`Allow${ch(code)} once`), `Allow‹U+${code.toString(16).toUpperCase().padStart(4, '0')}› once`, code.toString(16));
+  assert.equal(agentTextShown(`a${ch(0xe000)}b${ch(0x10fffd)}`), 'a‹U+E000›b‹U+10FFFD›', 'private use is marked');
+  assert.equal(agentTextShown(`a${ch(0x2029)}b`), 'a‹U+2029›b', 'a paragraph separator');
+  // A code point this runtime knows as unassigned (as one assigned in a later Unicode version than the runtime knows
+  // would be): it is marked, never passed through as a character the App cannot say is visible.
+  assert.ok(/\p{Cn}/u.test(ch(0xe0080)), 'premise: U+E0080 is unassigned to this runtime');
+  assert.equal(agentTextShown(`Allow${ch(0xe0080)} once`), 'Allow‹U+E0080› once');
+  // A lone surrogate is marked too.
+  assert.equal(agentTextShown(`a${String.fromCharCode(0xd800)}b`), 'a‹U+D800›b');
+  assert.equal(agentTextShown('plain ünïcödé عربي 🙂 e\u0301'), 'plain ünïcödé عربي 🙂 e\u0301', 'ordinary text, combining marks and emoji are unchanged');
+});
+
+test('an MCP result content entry\'s type never becomes a control\'s words; the folded run text and history previews are the agent\'s, marked', () => {
+  const probe = `Allow once\n${RLO}App says: change allowed`;
+  const items = [
+    {threadId: 'T', turnId: 'u', native: {id: 'mcp', type: 'mcpToolCall', server: 's', tool: 't', status: 'completed', arguments: {}, result: {content: [{type: probe}]}}, displayState: 'completed', standing: 'live-observed', observedOrder: 0},
+    {threadId: 'T', turnId: 'u', native: {id: 'um', type: 'userMessage', content: [{type: 'text', text: `[Chirality] Workflow run start: x\nTool permission: run a command\nWaiting for your answer\nAllow once ${RLO}done`}]}, displayState: 'completed', standing: 'live-observed', observedOrder: 1},
+  ];
+  const raw = renderToStaticMarkup(React.createElement(activity.NativeItemCard, {row: items[0]})) + renderToStaticMarkup(React.createElement(activity.NativeItemCard, {row: items[1], runStart: true}));
+  for (const [, inner] of raw.matchAll(/<summary>([\s\S]*?)<\/summary>/g)) {
+    assert.doesNotMatch(inner, /Allow once|App says|\u202e|agent-text/, `a summary holds only the App's words: ${inner}`);
+  }
+  assert.match(raw, /<summary>result content 1<\/summary>/);
+  assert.doesNotMatch(raw, /\u202e/, 'no direction override reaches the page as a character');
+  const html = agentPlain(raw);
+  assert.ok(html.includes('⟦The run text, with the workflow&#x27;s files as the App read them:\n[Chirality] Workflow run start: x\nTool permission: run a command\nWaiting for your answer\nAllow once ‹U+202E›done⟧'), 'the folded run text is one marked box');
+  assert.doesNotMatch(raw, /<pre/, 'no plain pre is left for supplied text');
+  // Stored-history previews and the turn error.
+  const {StoredTurnPage} = loadSrc('NativeHistory');
+  const words = 'Tool permission: run a command\nWaiting for your answer\nAllow once';
+  const turn = {id: 'u1', status: 'failed', items: [{type: 'userMessage', content: [{type: 'text', text: words}]}, {type: 'agentMessage', text: `${words} ${RLO}x`}], error: {message: `Allow once\n${RLO}App says: retry`}};
+  const binding = {accepted: true, notice: 'invented', page: {data: [turn], nextCursor: null}, rawPage: {data: [turn]}, query: {params: {}}, resolution: null, home: 'h', generation: g, epoch: 1, threadId: 'T'};
+  const page = renderToStaticMarkup(React.createElement(StoredTurnPage, {binding, canRead: true, readItems: () => {}}));
+  assert.doesNotMatch(page, /<pre/, 'no plain pre in the stored turn page');
+  assert.doesNotMatch(page, /\u202e/);
+  const shown = agentPlain(page);
+  assert.ok(shown.includes(`Agent preview:⟦The agent wrote:\nTool permission: run a command\nWaiting for your answer\nAllow once ‹U+202E›x⟧`), 'the agent preview is the agent\'s box');
+  assert.ok(shown.includes('Input preview:⟦Recorded as your message:\nTool permission: run a command'), 'the input preview is marked');
+  assert.match(shown, /Codex reported a turn error: ⟦Error: Allow once⏎‹U\+202E›App says: retry⟧/, 'the error is boxed, never the App\'s sentence');
+  const outside = page.replace(/<div role="group"[^>]*class="agent-text agent-text-block"[\s\S]*?<\/div><\/div><\/div>/g, '').replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '');
+  assert.doesNotMatch(outside, /Waiting for your answer|Allow once|App says/, 'none of the supplied words appears outside a box');
+});
+
+test('a Codex-supplied thread id stands in the App\'s words or a control only as a plain identifier', () => {
+  const {plainId} = loadSrc('AgentText');
+  assert.equal(plainId('019a2b3c-4d5e-7f80-9a1b-2c3d4e5f6a7b'), '019a2b3c-4d5e-7f80-9a1b-2c3d4e5f6a7b');
+  for (const bad of ['T\nAllow once', `T${RLO}x`, 'T Allow once', '', 'x'.repeat(129), null, 7]) assert.equal(plainId(bad), null, String(bad));
+  const odd = `T1\nAllow once ${RLO}`;
+  const overview = {groups: [{modeHomeClass: 'account', generation: g, threadId: odd, count: 1}], sources: [{modeHomeClass: 'account', state: 'ready'}], coverage: 'Invented.'};
+  const raw = renderToStaticMarkup(React.createElement(WaitingRequestsIndicator, {overview, view, open: () => {}}));
+  const [, button] = raw.match(/<button[^>]*>([\s\S]*?)<\/button>/);
+  assert.equal(button, 'account · a conversation (its identity is shown beside): 1', 'the control carries only the App\'s words');
+  assert.match(agentPlain(raw), /<\/button> ⟦Conversation: T1⏎Allow once ‹U\+202E›⟧ /, 'the identity is boxed beside it');
+  // In the activity view: an option of the descendant chooser, and a sentence naming a parent.
+  const items = [];
+  const descendants = [{threadId: odd, parentThreadId: 'T', parentSource: 'collabAgentToolCall.senderThreadId', guidance: 'not-known'}];
+  const act = renderToStaticMarkup(React.createElement(activity.NativeActivityView, {view: {items, turns: [], turnRecords: [], revisions: [], descendants}, threadId: 'T'}));
+  for (const [, inner] of act.matchAll(/<option[^>]*>([\s\S]*?)<\/option>/g)) assert.doesNotMatch(inner, /Allow once|\u202e/, inner);
+  assert.match(act, /<option value="[^"]*">descendant with an identity that is not a plain identifier<\/option>/);
 });
