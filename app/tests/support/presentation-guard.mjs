@@ -37,6 +37,9 @@ const ID_ATTRIBUTES = new Set(['id', 'href', 'htmlFor', 'aria-labelledby', 'aria
 const VALUE_ATTRIBUTES = new Set(['title', 'alt', 'placeholder', 'label']);
 /** A value attribute is drawn only by a text field; an option's, a select's or a button's value is not shown. */
 const DRAWN_VALUE_TAGS = new Set(['input', 'textarea']);
+/** An input of these literal types shows no value: a radio button's or a checkbox's value is what it submits. */
+const UNDRAWN_INPUT_TYPES = new Set(['radio', 'checkbox']);
+const literalType = props => { const t = props.find(a => ts.isJsxAttribute(a) && a.name.getText() === 'type'); return t && t.initializer && ts.isStringLiteral(t.initializer) ? t.initializer.text : null; };
 /** The aria attributes that carry words; the controls rule checks these, and leaves state flags (aria-busy…) alone. */
 const NAMING_ARIA = new Set(['aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'aria-placeholder', 'aria-braillelabel', 'aria-brailleroledescription']);
 const shownAttribute = (name, tag) => VALUE_ATTRIBUTES.has(name) || name.startsWith('aria-') || ID_ATTRIBUTES.has(name) || (['value', 'defaultValue'].includes(name) && DRAWN_VALUE_TAGS.has(tag));
@@ -337,6 +340,7 @@ export function findings(name, text, mode = 'page') {
         if (!appMade(expr, context)) record(expr, `@${attribute}`);
         continue;
       }
+      if (tag === 'input' && ['value', 'defaultValue'].includes(attribute) && UNDRAWN_INPUT_TYPES.has(literalType(props))) continue;
       if (!shownAttribute(attribute, tag)) continue;
       if (!page && attribute.startsWith('aria-') && !NAMING_ARIA.has(attribute)) continue;
       if (ID_ATTRIBUTES.has(attribute)) { if (page && !idValue(expr)) record(expr, `@${attribute}`); continue; }

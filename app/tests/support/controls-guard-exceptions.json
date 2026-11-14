@@ -184,17 +184,5 @@
   "where": "@aria-label",
   "expr": "label",
   "reason": "the App's words: every caller passes a string literal (the five ConversationContext uses)"
- },
- {
-  "file": "App.tsx",
-  "where": "@value",
-  "expr": "a.id",
-  "reason": "a radio button's value, which is not drawn: the alternative's label beside it holds the App's words (Alternative and idWords) and its text is boxed; the controls rule counts every input's value as drawn, a radio's included. False if this input became a text field"
- },
- {
-  "file": "ConversationRoles.tsx",
-  "where": "@value",
-  "expr": "name",
-  "reason": "a radio button's value, which is not drawn; name is one of CONVERSATION_ROLES (a literal list). The controls rule counts every input's value as drawn, a radio's included. False if this input became a text field or name were taken from anywhere but CONVERSATION_ROLES"
  }
 ]

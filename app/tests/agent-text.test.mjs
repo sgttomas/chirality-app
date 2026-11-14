@@ -393,6 +393,10 @@ test('controls rule: a control, heading or naming attribute on any other view ho
   fails('const x = <label>Pick <select>{rows.map(r => <option key={r.id}>{r.title}</option>)}</select></label>;', 'in an option, checked option by option');
   fails('import { AgentText } from "./AgentText";\nconst x = <summary>Reasoning <AgentText value={v} /></summary>;', 'a box inside a summary');
   fails('const x = <div {...{ title: row.title }} />;', 'a spread carrying a supplied title');
+  // A radio button's or checkbox's value is what it submits, never drawn; a text field's value is drawn.
+  passes('const x = <input type="radio" value={row.id} />;', 'a radio value');
+  fails('const x = <input type={kind} value={row.id} />;', 'an input whose type is not a literal');
+  fails('const x = <input value={row.id} />;', 'a text field value');
   // An invented form the guard has never seen fails.
   fails('const x = <option>{new Proxy(target, handler)}</option>;', 'a constructed value');
   fails('const x = <label>{await import("x")}</label>;', 'an awaited value');
