@@ -7,3 +7,13 @@ export function sealProviderClause(value: unknown): string {
     default: return "seal provider not recorded";
   }
 }
+
+// Legacy captures lack an authenticated historical provider. Say only which
+// provider verified their original bytes on this observation.
+export function verifiedProviderClause(value: unknown): string {
+  switch (value) {
+    case "file-key": return "verified here using the key file, which a process on this account could forge";
+    case "keychain": return "verified here using the keychain key";
+    default: return "verifying provider not established";
+  }
+}

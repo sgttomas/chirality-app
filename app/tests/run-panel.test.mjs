@@ -614,3 +614,13 @@ test('counted and declined provider standing is read from the historical record 
     assert.ok(h(ArrivalRecord,{arrival:a,all:[a,declined]}).includes(clause));
   }
 });
+
+test('a legacy decision states the verifying provider without inventing historical seal custody',()=>{
+  const {DecisionPackagesPanel}=load('App.tsx');
+  for(const [provider,clause] of [['file-key','verified here using the key file, which a process on this account could forge'],['keychain','verified here using the keychain key'],['unexpected','verifying provider not established']]) {
+    const html=h(DecisionPackagesPanel,{view:{rows:[{package:'invented',state:'decided',decision:{captureSeal:{status:'verified',recordedProvider:null,verifiedWith:provider}}}]},name:'',setName:()=>{},recordName:()=>{},refresh:async()=>{},continueRecording:async()=>{},openControl:async()=>{}});
+    assert.ok(html.includes(`Capture seal: provider not recorded; ${clause}`));
+    assert.doesNotMatch(html,/Capture seal:.*sealed with/);
+    assert.match(html,/Recorded decision selection is unchanged/);
+  }
+});

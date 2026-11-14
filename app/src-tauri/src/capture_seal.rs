@@ -70,7 +70,10 @@ impl SealVerification {
     pub fn sentence(&self) -> String {
         match self.recorded_provider {
             Some(provider) => provider.sentence().into(),
-            None => format!("Seal verified; provider not recorded. Verified here using {}. {}", self.verified_with.name(), self.verified_with.sentence()),
+            None => match self.verified_with {
+                SealProvider::FileKey => "Seal verified; provider not recorded. Verified here using the key file, which a process on this account could forge.",
+                SealProvider::Keychain => "Seal verified; provider not recorded. Verified here using the keychain key.",
+            }.into(),
         }
     }
     pub fn view(&self) -> Value {
@@ -515,6 +518,8 @@ mod tests {
         let result = verify(&project, &legacy).unwrap();
         assert_eq!(result.recorded_provider, None);
         assert!(result.sentence().contains("provider not recorded"));
+        assert!(result.sentence().contains("Verified here using the key file"));
+        assert!(!result.sentence().contains("Sealed with"), "verification must not invent historical custody for legacy facts");
         assert_eq!(result.verified_with, SealProvider::FileKey);
         let bytes = legacy.clone();
         std::fs::remove_dir_all(&folder).unwrap();
