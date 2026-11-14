@@ -276,6 +276,42 @@ class Carriers(unittest.TestCase):
             self.assertEqual(removed['sandbox']['writableRoots'], [])
             self.assertFalse(probe(run, client, removed['thread']['id'], 'out')['effect'])
 
+    def test_the_level_sent_wins_over_the_home_config_on_every_other_dimension(self):
+        """The home's config.toml names the widest values: approval never, the automatic reviewer, full access,
+        network on, neither temporary folder excluded; and, separately, a named permissions profile. The level
+        sent at start, or on each turn alone, decides every one of them."""
+        wide = ('approval_policy = "never"\napprovals_reviewer = "auto_review"\nsandbox_mode = "danger-full-access"\n'
+                '[sandbox_workspace_write]\nnetwork_access = true\nexclude_slash_tmp = false\n'
+                'exclude_tmpdir_env_var = false\n')
+        start = {'approvalPolicy': 'on-request', 'approvalsReviewer': 'user', 'sandbox': 'workspace-write',
+                 'config': {'sandbox_workspace_write': {'network_access': False, 'exclude_slash_tmp': True,
+                                                        'exclude_tmpdir_env_var': True, 'writable_roots': []}}}
+        turn = {'approvalPolicy': 'on-request', 'approvalsReviewer': 'user',
+                'sandboxPolicy': dict(WW, networkAccess=False, excludeSlashTmp=True, excludeTmpdirEnvVar=True,
+                                      writableRoots=[])}
+        narrow = {'type': 'workspaceWrite', 'writableRoots': [], 'networkAccess': False,
+                  'excludeTmpdirEnvVar': True, 'excludeSlashTmp': True}
+
+        def effects(run, client, thread, **settings):
+            seen = {k: probe(run, client, thread, k, **settings)['effect'] for k in ('out', 'tmpdir', 'slashtmp', 'net')}
+            escalated = probe(run, client, thread, 'out', escalate=True, **settings)
+            seen['asked'] = [(m, t == thread) for m, t in escalated['requests']]
+            return seen
+        expected = {'out': False, 'tmpdir': False, 'slashtmp': False, 'net': False,
+                    'asked': [(COMMAND_APPROVAL, True)]}  # the person answers: the reviewer sent is user
+        for home_config in (wide, 'default_permissions = ":danger-full-access"\n'):
+            with L.Run(SCRATCH, BINARY, slash_tmp=True) as run:
+                (run.root / 'home' / 'config.toml').write_text(home_config)
+                client = run.start()
+                unsent = client.start_thread()
+                self.assertEqual(unsent['sandbox'], {'type': 'dangerFullAccess'})  # the person's own, when nothing is sent
+                sent = client.start_thread(**start)
+                self.assertEqual((sent['approvalPolicy'], sent['approvalsReviewer'], sent['sandbox']),
+                                 ('on-request', 'user', narrow))
+                self.assertIsNone(sent.get('activePermissionProfile'))
+                self.assertEqual(effects(run, client, sent['thread']['id']), expected)
+                self.assertEqual(effects(run, client, unsent['thread']['id'], **turn), expected)
+
     def test_fork(self):
         with L.Run(SCRATCH, BINARY) as run:
             client = run.start()
