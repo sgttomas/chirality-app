@@ -673,6 +673,12 @@ class ScreenLock(unittest.TestCase):
         self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 0; }'))  # not on the console
         self.assertIsNone(self.lock.locked_from('{ CGSSessionScreenIsLocked = 0; }'))  # no console key
         self.assertIsNone(self.lock.locked_from('{ }'))
+        # A value of any other form, or a second copy in any form, is not established (the reader's inputs).
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = -1; }'))
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = 0; CGSSessionScreenIsLocked = x; }'))
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = "1"; }'))
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = yes; }'))
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; kCGSSessionOnConsoleKey = 0x1; }'))
         self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = 1; CGSSessionScreenIsLocked = 0; }'))
 
     def test_its_exit_status_refuses_a_walk_unless_the_screen_is_not_locked(self):
@@ -1034,6 +1040,12 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
             'a fourth button': own.replace('\n5 menu bar', '\n\t96 button Always, ID: action-button-4\n5 menu bar'),
             'a sheet described otherwise': own.replace('0 sheet Description: alert,', '0 sheet Description: dialog,'),
             'a sheet line with nothing after it': own.replace('0 sheet Description: alert, Secondary Actions: Raise\n', '0 sheet\n'),
+            'the button to press shown unavailable': own.replace('4 button Create', '4 button (disabled) Create'),
+            'another button shown unavailable': own.replace('3 button Cancel', '3 button (disabled) Cancel'),
+            'a dialog inside the menu bar': own.replace('\t12 Waiting requests (0)', '\t12 Waiting requests (0)\n\t99 dialog System permission'),
+            'an alert deep inside the menu bar': own.replace('\t7 File', '\t7 File\n\t\t98 alert Allow?'),
+            'an image in the sheet': own.replace('\t2 button', '\t97 image Invented\n\t2 button'),
+            'an element index given twice': own.replace('\t3 button Cancel', '\t4 button Cancel'),
             'something deeper inside the sheet': own.replace('\t2 button', '\t\t97 text Hidden\n\t2 button')}
         for name, view in cases.items():
             with self.subTest(name):
@@ -1043,6 +1055,27 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
                 self.assertEqual(verdict, 'inconclusive', stopped)
                 self.assertIn('nothing was pressed', stopped)
                 self.assertFalse([c for c in calls if c in ('click2', 'click3', 'click4')])
+
+    def test_the_sheet_inside_the_window_refuses_an_unavailable_button_and_a_dialog_in_the_menu_bar(self):
+        for name, sheet in (('the button to press unavailable', sheet_lines(buttons=('Leave setup unchanged', '(disabled) Create settings and save for next launch', 'Cancel'))),):
+            with self.subTest(name):
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), setup_views(sheet=sheet))['out']
+                self.assertEqual(verdict, 'inconclusive', stopped)
+                self.assertIn('nothing was pressed', stopped)
+        views = setup_views()
+        views['views'][4]['text'] = views['views'][4]['text'].replace('\n45 menu bar', '\n45 menu bar\n\t99 dialog System permission')
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive', stopped)
+        self.assertIn('nothing was pressed', stopped)
+
+    def test_the_page_check_sees_a_dialog_inside_the_menu_bar(self):
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace('\n45 menu bar', '\n45 menu bar\n\t\t99 dialog System permission')
+        self.assertIn('\t\t99 dialog', views['views'][0]['text'])
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive', stopped)
+        self.assertIn('the menu bar holds something that is not the page (dialog System permission)', stopped)
+        self.assertFalse([c for c in calls if not c.startswith('get_app_state')])
 
     def test_the_statement_is_matched_whatever_its_line_breaks_are(self):
         for name, sheet in (('one element per line', ['\t900 sheet', '\t\t901 text Desktop setup — next launch only']
@@ -1188,13 +1221,25 @@ class AButtonPressedOnlyIfOffered(unittest.TestCase):
     def test_the_mark_does_not_reach_a_control_that_is_not_a_button(self):
         verdict, stopped, clicks, _ = self.walk({'kind': 'link', 'label': 'Invented link'})
         self.assertEqual((verdict, clicks), ('inconclusive', []))
-        self.assertIn('found 0 times', stopped)
+        self.assertIn('only a button is pressed if offered', stopped)
 
-    def test_the_mark_does_not_reach_a_button_found_twice(self):
+    def test_the_buttons_words_on_a_control_of_another_kind_stop_the_walk(self):
+        welcome = setup_views()['views'][0]['text']
+        for name, line in (('a link', 'link Read effective storage and plugin settings'),
+                           ('a link that has been visited', 'link Read effective storage and plugin settings, Visited'),
+                           ('a text', 'text Read effective storage and plugin settings')):
+            with self.subTest(name):
+                view = welcome.replace('\n45 menu bar', f'\n\t\t\t\t96 {line}\n45 menu bar')
+                self.assertIn(line, view)
+                verdict, stopped, clicks, offered = self.walk({'kind': 'button', 'label': 'Read effective storage and plugin settings'}, first=view)
+                self.assertEqual((verdict, clicks, offered), ('inconclusive', [], [None]))
+                self.assertIn('are on something that is not that button', stopped)
+
+    def test_the_mark_does_not_reach_a_button_found_twice_and_records_no_press(self):
         typed = setup_views()['views'][1]['text']
         twice = typed.replace('37 button Review setup', '37 button Review setup\n\t\t\t\t98 button Review setup')
-        verdict, stopped, clicks, _ = self.walk({'kind': 'button', 'label': 'Review setup'}, first=twice)
-        self.assertEqual((verdict, clicks), ('inconclusive', []))
+        verdict, stopped, clicks, offered = self.walk({'kind': 'button', 'label': 'Review setup'}, first=twice)
+        self.assertEqual((verdict, clicks, offered), ('inconclusive', [], [None]))
         self.assertIn('found 2 times', stopped)
 
 

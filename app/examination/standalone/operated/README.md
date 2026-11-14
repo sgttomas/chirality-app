@@ -250,7 +250,8 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
    the screen is locked, and absent while it is not. So: on the console
    (`kCGSSessionOnConsoleKey` 1) with the lock key absent or 0 is not locked;
    the lock key present and not 0 is locked; no session, not on the console,
-   or either key given twice is not established:
+   either key given twice, or either key with a value that is not plain
+   digits, is not established:
 
    ```sh
    <python> -B app/examination/standalone/operated/screen_lock.py > <evidence folder>/lane-screen-lock.txt
@@ -1113,8 +1114,9 @@ failure, the same scenario and acts.
   scenario's page. The rule is what a view may hold, not a list of things it
   may not: the view must say it is of the bundle; at the top it holds the
   App's one window and the menu bar and nothing else; directly inside the
-  window it holds only what the scenario lists, and nowhere below the window,
-  at any depth, a window, sheet, dialog, alert or popover. One kind of alert is
+  window it holds only what the scenario lists, and nowhere below the window
+  or inside the menu bar, at any depth, a window, sheet, dialog, alert or
+  popover. One kind of alert is
   allowed outside the sheet step: one inside the page's web content (below
   "HTML content") that holds only words, with nothing a person can operate.
   The App writes its refusals that way. Only the page's own content can put
@@ -1237,14 +1239,19 @@ either driver marker.
        with its paths and identifier replaced by invented ones): at the top,
        exactly two things, the menu bar and a sheet whose line is exactly
        `sheet Description: alert, Secondary Actions: Raise`; no other window,
-       sheet, dialog, alert or popover anywhere; directly inside the sheet,
+       sheet, dialog, alert or popover anywhere, the menu bar included; no
+       image; directly inside the sheet,
        and nothing deeper, exactly one text, which is the title, one space and
        the statement, and exactly the named buttons, each written as its
        words followed by `, ID: action-button-` and a number, a suffix that
        must be there.
 
-     In either shape an image (the App's icon) is allowed and recorded, and
-     anything else in the sheet is a difference. The record names the shape.
+     In either shape: no button of the sheet is shown unavailable; no
+     element index is given twice in the view; no window, sheet, dialog,
+     alert or popover is anywhere in the view but the window and the sheet
+     the shape names. Inside the window, an image (the App's icon) is allowed
+     and recorded. Anything else in the sheet is a difference. The record
+     names the shape.
      - the statement's text equals the complete statement. Line breaks, in
        whatever form the view gives them (a new element, a new line, or
        written as `\n`), become one space, and each line is trimmed at its
@@ -1319,8 +1326,11 @@ either driver marker.
   the view kept. The App offers that read only while its Codex is ready, so the
   step is marked `if_offered`: a button that is absent or unavailable is not
   pressed, and the step records "absent; not pressed" or "unavailable; not
-  pressed" and makes its view and checks as any other step. A button found
-  twice, or a control of another kind, stops the walk as before. The read
+  pressed" and makes its view and checks as any other step. Absent means
+  its words are on nothing in the view: words on a control of another kind,
+  or on any other element, stop the walk, as does a button found twice. Only
+  a button may be marked. "available; pressed" is recorded only when the
+  press is made. The read
   changes no setting and starts no sign-in, model or conversation (the App's
   own words under it).
 - **The record.** It says that an agent pressed the confirmation, by the

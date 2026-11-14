@@ -138,7 +138,19 @@ export function notThePage(elements, scenario) {
   }
   const modal = modalAt(elements, start + 1);
   if (modal.length) return `the window holds something that is not the page (${elements[modal[0]].content})`;
+  const underMenu = inMenuBar(elements).find(at => MODAL.test(elements[at].content));
+  if (underMenu !== undefined) return `the menu bar holds something that is not the page (${elements[underMenu].content})`;
   return null;
+}
+
+/** The positions of every element inside the menu bar, at any depth. */
+function inMenuBar(elements) {
+  const found = [];
+  elements.forEach((element, at) => {
+    if (element.depth !== 0 || element.content !== 'menu bar') return;
+    for (let inside = at + 1; inside < elements.length && elements[inside].depth > 0; inside++) found.push(inside);
+  });
+  return found;
 }
 
 /**
@@ -151,9 +163,10 @@ export function notThePage(elements, scenario) {
  *   (the window the view names is "Unknown"): at the top, exactly one sheet and the menu bar, and nothing else;
  *   directly inside the sheet, exactly one text, which is the named title, one space, and the statement, and the
  *   buttons, each written "button <words>, ID: action-button-<n>".
- * In either shape: no other window, sheet, dialog, alert or popover at any depth; nothing deeper than the sheet's
- * own children; exactly the named buttons, matched on their words (before the identifier suffix, which must be of
- * the form seen); an image (the App's icon) allowed and recorded; anything else is a problem. The statement must
+ * In either shape: no other window, sheet, dialog, alert or popover at any depth, the menu bar's included; nothing deeper than the sheet's
+ * own children; exactly the named buttons, none shown unavailable, matched on their words (before the identifier
+ * suffix, which must be of the form seen); no element index given twice; inside the window, an image (the App's icon)
+ * allowed and recorded, and on its own, none; anything else is a problem. The statement must
  * equal the complete statement. Line breaks, however the view gives them (a new element, a new line, or written as
  * \n), are made one space, and each line is trimmed at its ends; nothing else is changed, so every word and every
  * path is compared exactly. Returns {problems, record, press} where press is the index of the named button to press.
@@ -167,6 +180,12 @@ export function sheetCheck(text, elements, scenario, sheet, values) {
   const isWindow = ({ content }) => content === title || content.startsWith(title + ', ');
   const isSheet = ({ content }) => content === sheet.element || content.startsWith(sheet.element + ', ');
   const top = elements.filter(({ depth }) => depth === 0);
+  // Every window, sheet, dialog, alert or popover anywhere in the view, the menu bar's subtree included.
+  const modalAll = elements.flatMap(({ content }, at) => (MODAL.test(content) ? [at] : []));
+  if (new Set(elements.map(({ index }) => index)).size !== elements.length) {
+    problems.push('the view gives the same element index to more than one element');
+    return { problems, record, press: null };
+  }
   let sheetElement, alone = false;
   // On its own, the sheet's line is exactly the one the supplier's view gave for the App's alert sheet.
   const isAlone = ({ content }) => content === `${sheet.element} ${ALONE_SHEET}`;
@@ -174,9 +193,9 @@ export function sheetCheck(text, elements, scenario, sheet, values) {
     // The sheet on its own: nothing modal anywhere but it.
     alone = true;
     sheetElement = top.find(isAlone);
-    const modal = modalAt(elements, elements.indexOf(sheetElement) + 1, true);
-    if (modal.length) {
-      problems.push(`there is ${modal.length} more window, sheet or dialog beside the sheet`);
+    const others = modalAll.filter(at => at !== elements.indexOf(sheetElement));
+    if (others.length) {
+      problems.push(`there is ${others.length} more window, sheet, dialog, alert or popover in the view beside the sheet`);
       return { problems, record, press: null };
     }
     record.shape = 'the sheet on its own';
@@ -190,7 +209,8 @@ export function sheetCheck(text, elements, scenario, sheet, values) {
     for (let at = start + 1; at < elements.length && elements[at].depth > 0; at++) {
       if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) extra.push(at);
     }
-    if (extra.length !== 1 || modal.length !== 1 || modal[0] !== extra[0]) {
+    if (extra.length !== 1 || modal.length !== 1 || modal[0] !== extra[0]
+        || modalAll.length !== 2 || modalAll[0] !== start || modalAll[1] !== extra[0]) {
       problems.push(`the window holds ${extra.length} things beside the page and ${modal.length} windows, sheets or dialogs, not one sheet`);
       return { problems, record, press: null };
     }
@@ -214,7 +234,7 @@ export function sheetCheck(text, elements, scenario, sheet, values) {
       if (depth > sheetElement.depth + 1) { record.other.push(content); continue; }
       if (/^button /.test(content)) buttons.push({ index: Number(m[3]), content });
       else if (!alone && content === `text ${sheet.title}`) titles.push(content);
-      else if (/^image( |,|$)/.test(content)) record.images.push(content);
+      else if (!alone && /^image( |,|$)/.test(content)) record.images.push(content);
       else if (/^text /.test(content)) body.push(content.slice(5));
       else record.other.push(content);
     } else if (body.length) {
@@ -231,6 +251,7 @@ export function sheetCheck(text, elements, scenario, sheet, values) {
     return BUTTON_SUFFIX.test(bare) ? bare.replace(BUTTON_SUFFIX, '') : null;
   };
   record.buttons = buttons.map(({ content }) => words(content));
+  if (buttons.some(({ content }) => content.startsWith('button (disabled) '))) problems.push('a button of the sheet is shown unavailable');
   if (record.buttons.includes(null)) problems.push('a button of the sheet is not written with the identifier suffix seen');
   if (JSON.stringify([...record.buttons].sort()) !== JSON.stringify([...sheet.buttons].sort())) {
     problems.push(`the sheet's buttons are ${JSON.stringify(record.buttons)}, not ${JSON.stringify(sheet.buttons)}`);
@@ -522,15 +543,20 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (found.some(({ content }) => endsWithEllipsis(content))) return finish('inconclusive', `stopped at ${step.id}: the control found has words that end with an ellipsis, and such a control is never clicked`);
       // A button the scenario presses only if the App offers it: absent or unavailable, it is recorded as not
       // offered and not pressed, and the step's view and checks are made as for any other step.
-      const notOffered = step.if_offered === true && step.control.kind === 'button'
+      if (step.if_offered === true && step.control.kind !== 'button') return finish('inconclusive', `stopped at ${step.id}: only a button is pressed if offered`);
+      // Absent means the words are on nothing at all in the view: words on a control of another kind, or in any other
+      // element, stop the walk rather than count as not offered.
+      const elsewhere = found.length === 0 && elements.some(({ content }) => content.includes(step.control.label));
+      if (step.if_offered === true && elsewhere) return finish('inconclusive', `stopped at ${step.id}: the words of the button to press if offered are on something that is not that button`);
+      const notOffered = step.if_offered === true
         && (found.length === 0 || (found.length === 1 && found[0].content.startsWith('button (disabled) ')));
       if (notOffered) entry.offered = found.length ? 'unavailable; not pressed' : 'absent; not pressed';
       else {
-      if (step.if_offered === true) entry.offered = 'available; pressed';
       if (found.length !== 1) return finish(report.steps.some(s => s.checks.some(c => !c.pass)) ? 'fail' : 'inconclusive',
         `stopped at ${step.id}: the control to click was found ${found.length} times in the latest view`);
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
       entry.element_index = found[0].index;
+      if (step.if_offered === true) entry.offered = 'available; pressed';
       calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
       try {
         await sky.click({ app, element_index: found[0].index });

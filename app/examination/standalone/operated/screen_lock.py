@@ -12,7 +12,8 @@ two keys: kCGSSessionOnConsoleKey and CGSSessionScreenIsLocked. As read on this 
 is present, at 1, while the screen is locked, and absent while it is not. So:
 - on the console (kCGSSessionOnConsoleKey 1), with the lock key absent or 0: not locked, exit 0;
 - the lock key present and not 0: locked, exit 3;
-- no session, not on the console, or the description unreadable (or not macOS): could not be established, exit 2.
+- no session, not on the console, a key given twice or with a value that is not plain digits, or the description
+  unreadable (or not macOS): could not be established, exit 2.
 Anything but 0 means no walk.
 
 Limits. It is one look, at one moment: the screen can lock after it. The keys are the session's own and are not
@@ -29,11 +30,15 @@ KEY, CONSOLE = 'CGSSessionScreenIsLocked', 'kCGSSessionOnConsoleKey'
 def locked_from(description):
     """True (locked), False (not locked) or None (not established), from the session's description by the rule
     above. A key present more than once is not established."""
+    # Each key's name is counted wherever it appears, and a key that is there must read "<name> = <digits>;". A
+    # second copy, or a value of any other form, is not established.
     lock = re.findall(KEY + r'\s*=\s*(\d+)\s*;', description)
     console = re.findall(CONSOLE + r'\s*=\s*(\d+)\s*;', description)
+    if description.count(KEY) != len(lock) or description.count(CONSOLE) != len(console):
+        return None
     if len(lock) > 1 or len(console) > 1:
         return None
-    if lock and lock[0] != '0':
+    if lock and int(lock[0]) != 0:
         return True
     if console == ['1']:
         return False
