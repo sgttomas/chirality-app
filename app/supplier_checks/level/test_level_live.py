@@ -19,6 +19,7 @@ The facts each test guards are listed in README.md beside this file.
 """
 import json
 import os
+import re
 import stat
 import sys
 import tempfile
@@ -765,6 +766,84 @@ class Narrowing(Probing):
             while not late.exists() and time.monotonic() < deadline:
                 time.sleep(0.25)
             self.assertTrue(late.exists())
+
+
+class RunningProcess(unittest.TestCase):
+    """A process started at full access with a terminal (`tty`) and still running, used on a later, narrower turn;
+    then what ends it. The held command is `cat > <outside>/w-held`, which writes only what it is given."""
+
+    def hold(self, run, client, thread):
+        target = run.root / 'outside' / 'w-held'
+        command = 'cat > %s' % target
+        run.stub.allowed_commands = set(run.stub.allowed_commands) | {command, 'sleep 20'}
+        session = {}
+
+        def hold_script(body, outputs, stub):
+            if 'call_hold' in outputs:
+                return [L.message('Done.', 'msg_hold')]
+            return [{'type': 'function_call', 'call_id': 'call_hold', 'id': 'fc_call_hold', 'name': 'exec_command',
+                     'arguments': json.dumps({'cmd': command, 'tty': True, 'yield_time_ms': 250})}]
+        run.stub.scripts['hold'] = hold_script
+        turn, done = client.turn(thread, 'LEVEL[hold] go', **FULL)
+        self.assertEqual(done['turn']['status'], 'completed')
+        found = re.search(r'session ID (\d+)', run.stub.outputs.get('call_hold') or '')
+        self.assertTrue(found, run.stub.outputs.get('call_hold'))
+        session['id'] = int(found.group(1))
+        return target, session
+
+    def send(self, run, client, thread, session, key, text, **settings):
+        call_id = 'call_' + key
+
+        def script(body, outputs, stub):
+            if call_id in outputs:
+                return [L.message('Done.', 'msg_' + key)]
+            return [{'type': 'function_call', 'call_id': call_id, 'id': 'fc_' + call_id, 'name': 'write_stdin',
+                     'arguments': json.dumps({'session_id': session['id'], 'chars': text + '\n', 'yield_time_ms': 500})}]
+        run.stub.scripts[key] = script
+        client.turn(thread, 'LEVEL[%s] go' % key, **settings)
+        time.sleep(1)
+        return run.stub.outputs.get(call_id) or ''
+
+    def written(self, target):
+        return target.read_text() if target.exists() else None
+
+    def test_a_narrower_turn_asks_before_it_uses_a_process_started_at_full_access(self):
+        for decision, expected in (('decline', ''), ('accept', 'used on a read-only turn\n')):
+            saved = dict(L.DECLINE)
+            L.DECLINE['item/commandExecution/requestApproval'] = {'decision': decision}
+            try:
+                with L.Run(SCRATCH, BINARY) as run:
+                    client = run.start()
+                    thread = client.start_thread()['thread']['id']
+                    target, session = self.hold(run, client, thread)
+                    self.send(run, client, thread, session, 'use', 'used on a read-only turn', **READ_ONLY)
+                    asked = [r for r in client.server_requests if r['method'] == 'item/commandExecution/requestApproval']
+                    self.assertEqual(len(asked), 1, decision)
+                    self.assertIn('runs without a filesystem sandbox', asked[0]['params'].get('reason') or '')
+                    self.assertEqual(self.written(target), expected, decision)
+            finally:
+                L.DECLINE.clear()
+                L.DECLINE.update(saved)
+
+    def test_an_interrupt_leaves_running_processes_and_cleaning_ends_them(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            target, session = self.hold(run, client, thread)
+            run.stub.scripts['slow'] = L.command_script('call_slow', 'sleep 20')
+            turn = client.result('turn/start', dict({'threadId': thread, 'input': [{'type': 'text', 'text': 'LEVEL[slow] go'}]},
+                                                    **FULL))['turn']['id']
+            time.sleep(3)
+            client.result('turn/interrupt', {'threadId': thread, 'turnId': turn})
+            self.assertTrue(client.wait(lambda: client.notes_for('turn/completed', thread, turn), 20))
+            listed = {t['command'] for t in client.result('thread/backgroundTerminals/list', {'threadId': thread})['data']}
+            self.assertIn('sleep 20', listed)  # the interrupted turn's own command is still running
+            self.send(run, client, thread, session, 'after_interrupt', 'after the interrupt', **FULL)
+            self.assertEqual(self.written(target), 'after the interrupt\n')
+            client.result('thread/backgroundTerminals/clean', {'threadId': thread})
+            output = self.send(run, client, thread, session, 'after_clean', 'after cleaning', **FULL)
+            self.assertIn('Unknown process id', output)
+            self.assertEqual(self.written(target), 'after the interrupt\n')
 
 
 class Background(Probing):
