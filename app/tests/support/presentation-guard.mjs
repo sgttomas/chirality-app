@@ -343,15 +343,34 @@ export function findings(name, text) {
     const pattern = declaration.parent, holder = pattern.parent;
     if (pattern.elements.indexOf(declaration) !== 0 || !ts.isVariableDeclaration(holder) || !holder.initializer) return false;
     const init = unwrap(holder.initializer);
-    if (!ts.isCallExpression(init) || unwrap(init.expression).getText() !== 'useState' || (init.arguments[0] && !appMade(init.arguments[0], context))) return false;
+    const empty = v => { v = unwrap(v); return (ts.isObjectLiteralExpression(v) || ts.isArrayLiteralExpression(v)) && (ts.isObjectLiteralExpression(v) ? v.properties : v.elements).length === 0; };
+    if (!ts.isCallExpression(init) || unwrap(init.expression).getText() !== 'useState' || (init.arguments[0] && !appMade(init.arguments[0], context) && !empty(init.arguments[0]))) return false;
     const setter = pattern.elements[1];
     if (!setter || !ts.isBindingElement(setter) || !ts.isIdentifier(setter.name)) return false;
-    const typed = v => { v = unwrap(v); return (ts.isPropertyAccessExpression(v) && v.name.text === 'value' && ts.isPropertyAccessExpression(v.expression) && v.expression.name.text === 'target') || appMade(v, context); };
+    const targetValue = v => ts.isPropertyAccessExpression(v) && v.name.text === 'value' && ts.isPropertyAccessExpression(v.expression) && v.expression.name.text === 'target';
+    const typed = v => {
+      v = unwrap(v);
+      if (targetValue(v) || appMade(v, context)) return true;
+      // A const holding the field's own typing.
+      const declaration = ts.isIdentifier(v) ? declarationOf(v, context) : null;
+      return !!declaration && isConst(declaration) && !!declaration.initializer && targetValue(unwrap(declaration.initializer));
+    };
     const update = arg => {
       arg = unwrap(arg);
-      if (typed(arg)) return true;
-      if (!(ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) || arg.parameters.length !== 1 || ts.isBlock(arg.body)) return false;
-      const body = unwrap(arg.body), own = arg.parameters[0].name.getText();
+      if (typed(arg) || (ts.isObjectLiteralExpression(arg) && arg.properties.length === 0)) return true;
+      if (!(ts.isArrowFunction(arg) || ts.isFunctionExpression(arg)) || arg.parameters.length !== 1) return false;
+      const own = arg.parameters[0].name.getText();
+      if (ts.isBlock(arg.body)) {
+        // Removing entries: `{ const next = { ...own }; delete next[key]; return next; }` and nothing else.
+        const [copy, ...rest] = arg.body.statements;
+        if (!copy || !ts.isVariableStatement(copy) || copy.declarationList.declarations.length !== 1) return false;
+        const d = copy.declarationList.declarations[0], init = d.initializer && unwrap(d.initializer), local = d.name.getText();
+        if (!init || !ts.isObjectLiteralExpression(init) || init.properties.length !== 1 || !ts.isSpreadAssignment(init.properties[0]) || unwrap(init.properties[0].expression).getText() !== own) return false;
+        const last = rest.pop();
+        return !!last && ts.isReturnStatement(last) && last.expression?.getText() === local
+          && rest.every(st => ts.isExpressionStatement(st) && ts.isDeleteExpression(st.expression) && ts.isElementAccessExpression(st.expression.expression) && unwrap(st.expression.expression.expression).getText() === local);
+      }
+      const body = unwrap(arg.body);
       return ts.isObjectLiteralExpression(body) && body.properties.every(p => (ts.isSpreadAssignment(p) && unwrap(p.expression).getText() === own) || (ts.isPropertyAssignment(p) && typed(p.initializer)));
     };
     let ok = true;
