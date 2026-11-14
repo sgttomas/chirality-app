@@ -6,9 +6,10 @@
  *   node record_state.mjs <scenario.json> <step id> <attempt-log.json> --bundle <the launched .app> \
  *     --project <path> [--candidate-key <key>] [--settings <path>] [--account <path>] [--request <path>] [--from <label>]
  *
- * The captured views are read from the walk's attempt log (or from an older walk result that holds them, as the
- * 14 November launches' do): the views a step returned (steps[].returned) and the sheet (steps[].sheet_view). The
- * recorder reads no verdict: it judges the view itself.
+ * The captured views are read from the walk's attempt log (or from an older walk result file that holds them, as the
+ * 14 November launches' scenario-result.json files do; those are evidence and are read as they are): the views a step
+ * returned (steps[].returned) and the sheet (steps[].sheet_view). The recorder reads no verdict and nothing a log
+ * claims about a step: it judges the view itself.
  *
  * A recorded state is not acceptable merely because it was recorded: a capture shows fidelity, not correctness (the
  * INTERLOCUTOR, on PR 351). So, before it writes anything, the recorder judges the captured view against the step's
@@ -156,7 +157,7 @@ function main(argv) {
     options[name] = value;
   }
   if (!scenarioPath || !stepId || !resultPath) {
-    process.stderr.write('usage: node record_state.mjs <scenario.json> <step id> <scenario-result.json> --bundle <.app> --candidate-key <key> --project <path> [...]\n');
+    process.stderr.write('usage: node record_state.mjs <scenario.json> <step id> <attempt-log.json> --bundle <.app> --project <path> [--candidate-key <key>] [...]\n');
     return 2;
   }
   const make = options.sheet !== undefined ? recordSheet : record;

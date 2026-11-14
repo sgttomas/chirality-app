@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 // words in the latest view. It never lists applications, types keys, presses a key, scrolls, drags or pastes, and any
 // sheet but the one named stops it as before.
 //
-// What its result establishes: that views returned by the service held the expected elements, or did not. It is
+// What its verdict establishes: that views returned by the service held the expected elements, or did not. It is
 // development evidence about a development build. It is not evidence that a person saw or did anything.
 
 export const DEVELOPMENT_PREFIX = 'dev.chirality.app-v4.candidate.';
@@ -460,10 +460,10 @@ export function checkOne(elements, expectation, values) {
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
  *   now       optional: () => the time as text (default: the UTC time)
  *   project   the invented project folder beside the home, for a scenario with a `type` step: the one value it types
- * Returns the result alone (resultOf): a closed form made from the steps' verdicts. The attempt log (ATTEMPT_LOG_NOTE),
- * which is not a result, goes to attemptLog and onLog: the calls, each step's attempts and their returns, the views
- * captured, where the walk stopped and any failure's message and causes. A refusal before any call is "inconclusive"
- * with nothing called.
+ * Returns the walk's one result, its verdict (verdictAt): one of SCENARIO_VERDICTS, derived by position over the
+ * scenario's required steps. The attempt log (ATTEMPT_LOG_NOTE), which is not a result, goes to attemptLog and onLog:
+ * the calls, each step's attempts and their returns, the views captured, where the walk stopped, and any failure's
+ * message and causes. A scenario that is not well formed is refused before any call, "inconclusive".
  */
 /**
  * A failed call, as messages only: the error's own message and then each cause it carries, in order, whole. A message
@@ -473,7 +473,7 @@ export function checkOne(elements, expectation, values) {
  *
  * What it cannot do: reading an error's message and cause can run code the error carries (a getter, a Proxy), and
  * that code runs in this runtime. The error comes from the supplier's client, which runs in the same runtime as the
- * walk and could change anything the walk holds without throwing at all; so the walk's result rests on that client,
+ * walk and could change anything the walk holds without throwing at all; so the walk's verdict rests on that client,
  * as every call does, and not on how a failure is read. Nothing here defends against it.
  */
 export function readFailure(where, error) {
@@ -553,21 +553,23 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   now ??= () => new Date().toISOString();
   const values = { identifier: app, home, app_data: `${home}/Library/Application Support/${app}`, ...(project ? { project } : {}) };
   const calls = [];
-  // The attempt log: everything the walk did and saw, which is not a result (ATTEMPT_LOG_NOTE). The result is made only
-  // by resultOf, from the steps' verdicts, when the walk ends.
+  // The attempt log: everything the walk did and saw, which is not a result (ATTEMPT_LOG_NOTE). The walk's one result,
+  // its verdict, is made only by verdictAt, from the steps' judgments by position, when the walk ends.
   const report = { note: ATTEMPT_LOG_NOTE, scenario: scenario.scenario, version: scenario.version, app, home, started: now(), steps: [], calls, stopped: null };
-  // The steps' judgments, kept apart from the attempt log: only resultOf reads them.
+  // The steps' judgments by position, kept apart from the attempt log: only verdictAt reads them.
   const marks = [];
-  // Every return of the walk is the result alone. The attempt log goes apart: to the attemptLog file and to onLog.
+  // Every return of the walk is its verdict alone. The attempt log goes apart: to the attemptLog file and to onLog.
   const finish = (verdict, stopped = null) => {
     report.stopped = stopped;
     report.finished = now();
-    const result = resultOf(scenario, marks, verdict, candidateKey, report.started, report.finished);
+    const result = verdictAt(scenario, marks, verdict);
     if (logFile) logFile.writeFileSync(attemptLog, JSON.stringify(report, null, 2) + '\n');
     if (typeof onLog === 'function') onLog(report);
     return result;
   };
-  // Refusals before any call.
+  // Refusals before any call. First, the scenario's shape: a scenario that is not well formed is refused whole.
+  const malformed = scenarioProblem(scenario);
+  if (malformed) return finish('inconclusive', `refused before any call: the scenario is not well formed (${malformed})`);
   if (typeof app !== 'string' || !app.startsWith(DEVELOPMENT_PREFIX) || !/^[A-Za-z0-9.-]+$/.test(app)) {
     return finish('inconclusive', 'refused before any call: the application is not named by a development build\'s bundle identifier');
   }
@@ -622,14 +624,26 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   const attempt = async (entry, act, element_index, call, extra = {}) => {
     const record = { act, element_index, ...extra, sent_at: now() };
     entry.attempts.push(record);
+    // An explicit discriminator, and every caller tests it (ok), never the truthiness of what came back.
+    // The supplier's contract (the @oai/sky declarations, types/window/Click.d.ts and SetValue.d.ts): click and
+    // set_value each return Promise<void>, and a failure is a rejection. The press is a click. So the one positive
+    // success is a call that resolves with no value. Any throw, whatever its value (null, false, 0, '' and undefined
+    // included), and any resolve with a value the contract does not give, stops the walk, inconclusive, with the effect
+    // uncertain. A call that resolved is not thereby a completed effect: whether the App acted is shown only by the next
+    // view, admitted or not.
     try {
-      await call();
+      const value = await call();
+      if (value !== undefined) {
+        record.returned_at = now();
+        record.effect = 'uncertain: the call returned a value its contract (Promise<void>) does not give';
+        return { ok: false, error: new Error('the supplier returned a value its contract does not give') };
+      }
       record.returned_at = now();
-      return null;
+      return { ok: true };
     } catch (error) {
       record.threw = String(error?.message ?? error);
       record.effect = 'uncertain: the call threw, and whether it acted is not known';
-      return error;
+      return { ok: false, error };
     }
   };
   // Every act (the click, the set-value, the sheet opener) is made only from an admitted view: the latest view admitted
@@ -694,11 +708,11 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     if (afterView) return afterView;
   }
   for (const step of scenario.steps) {
-    // A step's expectations are recorded as failures only (unmet), with its judgment (judged): no field of the result
-    // says that an expectation held. unmet is absent until the step's view has been evaluated.
+    // A step's expectations are kept as failures only (unmet), in its judgment by position, which only verdictAt
+    // reads. unmet is absent until the step's view has been evaluated.
     const entry = { id: step.id, at: now(), act: step.act, intended: step.says, attempts: [] };
     report.steps.push(entry);
-    const mark = { id: step.id };
+    const mark = { position: marks.length };
     marks.push(mark);
     const before = gate(`at ${step.id}`);
     if (before) return before;
@@ -725,10 +739,10 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
       calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
       const clickFailed = await attempt(entry, 'click', found[0].index, () => sky.click({ app, element_index: found[0].index }));
-      if (clickFailed) {
+      if (!clickFailed.ok) {
         // Kept as a view's failure is, and the walk stops: a click that throws has not been shown to have had no
         // effect, so nothing further is called and the verdict is inconclusive.
-        report.click_error = readFailure(step.id, clickFailed);
+        report.click_error = readFailure(step.id, clickFailed.error);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
@@ -755,8 +769,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const value = fill(step.value, values);
       calls.push({ at: now(), call: 'set_value', app, element_index: found[0].index, value });
       const setFailed = await attempt(entry, 'set_value', found[0].index, () => sky.set_value({ app, element_index: found[0].index, value }), { value });
-      if (setFailed) {
-        report.set_value_error = readFailure(step.id, setFailed);
+      if (!setFailed.ok) {
+        report.set_value_error = readFailure(step.id, setFailed.error);
         entry.error = report.set_value_error.message;
         return finish('inconclusive', `stopped at ${step.id}: setting the field's value failed (${entry.error})`);
       }
@@ -780,8 +794,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (opener[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control that opens the sheet is unavailable`);
       calls.push({ at: now(), call: 'click', app, element_index: opener[0].index });
       const openFailed = await attempt(entry, 'click', opener[0].index, () => sky.click({ app, element_index: opener[0].index }));
-      if (openFailed) {
-        report.click_error = readFailure(step.id, openFailed);
+      if (!openFailed.ok) {
+        report.click_error = readFailure(step.id, openFailed.error);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
@@ -822,8 +836,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (beforePress) return beforePress;
       calls.push({ at: now(), call: 'click', app, element_index: checked.press });
       const pressFailed = await attempt(entry, 'press', checked.press, () => sky.click({ app, element_index: checked.press }), { button: sheet.press });
-      if (pressFailed) {
-        report.click_error = readFailure(step.id, pressFailed);
+      if (!pressFailed.ok) {
+        report.click_error = readFailure(step.id, pressFailed.error);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the press on the sheet failed (${entry.error})`);
       }
@@ -855,7 +869,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     const stray = notThePage(elements, scenario);
     if (stray && step.act === 'confirm_sheet') return finish('inconclusive', `stopped at ${step.id}: after the one press, ${stray}; it is not pressed again`);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
-    // Unmet expectations: in the result as reason codes with the condition's own parameters (its index and kind); in
+    // Unmet expectations: in the step's judgment as codes with the condition's own parameters (its index and kind); in
     // the attempt log, what was found.
     const failedChecks = (step.expect ?? []).map((expectation, index) => ({ ...checkOne(elements, expectation, values), index }))
       .filter(check => !check.pass);
@@ -906,53 +920,61 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
  * Expectations are failures only (unmet): an expectation alone can never make "pass" or "shown".
  */
 // The attempt log's first line, and the README's: what the log is not.
-export const ATTEMPT_LOG_NOTE = 'ATTEMPT LOG. This is not a result: it holds what the walk did and saw (attempts and their returns, captures, the scenario\'s intended text). Whether anything held is said only by the result\'s verdicts.';
-export const RESULT_FORM = 'chirality.walk-result/v1';
+export const ATTEMPT_LOG_NOTE = 'ATTEMPT LOG. This is not a result: it holds what the walk did and saw (attempts and their returns, captures, the scenario\'s intended text). The walk\'s one result is its verdict.';
+export const SCENARIO_VERDICTS = ['pass', 'fail', 'inconclusive', 'captured, not judged'];
+const STEP_ID = /^[A-Za-z0-9_-]{1,40}$/;
+const ACTS = ['view', 'click', 'type', 'confirm_sheet'];
 
 function sha256(text) {
   return createHash('sha256').update(String(text)).digest('hex');
 }
 
 /**
- * The result, a closed form made only here, when the walk ends, from the steps' verdicts: per step its id, its verdict
- * ("admitted", "failed", "captured, not judged", or "no verdict" for a step where the walk stopped) and its unmet
- * reasons; and the derived scenario verdict and outcome lines, the candidate key, the times, and where it stopped.
- * Nothing else is in it (RESULT_KEYS), and nothing in it is written before the verdicts it is derived from exist. A
- * scenario verdict of "pass" is only ever verdictOf's.
+ * Why the scenario is not well formed, or null. The walk reads these of a scenario's shape and checks each: steps, a
+ * non-empty list of objects; each step's id, a string of the fixed pattern, the ids unique; its act, one of the four;
+ * its state and from_state, when given, ids of the same pattern; its expect, when given, a list of objects; its control,
+ * when given, an object with a string kind and label; its wait_ms and sheet_wait_ms, when given, non-negative numbers;
+ * its capture, when given, an object of strings. What admission reads (states, state_records, sheets, sheet_records)
+ * it checks itself where it reads it.
  */
-export const RESULT_KEYS = ['form', 'scenario', 'version', 'candidate_key', 'started', 'finished', 'verdict', 'outcomes', 'steps'];
-export const RESULT_STEP_KEYS = ['id', 'verdict', 'unmet'];
-export const STEP_VERDICTS = ['admitted', 'failed', 'captured, not judged', 'no verdict', 'not reached'];
-export const SCENARIO_VERDICTS = ['pass', 'fail', 'inconclusive', 'captured, not judged'];
-export const OUTCOMES = ['shown', 'not shown', 'captured, not judged', 'not reached'];
-export const UNMET_CODES = ['expectation-unmet', 'view-differs-from-state'];
-// An unmet reason, as written in the result: its code and the failed condition's own parameters, never scenario prose or
-// the supplier's output.
-export const UNMET_REASON = /^(expectation-unmet:(0|[1-9][0-9]{0,3}):(text|no_text|text_starts|heading|button|summary|radio|texts_from|location)|view-differs-from-state:[A-Za-z0-9_-]{1,40})$/;
-export function resultOf(scenario, marks, verdict, candidateKey, started, finished) {
-  // Every step the scenario requires, in its order: a step the walk did not reach, or stopped at, has no verdict.
-  const steps = (scenario?.steps ?? []).map(step => {
-    const mark = marks.find(candidate => candidate.id === step.id);
-    const unmet = (mark?.unmet ?? []).map(reason => reason.code === 'view-differs-from-state'
-      ? `view-differs-from-state:${reason.state}` : `expectation-unmet:${reason.index}:${reason.kind}`);
-    const judged = !mark ? 'not reached' : ['admitted', 'failed', 'captured, not judged'].includes(mark.verdict) ? mark.verdict : 'no verdict';
-    return { id: step.id, verdict: judged, unmet: unmet.filter(reason => UNMET_REASON.test(reason)) };
-  });
-  // A walk that stopped keeps the verdict it stopped with (fail or inconclusive); only a walk that reached its end is
-  // given the verdict derived from every required step, and only that can be "pass".
-  const derived = verdict === 'end' ? verdictOf(steps) : verdict === 'fail' ? 'fail' : 'inconclusive';
-  return {
-    form: RESULT_FORM,
-    scenario: scenario?.scenario ?? null,
-    version: scenario?.version ?? null,
-    candidate_key: candidateKey ?? null,
-    started,
-    finished,
-    verdict: derived,
-    outcomes: Object.fromEntries(Object.entries(scenario?.outcomes ?? {}).map(([name, ids]) =>
-      [name, outcomeOf(ids.map(id => steps.find(step => step.id === id)))])),
-    steps,
-  };
+export function scenarioProblem(scenario) {
+  const steps = scenario?.steps;
+  if (!Array.isArray(steps) || !steps.length) return 'its steps are not a non-empty list';
+  const seen = new Set();
+  for (const [n, step] of steps.entries()) {
+    const where = `step ${n + 1}`;
+    if (!step || typeof step !== 'object' || Array.isArray(step)) return `${where} is not an object`;
+    if (typeof step.id !== 'string' || !STEP_ID.test(step.id)) return `${where}'s id is not a string of the step id form`;
+    if (seen.has(step.id)) return `${where}'s id repeats an earlier step's`;
+    seen.add(step.id);
+    if (!ACTS.includes(step.act)) return `${where}'s act is not one the walk makes`;
+    for (const key of ['state', 'from_state']) {
+      if (step[key] !== undefined && (typeof step[key] !== 'string' || !STEP_ID.test(step[key]))) return `${where}'s ${key} is not a state id`;
+    }
+    if (step.expect !== undefined && (!Array.isArray(step.expect) || step.expect.some(e => !e || typeof e !== 'object' || Array.isArray(e)))) return `${where}'s expect is not a list of objects`;
+    if (step.control !== undefined && (!step.control || typeof step.control !== 'object' || typeof step.control.kind !== 'string' || typeof step.control.label !== 'string')) return `${where}'s control is not an object with a kind and a label`;
+    for (const key of ['wait_ms', 'sheet_wait_ms']) {
+      if (step[key] !== undefined && !(typeof step[key] === 'number' && Number.isFinite(step[key]) && step[key] >= 0)) return `${where}'s ${key} is not a non-negative number`;
+    }
+    if (step.capture !== undefined && (!step.capture || typeof step.capture !== 'object' || Object.values(step.capture).some(v => typeof v !== 'string'))) return `${where}'s capture is not an object of strings`;
+  }
+  return null;
+}
+
+/**
+ * The walk's one result, its verdict, derived BY POSITION over every step the scenario requires: each required step's
+ * judgment is the mark made at its position, and a step with no mark was not reached. A walk that stopped keeps the
+ * verdict it stopped with (fail or inconclusive); only a walk that reached its end is given the derived verdict, and
+ * only that can be "pass".
+ */
+export function verdictAt(scenario, marks, verdict) {
+  if (verdict !== 'end') return verdict === 'fail' ? 'fail' : 'inconclusive';
+  const required = Array.isArray(scenario?.steps) ? scenario.steps : [];
+  return verdictOf(required.map((_, position) => {
+    const mark = marks[position];
+    if (!mark || mark.position !== position) return { verdict: 'not reached' };
+    return { verdict: ['admitted', 'failed', 'captured, not judged'].includes(mark.verdict) ? mark.verdict : 'no verdict' };
+  }));
 }
 
 export function verdictOf(steps) {
@@ -961,20 +983,7 @@ export function verdictOf(steps) {
   return steps.every(step => step.verdict === 'admitted') ? 'pass' : 'captured, not judged';
 }
 
-export function outcomeOf(steps) {
-  if (steps.some(step => step?.verdict === 'failed')) return 'not shown';
-  if (steps.some(step => !step || step.verdict === 'not reached')) return 'not reached';
-  if (steps.some(step => step.verdict !== 'admitted' && step.verdict !== 'captured, not judged')) return 'not shown';
-  return steps.every(step => step.verdict === 'admitted') ? 'shown' : 'captured, not judged';
-}
-
-/** The text the summary prints, from the result alone: the attempt log is never read. */
-export function summary(result) {
-  const lines = [`${result.scenario} (version ${result.version}): ${String(result.verdict).toUpperCase()}`];
-  for (const [name, state] of Object.entries(result.outcomes ?? {})) lines.push(`  ${name}: ${state}`);
-  for (const step of result.steps ?? []) {
-    lines.push(`  ${step.id}: ${step.verdict}`);
-    for (const reason of step.unmet) lines.push(`    unmet: ${reason}`);
-  }
-  return lines.join('\n');
+/** The summary: the verdict, and nothing beyond it. */
+export function summary(verdict) {
+  return `verdict: ${SCENARIO_VERDICTS.includes(verdict) ? verdict : 'inconclusive'}`;
 }
