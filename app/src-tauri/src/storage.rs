@@ -236,26 +236,17 @@ pub(crate) fn open_read_regular(path: &Path, what: &str) -> Result<File, AppendO
 /// Isolated refusal witness: a blocked writer is killed, never unblocked by
 /// opening a reader on a FIFO. The parent checks the original bytes even when
 /// the child fails. No product path depends on this test process protocol.
+///
+/// The parent's three-second kill is the witness that the open does not
+/// block: nothing ever opens the FIFO for reading, so a blocking open would
+/// never return and is killed. The child times nothing itself; a bound tuned
+/// to a runner's speed guards nothing the kill does not.
 #[cfg(test)]
 pub(crate) fn append_alias_fixture(kind: &str, before: &[u8], write: impl Fn(&Path) -> Result<(), String>) {
-    append_alias_fixture_within(kind, before, std::time::Duration::from_millis(500), write)
-}
-/// As `append_alias_fixture`, for a caller whose refused operation does more
-/// than open the file before it reaches the writer (for example a records
-/// capability answer, which reads the records and computes the history
-/// notice before it appends to the read log). The bound still sits well
-/// below the parent's three-second kill, so a blocking open cannot pass.
-#[cfg(test)]
-pub(crate) fn append_alias_fixture_within(kind: &str, before: &[u8], bound: std::time::Duration, write: impl Fn(&Path) -> Result<(), String>) {
     use std::{os::unix::{ffi::OsStrExt, fs::symlink}, process::{Command, Stdio}, time::{Duration, Instant}};
     const CHILD_PATH: &str = "CHIRALITY_APPEND_ALIAS_CHILD_PATH";
     if let Some(path) = std::env::var_os(CHILD_PATH) {
-        let start = Instant::now();
         let result = write(Path::new(&path));
-        let elapsed = start.elapsed();
-        if kind == "fifo" {
-            assert!(elapsed < bound, "FIFO refusal took {elapsed:?} (bound {bound:?})");
-        }
         let error = result.expect_err("aliased or special file must be refused");
         assert!(error.contains(match kind { "fifo" => "not a regular file", "symlink" | "dangling" => "is a symbolic link", _ => "has another name" }), "{error}");
         assert!(error.contains("nothing was written"), "{error}");
