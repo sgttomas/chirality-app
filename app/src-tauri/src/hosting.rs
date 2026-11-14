@@ -7292,7 +7292,7 @@ mod conversation_transport_tests {
     // DEL-01-04 AC-003: a file changed between selection and sending is held and not sent. The change
     // here is made while the sender waits for the frame writer, after its earlier reread of the files.
     #[test]
-    fn attachment_host_file_changed_while_waiting_for_the_writer_is_held_and_not_sent(){
+    fn attachment_host_final_reread_a_file_changed_while_waiting_for_the_writer_is_held_and_not_sent(){
         let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
         no_attachment_write(&host,||{
             let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
@@ -7310,7 +7310,7 @@ mod conversation_transport_tests {
     // The final reread is bounded: one that has not returned within ATTACHMENT_RECHECK_LIMIT refuses
     // the turn and releases the writer, without waiting for the reading to return.
     #[test]
-    fn attachment_host_reread_that_does_not_return_in_time_refuses_and_releases_the_writer(){
+    fn attachment_host_final_reread_that_does_not_return_in_time_refuses_and_releases_the_writer(){
         assert!(ATTACHMENT_RECHECK_LIMIT*4<=crate::codex_stop::STOP_WAIT_LIMIT,"the reread's limit stays a small part of Stop's");
         let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
         no_attachment_write(&host,||{
