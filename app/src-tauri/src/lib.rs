@@ -3470,7 +3470,7 @@ pub fn run() {
                 // no home is settled or ended here and that is logged.
                 let homes = match util::lock_by(&st.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
                     Some(router) => router.entries(),
-                    None => { eprintln!("chirality: exit: the App's list of Codex homes was held by another App activity for {} seconds; no home was settled or ended here", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs()); Vec::new() }
+                    None => { eprintln!("chirality: exit: the App's list of Codex homes was held by another App activity for {} seconds; no home was settled or ended here, and no delegation observation is ended here (the next start ends them)", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs()); Vec::new() }
                 };
                 // Ordinary Quit already settled processes and recorded its end
                 // before permission to exit. Only an unapproved/system exit
