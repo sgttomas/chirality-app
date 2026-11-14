@@ -113,6 +113,30 @@ const keyOf = (decision: Json): string => typeof decision === "string" ? decisio
 
 /** The place of a request from the host snapshot; `projectFolder` is the
  * displayable project folder (WorkflowContext's appProjectFolder). */
+/**
+ * What Codex may do in one conversation, as Codex reported it in that conversation's start reply
+ * (its sandbox and approval setting, carried on the host's thread row): the person's words for the
+ * forms the pinned Codex's source establishes, the reported value beside them, and the value alone
+ * for any other form. Nothing is inferred from defaults; an unreported setting is said as unreported.
+ */
+export function conversationPermissionWords(thread: Json): string {
+  const sandbox = thread?.sandbox, approval = thread?.approvalPolicy;
+  const type = typeof sandbox === "string" ? sandbox : typeof sandbox?.type === "string" ? sandbox.type : null;
+  const net = sandbox && typeof sandbox === "object" && sandbox.networkAccess === true;
+  const reads = type === "readOnly" ? `it can read files your account can read and change none without your permission (read-only${net ? ", with network" : ""})`
+    : type === "workspaceWrite" ? `it can read files your account can read and change files in its working folder without asking (workspace-write${net ? ", with network" : ""})`
+    : type === "dangerFullAccess" ? "it runs without Codex's sandbox, with your account's access (full access)"
+    : type ? `Codex reported its sandbox as ${type}` : "Codex did not report its sandbox";
+  const asks = approval === "on-request" ? "it asks you before doing more than that (on-request)"
+    : approval === "never" ? "it never asks you (never)"
+    : typeof approval === "string" && approval ? `Codex reported its approval setting as ${approval}`
+    : approval && typeof approval === "object" ? `Codex reported its approval setting as ${JSON.stringify(approval)}`
+    : "Codex did not report when it asks you";
+  return `${reads}; ${asks}`;
+}
+export function ConversationPermissions({ thread }: { thread: Json }) {
+  return <p aria-label="What Codex may do in this conversation"><strong>What Codex may do here:</strong> {conversationPermissionWords(thread)}, as Codex reported it when this conversation started.</p>;
+}
 export function requestPlace(request: Json, host: Json, projectFolder: string | null): RequestPlace {
   const context = host?.currentAppProjectContext;
   const project: RequestPlace["project"] = projectFolder !== null ? { kind: "folder", folder: projectFolder }
@@ -120,7 +144,8 @@ export function requestPlace(request: Json, host: Json, projectFolder: string | 
     : { kind: "unknown" };
   const thread = requestThread(request);
   const row = (Array.isArray(host?.threads) ? host.threads : []).filter((t: Json) => t?.threadId === thread && JSON.stringify(t?.generation) === JSON.stringify(request?.generation)).pop();
-  return { project, conversationFolder: typeof row?.cwd === "string" && row.cwd ? row.cwd : null, permissionProfile: null };
+  const profile = row?.activePermissionProfile?.id;
+  return { project, conversationFolder: typeof row?.cwd === "string" && row.cwd ? row.cwd : null, permissionProfile: typeof profile === "string" && profile ? profile : null };
 }
 
 const windowsAbsolute = (path: string) => /^[A-Za-z]:[\\/]/.test(path);

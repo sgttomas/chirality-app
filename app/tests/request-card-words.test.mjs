@@ -17,7 +17,7 @@ const load=(name,local={})=>{
   new Function('require','exports',compiled.outputText)(spec=>local[spec]??localRequire(base)(spec),exports);return exports;
 };
 const activity=load('NativeActivity');
-const {NativeRequestCard,requestPlace,resolvePath}=load('RequestCards',{'./NativeActivity':activity});
+const {NativeRequestCard,requestPlace,resolvePath,conversationPermissionWords}=load('RequestCards',{'./NativeActivity':activity});
 
 const g={appSession:'s',home:'h',spawnCounter:1};
 const at={threadId:'T',turnId:'u',itemId:'i'};
@@ -141,4 +141,23 @@ test('none of the words accept, approve or approval appear as the card’s own w
     render(request('item/commandExecution/requestApproval',{command:'ls',cwd:'/w',availableDecisions:['accept','acceptForSession','decline','cancel']}),null,project),
   ];
   for(const html of cards) assert.doesNotMatch(appWords(html),/accept|approv/i,appWords(html));
+});
+
+// The profile Codex reported for the conversation reaches the card from the host's thread row; a
+// built-in profile gives the certain words, anything else the cautious ones.
+test('the reported permission profile comes from the conversation\'s row in the host snapshot',()=>{
+  const r=fileChange();
+  const threads=[{generation:g,threadId:'T',cwd:'/invented/pump-skid',activePermissionProfile:{id:':read-only'},sandbox:{type:'readOnly',networkAccess:false},approvalPolicy:'on-request'}];
+  assert.equal(requestPlace(r,{currentAppProjectContext:{reference:'/invented/pump-skid'},threads},'/invented/pump-skid').permissionProfile,':read-only');
+  assert.equal(requestPlace(r,{threads:[{...threads[0],activePermissionProfile:null}]},null).permissionProfile,null,'unreported stays null');
+});
+// What Codex may do in a conversation, as Codex reported it when the conversation started.
+test('a conversation says what Codex reported it may do there, in the person\'s words, and says unreported as unreported',()=>{
+  assert.equal(conversationPermissionWords({sandbox:{type:'readOnly',networkAccess:false},approvalPolicy:'on-request'}),
+    'it can read files your account can read and change none without your permission (read-only); it asks you before doing more than that (on-request)');
+  assert.equal(conversationPermissionWords({sandbox:{type:'workspaceWrite',networkAccess:true},approvalPolicy:'never'}),
+    'it can read files your account can read and change files in its working folder without asking (workspace-write, with network); it never asks you (never)');
+  assert.equal(conversationPermissionWords({sandbox:{type:'externalSandbox'},approvalPolicy:{granular:{}}}),
+    'Codex reported its sandbox as externalSandbox; Codex reported its approval setting as {"granular":{}}');
+  assert.equal(conversationPermissionWords({}),'Codex did not report its sandbox; Codex did not report when it asks you');
 });
