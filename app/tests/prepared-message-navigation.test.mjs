@@ -561,9 +561,9 @@ test('workspace links reveal and focus existing destinations without changing ch
 // A refused start says why, from the cause the host chose where it refused it, and what the person
 // can do; the link to Connection and access shows only where that page has something to do.
 for (const [cause,build,words,link] of [
- ['changed','release','The App found that its copy of Codex, or its own files, are not what this App was built with, so it did not start Codex. Reinstall the App from its original download.',false],
+ ['changed','release','The App found that its copy of Codex, or its own files, do not match what this App was built with, or could not read them, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download.',false],
  ['unconfirmed','release','The App could not confirm that its copy of Codex is the one it was built with, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download.',false],
- ['unconfirmed','development','This build of the App cannot confirm a copy of Codex, so Codex cannot be started from it. There is nothing to do about this in the App.',false],
+ ['unconfirmed','development','This build of the App could not confirm a copy of Codex, so it did not start Codex. Use Start Codex under Connection and access to try again; if it happens again, this build may not include a usable copy of Codex.',true],
  ['busy','release','The App was busy with another step when Codex was due to start, so it did not start it. Use Start Codex under Connection and access to try again.',true],
  [null,'release','The App did not record why. Connection and access shows Codex\'s controls.',true],
 ]) {
