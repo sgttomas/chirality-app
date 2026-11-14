@@ -2243,3 +2243,26 @@ fn verified_candidates_do_not_add_failed_later_reads_to_duplicate_membership() {
         std::fs::remove_dir_all(root).unwrap();
     }
 }
+
+#[test]
+fn an_act_would_answer_an_arrival_only_on_its_recorded_waiting_or_relapsed_disposition() {
+    let arrival = json!({"checkpoint":"CP-check","arrivalOrdinal":1});
+    let change = |d: &str, written: bool| json!({"kind":"disposition_change","body":{"arrival":arrival,"disposition":d},"written":written});
+    let arrived = json!({"kind":"checkpoint_arrival","body":{"checkpoint":"CP-check","arrivalOrdinal":1},"written":true});
+    use not_answering::*;
+    let cases: [(Vec<Value>, Result<(), &str>); 7] = [
+        (vec![arrived.clone(), change("waiting", true)], Ok(())),
+        (vec![arrived.clone()], Err(NOT_ESTABLISHED)),
+        (vec![arrived.clone(), change("waiting", true), change("performed", false)], Err(NOT_YET_RECORDED)),
+        (vec![arrived.clone(), change("waiting", true), change("performed", true)], Err(PERFORMED)),
+        (vec![arrived.clone(), change("waiting", true), change("resolved negatively", true)], Err(RESOLVED_NEGATIVELY)),
+        (vec![arrived.clone(), change("waiting", true), change("lapsed", true)], Err(LAPSED)),
+        (vec![arrived.clone(), change("waiting", true), change("an invented disposition", true)], Err(UNFAMILIAR)),
+    ];
+    for (entries, expected) in cases {
+        assert_eq!(act_would_answer(&entries, &arrival), expected, "{entries:?}");
+    }
+    // Another arrival's disposition says nothing of this one.
+    let other = json!({"kind":"disposition_change","body":{"arrival":{"checkpoint":"CP-check","arrivalOrdinal":2},"disposition":"waiting"},"written":true});
+    assert_eq!(act_would_answer(&[arrived, other], &arrival), Err(NOT_ESTABLISHED));
+}

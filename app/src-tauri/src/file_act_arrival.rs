@@ -41,6 +41,14 @@ fn candidate(run: &WorkflowRun, id: &str) -> Result<Candidate, String> {
     if entry.refused.is_some() || record.get("corrects").is_some() {
         return Err("Corrected or refused arrival is not a contextual act source".into());
     }
+    // The offer is made only where an act would answer this arrival, by the recorder's own rule;
+    // otherwise the entry reads unavailable, in the App's own words. The same act on the same
+    // file stays offered outside the arrival.
+    let arrival = json!({"checkpoint":entry.body["checkpoint"],"arrivalOrdinal":entry.body["arrivalOrdinal"]});
+    let recorded: Vec<Value> = run.entries.iter()
+        .map(|e| json!({"kind":e.kind,"body":e.body,"written":e.written.is_some()}))
+        .collect();
+    crate::checkpoint_recorder::act_would_answer(&recorded, &arrival).map_err(str::to_owned)?;
     let b = &entry.body;
     let declaration = run.selection.snapshot().declaration()?;
     let checkpoints: Vec<_> = declaration

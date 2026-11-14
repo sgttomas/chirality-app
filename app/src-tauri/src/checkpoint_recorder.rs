@@ -1060,6 +1060,37 @@ fn lapsed_after_resume(entries: &[Value], arrival: &Value) -> bool {
     lapses.last().is_some_and(|(i, b)| b["state"] == "lapsed" && b["when"] == "after resume"
         && entries[i + 1..].iter().any(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == *arrival))
 }
+/// Why no act is offered on an arrival, in the App's own sentences: a closed set, with no
+/// recorded value put in them. The dispositions named are those this recorder writes.
+pub(crate) mod not_answering {
+    pub(crate) const PERFORMED: &str = "This arrival is no longer waiting: its recorded disposition is performed. An act here would be recorded, but would not answer it.";
+    pub(crate) const RESOLVED_NEGATIVELY: &str = "This arrival is no longer waiting: its recorded disposition is resolved negatively. An act here would be recorded, but would not answer it.";
+    pub(crate) const LAPSED: &str = "This arrival is no longer waiting: its recorded disposition is lapsed. An act here would be recorded, but would not answer it.";
+    pub(crate) const NOT_YET_RECORDED: &str = "This arrival's latest disposition is not yet recorded, so no act is offered for it here. Review again once it is.";
+    pub(crate) const NOT_ESTABLISHED: &str = "This arrival's disposition cannot be established from its run's records, so no act is offered for it here.";
+    pub(crate) const UNFAMILIAR: &str = "This arrival's recorded disposition is not one the App writes, so no act is offered for it here.";
+}
+/// Whether an act on `arrival` now would be counted for it, by the rule acts are counted by
+/// (CE-5, RC-8): its latest disposition, recorded, is *waiting*, or it is *performed* with a
+/// referent lapsed after its resume point. The arrival's act offer asks this, so that the offer
+/// and the counting answer alike. `entries` are the run's own, in order, each with `kind`,
+/// `body` and `written` (whether it is in the record).
+pub(crate) fn act_would_answer(entries: &[Value], arrival: &Value) -> Result<(), &'static str> {
+    let latest = entries.iter().filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == *arrival).last();
+    let Some(latest) = latest else { return Err(not_answering::NOT_ESTABLISHED) };
+    if latest["written"] != true {
+        return Err(not_answering::NOT_YET_RECORDED);
+    }
+    match disposition(entries, &[], arrival).as_deref() {
+        Some("waiting") => Ok(()),
+        Some("performed") if lapsed_after_resume(entries, arrival) => Ok(()),
+        Some("performed") => Err(not_answering::PERFORMED),
+        Some("resolved negatively") => Err(not_answering::RESOLVED_NEGATIVELY),
+        Some("lapsed") => Err(not_answering::LAPSED),
+        Some(_) => Err(not_answering::UNFAMILIAR),
+        None => Err(not_answering::NOT_ESTABLISHED),
+    }
+}
 /// Whether acts are counted for any arrival of a run: one waits, or one is
 /// performed with a referent lapsed after its resume point (RC-8).
 pub(crate) fn countable(entries: &[Value]) -> bool {

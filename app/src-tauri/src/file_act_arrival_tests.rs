@@ -803,3 +803,53 @@ fn file_act_arrival_preview_finds_its_log_through_the_read_home_and_writes_nothi
     crate::records_store::use_store_for_test(None);
     let _ = std::fs::remove_dir_all(own);
 }
+
+fn entry_of(state: &crate::AppState, run: &str, arrival: &str) -> Value {
+    state.workflows.lock().unwrap().runs[run].lock().unwrap().view(run)["fileActEntries"][arrival].clone()
+}
+fn confirm_plain(state: &crate::AppState, reference: &str) -> Result<Value, String> {
+    crate::file_act_confirm_original(state, reference, |control, offer, observe| {
+        control.synthetic_file_native(offer, observe, |_, kind| MessageDialogResult::Custom(kind.wording().into()))
+    })
+}
+
+#[test]
+fn file_act_arrival_is_offered_only_while_an_act_would_answer_it() {
+    let (peer, state, run, arrival) = fixture("A7");
+    // Permitted: a waiting arrival is offered.
+    assert_eq!(entry_of(&state, &run, &arrival)["state"], "candidate");
+    let answering = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let later = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, answering["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    // Its disposition changed through the real recorder: the offer is withdrawn, with the reason.
+    state.workflows.lock().unwrap().runs[&run].lock().unwrap().observe_checkpoints(&recorder_view(&peer, &summary_items()[1..]));
+    assert!(rs_for(&peer, &run).iter().any(|e| e["kind"] == "disposition_change" && e["body"]["disposition"] == "performed"));
+    let withdrawn = entry_of(&state, &run, &arrival);
+    assert_eq!((withdrawn["state"].as_str(), withdrawn["reason"].as_str()), (Some("unavailable"), Some(crate::checkpoint_recorder::not_answering::PERFORMED)));
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), crate::checkpoint_recorder::not_answering::PERFORMED);
+    // An offer taken before the arrival was answered is refused at confirmation, before the person
+    // is asked anything, and records nothing.
+    let before = acts(&peer).len();
+    let mut asked = false;
+    let refused = crate::file_act_confirm_original(&state, later["reference"].as_str().unwrap(), |control, offer, observe| {
+        control.synthetic_file_native(offer, observe, |_, kind| { asked = true; MessageDialogResult::Custom(kind.wording().into()) })
+    }).unwrap();
+    assert!(!asked, "the native question is never put");
+    assert_eq!(refused["error"], crate::checkpoint_recorder::not_answering::PERFORMED, "{refused}");
+    assert_eq!(acts(&peer).len(), before, "nothing recorded");
+    // DEL-04-01: the same act on the same file stays the person's, outside the arrival, recorded as before.
+    let home = state.homes.lock().unwrap().active();
+    let (_, context) = crate::file_act_observe(&state, &home).unwrap();
+    let path = peer.fixture.root.join("out/summary.md");
+    let offer = {
+        let mut control = state.act.lock().unwrap();
+        state.file_acts.lock().unwrap().compose(control.as_mut().unwrap(), &path, crate::act_control::FileActKind::Rely, "The summary file.", "You decide to rely on the summary.", home, context).unwrap()
+    };
+    let recorded = confirm_plain(&state, offer["reference"].as_str().unwrap()).unwrap();
+    assert_eq!(recorded["state"], "AC-7 recorded", "{recorded}");
+    let after = acts(&peer);
+    assert_eq!(after.len(), before + 1);
+    let standing = after.iter().find(|e| e["body"]["captureEvidence"].as_array().is_some_and(|refs| refs.iter().any(|r| r["ref"] == recorded["capture"]["captureId"]))).unwrap();
+    assert_eq!(standing["kind"], "human_act");
+    assert!(standing["body"]["relations"]["arrivalAnswered"].is_null(), "a standing act, answering no arrival: {standing}");
+}
