@@ -1,3 +1,4 @@
+import { returnReviewAnchor } from "./WaitingOnYou";
 type Json = any;
 export type FleetPacket = {
   format: string; formatVersion: string; standing: string;
@@ -63,7 +64,7 @@ function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPacket["wor
       {view.notes.length > 0 && <ul>{view.notes.map((note: string, i: number) => <li key={i}>{note}</li>)}</ul>}
       <h5>Return-review queue {view.queueComplete ? "(complete for the read packet)" : "(incomplete)"}</h5>
       {view.queue.length === 0 && <p>{view.queueComplete ? "No recorded returns await review or integration in this graph." : "No readable queued return shown; more work may be unrecorded or unread."}</p>}
-      <ul>{view.queue.map((row: Json) => <li key={row.returnRef}>
+      <ul>{view.queue.map((row: Json) => <li key={row.returnRef} id={typeof row.returnRef === "string" ? returnReviewAnchor(row.returnRef) : undefined}>
         <b>{row.item}: {row.outcome}</b> — {row.state}
         <p>Returned by {row.returnedBy}; recorded by {row.recordedBy}. Who examines: {row.examines}.
           {row.examiner ? ` Recorded reviewer: ${row.examiner}.` : " No review recorded."}</p>
