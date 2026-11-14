@@ -1751,15 +1751,40 @@ pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
     view
 }
 
+/// The closed set of sentences `reopenedNotRead.words` takes, with nothing interpolated: the
+/// App's own words. Anything variable (the reading's own reason, the project's path) is in its
+/// own field.
+pub(crate) const REOPEN_NOT_READ_WORDS: [&str; 2] = [
+    "No project is open, so there are no recorded runs to read.",
+    "The project's recorded runs could not be read.",
+];
+/// The person's Reopen and the launch's one reading: [`read_reopened_history`]. Where it cannot
+/// read, nothing is stored and nothing else is stopped; the reopened view says it was not read,
+/// in one of [`REOPEN_NOT_READ_WORDS`], with the reason given apart (`detail`, and `project`, the
+/// folder's path), both of them text the App did not choose. A later reading that reads replaces
+/// it.
+pub(crate) fn reopen_recorded(workflows: &std::sync::Mutex<WorkflowRootSession>, project: Result<&std::path::Path, &str>, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    let (words, path) = match project {
+        Ok(path) => (REOPEN_NOT_READ_WORDS[1], Some(path.display().to_string())),
+        Err(_) => (REOPEN_NOT_READ_WORDS[0], None),
+    };
+    let outcome = project.map_err(str::to_owned).and_then(|project| read_reopened_history(workflows, project, events, homes));
+    let mut root = workflows.lock().unwrap();
+    root.reopened_not_read = outcome.as_ref().err().map(|detail| json!({"state":"not read","words":words,"detail":detail,"project":path}));
+    outcome
+}
 pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
     // See records_store::HistoryRead for the shared-reader check and slice 2.
+    // When this reading of the records began, given on the view it stores and returns.
+    let read_at = crate::util::now_rfc3339();
     let reading = crate::records_store::HistoryRead::begin(project);
     let (view, generation) = {
         let mut root = workflows.lock().unwrap();
         root.reopened_generation += 1;
         (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
     };
-    let view = reading.attach(project, view);
+    let mut view = reading.attach(project, view);
+    view["readAt"] = json!(read_at);
     let mut root = workflows.lock().unwrap();
     if root.reopened_generation == generation { root.reopened = Some(view.clone()); }
     Ok(view)
@@ -4528,6 +4553,9 @@ pub(crate) struct WorkflowRootSession {
     /// Last durable reopen of the explicit project's records (display only).
     reopened: Option<Value>,
     reopened_generation: u64,
+    /// Why the latest reading of the recorded runs did not read, while it did not; `reopened`,
+    /// if present, is then from an earlier reading.
+    reopened_not_read: Option<Value>,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4581,6 +4609,7 @@ impl Default for WorkflowRootSession {
             conversations: Default::default(),
             reopened: None,
             reopened_generation: 0,
+            reopened_not_read: None,
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -4725,6 +4754,7 @@ impl WorkflowRootSession {
             }).collect::<Vec<_>>(),
             "afterRunEnd":self.after_run_end.view(),
             "reopened":self.reopened,
+            "reopenedNotRead":self.reopened_not_read,
             "restartLimits":self.restart_limits,
             "endedAfterRelaunch":self.reopened_ends_view(),
             "drafts":self.active_library.as_deref().map(|l|self.drafts_view(l)),
@@ -8076,6 +8106,7 @@ mod workflow_root_tests {
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
     mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
     mod records_store_controls_lifecycle_tests { use super::*; include!("records_store_controls_lifecycle_tests.rs"); }
+    mod reopened_checkpoint_tests { use super::*; include!("reopened_checkpoint_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })

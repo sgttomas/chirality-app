@@ -96,6 +96,7 @@ code_paths:
 - app/src-tauri/src/checkpoint_recorder.rs
 - app/src-tauri/src/after_run_end.rs
 - app/src-tauri/src/run_restart.rs
+- app/src-tauri/src/record_supply.rs
 - app/src-tauri/resources/workflow_role/compatibility-report.schema.json
 - app/src-tauri/schemas/checkpoint-record-entries.schema.json
 # The requirement check as the person's guide shows it; RunJourney.tsx (DEL-02-02's) mounts it.
@@ -115,6 +116,8 @@ checks:
 - app/src-tauri/src/checkpoint_recorder_tests.rs
 - app/src-tauri/src/after_run_end_tests.rs
 - app/src-tauri/src/run_restart_tests.rs
+- app/src-tauri/src/reopened_checkpoint_tests.rs
+- app/src-tauri/src/record_supply_tests.rs
 - app/src-tauri/src/home_qualified_hot_run_tests.rs
 - app/src-tauri/src/workflow_selected_chain_disclosure_tests.rs
 - app/src-tauri/src/workflow_proposal_disclosure_tests.rs
