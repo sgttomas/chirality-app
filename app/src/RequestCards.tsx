@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { itemAnchorId, requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { EXACT_TEXT } from "./exactText";
-import { AgentText, agentTextShown } from "./AgentText";
+import { AgentText, agentTextShown, plainId } from "./AgentText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type RequestActivityLink = (request: Json) => { open: () => void } | null;
 
@@ -53,9 +53,11 @@ export function requestThread(request: Json): string | null {
 export type RequestAsker =
   | { kind: "conversation" }
   | { kind: "delegated"; role: string | null; nickname: string | null }
-  | { kind: "not-established" };
+  | { kind: "not-established" }
+  | { kind: "no-conversation" };
 export function requestAsker(threadId: string | null, generation: Json, view: Json): RequestAsker {
-  if (!threadId || !sameActivityGeneration(generation, view?.generation) || view?.home !== generation?.home) return { kind: "not-established" };
+  if (!threadId) return { kind: "no-conversation" };
+  if (!sameActivityGeneration(generation, view?.generation) || view?.home !== generation?.home) return { kind: "not-established" };
   const child = (Array.isArray(view?.descendants) ? view.descendants : []).find((node: Json) => node?.threadId === threadId);
   if (!child) return { kind: "conversation" };
   const reported = (value: Json) => typeof value === "string" && value !== "" ? value : null;
@@ -66,6 +68,7 @@ export function requestAsker(threadId: string | null, generation: Json, view: Js
 export function AskedBy({ asker }: { asker: RequestAsker }) {
   if (asker.kind === "conversation") return <>Asked by the conversation’s own agent</>;
   if (asker.kind === "not-established") return <>Who asked is not established: this view holds no delegation record from the Codex process that asked</>;
+  if (asker.kind === "no-conversation") return <>Who asked is not established: no conversation is named</>;
   const { role, nickname } = asker;
   const roleText = (value: string) => <AgentText value={value} label="Role:" name="Agent role as Codex reports it, not the App's words" />;
   const nameText = (value: string) => <AgentText value={value} label="Name:" name="Agent nickname as Codex reports it, not the App's words" />;
@@ -568,8 +571,10 @@ export function WaitingRequestsIndicator({ overview, view, busy = false, open }:
   return <section aria-label="Requests waiting for your answer" className="waiting-requests-by-home">
     <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : "Requests from Codex waiting for your answer, by home and conversation"}</b>
     {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
-      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {row.threadId ? `thread ${row.threadId}` : "no conversation named"}: {row.count}</button>
-      {row.threadId && <> <AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.</>}
+      {/* A control carries only the App's words: a thread id stands in it only when it is a plain identifier. */}
+      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${row.threadId}` : "a conversation (its identity is shown beside)"}: {row.count}</button>
+      {row.threadId && !plainId(row.threadId) && <> <AgentText value={row.threadId} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>}
+      {" "}<AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.
       <small> Source: {JSON.stringify(row.generation)}.</small>
     </div>)}
     {available && <p><small>{overview.coverage} {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json) => `${source.modeHomeClass}: ${source.state}; no current waiting groups shown. `).join("")}</small></p>}

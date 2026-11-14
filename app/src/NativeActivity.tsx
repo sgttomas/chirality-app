@@ -1,5 +1,5 @@
 import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import { AgentText, type AgentTextSource } from "./AgentText";
+import { AgentText, type AgentTextSource, plainId } from "./AgentText";
 type Json = any;
 
 // Readable presentation of the host's native view (DEL-01-03 §5–§7; messages
@@ -127,6 +127,13 @@ function NativeJson({ value }: { value: Json }) {
 function Raw({ value, label = "Native item" }: { value: Json; label?: string }) {
   return <details><summary>{label}</summary><NativeJson value={value} /></details>;
 }
+/** A Codex-supplied identifier in the App's words: as written when it is a plain identifier, else boxed as Codex's text. */
+function Id({ value }: { value: Json }) {
+  const id = plainId(value);
+  return id !== null ? <>{id}</> : value === null || value === undefined || value === "" ? <>not reported</> : <AgentText value={text(value)} source="codex" label="Identity:" name="Identity as Codex reported it, not the App's words" />;
+}
+/** The same for a control's own words, which cannot hold a box. */
+const idWords = (value: Json) => plainId(value) ?? "with an identity that is not a plain identifier";
 // Native fields are interpolated through text() so an off-schema value from a
 // different supplier shows as JSON instead of breaking the whole view.
 function text(value: Json): string {
@@ -216,7 +223,7 @@ function UserMessage({ content, fold }: { content: Json; fold: boolean }) {
   const folded = parts.filter((part: Json) => fold && part?.type === "text" && typeof part.text === "string" && RUN_TEXT.test(part.text));
   const rest = parts.filter((part: Json) => !folded.includes(part));
   return <>
-    {folded.map((part: Json, i: number) => <details key={i}><summary>Workflow run text the App supplied ({part.text.length} characters)</summary><pre style={pre}>{part.text}</pre></details>)}
+    {folded.map((part: Json, i: number) => <details key={i}><summary>Workflow run text the App supplied ({part.text.length} characters)</summary><AgentText block value={part.text} source="file" label="The run text, with the workflow's files as the App read them:" name="Workflow run text from the workflow's files, not the App's words" /></details>)}
     {(rest.length > 0 || folded.length === 0) && <AgentText block value={messageText(rest)} source="person" />}
   </>;
 }
@@ -228,7 +235,7 @@ function ToolContent({ content }: { content: Json }) {
   return <>{content.map((part: Json, i: number) => {
     const value = part?.type === "text" || part?.type === "inputText" ? part.text
       : part?.type === "resource" ? part.resource?.text : undefined;
-    return value !== undefined ? <LongText key={i} label="result text" text={value} /> : <Raw key={i} label={`result content ${i + 1} (${text(part?.type) || "unreported type"})`} value={part} />;
+    return value !== undefined ? <LongText key={i} label="result text" text={value} /> : <Raw key={i} label={`result content ${i + 1}`} value={part} />;
   })}</>;
 }
 
@@ -283,12 +290,12 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
       return <div><b>Function output</b> <AgentText value={`${n.namespace ? `${text(n.namespace)} / ` : ""}${text(n.name)}`} label="Name:" source="tool" name="Function name as Codex reports it, not the App's words" /><StateLine row={row} />{typeof n.output === "string" ? <LongText label="output" text={n.output} /> : <Raw label="output" value={n.output} />}</div>;
     case "collabAgentToolCall":
       return <div><b>Delegation</b> {text(n.tool)}<StateLine row={row} />
-        <div>from {text(n.senderThreadId)} to {list(n.receiverThreadIds).map(text).join(", ") || "no receivers reported"}</div>
+        <div>from <Id value={n.senderThreadId} /> to {list(n.receiverThreadIds).length ? list(n.receiverThreadIds).map((r: Json, i: number) => <span key={i}>{i ? ", " : ""}<Id value={r} /></span>) : "no receivers reported"}</div>
         <Supplied label="requested model" value={n.model} /><Shown label="effort" value={n.reasoningEffort} />
         {n.prompt && <LongText label="prompt" text={n.prompt} source="agent" />}
         {Object.entries(n.agentsStates && typeof n.agentsStates === "object" && !Array.isArray(n.agentsStates) ? n.agentsStates : {}).map(([id, state]: [string, Json]) => <div key={id}>agent {id}: Codex status {text(state?.status)}{state?.message ? <> — <AgentText value={text(state.message)} /></> : ""}</div>)}</div>;
     case "subAgentActivity":
-      return <div><b>Subagent activity</b> {text(n.kind)} · <AgentText value={text(n.agentPath)} label="Agent path:" /> ({text(n.agentThreadId)})<StateLine row={row} /></div>;
+      return <div><b>Subagent activity</b> {text(n.kind)} · <AgentText value={text(n.agentPath)} label="Agent path:" /> (<Id value={n.agentThreadId} />)<StateLine row={row} /></div>;
     case "webSearch":
       return <div><b>Web search</b> <AgentText value={text(n.query)} label="Query:" /><StateLine row={row} /></div>;
     case "contextCompaction":
@@ -314,7 +321,7 @@ function Child({ child, trialLabel }: { child: Json; trialLabel?: Json }) {
   const status = reported && typeof reported === "object" ? reported : { status: reported };
   return <>
     {trialLabel ? <><b>{text(trialLabel)}</b> · </> : null}
-    {text(child.threadId)} · last observed Codex status {text(status.status) || "not reported"}{status.message ? <> — <AgentText value={text(status.message)} /></> : ""}
+    <Id value={child.threadId} /> · last observed Codex status {text(status.status) || "not reported"}{status.message ? <> — <AgentText value={text(status.message)} /></> : ""}
     {child.statusSource ? ` (status source ${text(child.statusSource)})` : ""} · parent from {text(child.parentSource)}
     {child.nativeThread?.agentRole != null && <> · role <AgentText value={text(child.nativeThread.agentRole)} label="Role:" name="Agent role as Codex reports it, not the App's words" /> (as Codex reports)</>}{child.nativeThread?.agentNickname != null && <> · nickname <AgentText value={text(child.nativeThread.agentNickname)} label="Name:" name="Agent nickname as Codex reports it, not the App's words" /></>}
     {child.observationEnded && " · observation ended"} · guidance {child.guidance === "not-known" ? "not known" : text(child.guidance)}
@@ -542,9 +549,9 @@ export function NativeActivityView({ view, threadId, offers, renderOffer, runs, 
       setShown(e.target.value === threadId ? "" : e.target.value);
     }}>
       <option value={threadId}>this conversation</option>
-      {descendants.map((c: Json) => <option key={text(c.threadId)} value={text(c.threadId)}>descendant {text(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${text(c.parentThreadId)})` : ""}</option>)}
+      {descendants.map((c: Json) => <option key={text(c.threadId)} value={text(c.threadId)}>descendant {idWords(c.threadId)}{c.parentThreadId !== threadId ? ` (of ${idWords(c.parentThreadId)})` : ""}</option>)}
     </select></label>}
-    {model.parent && <p>Descendant of {text(model.parent.parentThreadId)} ({text(model.parent.parentSource)}).</p>}
+    {model.parent && <p>Descendant of <Id value={model.parent.parentThreadId} /> ({text(model.parent.parentSource)}).</p>}
     {model.goal && <p>Goal ({text(model.goal.source)}): {model.goal.native === null ? "cleared" : <AgentText value={typeof model.goal.native?.objective === "string" ? model.goal.native.objective : JSON.stringify(model.goal.native)} source="codex" />}</p>}
     {model.checklistGaps.map((gap, i) => <p key={i}>Checklist for turn {text(gap.turnId)}: {text(gap.reason)}</p>)}
     {unplaced.length > 0 && <div><small>Workflow runs in this conversation whose position this view cannot show:</small>
