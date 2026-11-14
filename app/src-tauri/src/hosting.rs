@@ -3703,7 +3703,9 @@ impl Host {
                 // reader deferred it. Only Codex's reply to this very request retires the start: a
                 // result naming a turn (remembered as that turn) or an error object (a refusal).
                 // Anything else leaves it listed until a reply resolves it or its generation closes.
-                let resolves=response.as_ref().is_some_and(|r|r.get("error").is_some_and(Value::is_object)||r.get("result").and_then(|r|r.get("turn")).is_some_and(|t|t.get("id").is_some_and(Value::is_string)));
+                // "Naming a turn" is the Host's own test of a turn it remembers (native_turn_shape), so a
+                // start is never retired by a reply whose turn is then not remembered.
+                let resolves=response.as_ref().is_some_and(|r|r.get("error").is_some_and(Value::is_object)||r.get("result").and_then(|r|r.get("turn")).is_some_and(Self::native_turn_shape));
                 if !closed&&frame["method"]=="turn/start"&&resolves{if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}}
                 // A write that began and failed may have reached Codex in part: the start stays listed.
                 Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
@@ -7459,18 +7461,18 @@ mod conversation_transport_tests {
     // the turn the reply names is remembered; a refusal leaves no turn and no entry.
     #[test]
     fn attachment_host_final_reread_and_a_start_reply_during_the_write_is_taken_in_when_the_write_is_recorded(){
-        for reply in ["started","refused","malformed"]{
+        for reply in ["started","refused","malformed","id-only turn","empty turn id"]{
             let host=host();let(root,owner,selections)=attachment_fixture();
             let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();
             let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person text",&selections).unwrap();
             let id=packet.source().request_id().clone();let key=id.to_string();
-            let frame=match reply{"started"=>json!({"id":id,"result":{"turn":complete_turn()}}),"refused"=>json!({"id":id,"error":{"code":-32000,"message":"invented native refusal"}}),_=>json!({"id":id,"result":{"turnId":"not a turn"}})};
+            let frame=match reply{"started"=>json!({"id":id,"result":{"turn":complete_turn()}}),"refused"=>json!({"id":id,"error":{"code":-32000,"message":"invented native refusal"}}),"id-only turn"=>json!({"id":id,"result":{"turn":{"id":"turn"}}}),"empty turn id"=>{let mut turn=complete_turn();turn["id"]=json!("");json!({"id":id,"result":{"turn":turn}})},_=>json!({"id":id,"result":{"turnId":"not a turn"}})};
             let receiver=Arc::clone(&host);
             *host.after_attachment_write.lock().unwrap()=Some(Box::new(move||receiver.on_line(&serde_json::to_vec(&frame).unwrap(),&g())));
             let source=host.dispatch_attachment_turn(&packet).unwrap();
             assert_eq!(source.evidence()["writeResult"],"written","{reply}");
             {let i=host.inner.0.lock().unwrap();
-                assert_eq!(i.turn_request_threads.contains_key(&key),reply=="malformed","{reply}: a result naming a turn or an error retires the start; anything else leaves it listed");
+                assert_eq!(i.turn_request_threads.contains_key(&key),!matches!(reply,"started"|"refused"),"{reply}: a result naming a turn the Host remembers, or an error, retires the start; anything else leaves it listed");
                 let remembered=i.conversation_turns.iter().any(|e|e["threadId"]=="thread"&&e["turnId"]=="turn"&&e["source"]=="turn/start response");
                 assert_eq!(remembered,reply=="started","{reply}: the turn the reply names is remembered, and none for a refusal");}
             *host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
