@@ -22,7 +22,24 @@ impl Fixture {
 }
 impl Drop for Fixture {
     fn drop(&mut self) {
+        // The access-list tests leave entries (a deny of delete among them) that would make the
+        // invented folders impossible to remove: take them off first, inside this fixture's root.
+        clear_entries(&self.root);
         let _ = std::fs::remove_dir_all(&self.root);
+    }
+}
+
+/// Takes every access-list entry off `dir` and the folders under it, through the system's own
+/// tool, one real folder at a time. A link is never followed and never changed (`chmod -R` would
+/// change a link's target, which can lie outside the root), so nothing outside `dir` is reached.
+fn clear_entries(dir: &Path) {
+    let Ok(meta) = std::fs::symlink_metadata(dir) else { return };
+    if !meta.is_dir() {
+        return;
+    }
+    let _ = std::process::Command::new("/bin/chmod").arg("-N").arg(dir).status();
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        clear_entries(&entry.path());
     }
 }
 
@@ -299,4 +316,22 @@ fn only_folders_are_counted() {
     std::fs::write(w.subtree(Kind::ProbeHome).join("invented-file"), b"x").unwrap();
     std::os::unix::fs::symlink(&f.data, w.subtree(Kind::ProbeHome).join("invented-link")).unwrap();
     assert_eq!(kept_count(&f.data), Some(1));
+}
+
+#[test]
+fn the_fixtures_cleanup_takes_entries_off_inside_its_root_and_never_through_a_link() {
+    let entries = |path: &Path| String::from_utf8(std::process::Command::new("/bin/ls").arg("-lde").arg(path).output().unwrap().stdout).unwrap();
+    let outside = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("working-files-outside-").unwrap());
+    std::fs::create_dir(&outside).unwrap();
+    add_entry(&outside, "everyone deny delete");
+    let root = {
+        let f = Fixture::new();
+        add_entry(&f.data, "everyone deny delete");
+        std::os::unix::fs::symlink(&outside, f.root.join("invented-link")).unwrap();
+        f.root.clone()
+    };
+    assert!(!root.exists(), "the fixture's own folders, entries and all, are removed");
+    assert!(entries(&outside).contains("deny delete"), "a folder outside the root, reached only by a link, keeps its entry: {}", entries(&outside));
+    clear_entries(&outside);
+    std::fs::remove_dir(&outside).unwrap();
 }
