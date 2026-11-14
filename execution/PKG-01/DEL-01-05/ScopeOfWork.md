@@ -54,7 +54,7 @@ The items affected, by identifier. An item not listed stands as written. Rows of
 - **AC-008** — Not in force.
 - **AC-009** — Not in force.
 - **AC-011** — Not in force: "and in the dedicated local home it is absent with either". The rest stands.
-- **Praxeology, opening paragraph** — Not in force: "a local conversation and substitution". Stands: "sign-in […] need[s] the actual candidate, an actual account […] and the person's own act".
+- **Praxeology, opening paragraph** — Not in force: "a local conversation and substitution". Stands: "sign-in […] each need the actual candidate, an actual account […] and the person's own act".
 - **VER-003** — Not in force, except: "Read the access entries offered with a local provider defined in the person's Codex settings." and "No credential is reproduced in the evidence.", which stand.
 - **VER-004** — Stands, with EXAMINATION V4-EXM-12 in its 4.0.0 form.
 - **VER-005** — Not in force: "read the dedicated local home;". The rest stands; "sign in and out on each side" means the account home and the person's own Codex.

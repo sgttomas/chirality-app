@@ -52,6 +52,7 @@
    "release": "4.0.0",
    "decided": "2026-11-14",
    "by": "the owner",
+   "steps_by": "App Agent 0",
    "stated_in": "docs/RELEASE_TARGET_4.0.0.md"
   }
  },
