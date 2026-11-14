@@ -1,0 +1,112 @@
+#!/usr/bin/env node
+/**
+ * Make a recorded state from one captured whole view, and only when the scenario's own expectation of that step holds
+ * on it (DEL-09-02 examination tooling).
+ *
+ *   node record_state.mjs <scenario.json> <step id> <scenario-result.json> --bundle <the launched .app> \
+ *     --candidate-key <key> --project <path> [--settings <path>] [--account <path>] [--request <path>] [--from <label>]
+ *
+ * A recorded state is not acceptable merely because it was recorded: a capture shows fidelity, not correctness (the
+ * INTERLOCUTOR, on PR 351). So, before it writes anything, the recorder judges the captured view against the step's
+ * expectations as the scenario states them, written from the build's source and independently of any capture, using
+ * the walk's own recognition and checks. A view that surprised the walk is a finding, not a new state: when any
+ * expectation fails, or the step states none, or the view is not a whole view of the launched build, nothing is
+ * written and it exits 2.
+ *
+ * It prints {state, record}. The state is the view with the values the walk fills made placeholders: the three paths
+ * the App made (when given), the project, the App's name and a scroll bar's position. The record is kept beside the
+ * state in the scenario (state_records) and says:
+ * - recorded_on: the candidate key, the bundle identifier and the App's name of the build it was recorded on. The walk
+ *   uses a state only on that build (walk.mjs, stateRecordedOn);
+ * - from: the evidence it was recorded from, the step, and the view's sha256;
+ * - judged: what it was compared against (the step's expectations, listed), by what (this tool), and the result.
+ */
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { basename } from 'node:path';
+import { APP_NAME, DEVELOPMENT_PREFIX, checkOne, recognise } from './walk.mjs';
+
+const PATH_FLAGS = ['settings', 'account', 'request'];
+
+export function record(scenario, stepId, result, options) {
+  const refuse = why => ({ refusal: why });
+  const step = (scenario?.steps ?? []).find(candidate => candidate?.id === stepId);
+  if (!step) return refuse(`the scenario has no step ${stepId}`);
+  const expectations = step.expect;
+  if (!Array.isArray(expectations) || !expectations.length) return refuse(`step ${stepId} states no expectation of its view, so its view cannot be judged`);
+  const captured = (result?.steps ?? []).find(candidate => candidate?.id === stepId);
+  const text = captured?.returned;
+  if (typeof text !== 'string' || !text) return refuse(`the result holds no view returned at step ${stepId}`);
+  const { bundle, candidateKey, project } = options;
+  const appName = typeof bundle === 'string' && bundle.endsWith('.app') ? basename(bundle, '.app') : null;
+  if (!appName || !APP_NAME.test(appName)) return refuse('the launched bundle is not named as a development build is');
+  if (typeof result.app !== 'string' || !result.app.startsWith(DEVELOPMENT_PREFIX)) return refuse('the result does not name a development build');
+  if (typeof candidateKey !== 'string' || !candidateKey) return refuse('no candidate key is given');
+  if (typeof project !== 'string' || !project.startsWith('/')) return refuse('no absolute project path is given');
+  const { elements, refusal } = recognise(text, appName);
+  if (refusal) return refuse(`the view is not a whole view of the launched build (${refusal})`);
+  const home = result.home;
+  const values = { identifier: result.app, home, app_data: `${home}/Library/Application Support/${result.app}`, project };
+  for (const name of PATH_FLAGS) if (options[name] !== undefined) values[name] = options[name];
+  const checks = expectations.map(expectation => checkOne(elements, expectation, values));
+  const failed = checks.filter(check => !check.pass);
+  if (failed.length) {
+    return refuse(`the view does not meet step ${stepId}'s expectations (${JSON.stringify(failed[0].expectation)}: ${failed[0].found}); a view that surprised the walk is a finding, not a state`);
+  }
+  // The placeholders: longer paths first, so that a path holding another is replaced whole.
+  let state = text;
+  const counts = {};
+  const sub = (old, placeholder) => {
+    counts[placeholder] = state.split(old).length - 1;
+    state = state.split(old).join(`{${placeholder}}`);
+  };
+  for (const name of PATH_FLAGS) if (options[name] !== undefined) sub(options[name], name);
+  sub(project, 'project');
+  sub(appName, 'app_name');
+  state = state.replace(/(scroll bar \(settable, float\)) [0-9]+(?:\.[0-9]+)?$/gm, '$1 {~number}');
+  for (const name of PATH_FLAGS) {
+    if (options[name] !== undefined && !counts[name]) return refuse(`the path given as ${name} is nowhere in the view`);
+  }
+  if (!counts.app_name) return refuse("the App's name is nowhere in the view");
+  return {
+    state: state.split('\n'),
+    record: {
+      recorded_on: { candidate_key: candidateKey, identifier: result.app, app_name: appName },
+      from: { evidence: options.from ?? null, step: stepId, view_sha256: createHash('sha256').update(text).digest('hex') },
+      judged: {
+        by: 'record_state.mjs, with the walk\'s own recognition and checks',
+        against: `the expectations of step ${stepId} in the scenario "${scenario.scenario}", written from the build's source and independently of the capture`,
+        expectations,
+        result: 'every expectation held',
+      },
+    },
+  };
+}
+
+function main(argv) {
+  const [scenarioPath, stepId, resultPath, ...rest] = argv;
+  const options = {};
+  for (let n = 0; n < rest.length; n += 2) {
+    const flag = rest[n], value = rest[n + 1];
+    const name = { '--bundle': 'bundle', '--candidate-key': 'candidateKey', '--project': 'project', '--settings': 'settings',
+      '--account': 'account', '--request': 'request', '--from': 'from' }[flag];
+    if (!name || value === undefined) {
+      process.stderr.write(`unknown or incomplete option: ${flag}\n`);
+      return 2;
+    }
+    options[name] = value;
+  }
+  if (!scenarioPath || !stepId || !resultPath) {
+    process.stderr.write('usage: node record_state.mjs <scenario.json> <step id> <scenario-result.json> --bundle <.app> --candidate-key <key> --project <path> [...]\n');
+    return 2;
+  }
+  const made = record(JSON.parse(readFileSync(scenarioPath, 'utf8')), stepId, JSON.parse(readFileSync(resultPath, 'utf8')), options);
+  if (made.refusal) {
+    process.stderr.write(`not recorded: ${made.refusal}\n`);
+    return 2;
+  }
+  process.stdout.write(JSON.stringify(made, null, 2) + '\n');
+  return 0;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) process.exitCode = main(process.argv.slice(2));

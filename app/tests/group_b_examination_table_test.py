@@ -102,6 +102,21 @@ class Steps(Fixture):
         with self.assertRaises(SystemExit):
             table.main(['--repo', str(repo), '--results', str(results), '--candidate', 'c2'])
 
+    def test_a_walk_result_captured_not_judged_is_never_counted_as_passed(self):
+        # The walk's "captured, not judged" (a view that passed the anchor and equals no recorded state) is not one of
+        # REQ-007's five outcomes: carried into a record as it is, it stops the print, so it can never be counted as
+        # passed, and no count is printed beside it.
+        repo = self.repo()
+        results = self.results({'step': 'A-1', 'candidate': 'c2', 'date': '2026-11-14', 'outcome': 'passed', 'operated_by': 'agent'})
+        self.assertIn('1 passed', self.printed('--repo', str(repo), '--results', str(results), '--candidate', 'c2'))
+        for outcome in ('captured, not judged', 'captured', 'pass'):
+            with self.subTest(outcome):
+                self.results({'step': 'A-2', 'candidate': 'c2', 'date': '2026-11-14', 'outcome': outcome, 'operated_by': 'agent'})
+                out = io.StringIO()
+                with self.assertRaises(SystemExit), contextlib.redirect_stdout(out):
+                    table.main(['--repo', str(repo), '--results', str(results), '--candidate', 'c2'])
+                self.assertNotIn('passed,', out.getvalue())
+
     def test_cited_rows_are_listed_as_cited_and_never_change_an_outcome(self):
         repo = self.repo()
         results = self.results()

@@ -53,7 +53,14 @@ const listAll = () => {
     scenario.states[step.state] = String(texts[n] ?? '').split('\\n');
   });
 };
-const walk = { ...walkModule, run: options => { listAll(); return walkModule.run(options); } };
+// Each listed state is bound, as record_state.mjs binds a recorded one, to the build the walk is given.
+const bindAll = options => {
+  if (!scenario.states || scenario.state_records) return;
+  const app_name = String(options.bundle ?? '').split('/').pop().replace(/\\.app$/, '');
+  scenario.state_records = Object.fromEntries(Object.keys(scenario.states).map(id =>
+    [id, { recorded_on: { identifier: options.app, app_name }, judged: { result: 'every expectation held' } }]));
+};
+const walk = { ...walkModule, run: options => { listAll(); bindAll(options); return walkModule.run(options); } };
 const scenario = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const recorded = JSON.parse(readFileSync(process.argv[3], 'utf8'));
 // The views these tests are fed are invented. Most were rebuilt from the differences a walk received, and differences
@@ -147,12 +154,27 @@ class Replay(unittest.TestCase):
         return path
 
     def test_the_setup_scenario_replays_against_its_own_listed_states(self):
-        code, report, said = replay(SETUP, self.views_file())
+        with tempfile.TemporaryDirectory() as folder:
+            code, report, said = replay(rebound(SETUP, folder), self.views_file())
         self.assertEqual((code, report['verdict'], report['stopped']), (0, 'pass', None), said)
         self.assertEqual([step['id'] for step in report['steps']], ['S1', 'S2', 'S3', 'S4', 'S5'])
         self.assertEqual([call['call'] for call in report['calls'] if call['call'] != 'get_app_state'],
                          ['set_value', 'click', 'click', 'click', 'click'])
         self.assertEqual({call['app'] for call in report['calls']}, {'dev.chirality.app-v4.candidate.invented'})
+
+    def test_states_recorded_on_another_build_are_not_used(self):
+        # The committed scenario's states are bound to the build they were recorded on (1023908b); on the fixture
+        # views' invented build the walk uses none of them: it stops at the first step, judging and acting on nothing.
+        code, report, said = replay(SETUP, self.views_file())
+        self.assertEqual((code, report['verdict']), (2, 'inconclusive'), said)
+        self.assertIn('the recorded state S1 was recorded on another build', report['stopped'])
+        self.assertEqual([call['call'] for call in report['calls'] if call['call'] != 'get_app_state'], [])
+        # And a state with no record of being judged is not used either.
+        scenario = json.loads(SETUP.read_text())
+        scenario['state_records']['S1']['judged']['result'] = 'not judged'
+        self.assertIn('was not judged against its expectations',
+                      harness(f"return walk.stateRecordedOn({json.dumps(scenario)}, 'S1', {json.dumps(scenario['state_records']['S1']['recorded_on']['identifier'])}, "
+                              f"{json.dumps(scenario['state_records']['S1']['recorded_on']['app_name'])});")['out'])
 
     def test_a_scenario_that_acts_and_names_no_listed_state_is_refused_before_any_call(self):
         code, report, said = replay(SCENARIO, VIEWS)  # the first-use scenario, kept for the hosted driver
@@ -165,7 +187,8 @@ class Replay(unittest.TestCase):
         # recorded state S5, so the walk reports that as a failed check: the result arrives whole all the same.
         views['views'][5]['text'] = in_order(views['views'][5]['text'].replace(f'\t\t\t\t\t\t12 text Project: {PROJECT}',
                                                                       f'\t\t\t\t\t\t12 text Project: {PROJECT}\n\t\t\t\t\t\t13 text ' + 'invented words ' * 5000))
-        done = subprocess.run([NODE, str(REPLAY), str(SETUP), str(self.views_file(views))], capture_output=True, text=True)
+        with tempfile.TemporaryDirectory() as folder:
+            done = subprocess.run([NODE, str(REPLAY), str(rebound(SETUP, folder)), str(self.views_file(views))], capture_output=True, text=True)
         self.assertGreater(len(done.stdout), 65536)  # longer than a pipe holds at once
         result = json.loads(done.stdout)
         self.assertEqual(result['verdict'], 'fail')
@@ -970,8 +993,21 @@ def setup_views(sheet=None, after=None):
 SHEET_ON_ITS_OWN = (APP / 'tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt').read_text()
 
 
-def setup_walk(case, views=None, scenario=SETUP):
+def rebound(scenario_path, folder):
+    """A copy of a committed scenario whose recorded states are bound to the invented build of the fixture views, so
+    that its walk's mechanics can be tested on them. The committed file stays bound to the build it was recorded on."""
+    scenario = json.loads(Path(scenario_path).read_text())
+    for record in (scenario.get('state_records') or {}).values():
+        record['recorded_on'] = {**record['recorded_on'], 'identifier': INVENTED['app'], 'app_name': INVENTED_APP}
+    path = Path(folder) / ('rebound-' + Path(scenario_path).name)
+    path.write_text(json.dumps(scenario))
+    return path
+
+
+def setup_walk(case, views=None, scenario=SETUP, rebind=True):
     with tempfile.TemporaryDirectory() as folder:
+        if rebind:
+            scenario = rebound(scenario, folder)
         path = Path(folder) / 'views.json'
         path.write_text(json.dumps(views or setup_views()))
         done = subprocess.run([NODE, '--input-type=module', '-e', SETUP_HARNESS.replace('CASE', case), WALK.as_uri(), str(scenario),
@@ -1019,6 +1055,7 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
             self.assertNotEqual(capture.pop(field), setup.pop(field))
         # Only the setup walk reaches the view after the press, so only it holds S5 and judges its last step by it.
         setup['states'].pop('S5')
+        setup['state_records'].pop('S5')
         next(s for s in setup['steps'] if s['id'] == 'S5').pop('state')
         capture.pop('states_recorded'), setup.pop('states_recorded')
         self.assertEqual(capture, setup)
@@ -1307,7 +1344,9 @@ return [r.verdict, r.stopped, r.calls.filter(c => c.call !== 'get_app_state').ma
             "const r = await walk.run(base); return [r.verdict, r.stopped, r.calls.filter(c => c.call === 'click').map(c => c.element_index)];")
         verdict, stopped, clicks = setup_walk(case)['out']
         self.assertEqual((verdict, clicks), ('inconclusive', []), stopped)
-        self.assertIn("stopped at S2: the view is not the listed state S1 (the candidate bundle's name is not of the development build's form", stopped)
+        # The states are bound to the build they were recorded on, so a bundle of another name is refused there first,
+        # before the name-form check behind it (stateCheck) is reached; either way nothing is clicked.
+        self.assertIn('was recorded on another build', stopped)
 
     def test_views_naming_another_app_than_the_launched_build_lead_to_no_act(self):
         # The INTERLOCUTOR, on PR 351's first round: the App's name is bound to the build the launcher started. Views
@@ -1543,6 +1582,57 @@ class TheViewOnlyScenarios(unittest.TestCase):
         verdict, stopped, calls = result['out']
         self.assertNotEqual(verdict, 'pass')
         self.assertEqual(set(calls), {'get_app_state'})
+
+
+class TheRecorder(unittest.TestCase):
+    """record_state.mjs: a state is written only for a view that meets its step's expectations, and carries the build it
+    was recorded on and the judgment made of it."""
+
+    RECORDER = OPERATED / 'record_state.mjs'
+
+    def record(self, step, text, scenario=None, bundle=None):
+        result = {'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': step, 'returned': text}]}
+        options = {'bundle': bundle or INVENTED['bundle'], 'candidateKey': 'invented-key', 'project': PROJECT, 'from': 'invented'}
+        script = (f"import {{ record }} from {json.dumps(self.RECORDER.as_uri())}; "
+                  f"process.stdout.write(JSON.stringify(record({json.dumps(scenario or json.loads(SETUP.read_text()))}, "
+                  f"{json.dumps(step)}, {json.dumps(result)}, {json.dumps(options)})));")
+        done = subprocess.run([NODE, '--input-type=module', '-e', script], capture_output=True, text=True)
+        if done.returncode != 0:
+            raise AssertionError(done.stderr)
+        return json.loads(done.stdout)
+
+    def test_a_view_meeting_its_expectations_is_recorded_with_its_build_and_its_judgment(self):
+        made = self.record('S5', AFTER_THE_PRESS)
+        self.assertNotIn('refusal', made)
+        self.assertEqual(made['state'], json.loads(SETUP.read_text())['states']['S5'])
+        self.assertEqual(made['record']['recorded_on'], {'candidate_key': 'invented-key', 'identifier': INVENTED['app'], 'app_name': INVENTED_APP})
+        self.assertEqual(made['record']['judged']['result'], 'every expectation held')
+        self.assertEqual(made['record']['judged']['expectations'], next(s for s in json.loads(SETUP.read_text())['steps'] if s['id'] == 'S5')['expect'])
+
+    def test_a_view_that_surprised_the_walk_is_not_recordable(self):
+        # The heading the step expects is gone: the capture is faithful, but it is a finding, not a state.
+        made = self.record('S5', AFTER_THE_PRESS.replace("heading You're set up", 'heading Something else').replace("text You're set up", 'text Something else'))
+        self.assertIn('a view that surprised the walk is a finding, not a state', made['refusal'])
+        self.assertNotIn('state', made)
+
+    def test_a_step_that_states_no_expectation_is_not_recordable(self):
+        scenario = json.loads(SETUP.read_text())
+        next(s for s in scenario['steps'] if s['id'] == 'S5')['expect'] = []
+        self.assertIn('states no expectation of its view', self.record('S5', AFTER_THE_PRESS, scenario)['refusal'])
+
+    def test_a_view_of_another_build_is_not_recordable(self):
+        other = '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development another).app'
+        self.assertIn('is not a whole view of the launched build', self.record('S5', AFTER_THE_PRESS, bundle=other)['refusal'])
+
+    def test_its_command_line_writes_nothing_when_it_refuses(self):
+        with tempfile.TemporaryDirectory() as folder:
+            result = Path(folder) / 'result.json'
+            result.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'],
+                                          'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS.replace("You're set up", 'Not set up')}]}))
+            done = subprocess.run([NODE, str(self.RECORDER), str(SETUP), 'S5', str(result), '--bundle', INVENTED['bundle'],
+                                   '--candidate-key', 'invented-key', '--project', PROJECT], capture_output=True, text=True)
+        self.assertEqual((done.returncode, done.stdout), (2, ''))
+        self.assertIn('not recorded:', done.stderr)
 
 
 class TheSignedOutScenarioFiles(unittest.TestCase):

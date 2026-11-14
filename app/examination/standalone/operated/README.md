@@ -970,15 +970,14 @@ node replay.mjs first-use-setup.scenario.json ../../../tests/group_b_operated_fi
   ../../../tests/group_b_operated_fixtures/first-use-setup/wrong.review-available-before-any-choice.json
 ```
 
-The first prints PASS with every outcome shown and exits 0. The second makes one
-known wrong state in the recorded views (Review setup available before any
-choice) and must print FAIL, naming the step and what was found, and exit 1.
-The other `wrong.*.json` files beside it do the same for more states: a line
-of "What setup will do" missing, a sixth line added, a location outside the
-home, Review setup available with existing settings; and one where a control
-has other words that begin the same way, which the walk does not click (it
-stops, inconclusive, exit 2). This is the check rejecting wrong states; it
-says nothing about a build.
+Both are now refused before any call (INCONCLUSIVE, exit 2): the 13 November
+scenario names no recorded state for its acts, and the walk acts only in a
+listed state (and passes only on equality with a recorded state, above). The
+`wrong.*.json` files beside the views (a line of "What setup will do" missing,
+a sixth line added, a location outside the home, Review setup available before
+any choice or with existing settings, a control whose words begin the same
+way) are kept as fixtures of wrong states; replayed with this scenario they too
+are refused before any call. They say nothing about a build.
 
 **The lane's sample of the service's socket folder.** From App Agent 0's go, the
 lane's agent (not the operator) samples, from its own shell, the names and times
@@ -1171,50 +1170,70 @@ failure, the same scenario and acts.
     element only by its index, so a view that gives one index to two
     elements cannot be addressed.
 
-  - **The anchor: the view's shape, whole.** The k-th element line must
-    carry index k, and the view's last eight lines before its blank line
-    must equal, line for line and whole, the App window's own menu bar block
-    built from the launched build's name and the menu bar's index. The name
-    is the one the walk was given for the build the launcher started (its
-    bundle's), not taken from the view: the window line's App must be
-    exactly it, so a window line and block that agree with each other but
-    name another App are refused. The block is:
-    `<k> menu bar`, then one tab in, `<k+1> <name>`, `File`, `Edit`, `View`,
-    `Window`, `Help` and `Waiting requests (<n>)`, each carrying the index
-    the sequence requires at its place. Only `<n>` is free, a non-negative
-    integer in plain decimal form. Harmless variation in the supplier's tool
-    may therefore refuse; that is intended, and the positive case is
-    established by fresh captures on the supported tool and version. It is one
-    comparison, not a check of pieces: an extra line of any kind (a further
-    line, a well-formed element line with the next index), a missing line or
-    an altered line inside the block refuses, and so does a view without it.
-    A line imitating an element appears straight after the element whose
-    text carries it, where it breaks the index order or repeats an index, so
-    such a view is refused before any call.
+  - **The anchor: a check that can only refuse.** The k-th element line
+    must carry index k. The view's top level must be exactly element 0 (the
+    App's window, or a sheet) and the menu bar, and the view must hold
+    exactly one menu bar. The view's last eight lines before its blank line
+    must equal, line for line, the App window's own menu bar block built
+    from the launched build's name: `<k> menu bar`, then one tab in,
+    `<k+1> <name>`, `File`, `Edit`, `View`, `Window`, `Help` and
+    `Waiting requests (<n>)`, each carrying the index the sequence requires
+    at its place, with only `<n>` free (a non-negative integer in plain
+    decimal form). The name is the one the walk was given for the build the
+    launcher started (its bundle's), not taken from the view, and the window
+    line's App must be exactly it. A view whose shape is not this one is
+    refused, and nothing is done from it. Harmless variation in the
+    supplier's tool may therefore refuse; that is intended. The anchor never
+    grounds a pass or an act: those rest on equality with a recorded state
+    (below).
   - **What the anchor rests on.** The supplier's contract (the `@oai/sky`
     type declarations) says that `get_app_state` returns "Accessibility
     text, prefixed with app-specific guidance on first access when
     available", that `disableDiff` gives "a full accessibility tree instead
     of a diff", and that `click` and `set_value` take an "Element index from
     the latest `get_app_state()` text". It states no order and no menu bar.
-    The shape is observed, not promised: every whole view recorded on
-    14 November 2026 has it (R1; S1 to S5; the index probe's views; the
-    sheet; the re-recording launches' views; the view after the press). If
-    the supplier changes the shape, the walk refuses and does not act. A
-    guidance prefix has not been seen; text before the window line is
-    refused, and the view must still end on the block.
+    The shape is observed, not promised: all 35 whole views recorded on
+    14 November 2026 have it, element 0 a standard window (33) or a sheet
+    (2), with one menu bar each. A guidance prefix has not been seen; text
+    before the window line is refused.
   - **Its limit.** The anchor is relied on for the rehearsal tier only. It
     does not show that text cannot lead an agent to choose a real element it
     should not.
-  - **What else a recognised view lets through, and why.** In page content,
-    before the block, an element's words, its depth, its further lines and
-    the window's title are accepted without a comparison of their own. They
-    are content: wherever the walk acts, the whole view, line for line with
-    these lines included, must equal the listed state it acts from
-    (`stateCheck`, `compareView`), and the sheet must equal its template.
-    A view-only step acts on nothing; its pass says only that its named
-    expectations were found in a whole, anchored view, not that the rest of
-    the page is the recorded one.
+- **No affirmative result rests on the anchor alone (App Agent 0, after the
+  second independent reading of PR 351).** An act (a click, a set-value, a
+  press) is made only when the latest view equals, line for line, the
+  recorded state the step acts from. A step may name the recorded state its
+  own view must equal (`state`), compared the same way (`stateCheck`,
+  `compareView`). The verdict is "pass" only when every step's view equalled
+  the state it names and every expectation held; expectations can only
+  fail. A view that passes the anchor but names no recorded state is
+  "captured, not judged", which is not a pass anywhere it is carried: it is
+  not one of REQ-007's five outcomes, so the examination table refuses to
+  print a record holding it. In page content an element's words, its depth,
+  its further lines and the window's title are accepted by recognition
+  without a comparison of their own; they are content, and every pass or act
+  compares them whole. Today `signed-out-setup.scenario.json` names a state
+  for every step (S1 to S5); `first-launch-view.scenario.json` and
+  `signed-out-relaunch.scenario.json` name none and are captured, not
+  judged, until their states are recorded; `first-use-setup.scenario.json`
+  names no state it acts from and is refused before any call.
+- **How a view becomes a recorded state.** A capture shows fidelity, not
+  correctness (the INTERLOCUTOR, on PR 351). `record_state.mjs` writes a
+  state only when the captured view, recognised as a whole view of the
+  launched build, meets every expectation the scenario states for that step,
+  expectations written from the build's source and independently of any
+  capture; a step that states none cannot be recorded. A view that surprised
+  the walk is a finding, not a new state: the recorder refuses it and writes
+  nothing. Beside each state the scenario keeps its record (`state_records`):
+  the build it was recorded on (candidate key, bundle identifier, the App's
+  name), the evidence and the view's sha256, and the judgment (against which
+  expectations, by what, with what result). The walk uses a state only on
+  the build it was recorded on, and only when its record says every
+  expectation held; otherwise it stops, judging and acting on nothing. The
+  setup scenario's S1 to S5 are recorded from launch R-c on a build of main
+  1023908b, each judged against its step's expectations; S1 to S4 equal the
+  states the walk acted from, and S5, the view after the press, is a first
+  recording (R-c had judged that view by expectations only).
 
   Whether a view came back as differences or as no change rests on the
   supplier's two fixed openings for those; a whole view must also carry the
@@ -1235,9 +1254,14 @@ failure, the same scenario and acts.
   error -10005: 999999 is an invalid element ID"), and the views before and
   after were identical. So a click at an index the supplier did not assign,
   such as the fresh index of a line imitating an element, failed. That is one
-  click on one candidate. A set-value at such an index was not probed. The
-  limit stands as stated for anything that leads the walk to a real element it
-  should not act on.
+  click on one candidate. A set-value at the same index was probed on
+  14 November 2026 (candidate 1023908b, 18:18 UTC; largest index 52) and
+  refused the same way ("Computer Use server error -10005: 999999 is an
+  invalid element ID"), with the views before and after identical and the
+  invented string nowhere in them. A refusal turns an invented element with an
+  invented index into a failed call; it says nothing about text that leads an
+  agent to choose a real element it should not. The limit stands as stated for
+  anything that leads the walk to a real element it should not act on.
 - **Where the walk acts, and why it is sound there (App Agent 0, 14 November
   2026).** The tool acts only in the listed states below. It is sound there
   because every text in those views is established and plain: the build's
@@ -1527,7 +1551,9 @@ either driver marker.
 
 ## The view-only scenarios
 
-Two scenarios act on nothing: each is one view, read, and the walk makes no click, set-value or press in them.
+Two scenarios act on nothing: each is one view, read, and the walk makes no click, set-value or press in them. Neither
+names a recorded state yet, so each result is "captured, not judged", never a pass (above); their expectations can only
+fail. Earlier view-only passes are restated so: the 12:40 UTC relaunch below was captured, not judged.
 - `first-launch-view.scenario.json`: the first launch in a fresh home, before setup. Its expectations are the
   first-use page as the setup walk's listed state S1 recorded it: the welcome, Start with new settings chosen, Review
   setup unavailable, Technical details closed.

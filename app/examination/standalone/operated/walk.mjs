@@ -306,6 +306,19 @@ export function stateCheck(text, lines, values, appName) {
   return compareView(wanted, text).differs;
 }
 
+/**
+ * Whether a recorded state may be used on this walk: a state is bound to the build it was recorded on (its record's
+ * recorded_on: the bundle identifier and the App's name, from record_state.mjs), and a walk on another build does not
+ * use it. Returns null when it may, or why not.
+ */
+export function stateRecordedOn(scenario, id, app, appName) {
+  const on = scenario?.state_records?.[id]?.recorded_on;
+  if (!on) return `the recorded state ${id} has no record of the build it was recorded on`;
+  if (on.identifier !== app || on.app_name !== appName) return `the recorded state ${id} was recorded on another build (${on.app_name})`;
+  if (scenario.state_records[id].judged?.result !== 'every expectation held') return `the recorded state ${id} was not judged against its expectations before it was recorded`;
+  return null;
+}
+
 export function sheetCheck(text, sheet, values, appName) {
   const problems = [], record = { compared_with: 'the recorded view of the sheet' };
   // The name guards against a mistaken build: it must be of the development build's form before the template is made.
@@ -559,7 +572,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   const appName = bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length);
   // Before any act: the latest view must be the listed state the step acts from, line for line.
   const notListed = (step, act) => {
-    const differs = latest === null ? ['the latest view was not recognised'] : stateCheck(latest, scenario.states[step.from_state], values, appName);
+    const unbound = stateRecordedOn(scenario, step.from_state, app, appName);
+    const differs = unbound ? [unbound] : latest === null ? ['the latest view was not recognised'] : stateCheck(latest, scenario.states[step.from_state], values, appName);
     return differs.length ? finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (${differs[0]}); nothing was ${act}`) : null;
   };
   // A view is whole, or the walk stops there. One that comes back as differences is kept, with the view rebuilt from
@@ -784,8 +798,11 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     // The step's judgement, after its captures (a state can name a path captured at this step): its view must equal the recorded state it names, line for line, under the comparison the
     // acts use. A step that names none is captured, not judged; a view that differs is a failed check.
     if (step.state !== undefined) {
-      const differs = Array.isArray(scenario.states?.[step.state]) ? stateCheck(seen.text, scenario.states[step.state], values, appName)
-        : [`the scenario holds no recorded state ${step.state}`];
+      // A state recorded on another build, or never judged, says nothing of this one: the walk stops, judging nothing.
+      const unbound = Array.isArray(scenario.states?.[step.state]) ? stateRecordedOn(scenario, step.state, app, appName) : null;
+      if (unbound) return finish('inconclusive', `stopped at ${step.id}: ${unbound}; its view is not judged`);
+      const differs = !Array.isArray(scenario.states?.[step.state]) ? [`the scenario holds no recorded state ${step.state}`]
+        : stateCheck(seen.text, scenario.states[step.state], values, appName);
       entry.state = step.state;
       entry.judged = differs.length === 0;
       if (differs.length) entry.checks.push({ expectation: { state: step.state }, pass: false, found: differs[0] });
