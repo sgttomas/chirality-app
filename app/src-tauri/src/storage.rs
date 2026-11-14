@@ -201,24 +201,8 @@ fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Owner
     }
     Ok(Some(Ownership(file,admission.map(Box::new))))
 }
-// A read-only examination must fail even when an attempted sync or lock
-// would leave identical bytes. Thread-local, so unrelated fixture setup and
-// other tests cannot supply or consume the proof.
 #[cfg(test)]
-thread_local! { static FORBID_MUTATIONS: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
-#[cfg(test)]
-pub(crate) fn mutation_for_test(operation: &str) {
-    FORBID_MUTATIONS.with(|forbidden| assert!(!forbidden.get(), "read-only inspection attempted {operation}"));
-}
-#[cfg(test)]
-pub(crate) fn without_mutations_for_test<T>(read: impl FnOnce() -> T) -> T {
-    struct Reset(bool);
-    impl Drop for Reset {
-        fn drop(&mut self) { FORBID_MUTATIONS.with(|slot| slot.set(self.0)); }
-    }
-    let _reset = Reset(FORBID_MUTATIONS.with(|slot| slot.replace(true)));
-    read()
-}
+pub(crate) use crate::records_effect_guard::{mutation_for_test, without_mutations_for_test};
 #[cfg(test)]
 thread_local! { static FAIL_DIRECTORY: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
@@ -540,6 +524,8 @@ thread_local! { static FAIL_CAPTURE_WRITE: std::cell::Cell<bool> = const { std::
 #[cfg(test)]
 pub(crate) fn fail_capture_write_for_test(fail: bool) { FAIL_CAPTURE_WRITE.with(|v|v.set(fail)); }
 pub(crate) fn create_capture_json(path: &Path, value: &Value) -> Result<(), CapturePublicationFailure> {
+    #[cfg(test)]
+    mutation_for_test("create_capture_json");
     let mut attempted = false;
     let result = publish_json_observed(path, value, false, None, &mut attempted, |file, bytes| {
         #[cfg(test)]
@@ -592,6 +578,8 @@ pub fn create_json(path: &Path, value: &Value) -> Result<(), String> {
 /// Administrative callers stage outside their strict events inventory. Both
 /// destination and staging folders are synced before success is reported.
 pub(crate) fn create_json_staged(path: &Path, value: &Value, staging: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("create_json_staged");
     publish_json_observed(path, value, false, Some(staging), &mut false, |file, bytes| {
         file.write_all(bytes).map_err(|e| format!("temporary evidence write: {e}"))
     })

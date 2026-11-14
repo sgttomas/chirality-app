@@ -397,6 +397,8 @@ pub fn location_for_choice(picked: &Path) -> Result<PathBuf, String> {
 /// The person returns the store to its default place, `<App data>/records/`,
 /// from the next start. Records in the chosen location are not moved.
 pub fn clear_choice(app_data: &Path) -> Result<Value, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_store::clear_choice");
     let path = app_data.join(CHOICE_FILE);
     let had = match std::fs::remove_file(&path) {
         Ok(()) => { crate::storage::sync_dir(app_data)?; true }
@@ -837,6 +839,8 @@ fn append_stop() -> Option<AppendStop> {
 }
 /// A new store line file, whole or not at all.
 fn create_whole(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::storage::mutation_for_test("store create_whole");
     let parent = path.parent().ok_or("record has no folder")?;
     let temp = parent.join(format!(".{}.{}.tmp", path.file_name().unwrap_or_default().to_string_lossy(), crate::util::opaque_id("")?));
     let result = (|| {
@@ -858,6 +862,8 @@ fn create_whole(path: &Path, bytes: &[u8]) -> Result<(), String> {
 /// One write appended to an existing store line file, then synced. The file
 /// is never created here.
 fn write_appending(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::storage::mutation_for_test("store write_appending");
     use std::os::unix::fs::OpenOptionsExt;
     let mut f = std::fs::OpenOptions::new().append(true).custom_flags(libc::O_NOFOLLOW).open(path).map_err(|e| format!("{}: {e}; nothing changed", path.display()))?;
     #[cfg(test)]
@@ -2192,6 +2198,8 @@ impl OutstandingWriteProof {
         }
     }
 }
+const ORDERED_CHECKS_NO_REFUSAL: &str = "No refusal found by the ordered checks. Whether the owning locks can be taken, and any outstanding write-time proof (the completion's re-proof or the mint on a first write), are established only at the write. A writer waits without limit behind a held lock.";
+
 #[derive(Debug, PartialEq, Eq)]
 enum WriteInspection {
     Refused(WriteRefusal),
@@ -2211,13 +2219,15 @@ impl WriteInspection {
                 }
                 notes
             }
-            Self::Outstanding(proof) => vec![proof.note().into()],
-            Self::None => vec![],
+            Self::Outstanding(proof) => vec![ORDERED_CHECKS_NO_REFUSAL.into(), proof.note().into()],
+            Self::None => vec![ORDERED_CHECKS_NO_REFUSAL.into()],
         }
     }
 }
 
-/// Read-only entry point. It supplies no durability operation to the shared
+/// Read-only report of the ordered checks, not the writer's eventual result.
+/// Owning locks are established only at the write, outside this result.
+/// This entry point supplies no durability operation to the shared
 /// order, and never calls attach(true). First-write minting and PR 300's
 /// completion re-proof remain explicitly outstanding, never an admission.
 fn inspect_write(root: &Path) -> WriteInspection {

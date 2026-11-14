@@ -359,6 +359,8 @@ impl Drop for Lease {
     }
 }
 fn exclusive(path: &Path, staging: Option<&Path>) -> Result<Lease, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_import::exclusive");
     match staging {
         Some(staging) => bag::create_or_match_staged(path, b"", staging)?,
         None => bag::create_or_match(path, b"")?,
@@ -1009,6 +1011,8 @@ fn require_native_actor(actor: &Value) -> Result<(), String> {
 /// Append under the store lock through its held physical parent. A torn or
 /// changed roots file is evidence to reconcile, never silently repaired.
 fn publish_roots(intent: &Intent) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_import::publish_roots");
     let store = intent.store_path();
     let path = store.join("roots.jsonl");
     if optional(&path)?.is_none() {
@@ -1228,6 +1232,8 @@ fn finish_with_link_recovery(
     snapshot: &bag::Snapshot,
     allow_missing_link: bool,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_import::finish_with_link_recovery");
     let dir = i.dir();
     // Retry syncs the existing immutable intent; it never creates a second act.
     identity::publish_intent(i)?;

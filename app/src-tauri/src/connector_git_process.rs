@@ -65,6 +65,8 @@ pub struct Engine {
 }
 impl Engine {
     pub fn create(objects: &Path, format: &str, control: &Control) -> Result<Self> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_git_process::Engine::create");
         use std::os::unix::fs::DirBuilderExt;
         let helper = std::env::temp_dir().join(
             crate::util::opaque_id("connector-git-")
@@ -335,6 +337,8 @@ fn executable_identity(path: &Path) -> Result<serde_json::Value> {
 }
 impl Drop for Engine {
     fn drop(&mut self) {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_git_process::Engine::drop");
         use std::os::unix::fs::MetadataExt;
         if std::fs::symlink_metadata(&self.helper)
             .is_ok_and(|m| m.is_dir() && (m.dev(), m.ino()) == self.helper_identity)

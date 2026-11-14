@@ -116,6 +116,14 @@ impl StatusCase {
                         b"not a capture",
                     )
                     .unwrap();
+                    // The byte-copying importer refuses an occupied, different
+                    // copy; malformed original bytes alone are still imported.
+                    std::fs::create_dir_all(f.dir.join("captures")).unwrap();
+                    std::fs::write(
+                        f.dir.join("captures/refused.json"),
+                        b"different retained store bytes",
+                    )
+                    .unwrap();
                 }
                 import(&f.root).unwrap();
             }
@@ -475,6 +483,9 @@ fn records_store_import_gate_status_matches_the_ordered_gate() {
         let inspection = storage::without_mutations_for_test(|| inspect_write(&f.root));
         let shown = status(Some(&f.root));
         let gate = write_dir(&f.root);
+        if *case == "admit imported refused" {
+            assert_completed_import_with_refused_history(&shown, &gate);
+        }
         let expected = match *case {
             "torn registry" => Some(WriteRefusalKind::Registry),
             "closed" => Some(WriteRefusalKind::Closed),
@@ -552,6 +563,20 @@ fn records_store_import_gate_status_matches_the_ordered_gate() {
                 {
                     failures.push(format!("{case}: imports not assessed omitted: {project}"));
                 }
+            }
+            if !matches!(inspection, WriteInspection::Refused(_)) {
+                assert!(
+                    notes
+                        .iter()
+                        .any(|n| n.as_str() == Some(ORDERED_CHECKS_NO_REFUSAL)),
+                    "{case}: no qualified ordered-check sentence: {project}"
+                );
+                assert!(
+                    notes.iter().all(|n| n
+                        .as_str()
+                        .is_none_or(|n| !n.to_ascii_lowercase().contains("writing permitted"))),
+                    "{case}: unqualified permission claim: {project}"
+                );
             }
             if let WriteInspection::Outstanding(proof) = &inspection {
                 if !notes.iter().any(|n| n.as_str() == Some(proof.note())) {
@@ -643,6 +668,12 @@ fn records_store_import_gate_status_mutation_control_detects_even_unchanged_byte
             let _ = append_line(&f.dir.join("imports.jsonl"), &json!({}));
         }),
         Box::new(|| {
+            let _ = create_whole(&f.dir.join("control-create.jsonl"), b"control\n");
+        }),
+        Box::new(|| {
+            let _ = write_appending(&f.dir.join("imports.jsonl"), b"");
+        }),
+        Box::new(|| {
             let _ = register(
                 &f.store(),
                 "chirality-project:probe",
@@ -662,4 +693,28 @@ fn records_store_import_gate_status_mutation_control_detects_even_unchanged_byte
     }
     // The guard is reset even after panic; a real writer still re-proves.
     assert!(write_dir(&f.root).is_ok());
+}
+
+fn assert_completed_import_with_refused_history(shown: &Value, gate: &Result<PathBuf, String>) {
+    let project = &shown["project"];
+    assert_eq!(project["notImported"], 1, "{shown}");
+    assert_eq!(project["importNeeded"], false, "{shown}");
+    assert_eq!(project["reading"], "records store", "{shown}");
+    assert!(
+        project["notes"].as_array().unwrap().iter().any(|n| n
+            .as_str()
+            .is_some_and(|n| n.contains(".chirality/captures/refused.json")
+                && n.contains("not overwritten")
+                && n.contains("it is not read"))),
+        "{shown}"
+    );
+    assert!(gate.is_ok(), "{gate:?}");
+}
+
+#[test]
+fn records_store_import_gate_status_completed_import_keeps_refused_history() {
+    let f = StatusCase::new("admit imported refused");
+    let shown = status(Some(&f.root));
+    let gate = write_dir(&f.root);
+    assert_completed_import_with_refused_history(&shown, &gate);
 }

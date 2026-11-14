@@ -5,6 +5,8 @@
 //! capture (HOSTING §12 O-1 "Rust envelope core"; AAC §6.2 under R17-5). The
 //! webview only reads snapshots and asks the host to act.
 
+#[cfg(test)]
+mod records_effect_guard;
 pub mod access;
 // A test build only (build.rs sets this cfg and refuses it with the release feature).
 #[cfg(chirality_scripted_driver)] mod scripted_driver;

@@ -140,6 +140,8 @@ impl Drop for CustodyOwnership {
     }
 }
 fn owning_lock(path: &Path, create: bool) -> Result<CustodyOwnership, String> {
+    #[cfg(test)]
+    if create { crate::records_effect_guard::mutation_for_test("attachment_custody::owning_lock"); }
     storage::check_path(path)?;
     if create {
         storage::ensure_directory(path.parent().ok_or("lock parent absent")?)?;

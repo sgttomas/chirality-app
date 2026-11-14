@@ -265,6 +265,8 @@ mod platform {
         })
     }
     fn open_at(parent: &File, name: &OsStr, flags: i32) -> Result<File> {
+        #[cfg(test)]
+        if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("connector_route_store::platform::open_at"); }
         #[cfg(test)] INSPECTION_AUDIT.with(|a|{if let Some(v)=a.borrow_mut().as_mut(){v.push(format!("open:{}",name.to_string_lossy()));}});
         let name = CString::new(name.as_bytes())
             .map_err(|_| StoreError::new(ErrorKind::InvalidInput, "NUL in component"))?;
@@ -295,9 +297,13 @@ mod platform {
             .map_err(|e| ioerr("open resolved project", e))
     }
     fn sync(file: &File, context: &str) -> Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::sync");
         file.sync_all().map_err(|e| ioerr(context, e))
     }
     fn child(parent: &File, name: &str, create: bool) -> Result<File> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::child");
         if create {
             let n = CString::new(name).unwrap();
             let rc = unsafe { libc::mkdirat(parent.as_raw_fd(), n.as_ptr(), 0o700) };
@@ -318,6 +324,8 @@ mod platform {
         Ok(dir)
     }
     fn publish(dir: &File, temporary: &str, target: &str) -> std::io::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::publish");
         let from = CString::new(temporary).unwrap();
         let to = CString::new(target).unwrap();
         // Atomic destination exclusion, but source is still a mutable name.
@@ -1032,6 +1040,8 @@ mod platform {
             mut hook: impl FnMut(Stage) -> Result<()>,
             publisher: impl FnOnce(&File, &str, &str) -> std::io::Result<()>,
         ) -> Result<BoundReference> {
+            #[cfg(test)]
+            crate::records_effect_guard::mutation_for_test("connector_route_store::platform::ProjectRouteStore::write_using");
             validate_account(account)?;
             let name = format!("{key}.json");
             if !canonical_name(&name) {
